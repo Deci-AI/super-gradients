@@ -123,18 +123,19 @@ jobs:
     resource_class: small
     steps:
      - checkout
+     - deci-common/get_persisted_version_info
      - setup_remote_docker:
           version: 20.10.7
           docker_layer_caching: true
      - deci-common/container_image_build:
            dockerfile: scripts/Dockerfile
            repository_name: << parameters.repo_name >>
-           image_tag: "<< parameters.version >>"
-           build_args: 'VERSION=<< parameters.version >>'
+           image_tag: "${NEW_VERSION}"
+           build_args: 'VERSION=${CIRCLE_TAG}'
            extra_flags: ' --compress'
      - deci-common/push_docker_image_aws_dev:
            repository_name: << parameters.repo_name >>
-           image_tag: "<< parameters.version >>"
+           image_tag: "${NEW_VERSION}"
            additional_tags: "latest"
 
   retag_beta_to_rc_docker:
@@ -317,7 +318,10 @@ workflows:
 
   SG_docker:
      jobs:
+       - deci-common/persist_version_info
        - build_and_publish_beta:
+           requires:
+             - "deci-common/persist_version_info"
            <<: *release_candidate_filter
        - testing_supergradients_docker_image:
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
