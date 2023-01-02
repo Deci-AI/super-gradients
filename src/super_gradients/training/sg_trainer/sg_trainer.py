@@ -1618,12 +1618,9 @@ class Trainer:
         # IN CASE SG_LOGGER UPDATED THE DIR PATH
         self.checkpoints_dir_path = self.sg_logger.local_dir()
         hyper_param_config = self._get_hyper_param_config()
-
-        self.sg_logger.add_config("hyper_params", hyper_param_config)
         if additional_configs_to_log is not None:
-            for additional_logging_title in additional_configs_to_log.keys():
-                self.sg_logger.add_config(additional_logging_title, additional_configs_to_log[additional_logging_title])
-
+            hyper_param_config["additional_configs_to_log"] = additional_configs_to_log
+        self.sg_logger.add_config("hyper_params", hyper_param_config)
         self.sg_logger.flush()
 
     def _get_hyper_param_config(self):
