@@ -140,7 +140,9 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
-
+      - run:
+          name: verify __version__
+          command: python3 tests/verify_version.py $CIRCLE_TAG
       - run:
           name: add requirements.txt and requirements.pro.txt to source code
           command: |
