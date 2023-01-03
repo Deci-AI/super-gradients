@@ -1,10 +1,10 @@
 """
 Example code for running SuperGradient's recipes.
 
-General use: python train_from_recipe.py --config-name="DESIRED_RECIPE".
-For recipe's specific instructions and details refer to the recipe's configuration file in the recipes directory.
+General use: python convert_recipe_example.py --config-name="DESIRED_RECIPE'S_CONVERSION_PARAMS".
+
+Note: conversion_params yaml file should reside under super_gradients/recipes/conversion_params
 """
-from pathlib import Path
 
 from omegaconf import DictConfig
 import hydra
@@ -12,30 +12,14 @@ import pkg_resources
 from super_gradients.training import models
 from super_gradients import init_trainer
 from omegaconf import OmegaConf
-from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
-from super_gradients.training.utils.hydra_utils import load_experiment_cfg
+from super_gradients.training.models.conversion import prepare_conversion_cfgs
 from super_gradients.training.utils.sg_trainer_utils import parse_args
-
-logger = get_logger(__name__)
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes.conversion_params", ""), version_base="1.2")
 def main(cfg: DictConfig) -> None:
     # INSTANTIATE ALL OBJECTS IN CFG
-    cfg = hydra.utils.instantiate(cfg)
-    experiment_cfg = load_experiment_cfg(cfg.experiment_name, cfg.ckpt_root_dir)
-    hydra.utils.instantiate(experiment_cfg)
-
-    if cfg.checkpoint_path is None:
-        logger.info(
-            "checkpoint_params.checkpoint_path was not provided, so the model will be converted using weights from "
-            "checkpoints_dir/training_hyperparams.ckpt_name "
-        )
-        checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-        cfg.checkpoint_path = str(checkpoints_dir / cfg.ckpt_name)
-
-    logger.info(f"Exporting checkpoint: {cfg.checkpoint_path} to ONNX.")
+    cfg, experiment_cfg = prepare_conversion_cfgs(cfg)
 
     # BUILD NETWORK
     model = models.get(

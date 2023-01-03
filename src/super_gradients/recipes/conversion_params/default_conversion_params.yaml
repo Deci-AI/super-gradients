@@ -12,4 +12,4 @@ input_shape: # input shape, not including batch_size (i.e (3, 224, 224))
 pre_process: # Preprocessing pipeline, will be resolved by TransformsFactory()
 post_process: # Postprocessing pipeline, will be resolved by TransformsFactory()
 prep_model_for_conversion_kwargs: # For SgModules, args to be passed to model.prep_model_for_conversion prior to torch.onnx.export call.
-torch_onnx_export_kwarg: # kwargs (EXCLUDING: FIRST 3 KWARGS- MODEL, F, ARGS). to be unpacked in torch.onnx.export call
+torch_onnx_export_kwargs: # kwargs (EXCLUDING: FIRST 3 KWARGS- MODEL, F, ARGS). to be unpacked in torch.onnx.export call

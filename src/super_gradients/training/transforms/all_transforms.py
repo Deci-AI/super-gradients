@@ -25,6 +25,7 @@ from super_gradients.training.transforms.transforms import (
     DetectionTargetsFormat,
     DetectionPaddedRescale,
     DetectionTargetsFormatTransform,
+    Standarize,
 )
 from torchvision.transforms import (
     Compose,
@@ -123,6 +124,7 @@ TRANSFORMS = {
     Transforms.RandomAdjustSharpness: RandomAdjustSharpness,
     Transforms.RandomAutocontrast: RandomAutocontrast,
     Transforms.RandomEqualize: RandomEqualize,
+    Transforms.Standarize: Standarize,
 }
 logger = get_logger(__name__)
 

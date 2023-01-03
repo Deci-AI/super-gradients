@@ -1,8 +1,18 @@
+from pathlib import Path
+
+import hydra
 import torch
+from omegaconf import DictConfig
 from pandas import np
 from torch.nn import Identity
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
+from super_gradients.training.utils.hydra_utils import load_experiment_cfg
+
+logger = get_logger(__name__)
 
 
 class ConvertableCompletePipelineModel(torch.nn.Module):
@@ -41,3 +51,27 @@ def convert_to_onnx(
 
     torch.onnx.export(model=complete_model, args=onnx_input, f=out_path, **torch_onnx_export_kwargs)
     return out_path
+
+
+def prepare_conversion_cfgs(cfg: DictConfig):
+    """
+    Builds the cfg (i.e conversion_params) and experiment_cfg (i.e recipe config according to cfg.experiment_name)
+     to be used by convert_recipe_example
+
+    :param cfg: DictConfig, converion_params config
+    :return: cfg, experiment_cfg
+    """
+    cfg = hydra.utils.instantiate(cfg)
+    # CREATE THE EXPERIMENT CFG
+    experiment_cfg = load_experiment_cfg(cfg.experiment_name, cfg.ckpt_root_dir)
+    hydra.utils.instantiate(experiment_cfg)
+    if cfg.checkpoint_path is None:
+        logger.info(
+            "checkpoint_params.checkpoint_path was not provided, so the model will be converted using weights from "
+            "checkpoints_dir/training_hyperparams.ckpt_name "
+        )
+        checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
+        cfg.checkpoint_path = str(checkpoints_dir / cfg.ckpt_name)
+    cfg.out_path = cfg.out_path or cfg.checkpoint_path.replace(".ckpt", ".onnx")
+    logger.info(f"Exporting checkpoint: {cfg.checkpoint_path} to ONNX.")
+    return cfg, experiment_cfg
