@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 
 class AbstarctSegmentationStructureLoss(_Loss, ABC):
     """
-    Abstract computation of structure loss between two tensors, It can support both multi-classes and binary tasks.
+    Abstract computation of structure loss between two tensors, It can support both multi-class_ids and binary tasks.
     """
 
     def __init__(
@@ -34,7 +34,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
         :param eps: epsilon value to avoid inf.
         :param reduce_over_batches: Whether to average metric over the batch axis if set True,
-         default is `False` to average over the classes axis.
+         default is `False` to average over the class_ids axis.
         :param generalized_metric: Whether to apply normalization by the volume of each class.
         :param weight: a manual rescaling weight given to each class. If given, it has to be a Tensor of size `C`.
         :param reduction: Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
@@ -52,7 +52,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
         self.generalized_metric = generalized_metric
         self.weight = weight
         if self.generalized_metric:
-            assert self.weight is None, "Cannot use structured Loss with weight classes and generalized normalization"
+            assert self.weight is None, "Cannot use structured Loss with weight class_ids and generalized normalization"
             if self.eps > 1e-12:
                 logger.warning("When using GeneralizedLoss, it is recommended to use eps below 1e-12, to not affect" "small values normalized terms.")
             if self.smooth != 0:
@@ -61,7 +61,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
     @abstractmethod
     def _calc_numerator_denominator(self, labels_one_hot, predict) -> (torch.Tensor, torch.Tensor):
         """
-        All base classes must implement this function.
+        All base class_ids must implement this function.
         Return: 2 tensor of shape [BS, num_classes, img_width, img_height].
         """
         raise NotImplementedError()
@@ -69,7 +69,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
     @abstractmethod
     def _calc_loss(self, numerator, denominator) -> torch.Tensor:
         """
-        All base classes must implement this function.
+        All base class_ids must implement this function.
         Return a tensors of shape [BS] if self.reduce_over_batches else [num_classes].
         """
         raise NotImplementedError()
@@ -110,7 +110,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
 
         if self.generalized_metric:
             weights = 1.0 / (torch.sum(labels_one_hot, dim=reduce_dims) ** 2)
-            # if some classes are not in batch, weights will be inf.
+            # if some class_ids are not in batch, weights will be inf.
             infs = torch.isinf(weights)
             weights[infs] = 0.0
             numerator *= weights

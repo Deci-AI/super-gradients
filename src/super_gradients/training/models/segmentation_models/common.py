@@ -16,7 +16,7 @@ class SegmentationHead(nn.Module):
 
     def replace_num_classes(self, num_classes: int):
         """
-        This method replace the last Conv Classification layer to output a different number of classes.
+        This method replace the last Conv Classification layer to output a different number of class_ids.
         Note that the weights of the new layers are random initiated.
         """
         old_cls_conv = self.seg_head[-1]

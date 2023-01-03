@@ -106,7 +106,7 @@ class YoloXDetectionLoss(_Loss):
 
     Attributes:
         strides: list: List of Yolo levels output grid sizes (i.e [8, 16, 32]).
-        num_classes: int: Number of classes.
+        num_classes: int: Number of class_ids.
         use_l1: bool: Controls the L_l1 Coef as discussed above (default=False).
         center_sampling_radius: float: Sampling radius used for center sampling when creating the fg mask (default=2.5).
         iou_type: str: Iou loss type, one of ["iou","giou"] (deafult="iou").
@@ -415,8 +415,8 @@ class YoloXDetectionLoss(_Loss):
         :param num_gt: int: Number of ground trunth targets in the image.
         :param total_num_anchors: int: Total number of possible bboxes = sum of all grid cells.
         :param gt_bboxes_per_image: torch.Tensor: Tensor of gt bboxes for  the image, shape: (num_gt, 4).
-        :param gt_classes: torch.Tesnor: Tensor of the classes in the image, shape: (num_preds,4).
-        :param bboxes_preds_per_image: Tensor of the classes in the image, shape: (num_preds).
+        :param gt_classes: torch.Tesnor: Tensor of the class_ids in the image, shape: (num_preds,4).
+        :param bboxes_preds_per_image: Tensor of the class_ids in the image, shape: (num_preds).
         :param expanded_strides: torch.Tensor: Stride of the output grid the prediction is coming from,
             shape (1 x num_cells x 1).
         :param x_shifts: torch.Tensor: X's in cell coordinates, shape (1,num_cells,1).
@@ -566,7 +566,7 @@ class YoloXDetectionLoss(_Loss):
         :param num_gt:          number of GTs
 
         :return num_fg, (number of foregrounds)
-                gt_matched_classes, (the classes that have been matched with fgs)
+                gt_matched_classes, (the class_ids that have been matched with fgs)
                 pred_ious_this_matching
                 matched_gt_inds
         """

@@ -83,7 +83,7 @@ class DetectionOutputAdapter(nn.Module):
     >>>        '''
     >>>        Describe the semantics of the model's output. In this example model's output consists of
     >>>         - Bounding boxes in XYXY format [4]
-    >>>         - Predicted probas of N classes [N]
+    >>>         - Predicted probas of N class_ids [N]
     >>>         - A distance predictions [1]
     >>>         - K additional labels [K]
     >>>        '''

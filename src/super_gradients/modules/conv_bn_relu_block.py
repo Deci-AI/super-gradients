@@ -11,7 +11,7 @@ class ConvBNReLU(ConvBNAct):
         `use_normalization=False`, to exclude Relu activation use `use_activation=False`.
 
     It exists to keep backward compatibility and will be superseeded by ConvBNAct in future releases.
-    For new classes please use ConvBNAct instead.
+    For new class_ids please use ConvBNAct instead.
 
     For convolution arguments documentation see `nn.Conv2d`.
     For batchnorm arguments documentation see `nn.BatchNorm2d`.

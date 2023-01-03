@@ -16,7 +16,7 @@ class CityscapesDataset(SegmentationDataSet):
     CityscapesDataset - Segmentation Data Set Class for Cityscapes Segmentation Data Set,
     main resolution of dataset: (2048 x 1024).
     Not all the original labels are used for training and evaluation, according to cityscape paper:
-    "Classes that are too rare are excluded from our benchmark, leaving 19 classes for evaluation".
+    "Classes that are too rare are excluded from our benchmark, leaving 19 class_ids for evaluation".
     For more details about the dataset labels format see:
     https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/helpers/labels.py
 

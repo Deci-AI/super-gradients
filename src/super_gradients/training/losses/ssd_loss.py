@@ -152,7 +152,7 @@ class SSDLoss(_Loss):
         Compute the loss
             :param predictions - predictions tensor coming from the network,
             tuple with shapes ([Batch Size, 4, num_dboxes], [Batch Size, num_classes + 1, num_dboxes])
-            were predictions have logprobs for background and other classes
+            were predictions have logprobs for background and other class_ids
             :param targets - targets for the batch. [num targets, 6] (index in batch, label, x,y,w,h)
         """
         if isinstance(predictions, tuple) and isinstance(predictions[1], tuple):

@@ -186,7 +186,7 @@ class WrongHydraVersionTip(CrashTip):
         return [tip]
 
 
-# /!\ Only the CrashTips classes listed below will be used !! /!\
+# /!\ Only the CrashTips class_ids listed below will be used !! /!\
 ALL_CRASH_TIPS: List[Type[CrashTip]] = [TorchCudaMissingTip, RecipeFactoryFormatTip, DDPNotInitializedTip, WrongHydraVersionTip]
 
 

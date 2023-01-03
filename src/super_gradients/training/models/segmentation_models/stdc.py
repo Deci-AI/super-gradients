@@ -384,7 +384,7 @@ class STDCSegmentationBase(SgModule):
     """
     Base STDC Segmentation Module.
     :param backbone: Backbone of type AbstractSTDCBackbone that return info about backbone output channels.
-    :param num_classes: num of dataset classes, exclude ignore label.
+    :param num_classes: num of dataset class_ids, exclude ignore label.
     :param context_fuse_channels: num of output channels in ContextPath ARM feature fusion.
     :param ffm_channels: num of output channels of Feature Fusion Module.
     :param aux_head_channels: Num of hidden channels in Auxiliary segmentation heads.

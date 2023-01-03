@@ -1,4 +1,4 @@
-# Shelfnet34_lw recipe for COCO segmentation 21 classes from PASCAL.
+# Shelfnet34_lw recipe for COCO segmentation 21 class_ids from PASCAL.
 # Reaches ~65.1 mIOU
 # Trained using 4 X 2080 Ti using DDP- takes ~ 2d 7h with batch size of 8 and batch accumulate of 3 (i.e effective batch
 # size is 4*8*3 = 96)

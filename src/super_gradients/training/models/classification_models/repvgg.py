@@ -31,7 +31,7 @@ class RepVGG(SgModule):
     ):
         """
         :param struct: list containing number of blocks per repvgg stage
-        :param num_classes: number of classes if nut in backbone mode
+        :param num_classes: number of class_ids if nut in backbone mode
         :param width_multiplier: list of per stage width multiplier or float if using single value for all stages
         :param build_residual_branches: whether to add residual connections or not
         :param use_se: use squeeze and excitation layers

@@ -6,7 +6,7 @@ import numpy as np
 from pycocotools.coco import COCO
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_USED_CLASSES
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
@@ -34,7 +34,7 @@ class COCODetectionDataset(DetectionDataset):
         :param with_crowd: Add the crowd groundtruths to __getitem__
 
         kwargs:
-            all_classes_list: all classes list, default is COCO_DETECTION_CLASSES_LIST.
+            all_classes_list: all class_ids list, default is COCO_DETECTION_USED_CLASSES.
         """
         self.subdir = subdir
         self.json_file = json_file
@@ -45,18 +45,18 @@ class COCODetectionDataset(DetectionDataset):
         kwargs["target_fields"] = target_fields
         kwargs["output_fields"] = ["image", *target_fields]
         kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
-        kwargs["all_classes_list"] = kwargs.get("all_classes_list") or COCO_DETECTION_CLASSES_LIST
+        kwargs["all_classes_list"] = kwargs.get("all_classes_list") or COCO_DETECTION_USED_CLASSES.cls_labels
         super().__init__(*args, **kwargs)
 
         if len(self.original_classes) != len(self.all_classes_list):
             if set(self.all_classes_list).issubset(set(self.original_classes)):
                 raise ParameterMismatchException(
-                    "Parameter `all_classes_list` contains a subset of classes from dataset JSON. "
-                    "Please use `class_inclusion_list` to train with reduced number of classes",
+                    "Parameter `all_classes_list` contains a subset of class_ids from dataset JSON. "
+                    "Please use `class_inclusion_list` to train with reduced number of class_ids",
                 )
             else:
                 raise DatasetValidationException(
-                    "Number of classes in dataset JSON do not match with number of classes in all_classes_list parameter. "
+                    "Number of class_ids in dataset JSON do not match with number of class_ids in all_classes_list parameter. "
                     "Most likely this indicates an error in your all_classes_list parameter"
                 )
 
@@ -103,42 +103,12 @@ class COCODetectionDataset(DetectionDataset):
         img_annotation_ids = self.coco.getAnnIds(imgIds=[int(img_id)])
         img_annotations = self.coco.loadAnns(img_annotation_ids)
 
-        cleaned_annotations = []
-        for annotation in img_annotations:
-            x1 = np.max((0, annotation["bbox"][0]))
-            y1 = np.max((0, annotation["bbox"][1]))
-            x2 = np.min((width, x1 + np.max((0, annotation["bbox"][2]))))
-            y2 = np.min((height, y1 + np.max((0, annotation["bbox"][3]))))
-            if annotation["area"] > 0 and x2 >= x1 and y2 >= y1:
-                annotation["clean_bbox"] = [x1, y1, x2, y2]
-                cleaned_annotations.append(annotation)
+        non_crowd_annotations = [annotation for annotation in img_annotations if annotation["iscrowd"] == 0]
+        crowd_annotations = [annotation for annotation in img_annotations if annotation["iscrowd"] == 1]
 
-        non_crowd_annotations = [annotation for annotation in cleaned_annotations if annotation["iscrowd"] == 0]
-
-        target = np.zeros((len(non_crowd_annotations), 5))
-        num_seg_values = 98 if self.tight_box_rotation else 0
-        target_segmentation = np.ones((len(non_crowd_annotations), num_seg_values))
-        target_segmentation.fill(np.nan)
-        for ix, annotation in enumerate(non_crowd_annotations):
-            cls = self.class_ids.index(annotation["category_id"])
-            target[ix, 0:4] = annotation["clean_bbox"]
-            target[ix, 4] = cls
-            if self.tight_box_rotation:
-                seg_points = [j for i in annotation.get("segmentation", []) for j in i]
-                if seg_points:
-                    seg_points_c = np.array(seg_points).reshape((-1, 2)).astype(np.int)
-                    seg_points_convex = cv2.convexHull(seg_points_c).ravel()
-                else:
-                    seg_points_convex = []
-                target_segmentation[ix, : len(seg_points_convex)] = seg_points_convex
-
-        crowd_annotations = [annotation for annotation in cleaned_annotations if annotation["iscrowd"] == 1]
-
-        crowd_target = np.zeros((len(crowd_annotations), 5))
-        for ix, annotation in enumerate(crowd_annotations):
-            cls = self.class_ids.index(annotation["category_id"])
-            crowd_target[ix, 0:4] = annotation["clean_bbox"]
-            crowd_target[ix, 4] = cls
+        target = parse_coco_target(non_crowd_annotations)
+        crowd_target = parse_coco_target(crowd_annotations)
+        target_segmentation = parse_coco_segmentation(non_crowd_annotations, self.tight_box_rotation)
 
         r = min(self.input_dim[0] / height, self.input_dim[1] / width)
         target[:, :4] *= r
@@ -181,3 +151,39 @@ def remove_useless_info(coco, use_seg_info=False):
         if "annotations" in coco.dataset and not use_seg_info:
             for anno in coco.dataset["annotations"]:
                 anno.pop("segmentation", None)
+
+
+def parse_coco_target(img_annotations: dict) -> np.ndarray:
+    class_ids = COCO_DETECTION_USED_CLASSES.cls_idx
+
+    cleaned_annotations = []
+    for ix, annotation in enumerate(img_annotations):
+        xmin, ymin, w, h = annotation["bbox"]
+        xmax, ymax = xmin + w, ymin + h
+        if annotation["area"] > 0 and xmax >= xmin and ymax >= ymin:
+            annotation["clean_bbox"] = [xmin, ymin, xmax, ymax]
+            cleaned_annotations.append(annotation)
+
+    target = np.zeros((len(cleaned_annotations), 5))
+    for ix, annotation in enumerate(cleaned_annotations):
+        target[ix, 0:4] = annotation["clean_bbox"]
+        cls_id = annotation["category_id"]
+        target[ix, 4] = class_ids.index(cls_id)
+
+    return target
+
+
+def parse_coco_segmentation(img_annotations: dict, tight_box_rotation: bool) -> np.ndarray:
+    num_seg_values = 98 if tight_box_rotation else 0
+    target_segmentation = np.ones((len(img_annotations), num_seg_values))
+    target_segmentation.fill(np.nan)
+    for ix, annotation in enumerate(img_annotations):
+        if tight_box_rotation:
+            seg_points = [j for i in annotation.get("segmentation", []) for j in i]
+            if seg_points:
+                seg_points_c = np.array(seg_points).reshape((-1, 2)).astype(np.int)
+                seg_points_convex = cv2.convexHull(seg_points_c).ravel()
+            else:
+                seg_points_convex = []
+            target_segmentation[ix, : len(seg_points_convex)] = seg_points_convex
+    return target_segmentation

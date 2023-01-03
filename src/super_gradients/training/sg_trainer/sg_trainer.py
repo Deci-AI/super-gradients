@@ -708,7 +708,7 @@ class Trainer:
                     where the computed loss is the sum of a few components we would like to log- these entries in
                     loss_items).
 
-                    IMPORTANT:When dealing with external loss classes, to logg/monitor the loss_items as described
+                    IMPORTANT:When dealing with external loss class_ids, to logg/monitor the loss_items as described
                     above by specific string name:
 
                     Set a "component_names" property in the loss class, whos instance is passed through train_params,
@@ -1376,7 +1376,7 @@ class Trainer:
         """
         if "num_classes" not in arch_params.keys():
             if self.dataset_interface is None:
-                raise Exception("Error", "Number of classes not defined in arch params and dataset is not defined")
+                raise Exception("Error", "Number of class_ids not defined in arch params and dataset is not defined")
             else:
                 arch_params["num_classes"] = len(self.classes)
 

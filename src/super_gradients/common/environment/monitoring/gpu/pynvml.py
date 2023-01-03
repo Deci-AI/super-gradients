@@ -676,7 +676,7 @@ def nvmlExceptionClass(nvmlErrorCode):
 
 def _extractNVMLErrorsAsClasses():
     """
-    Generates a hierarchy of classes on top of NVMLError class.
+    Generates a hierarchy of class_ids on top of NVMLError class.
 
     Each NVML Error gets a new NVMLError subclass. This way try,except blocks can filter appropriate
     exceptions more easily.

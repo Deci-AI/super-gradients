@@ -263,7 +263,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_p
         box = convert_xywh_bbox_to_xyxy(pred[:, :4])  # xywh to xyxy
 
         # Detections matrix nx6 (xyxy, conf, cls)
-        if multi_label_per_box:  # try for all good confidence classes
+        if multi_label_per_box:  # try for all good confidence class_ids
             i, j = (pred[:, 5:] > conf_thres).nonzero(as_tuple=False).T
             pred = torch.cat((box[i], pred[i, j + 5, None], j[:, None].float()), 1)
 
@@ -286,7 +286,7 @@ def matrix_non_max_suppression(pred, conf_thres: float = 0.1, kernel: str = "gau
     """Performs Matrix Non-Maximum Suppression (NMS) on inference results
         https://arxiv.org/pdf/1912.04488.pdf
         :param pred: raw model prediction (in test mode) - a Tensor of shape [batch, num_predictions, 85]
-        where each item format is (x, y, w, h, object_conf, class_conf, ... 80 classes score ...)
+        where each item format is (x, y, w, h, object_conf, class_conf, ... 80 class_ids score ...)
         :param conf_thres: below the confidence threshold - prediction are discarded
         :param kernel: type of kernel to use ['gaussian', 'linear']
         :param sigma: sigma for the gussian kernel
@@ -480,7 +480,7 @@ class DetectionVisualization:
         """
         A helper function to visualize detections predicted by a network:
         saves images into a given path with a name that is {batch_name}_{imade_idx_in_the_batch}.jpg, one batch per call.
-        Colors are generated on the fly: uniformly sampled from color wheel to support all given classes.
+        Colors are generated on the fly: uniformly sampled from color wheel to support all given class_ids.
 
         Adjustable:
             * Ground truth box transparency;
@@ -494,7 +494,7 @@ class DetectionVisualization:
                                         (coordinates scaled to [0, 1])
         :param batch_name:              id of the current batch to use for image naming
 
-        :param class_names:             names of all classes, each on its own index
+        :param class_names:             names of all class_ids, each on its own index
         :param checkpoint_dir:          a path where images with boxes will be saved. if None, the result images will
                                         be returns as a list of numpy image arrays
 
@@ -985,7 +985,7 @@ def compute_detection_metrics(
 
     :return:
         :ap, precision, recall, f1: Tensors of shape (n_class, nb_iou_thrs)
-        :unique_classes:            Vector with all unique target classes
+        :unique_classes:            Vector with all unique target class_ids
     """
     preds_matched, preds_to_ignore = preds_matched.to(device), preds_to_ignore.to(device)
     preds_scores, preds_cls, targets_cls = preds_scores.to(device), preds_cls.to(device), targets_cls.to(device)
