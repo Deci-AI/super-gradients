@@ -3,7 +3,7 @@ from pathlib import Path
 import hydra
 import torch
 from omegaconf import DictConfig
-from pandas import np
+import numpy as np
 from torch.nn import Identity
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
