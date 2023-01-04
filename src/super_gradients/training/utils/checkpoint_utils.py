@@ -138,7 +138,7 @@ def copy_ckpt_to_local_folder(
 
 def read_ckpt_state_dict(ckpt_path: str, device="cpu"):
     if not os.path.exists(ckpt_path):
-        raise ValueError("Incorrect Checkpoint path")
+        raise FileNotFoundError(f"Incorrect Checkpoint path: {ckpt_path} (This should be an absolute path)")
 
     if device == "cuda":
         state_dict = torch.load(ckpt_path)

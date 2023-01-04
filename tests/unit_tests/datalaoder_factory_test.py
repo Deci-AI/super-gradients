@@ -1,7 +1,8 @@
 import unittest
 
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, RandomSampler
 
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.dataloaders.dataloaders import (
     classification_test_dataloader,
     detection_test_dataloader,
@@ -45,13 +46,25 @@ from super_gradients.training.dataloaders.dataloaders import (
 from super_gradients.training.datasets import (
     COCODetectionDataset,
     ImageNetDataset,
-    PascalAUG2012SegmentationDataSet,
     PascalVOC2012SegmentationDataSet,
     SuperviselyPersonsDataset,
     PascalVOCDetectionDataset,
     Cifar10,
     Cifar100,
+    PascalVOCAndAUGUnifiedDataset,
 )
+import torch
+import numpy as np
+
+from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PascalVOCUnifiedDetectionTrainDataset
+
+
+@register_dataset("FixedLenDataset")
+class FixedLenDataset(TensorDataset):
+    def __init__(self):
+        images = torch.Tensor(np.zeros((10, 3, 32, 32)))
+        ground_truth = torch.LongTensor(np.zeros((10)))
+        super(FixedLenDataset, self).__init__(images, ground_truth)
 
 
 class DataLoaderFactoryTest(unittest.TestCase):
@@ -59,6 +72,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl_train = coco2017_train()
         self.assertTrue(isinstance(dl_train, DataLoader))
         self.assertTrue(isinstance(dl_train.dataset, COCODetectionDataset))
+        self.assertTrue(dl_train.batch_sampler.sampler._shuffle)
 
     def test_coco2017_val_creation(self):
         dl_val = coco2017_val()
@@ -69,6 +83,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl_train = coco2017_train_ssd_lite_mobilenet_v2()
         self.assertTrue(isinstance(dl_train, DataLoader))
         self.assertTrue(isinstance(dl_train.dataset, COCODetectionDataset))
+        self.assertTrue(dl_train.batch_sampler.sampler._shuffle)
 
     def test_coco2017_val_ssdlite_mobilenet_creation(self):
         dl_train = coco2017_val_ssd_lite_mobilenet_v2()
@@ -79,6 +94,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = imagenet_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_imagenet_val_creation(self):
         dl = imagenet_val()
@@ -89,6 +105,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = imagenet_efficientnet_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_imagenet_efficientnet_val_creation(self):
         dl = imagenet_efficientnet_val()
@@ -99,6 +116,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = imagenet_mobilenetv2_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_imagenet_mobilenetv2_val_creation(self):
         dl = imagenet_mobilenetv2_val()
@@ -109,6 +127,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = imagenet_mobilenetv3_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_imagenet_mobilenetv3_val_creation(self):
         dl = imagenet_mobilenetv3_val()
@@ -119,6 +138,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = imagenet_regnetY_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_imagenet_regnetY_val_creation(self):
         dl = imagenet_regnetY_val()
@@ -129,6 +149,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = imagenet_resnet50_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_imagenet_resnet50_val_creation(self):
         dl = imagenet_resnet50_val()
@@ -140,6 +161,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = imagenet_resnet50_kd_train(dataloader_params={"sampler": {"InfiniteSampler": {}}})
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
+        self.assertTrue(dl.sampler._shuffle)
 
     def test_imagenet_resnet50_kd_val_creation(self):
         dl = imagenet_resnet50_kd_val()
@@ -150,6 +172,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = imagenet_vit_base_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_imagenet_vit_base_val_creation(self):
         dl = imagenet_vit_base_val()
@@ -170,6 +193,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl_train = cifar10_train()
         self.assertTrue(isinstance(dl_train, DataLoader))
         self.assertTrue(isinstance(dl_train.dataset, Cifar10))
+        self.assertTrue(isinstance(dl_train.sampler, RandomSampler))
 
     def test_cifar10_val_creation(self):
         dl_val = cifar10_val()
@@ -180,6 +204,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl_train = cifar100_train()
         self.assertTrue(isinstance(dl_train, DataLoader))
         self.assertTrue(isinstance(dl_train.dataset, Cifar100))
+        self.assertTrue(isinstance(dl_train.sampler, RandomSampler))
 
     def test_cifar100_val_creation(self):
         dl_val = cifar100_val()
@@ -204,17 +229,19 @@ class DataLoaderFactoryTest(unittest.TestCase):
     def test_pascal_aug_segmentation_train_creation(self):
         dl = pascal_aug_segmentation_train()
         self.assertTrue(isinstance(dl, DataLoader))
-        self.assertTrue(isinstance(dl.dataset, PascalAUG2012SegmentationDataSet))
+        self.assertTrue(isinstance(dl.dataset, PascalVOCAndAUGUnifiedDataset))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_pascal_aug_segmentation_val_creation(self):
         dl = pascal_aug_segmentation_val()
         self.assertTrue(isinstance(dl, DataLoader))
-        self.assertTrue(isinstance(dl.dataset, PascalAUG2012SegmentationDataSet))
+        self.assertTrue(isinstance(dl.dataset, PascalVOC2012SegmentationDataSet))
 
     def test_pascal_voc_segmentation_train_creation(self):
         dl = pascal_voc_segmentation_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, PascalVOC2012SegmentationDataSet))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_pascal_voc_segmentation_val_creation(self):
         dl = pascal_voc_segmentation_val()
@@ -225,6 +252,7 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = supervisely_persons_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, SuperviselyPersonsDataset))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_supervisely_persons_val_dataloader_creation(self):
         dl = supervisely_persons_val()
@@ -234,7 +262,8 @@ class DataLoaderFactoryTest(unittest.TestCase):
     def test_pascal_voc_train_creation(self):
         dl = pascal_voc_detection_train()
         self.assertTrue(isinstance(dl, DataLoader))
-        self.assertTrue(isinstance(dl.dataset, PascalVOCDetectionDataset))
+        self.assertTrue(isinstance(dl.dataset, PascalVOCUnifiedDetectionTrainDataset))
+        self.assertTrue(dl.batch_sampler.sampler._shuffle)
 
     def test_pascal_voc_val_creation(self):
         dl = pascal_voc_detection_val()
@@ -243,8 +272,14 @@ class DataLoaderFactoryTest(unittest.TestCase):
 
     def test_get_with_external_dataset_creation(self):
         dataset = Cifar10(root="./data/cifar10", train=False, download=True)
-        dl = get(dataset=dataset, dataloader_params={"batch_size": 256, "num_workers": 8, "drop_last": False, "pin_memory": True})
+        dl = get(dataset=dataset, dataloader_params={"batch_size": 256, "num_workers": 8, "drop_last": False, "pin_memory": True, "shuffle": True})
         self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
+
+    def test_get_with_registered_dataset(self):
+        dl = get(dataloader_params={"dataset": "FixedLenDataset", "batch_size": 256, "num_workers": 8, "drop_last": False, "pin_memory": True, "shuffle": True})
+        self.assertTrue(isinstance(dl.dataset, FixedLenDataset))
+        self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
 
 if __name__ == "__main__":

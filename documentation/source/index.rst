@@ -23,8 +23,6 @@ Welcome to SuperGradients's documentation!
 .. :maxdepth: 4
 .. :caption: User Guide
 
-.. user_guide
-
 Indices and tables
 ==================
 
