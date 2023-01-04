@@ -15,7 +15,19 @@ logger = get_logger(__name__)
 
 
 class COCODetectionDataset(DetectionDataset):
-    """Dataset for COCO object detection."""
+    """Dataset for COCO object detection. You can download here: https://cocodataset.org/#download
+
+    Expected structure:
+    ├── annotations
+    ├── images
+    │   ├── train2017
+    │   │   ├─ 000000000001.jpg
+    │   │   └─ ...
+    │   └── val2017
+    └── labels
+        ├── train2017
+        └── val2017
+    """
 
     def __init__(
         self,

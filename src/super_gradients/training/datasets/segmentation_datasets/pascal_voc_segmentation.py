@@ -37,7 +37,22 @@ PASCAL_VOC_2012_CLASSES = [
 
 class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
     """
-    PascalVOC2012SegmentationDataSet - Segmentation Data Set Class for Pascal VOC 2012 Data Set
+    PascalVOC2012SegmentationDataSet - Segmentation Data Set Class for Pascal VOC 2012 Data Set.
+    Download here: http://host.robots.ox.ac.uk/pascal/VOC/
+
+    Expected Structure:
+    VOCdevkit
+      └──VOC2012
+         ├──JPEGImages
+         ├──SegmentationClass
+         ├──ImageSets
+         │    ├──Segmentation
+         │    │   └── train.txt
+         │    ├──Main
+         │    ├──Action
+         │    └──Layout
+         ├──Annotations
+         └──SegmentationObject
     """
 
     IGNORE_LABEL = 21
@@ -140,6 +155,15 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
 class PascalAUG2012SegmentationDataSet(PascalVOC2012SegmentationDataSet):
     """
     PascalAUG2012SegmentationDataSet - Segmentation Data Set Class for Pascal AUG 2012 Data Set
+    Download here: http://host.robots.ox.ac.uk/pascal/VOC/
+
+    Dataset Structure:
+    VOCaug
+        ├── aug.txt
+        └── dataset
+              ├──inst
+              ├──img
+              └──cls
     """
 
     def __init__(self, *args, **kwargs):
@@ -165,6 +189,27 @@ class PascalVOCAndAUGUnifiedDataset(ConcatDataset):
     This is class implement the common usage of the SBD and PascalVOC datasets as a unified augmented trainset.
     The unified dataset includes a total of 10,582 samples and don't contains duplicate samples from the PascalVOC
     validation set.
+    Download here: http://host.robots.ox.ac.uk/pascal/VOC/
+
+    Dataset Structure:
+    ├─VOCdevkit
+    │ └──VOC2012
+    │    ├──JPEGImages
+    │    ├──SegmentationClass
+    │    ├──ImageSets
+    │    │    ├──Segmentation
+    │    │    │   └── train.txt
+    │    │    ├──Main
+    │    │    ├──Action
+    │    │    └──Layout
+    │    ├──Annotations
+    │    └──SegmentationObject
+    └──VOCaug
+        ├── aug.txt
+        └── dataset
+              ├──inst
+              ├──img
+              └──cls
     """
 
     def __init__(self, **kwargs):
