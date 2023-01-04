@@ -9,7 +9,7 @@ import os
 
 class TestModelsONNXExport(unittest.TestCase):
     def test_models_onnx_export(self):
-        pretrained_model = models.get("resnet18", arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
+        pretrained_model = models.get("resnet18", num_classes=1000, pretrained_weights="imagenet")
         preprocess = Compose([Resize(224), Standarize(), Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
         with tempfile.TemporaryDirectory() as tmpdirname:
             out_path = os.path.join(tmpdirname, "resnet18.onnx")
