@@ -1,17 +1,17 @@
-import torch
 import random
-
+from typing import Callable, Dict, Tuple, Any
 import numpy as np
 
+from torch.utils.data.dataset import Dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLASSES_LIST
 
 
-class CustomDataset(torch.utils.data.dataset.Dataset):
+class CustomDataset(Dataset):
     """Proxy dataset to wrap __getitem__"""
 
-    def __init__(self, dataset, transforms, input_adapters, columns):
+    def __init__(self, dataset, transforms, input_adapters: Dict[str, Callable], columns: Tuple[str]):
         self.dataset = dataset
         self.transforms = transforms
         self.input_adapters = input_adapters
@@ -34,10 +34,10 @@ class CustomDataset(torch.utils.data.dataset.Dataset):
                 sample = transform(sample=sample)
         return tuple(sample[col] for col in self.columns)
 
-    def _tuple_to_dict(self, items: tuple):
+    def _tuple_to_dict(self, items: Tuple[Any]) -> Dict[str, Any]:
         return {col: val for col, val in zip(self.columns, items)}
 
-    def _adapt_inputs(self, items):
+    def _adapt_inputs(self, items: Tuple[Any]) -> Dict[str, np.ndarray]:
         sample = self._tuple_to_dict(items)
         for col, adapter in self.input_adapters.items():
             if adapter:
