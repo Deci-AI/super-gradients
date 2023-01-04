@@ -9,9 +9,16 @@ from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLAS
 
 
 class CustomDataset(Dataset):
-    """Proxy dataset to wrap __getitem__"""
+    """Wrap any dataset to be support SG transforms."""
 
     def __init__(self, dataset, transforms, input_adapters: Dict[str, Callable], columns: Tuple[str]):
+        """
+
+        :param dataset:
+        :param transforms:
+        :param input_adapters: Dictionary of adapters, that takes every column from dataset.__getitem__ and converts them to np.ndarray
+        :param columns:
+        """
         self.dataset = dataset
         self.transforms = transforms
         self.input_adapters = input_adapters
