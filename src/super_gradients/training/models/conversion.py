@@ -9,8 +9,10 @@ from torch.nn import Identity
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.training import models
 from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg
+from super_gradients.training.utils.sg_trainer_utils import parse_args
 
 logger = get_logger(__name__)
 
@@ -99,3 +101,26 @@ def prepare_conversion_cfgs(cfg: DictConfig):
     cfg.out_path = cfg.out_path or cfg.checkpoint_path.replace(".ckpt", ".onnx")
     logger.info(f"Exporting checkpoint: {cfg.checkpoint_path} to ONNX.")
     return cfg, experiment_cfg
+
+
+def convert_from_config(cfg: DictConfig) -> str:
+    """
+    Exports model according to cfg.
+
+    See:
+     super_gradients/recipes/conversion_params/default_conversion_params.yaml for the full cfg content documentation,
+     and super_gradients/examples/convert_recipe_example/convert_recipe_example.py for usage.
+    :param cfg:
+    :return: out_path, the path of the saved .onnx file.
+    """
+    cfg, experiment_cfg = prepare_conversion_cfgs(cfg)
+    model = models.get(
+        model_name=experiment_cfg.architecture,
+        num_classes=experiment_cfg.arch_params.num_classes,
+        arch_params=experiment_cfg.arch_params,
+        strict_load=cfg.strict_load,
+        checkpoint_path=cfg.checkpoint_path,
+    )
+    cfg = parse_args(cfg, models.convert_to_onnx)
+    out_path = models.convert_to_onnx(model=model, **cfg)
+    return out_path
