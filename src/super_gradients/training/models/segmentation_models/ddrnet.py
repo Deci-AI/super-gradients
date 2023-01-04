@@ -260,7 +260,7 @@ class DDRNet(SgModule):
         :param backbone: the low resolution branch of DDR, expected to have specific attributes in the class
         :param additional_layers: list of num blocks for the highres stage and layer5
         :param upscale_module: upscale to use in the backbone (DAPPM and Segmentation head are using bilinear interpolation)
-        :param num_classes: number of class_ids
+        :param num_classes: number of classes
         :param highres_planes: number of channels in the high resolution net
         :param aux_head: add a second segmentation head (fed from after compress3 + upscale). this head can be used
         during training (see paper https://arxiv.org/pdf/2101.06085.pdf for details)

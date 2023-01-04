@@ -27,7 +27,7 @@ def mixup_target(target: torch.Tensor, num_classes: int, lam: float = 1.0, smoot
     """
     generate a smooth target (label) two-hot tensor to support the mixed images with different labels
     :param target: the targets tensor
-    :param num_classes: number of class_ids (to set the final tensor size)
+    :param num_classes: number of classes (to set the final tensor size)
     :param lam: percentage of label a range [0, 1] in the mixing
     :param smoothing: the smoothing multiplier
     :param device: usable device ['cuda', 'cpu']
@@ -128,7 +128,7 @@ class CollateMixup:
         :param mode: how to apply mixup/cutmix params (per 'batch', 'pair' (pair of elements), 'elem' (element)
         :param correct_lam: apply lambda correction when cutmix bbox clipped by image borders
         :param label_smoothing: apply label smoothing to the mixed target tensor
-        :param num_classes: number of class_ids for target
+        :param num_classes: number of classes for target
         """
         self.mixup_alpha = mixup_alpha
         self.cutmix_alpha = cutmix_alpha

@@ -90,9 +90,9 @@ class DetectionDataset(Dataset):
         :param cache_dir:              Path to the directory where cached images will be stored in an optimized format.
         :param transforms:              List of transforms to apply sequentially on sample.
         :param all_classes_list:        All the class names.
-        :param class_inclusion_list:    If not None, define the subset of class_ids to be included as targets.
+        :param class_inclusion_list:    If not None, define the subset of classes to be included as targets.
                                         Classes not in this list will excluded from training.
-                                        Thus, number of class_ids in model must be adjusted accordingly.
+                                        Thus, number of classes in model must be adjusted accordingly.
         :param ignore_empty_annotations:        If True and class_inclusion_list not None, images without any target
                                                 will be ignored.
         :param target_fields:                   List of the fields target fields. This has to include regular target,
@@ -188,7 +188,7 @@ class DetectionDataset(Dataset):
 
         if len(annotations) == 0:
             raise EmptyDatasetException(
-                f"Out of {self.n_available_samples} images, not a single one was found with" f"any of these class_ids: {self.class_inclusion_list}"
+                f"Out of {self.n_available_samples} images, not a single one was found with" f"any of these classes: {self.class_inclusion_list}"
             )
         return annotations
 

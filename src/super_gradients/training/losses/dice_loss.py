@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 class DiceLoss(AbstarctSegmentationStructureLoss):
     """
-    Compute average Dice loss between two tensors, It can support both multi-class_ids and binary tasks.
+    Compute average Dice loss between two tensors, It can support both multi-classes and binary tasks.
     Defined in the paper: "V-Net: Fully Convolutional Neural Networks for Volumetric Medical Image Segmentation"
     """
 
@@ -93,7 +93,7 @@ class GeneralizedDiceLoss(DiceLoss):
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
         :param eps: epsilon value to avoid inf.
         :param reduce_over_batches: Whether to apply reduction over the batch axis if set True,
-         default is `False` to average over the class_ids axis.
+         default is `False` to average over the classes axis.
         :param reduction: Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
             `none`: no reduction will be applied.
             `mean`: the sum of the output will be divided by the number of elements in the output.

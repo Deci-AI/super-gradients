@@ -95,7 +95,7 @@ class Decoder(nn.Module):
             by skip_expansion as follows: `num_channels = skip_channels * skip_expansion
         :param decoder_scale: num_channels width ratio between encoder stages and decoder stages.
         :param min_decoder_channels: The minimum num_channels of decoder stages. Useful i.e if we want to keep the width
-            above the num of class_ids. The num_channels of a decoder stage is determined as follows:
+            above the num of classes. The num_channels of a decoder stage is determined as follows:
                 `decoder_channels = max(encoder_channels * decoder_scale, min_decoder_channels)`
         :param up_block_types: list of AbstractUpFuseBlock.
         :param is_skip_list: List of flags whether to use feature-map from encoder stage as skip connection or not. Used

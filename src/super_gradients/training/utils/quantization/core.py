@@ -48,7 +48,7 @@ def _from_float(cls, float_instance, ignore_init_args: Set[str] = (), **kwargs):
 
 class SGQuantMixin(nn.Module):
     """
-    A base class for user custom Quantized class_ids.
+    A base class for user custom Quantized classes.
     Every Quantized class must inherit this mixin, which adds `from_float` class-method.
     NOTES:
         * the Quantized class may also inherit from the native `QuantMixin` or `QuantInputMixin`
@@ -168,7 +168,7 @@ class QuantizedMapping(nn.Module):
 
 def _inject_class_methods_to_default_quant_types():
     """
-    This is used to add `from_float` capability for the "native" pytorch-quantization (=nvidia-tensorrt) quant class_ids
+    This is used to add `from_float` capability for the "native" pytorch-quantization (=nvidia-tensorrt) quant classes
     It allows SG to support these modules out of the box
     """
     import pytorch_quantization.quant_modules

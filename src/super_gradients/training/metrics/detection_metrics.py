@@ -18,7 +18,7 @@ class DetectionMetrics(Metric):
 
     Attributes:
 
-         num_cls:                  Number of class_ids.
+         num_cls:                  Number of classes.
          post_prediction_callback: DetectionPostPredictionCallback to be applied on net's output prior
                                    to the metric computation (NMS).
          normalize_targets:        Whether to normalize bbox coordinates by image size (default=False).
@@ -134,11 +134,11 @@ class DetectionMetrics(Metric):
                 device="cpu" if self.accumulate_on_cpu else self.device,
             )
 
-            # Precision, recall and f1 are computed for IoU threshold range, averaged over class_ids
+            # Precision, recall and f1 are computed for IoU threshold range, averaged over classes
             # results before version 3.0.4 (Dec 11 2022) were computed only for smallest value (i.e IoU 0.5 if metric is @0.5:0.95)
             mean_precision, mean_recall, mean_f1 = precision.mean(), recall.mean(), f1.mean()
 
-            # MaP is averaged over IoU thresholds and over class_ids
+            # MaP is averaged over IoU thresholds and over classes
             mean_ap = ap.mean()
 
         return {

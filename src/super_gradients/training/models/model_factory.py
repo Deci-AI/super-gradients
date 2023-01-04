@@ -84,7 +84,7 @@ def instantiate_model(
 
     :param model_name:          Define the model's architecture from models/ALL_ARCHITECTURES
     :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
-    :param num_classes:         Number of class_ids (defines the net's structure).
+    :param num_classes:         Number of classes (defines the net's structure).
                                     If None is given, will try to derrive from pretrained_weight's corresponding dataset.
     :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent")
     :param download_required_code: if model is not found in SG and is downloaded from a remote client, overriding this parameter with False
@@ -149,7 +149,7 @@ def get(
     """
     :param model_name:          Defines the model's architecture from models/ALL_ARCHITECTURES
     :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
-    :param num_classes:         Number of class_ids (defines the net's structure).
+    :param num_classes:         Number of classes (defines the net's structure).
                                     If None is given, will try to derrive from pretrained_weight's corresponding dataset.
     :param strict_load:         See super_gradients.common.data_types.enum.strict_load.StrictLoad class documentation for details
                                     (default=NO_KEY_MATCHING to suport SG trained checkpoints)

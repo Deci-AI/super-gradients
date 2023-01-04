@@ -412,7 +412,7 @@ class DatasetStatisticsTensorboardLogger:
         :param dataset_params: the dataset parameters
         :param title: the title for this dataset (i.e. Coco 2017 test set)
         :param anchors: the list of anchors used by the model. applicable only for detection datasets
-        :param all_classes: the list of all class_ids names
+        :param all_classes: the list of all classes names
         """
         # FIXME: UNCOMMENT AND APPLY TO NEW DetectionDataSet ONCE ITS MERGED
         # if isinstance(data_loader.dataset, DetectionDataSet):
@@ -428,7 +428,7 @@ class DatasetStatisticsTensorboardLogger:
 
         :param data_loader: the dataset data loader
         :param dataset_params: the dataset parameters
-        :param all_classes: the list of all class_ids names
+        :param all_classes: the list of all classes names
         :param title: the title for this dataset (i.e. Coco 2017 test set)
         :param anchors: the list of anchors used by the model. if not provided, anchors coverage will not be analyzed
         """

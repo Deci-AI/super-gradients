@@ -11,7 +11,7 @@ from typing import Union, Tuple
 class DetailAggregateModule(nn.Module):
     """
     DetailAggregateModule to create ground-truth spatial details map. Given ground-truth segmentation masks and using
-     laplacian kernels this module create feature-maps with special attention to class_ids edges aka details.
+     laplacian kernels this module create feature-maps with special attention to classes edges aka details.
     """
 
     _LAPLACIAN_KERNEL = [-1, -1, -1, -1, 8, -1, -1, -1, -1]

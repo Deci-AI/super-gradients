@@ -26,7 +26,7 @@ OPTIMIZERS_DEFAULT_PARAMS = {
 def separate_zero_wd_params_groups_for_optimizer(module: nn.Module, net_named_params, weight_decay: float):
     """
     separate param groups for batchnorm and biases and others with weight decay. return list of param groups in format
-     required by torch Optimizer class_ids.
+     required by torch Optimizer classes.
     bias + BN with weight decay=0 and the rest with the given weight decay
         :param module: train net module.
         :param net_named_params: list of params groups, output of SgModule.initialize_param_groups

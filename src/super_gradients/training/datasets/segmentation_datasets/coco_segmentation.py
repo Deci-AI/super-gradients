@@ -107,8 +107,8 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
     def _sub_dataset_creation(self, sub_dataset_image_ids_file_path) -> list:
         """
         _sub_dataset_creation - This method creates the segmentation annotations for coco using
-                                self._generate_segmentation_mask that uses the sub-class_ids inclusion tuple to keep only
-                                the annotations that are relevant to the sub-class_ids selected when instantiating the class
+                                self._generate_segmentation_mask that uses the sub-classes inclusion tuple to keep only
+                                the annotations that are relevant to the sub-classes selected when instantiating the class
             :param  sub_dataset_image_ids_file_path: The path to save the sub-dataset in for future loading
             :return:            All of the ids with enough pixel data after the sub-classing
         """

@@ -40,7 +40,7 @@ def to_one_hot(target: torch.Tensor, num_classes: int, ignore_index: int = None)
     """
     Target label to one_hot tensor. labels and ignore_index must be consecutive numbers.
     :param target: Class labels long tensor, with shape [N, H, W]
-    :param num_classes: num of class_ids in datasets excluding ignore label, this is the output channels of the one hot
+    :param num_classes: num of classes in datasets excluding ignore label, this is the output channels of the one hot
         result.
     :return: one hot tensor with shape [N, num_classes, H, W]
     """
@@ -105,7 +105,7 @@ class BinarySegmentationVisualization:
         """
         A helper function to visualize detections predicted by a network:
         saves images into a given path with a name that is {batch_name}_{imade_idx_in_the_batch}.jpg, one batch per call.
-        Colors are generated on the fly: uniformly sampled from color wheel to support all given class_ids.
+        Colors are generated on the fly: uniformly sampled from color wheel to support all given classes.
 
         :param image_tensor:            rgb images, (B, H, W, 3)
         :param pred_boxes:              boxes after NMS for each image in a batch, each (Num_boxes, 6),
@@ -195,7 +195,7 @@ def target_to_binary_edge(target: torch.Tensor, num_classes: int, kernel_size: i
     """
     Utils function to create edge feature maps from target.
     :param target: Class labels long tensor, with shape [N, H, W]
-    :param num_classes: num of class_ids in datasets excluding ignore label, this is the output channels of the one hot
+    :param num_classes: num of classes in datasets excluding ignore label, this is the output channels of the one hot
         result.
     :param kernel_size: kernel size of dilation erosion convolutions. The result edge widths depends on this argument as
         follows: `edge_width = kernel - 1`

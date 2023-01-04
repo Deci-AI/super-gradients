@@ -35,7 +35,7 @@ decoder_params:
   align_corners: False
   up_factor: 2
   is_skip_list: [True, True, True, True]    # List of flags whether to use feature-map from encoder stage as skip connection or not.
-  min_decoder_channels: 1                   # The minimum num_channels of decoder stages. Useful i.e if we want to keep the width above the num of class_ids.
+  min_decoder_channels: 1                   # The minimum num_channels of decoder stages. Useful i.e if we want to keep the width above the num of classes.
 
 dropout: 0.
 final_upsample_factor: 2    # Final upsample scale factor after the segmentation head.

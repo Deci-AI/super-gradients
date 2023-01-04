@@ -115,8 +115,8 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
     ):
         """
         Predictions of SSD contain unnormalized probabilities for a background class,
-        together with confidences for all the dataset class_ids. Background will be utilized and discarded,
-        so this callback will return 0-based class_ids without background
+        together with confidences for all the dataset classes. Background will be utilized and discarded,
+        so this callback will return 0-based classes without background
         :param conf: confidence threshold
         :param iou: IoU threshold
         :param classes: (optional list) filter by class

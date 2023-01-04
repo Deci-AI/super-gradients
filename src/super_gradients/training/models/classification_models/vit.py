@@ -138,7 +138,7 @@ class ViT(SgModule):
         """
         :param image_size: Image size tuple for data processing into patches done within the model.
         :param patch_size: Patch size tuple for data processing into patches done within the model.
-        :param num_classes: Number of class_ids for the classification head.
+        :param num_classes: Number of classes for the classification head.
         :param hidden_dim: Output dimension of each transformer block.
         :param depth: Number of transformer blocks
         :param heads: Number of attention heads

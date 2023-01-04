@@ -81,4 +81,4 @@ class UndefinedNumClassesException(KDModelException):
     """
 
     def __init__(self):
-        super().__init__("Number of class_ids must be defined in students and teachers arch params or by connecting to a dataset interface")
+        super().__init__("Number of classes must be defined in students and teachers arch params or by connecting to a dataset interface")

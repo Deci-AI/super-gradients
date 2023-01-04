@@ -30,7 +30,7 @@ class UNetBase(SegmentationModule):
         dropout: float,
     ):
         """
-        :param num_classes: num class_ids to predict.
+        :param num_classes: num classes to predict.
         :param use_aux_heads: Whether to use auxiliary heads.
         :param final_upsample_factor: Final upsample scale factor after the segmentation head.
         :param head_hidden_channels: num channels before the last classification layer. see `mid_channels` in

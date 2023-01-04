@@ -668,7 +668,6 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
         _ = dataloader_params.pop("dataset")
 
     if dataset is not None:
-        dataloader_params = dataloader_params if dataloader_params else {}
         dataloader_params = _process_sampler_params(dataloader_params, dataset, {})
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
     elif name not in ALL_DATALOADERS.keys():

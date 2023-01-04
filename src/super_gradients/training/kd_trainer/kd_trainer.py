@@ -119,7 +119,7 @@ class KDTrainer(Trainer):
             teacher_pretrained_num_classes = PRETRAINED_NUM_CLASSES[teacher_pretrained_weights]
             if teacher_pretrained_num_classes != teacher_arch_params["num_classes"]:
                 raise InconsistentParamsException(
-                    "Pretrained dataset number of class_ids", "teacher's arch params", "number of class_ids", "student's number of class_ids"
+                    "Pretrained dataset number of classes", "teacher's arch params", "number of classes", "student's number of classes"
                 )
 
         teacher_checkpoint_path = get_param(checkpoint_params, "teacher_checkpoint_path")

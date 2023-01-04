@@ -3,7 +3,7 @@ anchors:
   anchors_list: [[10, 13, 16, 30, 33, 23],[30, 61, 62, 45, 59, 119],[116, 90, 156, 198, 373, 326]]
   strides: [8, 16, 32]
 
-num_classes: 80  # Number of class_ids to predict
+num_classes: 80  # Number of classes to predict
 depth_mult_factor: 1.0  # depth multiplier for the entire model, overridden for predefined YoloV5S, YoloV5M, YoloV5L
 width_mult_factor: 1.0  # width multiplier for the entire model, overridden for predefined YoloV5S, YoloV5M, YoloV5L
 channels_in: 3  # Number of channels in the input image

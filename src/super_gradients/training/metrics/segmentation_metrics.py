@@ -52,7 +52,7 @@ def pixel_accuracy(im_pred, im_lab):
     im_pred = np.asarray(im_pred)
     im_lab = np.asarray(im_lab)
 
-    # Remove class_ids from unlabeled pixels in gt image.
+    # Remove classes from unlabeled pixels in gt image.
     # We should not penalize detections in unlabeled portions of the image.
     pixel_labeled = np.sum(im_lab > 0)
     pixel_correct = np.sum((im_pred == im_lab) * (im_lab > 0))
@@ -71,7 +71,7 @@ def _dice_from_confmat(
 
     Args:
         confmat: Confusion matrix without normalization
-        num_classes: Number of class_ids for a given prediction and target tensor
+        num_classes: Number of classes for a given prediction and target tensor
         ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method.
         absent_score: score to use for an individual class, if no instances of the class index were present in `pred`
@@ -108,7 +108,7 @@ def _dice_from_confmat(
 def intersection_and_union(im_pred, im_lab, num_class):
     im_pred = np.asarray(im_pred)
     im_lab = np.asarray(im_lab)
-    # Remove class_ids from unlabeled pixels in gt image.
+    # Remove classes from unlabeled pixels in gt image.
     im_pred = im_pred * (im_lab > 0)
     # Compute area intersection:
     intersection = im_pred * (im_pred == im_lab)
@@ -128,7 +128,7 @@ class AbstractMetricsArgsPrepFn(ABC):
     @abstractmethod
     def __call__(self, preds, target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        All base class_ids must implement this function and return a tuple of torch tensors (predictions, target).
+        All base classes must implement this function and return a tuple of torch tensors (predictions, target).
         """
         raise NotImplementedError()
 

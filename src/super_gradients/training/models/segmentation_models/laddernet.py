@@ -66,8 +66,8 @@ class LadderResNet(nn.Module):
         Class for the residual block. Options are BasicBlockV1, BottleneckV1.
     layers : list of int
         Numbers of layers in each block
-    class_ids : int, default 1000
-        Number of classification class_ids.
+    classes : int, default 1000
+        Number of classification classes.
     dilated : bool, default False
         Applying dilation strategy to pretrained ResNet yielding a stride-8 model,
         typically used in Semantic Segmentation.

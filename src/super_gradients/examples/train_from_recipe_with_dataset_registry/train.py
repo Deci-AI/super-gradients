@@ -15,7 +15,7 @@ import hydra
 import pkg_resources
 from super_gradients import Trainer, init_trainer
 
-# Import the user object class_ids to trigger the registry
+# Import the user object classes to trigger the registry
 
 # fmt: off
 from super_gradients.examples.train_from_recipe_with_dataset_registry.user_dataset import MnistDataset  # noqa: F401

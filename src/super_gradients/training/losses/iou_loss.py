@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 class IoULoss(AbstarctSegmentationStructureLoss):
     """
-    Compute average IoU loss between two tensors, It can support both multi-class_ids and binary tasks.
+    Compute average IoU loss between two tensors, It can support both multi-classes and binary tasks.
     """
 
     def _calc_numerator_denominator(self, labels_one_hot, predict):
@@ -90,7 +90,7 @@ class GeneralizedIoULoss(IoULoss):
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
         :param eps: epsilon value to avoid inf.
         :param reduce_over_batches: Whether to apply reduction over the batch axis if set True,
-         default is `False` to average over the class_ids axis.
+         default is `False` to average over the classes axis.
         :param reduction: Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
             `none`: no reduction will be applied.
             `mean`: the sum of the output will be divided by the number of elements in the output.

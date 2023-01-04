@@ -20,7 +20,7 @@ ANCHORSLESS_DUMMY_ANCHORS = Anchors([[0, 0], [0, 0], [0, 0]], strides=[8, 16, 32
 
 
 DEFAULT_YOLO_ARCH_PARAMS = {
-    "num_classes": 80,  # Number of class_ids to predict
+    "num_classes": 80,  # Number of classes to predict
     "depth_mult_factor": 1.0,  # depth multiplier for the entire model
     "width_mult_factor": 1.0,  # width multiplier for the entire model
     "channels_in": 3,  # Number of channels in the input image

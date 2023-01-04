@@ -78,7 +78,7 @@ class DenseNet(SgModule):
         :param bn_size:             multiplicative factor for the number of bottle neck layers
                                         (i.e. bn_size * k featurs in the bottleneck)
         :param drop_rate:           dropout rate after each dense layer
-        :param num_classes:         number of class_ids in the classification task
+        :param num_classes:         number of classes in the classification task
         """
         super(DenseNet, self).__init__()
 
