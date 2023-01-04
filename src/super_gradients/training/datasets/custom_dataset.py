@@ -9,15 +9,21 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLASSES_LIST
 
 
+import torch.utils.data.dataset
+import torchvision.transforms as T
+
+
 class CustomDataset(Dataset):
     """Wrap any dataset to support SG transforms."""
 
-    def __init__(self, dataset, transforms: List[Transform], input_adapters: Dict[str, Callable[[Any], np.ndarray]], fields: Sequence[str]):
+    def __init__(self, dataset, transforms: List[Transform], fields: Sequence[str], input_adapters: Dict[str, Callable[[Any], np.ndarray]] = None):
         """
-        :param dataset:
-        :param transforms:
+        :param dataset:         Dataset to wrap.
+        :param transforms:      Transforms
         :param input_adapters:  Dictionary of adapters, that takes every field from dataset.__getitem__ and converts them to np.ndarray
-        :param fields:         fields
+        :param fields:          Name of the output fields of the dataset.
+                                    - The order should match the output of the wrapped dataset
+                                    - The names should match the fields used in the transform ("image", "target", "mask", ...)
         """
         self.dataset = dataset
         self.transforms = transforms
@@ -39,17 +45,18 @@ class CustomDataset(Dataset):
         """Transform the dataset output items into a dictionary of np.ndarray.
         This is required in order to apply SG transforms on the dataset items."""
         sample = tuple_to_dict(self.fields, items)
-        for field, adapter in self.input_adapters.items():
+        for field in self.fields:
+            adapter = self.input_adapters.get(field)
             if adapter:
                 sample[field] = adapter(sample[field])
-            if not isinstance(sample[field], np.ndarray):
-                if adapter:
-                    raise TypeError(f"The output of your {field} adapter is {type(sample[field])} when it should be np.ndarray.")
-                else:
-                    raise TypeError(
-                        f"The output of the field {field} of your dataset is {type(sample[field])} when it should be np.ndarray."
-                        f"Feel free to add an adapter function into input_adapters[{field}] so that it returns np.ndarray."
-                    )
+            # if not isinstance(sample[field], np.ndarray):
+            #     if adapter:
+            #         raise TypeError(f"The output of your {field} adapter is {type(sample[field])} when it should be np.ndarray.")
+            #     else:
+            #         raise TypeError(
+            #             f"The output of the field {field} of your dataset is {type(sample[field])} when it should be np.ndarray."
+            #             f"Feel free to add an adapter function into input_adapters[{field}] so that it returns np.ndarray."
+            #         )
         return sample
 
     def _apply_transforms(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
@@ -96,7 +103,31 @@ def wrap_detection_dataset(dataset, transforms, image_adapter=None, target_adapt
     :return:
     """
     adapters = {"image": image_adapter, "target": target_adapter}
-    return CustomDataset(dataset=dataset, transforms=transforms, input_adapters=adapters, fields=adapters.keys())
+    return CustomDataset(dataset=dataset, transforms=transforms, input_adapters=adapters, fields=list(adapters.keys()))
+
+
+@resolve_param("transforms", factory=TransformsFactory())
+def wrap_segmentation_dataset(dataset, transforms):
+    import numpy as np
+
+    def process_target(target):
+        target = torch.from_numpy(np.array(target)).long()
+        target[target == 255] = 19
+        return target
+
+    class TransformDict:
+        def __init__(self, transforms: dict):
+            self.transforms = transforms
+
+        def __call__(self, sample):
+            for col, col_transform in self.transforms.items():
+                sample[col] = col_transform(sample[col])
+            return sample
+
+    custom_transform = TransformDict({"image": T.Compose([T.ToTensor(), T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]), "mask": process_target})
+
+    transforms += [custom_transform]
+    return CustomDataset(dataset=dataset, transforms=transforms, input_adapters={}, fields=("image", "mask"))
 
 
 def parse_pascal_target(img_annotations: dict) -> np.ndarray:
