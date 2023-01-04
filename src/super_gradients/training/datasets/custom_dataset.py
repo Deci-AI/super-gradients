@@ -1,36 +1,58 @@
 import random
-from typing import Callable, Dict, Tuple, Any
+from typing import Callable, Dict, Tuple, Any, List, Sequence
 import numpy as np
 
 from torch.utils.data.dataset import Dataset
+from super_gradients.training.transforms.transforms import Transform
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLASSES_LIST
 
 
 class CustomDataset(Dataset):
-    """Wrap any dataset to be support SG transforms."""
+    """Wrap any dataset to support SG transforms."""
 
-    def __init__(self, dataset, transforms, input_adapters: Dict[str, Callable], columns: Tuple[str]):
+    def __init__(self, dataset, transforms: List[Transform], input_adapters: Dict[str, Callable[[Any], np.ndarray]], fields: Sequence[str]):
         """
-
         :param dataset:
         :param transforms:
-        :param input_adapters: Dictionary of adapters, that takes every column from dataset.__getitem__ and converts them to np.ndarray
-        :param columns:
+        :param input_adapters:  Dictionary of adapters, that takes every field from dataset.__getitem__ and converts them to np.ndarray
+        :param fields:         fields
         """
         self.dataset = dataset
         self.transforms = transforms
         self.input_adapters = input_adapters
-        self.columns = columns
+        self.fields = fields
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Tuple[Any]) -> Tuple[np.ndarray]:
+        """Wraps the original dataset and apply SG transform over it."""
         items = self.dataset[item]
-        if len(items) != len(self.columns):
-            raise RuntimeError(f"The dataset {self.dataset.__name__} is expected to return {len(self.columns)} items, but instead returns {len(items)}")
+        if len(items) != len(self.fields):
+            raise RuntimeError(f"The dataset {self.dataset.__name__} is expected to return {len(self.fields)} items, but instead returns {len(items)}")
 
         sample = self._adapt_inputs(items)
+        sample = self._apply_transforms(sample)
 
+        return tuple(sample[field] for field in self.fields)
+
+    def _adapt_inputs(self, items: Tuple[Any]) -> Dict[str, np.ndarray]:
+        """Transform the dataset output items into a dictionary of np.ndarray.
+        This is required in order to apply SG transforms on the dataset items."""
+        sample = tuple_to_dict(self.fields, items)
+        for field, adapter in self.input_adapters.items():
+            if adapter:
+                sample[field] = adapter(sample[field])
+            if not isinstance(sample[field], np.ndarray):
+                if adapter:
+                    raise TypeError(f"The output of your {field} adapter is {type(sample[field])} when it should be np.ndarray.")
+                else:
+                    raise TypeError(
+                        f"The output of the field {field} of your dataset is {type(sample[field])} when it should be np.ndarray."
+                        f"Feel free to add an adapter function into input_adapters[{field}] so that it returns np.ndarray."
+                    )
+        return sample
+
+    def _apply_transforms(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         for transform in self.transforms:
             if hasattr(transform, "additional_samples_count"):
                 # Get raw samples, but without any Transform
@@ -39,28 +61,14 @@ class CustomDataset(Dataset):
                 sample = transform(sample={**sample, "additional_samples": additional_samples})
             else:
                 sample = transform(sample=sample)
-        return tuple(sample[col] for col in self.columns)
-
-    def _tuple_to_dict(self, items: Tuple[Any]) -> Dict[str, Any]:
-        return {col: val for col, val in zip(self.columns, items)}
-
-    def _adapt_inputs(self, items: Tuple[Any]) -> Dict[str, np.ndarray]:
-        sample = self._tuple_to_dict(items)
-        for col, adapter in self.input_adapters.items():
-            if adapter:
-                sample[col] = adapter(sample[col])
-            if not isinstance(sample[col], np.ndarray):
-                if adapter:
-                    raise TypeError(f"The output of your {col} adapter is {type(sample[col])} when it should be np.ndarray.")
-                else:
-                    raise TypeError(
-                        f"The output of the column {col} of your dataset is {type(sample[col])} when it should be np.ndarray."
-                        f"Feel free to add an adapter function into input_adapters[{col}] so that it returns np.ndarray."
-                    )
         return sample
 
     def __len__(self):
         return len(self.dataset)
+
+
+def tuple_to_dict(fields: Sequence[str], items: Tuple[Any]) -> Dict[str, Any]:
+    return {field: val for field, val in zip(fields, items)}
 
 
 def get_random_sample(dataset):
@@ -88,7 +96,7 @@ def wrap_detection_dataset(dataset, transforms, image_adapter=None, target_adapt
     :return:
     """
     adapters = {"image": image_adapter, "target": target_adapter}
-    return CustomDataset(dataset=dataset, transforms=transforms, input_adapters=adapters, columns=adapters.keys())
+    return CustomDataset(dataset=dataset, transforms=transforms, input_adapters=adapters, fields=adapters.keys())
 
 
 def parse_pascal_target(img_annotations: dict) -> np.ndarray:

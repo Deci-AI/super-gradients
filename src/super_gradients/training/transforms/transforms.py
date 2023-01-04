@@ -16,12 +16,17 @@ mask_resample = Image.NEAREST
 logger = get_logger(__name__)
 
 
-class SegmentationTransform:
+class Transform:
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
 
     def __repr__(self):
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
+
+
+class SegmentationTransform(Transform):
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
 
 
 class SegResize(SegmentationTransform):
@@ -335,7 +340,7 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
     return fill_mask, fill_image
 
 
-class DetectionTransform:
+class DetectionTransform(Transform):
     """
     Detection transform base class.
 
@@ -359,11 +364,8 @@ class DetectionTransform:
         self.additional_samples_count = additional_samples_count
         self.non_empty_targets = non_empty_targets
 
-    def __call__(self, sample: Union[dict, list]):
+    def __call__(self, *args, **kwargs):
         raise NotImplementedError
-
-    def __repr__(self):
-        return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
 
 class DetectionMosaic(DetectionTransform):
