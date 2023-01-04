@@ -7,7 +7,7 @@ checkpoint_path:
 strict_load: no_key_matching # See super_gradients/common/data_types/enum/strict_load.py
 
 # CONVERSION RELATED PARAMS
-out_path: # str, Destination path for the .onnx file.
+out_path: # str, Destination path for the .onnx file. When None- will be set to the checkpoint_path.replace(".ckpt",".onnx").
 input_shape: # input shape, not including batch_size (i.e (3, 224, 224))
 pre_process: # Preprocessing pipeline, will be resolved by TransformsFactory()
 post_process: # Postprocessing pipeline, will be resolved by TransformsFactory()

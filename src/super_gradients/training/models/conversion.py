@@ -16,6 +16,16 @@ logger = get_logger(__name__)
 
 
 class ConvertableCompletePipelineModel(torch.nn.Module):
+    """
+    Exportable nn.Module that wraps the model, preprocessing and postprocessing.
+    Args:
+        model: torch.nn.Module, the main model. takes input from pre_process' output, and feeds pre_process.
+        pre_process: torch.nn.Module, preprocessing module, its output will be model's input. When none (default), set to Identity().
+        pre_process: torch.nn.Module, postprocessing module, its output is the final output. When none (default), set to Identity().
+        **prep_model_for_conversion_kwargs: for SgModules- args to be passed to model.prep_model_for_conversion
+            prior to torch.onnx.export call.
+    """
+
     def __init__(self, model: torch.nn.Module, pre_process: torch.nn.Module = None, post_process: torch.nn.Module = None, **prep_model_for_conversion_kwargs):
         super(ConvertableCompletePipelineModel, self).__init__()
         model.eval()
@@ -31,8 +41,8 @@ class ConvertableCompletePipelineModel(torch.nn.Module):
         return self.post_process(self.model(self.pre_process(x)))
 
 
-@resolve_param("pre_procss", TransformsFactory())
-@resolve_param("post_procss", TransformsFactory())
+@resolve_param("pre_process", TransformsFactory())
+@resolve_param("post_process", TransformsFactory())
 def convert_to_onnx(
     model: torch.nn.Module,
     out_path: str,
@@ -42,6 +52,20 @@ def convert_to_onnx(
     prep_model_for_conversion_kwargs=None,
     torch_onnx_export_kwargs=None,
 ):
+    """
+    Exports model to ONNX.
+
+    :param model: torch.nn.Module, model to export to ONNX.
+    :param out_path: str, destination path for the .onnx file.
+    :param input_shape: tuple, input shape, excluding batch_size (i.e (3, 224, 224)).
+    :param pre_process: torch.nn.Module, preprocessing pipeline, will be resolved by TransformsFactory()
+    :param post_process: torch.nn.Module, postprocessing pipeline, will be resolved by TransformsFactory()
+    :param prep_model_for_conversion_kwargs: dict, for SgModules- args to be passed to model.prep_model_for_conversion
+     prior to torch.onnx.export call.
+    :param torch_onnx_export_kwargs: kwargs (EXCLUDING: FIRST 3 KWARGS- MODEL, F, ARGS). to be unpacked in torch.onnx.export call
+
+    :return: out_path
+    """
     torch_onnx_export_kwargs = torch_onnx_export_kwargs or dict()
     prep_model_for_conversion_kwargs = prep_model_for_conversion_kwargs or dict()
     onnx_input = torch.Tensor(np.zeros([1, *input_shape]))

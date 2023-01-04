@@ -1,7 +1,9 @@
 """
 Example code for running SuperGradient's recipes.
 
-General use: python convert_recipe_example.py --config-name="DESIRED_RECIPE'S_CONVERSION_PARAMS".
+General use: python convert_recipe_example.py --config-name=DESIRED_RECIPE'S_CONVERSION_PARAMS experiment_name=DESIRED_RECIPE'S_EXPERIMENT_NAME.
+
+For more optoins see : super_gradients/recipes/conversion_params/default_conversion_params.yaml.
 
 Note: conversion_params yaml file should reside under super_gradients/recipes/conversion_params
 """
@@ -11,7 +13,6 @@ import hydra
 import pkg_resources
 from super_gradients.training import models
 from super_gradients import init_trainer
-from omegaconf import OmegaConf
 from super_gradients.training.models.conversion import prepare_conversion_cfgs
 from super_gradients.training.utils.sg_trainer_utils import parse_args
 
@@ -30,7 +31,6 @@ def main(cfg: DictConfig) -> None:
         checkpoint_path=cfg.checkpoint_path,
     )
 
-    cfg = OmegaConf.to_container(cfg, resolve=True)
     cfg = parse_args(cfg, models.convert_to_onnx)
 
     models.convert_to_onnx(model=model, **cfg)
