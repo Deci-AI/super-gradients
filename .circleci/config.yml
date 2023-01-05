@@ -147,9 +147,12 @@ jobs:
      image_repo:
           type: string
           default: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
-     new_image_tag:
+     final_image_tag:
         type: string
         default: << pipeline.git.tag >>
+   environment:
+       FINAL_IMAGE_TAG: << parameters.final_image_tag >>
+       IMAGE_REPO: << parameters.image_repo >>
    docker:
        - image: cimg/aws:2022.11.1
    resource_class: small
@@ -159,11 +162,41 @@ jobs:
           name: get rc tag of the final tag
           command: |
               RC_TAG=$(git tag --contains ${CIRCLE_SHA1} | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+')
+              echo "Found RC version: ${RC_TAG}"
      - run:
            name: retag docker
            command: |
               MANIFEST=$(aws ecr batch-get-image --repository-name << parameters.image_repo >> --image-ids imageTag=${RC_TAG} --query 'images[].imageManifest' --output text)
-              aws ecr put-image --repository-name << parameters.image_repo >> --image-tag << parameters.new_image_tag >> --image-manifest "$MANIFEST"
+              aws ecr put-image --repository-name << parameters.image_repo >> --image-tag << parameters.final_image_tag >> --image-manifest "$MANIFEST"
+              echo "                 ________________________________________________               "
+              echo "                /                                                \              "
+              echo "               |    _________________________________________     |             "
+              echo "               |   |                                         |    |             "
+              echo "               |   |   added tag: ${RC_TAG}                  |    |             "
+              echo "               |   |   to image:                             |    |             "
+              echo "               |   |   ${IMAGE_REPO}:${FINAL_IMAGE_TAG}      |    |             "
+              echo "               |   |                                         |    |             "
+              echo "               |   |                                         |    |             "
+              echo "               |   |                                         |    |             "
+              echo "               |   |                                         |    |             "
+              echo "               |   |                                         |    |             "
+              echo "               |   |                                         |    |             "
+              echo "               |   |                                         |    |             "
+              echo "               |   |                                         |    |             "
+              echo "               |   |                                         |    |             "
+              echo "               |   |_________________________________________|    |             "
+              echo "               |                                                  |             "
+              echo "                \_________________________________________________/             "
+              echo "                      \___________________________________/                     "
+              echo "                    ___________________________________________                 "
+              echo "                _-'    .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.  --- \`-_              "
+              echo "              _-'.-.-. .---.-.-.-.-.-.-.-.-.-.-.-.-.-.-.--.  .-.-.\`-_          "
+              echo "          _-'.-.-.-. .---.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-\`__\`. .-.-.-.\`-_      "
+              echo "        _-'.-.-.-.-. .-----.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-----. .-.-.-.-.\`-_    "
+              echo "    _-'.-.-.-.-.-. .---.-. .-------------------------. .-.---. .---.-.-.-.\`-_  "
+              echo "    :-------------------------------------------------------------------------: "
+              echo "    \`---._.-------------------------------------------------------------._.---'"
+               
 
 
   testing_supergradients_docker_image:
@@ -362,11 +395,7 @@ workflows:
 
   SG_docker:
      jobs:
-       - deci-common/persist_version_info:
-           <<: *release_candidate_tag_filter 
        - build_and_publish_rc:  # works on release candidate creation
-           requires:
-             - "deci-common/persist_version_info"
            <<: *release_candidate_tag_filter 
        - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
