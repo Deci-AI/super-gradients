@@ -28,9 +28,9 @@ release_candidate_filter: &release_candidate_filter
 release_candidate_tag_filter: &release_candidate_tag_filter
   filters:
     branches:
-      only: master
+      ignore: /.*/
     tags:
-      only: /^\d+\.\d+\.\d+$/
+      only: /^\d+\.\d+\.\d+rc\d+/
     
     
 
@@ -113,7 +113,7 @@ jobs:
       - store_artifacts:
           path: ~/sg_logs
       
-  build_and_publish_beta:
+  build_and_publish_rc:
     description : "building the temp image and pushing to dev ecr"
     parameters:
        repo_name:
@@ -121,29 +121,28 @@ jobs:
          default: deci/super-gradients
        version:
           type: string
-          default: ${CIRCLE_TAG}b
+          default: ${CIRCLE_TAG}
     docker:
        - image: cimg/base:stable-20.04
     resource_class: small
     steps:
      - checkout
-     - deci-common/get_persisted_version_info
      - setup_remote_docker:
           version: 20.10.7
           docker_layer_caching: true
      - deci-common/container_image_build:
            dockerfile: scripts/Dockerfile
            repository_name: << parameters.repo_name >>
-           image_tag: "${NEW_VERSION}"
+           image_tag: "${CIRCLE_TAG}"
            build_args: 'VERSION=${CIRCLE_TAG}'
            extra_flags: ' --compress'
      - deci-common/push_docker_image_aws_dev:
            repository_name: << parameters.repo_name >>
-           image_tag: "${NEW_VERSION}"
+           image_tag: "${CIRCLE_TAG}"
            additional_tags: "latest"
 
-  retag_beta_to_rc_docker:
-   description: in the event of seccssesful test promote beta to RC
+  retag_rc_to_final_docker:
+   description: in the event of seccssesful test promote rc to final
    parameters:
      image_repo:
           type: string
@@ -361,26 +360,24 @@ workflows:
   SG_docker:
      jobs:
        - deci-common/persist_version_info
-       - build_and_publish_beta:
+       - build_and_publish_rc:  # works on release candidate creation
            requires:
              - "deci-common/persist_version_info"
-           <<: *release_candidate_filter
-       - testing_supergradients_docker_image:
+           <<: *release_candidate_tag_filter 
+       - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
-          image_tag: ${CIRCLE_TAG}b
+          image_tag: ${CIRCLE_TAG}
           requires:
-            - "build_and_publish_beta"
-          <<: *release_candidate_filter
-       - retag_beta_to_rc_docker:
+            - "build_and_publish_rc"
+          <<: *release_candidate_tag_filter
+       - retag_rc_to_final_docker: # works on release
             new_image_tag: ${CIRCLE_TAG}
-            image_tag: ${CIRCLE_TAG}b
-            requires:
-              - "testing_supergradients_docker_image"
-            <<: *release_candidate_filter
-       - hold-sg-release:
+            image_tag: ${CIRCLE_TAG} # to do get the tag of the sha was used 
+            <<: *release_tag_filter 
+       - hold-sg-public-release:  # works on release
            type: approval
            <<: *release_tag_filter
-       - docker/publish:
+       - docker/publish:  # works on release
           image: deciai/super-gradients
           remote-docker-version: 20.10.12
           update-description: true
@@ -390,9 +387,9 @@ workflows:
           tag: latest,${CIRCLE_TAG}
           extra_build_args: '--build-arg VERSION=${CIRCLE_TAG} --compress'
           requires:
-            - "hold-sg-release"
+            - "hold-sg-public-release"
           <<: *release_tag_filter
-       - docker/publish:
+       - docker/publish: # works on release
           image: deciai/super-gradients
           remote-docker-version: 20.10.12
           update-description: true
@@ -402,5 +399,5 @@ workflows:
           tag: ${CIRCLE_TAG}-runtime
           extra_build_args: '--build-arg VERSION=${CIRCLE_TAG} --build-arg TAG=11.3.1-runtime-ubuntu20.04  --compress'
           requires:
-            - "hold-sg-release"
+            - "hold-sg-public-release"
           <<: *release_tag_filter
