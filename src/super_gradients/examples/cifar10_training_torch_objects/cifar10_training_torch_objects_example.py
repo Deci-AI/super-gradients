@@ -12,7 +12,6 @@ Main purpose is to demonstrate training in SG with minimal abstraction and maxim
 
 from super_gradients import Trainer
 from super_gradients.training.metrics.classification_metrics import Accuracy, Top5
-from super_gradients.training import MultiGPUMode
 from torch.optim import ASGD
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
 from torch.nn import CrossEntropyLoss
@@ -49,7 +48,7 @@ phase_callbacks = [
 ]
 
 # Bring everything together with Trainer and start training
-trainer = Trainer("Cifar10_external_objects_example", multi_gpu=MultiGPUMode.OFF)
+trainer = Trainer("Cifar10_external_objects_example")
 
 train_params = {
     "max_epochs": 300,
