@@ -763,18 +763,18 @@ class DetectionTargetsFormatTransform(DetectionTransform):
 
     Convert targets in input_format to output_format, filter small bboxes and pad targets.
     Attributes:
-        image_shape:    Shape of the images to transform.
-        input_format:   DetectionTargetsFormat: input target format
-        output_format:  DetectionTargetsFormat: output target format
-        min_bbox_edge_size: int: bboxes with edge size lower then this values will be removed.
-        max_targets: int: max objects in single image, padding target to this size.
+        image_shape:        Shape of the images to transform.
+        input_format:       DetectionTargetsFormat: input target format
+        output_format:      DetectionTargetsFormat: output target format
+        min_bbox_edge_size: bboxes with edge size lower then this values will be removed.
+        max_targets:        Max objects in single image, padding target to this size.
     """
 
     @resolve_param("input_format", ConcatenatedTensorFormatFactory())
     @resolve_param("output_format", ConcatenatedTensorFormatFactory())
     def __init__(
         self,
-        image_shape: tuple,
+        image_shape: Tuple[int, int],
         input_format: ConcatenatedTensorFormat = XYXY_LABEL,
         output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
