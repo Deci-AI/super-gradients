@@ -26,9 +26,6 @@ training_hyperparams:
 
 ckpt_root_dir:
 
-multi_gpu: AUTO
-num_gpus: -1
-
 
 architecture: resnet18_cifar
 
