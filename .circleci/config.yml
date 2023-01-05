@@ -148,7 +148,8 @@ jobs:
           type: string
           default: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
      new_image_tag:
-       type: string
+        type: string
+        default: << pipeline.git.tag >>
    docker:
        - image: cimg/aws:2022.11.1
    resource_class: small
@@ -373,7 +374,6 @@ workflows:
             - "build_and_publish_rc"
           <<: *release_candidate_tag_filter
        - retag_rc_to_final_docker: # works on release
-            new_image_tag: << pipeline.git.tag >>
             <<: *release_tag_filter 
        - hold-sg-public-release:  # works on release
            type: approval
