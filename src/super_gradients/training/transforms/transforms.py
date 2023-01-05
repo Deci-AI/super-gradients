@@ -764,8 +764,8 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     Convert targets in input_format to output_format, filter small bboxes and pad targets.
     Attributes:
         image_shape:        Shape of the images to transform.
-        input_format:       DetectionTargetsFormat: input target format
-        output_format:      DetectionTargetsFormat: output target format
+        input_format:       Format of the input targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL
+        output_format:      Format of the output targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL
         min_bbox_edge_size: bboxes with edge size lower then this values will be removed.
         max_targets:        Max objects in single image, padding target to this size.
     """
