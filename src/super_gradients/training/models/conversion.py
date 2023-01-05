@@ -13,6 +13,8 @@ from super_gradients.training import models
 from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg
 from super_gradients.training.utils.sg_trainer_utils import parse_args
+import os
+import pathlib
 
 logger = get_logger(__name__)
 
@@ -68,6 +70,8 @@ def convert_to_onnx(
 
     :return: out_path
     """
+    if not os.path.isdir(pathlib.Path(out_path).parent.resolve()):
+        raise FileNotFoundError(f"Could not find destination directory {out_path} for the ONNX file.")
     torch_onnx_export_kwargs = torch_onnx_export_kwargs or dict()
     prep_model_for_conversion_kwargs = prep_model_for_conversion_kwargs or dict()
     onnx_input = torch.Tensor(np.zeros([1, *input_shape]))
