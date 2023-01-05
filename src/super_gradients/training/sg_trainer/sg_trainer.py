@@ -17,15 +17,13 @@ from piptools.scripts.sync import _get_installed_distributions
 
 from torch.utils.data.distributed import DistributedSampler
 
-from super_gradients.common.factories.type_factory import TypeFactory
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.environment import ddp_utils
-from super_gradients.common.abstractions.abstract_logger import get_logger, mute_current_process
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
@@ -36,8 +34,8 @@ from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
-from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
-from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
+from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
+from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
     get_metrics_results_tuple,
@@ -51,11 +49,14 @@ from super_gradients.training.utils.distributed_training_utils import (
     reduce_results_tuple_for_ddp,
     compute_precise_bn_stats,
     setup_device,
-    require_gpu_setup,
     get_gpu_mem_utilization,
     get_world_size,
     get_local_rank,
+    require_ddp_setup,
+    get_device_ids,
+    is_ddp_subprocess,
     wait_for_the_master,
+    DDPNotSetupException,
 )
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
@@ -81,6 +82,7 @@ from super_gradients.training.utils.callbacks import (
     ContextSgMethods,
     LRCallbackBase,
 )
+from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 from omegaconf import OmegaConf
@@ -104,7 +106,7 @@ class Trainer:
         returns the test loss, accuracy and runtime
     """
 
-    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF, ckpt_root_dir: str = None):
+    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = None, ckpt_root_dir: str = None):
         """
 
         :param experiment_name:                      Used for logging and loading purposes
@@ -117,9 +119,20 @@ class Trainer:
                                                 pkg_resources.resource_filename('checkpoints', "") exists and will be used.
 
         """
+
+        # This should later me removed
+        if device is not None or multi_gpu is not None:
+            raise KeyError(
+                "Trainer does not accept anymore 'device' and 'multi_gpu' as argument. "
+                "Both should instead be passed to "
+                "super_gradients.setup_device(device=..., multi_gpu=..., num_gpus=...)"
+            )
+
+        if require_ddp_setup():
+            raise DDPNotSetupException()
+
         # SET THE EMPTY PROPERTIES
         self.net, self.architecture, self.arch_params, self.dataset_interface = None, None, None, None
-        self.device, self.multi_gpu = None, None
         self.ema = None
         self.ema_model = None
         self.sg_logger = None
@@ -136,7 +149,8 @@ class Trainer:
         self.load_checkpoint = False
         self.load_backbone = False
         self.load_weights_only = False
-        self.ddp_silent_mode = False
+        self.ddp_silent_mode = is_ddp_subprocess()
+
         self.source_ckpt_folder_name = None
         self.model_weight_averaging = None
         self.average_model_checkpoint_filename = "average_model.pth"
@@ -166,9 +180,6 @@ class Trainer:
 
         self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
 
-        # INITIALIZE THE DEVICE FOR THE MODEL
-        self._initialize_device(requested_device=device, requested_multi_gpu=multi_gpu)
-
         # SET THE DEFAULTS
         # TODO: SET DEFAULT TRAINING PARAMS FOR EACH TASK
 
@@ -183,6 +194,10 @@ class Trainer:
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
 
+    @property
+    def device(self) -> str:
+        return device_config.device
+
     @classmethod
     def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
         """
@@ -192,14 +207,16 @@ class Trainer:
         @return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
-        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(
+            device=core_utils.get_param(cfg, "device"),
+            multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
+            num_gpus=core_utils.get_param(cfg, "num_gpus"),
+        )
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
-        kwargs = parse_args(cfg, cls.__init__)
-
-        trainer = Trainer(**kwargs)
+        trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
 
         # INSTANTIATE DATA LOADERS
 
@@ -260,14 +277,16 @@ class Trainer:
         :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         """
 
-        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(
+            device=core_utils.get_param(cfg, "device"),
+            multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
+            num_gpus=core_utils.get_param(cfg, "num_gpus"),
+        )
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
-        kwargs = parse_args(cfg, cls.__init__)
-
-        trainer = Trainer(**kwargs)
+        trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
 
         # INSTANTIATE DATA LOADERS
         val_dataloader = dataloaders.get(
@@ -336,21 +355,21 @@ class Trainer:
 
     def _net_to_device(self):
         """
-        Manipulates self.net according to self.multi_gpu
+        Manipulates self.net according to device.multi_gpu
         """
-        self.net.to(self.device)
+        self.net.to(device_config.device)
 
         # FOR MULTI-GPU TRAINING (not distributed)
         sync_bn = core_utils.get_param(self.training_params, "sync_bn", default_val=False)
-        if self.multi_gpu == MultiGPUMode.DATA_PARALLEL:
-            self.net = torch.nn.DataParallel(self.net, device_ids=self.device_ids)
-        elif self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+        if device_config.multi_gpu == MultiGPUMode.DATA_PARALLEL:
+            self.net = torch.nn.DataParallel(self.net, device_ids=get_device_ids())
+        elif device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             if sync_bn:
                 if not self.ddp_silent_mode:
                     logger.info("DDP - Using Sync Batch Norm... Training time will be affected accordingly")
-                self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net).to(self.device)
+                self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net).to(device_config.device)
 
-            local_rank = int(self.device.split(":")[1])
+            local_rank = int(device_config.device.split(":")[1])
             self.net = torch.nn.parallel.DistributedDataParallel(self.net, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
 
         else:
@@ -372,7 +391,7 @@ class Trainer:
         # RESET/INIT THE METRIC LOGGERS
         self._reset_metrics()
 
-        self.train_metrics.to(self.device)
+        self.train_metrics.to(device_config.device)
         loss_avg_meter = core_utils.utils.AverageMeter()
 
         context = PhaseContext(
@@ -381,7 +400,7 @@ class Trainer:
             metrics_compute_fn=self.train_metrics,
             loss_avg_meter=loss_avg_meter,
             criterion=self.criterion,
-            device=self.device,
+            device=device_config.device,
             lr_warmup_epochs=self.training_params.lr_warmup_epochs,
             sg_logger=self.sg_logger,
             train_loader=self.train_loader,
@@ -390,7 +409,7 @@ class Trainer:
         )
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
-            batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
+            batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
             inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
             if self.pre_prediction_callback is not None:
@@ -964,7 +983,7 @@ class Trainer:
             logger.warning("Train dataset size % batch_size != 0 and drop_last=False, this might result in smaller " "last batch.")
         self._set_dataset_params()
 
-        if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+        if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             # Note: the dataloader uses sampler of the batch_sampler when it is not None.
             train_sampler = self.train_loader.batch_sampler.sampler if self.train_loader.batch_sampler is not None else self.train_loader.sampler
             if isinstance(train_sampler, SequentialSampler):
@@ -984,7 +1003,7 @@ class Trainer:
         self._prep_net_for_train()
 
         # SET RANDOM SEED
-        random_seed(is_ddp=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=self.device, seed=self.training_params.seed)
+        random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
 
         silent_mode = self.training_params.silent_mode or self.ddp_silent_mode
         # METRICS
@@ -1005,7 +1024,7 @@ class Trainer:
         elif isinstance(self.training_params.loss, nn.Module):
             self.criterion = self.training_params.loss
 
-        self.criterion.to(self.device)
+        self.criterion.to(device_config.device)
 
         self.max_epochs = self.training_params.max_epochs
 
@@ -1032,7 +1051,7 @@ class Trainer:
         self.run_validation_freq = self.training_params.run_validation_freq
         validation_results_tuple = (0, 0)
         inf_time = 0
-        timer = core_utils.Timer(self.device)
+        timer = core_utils.Timer(device_config.device)
 
         # IF THE LR MODE IS NOT DEFAULT TAKE IT FROM THE TRAINING PARAMS
         self.lr_mode = self.training_params.lr_mode
@@ -1143,7 +1162,7 @@ class Trainer:
             architecture=self.architecture,
             arch_params=self.arch_params,
             metric_to_watch=self.metric_to_watch,
-            device=self.device,
+            device=device_config.device,
             context_methods=self._get_context_methods(Phase.PRE_TRAINING),
             ema_model=self.ema_model,
         )
@@ -1153,7 +1172,7 @@ class Trainer:
         inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_batch)
 
         log_main_training_params(
-            multi_gpu=self.multi_gpu,
+            multi_gpu=device_config.multi_gpu,
             num_gpus=get_world_size(),
             batch_size=len(inputs),
             batch_accumulate=self.batch_accumulate,
@@ -1177,7 +1196,7 @@ class Trainer:
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
                 if (
-                    self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
+                    device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
                     and hasattr(self.train_loader, "sampler")
                     and hasattr(self.train_loader.sampler, "set_epoch")
                 ):
@@ -1195,11 +1214,14 @@ class Trainer:
                 # CALCULATE PRECISE BATCHNORM STATS
                 if self.precise_bn:
                     compute_precise_bn_stats(
-                        model=self.net, loader=self.train_loader, precise_bn_batch_size=self.precise_bn_batch_size, num_gpus=self.num_devices
+                        model=self.net, loader=self.train_loader, precise_bn_batch_size=self.precise_bn_batch_size, num_gpus=get_world_size()
                     )
                     if self.ema:
                         compute_precise_bn_stats(
-                            model=self.ema_model.ema, loader=self.train_loader, precise_bn_batch_size=self.precise_bn_batch_size, num_gpus=self.num_devices
+                            model=self.ema_model.ema,
+                            loader=self.train_loader,
+                            precise_bn_batch_size=self.precise_bn_batch_size,
+                            num_gpus=get_world_size(),
                         )
 
                 # model switch - we replace self.net.module with the ema model for the testing and saving part
@@ -1241,7 +1263,7 @@ class Trainer:
             logger.info("For HARD Termination - Stop the process again")
 
         finally:
-            if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+            if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                 # CLEAN UP THE MULTI-GPU PROCESS GROUP WHEN DONE
                 if torch.distributed.is_initialized():
                     torch.distributed.destroy_process_group()
@@ -1293,8 +1315,8 @@ class Trainer:
         self.scaler = GradScaler(enabled=mixed_precision_enabled)
 
         if mixed_precision_enabled:
-            assert self.device.startswith("cuda"), "mixed precision is not available for CPU"
-            if self.multi_gpu == MultiGPUMode.DATA_PARALLEL:
+            assert device_config.device.startswith("cuda"), "mixed precision is not available for CPU"
+            if device_config.multi_gpu == MultiGPUMode.DATA_PARALLEL:
                 # IN DATAPARALLEL MODE WE NEED TO WRAP THE FORWARD FUNCTION OF OUR MODEL SO IT WILL RUN WITH AUTOCAST.
                 # BUT SINCE THE MODULE IS CLONED TO THE DEVICES ON EACH FORWARD CALL OF A DATAPARALLEL MODEL,
                 # WE HAVE TO REGISTER THE WRAPPER BEFORE EVERY FORWARD CALL
@@ -1386,11 +1408,11 @@ class Trainer:
         if hasattr(self.net, "structure"):
             self.architecture = self.net.structure
 
-        self.net.to(self.device)
+        self.net.to(device_config.device)
 
-        if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+        if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logger.warning("Warning: distributed training is not supported in re_build_model()")
-        self.net = torch.nn.DataParallel(self.net, device_ids=self.device_ids) if self.multi_gpu else core_utils.WrappedModel(self.net)
+        self.net = torch.nn.DataParallel(self.net, device_ids=get_device_ids()) if device_config.multi_gpu else core_utils.WrappedModel(self.net)
 
     @property
     def get_module(self):
@@ -1399,93 +1421,9 @@ class Trainer:
     def set_module(self, module):
         self.net = module
 
-    @resolve_param("requested_multi_gpu", TypeFactory(MultiGPUMode.dict()))
-    def _initialize_device(self, requested_device: str, requested_multi_gpu: Union[MultiGPUMode, str]):
-        """
-        _initialize_device - Initializes the device for the model - Default is CUDA
-            :param requested_device:        Device to initialize ('cuda' / 'cpu')
-            :param requested_multi_gpu:     Get Multiple GPU
-        """
-
-        # SELECT CUDA DEVICE
-        if requested_device == "cuda":
-            if torch.cuda.is_available():
-                self.device = "cuda"  # TODO - we may want to set the device number as well i.e. 'cuda:1'
-            else:
-                raise RuntimeError("CUDA DEVICE NOT FOUND... EXITING")
-
-        if require_gpu_setup(requested_multi_gpu):
-            raise GPUModeNotSetupError()
-
-        # SELECT CPU DEVICE
-        elif requested_device == "cpu":
-            self.device = "cpu"
-            self.multi_gpu = False
-        else:
-            # SELECT CUDA DEVICE BY DEFAULT IF AVAILABLE
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        # DEFUALT IS SET TO 1 - IT IS CHANGED IF MULTI-GPU IS USED
-        self.num_devices = 1
-
-        # IN CASE OF MULTIPLE GPUS UPDATE THE LEARNING AND DATA PARAMETERS
-        # FIXME - CREATE A DISCUSSION ON THESE PARAMETERS - WE MIGHT WANT TO CHANGE THE WAY WE USE THE LR AND
-        if requested_multi_gpu != MultiGPUMode.OFF:
-            if "cuda" in self.device:
-                # COLLECT THE AVAILABLE GPU AND COUNT THE AVAILABLE GPUS AMOUNT
-                self.device_ids = list(range(torch.cuda.device_count()))
-                self.num_devices = len(self.device_ids)
-                if self.num_devices == 1:
-                    self.multi_gpu = MultiGPUMode.OFF
-                    if requested_multi_gpu != MultiGPUMode.AUTO:
-                        # if AUTO mode was set - do not log a warning
-                        logger.warning("\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n")
-                else:
-                    if requested_multi_gpu == MultiGPUMode.AUTO:
-                        if ddp_utils.is_distributed():
-                            requested_multi_gpu = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
-                        else:
-                            requested_multi_gpu = MultiGPUMode.DATA_PARALLEL
-
-                    self.multi_gpu = requested_multi_gpu
-                    if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-                        self._initialize_ddp()
-            else:
-                # MULTIPLE GPUS CAN BE ACTIVE ONLY IF A GPU IS AVAILABLE
-                self.multi_gpu = MultiGPUMode.OFF
-                logger.warning("\n[WARNING] - Tried running on multiple GPU but none are available => running on CPU\n")
-
-    def _initialize_ddp(self):
-        """
-        Initialize Distributed Data Parallel
-
-        Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.
-        Whatever learning rate and schedule you specify will be applied to the each GPU individually.
-        Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch size is the
-        batch you specify times the number of GPUs. In the literature there are several "best practices" to set
-        learning rates and schedules for large batch sizes.
-        """
-        local_rank = ddp_utils.DDP_LOCAL_RANK
-        if local_rank > 0:
-            mute_current_process()
-
-        logger.info("Distributed training starting...")
-        if not torch.distributed.is_initialized():
-            backend = "gloo" if os.name == "nt" else "nccl"
-            torch.distributed.init_process_group(backend=backend, init_method="env://")
-
-        torch.cuda.set_device(local_rank)
-        self.device = "cuda:%d" % local_rank
-
-        # MAKE ALL HIGHER-RANK GPUS SILENT (DISTRIBUTED MODE)
-        self.ddp_silent_mode = local_rank > 0
-
-        if torch.distributed.get_rank() == 0:
-            logger.info(f"Training in distributed mode... with {str(torch.distributed.get_world_size())} GPUs")
-
     def _switch_device(self, new_device):
-        self.device = new_device
-        self.net.to(self.device)
+        device_config.device = new_device
+        self.net.to(device_config.device)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def _load_checkpoint_to_model(self):  # noqa: C901 - too complex
@@ -1566,7 +1504,7 @@ class Trainer:
 
         # RESET METRIC RUNNERS
         self._reset_metrics()
-        self.test_metrics.to(self.device)
+        self.test_metrics.to(device_config.device)
 
         if self.arch_params is None:
             self._init_arch_params()
@@ -1629,8 +1567,8 @@ class Trainer:
         """
         additional_log_items = {
             "initial_LR": self.training_params.initial_lr,
-            "num_devices": self.num_devices,
-            "multi_gpu": str(self.multi_gpu),
+            "num_devices": get_world_size(),
+            "multi_gpu": str(device_config.multi_gpu),
             "device_type": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
         }
         # ADD INSTALLED PACKAGE LIST + THEIR VERSIONS
@@ -1737,7 +1675,7 @@ class Trainer:
 
         self.net.eval()
         self._reset_metrics()
-        self.valid_metrics.to(self.device)
+        self.valid_metrics.to(device_config.device)
 
         return self.evaluate(
             data_loader=self.valid_loader, metrics=self.valid_metrics, evaluation_type=EvaluationType.VALIDATION, epoch=epoch, silent_mode=silent_mode
@@ -1778,7 +1716,7 @@ class Trainer:
             metrics_compute_fn=metrics,
             loss_avg_meter=loss_avg_meter,
             criterion=self.criterion,
-            device=self.device,
+            device=device_config.device,
             lr_warmup_epochs=lr_warmup_epochs,
             sg_logger=self.sg_logger,
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
@@ -1791,7 +1729,7 @@ class Trainer:
 
         with torch.no_grad():
             for batch_idx, batch_items in enumerate(progress_bar_data_loader):
-                batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
+                batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
                 inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
                 output = self.net(inputs)
@@ -1829,7 +1767,7 @@ class Trainer:
         #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
         #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
 
-        if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+        if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
 
         pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)

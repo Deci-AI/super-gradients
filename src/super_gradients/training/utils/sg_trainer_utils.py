@@ -17,6 +17,7 @@ import torch
 
 from torch.utils.tensorboard import SummaryWriter
 
+from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
 from super_gradients.common.data_types.enum import MultiGPUMode
 
@@ -453,7 +454,7 @@ def log_main_training_params(multi_gpu: MultiGPUMode, num_gpus: int, batch_size:
     msg = (
         "TRAINING PARAMETERS:\n"
         f"    - Mode:                         {multi_gpu.name if multi_gpu else 'Single GPU'}\n"
-        f"    - Number of GPUs:               {num_gpus:<10} ({torch.cuda.device_count()} available on the machine)\n"
+        f"    - Number of GPUs:               {num_gpus if 'cuda' in device_config.device  else 0:<10} ({torch.cuda.device_count()} available on the machine)\n"
         f"    - Dataset size:                 {len_train_set:<10} (len(train_set))\n"
         f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n"
         f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n"

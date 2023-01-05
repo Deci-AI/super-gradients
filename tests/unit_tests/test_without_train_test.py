@@ -4,7 +4,7 @@ import os
 from super_gradients import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader, detection_test_dataloader, segmentation_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.training import MultiGPUMode, models
+from super_gradients.training import models
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.metrics.segmentation_metrics import PixelAccuracy, IoU
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
@@ -31,7 +31,7 @@ class TestWithoutTrainTest(unittest.TestCase):
 
     @staticmethod
     def get_detection_trainer(name=""):
-        trainer = Trainer(name, multi_gpu=MultiGPUMode.OFF)
+        trainer = Trainer(name)
         model = models.get("yolox_s", num_classes=5)
         return trainer, model
 
