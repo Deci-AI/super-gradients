@@ -1,22 +1,15 @@
-from typing import Union
-
 import torch
 from torch import nn
-from torch.nn import functional as F
 
-from super_gradients.modules import Residual, ConvBNReLU
+from super_gradients.modules import Residual
 from super_gradients.training.models.segmentation_models.stdc import (
     STDCBlock,
     AttentionRefinementModule,
     FeatureFusionModule,
     ContextPath,
-    ContextEmbeddingOnline,
-    ContextEmbeddingFixedSize,
 )
 
 try:
-    from pytorch_quantization import quant_modules
-
     from super_gradients.training.utils.quantization.core import SGQuantMixin, QuantizedMetadata
     from super_gradients.training.utils.quantization.selective_quantization_utils import register_quantized_module
 
@@ -51,45 +44,6 @@ class QuantSTDCBlock(SGQuantMixin, STDCBlock):
 
         out = torch.cat(out_list, dim=1)
         return out
-
-
-@register_quantized_module(float_source=ContextEmbeddingOnline, action=QuantizedMetadata.ReplacementAction.REPLACE)
-class QuantContextEmbeddingOnline(SGQuantMixin, ContextEmbeddingOnline):
-    def __init__(self, in_channels: int, out_channels: int):
-        super(ContextEmbeddingOnline, self).__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-
-        # TODO: add QuantConvBNReLU or rewrite QuantContextEmbeddingFixedSize.from_context_embedding_online
-        # quant_modules.initialize() ignores our infra commands and always uses default modules,
-        # which limits performance and leads to errors when infra parameters are incompatible with defaults in pytorch_quantization
-        # REPLACE_AND_RECURE will fail in prep_model_for_conversion
-        quant_modules.initialize()
-        self.context_embedding = nn.Sequential(nn.AdaptiveAvgPool2d(1), ConvBNReLU(in_channels, out_channels, kernel_size=1, stride=1, bias=False))
-        quant_modules.deactivate()
-
-    def forward(self, x):
-        out_height, out_width = x.size()[2:]
-        x = self.context_embedding(x)
-        return F.interpolate(x, size=(out_height, out_width), mode="nearest")
-
-
-@register_quantized_module(float_source=ContextEmbeddingFixedSize, action=QuantizedMetadata.ReplacementAction.REPLACE)
-class QuantContextEmbeddingFixedSize(QuantContextEmbeddingOnline):
-    def __init__(self, in_channels: int, out_channels: int, upsample_size: Union[list, tuple]):
-        super(QuantContextEmbeddingFixedSize, self).__init__(in_channels, out_channels)
-        self.context_embedding.add_module("upsample", nn.Upsample(scale_factor=upsample_size, mode="nearest"))
-
-    @classmethod
-    def from_context_embedding_online(cls, ce_online: QuantContextEmbeddingOnline, upsample_size: Union[list, tuple]):
-        context = QuantContextEmbeddingFixedSize(in_channels=ce_online.in_channels, out_channels=ce_online.out_channels, upsample_size=upsample_size)
-        # keep training mode state as original module
-        context.train(ce_online.training)
-        context.load_state_dict(ce_online.state_dict())
-        return context
-
-    def forward(self, x):
-        return self.context_embedding(x)
 
 
 @register_quantized_module(float_source=AttentionRefinementModule, action=QuantizedMetadata.ReplacementAction.REPLACE_AND_RECURE)
@@ -134,8 +88,6 @@ class QuantContextPath(SGQuantMixin, ContextPath):
     def __init__(self, backbone, fuse_channels: int, use_aux_heads: bool):
         super(QuantContextPath, self).__init__(backbone=backbone, fuse_channels=fuse_channels, use_aux_heads=use_aux_heads)
 
-        self.context_embedding = QuantContextEmbeddingOnline(self.context_embedding.in_channels, self.context_embedding.out_channels)
-
         self.q1 = Residual()
         self.q2 = Residual()
         self.q3 = Residual()
@@ -158,8 +110,3 @@ class QuantContextPath(SGQuantMixin, ContextPath):
         if self.use_aux_heads:
             return feat8, feat16_up, feat16, feat32
         return feat8, feat16_up
-
-    def prep_for_conversion(self, input_size):
-        if not isinstance(self.context_embedding, QuantContextEmbeddingFixedSize):
-            context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
-            self.context_embedding = QuantContextEmbeddingFixedSize.from_context_embedding_online(self.context_embedding, context_embedding_up_size)

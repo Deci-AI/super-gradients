@@ -32,8 +32,6 @@ try:
     from .quantization import QuantSTDCBlock  # noqa: F401
     from .quantization import QuantAttentionRefinementModule  # noqa: F401
     from .quantization import QuantFeatureFusionModule  # noqa: F401
-    from .quantization import QuantContextEmbeddingOnline  # noqa: F401
-    from .quantization import QuantContextEmbeddingFixedSize  # noqa: F401
     from .quantization import QuantContextPath  # noqa: F401
 
     quant_extensions = [
@@ -46,8 +44,6 @@ try:
         "QuantSTDCBlock",
         "QuantAttentionRefinementModule",
         "QuantFeatureFusionModule",
-        "QuantContextEmbeddingOnline",
-        "QuantContextEmbeddingFixedSize",
         "QuantContextPath",
     ]
 

@@ -300,44 +300,32 @@ class FeatureFusionModule(nn.Module):
         return feat_out
 
 
-class ContextEmbeddingOnline(nn.Module):
+class ContextEmbedding(nn.Module):
     """
     ContextEmbedding module that use global average pooling to 1x1 to extract context information, and then upsample
     to original input size.
     """
 
     def __init__(self, in_channels: int, out_channels: int):
-        super(ContextEmbeddingOnline, self).__init__()
+        super(ContextEmbedding, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.context_embedding = nn.Sequential(nn.AdaptiveAvgPool2d(1), ConvBNReLU(in_channels, out_channels, kernel_size=1, stride=1, bias=False))
+        self.fixed_size = False
 
     def forward(self, x):
         out_height, out_width = x.size()[2:]
         x = self.context_embedding(x)
         return F.interpolate(x, size=(out_height, out_width), mode="nearest")
 
+    def to_fixed_size(self, upsample_size: Union[list, tuple]):
+        if self.fixed_size:
+            return
+        self.fixed_size = True
 
-class ContextEmbeddingFixedSize(ContextEmbeddingOnline):
-    """
-    ContextEmbedding module that use a fixed size interpolation, supported with onnx conversion.
-    Prevent slice/cast/shape operations in onnx conversion for applying interpolation.
-    """
-
-    def __init__(self, in_channels: int, out_channels: int, upsample_size: Union[list, tuple]):
-        super(ContextEmbeddingFixedSize, self).__init__(in_channels, out_channels)
         self.context_embedding.add_module("upsample", nn.Upsample(scale_factor=upsample_size, mode="nearest"))
 
-    @classmethod
-    def from_context_embedding_online(cls, ce_online: ContextEmbeddingOnline, upsample_size: Union[list, tuple]):
-        context = ContextEmbeddingFixedSize(in_channels=ce_online.in_channels, out_channels=ce_online.out_channels, upsample_size=upsample_size)
-        # keep training mode state as original module
-        context.train(ce_online.training)
-        context.load_state_dict(ce_online.state_dict())
-        return context
-
-    def forward(self, x):
-        return self.context_embedding(x)
+        self.forward = self.context_embedding.forward
 
 
 class ContextPath(nn.Module):
@@ -362,7 +350,7 @@ class ContextPath(nn.Module):
         # get num of channels for two last stages
         channels16, channels32 = self.backbone.get_backbone_output_number_of_channels()[-2:]
 
-        self.context_embedding = ContextEmbeddingOnline(channels32, fuse_channels)
+        self.context_embedding = ContextEmbedding(channels32, fuse_channels)
 
         self.arm32 = AttentionRefinementModule(channels32, fuse_channels)
         self.upsample32 = nn.Sequential(
@@ -392,9 +380,8 @@ class ContextPath(nn.Module):
         return feat8, feat16_up
 
     def prep_for_conversion(self, input_size):
-        if not isinstance(self.context_embedding, ContextEmbeddingFixedSize):
-            context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
-            self.context_embedding = ContextEmbeddingFixedSize.from_context_embedding_online(self.context_embedding, context_embedding_up_size)
+        context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
+        self.context_embedding.to_fixed_size(context_embedding_up_size)
 
 
 class STDCSegmentationBase(SgModule):
