@@ -362,7 +362,8 @@ workflows:
 
   SG_docker:
      jobs:
-       - deci-common/persist_version_info
+       - deci-common/persist_version_info:
+           <<: *release_candidate_tag_filter 
        - build_and_publish_rc:  # works on release candidate creation
            requires:
              - "deci-common/persist_version_info"
