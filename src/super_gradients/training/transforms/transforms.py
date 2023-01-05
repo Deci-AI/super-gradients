@@ -774,7 +774,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     @resolve_param("output_format", ConcatenatedTensorFormatFactory())
     def __init__(
         self,
-        image_shape: Tuple[int, int],
+        image_shape: tuple,
         input_format: ConcatenatedTensorFormat = XYXY_LABEL,
         output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
