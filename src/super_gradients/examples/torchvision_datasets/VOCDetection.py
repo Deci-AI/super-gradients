@@ -8,7 +8,7 @@ import torchvision
 from super_gradients import Trainer, init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.datasets.custom_dataset import wrap_detection_dataset, parse_pascal_target
+from super_gradients.training.datasets.custom_dataset import parse_pascal_target, register_detection_dataset
 from super_gradients.training.utils.sg_trainer_utils import parse_args
 
 from super_gradients.training.utils.distributed_training_utils import setup_device
@@ -18,6 +18,21 @@ from omegaconf import OmegaConf
 def run():
     init_trainer()
     main()
+
+
+register_detection_dataset(
+    dataset=torchvision.datasets.VOCDetection(root="/data/voc", image_set="train", download=False),
+    register_as="CustomTrain",
+    image_adapter=lambda img: np.array(img),
+    target_adapter=parse_pascal_target,
+)
+
+register_detection_dataset(
+    dataset=torchvision.datasets.VOCDetection(root="/data/voc", image_set="val", download=False),
+    register_as="CustomVal",
+    image_adapter=lambda img: np.array(img),
+    target_adapter=parse_pascal_target,
+)
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name="user_recipe_mnist_example", version_base="1.2")
@@ -33,20 +48,20 @@ def main(cfg: DictConfig) -> None:
     trainer = Trainer(**kwargs)
 
     # INSTANTIATE DATA LOADERS
-    train_dataset = wrap_detection_dataset(
-        dataset=torchvision.datasets.VOCDetection(root="/data/voc", image_set="train", download=False),
-        transforms=cfg.dataset_params.train_dataset_params.transforms,
-        image_adapter=lambda img: np.array(img),
-        target_adapter=parse_pascal_target,
-    )
-    val_dataset = wrap_detection_dataset(
-        dataset=torchvision.datasets.VOCDetection(root="/data/voc", image_set="val", download=False),
-        transforms=cfg.dataset_params.val_dataset_params.transforms,
-        image_adapter=lambda img: np.array(img),
-        target_adapter=parse_pascal_target,
-    )
-    train_dataloader = dataloaders.get(dataset=train_dataset, dataloader_params=cfg.dataset_params.train_dataloader_params)
-    val_dataloader = dataloaders.get(dataset=val_dataset, dataloader_params=cfg.dataset_params.val_dataloader_params)
+    # train_dataset = CustomDetectionDataset(
+    #     dataset=torchvision.datasets.VOCDetection(root="/data/voc", image_set="train", download=False),
+    #     transforms=cfg.dataset_params.train_dataset_params.transforms,
+    #     image_adapter=lambda img: np.array(img),
+    #     target_adapter=parse_pascal_target,
+    # )
+    # val_dataset = CustomDetectionDataset(
+    #     dataset=torchvision.datasets.VOCDetection(root="/data/voc", image_set="val", download=False),
+    #     transforms=cfg.dataset_params.val_dataset_params.transforms,
+    #     image_adapter=lambda img: np.array(img),
+    #     target_adapter=parse_pascal_target,
+    # )
+    train_dataloader = dataloaders.get(dataset="CustomTrain", dataloader_params=cfg.dataset_params.train_dataloader_params)
+    val_dataloader = dataloaders.get(dataset="CustomVal", dataloader_params=cfg.dataset_params.val_dataloader_params)
 
     #
     # BUILD NETWORK

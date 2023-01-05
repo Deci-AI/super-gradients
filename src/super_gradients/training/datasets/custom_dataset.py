@@ -3,8 +3,10 @@ from typing import Callable, Dict, Tuple, Any, List, Sequence
 import numpy as np
 
 from torch.utils.data.dataset import Dataset
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.transforms.transforms import Transform
 from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.datasets_factory import DatasetsFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLASSES_LIST
 
@@ -13,9 +15,21 @@ import torch.utils.data.dataset
 import torchvision.transforms as T
 
 
+class ApplyPerField(Transform):
+    def __init__(self, transforms: dict):
+        self.transforms = transforms
+
+    def __call__(self, sample):
+        for col, col_transform in self.transforms.items():
+            sample[col] = col_transform(sample[col])
+        return sample
+
+
 class CustomDataset(Dataset):
     """Wrap any dataset to support SG transforms."""
 
+    @resolve_param("transforms", factory=TransformsFactory())
+    @resolve_param("dataset", factory=DatasetsFactory())
     def __init__(self, dataset, transforms: List[Transform], fields: Sequence[str], input_adapters: Dict[str, Callable[[Any], np.ndarray]] = None):
         """
         :param dataset:         Dataset to wrap.
@@ -74,6 +88,38 @@ class CustomDataset(Dataset):
         return len(self.dataset)
 
 
+class CustomDetectionDataset(CustomDataset):
+    def __init__(self, dataset, transforms: List[Transform], image_adapter=None, target_adapter=None):
+        super().__init__(
+            dataset=dataset,
+            transforms=transforms,
+            field=("image", "target"),
+            input_adapters={"image": image_adapter, "target": target_adapter},
+        )
+
+
+class CustomSegmentationDataset(CustomDataset):
+    def __init__(self, dataset, transforms: List[Transform], image_adapter=None, mask_adapter=None):
+
+        # This is because currently the Segmentation classes apply this behind the hood. So to mimic the behavior we also do it here.
+        # TODO: This should be moved to transforms.s
+        def post_processing_mask(mask):
+            mask = torch.from_numpy(np.array(mask)).long()
+            mask[mask == 255] = 19
+            return mask
+
+        post_processing = ApplyPerField(
+            {"image": T.Compose([T.ToTensor(), T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]), "mask": post_processing_mask}
+        )
+
+        super().__init__(
+            dataset=dataset,
+            transforms=transforms + [post_processing],
+            fields=("image", "mask"),
+            input_adapters={"image": image_adapter, "mask": mask_adapter},
+        )
+
+
 def tuple_to_dict(fields: Sequence[str], items: Tuple[Any]) -> Dict[str, Any]:
     return {field: val for field, val in zip(fields, items)}
 
@@ -90,6 +136,26 @@ def get_random_samples(dataset, count: int) -> list:
     :return: A list of samples satisfying input params
     """
     return [get_random_sample(dataset) for _ in range(count)]
+
+
+def register_detection_dataset(dataset, register_as: str, image_adapter=None, target_adapter=None):
+    """
+    WARNING: dataset.__getitem__ should return a tuple (img, target)!
+    :param image_adapter:   Optional. Adapter that takes dataset.__getitem__ and converts it to np.ndarray
+    :param target_adapter:  Optional. Adapter that takes dataset.__getitem__ and converts it to np.ndarray
+    :return:
+    """
+
+    @register_dataset(register_as)
+    def custom_dataset(transforms):
+        return CustomDataset(
+            dataset=dataset,
+            transforms=transforms,
+            input_adapters={"image": image_adapter, "target": target_adapter},
+            fields=("image", "target"),
+        )
+
+    return
 
 
 @resolve_param("transforms", factory=TransformsFactory())

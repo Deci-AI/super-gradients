@@ -8,7 +8,7 @@ import torchvision
 from super_gradients import Trainer, init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.datasets.custom_dataset import wrap_detection_dataset
+from super_gradients.training.datasets.custom_dataset import CustomDetectionDataset
 from super_gradients.training.datasets.detection_datasets.coco_detection import parse_coco_target
 from super_gradients.training.utils.sg_trainer_utils import parse_args
 
@@ -35,7 +35,7 @@ def main(cfg: DictConfig) -> None:
 
     # INSTANTIATE DATA LOADERS
 
-    train_dataset = wrap_detection_dataset(
+    train_dataset = CustomDetectionDataset(
         dataset=torchvision.datasets.CocoDetection(
             root="/data/coco/images/train2017",
             annFile="/data/coco/annotations/instances_train2017.json",
@@ -44,7 +44,7 @@ def main(cfg: DictConfig) -> None:
         image_adapter=lambda img: np.array(img),
         target_adapter=parse_coco_target,
     )
-    val_dataset = wrap_detection_dataset(
+    val_dataset = CustomDetectionDataset(
         dataset=torchvision.datasets.CocoDetection(
             root="/data/coco/images/val2017",
             annFile="/data/coco/annotations/instances_val2017.json",

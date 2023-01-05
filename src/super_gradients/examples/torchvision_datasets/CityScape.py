@@ -8,7 +8,7 @@ from super_gradients import Trainer, init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.utils.sg_trainer_utils import parse_args
-from super_gradients.training.datasets.custom_dataset import wrap_segmentation_dataset
+from super_gradients.training.datasets.custom_dataset import CustomSegmentationDataset
 from super_gradients.training.utils.distributed_training_utils import setup_device
 from omegaconf import OmegaConf
 
@@ -33,11 +33,11 @@ def main(cfg: DictConfig) -> None:
     trainer = Trainer(**kwargs)
 
     # INSTANTIATE DATA LOADERS
-    train_dataset = wrap_segmentation_dataset(
+    train_dataset = CustomSegmentationDataset(
         dataset=torchvision.datasets.Cityscapes(root="/data/cityscapes", target_type="semantic", split="train"),
         transforms=cfg.dataset_params.train_dataset_params.transforms,
     )
-    val_dataset = wrap_segmentation_dataset(
+    val_dataset = CustomSegmentationDataset(
         dataset=torchvision.datasets.Cityscapes(root="/data/cityscapes", target_type="semantic", split="val"),
         transforms=cfg.dataset_params.val_dataset_params.transforms,
     )
