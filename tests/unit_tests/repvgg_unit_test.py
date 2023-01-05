@@ -72,6 +72,8 @@ class TestRepVgg(unittest.TestCase):
 
             deployment_mode_output = model(test_input)
             # difference is of very low magnitude
+            print("training_mode_output: " + str(training_mode_output))
+            print("deployment_mode_output: " + str(deployment_mode_output))
             self.assertFalse(False in torch.isclose(training_mode_output, deployment_mode_output, atol=1e-6))
 
     def test_backbone_mode(self):
