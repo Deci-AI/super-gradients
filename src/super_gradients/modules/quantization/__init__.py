@@ -6,8 +6,22 @@ from .quantized_skip_connections import (
     QuantCrossModelSkipConnection,
     QuantBackboneInternalSkipConnection,
 )
+from .quantized_stdc_blocks import (
+    QuantSTDCBlock,
+    QuantAttentionRefinementModule,
+    QuantFeatureFusionModule,
+    QuantContextEmbeddingOnline,
+    QuantContextEmbeddingFixedSize,
+    QuantContextPath,
+)
 
 __all__ = [
+    "QuantSTDCBlock",
+    "QuantAttentionRefinementModule",
+    "QuantFeatureFusionModule",
+    "QuantContextEmbeddingOnline",
+    "QuantContextEmbeddingFixedSize",
+    "QuantContextPath",
     "QuantBottleneck",
     "QuantSkipConnection",
     "QuantHeadInternalSkipConnection",

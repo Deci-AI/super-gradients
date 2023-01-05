@@ -22,11 +22,19 @@ logger = get_logger(__name__)
 try:
     # flake8 respects only the first occurence of __all__ defined in the module's root
     from .quantization import QuantBottleneck  # noqa: F401
+
     from .quantization import QuantResidual  # noqa: F401
     from .quantization import QuantSkipConnection  # noqa: F401
     from .quantization import QuantCrossModelSkipConnection  # noqa: F401
     from .quantization import QuantBackboneInternalSkipConnection  # noqa: F401
     from .quantization import QuantHeadInternalSkipConnection  # noqa: F401
+
+    from .quantization import QuantSTDCBlock  # noqa: F401
+    from .quantization import QuantAttentionRefinementModule  # noqa: F401
+    from .quantization import QuantFeatureFusionModule  # noqa: F401
+    from .quantization import QuantContextEmbeddingOnline  # noqa: F401
+    from .quantization import QuantContextEmbeddingFixedSize  # noqa: F401
+    from .quantization import QuantContextPath  # noqa: F401
 
     quant_extensions = [
         "QuantBottleneck",
@@ -35,6 +43,12 @@ try:
         "QuantCrossModelSkipConnection",
         "QuantBackboneInternalSkipConnection",
         "QuantHeadInternalSkipConnection",
+        "QuantSTDCBlock",
+        "QuantAttentionRefinementModule",
+        "QuantFeatureFusionModule",
+        "QuantContextEmbeddingOnline",
+        "QuantContextEmbeddingFixedSize",
+        "QuantContextPath",
     ]
 
 except (ImportError, NameError, ModuleNotFoundError) as import_err:

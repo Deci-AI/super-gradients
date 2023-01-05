@@ -35,6 +35,10 @@ class STDCBlock(nn.Module):
         """
         super().__init__()
         assert steps in [2, 3, 4], f"only 2, 3, 4 steps number are supported, found: {steps}"
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.steps = steps
+        self.stdc_downsample_mode = stdc_downsample_mode
         self.stride = stride
         self.conv_list = nn.ModuleList()
         # build first step conv 1x1.
@@ -250,6 +254,8 @@ class AttentionRefinementModule(nn.Module):
 
     def __init__(self, in_channels: int, out_channels: int):
         super(AttentionRefinementModule, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.conv_first = ConvBNReLU(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
         self.attention_block = nn.Sequential(
             nn.AdaptiveAvgPool2d(1), ConvBNReLU(out_channels, out_channels, kernel_size=1, bias=False, use_activation=False), nn.Sigmoid()
@@ -272,6 +278,10 @@ class FeatureFusionModule(nn.Module):
 
     def __init__(self, spatial_channels: int, context_channels: int, out_channels: int):
         super(FeatureFusionModule, self).__init__()
+        self.spatial_channels = spatial_channels
+        self.context_channels = context_channels
+        self.out_channels = out_channels
+
         self.pw_conv = ConvBNReLU(spatial_channels + context_channels, out_channels, kernel_size=1, stride=1, bias=False)
         # TODO - used without bias in convolutions by mistake, try to reproduce with bias=True
         self.attention_block = nn.Sequential(
@@ -344,6 +354,8 @@ class ContextPath(nn.Module):
 
     def __init__(self, backbone: AbstractSTDCBackbone, fuse_channels: int, use_aux_heads: bool):
         super(ContextPath, self).__init__()
+
+        self.fuse_channels = fuse_channels
         self.use_aux_heads = use_aux_heads
 
         self.backbone = backbone
@@ -378,6 +390,11 @@ class ContextPath(nn.Module):
         if self.use_aux_heads:
             return feat8, feat16_up, feat16, feat32
         return feat8, feat16_up
+
+    def prep_for_conversion(self, input_size):
+        if not isinstance(self.context_embedding, ContextEmbeddingFixedSize):
+            context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
+            self.context_embedding = ContextEmbeddingFixedSize.from_context_embedding_online(self.context_embedding, context_embedding_up_size)
 
 
 class STDCSegmentationBase(SgModule):
@@ -446,8 +463,7 @@ class STDCSegmentationBase(SgModule):
         # set to false and delete auxiliary and detail heads modules.
         self.use_aux_heads = False
 
-        context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
-        self.cp.context_embedding = ContextEmbeddingFixedSize.from_context_embedding_online(self.cp.context_embedding, context_embedding_up_size)
+        self.cp.prep_for_conversion(input_size)
 
     def _remove_auxiliary_and_detail_heads(self):
         attributes_to_delete = ["aux_head_s16", "aux_head_s32", "detail_head8"]
