@@ -93,7 +93,7 @@ class WandBSGLogger(BaseSGLogger):
 
         run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
         if save_code:
-            self._save_code()
+            self._save_code_lines()
 
         self._set_wandb_id(run.id)
         self.save_checkpoints_wandb = save_checkpoints_remote
@@ -101,7 +101,7 @@ class WandBSGLogger(BaseSGLogger):
         self.save_logs_wandb = save_logs_remote
 
     @multi_process_safe
-    def _save_code(self):
+    def _save_code_lines(self):
         """
         Save the current code to wandb.
         If a file named .wandbinclude is avilable in the root dir of the project the settings will be taken from the file.
