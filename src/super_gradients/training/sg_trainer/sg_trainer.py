@@ -36,7 +36,6 @@ from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
-from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
     get_metrics_results_tuple,
@@ -61,6 +60,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
+from super_gradients.training.utils.utils import fuzzy_idx_in_list
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
@@ -484,7 +484,7 @@ class Trainer:
         return loss, loss_logging_items
 
     def _init_monitored_items(self):
-        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+        self.metric_idx_in_results_tuple = fuzzy_idx_in_list(self.metric_to_watch, self.loss_logging_items_names + get_metrics_titles(self.valid_metrics))
         # Instantiate the values to monitor (loss/metric)
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
@@ -973,7 +973,13 @@ class Trainer:
             training_params = dict()
         self.train_loader = train_loader or self.train_loader
         self.valid_loader = valid_loader or self.valid_loader
-        if len(self.train_loader.dataset) % self.train_loader.batch_size != 0 and not self.train_loader.drop_last:
+
+        if hasattr(self.train_loader, "batch_sampler") and self.train_loader.batch_sampler is not None:
+            batch_size = self.train_loader.batch_sampler.batch_size
+        else:
+            batch_size = self.train_loader.batch_size
+
+        if len(self.train_loader.dataset) % batch_size != 0 and not self.train_loader.drop_last:
             logger.warning("Train dataset size % batch_size != 0 and drop_last=False, this might result in smaller " "last batch.")
         self._set_dataset_params()
 
@@ -1010,8 +1016,7 @@ class Trainer:
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
-            criterion_cls = LOSSES[self.training_params.loss]
-            self.criterion = criterion_cls(**self.training_params.criterion_params)
+            self.criterion = LossesFactory().get({self.training_params.loss: self.training_params.criterion_params})
 
         elif isinstance(self.training_params.loss, Mapping):
             self.criterion = LossesFactory().get(self.training_params.loss)
@@ -1551,12 +1556,9 @@ class Trainer:
         # IN CASE SG_LOGGER UPDATED THE DIR PATH
         self.checkpoints_dir_path = self.sg_logger.local_dir()
         hyper_param_config = self._get_hyper_param_config()
-
-        self.sg_logger.add_config("hyper_params", hyper_param_config)
         if additional_configs_to_log is not None:
-            for additional_logging_title in additional_configs_to_log.keys():
-                self.sg_logger.add_config(additional_logging_title, additional_configs_to_log[additional_logging_title])
-
+            hyper_param_config["additional_configs_to_log"] = additional_configs_to_log
+        self.sg_logger.add_config("hyper_params", hyper_param_config)
         self.sg_logger.flush()
 
     def _get_hyper_param_config(self):

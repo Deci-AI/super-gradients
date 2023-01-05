@@ -22,4 +22,6 @@ __all__ = [
     "setup_device",
 ]
 
+__version__ = "3.0.5"
+
 env_sanity_check()
