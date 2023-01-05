@@ -147,8 +147,6 @@ jobs:
      image_repo:
           type: string
           default: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
-     image_tag:
-       type: string
      new_image_tag:
        type: string
    docker:
@@ -157,9 +155,13 @@ jobs:
    steps:
      - deci-common/ecr_login_dev
      - run:
+          name: get rc tag of the final tag
+          command: |
+              RC_TAG=$(git tag --contains ${CIRCLE_SHA1} | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+')
+     - run:
            name: retag docker
            command: |
-              MANIFEST=$(aws ecr batch-get-image --repository-name << parameters.image_repo >> --image-ids imageTag=<< parameters.image_tag >> --query 'images[].imageManifest' --output text)
+              MANIFEST=$(aws ecr batch-get-image --repository-name << parameters.image_repo >> --image-ids imageTag=${RC_TAG} --query 'images[].imageManifest' --output text)
               aws ecr put-image --repository-name << parameters.image_repo >> --image-tag << parameters.new_image_tag >> --image-manifest "$MANIFEST"
 
 
@@ -366,13 +368,12 @@ workflows:
            <<: *release_candidate_tag_filter 
        - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
-          image_tag: ${CIRCLE_TAG}
+          image_tag: << pipeline.git.tag >>
           requires:
             - "build_and_publish_rc"
           <<: *release_candidate_tag_filter
        - retag_rc_to_final_docker: # works on release
-            new_image_tag: ${CIRCLE_TAG}
-            image_tag: ${CIRCLE_TAG} # to do get the tag of the sha was used 
+            new_image_tag: << pipeline.git.tag >>
             <<: *release_tag_filter 
        - hold-sg-public-release:  # works on release
            type: approval
@@ -385,7 +386,7 @@ workflows:
           use-remote-docker: true
           use-docker-credentials-store: true
           tag: latest,${CIRCLE_TAG}
-          extra_build_args: '--build-arg VERSION=${CIRCLE_TAG} --compress'
+          extra_build_args: '--build-arg VERSION=${CIRCLE_TAG} --compress' #building from scratch as it faster and cheaper than download and retag
           requires:
             - "hold-sg-public-release"
           <<: *release_tag_filter
