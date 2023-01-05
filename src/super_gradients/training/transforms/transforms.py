@@ -1107,9 +1107,9 @@ def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
     return padded_img, r
 
 
-class Standarize(torch.nn.Module):
+class Standardize(torch.nn.Module):
     """
-    Standarize image pixel values.
+    Standardize image pixel values.
     :return img/max_val
 
     attributes:
@@ -1117,7 +1117,7 @@ class Standarize(torch.nn.Module):
     """
 
     def __init__(self, max_val=255.0):
-        super(Standarize, self).__init__()
+        super(Standardize, self).__init__()
         self.max_val = max_val
 
     def forward(self, img):
