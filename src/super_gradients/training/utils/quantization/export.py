@@ -14,10 +14,12 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     _imported_pytorch_quantization_failure = import_err
 
 
-def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple, train: bool = False, **kwargs):
+def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple, train: bool = False, to_cpu: bool = True, **kwargs):
     """
     Method for exporting onnx after QAT.
 
+    :param to_cpu: transfer model to CPU before converting to ONNX, dirty workaround when model's tensors are on different devices
+    :param train: export model in training mode
     :param model: torch.nn.Module, model to export
     :param onnx_filename: str, target path for the onnx file,
     :param input_shape: tuple, input shape (usually BCHW)
@@ -30,7 +32,6 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
 
     # Export ONNX for multiple batch sizes
     logger.info("Creating ONNX file: " + onnx_filename)
-    dummy_input = torch.randn(input_shape, device=next(model.parameters()).device)
 
     if train:
         training_mode = TrainingMode.TRAINING
@@ -41,8 +42,16 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
         if hasattr(model, "prep_model_for_conversion"):
             model.prep_model_for_conversion(**kwargs)
 
+    # dirty workaround when model.prep_model_for_conversion does reparametrization
+    # and tensors get scattered to different devices
+    if to_cpu:
+        export_model = model.cpu()
+    else:
+        export_model = model
+
+    dummy_input = torch.randn(input_shape, device=next(model.parameters()).device)
     torch.onnx.export(
-        model, dummy_input, onnx_filename, verbose=False, opset_version=13, enable_onnx_checker=False, do_constant_folding=True, training=training_mode
+        export_model, dummy_input, onnx_filename, verbose=False, opset_version=13, enable_onnx_checker=False, do_constant_folding=True, training=training_mode
     )
 
     # Restore functions of quant_nn back as expected
