@@ -1,6 +1,7 @@
 import pkg_resources
 import hydra
 
+from omegaconf import OmegaConf
 from omegaconf import DictConfig
 import torchvision
 
@@ -8,9 +9,9 @@ from super_gradients import Trainer, init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.utils.sg_trainer_utils import parse_args
-from super_gradients.training.datasets.custom_dataset import CustomSegmentationDataset
+from super_gradients.training.datasets.custom_datasets.custom_dataset import CustomSegmentationDataset
+
 from super_gradients.training.utils.distributed_training_utils import setup_device
-from omegaconf import OmegaConf
 
 
 def run():
@@ -23,8 +24,6 @@ def main(cfg: DictConfig) -> None:
 
     setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
 
-    # NOTE: The recipe needs to be modified to run on 34/35 classes
-
     # INSTANTIATE ALL OBJECTS IN CFG
     cfg = hydra.utils.instantiate(cfg)
 
@@ -34,17 +33,16 @@ def main(cfg: DictConfig) -> None:
 
     # INSTANTIATE DATA LOADERS
     train_dataset = CustomSegmentationDataset(
-        dataset=torchvision.datasets.Cityscapes(root="/data/cityscapes", target_type="semantic", split="train"),
+        dataset=torchvision.datasets.SBDataset(root="/home/louis.dupont/data/sbd", mode="segmentation", image_set="train", download=False),
         transforms=cfg.dataset_params.train_dataset_params.transforms,
     )
     val_dataset = CustomSegmentationDataset(
-        dataset=torchvision.datasets.Cityscapes(root="/data/cityscapes", target_type="semantic", split="val"),
+        dataset=torchvision.datasets.SBDataset(root="/home/louis.dupont/data/sbd", mode="segmentation", image_set="val", download=False),
         transforms=cfg.dataset_params.val_dataset_params.transforms,
     )
     train_dataloader = dataloaders.get(dataset=train_dataset, dataloader_params={"batch_size": 2})
     val_dataloader = dataloaders.get(dataset=val_dataset, dataloader_params={"batch_size": 2})
 
-    #
     # BUILD NETWORK
     model = models.get(
         model_name=cfg.architecture,

@@ -8,8 +8,8 @@ import torchvision
 from super_gradients import Trainer, init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.datasets.custom_dataset import CustomDetectionDataset
-from super_gradients.training.datasets.detection_datasets.coco_detection import parse_coco_target
+from super_gradients.training.datasets.custom_datasets.custom_dataset import CustomDetectionDataset
+from super_gradients.training.datasets.custom_datasets.adapters import pascalvoc_target_adapter
 from super_gradients.training.utils.sg_trainer_utils import parse_args
 
 from super_gradients.training.utils.distributed_training_utils import setup_device
@@ -34,29 +34,22 @@ def main(cfg: DictConfig) -> None:
     trainer = Trainer(**kwargs)
 
     # INSTANTIATE DATA LOADERS
-
     train_dataset = CustomDetectionDataset(
-        dataset=torchvision.datasets.CocoDetection(
-            root="/data/coco/images/train2017",
-            annFile="/data/coco/annotations/instances_train2017.json",
-        ),
+        dataset=torchvision.datasets.VOCDetection(root="/home/louis.dupont/data/voc", image_set="train", download=False),
         transforms=cfg.dataset_params.train_dataset_params.transforms,
-        image_adapter=lambda img: np.array(img),
-        target_adapter=parse_coco_target,
+        image_adapter=lambda img: np.array(img),  # Adapts the image from VOCDetection into format expected by DetectionTransforms
+        target_adapter=pascalvoc_target_adapter,  # Adapts the targets from VOCDetection into format expected by DetectionTransforms
     )
     val_dataset = CustomDetectionDataset(
-        dataset=torchvision.datasets.CocoDetection(
-            root="/data/coco/images/val2017",
-            annFile="/data/coco/annotations/instances_val2017.json",
-        ),
+        dataset=torchvision.datasets.VOCDetection(root="/home/louis.dupont/data/voc", image_set="val", download=False),
         transforms=cfg.dataset_params.val_dataset_params.transforms,
-        image_adapter=lambda img: np.array(img),
-        target_adapter=parse_coco_target,
+        image_adapter=lambda img: np.array(img),  # Adapts the image from VOCDetection into format expected by DetectionTransforms
+        target_adapter=pascalvoc_target_adapter,  # Adapts the targets from VOCDetection into format expected by DetectionTransforms
     )
-
     train_dataloader = dataloaders.get(dataset=train_dataset, dataloader_params=cfg.dataset_params.train_dataloader_params)
     val_dataloader = dataloaders.get(dataset=val_dataset, dataloader_params=cfg.dataset_params.val_dataloader_params)
 
+    #
     # BUILD NETWORK
     model = models.get(
         model_name=cfg.architecture,

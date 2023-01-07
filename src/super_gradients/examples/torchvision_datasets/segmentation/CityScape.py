@@ -8,7 +8,7 @@ from super_gradients import Trainer, init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.utils.sg_trainer_utils import parse_args
-
+from super_gradients.training.datasets.custom_datasets.custom_dataset import CustomSegmentationDataset
 from super_gradients.training.utils.distributed_training_utils import setup_device
 from omegaconf import OmegaConf
 
@@ -23,6 +23,8 @@ def main(cfg: DictConfig) -> None:
 
     setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
 
+    # NOTE: The recipe needs to be modified to run on 34/35 classes
+
     # INSTANTIATE ALL OBJECTS IN CFG
     cfg = hydra.utils.instantiate(cfg)
 
@@ -31,37 +33,18 @@ def main(cfg: DictConfig) -> None:
     trainer = Trainer(**kwargs)
 
     # INSTANTIATE DATA LOADERS
-
-    from torchvision import transforms
-
-    transform = transforms.Compose(
-        [
-            transforms.ToTensor(),
-            transforms.Resize((500, 500)),
-        ]
+    train_dataset = CustomSegmentationDataset(
+        dataset=torchvision.datasets.Cityscapes(root="/data/cityscapes", target_type="semantic", split="train"),
+        transforms=cfg.dataset_params.train_dataset_params.transforms,
     )
-
-    class TransformTuple:
-        def __init__(self, transform):
-            self.transform = transform
-
-        def __call__(self, img, target):
-            return self.transform(img), self.transform(target)
-
-    train_dataloader = dataloaders.get(
-        dataset=torchvision.datasets.SBDataset(
-            root="/home/louis.dupont/data/sbd", mode="segmentation", image_set="train", download=False, transforms=TransformTuple(transform)
-        ),
-        dataloader_params={"batch_size": 10},
+    val_dataset = CustomSegmentationDataset(
+        dataset=torchvision.datasets.Cityscapes(root="/data/cityscapes", target_type="semantic", split="val"),
+        transforms=cfg.dataset_params.val_dataset_params.transforms,
     )
+    train_dataloader = dataloaders.get(dataset=train_dataset, dataloader_params={"batch_size": 2})
+    val_dataloader = dataloaders.get(dataset=val_dataset, dataloader_params={"batch_size": 2})
 
-    val_dataloader = dataloaders.get(
-        dataset=torchvision.datasets.SBDataset(
-            root="/home/louis.dupont/data/sbd", mode="segmentation", image_set="val", download=False, transforms=TransformTuple(transform)
-        ),
-        dataloader_params={"batch_size": 10},
-    )
-
+    #
     # BUILD NETWORK
     model = models.get(
         model_name=cfg.architecture,

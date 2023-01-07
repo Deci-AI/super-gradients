@@ -17,19 +17,12 @@ def run():
 def main(cfg: DictConfig) -> None:
     from torchvision import transforms
 
-    transform = transforms.Compose(
-        [
-            transforms.ToTensor(),
-        ]
-    )
-
     train_dataloader = dataloaders.get(
-        dataset=torchvision.datasets.FashionMNIST(root="/home/louis.dupont/data", train=True, download=True, transform=transform),
+        dataset=torchvision.datasets.FashionMNIST(root="/home/louis.dupont/data", train=True, download=True, transform=transforms.ToTensor()),
         dataloader_params={"batch_size": 10},
     )
-
     val_dataloader = dataloaders.get(
-        dataset=torchvision.datasets.FashionMNIST(root="/home/louis.dupont/data", train=False, download=True, transform=transform),
+        dataset=torchvision.datasets.FashionMNIST(root="/home/louis.dupont/data", train=False, download=True, transform=transforms.ToTensor()),
         dataloader_params={"batch_size": 10},
     )
 

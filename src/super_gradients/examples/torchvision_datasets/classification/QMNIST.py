@@ -1,16 +1,16 @@
 import pkg_resources
-import hydra
 
+import hydra
+from omegaconf import OmegaConf
 from omegaconf import DictConfig
 import torchvision
+from torchvision import transforms as T
 
 from super_gradients import Trainer, init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.utils.sg_trainer_utils import parse_args
-
 from super_gradients.training.utils.distributed_training_utils import setup_device
-from omegaconf import OmegaConf
 
 
 def run():
@@ -31,22 +31,13 @@ def main(cfg: DictConfig) -> None:
     trainer = Trainer(**kwargs)
 
     # INSTANTIATE DATA LOADERS
-
-    from torchvision import transforms
-
-    transform = transforms.Compose(
-        [
-            transforms.ToTensor(),
-        ]
-    )
-
     train_dataloader = dataloaders.get(
-        dataset=torchvision.datasets.QMNIST(root="/home/louis.dupont/data", train=True, download=True, transform=transform),
+        dataset=torchvision.datasets.QMNIST(root="/home/louis.dupont/data", train=True, download=True, transform=T.ToTensor()),
         dataloader_params={"batch_size": 10},
     )
 
     val_dataloader = dataloaders.get(
-        dataset=torchvision.datasets.QMNIST(root="/home/louis.dupont/data", train=False, download=True, transform=transform),
+        dataset=torchvision.datasets.QMNIST(root="/home/louis.dupont/data", train=False, download=True, transform=T.ToTensor()),
         dataloader_params={"batch_size": 10},
     )
 

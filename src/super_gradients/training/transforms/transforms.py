@@ -1,7 +1,7 @@
 import collections
 import math
 import random
-from typing import Optional, Union, Tuple, List, Sequence, Dict
+from typing import Optional, Union, Tuple, List, Sequence, Dict, Callable
 
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
@@ -22,6 +22,23 @@ class Transform:
 
     def __repr__(self):
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
+
+
+class DictTransform(Transform):
+    """Apply transforms on a sample according based on a mapping of transforms per feature/field."""
+
+    def __init__(self, transforms: Dict[str, Callable]):
+        """
+        :param transforms: Mapping of feature -> transform to apply on that feature, for every sample.
+        """
+        self.transforms = transforms
+
+    def __call__(self, sample: dict) -> dict:
+        if set(self.transforms.keys()) != set(sample.keys()):
+            raise ValueError(f"DictTransform was setup for keys {list(self.transforms.keys())} " f"but sample received has keys {list(sample.keys)}")
+        for col, col_transform in self.transforms.items():
+            sample[col] = col_transform(sample[col])
+        return sample
 
 
 class SegmentationTransform(Transform):

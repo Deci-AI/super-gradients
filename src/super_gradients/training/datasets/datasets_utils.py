@@ -688,3 +688,17 @@ def worker_init_reset_seed(worker_id):
     random.seed(seed)
     torch.set_rng_state(torch.manual_seed(seed).get_state())
     np.random.seed(seed)
+
+
+def get_random_item(dataset):
+    return dataset[random.randint(0, len(dataset) - 1)]
+
+
+def get_random_items(dataset, count: int) -> list:
+    """Load random samples.
+
+    :param count: The number of samples wanted
+    :param non_empty_annotations_only: If true, only return samples with at least 1 annotation
+    :return: A list of samples satisfying input params
+    """
+    return [get_random_item(dataset) for _ in range(count)]
