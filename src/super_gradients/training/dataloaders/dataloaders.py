@@ -590,20 +590,6 @@ def pascal_voc_detection_val(dataset_params: Dict = None, dataloader_params: Dic
     )
 
 
-def build_(dataset_cls, train: bool):
-    def custom_dataset(dataset_params: Dict = None, dataloader_params: Dict = None):
-        # dataset_params #TODO: This is custom dataset param
-        return get_data_loader(
-            config_name="pascal_voc_detection_dataset_params",
-            dataset_cls=dataset_cls,
-            train=train,
-            dataset_params=dataset_params,
-            dataloader_params=dataloader_params,
-        )
-
-    return custom_dataset
-
-
 ALL_DATALOADERS = {
     "coco2017_train": coco2017_train,
     "coco2017_val": coco2017_val,

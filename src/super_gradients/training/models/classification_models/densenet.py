@@ -17,12 +17,16 @@ Performance reproducibility (4 GPUs):
 class _DenseLayer(nn.Module):
     def __init__(self, num_input_features, growth_rate, bn_size, drop_rate):
         super(_DenseLayer, self).__init__()
-        self.add_module("norm1", nn.BatchNorm2d(num_input_features)),
-        self.add_module("relu1", nn.ReLU(inplace=True)),
-        self.add_module("conv1", nn.Conv2d(num_input_features, bn_size * growth_rate, kernel_size=1, stride=1, bias=False)),
-        self.add_module("norm2", nn.BatchNorm2d(bn_size * growth_rate)),
-        self.add_module("relu2", nn.ReLU(inplace=True)),
-        self.add_module("conv2", nn.Conv2d(bn_size * growth_rate, growth_rate, kernel_size=3, stride=1, padding=1, bias=False)),
+        self.add_module('norm1', nn.BatchNorm2d(num_input_features)),
+        self.add_module('relu1', nn.ReLU(inplace=True)),
+        self.add_module('conv1', nn.Conv2d(num_input_features, bn_size * growth_rate,
+                                           kernel_size=1, stride=1,
+                                           bias=False)),
+        self.add_module('norm2', nn.BatchNorm2d(bn_size * growth_rate)),
+        self.add_module('relu2', nn.ReLU(inplace=True)),
+        self.add_module('conv2', nn.Conv2d(bn_size * growth_rate, growth_rate,
+                                           kernel_size=3, stride=1, padding=1,
+                                           bias=False)),
         self.drop_rate = float(drop_rate)
 
     def bn_function(self, inputs):
@@ -50,7 +54,7 @@ class _DenseBlock(nn.ModuleDict):
                 bn_size=bn_size,
                 drop_rate=drop_rate,
             )
-            self.add_module("denselayer%d" % (i + 1), layer)
+            self.add_module('denselayer%d' % (i + 1), layer)
 
     def forward(self, init_features):
         features = [init_features]
@@ -63,14 +67,16 @@ class _DenseBlock(nn.ModuleDict):
 class _Transition(nn.Sequential):
     def __init__(self, num_input_features, num_output_features):
         super(_Transition, self).__init__()
-        self.add_module("norm", nn.BatchNorm2d(num_input_features))
-        self.add_module("relu", nn.ReLU(inplace=True))
-        self.add_module("conv", nn.Conv2d(num_input_features, num_output_features, kernel_size=1, stride=1, bias=False))
-        self.add_module("pool", nn.AvgPool2d(kernel_size=2, stride=2))
+        self.add_module('norm', nn.BatchNorm2d(num_input_features))
+        self.add_module('relu', nn.ReLU(inplace=True))
+        self.add_module('conv', nn.Conv2d(num_input_features, num_output_features,
+                                          kernel_size=1, stride=1, bias=False))
+        self.add_module('pool', nn.AvgPool2d(kernel_size=2, stride=2))
 
 
 class DenseNet(SgModule):
-    def __init__(self, growth_rate: int, structure: list, num_init_features: int, bn_size: int, drop_rate: float, num_classes: int):
+    def __init__(self, growth_rate: int, structure: list, num_init_features: int, bn_size: int, drop_rate: float,
+                 num_classes: int):
         """
         :param growth_rate:         number of filter to add each layer (noted as 'k' in the paper)
         :param structure:           how many layers in each pooling block - sequentially
@@ -83,30 +89,26 @@ class DenseNet(SgModule):
         super(DenseNet, self).__init__()
 
         # First convolution
-        self.features = nn.Sequential(
-            OrderedDict(
-                [
-                    ("conv0", nn.Conv2d(3, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
-                    ("norm0", nn.BatchNorm2d(num_init_features)),
-                    ("relu0", nn.ReLU(inplace=True)),
-                    ("pool0", nn.MaxPool2d(kernel_size=3, stride=2, padding=1)),
-                ]
-            )
-        )
+        self.features = nn.Sequential(OrderedDict([
+            ('conv0', nn.Conv2d(3, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
+            ('norm0', nn.BatchNorm2d(num_init_features)),
+            ('relu0', nn.ReLU(inplace=True)),
+            ('pool0', nn.MaxPool2d(kernel_size=3, stride=2, padding=1))]))
 
         # Each denseblock
         num_features = num_init_features
         for i, num_layers in enumerate(structure):
-            block = _DenseBlock(num_layers=num_layers, num_input_features=num_features, bn_size=bn_size, growth_rate=growth_rate, drop_rate=drop_rate)
-            self.features.add_module("denseblock%d" % (i + 1), block)
+            block = _DenseBlock(num_layers=num_layers, num_input_features=num_features, bn_size=bn_size,
+                                growth_rate=growth_rate, drop_rate=drop_rate)
+            self.features.add_module('denseblock%d' % (i + 1), block)
             num_features = num_features + num_layers * growth_rate
             if i != len(structure) - 1:
                 trans = _Transition(num_input_features=num_features, num_output_features=num_features // 2)
-                self.features.add_module("transition%d" % (i + 1), trans)
+                self.features.add_module('transition%d' % (i + 1), trans)
                 num_features = num_features // 2
 
         # Final batch norm
-        self.features.add_module("norm5", nn.BatchNorm2d(num_features))
+        self.features.add_module('norm5', nn.BatchNorm2d(num_features))
 
         # Linear layer
         self.classifier = nn.Linear(num_features, num_classes)
@@ -132,14 +134,12 @@ class DenseNet(SgModule):
 
 class CustomizedDensnet(DenseNet):
     def __init__(self, arch_params):
-        super().__init__(
-            growth_rate=arch_params.growth_rate if hasattr(arch_params, "growth_rate") else 32,
-            structure=arch_params.structure if hasattr(arch_params, "structure") else [6, 12, 24, 16],
-            num_init_features=arch_params.num_init_features if hasattr(arch_params, "num_init_features") else 64,
-            bn_size=arch_params.bn_size if hasattr(arch_params, "bn_size") else 4,
-            drop_rate=arch_params.drop_rate if hasattr(arch_params, "drop_rate") else 0,
-            num_classes=arch_params.num_classes,
-        )
+        super().__init__(growth_rate=arch_params.growth_rate if hasattr(arch_params, "growth_rate") else 32,
+                         structure=arch_params.structure if hasattr(arch_params, "structure") else [6, 12, 24, 16],
+                         num_init_features=arch_params.num_init_features if hasattr(arch_params, "num_init_features") else 64,
+                         bn_size=arch_params.bn_size if hasattr(arch_params, "bn_size") else 4,
+                         drop_rate=arch_params.drop_rate if hasattr(arch_params, "drop_rate") else 0,
+                         num_classes=arch_params.num_classes)
 
 
 class DenseNet121(DenseNet):

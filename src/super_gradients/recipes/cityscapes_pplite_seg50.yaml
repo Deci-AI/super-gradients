@@ -55,12 +55,12 @@ dataset_params:
     batch_size: 8
 
 arch_params:
-  num_classes: 34
+  num_classes: 19
   use_aux_heads: True
 
 checkpoint_params:
   checkpoint_path:
-  load_backbone: False
+  load_backbone: True
   load_weights_only: True
   strict_load: no_key_matching
 
@@ -68,7 +68,7 @@ training_hyperparams:
   sync_bn: True
   loss:
     dice_ce_edge_loss:
-      num_classes: 34
+      num_classes: 19
       ignore_index: 19
       num_aux_heads: 3
       num_detail_heads: 0

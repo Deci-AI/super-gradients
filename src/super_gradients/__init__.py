@@ -3,6 +3,7 @@ from super_gradients.training import ARCHITECTURES, losses, utils, datasets_util
 from super_gradients.examples.train_from_recipe_example import train_from_recipe
 from super_gradients.examples.train_from_kd_recipe_example import train_from_kd_recipe
 from super_gradients.sanity_check import env_sanity_check
+from super_gradients.training.utils.distributed_training_utils import setup_device
 
 __all__ = [
     "ARCHITECTURES",
@@ -18,6 +19,7 @@ __all__ = [
     "train_from_recipe",
     "train_from_kd_recipe",
     "env_sanity_check",
+    "setup_device",
 ]
 
 __version__ = "3.0.5"

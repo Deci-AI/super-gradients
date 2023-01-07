@@ -22,14 +22,14 @@ train_metrics_list:
   - PixelAccuracy:
       ignore_label: 19
   - IoU:
-      num_classes: 35
+      num_classes: 20
       ignore_index: 19
 
 valid_metrics_list:
   - PixelAccuracy:
       ignore_label: 19
   - IoU:
-      num_classes: 35
+      num_classes: 20
       ignore_index: 19
 
 

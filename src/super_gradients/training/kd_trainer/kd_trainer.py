@@ -31,7 +31,7 @@ logger = get_logger(__name__)
 
 
 class KDTrainer(Trainer):
-    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF, ckpt_root_dir: str = None):
+    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = None, ckpt_root_dir: str = None):
         super().__init__(experiment_name=experiment_name, device=device, multi_gpu=multi_gpu, ckpt_root_dir=ckpt_root_dir)
         self.student_architecture = None
         self.teacher_architecture = None

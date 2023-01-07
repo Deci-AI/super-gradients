@@ -17,7 +17,6 @@ class PatchEmbed(nn.Module):
     """
     2D Image to Patch Embedding Using Conv layers (Faster than rearranging + Linear)
     """
-
     def __init__(self, img_size: tuple, patch_size: tuple, in_channels=3, hidden_dim=768, norm_layer=None, flatten=True):
         super().__init__()
         self.img_size = img_size
@@ -38,11 +37,10 @@ class PatchEmbed(nn.Module):
 
 
 class FeedForward(nn.Module):
-    """
+    '''
     feed forward block with residual connection
-    """
-
-    def __init__(self, hidden_dim, mlp_dim, dropout=0.0):
+    '''
+    def __init__(self, hidden_dim, mlp_dim, dropout=0.):
         super().__init__()
         self.fc1 = nn.Linear(hidden_dim, mlp_dim)
         self.act = nn.GELU()
@@ -59,17 +57,16 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-    """
+    '''
     self attention layer with residual connection
-    """
-
+    '''
     def __init__(self, hidden_dim, heads=8):
         super().__init__()
         dim_head = hidden_dim // heads
         inner_dim = dim_head * heads
 
         self.heads = heads
-        self.scale = dim_head**-0.5
+        self.scale = dim_head ** -0.5
 
         self.attend = nn.Softmax(dim=-1)
         self.to_qkv = nn.Linear(hidden_dim, inner_dim * 3, bias=True)  # Qx, Kx, Vx are calculated at once
@@ -93,7 +90,7 @@ class Attention(nn.Module):
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, hidden_dim, heads, mlp_dim, dropout_prob=0.0):
+    def __init__(self, hidden_dim, heads, mlp_dim, dropout_prob=0.):
         super().__init__()
         self.layers = nn.ModuleList([])
         self.norm1 = nn.LayerNorm(hidden_dim, eps=1e-6)
@@ -108,7 +105,7 @@ class TransformerBlock(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, hidden_dim, depth, heads, mlp_dim, dropout_prob=0.0):
+    def __init__(self, hidden_dim, depth, heads, mlp_dim, dropout_prob=0.):
         super().__init__()
         self.blocks = nn.ModuleList([])
         for _ in range(depth):
@@ -121,21 +118,9 @@ class Transformer(nn.Module):
 
 
 class ViT(SgModule):
-    def __init__(
-        self,
-        image_size: tuple,
-        patch_size: tuple,
-        num_classes: int,
-        hidden_dim: int,
-        depth: int,
-        heads: int,
-        mlp_dim: int,
-        in_channels=3,
-        dropout_prob=0.0,
-        emb_dropout_prob=0.0,
-        backbone_mode=False,
-    ):
-        """
+    def __init__(self, image_size: tuple, patch_size: tuple, num_classes: int, hidden_dim: int, depth: int, heads: int,
+                 mlp_dim: int, in_channels=3, dropout_prob=0., emb_dropout_prob=0., backbone_mode=False):
+        '''
         :param image_size: Image size tuple for data processing into patches done within the model.
         :param patch_size: Patch size tuple for data processing into patches done within the model.
         :param num_classes: Number of classes for the classification head.
@@ -147,14 +132,14 @@ class ViT(SgModule):
         :param dropout: Dropout ratio between the feed forward layers.
         :param emb_dropout: Dropout ratio between after the embedding layer
         :param backbone_mode: If True output after pooling layer
-        """
+        '''
 
         super().__init__()
         image_height, image_width = image_size
         patch_height, patch_width = patch_size
 
-        assert image_height % patch_height == 0 and image_width % patch_width == 0, "Image dimensions must be divisible by the patch size."
-        assert hidden_dim % heads == 0, "Hidden dimension must be divisible by the number of heads."
+        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+        assert hidden_dim % heads == 0, 'Hidden dimension must be divisible by the number of heads.'
 
         num_patches = (image_height // patch_height) * (image_width // patch_width)
 
@@ -173,9 +158,9 @@ class ViT(SgModule):
         x = self.patch_embedding(img)  # Convert image to patches and embed
         b, n, _ = x.shape
 
-        cls_tokens = repeat(self.cls_token, "() n d -> b n d", b=b)
+        cls_tokens = repeat(self.cls_token, '() n d -> b n d', b=b)
         x = torch.cat((cls_tokens, x), dim=1)
-        x += self.pos_embedding[:, : (n + 1)]
+        x += self.pos_embedding[:, :(n + 1)]
         x = self.dropout(x)
 
         x = self.transformer(x)
@@ -197,50 +182,35 @@ class ViT(SgModule):
 
 class ViTBase(ViT):
     def __init__(self, arch_params, num_classes=None, backbone_mode=None):
-        super(ViTBase, self).__init__(
-            image_size=get_param(arch_params, "image_size", (224, 224)),
-            patch_size=get_param(arch_params, "patch_size", (16, 16)),
-            num_classes=num_classes or arch_params.num_classes,
-            hidden_dim=768,
-            depth=12,
-            heads=12,
-            mlp_dim=3072,
-            in_channels=get_param(arch_params, "in_channels", 3),
-            dropout_prob=get_param(arch_params, "dropout_prob", 0),
-            emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
-            backbone_mode=backbone_mode,
-        )
+        super(ViTBase, self).__init__(image_size=get_param(arch_params, "image_size", (224, 224)),
+                                      patch_size=get_param(arch_params, "patch_size", (16, 16)),
+                                      num_classes=num_classes or arch_params.num_classes,
+                                      hidden_dim=768, depth=12, heads=12, mlp_dim=3072,
+                                      in_channels=get_param(arch_params, 'in_channels', 3),
+                                      dropout_prob=get_param(arch_params, "dropout_prob", 0),
+                                      emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
+                                      backbone_mode=backbone_mode)
 
 
 class ViTLarge(ViT):
     def __init__(self, arch_params, num_classes=None, backbone_mode=None):
-        super(ViTLarge, self).__init__(
-            image_size=get_param(arch_params, "image_size", (224, 224)),
-            patch_size=get_param(arch_params, "patch_size", (16, 16)),
-            num_classes=num_classes or arch_params.num_classes,
-            hidden_dim=1024,
-            depth=24,
-            heads=16,
-            mlp_dim=4096,
-            in_channels=get_param(arch_params, "in_channels", 3),
-            dropout_prob=get_param(arch_params, "dropout_prob", 0),
-            emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
-            backbone_mode=backbone_mode,
-        )
+        super(ViTLarge, self).__init__(image_size=get_param(arch_params, "image_size", (224, 224)),
+                                       patch_size=get_param(arch_params, "patch_size", (16, 16)),
+                                       num_classes=num_classes or arch_params.num_classes,
+                                       hidden_dim=1024, depth=24, heads=16, mlp_dim=4096,
+                                       in_channels=get_param(arch_params, 'in_channels', 3),
+                                       dropout_prob=get_param(arch_params, "dropout_prob", 0),
+                                       emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
+                                       backbone_mode=backbone_mode)
 
 
 class ViTHuge(ViT):
     def __init__(self, arch_params, num_classes=None, backbone_mode=None):
-        super(ViTHuge, self).__init__(
-            image_size=get_param(arch_params, "image_size", (224, 224)),
-            patch_size=get_param(arch_params, "patch_size", (16, 16)),
-            num_classes=num_classes or arch_params.num_classes,
-            hidden_dim=1280,
-            depth=32,
-            heads=16,
-            mlp_dim=5120,
-            in_channels=get_param(arch_params, "in_channels", 3),
-            dropout_prob=get_param(arch_params, "dropout_prob", 0),
-            emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
-            backbone_mode=backbone_mode,
-        )
+        super(ViTHuge, self).__init__(image_size=get_param(arch_params, "image_size", (224, 224)),
+                                      patch_size=get_param(arch_params, "patch_size", (16, 16)),
+                                      num_classes=num_classes or arch_params.num_classes,
+                                      hidden_dim=1280, depth=32, heads=16, mlp_dim=5120,
+                                      in_channels=get_param(arch_params, 'in_channels', 3),
+                                      dropout_prob=get_param(arch_params, "dropout_prob", 0),
+                                      emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
+                                      backbone_mode=backbone_mode)

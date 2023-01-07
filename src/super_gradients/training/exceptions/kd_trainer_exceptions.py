@@ -18,7 +18,9 @@ class ArchitectureKwargsException(KDModelException):
     """
 
     def __init__(self):
-        super().__init__("When architecture is not intialized both student_architecture and teacher_architecture must be passed " "through **kwargs")
+        super().__init__(
+            "When architecture is not intialized both student_architecture and teacher_architecture must be passed "
+            "through **kwargs")
 
 
 class UnsupportedKDArchitectureException(KDModelException):
@@ -39,16 +41,10 @@ class InconsistentParamsException(KDModelException):
         message -- explanation of the error
     """
 
-    def __init__(
-        self,
-        inconsistent_key1: str,
-        inconsistent_key1_container_name: str,
-        inconsistent_key2: str,
-        inconsistent_key2_container_name: str,
-    ):
-        super().__init__(
-            f"{inconsistent_key1} in {inconsistent_key1_container_name} must be equal to " f"{inconsistent_key2} in {inconsistent_key2_container_name}"
-        )
+    def __init__(self, inconsistent_key1: str, inconsistent_key1_container_name: str, inconsistent_key2: str,
+                 inconsistent_key2_container_name: str, ):
+        super().__init__(f"{inconsistent_key1} in {inconsistent_key1_container_name} must be equal to "
+                         f"{inconsistent_key2} in {inconsistent_key2_container_name}")
 
 
 class UnsupportedKDModelArgException(KDModelException):
@@ -79,6 +75,5 @@ class UndefinedNumClassesException(KDModelException):
     Attributes:
         message -- explanation of the error
     """
-
     def __init__(self):
         super().__init__("Number of classes must be defined in students and teachers arch params or by connecting to a dataset interface")
