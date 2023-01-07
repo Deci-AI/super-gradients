@@ -1,0 +1,26 @@
+train_dataset_params:
+  root_dir: /data/cityscapes
+  list_file: lists/train.lst
+  labels_csv_path: lists/labels.csv
+  cache_labels: False
+  cache_images: False
+  transforms:
+
+val_dataset_params:
+  root_dir: /data/cityscapes
+  list_file: lists/val.lst
+  labels_csv_path: lists/labels.csv
+  cache_labels: False
+  cache_images: False
+  transforms:
+
+train_dataloader_params:
+  shuffle: True
+  batch_size: 8
+  num_workers: 8
+  drop_last: True                 # drop the last incomplete batch, if dataset size is not divisible by the batch size
+
+val_dataloader_params:
+  batch_size: 8
+  num_workers: 8
+  drop_last: False

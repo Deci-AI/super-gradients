@@ -1,3 +1,7 @@
+"""Example of how to use torchvision.datasets.QMNIST with SuperGradients.
+
+$ python QMNIST.py
+"""
 import pkg_resources
 
 import hydra

@@ -1,3 +1,8 @@
+"""Example of how to use torchvision.datasets.CocoDetection with SuperGradients.
+Note: This code uses the recipe coco2017_yolox as a base for everything except for the dataset.
+
+$ python COCODetection.py --config-name=coco2017_yolox
+"""
 import pkg_resources
 import hydra
 
@@ -34,26 +39,6 @@ def main(cfg: DictConfig) -> None:
     trainer = Trainer(**kwargs)
 
     # INSTANTIATE DATA LOADERS
-
-    # train_dataset = CustomDetectionDataset(
-    #     dataset=torchvision.datasets.CocoDetection(
-    #         root="/data/coco/images/train2017",
-    #         annFile="/data/coco/annotations/instances_train2017.json",
-    #     ),
-    #     transforms=cfg.dataset_params.train_dataset_params.transforms,
-    #     image_adapter=lambda img: np.array(img),
-    #     target_adapter=parse_coco_target,
-    # )
-    # val_dataset = CustomDetectionDataset(
-    #     dataset=torchvision.datasets.CocoDetection(
-    #         root="/data/coco/images/val2017",
-    #         annFile="/data/coco/annotations/instances_val2017.json",
-    #     ),
-    #     transforms=cfg.dataset_params.val_dataset_params.transforms,
-    #     image_adapter=lambda img: np.array(img),
-    #     target_adapter=parse_coco_target,
-    # )
-
     train_dataset = CustomDetectionDataset(
         dataset=torchvision.datasets.CocoDetection(
             root="/data/coco/images/train2017",

@@ -1,0 +1,52 @@
+defaults:
+  - training_hyperparams: cityscapes_default_train_params
+  - dataset_params: cityscapes_stdc_seg50_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+train_dataloader: cityscapes_train
+val_dataloader: cityscapes_val
+
+architecture: pp_lite_t_seg
+
+dataset_params:
+  train_dataloader_params:
+    batch_size: 8
+  val_dataloader_params:
+    batch_size: 8
+
+arch_params:
+  num_classes: 34
+  use_aux_heads: True
+
+checkpoint_params:
+  checkpoint_path:
+  load_backbone: False
+  load_weights_only: True
+  strict_load: no_key_matching
+
+training_hyperparams:
+  sync_bn: True
+  loss:
+    dice_ce_edge_loss:
+      num_classes: 34
+      ignore_index: 19
+      num_aux_heads: 3
+      num_detail_heads: 0
+      weights: [ 1., 1., 1., 1. ]
+      dice_ce_weights: [ 1., 1. ]
+      ce_edge_weights: [ .5, .5 ]
+      edge_kernel: 5
+
+multi_gpu: DDP
+num_gpus: 4
+
+experiment_name: ${architecture}50_cityscapes
+ckpt_root_dir:
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

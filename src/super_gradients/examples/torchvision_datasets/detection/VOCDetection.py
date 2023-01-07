@@ -1,3 +1,8 @@
+"""Example of how to use torchvision.datasets.VOCDetection with SuperGradients.
+Note: This code uses the recipe coco2017_yolox as a base for everything except for the dataset.
+
+$ python VOCDetection.py --config-name=coco2017_yolox
+"""
 import pkg_resources
 import hydra
 
@@ -49,7 +54,6 @@ def main(cfg: DictConfig) -> None:
     train_dataloader = dataloaders.get(dataset=train_dataset, dataloader_params=cfg.dataset_params.train_dataloader_params)
     val_dataloader = dataloaders.get(dataset=val_dataset, dataloader_params=cfg.dataset_params.val_dataloader_params)
 
-    #
     # BUILD NETWORK
     model = models.get(
         model_name=cfg.architecture,

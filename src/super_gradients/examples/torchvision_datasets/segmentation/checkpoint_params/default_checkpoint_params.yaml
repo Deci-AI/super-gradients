@@ -1,0 +1,9 @@
+load_checkpoint: False # whether to load checkpoint
+load_backbone: False # whether to load only backbone part of checkpoint
+checkpoint_path: # checkpoint path that is located in super_gradients/checkpoints
+external_checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
+source_ckpt_folder_name: # dirname for checkpoint loading
+strict_load: # key matching strictness for loading checkpoint's weights
+  _target_: super_gradients.training.sg_trainer.StrictLoad
+  value: True
+pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").

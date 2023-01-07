@@ -1,4 +1,7 @@
-import pkg_resources
+"""Example of how to use torchvision.datasets.SBDataset with SuperGradients.
+
+$ python CityScape.py --config-name=config
+"""
 import hydra
 
 from omegaconf import OmegaConf
@@ -19,7 +22,7 @@ def run():
     main()
 
 
-@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name="user_recipe_mnist_example", version_base="1.2")
+@hydra.main(config_path="", version_base="1.2")
 def main(cfg: DictConfig) -> None:
 
     setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))

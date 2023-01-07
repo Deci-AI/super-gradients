@@ -1,0 +1,112 @@
+resume: False # whether to continue training from ckpt with the same experiment name.
+resume_path: # Explicit checkpoint path (.pth file) to use to resume training.
+ckpt_name: ckpt_latest.pth  # The checkpoint (.pth file) filename in CKPT_ROOT_DIR/EXPERIMENT_NAME/ to use when resume=True and resume_path=None
+lr_mode: # Learning rate scheduling policy, one of ['step','poly','cosine','function']
+lr_schedule_function: # Learning rate scheduling function to be used when `lr_mode` is 'function'.
+lr_warmup_epochs: 0 # number of epochs for learning rate warm up - see https://arxiv.org/pdf/1706.02677.pdf (Section 2.2).
+lr_cooldown_epochs: 0 # epochs to cooldown LR (i.e the last epoch from scheduling view point=max_epochs-cooldown)
+warmup_initial_lr: # Initial lr for linear_step. When none is given, initial_lr/(warmup_epochs+1) will be used.
+step_lr_update_freq: # (float) update frequency in epoch units for computing lr_updates when lr_mode=`step`.
+cosine_final_lr_ratio: 0.01 # final learning rate ratio (only relevant when `lr_mode`='cosine')
+warmup_mode: linear_step # learning rate warmup scheme, currently only 'linear_step' is supported
+
+lr_updates:
+  _target_: super_gradients.training.utils.utils.empty_list # This is a workaround to instantiate a list using _target_. If we would instantiate as "lr_updates: []",
+                                                            # we would get an error every time we would want to overwrite lr_updates with a numpy array.
+
+pre_prediction_callback: # callback modifying images and targets right before forward pass.
+
+optimizer: SGD # Optimization algorithm. One of ['Adam','SGD','RMSProp'] corresponding to the torch.optim optimizers
+optimizer_params: {} # when `optimizer` is one of ['Adam','SGD','RMSProp'], it will be initialized with optimizer_params.
+load_opt_params: True # Whether to load the optimizers parameters as well when loading a model's checkpoint
+zero_weight_decay_on_bias_and_bn: False # whether to apply weight decay on batch normalization parameters or not
+
+
+loss: # Loss function for training (str as one of SuperGradient's built in options, or torch.nn.module)
+criterion_params: {} # when `loss` is one of SuperGradient's built in options, it will be initialized with criterion_params.
+
+
+ema: False # whether to use Model Exponential Moving Average
+ema_params: # parameters for the ema model.
+  decay: 0.9999
+  beta: 15
+  exp_activation: True
+
+
+train_metrics_list: [] # Metrics to log during training. For more information on torchmetrics see https://torchmetrics.rtfd.io/en/latest/.
+valid_metrics_list: [] # Metrics to log during validation. For more information on torchmetrics see https://torchmetrics.rtfd.io/en/latest/
+metric_to_watch: Accuracy # will be the metric which the model checkpoint will be saved according to
+greater_metric_to_watch_is_better: True # When choosing a model's checkpoint to be saved, the best achieved model is the one that maximizes the metric_to_watch when this parameter is set to True
+
+
+launch_tensorboard: False # Whether to launch a TensorBoard process.
+tensorboard_port: # port for tensorboard process
+tb_files_user_prompt: False  # Asks User for Tensorboard Deletion Prompt
+save_tensorboard_to_s3: False # whether to save tb to s3
+
+
+precise_bn: False # Whether to use precise_bn calculation during the training.
+precise_bn_batch_size: # the effective batch size we want to calculate the batchnorm on.
+sync_bn: False # Whether to convert bn layers to synched bn (for accurate stats in DDP).
+
+
+silent_mode: False  # Silents the Print outs
+
+
+mixed_precision: False # Whether to use mixed precision or not.
+
+
+save_ckpt_epoch_list: []  # indices where the ckpt will save automatically
+
+
+average_best_models: True # If set, a snapshot dictionary file and the average model will be saved
+
+
+dataset_statistics: False  # add a dataset statistical analysis and sample images to tensorboard
+
+
+batch_accumulate: 1  # number of batches to accumulate before every backward pass
+
+
+run_validation_freq: 1 # The frequency in which validation is performed during training
+
+
+save_model: True # Whether to save the model checkpoints
+
+
+seed: 42 # seed for reproducibility
+
+
+phase_callbacks: [] # list of callbacks to be applied at specific phases.
+
+
+log_installed_packages: True # when set, the list of all installed packages (and their versions) will be written to the tensorboard
+
+
+clip_grad_norm : # Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped
+
+ckpt_best_name: ckpt_best.pth
+
+enable_qat: False # enables quantization aware training
+
+qat_params:
+  start_epoch: 0 # int, first epoch to start QAT. Must be lower than `max_epochs`.
+  quant_modules_calib_method: percentile # str, One of [percentile, mse, entropy, max]. Statistics method for amax computation of the quantized modules.
+  per_channel_quant_modules: False # bool, whether quant modules should be per channel.
+  calibrate: True # bool, whether to perfrom calibration.
+  calibrated_model_path: # str, path to a calibrated checkpoint (default=None).
+  calib_data_loader: # torch.utils.data.DataLoader, data loader of the calibration dataset. When None, context.train_loader will be used (default=None).
+  num_calib_batches: 2 # int, number of batches to collect the statistics from.
+  percentile: 99.99 # float, percentile value to use when quant_modules_calib_method='percentile'. Discarded when other methods are used (Default=99.99).
+
+sg_logger: base_sg_logger
+sg_logger_params:
+  tb_files_user_prompt: False # Asks User for Tensorboard Deletion Prompt
+  launch_tensorboard: False
+  tensorboard_port:
+  save_checkpoints_remote: False  # upload checkpoint files to s3
+  save_tensorboard_remote: False  # upload tensorboard files to s3
+  save_logs_remote: False  # upload log files to s3
+  monitor_system: True  # Monitor and write to tensorboard the system statistics, such as CPU usage, GPU, ...
+
+_convert_: all
