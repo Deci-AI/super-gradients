@@ -1,5 +1,5 @@
-ARG TAG=11.3.1-devel-ubuntu20.04
-FROM nvidia/cuda:${TAG}
+ARG DOCKER_IMAGE_TAG=11.3.1-devel-ubuntu20.04
+FROM nvidia/cuda:${DOCKER_IMAGE_TAG}
 
 LABEL maintainer "DECI.AI <services@deci.ai>"
 ARG VERSION

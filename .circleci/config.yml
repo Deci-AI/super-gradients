@@ -113,7 +113,7 @@ jobs:
       - store_artifacts:
           path: ~/sg_logs
       
-  build_and_publish_rc:
+  build_and_publish:
     description : "building the temp image and pushing to dev ecr"
     parameters:
        repo_name:
@@ -141,6 +141,19 @@ jobs:
            image_tag: "${CIRCLE_TAG}"
            additional_tags: "latest"
 
+  find_rc_tag_per_sha:
+   description: this command will take the sha of the last commit and find the rc tag it belongs to as ${RC_TAG} variale
+   docker:
+       - image: cimg/aws:2022.11.1
+   resource_class: small
+   steps:
+     - run:
+          name: get rc tag of the final tag
+          command: |
+              RC_TAG=$(git tag --contains ${CIRCLE_SHA1} | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+')
+              echo "Found RC version: ${RC_TAG}"
+
+
   retag_rc_to_final_docker:
    description: in the event of seccssesful test promote rc to final
    parameters:
@@ -158,11 +171,6 @@ jobs:
    resource_class: small
    steps:
      - deci-common/ecr_login_dev
-     - run:
-          name: get rc tag of the final tag
-          command: |
-              RC_TAG=$(git tag --contains ${CIRCLE_SHA1} | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+')
-              echo "Found RC version: ${RC_TAG}"
      - run:
            name: retag docker
            command: |
@@ -395,14 +403,16 @@ workflows:
 
   SG_docker:
      jobs:
-       - build_and_publish_rc:  # works on release candidate creation
+       - build_and_publish:  # works on release candidate creation
            <<: *release_candidate_tag_filter 
        - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
           image_tag: << pipeline.git.tag >>
           requires:
-            - "build_and_publish_rc"
+            - "build_and_publish"
           <<: *release_candidate_tag_filter
+       - find_rc_tag_per_sha: # works on release
+           <<: *release_tag_filter
        - retag_rc_to_final_docker: # works on release
             <<: *release_tag_filter 
        - hold-sg-public-release:  # works on release
@@ -428,7 +438,7 @@ workflows:
           use-remote-docker: true
           use-docker-credentials-store: true
           tag: ${CIRCLE_TAG}-runtime
-          extra_build_args: '--build-arg VERSION=${CIRCLE_TAG} --build-arg TAG=11.3.1-runtime-ubuntu20.04  --compress'
+          extra_build_args: '--build-arg VERSION=${CIRCLE_TAG} --build-arg DOCKER_IMAGE_TAG=11.3.1-runtime-ubuntu20.04  --compress'
           requires:
             - "hold-sg-public-release"
           <<: *release_tag_filter
