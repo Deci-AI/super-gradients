@@ -208,6 +208,7 @@ jobs:
    steps:
      - attach_workspace:
          at: ~/
+     - deci-common/ecr_login_dev
      - run: 
            shell: /bin/bash
            name: push BETA_TAG and RC_TAG variable to BASH_ENV 
@@ -223,7 +224,10 @@ jobs:
               RC_TAG=$(cat ~/RC_TAG)
               echo "RC_TAG=$RC_TAG"
               fi
-     - deci-common/ecr_login_dev
+     - run:
+         command: |
+           echo $BETA_TAG
+           echo $RC_TAG
      - run:
            name: retag docker
            command: |
