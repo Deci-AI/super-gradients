@@ -265,6 +265,14 @@ jobs:
       - image: cimg/base:stable-20.04
     steps:
         - deci-common/ecr_login_dev
+        - attach_workspace:
+           at: ~/
+        - run: 
+           shell: /bin/bash
+           name: push BETA_TAG and RC_TAG variable to BASH_ENV 
+           command: |
+              echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
+              echo 'export RC_TAG="$(cat ~/RC_TAG)"' >> "$BASH_ENV"
         # - run:
         #    name: integration test
         #    #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
