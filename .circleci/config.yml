@@ -257,7 +257,7 @@ jobs:
       - adding_tag_to_ecr_container_image:
           image_repo: << parameters.image_repo >>
           source_image_tag: $RC_TAG
-          new_image_tag: ${CIRCLE_TAG}
+          new_image_tag: 3.0.5 #todo: should be  ${CIRCLE_TAG}
                
   testing_supergradients_docker_image:
     description: "running integration test on the code"
