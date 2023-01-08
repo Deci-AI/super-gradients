@@ -198,7 +198,7 @@ jobs:
   find_rc_tag_per_sha:
    description: this command will take the sha of the last commit and find the rc tag it belongs to as ${RC_TAG} variale
    docker:
-       - image: cimg/aws:2022.11.1
+      - image: cimg/aws:2022.11.1
    resource_class: small
    steps:
      - run:
@@ -216,9 +216,9 @@ jobs:
   add_rc_tag_to_beta:
    description: in the event of successful test promote beta to rc
    parameters:
-   image_repo:
-      type: string
-      default: "deci/super-gradients"
+     image_repo:
+        type: string
+        default: "deci/super-gradients"
    docker:
        - image: cimg/base:stable-20.04
    resource_class: small
@@ -231,6 +231,25 @@ jobs:
         image_repo: << parameters.image_repo >>
         source_image_tag: $BETA_TAG
         new_image_tag: $CIRCLE_TAG
+
+  add_release_tag_to_rc:
+    description: in the event of successful test promote rc to release and latest
+    parameters:
+      image_repo:
+        type: string
+        default: "deci/super-gradients"
+    docker:
+      - image: cimg/base:stable-20.04
+    resource_class: small
+    steps:
+      - get_beta_and_rc_tags
+      - run:
+          command: |
+            echo $RC_TAG
+      - adding_tag_to_ecr_container_image:
+          image_repo: << parameters.image_repo >>
+          source_image_tag: $RC_TAG
+          new_image_tag: ${CIRCLE_TAG}
                
   testing_supergradients_docker_image:
     description: "running integration test on the code"
@@ -435,7 +454,7 @@ workflows:
        - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
           requires:
-            - "build_and_publish"
+            - "build_and_publish_sg_container"
             - "change_rc_to_b"
 #          <<: *release_candidate_tag_filter
        - add_rc_tag_to_beta: # works on release candidate creation for ECR Repo
