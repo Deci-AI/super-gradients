@@ -11,7 +11,7 @@ All the available models are listed in the column `Model name`.
 
 
 ### Pretrained Classification PyTorch Checkpoints
-beit_base_patch16_224_imagenet.pth
+
 
 | Model                         | Model name            | Dataset     | Resolution | Top-1   | Top-5   | Latency (HW)*<sub>T4</sub> | Latency (Production)**<sub>T4</sub> | Latency (HW)*<sub>Jetson Xavier NX</sub> | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub> |
 |-------------------------------|-----------------------|-------------|------------|---------|---------|----------------------------|-------------------------------------|------------------------------------------|---------------------------------------------------|:-------------------------------:|

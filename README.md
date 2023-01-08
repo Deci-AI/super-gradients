@@ -320,6 +320,9 @@ init_trainer()
 # Launch DDP on 4 GPUs'
 setup_device(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
 
+# Call the trainer
+Trainer(expriment_name=...)
+
 # Everything you do below will run on 4 gpus
 
 ...
