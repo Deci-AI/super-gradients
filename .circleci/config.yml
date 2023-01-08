@@ -120,8 +120,8 @@ jobs:
      resource_class: small
      steps:
        - run:
-          name: change the rc to b
-          command: BETA_TAG=$(echo ${CIRCLE_TAG} | sed -e  's|rc|b|'); echo ${BETA_TAG} >> ~/BETA_TAG
+          name: change the rc to b #TODO: below should be ${CIRCLE_TAG}
+          command: BETA_TAG=$(echo 999.999.999 | sed -e  's|rc|b|'); echo ${BETA_TAG} >> ~/BETA_TAG
        - persist_to_workspace:
            root: ~/
            paths:
@@ -154,16 +154,18 @@ jobs:
           docker_layer_caching: true
      - run:
          command: echo $BETA_TAG
-     - deci-common/container_image_build:
-           dockerfile: scripts/Dockerfile
-           repository_name: << parameters.repo_name >>
-           image_tag: "$BETA_TAG"
-           build_args: 'VERSION=$CIRCLE_TAG'
-           extra_flags: ' --compress'
-     - deci-common/push_docker_image_aws_dev:
-           repository_name: << parameters.repo_name >>
-           image_tag: "$BETA_TAG"
-           additional_tags: "latest"
+     - run:
+         command: echo ***<< parameters.version >>***
+#     - deci-common/container_image_build:
+#           dockerfile: scripts/Dockerfile
+#           repository_name: << parameters.repo_name >>
+#           image_tag: "$BETA_TAG"
+#           build_args: 'VERSION=$CIRCLE_TAG'
+#           extra_flags: ' --compress'
+#     - deci-common/push_docker_image_aws_dev:
+#           repository_name: << parameters.repo_name >>
+#           image_tag: "$BETA_TAG"
+#           additional_tags: "latest"
 
   find_rc_tag_per_sha:
    description: this command will take the sha of the last commit and find the rc tag it belongs to as ${RC_TAG} variale
@@ -442,7 +444,7 @@ workflows:
        - change_rc_to_b #: # works on release candidate creation
 #           <<: *release_candidate_tag_filter
        - build_and_publish:  # works on release candidate creation
-           version: ${BULBUl_KABULBUL}
+           version: ${BETA_TAG}
            requires:
              - "change_rc_to_b"
 #           <<: *release_candidate_tag_filter
