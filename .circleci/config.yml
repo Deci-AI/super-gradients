@@ -203,12 +203,11 @@ jobs:
        IMAGE_REPO: << parameters.image_repo >>
        SRC_IMAGE_TAG: << parameters.new_image_tag >>
    docker:
-       - image: cimg/aws:2022.11.1
+       - image: cimg/base:stable-20.04
    resource_class: small
    steps:
      - attach_workspace:
          at: ~/
-     - deci-common/ecr_login_dev
      - run: 
            name: push BETA_TAG and RC_TAG variable to BASH_ENV 
            command: |
@@ -227,6 +226,7 @@ jobs:
          command: |
            echo $BETA_TAG
            echo $RC_TAG
+     - deci-common/ecr_login_dev
      - run:
            name: retag docker
            command: |
