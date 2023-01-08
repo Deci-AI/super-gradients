@@ -39,11 +39,12 @@ def get_version():
         with open(INIT_FILE, encoding="utf-8") as f:
             for line in f.readlines():
                 if line.startswith("__version__"):
-                    ver = line.split()[-1]
+                    ver = line.split()[-1].strip('"')
 
     return ver
 
 
+get_version()
 setup(
     name="super-gradients",
     version=get_version(),
