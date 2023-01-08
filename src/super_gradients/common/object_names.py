@@ -56,6 +56,7 @@ class Transforms:
     RandAugmentTransform = "RandAugmentTransform"
     Lighting = "Lighting"
     RandomErase = "RandomErase"
+    Standardize = "Standardize"
 
     # From torch
     Compose = "Compose"

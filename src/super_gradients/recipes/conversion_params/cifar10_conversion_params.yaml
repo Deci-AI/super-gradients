@@ -1,0 +1,36 @@
+# Example conversion parameters, to be used with super_gradients/examples/convert_recipe_example/convert_recipe_example.py
+# Suppose you trained cifar10_resnet using train_from_recipe beforehand, Then:
+# python convert_recipe_example.py --config-name=cifar10_conversion_params experiment_name=YOUR_EXPERIMENT_NAME.
+# Alternatively (or if ckpts are located anywhere else from the default checkpoints dir), you can give the full checkpoint path:
+#     python convert_recipe_example.py --config-name=cifar10_conversion_params checkpoint_path=YOUR_CHECKPOINT_PATH
+defaults:
+  - default_conversion_params
+  - _self_
+
+experiment_name: resnet18_cifar # The experiment name used to train the model (optional- ignored when checkpoint_path is given)
+
+# CONVERSION RELATED PARAMS
+out_path: # str, Destination path for the .onnx file. When None- out_path will be the resolved checkpoint path replacing .ckpt suffix with .onnx.
+input_shape: # input shape, not including batch_size. Always channels first (i.e (3, 224, 224)).
+  - 3
+  - 32
+  - 32
+pre_process: # Preprocessing pipeline, will be resolved by TransformsFactory(), and will be baked into the converted model (optional).
+  Compose:
+    transforms:
+      - Standardize
+      - Normalize:
+          mean:
+            - 0.4914
+            - 0.4822
+            - 0.4465
+          std:
+            - 0.2023
+            - 0.1994
+            - 0.2010
+
+
+post_process: # Postprocessing pipeline, will be resolved by TransformsFactory(), and will be baked into the converted model (optional).
+prep_model_for_conversion_kwargs: # For SgModules, args to be passed to model.prep_model_for_conversion prior to torch.onnx.export call.
+torch_onnx_export_kwargs: # kwargs (EXCLUDING: FIRST 3 KWARGS- MODEL, F, ARGS). to be unpacked in torch.onnx.export call
+  opset_version: 16
