@@ -2,12 +2,9 @@ import os
 import socket
 from functools import wraps
 
-from super_gradients.common.environment.argparse_utils import pop_arg
+from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
-
-
-DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=-1))
-INIT_TRAINER = False
+from super_gradients.common.environment.argparse_utils import pop_local_rank
 
 
 def init_trainer():
@@ -15,28 +12,14 @@ def init_trainer():
     Initialize the super_gradients environment.
 
     This function should be the first thing to be called by any code running super_gradients.
-    It resolves conflicts between the different tools, packages and environments used and prepares the super_gradients environment.
     """
-    global INIT_TRAINER, DDP_LOCAL_RANK
-
-    if not INIT_TRAINER:
-        register_hydra_resolvers()
-
-        # We pop local_rank if it was specified in the args, because it would break
-        args_local_rank = pop_arg("local_rank", default_value=-1)
-
-        # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
-        DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=args_local_rank))
-        INIT_TRAINER = True
+    register_hydra_resolvers()
+    pop_local_rank()
 
 
 def is_distributed() -> bool:
-    return DDP_LOCAL_RANK >= 0
-
-
-def is_rank_0() -> bool:
-    """Check if the node was launched with torch.distributed.launch and if the node is of rank 0"""
-    return os.getenv("LOCAL_RANK") == "0"
+    """Check if current process is a DDP subprocess."""
+    return device_config.assigned_rank >= 0
 
 
 def is_launched_using_sg():
@@ -55,7 +38,9 @@ def is_main_process():
     """
     if not is_distributed():  # If no DDP, or DDP launching process
         return True
-    elif is_rank_0() and not is_launched_using_sg():  # If DDP launched using torch.distributed.launch or torchrun, we need to run the check on rank 0
+    elif (
+        device_config.assigned_rank == 0 and not is_launched_using_sg()
+    ):  # If DDP launched using torch.distributed.launch or torchrun, we need to run the check on rank 0
         return True
     else:
         return False
@@ -74,7 +59,7 @@ def multi_process_safe(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if DDP_LOCAL_RANK <= 0:
+        if device_config.assigned_rank <= 0:
             return func(*args, **kwargs)
         else:
             return do_nothing(*args, **kwargs)
