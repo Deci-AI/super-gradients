@@ -118,6 +118,8 @@ jobs:
      docker:
        - image: cimg/base:stable-20.04
      resource_class: small
+     environment:
+       BETA_TAG: 3.1.0rc13475
      steps:
        - run:
           name: change the rc to b
@@ -421,26 +423,27 @@ workflows:
 
   SG_docker:
      jobs:
-       - change_rc_to_b: # works on release candidate creation
-           <<: *release_candidate_tag_filter 
+       - change_rc_to_b # works on release candidate creation
+           #<<: *release_candidate_tag_filter 
        - build_and_publish:  # works on release candidate creation
            version: ${BETA_TAG}
            requires:
              - "change_rc_to_b"
-           <<: *release_candidate_tag_filter 
+           #<<: *release_candidate_tag_filter 
        - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
           image_tag: ${BETA_TAG}
           requires:
             - "build_and_publish"
-          <<: *release_candidate_tag_filter
+          #<<: *release_candidate_tag_filter
        - retag_docker_ecr: # works on release candidate creation for ECR Repo
           name: change_beta_to_rc
           source_image_tag: ${BETA_TAG}
-          new_image_tag: ${CIRCLE_TAG}
+          #new_image_tag: ${CIRCLE_TAG}
+          new_image_tag: 3.1.0rc13475
           requires:
             - "testing_supergradients_docker_image"
-          <<: *release_candidate_tag_filter
+          #<<: *release_candidate_tag_filter
        - find_rc_tag_per_sha: # works on release
            <<: *release_tag_filter
        - retag_docker_ecr: # works on release
