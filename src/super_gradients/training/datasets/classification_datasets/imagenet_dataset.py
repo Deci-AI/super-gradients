@@ -8,21 +8,27 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 
 
 class ImageNetDataset(torch_datasets.ImageFolder):
-    """ImageNetDataset dataset. Download here: https://image-net.org/download.php
+    """ImageNetDataset dataset. Download here:
 
+    To use this Dataset you need to:
 
-    Dataset Structure:
-     ├──train
-     │  ├──n02093991
-     │  │   ├──n02093991_1001.JPEG
-     │  │   ├──n02093991_1004.JPEG
-     │  │   └──...
-     │  ├──n02093992
-     │  └──...
-     └──val
-        ├──n02093991
-        ├──n02093992
-        └──...
+    - Download imagenet dataset (https://image-net.org/download.php)
+        Imagenet
+         ├──train
+         │  ├──n02093991
+         │  │   ├──n02093991_1001.JPEG
+         │  │   ├──n02093991_1004.JPEG
+         │  │   └──...
+         │  ├──n02093992
+         │  └──...
+         └──val
+            ├──n02093991
+            ├──n02093992
+            └──...
+
+    - Instantiate the dataset:
+        >> train_set = ImageNetDataset(root='.../Imagenet/train', ...)
+        >> valid_set = ImageNetDataset(root='.../Imagenet/val', ...)
     """
 
     @resolve_param("transforms", factory=TransformsFactory())

@@ -13,15 +13,22 @@ class SuperviselyPersonsDataset(SegmentationDataSet):
     For more details about the FILTERED dataset see:
     https://github.com/PaddlePaddle/PaddleSeg/tree/release/2.3/contrib/PP-HumanSeg
 
-    Dataset Structure:
-     ├──images
-     │    ├──image-name.png
-     │    └──...
-     ├──images_600x800
-     │    ├──image-name.png
-     │    └──...
-     ├──masks
-     └──masks_600x800
+    To use this Dataset you need to:
+
+    - Download supervisely dataset (https://github.com/PaddlePaddle/PaddleSeg/tree/release/2.3/contrib/PP-HumanSeg)
+        supervisely-persons
+         ├──images
+         │    ├──image-name.png
+         │    └──...
+         ├──images_600x800
+         │    ├──image-name.png
+         │    └──...
+         ├──masks
+         └──masks_600x800
+
+    - Instantiate the dataset:
+        >> train_set = SuperviselyPersonsDataset(root_dir='.../supervisely-persons', list_file='train.csv', ...)
+        >> valid_set = SuperviselyPersonsDataset(root_dir='.../supervisely-persons', list_file='val.csv', ...)
     """
 
     CLASS_LABELS = {0: "background", 1: "person"}

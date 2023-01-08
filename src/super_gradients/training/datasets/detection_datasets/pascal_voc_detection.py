@@ -22,38 +22,42 @@ logger = get_logger(__name__)
 class PascalVOCDetectionDataset(DetectionDataset):
     """Dataset for Pascal VOC object detection
 
-    ├─images
-    │   ├─ train2012
-    │   ├─ val2012
-    │   ├─ VOCdevkit
-    │   │    ├─ VOC2007
-    │   │    │  ├──JPEGImages
-    │   │    │  ├──SegmentationClass
-    │   │    │  ├──ImageSets
-    │   │    │  ├──ImageSets/Segmentation
-    │   │    │  ├──ImageSets/Main
-    │   │    │  ├──ImageSets/Layout
-    │   │    │  ├──Annotations
-    │   │    │  └──SegmentationObject
-    │   │    └──VOC2012
-    │   │       ├──JPEGImages
-    │   │       ├──SegmentationClass
-    │   │       ├──ImageSets
-    │   │       ├──ImageSets/Segmentation
-    │   │       ├──ImageSets/Main
-    │   │       ├──ImageSets/Action
-    │   │       ├──ImageSets/Layout
-    │   │       ├──Annotations
-    │   │       └──SegmentationObject
-    │   ├─train2007
-    │   ├─test2007
-    │   └─val2007
-    └─labels
-        ├─train2012
-        ├─val2012
-        ├─train2007
-        ├─test2007
-        └─val2007
+    To use this Dataset you need to:
+        >> train_set = PascalVOCDetectionDataset(download=True, ...)
+
+    Dataset structure:
+        ├─images
+        │   ├─ train2012
+        │   ├─ val2012
+        │   ├─ VOCdevkit
+        │   │    ├─ VOC2007
+        │   │    │  ├──JPEGImages
+        │   │    │  ├──SegmentationClass
+        │   │    │  ├──ImageSets
+        │   │    │  ├──ImageSets/Segmentation
+        │   │    │  ├──ImageSets/Main
+        │   │    │  ├──ImageSets/Layout
+        │   │    │  ├──Annotations
+        │   │    │  └──SegmentationObject
+        │   │    └──VOC2012
+        │   │       ├──JPEGImages
+        │   │       ├──SegmentationClass
+        │   │       ├──ImageSets
+        │   │       ├──ImageSets/Segmentation
+        │   │       ├──ImageSets/Main
+        │   │       ├──ImageSets/Action
+        │   │       ├──ImageSets/Layout
+        │   │       ├──Annotations
+        │   │       └──SegmentationObject
+        │   ├─train2007
+        │   ├─test2007
+        │   └─val2007
+        └─labels
+            ├─train2012
+            ├─val2012
+            ├─train2007
+            ├─test2007
+            └─val2007
 
     """
 
@@ -183,6 +187,46 @@ class PascalVOCDetectionDataset(DetectionDataset):
 
 
 class PascalVOCUnifiedDetectionTrainDataset(ConcatDataset):
+    """Unified Dataset for Pascal VOC object detection
+
+    To use this Dataset you need to:
+        >> train_set = PascalVOCUnifiedDetectionTrainDataset(download=True, ...)
+
+    Dataset structure:
+        ├─images
+        │   ├─ train2012
+        │   ├─ val2012
+        │   ├─ VOCdevkit
+        │   │    ├─ VOC2007
+        │   │    │  ├──JPEGImages
+        │   │    │  ├──SegmentationClass
+        │   │    │  ├──ImageSets
+        │   │    │  ├──ImageSets/Segmentation
+        │   │    │  ├──ImageSets/Main
+        │   │    │  ├──ImageSets/Layout
+        │   │    │  ├──Annotations
+        │   │    │  └──SegmentationObject
+        │   │    └──VOC2012
+        │   │       ├──JPEGImages
+        │   │       ├──SegmentationClass
+        │   │       ├──ImageSets
+        │   │       ├──ImageSets/Segmentation
+        │   │       ├──ImageSets/Main
+        │   │       ├──ImageSets/Action
+        │   │       ├──ImageSets/Layout
+        │   │       ├──Annotations
+        │   │       └──SegmentationObject
+        │   ├─train2007
+        │   ├─test2007
+        │   └─val2007
+        └─labels
+            ├─train2012
+            ├─val2012
+            ├─train2007
+            ├─test2007
+            └─val2007
+    """
+
     def __init__(
         self,
         data_dir,

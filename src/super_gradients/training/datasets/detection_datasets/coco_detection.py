@@ -15,18 +15,25 @@ logger = get_logger(__name__)
 
 
 class COCODetectionDataset(DetectionDataset):
-    """Dataset for COCO object detection. You can download here: https://cocodataset.org/#download
+    """Dataset for COCO object detection.
 
-    Expected structure:
-    ├── annotations
-    ├── images
-    │   ├── train2017
-    │   │   ├─ 000000000001.jpg
-    │   │   └─ ...
-    │   └── val2017
-    └── labels
-        ├── train2017
-        └── val2017
+    To use this Dataset you need to:
+
+    - Download coco dataset (https://cocodataset.org/#download)
+        coco
+        ├── annotations
+        ├── images
+        │   ├── train2017
+        │   │   ├─ 000000000001.jpg
+        │   │   └─ ...
+        │   └── val2017
+        └── labels
+            ├── train2017
+            └── val2017
+
+    - Instantiate the dataset:
+        >> train_set = COCODetectionDataset(data_dir='.../coco', subdir='images/train2017', json_file='instances_train2017.json', ...)
+        >> valid_set = COCODetectionDataset(data_dir='.../coco', subdir='images/val2017', json_file='instances_val2017.json', ...)
     """
 
     def __init__(

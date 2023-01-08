@@ -22,18 +22,24 @@ class EmptyCoCoClassesSelectionException(Exception):
 class CoCoSegmentationDataSet(SegmentationDataSet):
     """
     CoCoSegmentationDataSet - Segmentation Data Set Class for COCO 2017 Segmentation Data Set
-    You can download here: https://cocodataset.org/#download.
 
-    Expected structure:
-    ├── annotations
-    ├── images
-    │   ├── train2017
-    │   │   ├─ 000000000001.jpg
-    │   │   └─ ...
-    │   └── val2017
-    └── labels
-        ├── train2017
-        └── val2017
+    To use this Dataset you need to:
+
+    - Download coco dataset (https://cocodataset.org/#download)
+        coco
+        ├── annotations
+        ├── images
+        │   ├── train2017
+        │   │   ├─ 000000000001.jpg
+        │   │   └─ ...
+        │   └── val2017
+        └── labels
+            ├── train2017
+            └── val2017
+
+    - Instantiate the dataset:
+        >> train_set = CoCoSegmentationDataSet(data_dir='.../coco', subdir='images/train2017', json_file='instances_train2017.json', ...)
+        >> valid_set = CoCoSegmentationDataSet(data_dir='.../coco', subdir='images/val2017', json_file='instances_val2017.json', ...)
     """
 
     def __init__(self, root_dir: str, dataset_classes_inclusion_tuples_list: list = None, *args, **kwargs):
