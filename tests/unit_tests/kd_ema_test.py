@@ -13,7 +13,7 @@ from super_gradients.training.losses.kd_losses import KDLogitsLoss
 class KDEMATest(unittest.TestCase):
     @classmethod
     def setUp(cls):
-        cls.sg_trained_teacher = Trainer("sg_trained_teacher", device="cpu")
+        cls.sg_trained_teacher = Trainer("sg_trained_teacher")
 
         cls.kd_train_params = {
             "max_epochs": 3,
@@ -38,7 +38,7 @@ class KDEMATest(unittest.TestCase):
     def test_teacher_ema_not_duplicated(self):
         """Check that the teacher EMA is a reference to the teacher net (not a copy)."""
 
-        kd_model = KDTrainer("test_teacher_ema_not_duplicated", device="cpu")
+        kd_model = KDTrainer("test_teacher_ema_not_duplicated")
         student = models.get("resnet18", arch_params={"num_classes": 1000})
         teacher = models.get("resnet50", arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
 
@@ -58,7 +58,7 @@ class KDEMATest(unittest.TestCase):
 
         # Create a KD trainer and train it
         train_params = self.kd_train_params.copy()
-        kd_model = KDTrainer("test_kd_ema_ckpt_reload", device="cpu")
+        kd_model = KDTrainer("test_kd_ema_ckpt_reload")
         student = models.get("resnet18", arch_params={"num_classes": 1000})
         teacher = models.get("resnet50", arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
 
@@ -73,7 +73,7 @@ class KDEMATest(unittest.TestCase):
         net = kd_model.net
 
         # Load the trained KD trainer
-        kd_model = KDTrainer("test_kd_ema_ckpt_reload", device="cpu")
+        kd_model = KDTrainer("test_kd_ema_ckpt_reload")
         student = models.get("resnet18", arch_params={"num_classes": 1000})
         teacher = models.get("resnet50", arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
 
