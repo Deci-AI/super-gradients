@@ -454,7 +454,7 @@ workflows:
   SG_docker:
      jobs:
        - change_rc_to_b: # works on release candidate creation
-         <<: *release_candidate_tag_filter
+           <<: *release_candidate_tag_filter
        - build_and_publish_sg_container:  # works on release candidate creation
            requires:
              - "change_rc_to_b"
