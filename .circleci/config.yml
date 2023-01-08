@@ -214,11 +214,13 @@ jobs:
            command: |
               if [[ -f ~/BETA_TAG ]]; then
               echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
+              BETA_TAG=$(cat ~/BETA_TAG)
               echo "BETA_TAG=$BETA_TAG"
               fi
 
               if [[ -f ~/RC_TAG ]]; then
               echo 'export RC_TAG="$(cat ~/RC_TAG)"' >> "$BASH_ENV"
+              RC_TAG=$(cat ~/RC_TAG)
               echo "RC_TAG=$RC_TAG"
               fi
      - deci-common/ecr_login_dev
