@@ -72,8 +72,8 @@ class DetectionOutputAdapter(nn.Module):
     Adapter class for converting model's predictions for object detection to a desired format.
     This adapter supports torch.jit tracing & scripting & onnx conversion.
 
-    >>> from super_gradients.training.utils.data_formats.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
-    >>> from super_gradients.training.utils.data_formats.bbox_formats import XYXYCoordinateFormat, NormalizedXYWHCoordinateFormat
+    >>> from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+    >>> from super_gradients.training.datasets.data_formats.bbox_formats import XYXYCoordinateFormat, NormalizedXYWHCoordinateFormat
     >>>
     >>> class CustomDetectionHead(nn.Module):
     >>>    num_classes: int = 123
