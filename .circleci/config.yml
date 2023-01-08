@@ -4,8 +4,8 @@ parameters:
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
-    default: "10.3.0"
-#    default: "dev:alpha"
+#    default: "10.3.0"
+    default: "dev:alpha"
 
 orbs:
   deci-common: deci-ai/circleci-common-orb@<< pipeline.parameters.orb_version >>
