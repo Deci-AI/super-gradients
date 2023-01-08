@@ -7,8 +7,13 @@ import onnx
 import onnxruntime as ort
 import torch.jit
 
-from super_gradients.training.utils.bbox_formats import NormalizedXYWHCoordinateFormat, CXCYWHCoordinateFormat, YXYXCoordinateFormat
-from super_gradients.training.utils.output_adapters import DetectionOutputAdapter, ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from super_gradients.training.datasets.data_formats.bbox_formats import NormalizedXYWHCoordinateFormat, CXCYWHCoordinateFormat, YXYXCoordinateFormat
+from super_gradients.training.datasets.data_formats.output_adapters.detection_adapter import DetectionOutputAdapter
+from super_gradients.training.datasets.data_formats import (
+    ConcatenatedTensorFormat,
+    BoundingBoxesTensorSliceItem,
+    TensorSliceItem,
+)
 
 NORMALIZED_XYWH_SCORES_LABELS = ConcatenatedTensorFormat(
     layout=(
@@ -119,7 +124,7 @@ class TestDetectionOutputAdapter(unittest.TestCase):
 
             with tempfile.TemporaryDirectory() as tmpdirname:
                 adapter_fname = os.path.join(tmpdirname, "adapter.onnx")
-                torch.onnx.export(adapter, inp, f=adapter_fname, input_names=["predictions"], output_names=["output_predictions"])
+                torch.onnx.export(adapter, inp, f=adapter_fname, input_names=["predictions"], output_names=["output_predictions"], opset_version=11)
 
                 onnx_model = onnx.load(adapter_fname)
                 onnx.checker.check_model(onnx_model)

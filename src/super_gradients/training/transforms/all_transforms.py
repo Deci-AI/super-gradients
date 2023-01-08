@@ -22,9 +22,9 @@ from super_gradients.training.transforms.transforms import (
     DetectionMixup,
     DetectionHSV,
     DetectionHorizontalFlip,
-    DetectionTargetsFormat,
     DetectionPaddedRescale,
     DetectionTargetsFormatTransform,
+    Standardize,
 )
 from torchvision.transforms import (
     Compose,
@@ -81,7 +81,6 @@ TRANSFORMS = {
     Transforms.DetectionHSV: DetectionHSV,
     Transforms.DetectionHorizontalFlip: DetectionHorizontalFlip,
     Transforms.DetectionPaddedRescale: DetectionPaddedRescale,
-    Transforms.DetectionTargetsFormat: DetectionTargetsFormat,
     Transforms.DetectionTargetsFormatTransform: DetectionTargetsFormatTransform,
     Transforms.RandomResizedCropAndInterpolation: RandomResizedCropAndInterpolation,
     Transforms.RandAugmentTransform: rand_augment_transform,
@@ -123,6 +122,7 @@ TRANSFORMS = {
     Transforms.RandomAdjustSharpness: RandomAdjustSharpness,
     Transforms.RandomAutocontrast: RandomAutocontrast,
     Transforms.RandomEqualize: RandomEqualize,
+    Transforms.Standardize: Standardize,
 }
 logger = get_logger(__name__)
 
