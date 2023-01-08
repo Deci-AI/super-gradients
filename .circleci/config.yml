@@ -159,9 +159,9 @@ jobs:
      steps:
        - run:
           name: change the rc to b
-          command: #todo: should be ${CIRCLE_TAG}
+          command:
            | 
-            BETA_TAG=$(echo 3.0.4rc121 | sed -e  's|rc|b|'); echo ${BETA_TAG} >> ~/BETA_TAG
+            BETA_TAG=$(echo ${CIRCLE_TAG} | sed -e  's|rc|b|'); echo ${BETA_TAG} >> ~/BETA_TAG
             cat ~/BETA_TAG
        - persist_to_workspace:
            root: ~/
@@ -179,7 +179,7 @@ jobs:
          default: 'deci/super-gradients'
        sg_python_version:
          type: string
-         default: 3.0.4 #todo: change to  $CIRCLE_TAG
+         default: $CIRCLE_TAG
     docker:
        - image: cimg/base:stable-20.04
     resource_class: small
@@ -210,9 +210,9 @@ jobs:
    steps:
      - checkout
      - run:
-          name: get rc tag of the final tag # todo: change below to ${CIRCLE_SHA1}
+          name: get rc tag of the final tag
           command: |
-              RC_TAG=$(git tag --contains f460027313c33c5e3953afe6068c6a3404663c94 | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+' | head -n 1)
+              RC_TAG=$(git tag --contains ${CIRCLE_SHA1} | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+' | head -n 1)
               echo "Found RC version: ${RC_TAG}"
               echo $RC_TAG >> ~/RC_TAG
      - persist_to_workspace:
@@ -257,7 +257,7 @@ jobs:
       - adding_tag_to_ecr_container_image:
           image_repo: << parameters.image_repo >>
           source_image_tag: $RC_TAG
-          new_image_tag: 3.0.5 #todo: should be  ${CIRCLE_TAG}
+          new_image_tag: ${CIRCLE_TAG}
                
   testing_supergradients_docker_image:
     description: "running integration test on the code"
@@ -396,60 +396,60 @@ jobs:
 
 
 workflows:
-#  release:
-#    jobs:
-#      - deci-common/persist_version_info:
-#          <<: *release_tag_filter
-#      - deci-common/codeartifact_login:
-#          name: "login_to_codeartifact_release"
-#          repo_name: "deci-packages"
-#          <<: *release_tag_filter
-#      - build:
-#          name: "build3.7"
-#          py_version: "3.7"
-#          package_name: "super-gradients"
-#          requires:
-#            - deci-common/persist_version_info
-#            - login_to_codeartifact_release
-#          <<: *release_tag_filter
-#      - recipe_tests:
-#          <<: *release_tag_filter
-#      - release_version:
-#          py_version: "3.7"
-#          requires:
-#            - "build3.7"
-#            - recipe_tests
-#          <<: *release_tag_filter
-#      - deci-common/pip_upload_package_from_codeartifact_to_global_pypi:
-#          package_name: "super-gradients"
-#          name: "upload_super_gradients_to_pypi"
-#          version: $CIRCLE_TAG
-#          requires:
-#            - "release_version"
-#          context:
-#            - pypi-public
-#          <<: *release_tag_filter
-#
-#
-#  build_and_deploy:
-#    jobs:
-#      - deci-common/persist_version_info
-#      - deci-common/codeartifact_login:
-#          repo_name: "deci-packages"
-#
-#      - build:
-#          name: "build3.7"
-#          py_version: "3.7"
-#          package_name: "super-gradients"
-#          requires:
-#            - deci-common/persist_version_info
-#            - deci-common/codeartifact_login
-#
-#      - release_candidate: # happens on merge
-#          py_version: "3.7"
-#          requires:
-#            - "build3.7"
-#          <<: *release_candidate_filter
+  release:
+    jobs:
+      - deci-common/persist_version_info:
+          <<: *release_tag_filter
+      - deci-common/codeartifact_login:
+          name: "login_to_codeartifact_release"
+          repo_name: "deci-packages"
+          <<: *release_tag_filter
+      - build:
+          name: "build3.7"
+          py_version: "3.7"
+          package_name: "super-gradients"
+          requires:
+            - deci-common/persist_version_info
+            - login_to_codeartifact_release
+          <<: *release_tag_filter
+      - recipe_tests:
+          <<: *release_tag_filter
+      - release_version:
+          py_version: "3.7"
+          requires:
+            - "build3.7"
+            - recipe_tests
+          <<: *release_tag_filter
+      - deci-common/pip_upload_package_from_codeartifact_to_global_pypi:
+          package_name: "super-gradients"
+          name: "upload_super_gradients_to_pypi"
+          version: $CIRCLE_TAG
+          requires:
+            - "release_version"
+          context:
+            - pypi-public
+          <<: *release_tag_filter
+
+
+  build_and_deploy:
+    jobs:
+      - deci-common/persist_version_info
+      - deci-common/codeartifact_login:
+          repo_name: "deci-packages"
+
+      - build:
+          name: "build3.7"
+          py_version: "3.7"
+          package_name: "super-gradients"
+          requires:
+            - deci-common/persist_version_info
+            - deci-common/codeartifact_login
+
+      - release_candidate: # happens on merge
+          py_version: "3.7"
+          requires:
+            - "build3.7"
+          <<: *release_candidate_filter
 
   SG_docker:
      jobs:
@@ -470,23 +470,23 @@ workflows:
             - "testing_supergradients_docker_image"
             - "change_rc_to_b"
           <<: *release_candidate_tag_filter
-       - find_rc_tag_per_sha #: # works on release
-#           <<: *release_tag_filter
+       - find_rc_tag_per_sha: # works on release
+           <<: *release_tag_filter
        - add_release_tag_to_rc: # works on release
             requires:
               - "find_rc_tag_per_sha"
-#            <<: *release_tag_filter
+            <<: *release_tag_filter
        - slack/on-hold:
            context: slack
            channel: "sg-integration-tests"
            requires:
              - "add_release_tag_to_rc"
-#           <<: *release_tag_filter
+           <<: *release_tag_filter
        - hold-sg-public-release:  # works on release
            type: approval
            requires:
              - "slack/on-hold"
-#           <<: *release_tag_filter
+           <<: *release_tag_filter
        - docker/publish:  # works on release
           image: deciai/super-gradients
           remote-docker-version: << pipeline.parameters.remote_docker_version >>
@@ -498,7 +498,7 @@ workflows:
           extra_build_args: '--build-arg VERSION=${CIRCLE_TAG} --compress' #building from scratch as it faster and cheaper than download and retag
           requires:
             - "hold-sg-public-release"
-#          <<: *release_tag_filter
+          <<: *release_tag_filter
        - docker/publish: # works on release
           image: deciai/super-gradients
           remote-docker-version: << pipeline.parameters.remote_docker_version >>
@@ -510,4 +510,4 @@ workflows:
           extra_build_args: '--build-arg VERSION=${CIRCLE_TAG} --build-arg DOCKER_IMAGE_TAG=11.3.1-runtime-ubuntu20.04  --compress'
           requires:
             - "hold-sg-public-release"
-#          <<: *release_tag_filter
+          <<: *release_tag_filter
