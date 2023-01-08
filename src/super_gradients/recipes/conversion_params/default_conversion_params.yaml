@@ -1,0 +1,19 @@
+experiment_name: # The experiment name used to train the model (optional- ignored when checkpoint_path is given)
+ckpt_root_dir: # The checkpoint root directory, s.t  ckpt_root_dir/experiment_name/ckpt_name resides.
+                # Can be ignored if the checkpoints directory is the default (i.e path to checkpoints module from contents root), or when checkpoint_path is given
+ckpt_name: ckpt_best.pth # Name of the checkpoint to export ("ckpt_latest.pth", "average_model.pth" or "ckpt_best.pth" for instance).
+checkpoint_path:
+strict_load: no_key_matching # One of [On, Off, no_key_matching] (case insensitive) See super_gradients/common/data_types/enum/strict_load.py
+# NOTES ON: ckpt_root_dir, checkpoint_path, and ckpt_name:
+# - ckpt_root_dir, experiment_name and ckpt_name are only used when checkpoint_path is None.
+# - when checkpoint_path is None, the model will be vuilt according to the output yaml config inside ckpt_root_dir/experiment_name/ckpt_name. Also note that in
+#     this case its also legal not to pass ckpt_root_dir, which will be resolved to the default SG ckpt dir.
+
+
+# CONVERSION RELATED PARAMS
+out_path: # str, Destination path for the .onnx file. When None- will be set to the checkpoint_path.replace(".ckpt",".onnx").
+input_shape: # input shape, not including batch_size. Always channels first (i.e (3, 224, 224)).
+pre_process: # Preprocessing pipeline, will be resolved by TransformsFactory(), and will be baked into the converted model (optional).
+post_process: # Postprocessing pipeline, will be resolved by TransformsFactory(), and will be baked into the converted model (optional).
+prep_model_for_conversion_kwargs: # For SgModules, args to be passed to model.prep_model_for_conversion prior to torch.onnx.export call.
+torch_onnx_export_kwargs: # kwargs (EXCLUDING: FIRST 3 KWARGS- MODEL, F, ARGS). to be unpacked in torch.onnx.export call
