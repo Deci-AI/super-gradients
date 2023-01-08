@@ -1,7 +1,7 @@
 import unittest
 import shutil
 
-from coverage.annotate import os
+import os
 from super_gradients.common.environment import environment_config
 import torch
 
@@ -13,6 +13,10 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
 
     def test_shortened_cifar10_resnet_accuracy(self):
         self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cifar10_resnet_accuracy_test", metric_value=0.9167, delta=0.05))
+
+    def test_convert_shortened_cifar10_resnet(self):
+        ckpt_dir = os.path.join(environment_config.PKG_CHECKPOINTS_DIR, "shortened_cifar10_resnet_accuracy_test")
+        self.assertTrue(os.path.exists(os.path.join(ckpt_dir, "ckpt_best.onnx")))
 
     def test_shortened_coco2017_yolox_n_map(self):
         self.assertTrue(self._reached_goal_metric(experiment_name="shortened_coco2017_yolox_n_map_test", metric_value=0.044, delta=0.02))
