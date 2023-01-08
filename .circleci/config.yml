@@ -122,10 +122,9 @@ jobs:
        - run:
           name: change the rc to b
           command: BETA_TAG=$(echo ${CIRCLE_TAG} | sed -e  's|rc|b|'); echo ${BETA_TAG} > ~/BETA_TAG
-       - persist_to_workspace:
-          root: ~/BETA_TAG
-          paths:
-             - BETA_TAG
+       - run:
+           name: push BETA_TAG variable to BASH_ENV 
+           command: echo 'export BETA_TAG="${BETA_TAG}"' >> "$BASH_ENV"
 
 
 
@@ -137,17 +136,11 @@ jobs:
          default: deci/super-gradients
        version:
           type: string
-          default: ${BETA_TAG}
     docker:
        - image: cimg/base:stable-20.04
     resource_class: small
     steps:
      - checkout
-     - attach_workspace:
-          at: ~/BETA_TAG
-     - run: 
-        name: getting betta tag to env
-        command: BETA_TAG=$(cat ~/BETA_TAG)
      - setup_remote_docker:
           version: 20.10.7
           docker_layer_caching: true
@@ -175,12 +168,7 @@ jobs:
               echo "Found RC version: ${RC_TAG}"
      - run: 
          name: persist RC_TAG
-         command: echo ${RC_TAG} > ~/RC_TAG
-
-     - persist_to_workspace:
-         root: ~/RC_TAG
-         paths:
-           - "RC_TAG"
+         command: echo 'export RC_TAG="${RC_TAG}"' >> "$BASH_ENV"
 
 
   retag_docker_ecr:
@@ -202,16 +190,6 @@ jobs:
        - image: cimg/aws:2022.11.1
    resource_class: small
    steps:
-     - attach_workspace:
-          at: ~/
-     - run: 
-        shell: /bin/bash
-        name: getting betta tag to env
-        command: BETA_TAG=$(cat ~/BETA_TAG)
-     - run: 
-        shell: /bin/bash
-        name: getting betta tag to env
-        command: RC_TAG=$(cat ~/RC_TAG)
      - run:
            name: retag docker
            command: |
@@ -253,7 +231,6 @@ jobs:
     parameters:
         image_tag:
           type: string
-          default: ${BETA_TAG}
         image_repo:
           type: string
           default: deciai/super-gradients
@@ -261,14 +238,9 @@ jobs:
     #machine: true 
     #resource_class: deci-ai/research-standard
     docker:
-      - image: cimg/base
+      - image: cimg/base:stable-20.04
     steps:
         - deci-common/ecr_login_dev
-        - attach_workspace:
-           at: ~/BETA_TAG
-        - run: 
-           name: getting betta tag to env
-           command: BETA_TAG=$(cat ~/BETA_TAG)
         # - run:
         #    name: integration test
         #    #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
