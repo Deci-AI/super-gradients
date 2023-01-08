@@ -112,7 +112,23 @@ jobs:
 
       - store_artifacts:
           path: ~/sg_logs
-      
+  
+  change_rc_to_b:
+     description: "change rc in the tag to b"
+     docker:
+       - image: cimg/base:stable-20.04
+     resource_class: small
+     steps:
+       - run:
+          name: change the rc to b
+          command: BETA_TAG=$(echo ${CIRCLE_TAG} | sed -e  's|rc|b|'); echo ${BETA_TAG} > ~/BETA_TAG
+       - persist_to_workspace:
+          root: ~/BETA_TAG
+          paths:
+             - BETA_TAG
+
+
+
   build_and_publish:
     description : "building the temp image and pushing to dev ecr"
     parameters:
@@ -121,25 +137,29 @@ jobs:
          default: deci/super-gradients
        version:
           type: string
-          default: ${CIRCLE_TAG}
+          default: ${BETA_TAG}
     docker:
        - image: cimg/base:stable-20.04
     resource_class: small
     steps:
      - checkout
-     - deci-common/get_persisted_version_info
+     - attach_workspace:
+          at: ~/BETA_TAG
+     - run: 
+        name: getting betta tag to env
+        command: BETA_TAG=$(cat ~/BETA_TAG)
      - setup_remote_docker:
           version: 20.10.7
           docker_layer_caching: true
      - deci-common/container_image_build:
            dockerfile: scripts/Dockerfile
            repository_name: << parameters.repo_name >>
-           image_tag: "${NEW_VERSION}"
-           build_args: 'VERSION=${NEW_VERSION}'
+           image_tag: "${BETA_TAG}"
+           build_args: 'VERSION=${CIRCLE_TAG}'
            extra_flags: ' --compress'
      - deci-common/push_docker_image_aws_dev:
            repository_name: << parameters.repo_name >>
-           image_tag: "${NEW_VERSION}"
+           image_tag: "${BETA_TAG}"
            additional_tags: "latest"
 
   find_rc_tag_per_sha:
@@ -153,6 +173,14 @@ jobs:
           command: |
               RC_TAG=$(git tag --contains ${CIRCLE_SHA1} | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+')
               echo "Found RC version: ${RC_TAG}"
+     - run: 
+         name: persist RC_TAG
+         command: echo ${RC_TAG} > ~/RC_TAG
+
+     - persist_to_workspace:
+         root: ~/RC_TAG
+         paths:
+           - "RC_TAG"
 
 
   retag_docker_ecr:
@@ -163,10 +191,9 @@ jobs:
           default: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
      new_image_tag:
         type: string
-        default: << pipeline.git.tag >>
+        default: ${CIRCLE_TAG}
      source_image_tag:
        type: string
-       default: ${RC_TAG}
    environment:
        NEW_IMAGE_TAG: << parameters.new_image_tag >>
        IMAGE_REPO: << parameters.image_repo >>
@@ -175,7 +202,16 @@ jobs:
        - image: cimg/aws:2022.11.1
    resource_class: small
    steps:
-     - deci-common/ecr_login_dev
+     - attach_workspace:
+          at: ~/
+     - run: 
+        shell: /bin/bash
+        name: getting betta tag to env
+        command: BETA_TAG=$(cat ~/BETA_TAG)
+     - run: 
+        shell: /bin/bash
+        name: getting betta tag to env
+        command: RC_TAG=$(cat ~/RC_TAG)
      - run:
            name: retag docker
            command: |
@@ -217,7 +253,7 @@ jobs:
     parameters:
         image_tag:
           type: string
-          default: ${NEW_VERSION}
+          default: ${BETA_TAG}
         image_repo:
           type: string
           default: deciai/super-gradients
@@ -228,7 +264,11 @@ jobs:
       - image: cimg/base
     steps:
         - deci-common/ecr_login_dev
-        - deci-common/get_persisted_version_info
+        - attach_workspace:
+           at: ~/BETA_TAG
+        - run: 
+           name: getting betta tag to env
+           command: BETA_TAG=$(cat ~/BETA_TAG)
         # - run:
         #    name: integration test
         #    #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
@@ -409,30 +449,32 @@ workflows:
 
   SG_docker:
      jobs:
-       - deci-common/persist_version_info: # works on release candidate creation
+       - change_rc_to_b: # works on release candidate creation
            <<: *release_candidate_tag_filter 
        - build_and_publish:  # works on release candidate creation
+           version: 
            requires:
-             - "deci-common/persist_version_info"
+             - "change_rc_to_b"
            <<: *release_candidate_tag_filter 
        - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
-          image_tag: ${NEW_VERSION}
+          image_tag: ${BETA_TAG}
           requires:
             - "build_and_publish"
           <<: *release_candidate_tag_filter
        - retag_docker_ecr: # works on release candidate creation for ECR Repo
           name: change_beta_to_rc
-          source_image_tag: ${NEW_VERSION}
-          new_image_tag: << pipeline.git.tag >>
+          source_image_tag: ${BETA_TAG}
+          new_image_tag: ${CIRCLE_TAG}
           requires:
             - "testing_supergradients_docker_image"
           <<: *release_candidate_tag_filter
        - find_rc_tag_per_sha: # works on release
            <<: *release_tag_filter
        - retag_docker_ecr: # works on release
+            name: add release tag to rc tag
             source_image_tag: ${RC_TAG}
-            new_image_tag: << pipeline.git.tag >>
+            new_image_tag: ${CIRCLE_TAG}
             <<: *release_tag_filter 
        - hold-sg-public-release:  # works on release
            type: approval
