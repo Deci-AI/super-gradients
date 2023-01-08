@@ -146,7 +146,7 @@ jobs:
      - attach_workspace:
          at: ~/
      - run:
-           name: push BETA_TAG variable to BASH_ENV 
+           name: push BETA_TAG variable to BASH_ENV
            command: |
               echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
      - setup_remote_docker:
@@ -442,7 +442,7 @@ workflows:
        - change_rc_to_b: # works on release candidate creation
 #           <<: *release_candidate_tag_filter
        - build_and_publish:  # works on release candidate creation
-           version: ${bulbul_hakabulbul}
+           version: ${BETA_TAG}
            requires:
              - "change_rc_to_b"
 #           <<: *release_candidate_tag_filter
