@@ -123,11 +123,11 @@ jobs:
      steps:
        - run:
           name: change the rc to b
-          command: BETA_TAG=$(echo ${CIRCLE_TAG} | sed -e  's|rc|b|'); echo ${BETA_TAG}
-       - run:
-           name: push BETA_TAG variable to BASH_ENV 
-           command: |
-              echo 'export BETA_TAG="$BETA_TAG"' >> "$BASH_ENV"
+          command: BETA_TAG=$(echo ${CIRCLE_TAG} | sed -e  's|rc|b|'); echo ${BETA_TAG} >> ~/BETA_TAG
+       - persist_to_workspace:
+           root: ~/
+           paths:
+             - "BETA_TAG"
       
 
 
@@ -147,9 +147,17 @@ jobs:
       CIRCLE_TAG: 3.1.0rc13475
     steps:
      - checkout
+     - attach_workspace:
+         at: ~/
+     - run:
+           name: push BETA_TAG variable to BASH_ENV 
+           command: |
+              echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
      - setup_remote_docker:
           version: 20.10.7
           docker_layer_caching: true
+     - run:
+         command: echo $BETA_TAG
      - deci-common/container_image_build:
            dockerfile: scripts/Dockerfile
            repository_name: << parameters.repo_name >>
@@ -172,10 +180,11 @@ jobs:
           command: |
               RC_TAG=$(git tag --contains ${CIRCLE_SHA1} | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+')
               echo "Found RC version: ${RC_TAG}"
-     - run: 
-         name: persist RC_TAG
-         command: |
-            echo 'export RC_TAG="$RC_TAG"' >> "$BASH_ENV"
+              echo $RC_TAG >> ~/RC_TAG
+     - persist_to_workspace:
+           root: ~/
+           paths:
+             - "RC_TAG"
 
 
   retag_docker_ecr:
@@ -197,6 +206,14 @@ jobs:
        - image: cimg/aws:2022.11.1
    resource_class: small
    steps:
+     - attach_workspace:
+         at: ~/
+     - run: 
+           shell: /bin/bash
+           name: push BETA_TAG and RC_TAG variable to BASH_ENV 
+           command: |
+              echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
+              echo 'export RC_TAG="$(cat ~/RC_TAG)"' >> "$BASH_ENV"
      - run:
            name: retag docker
            command: |
