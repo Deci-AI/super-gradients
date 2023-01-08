@@ -84,10 +84,10 @@ LABEL_NORMALIZED_CXCYWH = ConcatenatedTensorFormat(
 
 
 def get_default_data_format(format_name: str) -> ConcatenatedTensorFormat:
-    return DEFAULT_CONCATENATED_data_formats[format_name]
+    return DEFAULT_CONCATENATED_TENSOR_FORMATS[format_name]
 
 
-DEFAULT_CONCATENATED_data_formats = {
+DEFAULT_CONCATENATED_TENSOR_FORMATS = {
     ConcatenatedTensorFormats.XYXY_LABEL: XYXY_LABEL,
     ConcatenatedTensorFormats.XYWH_LABEL: XYWH_LABEL,
     ConcatenatedTensorFormats.CXCYWH_LABEL: CXCYWH_LABEL,
