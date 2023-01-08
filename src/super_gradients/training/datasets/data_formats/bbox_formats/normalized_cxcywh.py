@@ -1,10 +1,10 @@
 from typing import Tuple
 
-from super_gradients.training.utils.bbox_formats.bbox_format import (
+from super_gradients.training.datasets.data_formats.bbox_formats.bbox_format import (
     BoundingBoxFormat,
 )
-from super_gradients.training.utils.bbox_formats.cxcywh import cxcywh_to_xyxy, xyxy_to_cxcywh_inplace, cxcywh_to_xyxy_inplace
-from super_gradients.training.utils.bbox_formats.normalized_xyxy import (
+from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import cxcywh_to_xyxy, xyxy_to_cxcywh_inplace, cxcywh_to_xyxy_inplace
+from super_gradients.training.datasets.data_formats.bbox_formats.normalized_xyxy import (
     xyxy_to_normalized_xyxy_inplace,
     xyxy_to_normalized_xyxy,
     normalized_xyxy_to_xyxy_inplace,

@@ -3,12 +3,18 @@ import math
 import random
 from typing import Optional, Union, Tuple, List, Sequence, Dict
 
+import torch.nn
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 import numpy as np
 import cv2
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy
+from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
+from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
+from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 
 image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
@@ -756,88 +762,60 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     """
     Detection targets format transform
 
-    Converts targets in input_format to output_format.
+    Convert targets in input_format to output_format, filter small bboxes and pad targets.
     Attributes:
-        input_format: DetectionTargetsFormat: input target format
-        output_format: DetectionTargetsFormat: output target format
-        min_bbox_edge_size: int: bboxes with edge size lower then this values will be removed.
-        max_targets: int: max objects in single image, padding target to this size.
+        image_shape:        Shape of the images to transform.
+        input_format:       Format of the input targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL
+        output_format:      Format of the output targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL
+        min_bbox_edge_size: bboxes with edge size lower then this values will be removed.
+        max_targets:        Max objects in single image, padding target to this size.
     """
 
+    @resolve_param("input_format", ConcatenatedTensorFormatFactory())
+    @resolve_param("output_format", ConcatenatedTensorFormatFactory())
     def __init__(
         self,
-        input_format: DetectionTargetsFormat = DetectionTargetsFormat.XYXY_LABEL,
-        output_format: DetectionTargetsFormat = DetectionTargetsFormat.LABEL_CXCYWH,
+        image_shape: tuple,
+        input_format: ConcatenatedTensorFormat = XYXY_LABEL,
+        output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
         max_targets: int = 120,
     ):
         super(DetectionTargetsFormatTransform, self).__init__()
         self.input_format = input_format
         self.output_format = output_format
-        self.min_bbox_edge_size = min_bbox_edge_size
         self.max_targets = max_targets
+        self.min_bbox_edge_size = min_bbox_edge_size / max(image_shape) if output_format.bboxes_format.format.normalized else min_bbox_edge_size
+        self.targets_format_converter = ConcatenatedTensorFormatConverter(input_format=input_format, output_format=output_format, image_shape=image_shape)
 
-    def __call__(self, sample):
-        normalized_input = "NORMALIZED" in self.input_format.value
-        normalized_output = "NORMALIZED" in self.output_format.value
-        normalize = not normalized_input and normalized_output
-        denormalize = normalized_input and not normalized_output
-
-        label_first_in_input = self.input_format.value.split("_")[0] == "LABEL"
-        label_first_in_output = self.output_format.value.split("_")[0] == "LABEL"
-
-        input_xyxy_format = "XYXY" in self.input_format.value
-        output_xyxy_format = "XYXY" in self.output_format.value
-        convert2xyxy = not input_xyxy_format and output_xyxy_format
-        convert2cxcy = input_xyxy_format and not output_xyxy_format
-
-        image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-
-        _, h, w = image.shape
-
-        def _format_target(targets_in):
-            if label_first_in_input:
-                labels, boxes = targets_in[:, 0], targets_in[:, 1:]
-            else:
-                boxes, labels = targets_in[:, :4], targets_in[:, 4]
-
-            if convert2cxcy:
-                boxes = xyxy2cxcywh(boxes)
-            elif convert2xyxy:
-                boxes = cxcywh2xyxy(boxes)
-
-            if normalize:
-                boxes[:, 0] = boxes[:, 0] / w
-                boxes[:, 1] = boxes[:, 1] / h
-                boxes[:, 2] = boxes[:, 2] / w
-                boxes[:, 3] = boxes[:, 3] / h
-
-            elif denormalize:
-                boxes[:, 0] = boxes[:, 0] * w
-                boxes[:, 1] = boxes[:, 1] * h
-                boxes[:, 2] = boxes[:, 2] * w
-                boxes[:, 3] = boxes[:, 3] * h
-
-            min_bbox_edge_size = self.min_bbox_edge_size / max(w, h) if normalized_output else self.min_bbox_edge_size
-
-            cxcywh_boxes = boxes if not output_xyxy_format else xyxy2cxcywh(boxes.copy())
-
-            mask_b = np.minimum(cxcywh_boxes[:, 2], cxcywh_boxes[:, 3]) > min_bbox_edge_size
-            boxes_t = boxes[mask_b]
-            labels_t = labels[mask_b]
-
-            labels_t = np.expand_dims(labels_t, 1)
-            targets_t = np.hstack((labels_t, boxes_t)) if label_first_in_output else np.hstack((boxes_t, labels_t))
-            padded_targets = np.zeros((self.max_targets, 5))
-            padded_targets[range(len(targets_t))[: self.max_targets]] = targets_t[: self.max_targets]
-            padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
-
-            return padded_targets
-
-        sample["target"] = _format_target(targets)
-        if crowd_targets is not None:
-            sample["crowd_target"] = _format_target(crowd_targets)
+    def __call__(self, sample: dict) -> dict:
+        sample["target"] = self.apply_on_targets(sample["target"])
+        if "crowd_target" in sample.keys():
+            sample["crowd_target"] = self.apply_on_targets(sample["crowd_target"])
         return sample
+
+    def apply_on_targets(self, targets: np.ndarray) -> np.ndarray:
+        """Convert targets in input_format to output_format, filter small bboxes and pad targets"""
+        targets = self.targets_format_converter(targets)
+        targets = self.filter_small_bboxes(targets)
+        targets = self.pad_targets(targets)
+        return targets
+
+    def filter_small_bboxes(self, targets: np.ndarray) -> np.ndarray:
+        """Filter bboxes smaller than specified threshold."""
+
+        def _is_big_enough(bboxes: np.ndarray) -> np.ndarray:
+            return np.minimum(bboxes[:, 2], bboxes[:, 3]) > self.min_bbox_edge_size
+
+        targets = filter_on_bboxes(fn=_is_big_enough, tensor=targets, tensor_format=self.output_format)
+        return targets
+
+    def pad_targets(self, targets: np.ndarray) -> np.ndarray:
+        """Pad targets."""
+        padded_targets = np.zeros((self.max_targets, targets.shape[-1]))
+        padded_targets[range(len(targets))[: self.max_targets]] = targets[: self.max_targets]
+        padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
+        return padded_targets
 
 
 def get_aug_params(value: Union[tuple, float], center: float = 0):
@@ -1104,3 +1082,20 @@ def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
     padded_img = padded_img.transpose(swap)
     padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
     return padded_img, r
+
+
+class Standardize(torch.nn.Module):
+    """
+    Standardize image pixel values.
+    :return img/max_val
+
+    attributes:
+        max_val: float, value to as described above (default=255)
+    """
+
+    def __init__(self, max_val=255.0):
+        super(Standardize, self).__init__()
+        self.max_val = max_val
+
+    def forward(self, img):
+        return img / self.max_val
