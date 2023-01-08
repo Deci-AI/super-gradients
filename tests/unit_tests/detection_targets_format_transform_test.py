@@ -3,7 +3,7 @@ import unittest
 
 from super_gradients.training.transforms.transforms import DetectionTargetsFormatTransform
 
-from super_gradients.training.datasets.data_formats import (
+from super_gradients.training.datasets.data_formats.default_formats import (
     XYXY_LABEL,
     LABEL_XYXY,
     LABEL_CXCYWH,
