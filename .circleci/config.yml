@@ -31,8 +31,26 @@ release_candidate_tag_filter: &release_candidate_tag_filter
       ignore: /.*/
     tags:
       only: /^\d+\.\d+\.\d+rc\d+/
-    
-    
+
+commands:
+  get_beta_and_rc_tags:
+    description: "getting beta and rc tag (if exist) according to ouir convention"
+    steps:
+        - attach_workspace:
+           at: ~/
+        - run:
+           shell: /bin/bash
+           name: push BETA_TAG and RC_TAG variable to BASH_ENV
+           command: |
+              if [[ -f ~/BETA_TAG ]]; then
+                echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
+              fi
+
+              if [[ -f ~/RC_TAG ]]; then
+                echo 'export RC_TAG="$(cat ~/RC_TAG)"' >> "$BASH_ENV"
+              fi 
+              source $BASH_ENV
+              echo "RC_TAG=$RC_TAG   ||  BETA_TAG=$BETA_TAG"
 
 jobs:
   build:
@@ -120,8 +138,8 @@ jobs:
      resource_class: small
      steps:
        - run:
-          name: change the rc to b #TODO: below should be ${CIRCLE_TAG}
-          command: BETA_TAG=$(echo 999.999.999 | sed -e  's|rc|b|'); echo ${BETA_TAG} >> ~/BETA_TAG
+          name: change the rc to b
+          command: BETA_TAG=$(echo ${CIRCLE_TAG} | sed -e  's|rc|b|'); echo ${BETA_TAG} >> ~/BETA_TAG
        - persist_to_workspace:
            root: ~/
            paths:
@@ -130,42 +148,36 @@ jobs:
 
 
 
-  build_and_publish:
+  build_and_publish_sg_container:
     description : "building the temp image and pushing to dev ecr"
     parameters:
        repo_name:
          type: string
          default: 'deci/super-gradients'
-       version:
-          type: string
+       sg_python_version:
+         type: string
+         default: $CIRCLE_TAG
     docker:
        - image: cimg/base:stable-20.04
     resource_class: small
     steps:
      - checkout
-     - attach_workspace:
-         at: ~/
+     - get_beta_and_rc_tags
      - run:
-           name: push BETA_TAG variable to BASH_ENV
-           command: |
-              echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
+         command: echo *$BETA_TAG*
      - setup_remote_docker:
           version: 20.10.18
           docker_layer_caching: true
-     - run:
-         command: echo $BETA_TAG
-     - run:
-         command: echo ***<< parameters.version >>***
-#     - deci-common/container_image_build:
-#           dockerfile: scripts/Dockerfile
-#           repository_name: << parameters.repo_name >>
-#           image_tag: "$BETA_TAG"
-#           build_args: 'VERSION=$CIRCLE_TAG'
-#           extra_flags: ' --compress'
-#     - deci-common/push_docker_image_aws_dev:
-#           repository_name: << parameters.repo_name >>
-#           image_tag: "$BETA_TAG"
-#           additional_tags: "latest"
+     - deci-common/container_image_build:
+           dockerfile: scripts/Dockerfile
+           repository_name: << parameters.repo_name >>
+           image_tag: "$BETA_TAG"
+           build_args: 'SG_VERSION=<< parameters.sg_python_version >>'
+           extra_flags: ' --compress'
+     - deci-common/push_docker_image_aws_dev:
+           repository_name: << parameters.repo_name >>
+           image_tag: "$BETA_TAG"
+           additional_tags: "latest"
 
   find_rc_tag_per_sha:
    description: this command will take the sha of the last commit and find the rc tag it belongs to as ${RC_TAG} variale
@@ -200,22 +212,7 @@ jobs:
        - image: cimg/base:stable-20.04
    resource_class: small
    steps:
-     - attach_workspace:
-         at: ~/
-     - run: 
-           name: push BETA_TAG and RC_TAG variable to BASH_ENV 
-           command: |
-              if [[ -f ~/BETA_TAG ]]; then
-              echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
-              BETA_TAG=$(cat ~/BETA_TAG)
-              echo "BETA_TAG=$BETA_TAG"
-              fi
-
-              if [[ -f ~/RC_TAG ]]; then
-              echo 'export RC_TAG="$(cat ~/RC_TAG)"' >> "$BASH_ENV"
-              RC_TAG=$(cat ~/RC_TAG)
-              echo "RC_TAG=$RC_TAG"
-              fi
+     - get_beta_and_rc_tags
      - run:
          command: |
            echo $BETA_TAG
@@ -231,35 +228,16 @@ jobs:
   testing_supergradients_docker_image:
     description: "running integration test on the code"
     parameters:
-        image_tag:
-          type: string
-        image_repo:
-          type: string
-          default: deciai/super-gradients
-    #reserved for testing when will be done      
+      image_repo:
+        type: string
+    #reserved for testing when will be done
     #machine: true 
     #resource_class: deci-ai/research-standard
     docker:
       - image: cimg/base:stable-20.04
     steps:
         - deci-common/ecr_login_dev
-        - attach_workspace:
-           at: ~/
-        - run: 
-           shell: /bin/bash
-           name: push BETA_TAG and RC_TAG variable to BASH_ENV 
-           command: |
-              if [[ -f ~/BETA_TAG ]]; then
-              echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
-              BETA_TAG=$(cat ~/BETA_TAG)
-              echo "BETA_TAG=$BETA_TAG"
-              fi
-
-              if [[ -f ~/RC_TAG ]]; then
-              echo 'export RC_TAG="$(cat ~/RC_TAG)"' >> "$BASH_ENV"
-              RC_TAG=$(cat ~/RC_TAG)
-              echo "RC_TAG=$RC_TAG"
-              fi 
+        - get_beta_and_rc_tags
         # - run:
         #    name: integration test
         #    #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
@@ -443,17 +421,15 @@ workflows:
      jobs:
        - change_rc_to_b #: # works on release candidate creation
 #           <<: *release_candidate_tag_filter
-       - build_and_publish:  # works on release candidate creation
-           version: ${BETA_TAG}
+       - build_and_publish_sg_container:  # works on release candidate creation
            requires:
              - "change_rc_to_b"
 #           <<: *release_candidate_tag_filter
-#       - testing_supergradients_docker_image:  # works on release candidate creation
-#          image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
-#          image_tag: $BETA_TAG
-#          requires:
-#            - "build_and_publish"
-#            - "change_rc_to_b"
+       - testing_supergradients_docker_image:  # works on release candidate creation
+          image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
+          requires:
+            - "build_and_publish"
+            - "change_rc_to_b"
 #          <<: *release_candidate_tag_filter
 #       - retag_docker_ecr: # works on release candidate creation for ECR Repo
 #          name: change_beta_to_rc
