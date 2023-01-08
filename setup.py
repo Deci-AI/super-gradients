@@ -11,6 +11,7 @@ README_LOCATION = "README.md"
 REQ_LOCATION = "requirements.txt"
 REQ_PRO_LOCATION = "requirements.pro.txt"
 VERSION_FILE = "version.txt"
+INIT_FILE = "src/super_gradients/__init__.py"
 
 
 def readme():
@@ -32,7 +33,15 @@ def get_pro_requirements():
 
 def get_version():
     with open(VERSION_FILE, encoding="utf-8") as f:
-        return f.readline()
+        ver = f.readline()
+
+    if ver.startswith("for"):
+        with open(INIT_FILE, encoding="utf-8") as f:
+            for line in f.readlines():
+                if line.startswith("__version__"):
+                    ver = line.split()[-1].strip('"') + "+master"
+
+    return ver
 
 
 setup(
