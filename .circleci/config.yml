@@ -133,7 +133,7 @@ jobs:
     parameters:
        repo_name:
          type: string
-         default: deci/super-gradients
+         default: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
        version:
           type: string
     docker:
