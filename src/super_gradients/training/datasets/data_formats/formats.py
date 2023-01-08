@@ -4,7 +4,7 @@ from typing import Tuple, Union, List, Mapping, Callable
 import numpy as np
 from torch import Tensor
 
-from super_gradients.training.utils.tensor_formats.bbox_formats import BoundingBoxFormat
+from super_gradients.training.datasets.data_formats.bbox_formats import BoundingBoxFormat
 
 
 class DetectionOutputFormat:

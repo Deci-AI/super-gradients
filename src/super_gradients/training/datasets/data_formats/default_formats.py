@@ -1,6 +1,6 @@
 from super_gradients.common.object_names import ConcatenatedTensorFormats
-from super_gradients.training.utils.tensor_formats.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
-from super_gradients.training.utils.tensor_formats.bbox_formats import (
+from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from super_gradients.training.datasets.data_formats.bbox_formats import (
     XYXYCoordinateFormat,
     XYWHCoordinateFormat,
     CXCYWHCoordinateFormat,
@@ -84,10 +84,10 @@ LABEL_NORMALIZED_CXCYWH = ConcatenatedTensorFormat(
 
 
 def get_default_data_format(format_name: str) -> ConcatenatedTensorFormat:
-    return DEFAULT_CONCATENATED_TENSOR_FORMATS[format_name]
+    return DEFAULT_CONCATENATED_data_formats[format_name]
 
 
-DEFAULT_CONCATENATED_TENSOR_FORMATS = {
+DEFAULT_CONCATENATED_data_formats = {
     ConcatenatedTensorFormats.XYXY_LABEL: XYXY_LABEL,
     ConcatenatedTensorFormats.XYWH_LABEL: XYWH_LABEL,
     ConcatenatedTensorFormats.CXCYWH_LABEL: CXCYWH_LABEL,

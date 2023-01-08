@@ -1,7 +1,7 @@
 from super_gradients.common.factories.type_factory import TypeFactory
-from super_gradients.training.utils.tensor_formats.default_formats import DEFAULT_CONCATENATED_TENSOR_FORMATS
+from super_gradients.training.datasets.data_formats import DEFAULT_CONCATENATED_data_formats
 
 
 class ConcatenatedTensorFormatFactory(TypeFactory):
     def __init__(self):
-        super().__init__(DEFAULT_CONCATENATED_TENSOR_FORMATS)
+        super().__init__(DEFAULT_CONCATENATED_data_formats)

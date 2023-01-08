@@ -11,9 +11,9 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy
-from super_gradients.training.utils.tensor_formats import ConcatenatedTensorFormatConverter
-from super_gradients.training.utils.tensor_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
-from super_gradients.training.utils.tensor_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
+from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
+from super_gradients.training.datasets.data_formats import filter_on_bboxes, ConcatenatedTensorFormat
+from super_gradients.training.datasets.data_formats import XYXY_LABEL, LABEL_CXCYWH
 
 image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST

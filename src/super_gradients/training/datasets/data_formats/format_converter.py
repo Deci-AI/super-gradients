@@ -3,8 +3,8 @@ from typing import Tuple, Union
 import numpy as np
 from torch import Tensor
 
-from super_gradients.training.utils.tensor_formats.bbox_formats import convert_bboxes
-from super_gradients.training.utils.tensor_formats.formats import ConcatenatedTensorFormat, apply_on_bboxes, get_permutation_indexes
+from super_gradients.training.datasets.data_formats.bbox_formats import convert_bboxes
+from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, apply_on_bboxes, get_permutation_indexes
 
 __all__ = ["ConcatenatedTensorFormatConverter"]
 
@@ -20,8 +20,8 @@ class ConcatenatedTensorFormatConverter:
         Converts concatenated tensors from input format to output format.
 
         Example:
-            >>> from super_gradients.training.utils.tensor_formats import ConcatenatedTensorFormatConverter
-            >>> from super_gradients.training.utils.tensor_formats.default_formats import LABEL_CXCYWH, LABEL_NORMALIZED_XYXY
+            >>> from super_gradients.training.utils.data_formats import ConcatenatedTensorFormatConverter
+            >>> from super_gradients.training.utils.data_formats.default_formats import LABEL_CXCYWH, LABEL_NORMALIZED_XYXY
             >>> h, w = 100, 200
             >>> input_target = np.array([[10, 20 / w, 30 / h, 40 / w, 50 / h]], dtype=np.float32)
             >>> expected_output_target = np.array([[10, 30, 40, 20, 20]], dtype=np.float32)

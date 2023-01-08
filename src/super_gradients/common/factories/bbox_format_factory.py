@@ -1,5 +1,5 @@
 from super_gradients.common.factories.base_factory import BaseFactory
-from super_gradients.training.utils.tensor_formats.bbox_formats import BBOX_FORMATS
+from super_gradients.training.datasets.data_formats import BBOX_FORMATS
 
 
 class BBoxFormatFactory(BaseFactory):
