@@ -210,9 +210,9 @@ jobs:
    steps:
      - checkout
      - run:
-          name: get rc tag of the final tag
+          name: get rc tag of the final tag # todo: change below to ${CIRCLE_SHA1}
           command: |
-              RC_TAG=$(git tag --contains ${CIRCLE_SHA1} | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+')
+              RC_TAG=$(git tag --contains f460027313c33c5e3953afe6068c6a3404663c94 | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+')
               echo "Found RC version: ${RC_TAG}"
               echo $RC_TAG >> ~/RC_TAG
      - persist_to_workspace:
