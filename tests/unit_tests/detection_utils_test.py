@@ -6,7 +6,7 @@ import torch.cuda
 
 from super_gradients.training import Trainer, utils as core_utils, models
 from super_gradients.training.dataloaders.dataloaders import coco2017_val
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_USED_CLASSES
 from super_gradients.training.metrics import DetectionMetrics, DetectionMetrics_050
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import DetectionVisualization
@@ -33,7 +33,7 @@ class TestDetectionUtils(unittest.TestCase):
         output = self.model(imgs)
         output = post_prediction_callback(output)
         # Visualize the batch
-        DetectionVisualization.visualize_batch(imgs, output, targets, batch_i, COCO_DETECTION_CLASSES_LIST, trainer.checkpoints_dir_path)
+        DetectionVisualization.visualize_batch(imgs, output, targets, batch_i, COCO_DETECTION_USED_CLASSES.cls_labels, trainer.checkpoints_dir_path)
 
         # Assert images ware created and delete them
         img_name = "{}/{}_{}.jpg"
