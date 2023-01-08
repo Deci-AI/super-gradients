@@ -478,6 +478,7 @@ workflows:
 #            <<: *release_tag_filter
        - slack/on-hold:
            context: slack
+           channel: "sg-integration-tests"
            requires:
              - "add_release_tag_to_rc"
 #           <<: *release_tag_filter
