@@ -151,16 +151,16 @@ jobs:
           version: 20.10.7
           docker_layer_caching: true
      - run:
-         command: echo ${BETA_TAG}
+         command: echo $BETA_TAG
      - deci-common/container_image_build:
            dockerfile: scripts/Dockerfile
            repository_name: << parameters.repo_name >>
-           image_tag: "${BETA_TAG}"
-           build_args: 'VERSION=${CIRCLE_TAG}'
+           image_tag: "$BETA_TAG"
+           build_args: 'VERSION=$CIRCLE_TAG'
            extra_flags: ' --compress'
      - deci-common/push_docker_image_aws_dev:
            repository_name: << parameters.repo_name >>
-           image_tag: "${BETA_TAG}"
+           image_tag: "$BETA_TAG"
            additional_tags: "latest"
 
   find_rc_tag_per_sha:
@@ -440,13 +440,13 @@ workflows:
            #<<: *release_candidate_tag_filter 
        - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
-          image_tag: ${BETA_TAG}
+          image_tag: $BETA_TAG
           requires:
             - "build_and_publish"
           #<<: *release_candidate_tag_filter
        - retag_docker_ecr: # works on release candidate creation for ECR Repo
           name: change_beta_to_rc
-          source_image_tag: ${BETA_TAG}
+          source_image_tag: $BETA_TAG
           #new_image_tag: ${CIRCLE_TAG}
           new_image_tag: 3.1.0rc13475
           requires:
