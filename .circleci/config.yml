@@ -118,8 +118,6 @@ jobs:
      docker:
        - image: cimg/base:stable-20.04
      resource_class: small
-     environment:
-       CIRCLE_TAG: 3.1.0rc13475
      steps:
        - run:
           name: change the rc to b
@@ -143,8 +141,6 @@ jobs:
     docker:
        - image: cimg/base:stable-20.04
     resource_class: small
-    environment:
-      CIRCLE_TAG: 3.1.0rc13475
     steps:
      - checkout
      - attach_workspace:
@@ -192,16 +188,12 @@ jobs:
    parameters:
      image_repo:
           type: string
-          default: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
+          default: "deci/super-gradients"
      new_image_tag:
         type: string
         default: ${CIRCLE_TAG}
      source_image_tag:
        type: string
-   environment:
-       NEW_IMAGE_TAG: << parameters.new_image_tag >>
-       IMAGE_REPO: << parameters.image_repo >>
-       SRC_IMAGE_TAG: << parameters.new_image_tag >>
    docker:
        - image: cimg/base:stable-20.04
    resource_class: small
@@ -230,34 +222,9 @@ jobs:
            command: |
               MANIFEST=$(aws ecr batch-get-image --repository-name << parameters.image_repo >> --image-ids imageTag=<< parameters.source_image_tag >> --query 'images[].imageManifest' --output text)
               aws ecr put-image --repository-name << parameters.image_repo >> --image-tag << parameters.new_image_tag >> --image-manifest "$MANIFEST"
-              echo "                 ________________________________________________               "
-              echo "                /                                                \              "
-              echo "               |    _________________________________________     |             "
-              echo "               |   |                                         |    |             "
-              echo "               |   |   added tag: ${NEW_IMAGE_TAG}           |    |             "
-              echo "               |   |   to image:                             |    |             "
-              echo "               |   |   ${IMAGE_REPO}:${SRC_IMAGE_TAG}        |    |             "
-              echo "               |   |                                         |    |             "
-              echo "               |   |                                         |    |             "
-              echo "               |   |                                         |    |             "
-              echo "               |   |                                         |    |             "
-              echo "               |   |                                         |    |             "
-              echo "               |   |                                         |    |             "
-              echo "               |   |                                         |    |             "
-              echo "               |   |                                         |    |             "
-              echo "               |   |                                         |    |             "
-              echo "               |   |_________________________________________|    |             "
-              echo "               |                                                  |             "
-              echo "                \_________________________________________________/             "
-              echo "                      \___________________________________/                     "
-              echo "                    ___________________________________________                 "
-              echo "                _-'    .-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.  --- \`-_              "
-              echo "              _-'.-.-. .---.-.-.-.-.-.-.-.-.-.-.-.-.-.-.--.  .-.-.\`-_          "
-              echo "          _-'.-.-.-. .---.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-\`__\`. .-.-.-.\`-_      "
-              echo "        _-'.-.-.-.-. .-----.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-----. .-.-.-.-.\`-_    "
-              echo "    _-'.-.-.-.-.-. .---.-. .-------------------------. .-.---. .---.-.-.-.\`-_  "
-              echo "    :-------------------------------------------------------------------------: "
-              echo "    \`---._.-------------------------------------------------------------._.---'"
+
+              echo "added tag: << parameters.new_image_tag >>      to image:  << parameters.image_repo >>:<< parameters.new_image_tag >>"
+
                
   testing_supergradients_docker_image:
     description: "running integration test on the code"
@@ -472,29 +439,28 @@ workflows:
 
   SG_docker:
      jobs:
-       - change_rc_to_b # works on release candidate creation
-           #<<: *release_candidate_tag_filter 
+       - change_rc_to_b: # works on release candidate creation
+           <<: *release_candidate_tag_filter 
        - build_and_publish:  # works on release candidate creation
            version: ${BETA_TAG}
            requires:
              - "change_rc_to_b"
-           #<<: *release_candidate_tag_filter 
+           <<: *release_candidate_tag_filter 
        - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
           image_tag: $BETA_TAG
           requires:
             - "build_and_publish"
             - "change_rc_to_b"
-          #<<: *release_candidate_tag_filter
+          <<: *release_candidate_tag_filter
        - retag_docker_ecr: # works on release candidate creation for ECR Repo
           name: change_beta_to_rc
           source_image_tag: $BETA_TAG
-          #new_image_tag: ${CIRCLE_TAG}
-          new_image_tag: 3.1.0rc13475
+          new_image_tag: ${CIRCLE_TAG}
           requires:
             - "testing_supergradients_docker_image"
             - "change_rc_to_b"
-          #<<: *release_candidate_tag_filter
+          <<: *release_candidate_tag_filter
        - find_rc_tag_per_sha: # works on release
            <<: *release_tag_filter
        - retag_docker_ecr: # works on release
