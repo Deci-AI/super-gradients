@@ -226,10 +226,9 @@ jobs:
          command: |
            echo $BETA_TAG
            echo $RC_TAG
-     - deci-common/ecr_login_dev
+     - deci-common/run_on_dev_account
      - deci-common/run_on_dev_account:
            command: |
-              source $BASH_ENV
               MANIFEST=$(aws ecr batch-get-image --repository-name << parameters.image_repo >> --image-ids imageTag=<< parameters.source_image_tag >> --query 'images[].imageManifest' --output text)
               aws ecr put-image --repository-name << parameters.image_repo >> --image-tag << parameters.new_image_tag >> --image-manifest "$MANIFEST"
               echo "                 ________________________________________________               "
@@ -261,8 +260,6 @@ jobs:
               echo "    :-------------------------------------------------------------------------: "
               echo "    \`---._.-------------------------------------------------------------._.---'"
                
-
-
   testing_supergradients_docker_image:
     description: "running integration test on the code"
     parameters:
