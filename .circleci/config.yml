@@ -210,7 +210,6 @@ jobs:
          at: ~/
      - deci-common/ecr_login_dev
      - run: 
-           shell: /bin/bash
            name: push BETA_TAG and RC_TAG variable to BASH_ENV 
            command: |
               if [[ -f ~/BETA_TAG ]]; then
@@ -231,6 +230,7 @@ jobs:
      - run:
            name: retag docker
            command: |
+              source $BASH_ENV
               MANIFEST=$(aws ecr batch-get-image --repository-name << parameters.image_repo >> --image-ids imageTag=<< parameters.source_image_tag >> --query 'images[].imageManifest' --output text)
               aws ecr put-image --repository-name << parameters.image_repo >> --image-tag << parameters.new_image_tag >> --image-manifest "$MANIFEST"
               echo "                 ________________________________________________               "
