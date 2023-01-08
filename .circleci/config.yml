@@ -226,7 +226,6 @@ jobs:
          command: |
            echo $BETA_TAG
            echo $RC_TAG
-     - deci-common/run_on_dev_account
      - deci-common/run_on_dev_account:
            command: |
               MANIFEST=$(aws ecr batch-get-image --repository-name << parameters.image_repo >> --image-ids imageTag=<< parameters.source_image_tag >> --query 'images[].imageManifest' --output text)
