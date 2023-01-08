@@ -126,7 +126,9 @@ jobs:
           command: BETA_TAG=$(echo ${CIRCLE_TAG} | sed -e  's|rc|b|'); echo ${BETA_TAG} > ~/BETA_TAG
        - run:
            name: push BETA_TAG variable to BASH_ENV 
-           command: echo 'export BETA_TAG="${BETA_TAG}"' >> "$BASH_ENV"
+           command: |
+              echo 'export BETA_TAG="$BETA_TAG"' >> "$BASH_ENV"
+      
 
 
 
@@ -174,7 +176,8 @@ jobs:
               echo "Found RC version: ${RC_TAG}"
      - run: 
          name: persist RC_TAG
-         command: echo 'export RC_TAG="${RC_TAG}"' >> "$BASH_ENV"
+         command: |
+            echo 'export RC_TAG="$RC_TAG"' >> "$BASH_ENV"
 
 
   retag_docker_ecr:
