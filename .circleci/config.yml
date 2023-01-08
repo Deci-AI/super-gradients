@@ -439,10 +439,10 @@ workflows:
 
   SG_docker:
      jobs:
-       - change_rc_to_b: # works on release candidate creation
+       - change_rc_to_b #: # works on release candidate creation
 #           <<: *release_candidate_tag_filter
        - build_and_publish:  # works on release candidate creation
-           version: ${BETA_TAG}
+           version: ${BULBUl_KABULBUL}
            requires:
              - "change_rc_to_b"
 #           <<: *release_candidate_tag_filter
