@@ -7,6 +7,8 @@
 from setuptools import setup
 from setuptools import find_packages
 
+import super_gradients
+
 README_LOCATION = "README.md"
 REQ_LOCATION = "requirements.txt"
 REQ_PRO_LOCATION = "requirements.pro.txt"
@@ -32,7 +34,10 @@ def get_pro_requirements():
 
 def get_version():
     with open(VERSION_FILE, encoding="utf-8") as f:
-        return f.readline()
+        ver = f.readline()
+        if ver.startswith("for"):
+            ver = super_gradients.__version__ + "+master"
+        return ver
 
 
 setup(
