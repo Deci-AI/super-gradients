@@ -8,7 +8,7 @@ parameters:
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
-    default: "10.3.0"
+    default: "10.3.1"
 #    default: "dev:alpha"
 
 orbs:
@@ -399,6 +399,7 @@ workflows:
   release:
     jobs:
       - deci-common/persist_version_info:
+          version_override: $CIRCLE_TAG
           <<: *release_tag_filter
       - deci-common/codeartifact_login:
           name: "login_to_codeartifact_release"
@@ -433,10 +434,12 @@ workflows:
 
   build_and_deploy:
     jobs:
-      - deci-common/persist_version_info
+      - deci-common/persist_version_info:
+          use_rc: true
+          use_beta: false
+          version_override: ""
       - deci-common/codeartifact_login:
           repo_name: "deci-packages"
-
       - build:
           name: "build3.7"
           py_version: "3.7"
