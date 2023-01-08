@@ -279,8 +279,15 @@ jobs:
            shell: /bin/bash
            name: push BETA_TAG and RC_TAG variable to BASH_ENV 
            command: |
+              if [[ -f ~/BETA_TAG ]]; then
               echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
+              echo "BETA_TAG=$BETA_TAG"
+              fi
+
+              if [[ -f ~/RC_TAG ]]; then
               echo 'export RC_TAG="$(cat ~/RC_TAG)"' >> "$BASH_ENV"
+              echo "RC_TAG=$RC_TAG"
+              fi 
         # - run:
         #    name: integration test
         #    #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
@@ -474,6 +481,7 @@ workflows:
           image_tag: $BETA_TAG
           requires:
             - "build_and_publish"
+            - "change_rc_to_b"
           #<<: *release_candidate_tag_filter
        - retag_docker_ecr: # works on release candidate creation for ECR Repo
           name: change_beta_to_rc
@@ -482,6 +490,7 @@ workflows:
           new_image_tag: 3.1.0rc13475
           requires:
             - "testing_supergradients_docker_image"
+            - "change_rc_to_b"
           #<<: *release_candidate_tag_filter
        - find_rc_tag_per_sha: # works on release
            <<: *release_tag_filter
@@ -489,6 +498,8 @@ workflows:
             name: add release tag to rc tag
             source_image_tag: ${RC_TAG}
             new_image_tag: ${CIRCLE_TAG}
+            requires:
+              - "find_rc_tag_per_sha"
             <<: *release_tag_filter 
        - hold-sg-public-release:  # works on release
            type: approval
