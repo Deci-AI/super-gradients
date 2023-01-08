@@ -159,9 +159,9 @@ jobs:
      steps:
        - run:
           name: change the rc to b
-          command:
+          command: #todo: should be ${CIRCLE_TAG}
            | 
-            BETA_TAG=$(echo ${CIRCLE_TAG} | sed -e  's|rc|b|'); echo ${BETA_TAG} >> ~/BETA_TAG
+            BETA_TAG=$(echo 3.0.4 | sed -e  's|rc|b|'); echo ${BETA_TAG} >> ~/BETA_TAG
             cat ~/BETA_TAG
        - persist_to_workspace:
            root: ~/
