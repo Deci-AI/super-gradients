@@ -135,17 +135,21 @@ jobs:
     parameters:
        repo_name:
          type: string
-         default: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
+         default: 'deci/super-gradients'
        version:
           type: string
     docker:
        - image: cimg/base:stable-20.04
     resource_class: small
+    environment:
+      CIRCLE_TAG: 3.1.0rc13475
     steps:
      - checkout
      - setup_remote_docker:
           version: 20.10.7
           docker_layer_caching: true
+     - run:
+         command: echo ${BETA_TAG}
      - deci-common/container_image_build:
            dockerfile: scripts/Dockerfile
            repository_name: << parameters.repo_name >>
