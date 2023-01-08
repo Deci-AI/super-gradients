@@ -208,6 +208,7 @@ jobs:
       - image: cimg/aws:2022.11.1
    resource_class: small
    steps:
+     - checkout
      - run:
           name: get rc tag of the final tag
           command: |
