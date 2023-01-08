@@ -222,6 +222,7 @@ workflows:
   release:
     jobs:
       - deci-common/persist_version_info:
+          version_override: $CIRCLE_TAG
           <<: *release_tag_filter
       - deci-common/codeartifact_login:
           name: "login_to_codeartifact_release"
@@ -257,9 +258,9 @@ workflows:
     jobs:
       - deci-common/persist_version_info:
           use_rc: true
+          version_override: ""
       - deci-common/codeartifact_login:
           repo_name: "deci-packages"
-
       - build:
           name: "build3.7"
           py_version: "3.7"
