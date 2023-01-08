@@ -154,7 +154,7 @@ jobs:
            command: |
               echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
      - setup_remote_docker:
-          version: 20.10.7
+          version: 20.10.18
           docker_layer_caching: true
      - run:
          command: echo $BETA_TAG
@@ -214,11 +214,14 @@ jobs:
            command: |
               if [[ -f ~/BETA_TAG ]]; then
               echo 'export BETA_TAG="$(cat ~/BETA_TAG)"' >> "$BASH_ENV"
+              echo "BETA_TAG=$BETA_TAG"
               fi
 
               if [[ -f ~/RC_TAG ]]; then
               echo 'export RC_TAG="$(cat ~/RC_TAG)"' >> "$BASH_ENV"
+              echo "RC_TAG=$RC_TAG"
               fi
+     - deci-common/ecr_login_dev
      - run:
            name: retag docker
            command: |
