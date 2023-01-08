@@ -3,6 +3,7 @@ import math
 import random
 from typing import Optional, Union, Tuple, List, Sequence, Dict
 
+import torch.nn
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 import numpy as np
@@ -1081,3 +1082,20 @@ def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
     padded_img = padded_img.transpose(swap)
     padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
     return padded_img, r
+
+
+class Standardize(torch.nn.Module):
+    """
+    Standardize image pixel values.
+    :return img/max_val
+
+    attributes:
+        max_val: float, value to as described above (default=255)
+    """
+
+    def __init__(self, max_val=255.0):
+        super(Standardize, self).__init__()
+        self.max_val = max_val
+
+    def forward(self, img):
+        return img / self.max_val
