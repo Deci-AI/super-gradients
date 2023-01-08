@@ -258,6 +258,7 @@ workflows:
     jobs:
       - deci-common/persist_version_info:
           use_rc: true
+          use_beta: false
           version_override: ""
       - deci-common/codeartifact_login:
           repo_name: "deci-packages"
