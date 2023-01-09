@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 import torch
 
-from super_gradients.training.utils.bbox_formats.bbox_format import BoundingBoxFormat
+from super_gradients.training.datasets.data_formats.bbox_formats.bbox_format import BoundingBoxFormat
 
 __all__ = ["YXYXCoordinateFormat", "xyxy_to_yxyx", "xyxy_to_yxyx_inplace"]
 
