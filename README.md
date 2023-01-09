@@ -321,7 +321,7 @@ init_trainer()
 setup_device(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
 
 # Call the trainer
-Trainer(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, expriment_name=...)
+Trainer(expriment_name=...)
 
 # Everything you do below will run on 4 gpus
 
