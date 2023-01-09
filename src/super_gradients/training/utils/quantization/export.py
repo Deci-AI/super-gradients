@@ -50,9 +50,7 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
         export_model = model
 
     dummy_input = torch.randn(input_shape, device=next(model.parameters()).device)
-    torch.onnx.export(
-        export_model, dummy_input, onnx_filename, verbose=False, opset_version=13, enable_onnx_checker=False, do_constant_folding=True, training=training_mode
-    )
+    torch.onnx.export(export_model, dummy_input, onnx_filename, verbose=False, opset_version=13, do_constant_folding=True, training=training_mode)
 
     # Restore functions of quant_nn back as expected
     quant_nn.TensorQuantizer.use_fb_fake_quant = use_fb_fake_quant_state
