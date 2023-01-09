@@ -1243,7 +1243,6 @@ class Trainer:
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
                 if (epoch + 1) % self.run_validation_freq == 0:
                     self.phase_callback_handler.on_validation_loader_start(context)
-
                     timer.start()
                     validation_results_tuple = self._validate_epoch(epoch=epoch, silent_mode=silent_mode)
                     inf_time = timer.stop()
@@ -1253,7 +1252,6 @@ class Trainer:
                     valid_metrics_dict = get_metrics_dict(validation_results_tuple, self.valid_metrics, self.loss_logging_items_names)
 
                     context.update_context(metrics_dict=valid_metrics_dict)
-
                     self.phase_callback_handler.on_validation_loader_end(context)
 
                 if self.ema:
