@@ -212,9 +212,14 @@ jobs:
      - run:
           name: get rc tag of the final tag
           command: |
-              RC_TAG=$(git tag --contains ${CIRCLE_SHA1} | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+' | head -n 1)
-              echo "Found RC version: ${RC_TAG}"
-              echo $RC_TAG >> ~/RC_TAG
+              if [[ $(RC_TAG=$(git tag --contains ${CIRCLE_SHA1} | grep -E '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+rc[[:digit:]]+' | head -n 1)) ]] ; then
+                echo "Found RC version: ${RC_TAG}"
+                echo $RC_TAG >> ~/RC_TAG
+              else 
+               echo "No Rc Tag found for commit"
+               circleci-agent step halt
+              fi
+
      - persist_to_workspace:
            root: ~/
            paths:
@@ -223,6 +228,7 @@ jobs:
 
   add_rc_tag_to_beta:
    description: in the event of successful test promote beta to rc
+   when: 
    parameters:
      image_repo:
         type: string
@@ -253,7 +259,11 @@ jobs:
       - get_beta_and_rc_tags
       - run:
           command: |
-            echo $RC_TAG
+            if [ -z $RC_TAG ] ; then
+              circleci-agent step halt 
+            else 
+              echo $RC_TAG
+            fi
       - adding_tag_to_ecr_container_image:
           image_repo: << parameters.image_repo >>
           source_image_tag: $RC_TAG
