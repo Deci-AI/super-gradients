@@ -228,7 +228,6 @@ jobs:
 
   add_rc_tag_to_beta:
    description: in the event of successful test promote beta to rc
-   when: 
    parameters:
      image_repo:
         type: string
