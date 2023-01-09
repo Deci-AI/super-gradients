@@ -598,6 +598,33 @@ Detailed list can be found [here](http://bit.ly/3GnJwgZ)
 
 __________________________________________________________________________________________________________
 
+## Implemented Datasets 
+__________________________________________________________________________________________________________
+
+Deci provides implementation for various datasets. If you need to download any of the dataset, you can [find instructions]((https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md)).
+
+### Image Classification
+  
+- [Cifar10](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/classification_datasets/cifar.py) 
+- [ImageNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/classification_datasets/imagenet_dataset.py) 
+  
+### Semantic Segmentation 
+
+- [Cityscapes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/cityscape_segmentation.py)
+- [Coco](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/coco_segmentation.py) 
+- [PascalVOC 2012 / PascalAUG 2012](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/pascal_voc_segmentation.py)
+- [SuperviselyPersons](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/supervisely_persons_segmentation.py)
+
+
+### Object Detection
+  
+- [Coco](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/detection_datasets/coco_detection.py)
+- [PascalVOC 2007 & 2012](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/detection_datasets/pascal_voc_detection.py)
+  
+  
+
+__________________________________________________________________________________________________________
+
 
 ## Documentation
 
