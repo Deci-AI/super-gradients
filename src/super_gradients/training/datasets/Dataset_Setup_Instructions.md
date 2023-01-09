@@ -18,9 +18,12 @@ dataset = Cifar10(..., download=True)
 
 <details>
 <summary>Imagenet</summary>
+
 1. Download imagenet dataset:
    - https://image-net.org/download.php
+
 2. Unzip:
+
 ```
     Imagenet
      ├──train
