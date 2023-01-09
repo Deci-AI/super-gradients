@@ -179,6 +179,7 @@ class Trainer:
         self.ckpt_name = None
 
         self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
+        self.phase_callback_handler: CallbackHandler = None
 
         # SET THE DEFAULTS
         # TODO: SET DEFAULT TRAINING PARAMS FOR EACH TASK
@@ -424,7 +425,8 @@ class Trainer:
 
             context.update_context(batch_idx=batch_idx, inputs=inputs, preds=outputs, target=targets, loss_log_items=loss_log_items, **additional_batch_items)
 
-            self.phase_callback_handler(Phase.TRAIN_BATCH_END, context)
+            # TODO (Remove after debug): self.phase_callback_handler(Phase.TRAIN_BATCH_END, context)
+            self.phase_callback_handler.on_train_batch_end(context)
 
             # LOG LR THAT WILL BE USED IN CURRENT EPOCH AND AFTER FIRST WARMUP/LR_SCHEDULER UPDATE BEFORE WEIGHT UPDATE
             if not self.ddp_silent_mode and batch_idx == 0:
@@ -447,6 +449,7 @@ class Trainer:
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
             if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1:
                 break
+        self.phase_callback_handler.on_train_loader_end(context)
 
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
@@ -522,6 +525,7 @@ class Trainer:
         """
         # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
         self.scaler.scale(loss).backward()
+        self.phase_callback_handler.on_train_batch_backward_end(context)
 
         # APPLY GRADIENT CLIPPING IF REQUIRED
         if self.training_params.clip_grad_norm:
@@ -531,6 +535,8 @@ class Trainer:
         integrated_batches_num = batch_idx + len(self.train_loader) * epoch + 1
 
         if integrated_batches_num % self.batch_accumulate == 0:
+            self.phase_callback_handler.on_train_batch_gradient_step_start(context)
+
             # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
             self.scaler.step(self.optimizer)
             self.scaler.update()
@@ -540,7 +546,8 @@ class Trainer:
                 self.ema_model.update(self.net, integrated_batches_num / (len(self.train_loader) * self.max_epochs))
 
             # RUN PHASE CALLBACKS
-            self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
+            self.phase_callback_handler.on_train_batch_gradient_step_end(context)
+            # self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
 
     def _save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None):
         """
@@ -584,7 +591,8 @@ class Trainer:
             self._save_best_checkpoint(epoch, state)
 
             # RUN PHASE CALLBACKS
-            self.phase_callback_handler(Phase.VALIDATION_END_BEST_EPOCH, context)
+            # self.phase_callback_handler(Phase.VALIDATION_END_BEST_EPOCH, context)
+            self.phase_callback_handler.on_validation_end_best_epoch(context)
 
             if isinstance(metric, torch.Tensor):
                 metric = metric.item()
@@ -1166,7 +1174,8 @@ class Trainer:
             context_methods=self._get_context_methods(Phase.PRE_TRAINING),
             ema_model=self.ema_model,
         )
-        self.phase_callback_handler(Phase.PRE_TRAINING, context)
+        # self.phase_callback_handler(Phase.PRE_TRAINING, context)
+        self.phase_callback_handler.on_training_start(context)
 
         first_batch = next(iter(self.train_loader))
         inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_batch)
@@ -1191,7 +1200,9 @@ class Trainer:
                 # Phase.TRAIN_EPOCH_START
                 # RUN PHASE CALLBACKS
                 context.update_context(epoch=epoch)
-                self.phase_callback_handler(Phase.TRAIN_EPOCH_START, context)
+
+                # TODO (Remove after debug): self.phase_callback_handler(Phase.TRAIN_EPOCH_START, context)
+                self.phase_callback_handler.on_train_loader_start(context)
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
@@ -1209,7 +1220,8 @@ class Trainer:
                 train_metrics_dict = get_metrics_dict(train_metrics_tuple, self.train_metrics, self.loss_logging_items_names)
 
                 context.update_context(metrics_dict=train_metrics_dict)
-                self.phase_callback_handler(Phase.TRAIN_EPOCH_END, context)
+                # TODO (Remove after debug): self.phase_callback_handler(Phase.TRAIN_EPOCH_END, context)
+                self.phase_callback_handler.on_train_loader_end(context)
 
                 # CALCULATE PRECISE BATCHNORM STATS
                 if self.precise_bn:
@@ -1233,6 +1245,8 @@ class Trainer:
 
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
                 if (epoch + 1) % self.run_validation_freq == 0:
+                    self.phase_callback_handler.on_validation_loader_start(context)
+
                     timer.start()
                     validation_results_tuple = self._validate_epoch(epoch=epoch, silent_mode=silent_mode)
                     inf_time = timer.stop()
@@ -1242,7 +1256,9 @@ class Trainer:
                     valid_metrics_dict = get_metrics_dict(validation_results_tuple, self.valid_metrics, self.loss_logging_items_names)
 
                     context.update_context(metrics_dict=valid_metrics_dict)
-                    self.phase_callback_handler(Phase.VALIDATION_EPOCH_END, context)
+
+                    # TODO (Remove after debug): self.phase_callback_handler(Phase.VALIDATION_EPOCH_END, context)
+                    self.phase_callback_handler.on_validation_loader_end(context)
 
                 if self.ema:
                     self.net = keep_model
@@ -1269,7 +1285,8 @@ class Trainer:
                     torch.distributed.destroy_process_group()
 
             # PHASE.TRAIN_END
-            self.phase_callback_handler(Phase.POST_TRAINING, context)
+            # TODO (Remove after debug): self.phase_callback_handler(Phase.POST_TRAINING, context)
+            self.phase_callback_handler.on_training_end(context)
 
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
@@ -1732,6 +1749,12 @@ class Trainer:
                 batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
                 inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
+                # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
+                if evaluation_type == EvaluationType.VALIDATION:
+                    self.phase_callback_handler.on_validation_batch_start(context)
+                else:
+                    self.phase_callback_handler.on_test_batch_start(context)
+
                 output = self.net(inputs)
 
                 if self.criterion is not None:
@@ -1742,9 +1765,11 @@ class Trainer:
 
                 # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
                 if evaluation_type == EvaluationType.VALIDATION:
-                    self.phase_callback_handler(Phase.VALIDATION_BATCH_END, context)
+                    # TODO (Remove after debug): self.phase_callback_handler(Phase.VALIDATION_BATCH_END, context)
+                    self.phase_callback_handler.on_validation_batch_end(context)
                 else:
-                    self.phase_callback_handler(Phase.TEST_BATCH_END, context)
+                    # TODO (Remove after debug): self.phase_callback_handler(Phase.TEST_BATCH_END, context)
+                    self.phase_callback_handler.on_test_batch_end(context)
 
                 # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
                 if metrics_progress_verbose and not silent_mode:
