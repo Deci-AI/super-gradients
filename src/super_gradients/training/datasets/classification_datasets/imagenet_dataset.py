@@ -8,7 +8,7 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 
 
 class ImageNetDataset(torch_datasets.ImageFolder):
-    """ImageNetDataset dataset. Download here:
+    """ImageNetDataset dataset.
 
     To use this Dataset you need to:
 

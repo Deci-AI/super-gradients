@@ -9,26 +9,30 @@ class SuperviselyPersonsDataset(SegmentationDataSet):
     SuperviselyPersonsDataset - Segmentation Data Set Class for Supervisely Persons Segmentation Data Set,
     main resolution of dataset: (600 x 800).
     This dataset is a subset of the original dataset (see below) and contains filtered samples
-    For more details about the ORIGINAL dataset see: https://app.supervise.ly/ecosystem/projects/persons
+    For more details about the ORIGINAL dataset see:
+        https://app.supervise.ly/ecosystem/projects/persons
     For more details about the FILTERED dataset see:
-    https://github.com/PaddlePaddle/PaddleSeg/tree/release/2.3/contrib/PP-HumanSeg
+        https://github.com/PaddlePaddle/PaddleSeg/tree/release/2.3/contrib/PP-HumanSeg
 
     To use this Dataset you need to:
 
-    - Download supervisely dataset (https://github.com/PaddlePaddle/PaddleSeg/tree/release/2.3/contrib/PP-HumanSeg)
-        supervisely-persons
-         ├──images
-         │    ├──image-name.png
-         │    └──...
-         ├──images_600x800
-         │    ├──image-name.png
-         │    └──...
-         ├──masks
-         └──masks_600x800
+        - Download supervisely dataset:
+            https://deci-pretrained-models.s3.amazonaws.com/supervisely-persons.zip)
 
-    - Instantiate the dataset:
-        >> train_set = SuperviselyPersonsDataset(root_dir='.../supervisely-persons', list_file='train.csv', ...)
-        >> valid_set = SuperviselyPersonsDataset(root_dir='.../supervisely-persons', list_file='val.csv', ...)
+        - Unzip:
+            supervisely-persons
+             ├──images
+             │    ├──image-name.png
+             │    └──...
+             ├──images_600x800
+             │    ├──image-name.png
+             │    └──...
+             ├──masks
+             └──masks_600x800
+
+        - Instantiate the dataset:
+            >> train_set = SuperviselyPersonsDataset(root_dir='.../supervisely-persons', list_file='train.csv', ...)
+            >> valid_set = SuperviselyPersonsDataset(root_dir='.../supervisely-persons', list_file='val.csv', ...)
     """
 
     CLASS_LABELS = {0: "background", 1: "person"}

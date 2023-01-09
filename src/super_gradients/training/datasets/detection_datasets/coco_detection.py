@@ -19,21 +19,29 @@ class COCODetectionDataset(DetectionDataset):
 
     To use this Dataset you need to:
 
-    - Download coco dataset (https://cocodataset.org/#download)
-        coco
-        ├── annotations
-        ├── images
-        │   ├── train2017
-        │   │   ├─ 000000000001.jpg
-        │   │   └─ ...
-        │   └── val2017
-        └── labels
-            ├── train2017
-            └── val2017
+        - Download coco dataset:
+            annotations: http://images.cocodataset.org/annotations/annotations_trainval2017.zip
+            train2017: http://images.cocodataset.org/zips/train2017.zip
+            val2017: http://images.cocodataset.org/zips/val2017.zip
 
-    - Instantiate the dataset:
-        >> train_set = COCODetectionDataset(data_dir='.../coco', subdir='images/train2017', json_file='instances_train2017.json', ...)
-        >> valid_set = COCODetectionDataset(data_dir='.../coco', subdir='images/val2017', json_file='instances_val2017.json', ...)
+        - Unzip and organize it as below:
+            coco
+            ├── annotations
+            │      ├─ instances_train2017.json
+            │      ├─ instances_val2017.json
+            │      └─ ...
+            └── images
+                ├── train2017
+                │   ├─ 000000000001.jpg
+                │   └─ ...
+                └── val2017
+                    └─ ...
+
+        - Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
+
+        - Instantiate the dataset:
+            >> train_set = COCODetectionDataset(data_dir='.../coco', subdir='images/train2017', json_file='instances_train2017.json', ...)
+            >> valid_set = COCODetectionDataset(data_dir='.../coco', subdir='images/val2017', json_file='instances_val2017.json', ...)
     """
 
     def __init__(

@@ -37,40 +37,43 @@ PASCAL_VOC_2012_CLASSES = [
 
 class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
     """
-    PascalVOC2012SegmentationDataSet - Segmentation Data Set Class for Pascal VOC 2012 Data Set.
+    Segmentation Data Set Class for Pascal VOC 2012 Data Set.
 
     To use this Dataset you need to:
 
-    - Download pascal dataset (http://host.robots.ox.ac.uk/pascal/VOC/)
-        pascal_voc_2012
-            └──VOCdevkit
-                  └──VOC2012
-                     ├──JPEGImages
-                     ├──SegmentationClass
-                     ├──ImageSets
-                     │    ├──Segmentation
-                     │    │   └── train.txt
-                     │    ├──Main
-                     │    ├──Action
-                     │    └──Layout
-                     ├──Annotations
-                     └──SegmentationObject
+        - Download pascal VOC 2012 dataset:
+            http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
 
-    - Instantiate the dataset:
-        >> train_set = PascalVOC2012SegmentationDataSet(
-                root='.../pascal_voc_2012',
-                list_file='VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt',
-                samples_sub_directory='VOCdevkit/VOC2012/JPEGImages',
-                targets_sub_directory='VOCdevkit/VOC2012/SegmentationClass',
-                ...
-            )
-        >> valid_set = PascalVOC2012SegmentationDataSet(
-                root='.../pascal_voc_2012',
-                list_file='VOCdevkit/VOC2012/ImageSets/Segmentation/val.txt',
-                samples_sub_directory='VOCdevkit/VOC2012/JPEGImages',
-                targets_sub_directory='VOCdevkit/VOC2012/SegmentationClass',
-                ...
-            )
+        - Unzip and organize it as below:
+            pascal_voc_2012
+                └──VOCdevkit
+                      └──VOC2012
+                         ├──JPEGImages
+                         ├──SegmentationClass
+                         ├──ImageSets
+                         │    ├──Segmentation
+                         │    │   └── train.txt
+                         │    ├──Main
+                         │    ├──Action
+                         │    └──Layout
+                         ├──Annotations
+                         └──SegmentationObject
+
+        - Instantiate the dataset:
+            >> train_set = PascalVOC2012SegmentationDataSet(
+                    root='.../pascal_voc_2012',
+                    list_file='VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt',
+                    samples_sub_directory='VOCdevkit/VOC2012/JPEGImages',
+                    targets_sub_directory='VOCdevkit/VOC2012/SegmentationClass',
+                    ...
+                )
+            >> valid_set = PascalVOC2012SegmentationDataSet(
+                    root='.../pascal_voc_2012',
+                    list_file='VOCdevkit/VOC2012/ImageSets/Segmentation/val.txt',
+                    samples_sub_directory='VOCdevkit/VOC2012/JPEGImages',
+                    targets_sub_directory='VOCdevkit/VOC2012/SegmentationClass',
+                    ...
+                )
     """
 
     IGNORE_LABEL = 21
@@ -172,26 +175,28 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
 
 class PascalAUG2012SegmentationDataSet(PascalVOC2012SegmentationDataSet):
     """
-    PascalAUG2012SegmentationDataSet - Segmentation Data Set Class for Pascal AUG 2012 Data Set
-    Download here: http://host.robots.ox.ac.uk/pascal/VOC/
+    Segmentation Data Set Class for Pascal AUG 2012 Data Set
 
-    - Download pascal dataset (http://host.robots.ox.ac.uk/pascal/VOC/)
-        pascal_voc_2012
-            └──VOCaug
-                ├── aug.txt
-                └── dataset
-                      ├──inst
-                      ├──img
-                      └──cls
+        - Download pascal AUG 2012 dataset:
+            https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz
 
-    - Instantiate the dataset:
-        >> train_set = PascalAUG2012SegmentationDataSet(
-                root='.../pascal_voc_2012',
-                list_file='VOCaug/dataset/aug.txt',
-                samples_sub_directory='VOCaug/dataset/img',
-                targets_sub_directory='VOCaug/dataset/cls',
-                ...
-            )
+        - Unzip and organize it as below:
+            pascal_voc_2012
+                └──VOCaug
+                    ├── aug.txt
+                    └── dataset
+                          ├──inst
+                          ├──img
+                          └──cls
+
+        - Instantiate the dataset:
+            >> train_set = PascalAUG2012SegmentationDataSet(
+                    root='.../pascal_voc_2012',
+                    list_file='VOCaug/dataset/aug.txt',
+                    samples_sub_directory='VOCaug/dataset/img',
+                    targets_sub_directory='VOCaug/dataset/cls',
+                    ...
+                )
 
     NOTE: this dataset is only available for training. To test, please use PascalVOC2012SegmentationDataSet.
     """
@@ -222,29 +227,33 @@ class PascalVOCAndAUGUnifiedDataset(ConcatDataset):
 
     To use this Dataset you need to:
 
-    - Download pascal dataset (http://host.robots.ox.ac.uk/pascal/VOC/)
-        pascal_voc_2012
-            ├─VOCdevkit
-            │ └──VOC2012
-            │    ├──JPEGImages
-            │    ├──SegmentationClass
-            │    ├──ImageSets
-            │    │    ├──Segmentation
-            │    │    │   └── train.txt
-            │    │    ├──Main
-            │    │    ├──Action
-            │    │    └──Layout
-            │    ├──Annotations
-            │    └──SegmentationObject
-            └──VOCaug
-                ├── aug.txt
-                └── dataset
-                      ├──inst
-                      ├──img
-                      └──cls
+        - Download pascal datasets:
+            VOC 2012: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
+            AUG 2012: https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz
 
-    - Instantiate the dataset:
-        >> train_set = PascalVOCAndAUGUnifiedDataset(root='.../pascal_voc_2012', ...)
+        - Unzip and organize it as below:
+            pascal_voc_2012
+                ├─VOCdevkit
+                │ └──VOC2012
+                │    ├──JPEGImages
+                │    ├──SegmentationClass
+                │    ├──ImageSets
+                │    │    ├──Segmentation
+                │    │    │   └── train.txt
+                │    │    ├──Main
+                │    │    ├──Action
+                │    │    └──Layout
+                │    ├──Annotations
+                │    └──SegmentationObject
+                └──VOCaug
+                    ├── aug.txt
+                    └── dataset
+                          ├──inst
+                          ├──img
+                          └──cls
+
+        - Instantiate the dataset:
+            >> train_set = PascalVOCAndAUGUnifiedDataset(root='.../pascal_voc_2012', ...)
 
     NOTE: this dataset is only available for training. To test, please use PascalVOC2012SegmentationDataSet.
     """

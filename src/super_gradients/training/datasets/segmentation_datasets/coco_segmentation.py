@@ -21,25 +21,31 @@ class EmptyCoCoClassesSelectionException(Exception):
 
 class CoCoSegmentationDataSet(SegmentationDataSet):
     """
-    CoCoSegmentationDataSet - Segmentation Data Set Class for COCO 2017 Segmentation Data Set
+    Segmentation Data Set Class for COCO 2017 Segmentation Data Set
 
     To use this Dataset you need to:
 
-    - Download coco dataset (https://cocodataset.org/#download)
-        coco
-        ├── annotations
-        ├── images
-        │   ├── train2017
-        │   │   ├─ 000000000001.jpg
-        │   │   └─ ...
-        │   └── val2017
-        └── labels
-            ├── train2017
-            └── val2017
+        - Download coco dataset:
+            annotations: http://images.cocodataset.org/annotations/annotations_trainval2017.zip
+            train2017: http://images.cocodataset.org/zips/train2017.zip
+            val2017: http://images.cocodataset.org/zips/val2017.zip
 
-    - Instantiate the dataset:
-        >> train_set = CoCoSegmentationDataSet(data_dir='.../coco', subdir='images/train2017', json_file='instances_train2017.json', ...)
-        >> valid_set = CoCoSegmentationDataSet(data_dir='.../coco', subdir='images/val2017', json_file='instances_val2017.json', ...)
+        - Unzip and organize it as below:
+            coco
+            ├── annotations
+            │      ├─ instances_train2017.json
+            │      ├─ instances_val2017.json
+            │      └─ ...
+            └── images
+                ├── train2017
+                │   ├─ 000000000001.jpg
+                │   └─ ...
+                └── val2017
+                    └─ ...
+
+        - Instantiate the dataset:
+            >> train_set = CoCoSegmentationDataSet(data_dir='.../coco', subdir='images/train2017', json_file='instances_train2017.json', ...)
+            >> valid_set = CoCoSegmentationDataSet(data_dir='.../coco', subdir='images/val2017', json_file='instances_val2017.json', ...)
     """
 
     def __init__(self, root_dir: str, dataset_classes_inclusion_tuples_list: list = None, *args, **kwargs):
@@ -148,3 +154,6 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
         print("Number of images in sub-dataset: ", len(sub_dataset_image_ids))
         torch.save(sub_dataset_image_ids, sub_dataset_image_ids_file_path)
         return sub_dataset_image_ids
+
+
+print("ok")
