@@ -11,12 +11,14 @@ import torch
 from PIL import Image
 from super_gradients.common import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.auto_logging import AutoLoggerConfig, ConsoleSink
+from super_gradients.common.decorators.code_save_decorator import saved_codes
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.common.environment.monitoring import SystemMonitor
+from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
+from super_gradients.common.auto_logging.console_logging import ConsoleSink
 
 logger = get_logger(__name__)
 
@@ -92,6 +94,8 @@ class BaseSGLogger(AbstractSGLogger):
             self._launch_tensorboard(port=tensorboard_port)
 
         self._init_system_monitor(monitor_system)
+
+        self._save_code()
 
     @multi_process_safe
     def _launch_tensorboard(self, port):
@@ -280,3 +284,17 @@ class BaseSGLogger(AbstractSGLogger):
 
     def local_dir(self) -> str:
         return self._local_dir
+
+    @multi_process_safe
+    def _save_code(self):
+        for name, code in saved_codes.items():
+            if not name.endswith("py"):
+                name = name + ".py"
+
+            path = os.path.join(self._local_dir, name)
+            with open(path, "w") as f:
+                f.write(code)
+
+            self.add_file(name)
+            code = "\t" + code
+            self.add_text(name, code.replace("\n", "  \n  \t"))  # this replacement makes tb format the code as code

@@ -22,6 +22,10 @@ from tests.unit_tests import (
     CrashTipTest,
 )
 from tests.end_to_end_tests import TestTrainer
+from tests.unit_tests.detection_utils_test import TestDetectionUtils
+from tests.unit_tests.detection_dataset_test import DetectionDatasetTest
+from tests.unit_tests.export_onnx_test import TestModelsONNXExport
+from tests.unit_tests.local_ckpt_head_replacement_test import LocalCkptHeadReplacementTest
 from tests.unit_tests.phase_delegates_test import ContextMethodsTest
 from tests.unit_tests.quantization_utility_tests import QuantizationUtilityTest
 from tests.unit_tests.random_erase_test import RandomEraseTest
@@ -48,6 +52,7 @@ from tests.unit_tests.multi_scaling_test import MultiScaleTest
 from tests.unit_tests.ppyoloe_unit_test import PPYoloETests
 from tests.unit_tests.bbox_formats_test import BBoxFormatsTest
 from tests.unit_tests.config_inspector_test import ConfigInspectTest
+from tests.unit_tests.repvgg_block_tests import TestRepVGGBlock
 
 
 class CoreUnitTestSuiteRunner:
@@ -80,6 +85,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRWarmupTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestConvBnRelu))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(FactoriesTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionUtils))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DiceLossTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestViT))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(KDEMATest))
@@ -105,8 +111,12 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(BBoxFormatsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ResumeTrainingTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(CallTrainAfterTestTest))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionOutputAdapter))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ConfigInspectTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionOutputAdapter))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestRepVGGBlock))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LocalCkptHeadReplacementTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DetectionDatasetTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestModelsONNXExport))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

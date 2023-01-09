@@ -2,9 +2,10 @@ import os
 import logging
 import atexit
 
-from super_gradients.common.auto_logging.console_logging import ConsoleSink
+
 from super_gradients.common.environment.ddp_utils import multi_process_safe, is_distributed
 from super_gradients.common.crash_handler.exception import ExceptionInfo
+from super_gradients.common.auto_logging.console_logging import ConsoleSink
 
 try:
     from deci_lab_client.client import DeciPlatformClient

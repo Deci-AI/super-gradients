@@ -10,8 +10,7 @@ ______________________________________________________________________
   
   <p align="center">
   <a href="https://www.supergradients.com/">Website</a> •
-  <a href="https://deci-ai.github.io/super-gradients/user_guide.html#introducing-the-supergradients-library">User Guide</a> •
-  <a href="https://deci-ai.github.io/super-gradients/super_gradients.common.html">Docs</a> •
+  <a href="https://deci-ai.github.io/super-gradients/welcome.html">Docs</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#implemented-model-architectures">Pretrained Models</a> •
   <a href="#community">Community</a> •
@@ -30,8 +29,6 @@ ______________________________________________________________________
 </p>    
 </div>
 
-[](https://deci-ai.github.io/super-gradients/user_guide.html#introducing-the-supergradients-library)
-
 ## Build with SuperGradients
 __________________________________________________________________________________________________________
 
@@ -46,6 +43,7 @@ ________________________________________________________________________________
 ### Ready to deploy pre-trained SOTA models
 ```python
 # Load model with pretrained weights
+from super_gradients.training import models
 model = models.get("yolox_s", pretrained_weights="coco")
 ```
 #### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
@@ -323,7 +321,7 @@ init_trainer()
 setup_device(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
 
 # Call the trainer
-Trainer(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, expriment_name=...)
+Trainer(expriment_name=...)
 
 # Everything you do below will run on 4 gpus
 
