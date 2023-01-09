@@ -425,7 +425,6 @@ class Trainer:
 
             context.update_context(batch_idx=batch_idx, inputs=inputs, preds=outputs, target=targets, loss_log_items=loss_log_items, **additional_batch_items)
 
-            # TODO (Remove after debug): self.phase_callback_handler(Phase.TRAIN_BATCH_END, context)
             self.phase_callback_handler.on_train_batch_end(context)
 
             # LOG LR THAT WILL BE USED IN CURRENT EPOCH AND AFTER FIRST WARMUP/LR_SCHEDULER UPDATE BEFORE WEIGHT UPDATE
@@ -1201,7 +1200,6 @@ class Trainer:
                 # RUN PHASE CALLBACKS
                 context.update_context(epoch=epoch)
 
-                # TODO (Remove after debug): self.phase_callback_handler(Phase.TRAIN_EPOCH_START, context)
                 self.phase_callback_handler.on_train_loader_start(context)
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
@@ -1220,7 +1218,6 @@ class Trainer:
                 train_metrics_dict = get_metrics_dict(train_metrics_tuple, self.train_metrics, self.loss_logging_items_names)
 
                 context.update_context(metrics_dict=train_metrics_dict)
-                # TODO (Remove after debug): self.phase_callback_handler(Phase.TRAIN_EPOCH_END, context)
                 self.phase_callback_handler.on_train_loader_end(context)
 
                 # CALCULATE PRECISE BATCHNORM STATS
@@ -1257,7 +1254,6 @@ class Trainer:
 
                     context.update_context(metrics_dict=valid_metrics_dict)
 
-                    # TODO (Remove after debug): self.phase_callback_handler(Phase.VALIDATION_EPOCH_END, context)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
                 if self.ema:
@@ -1285,7 +1281,6 @@ class Trainer:
                     torch.distributed.destroy_process_group()
 
             # PHASE.TRAIN_END
-            # TODO (Remove after debug): self.phase_callback_handler(Phase.POST_TRAINING, context)
             self.phase_callback_handler.on_training_end(context)
 
             if not self.ddp_silent_mode:
@@ -1765,10 +1760,8 @@ class Trainer:
 
                 # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
                 if evaluation_type == EvaluationType.VALIDATION:
-                    # TODO (Remove after debug): self.phase_callback_handler(Phase.VALIDATION_BATCH_END, context)
                     self.phase_callback_handler.on_validation_batch_end(context)
                 else:
-                    # TODO (Remove after debug): self.phase_callback_handler(Phase.TEST_BATCH_END, context)
                     self.phase_callback_handler.on_test_batch_end(context)
 
                 # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
