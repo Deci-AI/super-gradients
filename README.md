@@ -601,7 +601,8 @@ ________________________________________________________________________________
 ## Implemented Datasets 
 __________________________________________________________________________________________________________
 
-Deci provides implementation for various datasets. If you need to download any of the dataset, you can [find instructions]((https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md)).
+Deci provides implementation for various datasets. If you need to download any of the dataset, you can 
+[find instructions]((https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md)).
 
 ### Image Classification
   
