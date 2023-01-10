@@ -320,6 +320,9 @@ jobs:
     parameters:
       py_version:
         type: string
+      dev_venv_name:
+        type: string
+        default: "dev-sg-${CIRCLE_BUILD_NUM}"
     docker:
       - image: cimg/python:<< parameters.py_version >>
     steps:
@@ -342,12 +345,12 @@ jobs:
       - deci-common/pip_test_package_installation_codeartifact_dev:
           package_name: "super-gradients"
           version: $CIRCLE_TAG
-          venv_name: dev-sg-test
+          venv_name: << parameters.dev_venv_name >>
 
       - run:
           name: verify __version__
           command: |
-            source
+            . << parameters.dev_venv_name >>/bin/activate
             python3 tests/verify_version.py $CIRCLE_TAG
 
       - deci-common/pip_test_package_installation_codeartifact_prod:
@@ -409,6 +412,43 @@ jobs:
 
 
 
+  ran_test_delete: #todo: delete me
+    parameters:
+      py_version:
+        type: string
+      dev_venv_name:
+        type: string
+        default: "dev-sg-${CIRCLE_BUILD_NUM}"
+    docker:
+      - image: cimg/python:<< parameters.py_version >>
+    steps:
+      - deci-common/checkout_and_skip_build:
+          check_version_file: true
+      - run:
+          name: add requirements.txt and requirements.pro.txt to source code
+          command: |
+            cp requirements.txt src/super_gradients/requirements.txt
+            cp requirements.pro.txt src/super_gradients/requirements.pro.txt
+      - run:
+          name: edit package version
+          command: |
+            echo 0.0.999b123 > version.txt
+
+      - deci-common/pip_upload_package_codeartifact_all_accounts:
+          codeartifact_repository: "deci-packages"
+
+      - deci-common/pip_test_package_installation_codeartifact_dev:
+          package_name: "super-gradients"
+          version: 0.0.999b123
+          venv_name: << parameters.dev_venv_name >>
+
+      - run:
+          name: verify __version__
+          command: |
+            . << parameters.dev_venv_name >>/bin/activate
+            python3 tests/verify_version.py 0.0.999b123
+
+
 workflows:
   release:
     jobs:
@@ -448,25 +488,28 @@ workflows:
 
   build_and_deploy:
     jobs:
-      - deci-common/persist_version_info:
-          use_rc: true
-          use_beta: false
-          version_override: ""
-      - deci-common/codeartifact_login:
-          repo_name: "deci-packages"
-      - build:
-          name: "build3.7"
+      - ran_test_delete:
           py_version: "3.7"
-          package_name: "super-gradients"
-          requires:
-            - deci-common/persist_version_info
-            - deci-common/codeartifact_login
 
-      - release_candidate: # happens on merge
-          py_version: "3.7"
-          requires:
-            - "build3.7"
-          <<: *release_candidate_filter
+#      - deci-common/persist_version_info:
+#          use_rc: true
+#          use_beta: false
+#          version_override: ""
+#      - deci-common/codeartifact_login:
+#          repo_name: "deci-packages"
+#      - build:
+#          name: "build3.7"
+#          py_version: "3.7"
+#          package_name: "super-gradients"
+#          requires:
+#            - deci-common/persist_version_info
+#            - deci-common/codeartifact_login
+#
+#      - release_candidate: # happens on merge
+#          py_version: "3.7"
+#          requires:
+#            - "build3.7"
+#          <<: *release_candidate_filter
 
   SG_docker:
      jobs:
