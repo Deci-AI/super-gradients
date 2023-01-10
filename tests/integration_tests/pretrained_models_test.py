@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import unittest
 
+from super_gradients.common.object_names import Models
 from super_gradients.training import Trainer
 from super_gradients.training.dataloaders import imagenet_val, imagenet_vit_base_val
 from super_gradients.training.dataloaders.dataloaders import (
@@ -35,19 +36,19 @@ class PretrainedModelsTest(unittest.TestCase):
         self.imagenet_pretrained_arch_params = {
             "resnet": {},
             "regnet": {},
-            "repvgg_a0": {"build_residual_branches": True},
-            "efficientnet_b0": {},
+            Models.REPVGG_A0: {"build_residual_branches": True},
+            Models.EFFICIENTNET_B0: {},
             "mobilenet": {},
-            "vit_base": {"image_size": (224, 224), "patch_size": (16, 16)},
+            Models.VIT_BASE: {"image_size": (224, 224), "patch_size": (16, 16)},
         }
 
         self.imagenet_pretrained_trainsfer_learning_arch_params = {
             "resnet": {},
             "regnet": {},
-            "repvgg_a0": {"build_residual_branches": True},
-            "efficientnet_b0": {},
+            Models.REPVGG_A0: {"build_residual_branches": True},
+            Models.EFFICIENTNET_B0: {},
             "mobilenet": {},
-            "vit_base": {"image_size": (224, 224), "patch_size": (16, 16)},
+            Models.VIT_BASE: {"image_size": (224, 224), "patch_size": (16, 16)},
         }
 
         self.imagenet_pretrained_ckpt_params = {"pretrained_weights": "imagenet"}
@@ -55,21 +56,21 @@ class PretrainedModelsTest(unittest.TestCase):
         self.imagenet21k_pretrained_ckpt_params = {"pretrained_weights": "imagenet21k"}
 
         self.imagenet_pretrained_accuracies = {
-            "resnet50": 0.8191,
-            "resnet34": 0.7413,
-            "resnet18": 0.706,
-            "repvgg_a0": 0.7205,
-            "regnetY800": 0.7707,
-            "regnetY600": 0.7618,
-            "regnetY400": 0.7474,
-            "regnetY200": 0.7088,
-            "efficientnet_b0": 0.7762,
-            "mobilenet_v3_large": 0.7452,
-            "mobilenet_v3_small": 0.6745,
-            "mobilenet_v2": 0.7308,
-            "vit_base": 0.8415,
-            "vit_large": 0.8564,
-            "beit_base_patch16_224": 0.85,
+            Models.RESNET50: 0.8191,
+            Models.RESNET34: 0.7413,
+            Models.RESNET18: 0.706,
+            Models.REPVGG_A0: 0.7205,
+            Models.REGNETY800: 0.7707,
+            Models.REGNETY600: 0.7618,
+            Models.REGNETY400: 0.7474,
+            Models.REGNETY200: 0.7088,
+            Models.EFFICIENTNET_B0: 0.7762,
+            Models.MOBILENET_V3_LARGE: 0.7452,
+            Models.MOBILENET_V3_SMALL: 0.6745,
+            Models.MOBILENET_V2: 0.7308,
+            Models.VIT_BASE: 0.8415,
+            Models.VIT_LARGE: 0.8564,
+            Models.BEIT_BASE_PATCH16_224: 0.85,
         }
         self.imagenet_dataset = imagenet_val(dataloader_params={"batch_size": 128})
 
@@ -104,11 +105,11 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_pretrained_maps = {
             "ssd_lite_mobilenet_v2": 0.2041,
             "coco_ssd_mobilenet_v1": 0.243,
-            "yolox_s": 0.4047,
-            "yolox_m": 0.4640,
-            "yolox_l": 0.4925,
-            "yolox_n": 0.2677,
-            "yolox_t": 0.3718,
+            Models.YOLOX_S: 0.4047,
+            Models.YOLOX_M: 0.4640,
+            Models.YOLOX_L: 0.4925,
+            Models.YOLOX_N: 0.2677,
+            Models.YOLOX_T: 0.3718,
         }
 
         self.transfer_detection_dataset = detection_test_dataloader()
@@ -151,10 +152,10 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_segmentation_subclass_pretrained_mious = {"shelfnet34_lw": 0.651}
         self.coco_segmentation_dataset = coco_segmentation_val()
 
-        self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim", "stdc1_seg50", "regseg48"]
+        self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim", Models.STDC1_SEG50, Models.REGSEG48]
         self.cityscapes_pretrained_arch_params = {
             "ddrnet_23": {"aux_head": True},
-            "regseg48": {},
+            Models.REGSEG48: {},
             "stdc": {"use_aux_heads": True, "aux_head": True},
             "pplite_seg": {"use_aux_heads": True},
         }
@@ -163,11 +164,11 @@ class PretrainedModelsTest(unittest.TestCase):
         self.cityscapes_pretrained_mious = {
             "ddrnet_23": 0.8026,
             "ddrnet_23_slim": 0.7801,
-            "stdc1_seg50": 0.7511,
-            "stdc1_seg75": 0.7687,
-            "stdc2_seg50": 0.7644,
-            "stdc2_seg75": 0.7893,
-            "regseg48": 0.7815,
+            Models.STDC1_SEG50: 0.7511,
+            Models.STDC1_SEG75: 0.7687,
+            Models.STDC2_SEG50: 0.7644,
+            Models.STDC2_SEG75: 0.7893,
+            Models.REGSEG48: 0.7815,
             "pp_lite_t_seg50": 0.7492,
             "pp_lite_t_seg75": 0.7756,
             "pp_lite_b_seg50": 0.7648,
@@ -229,13 +230,13 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_resnet50_imagenet(self):
         trainer = Trainer("imagenet_pretrained_resnet50")
-        model = models.get("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.RESNET50, arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet50"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.RESNET50], delta=0.001)
 
     def test_transfer_learning_resnet50_imagenet(self):
         trainer = Trainer("imagenet_pretrained_resnet50_transfer_learning")
-        model = models.get("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
+        model = models.get(Models.RESNET50, arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -246,13 +247,13 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_resnet34_imagenet(self):
         trainer = Trainer("imagenet_pretrained_resnet34")
 
-        model = models.get("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.RESNET34, arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet34"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.RESNET34], delta=0.001)
 
     def test_transfer_learning_resnet34_imagenet(self):
         trainer = Trainer("imagenet_pretrained_resnet34_transfer_learning")
-        model = models.get("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
+        model = models.get(Models.RESNET34, arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -263,13 +264,13 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_resnet18_imagenet(self):
         trainer = Trainer("imagenet_pretrained_resnet18")
 
-        model = models.get("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.RESNET18, arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet18"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.RESNET18], delta=0.001)
 
     def test_transfer_learning_resnet18_imagenet(self):
         trainer = Trainer("imagenet_pretrained_resnet18_transfer_learning")
-        model = models.get("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
+        model = models.get(Models.RESNET18, arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -280,13 +281,13 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_regnetY800_imagenet(self):
         trainer = Trainer("imagenet_pretrained_regnetY800")
 
-        model = models.get("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.REGNETY800, arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY800"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.REGNETY800], delta=0.001)
 
     def test_transfer_learning_regnetY800_imagenet(self):
         trainer = Trainer("imagenet_pretrained_regnetY800_transfer_learning")
-        model = models.get("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
+        model = models.get(Models.REGNETY800, arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -297,13 +298,13 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_regnetY600_imagenet(self):
         trainer = Trainer("imagenet_pretrained_regnetY600")
 
-        model = models.get("regnetY600", arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.REGNETY600, arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY600"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.REGNETY600], delta=0.001)
 
     def test_transfer_learning_regnetY600_imagenet(self):
         trainer = Trainer("imagenet_pretrained_regnetY600_transfer_learning")
-        model = models.get("regnetY600", arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
+        model = models.get(Models.REGNETY600, arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -314,13 +315,13 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_regnetY400_imagenet(self):
         trainer = Trainer("imagenet_pretrained_regnetY400")
 
-        model = models.get("regnetY400", arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.REGNETY400, arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY400"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.REGNETY400], delta=0.001)
 
     def test_transfer_learning_regnetY400_imagenet(self):
         trainer = Trainer("imagenet_pretrained_regnetY400_transfer_learning")
-        model = models.get("regnetY400", arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
+        model = models.get(Models.REGNETY400, arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -331,13 +332,13 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_regnetY200_imagenet(self):
         trainer = Trainer("imagenet_pretrained_regnetY200")
 
-        model = models.get("regnetY200", arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.REGNETY200, arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY200"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.REGNETY200], delta=0.001)
 
     def test_transfer_learning_regnetY200_imagenet(self):
         trainer = Trainer("imagenet_pretrained_regnetY200_transfer_learning")
-        model = models.get("regnetY200", arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
+        model = models.get(Models.REGNETY200, arch_params=self.imagenet_pretrained_arch_params["regnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -348,13 +349,15 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_repvgg_a0_imagenet(self):
         trainer = Trainer("imagenet_pretrained_repvgg_a0")
 
-        model = models.get("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.REPVGG_A0, arch_params=self.imagenet_pretrained_arch_params[Models.REPVGG_A0], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["repvgg_a0"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.REPVGG_A0], delta=0.001)
 
     def test_transfer_learning_repvgg_a0_imagenet(self):
         trainer = Trainer("imagenet_pretrained_repvgg_a0_transfer_learning")
-        model = models.get("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
+        model = models.get(
+            Models.REPVGG_A0, arch_params=self.imagenet_pretrained_arch_params[Models.REPVGG_A0], **self.imagenet_pretrained_ckpt_params, num_classes=5
+        )
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -364,7 +367,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_regseg48_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_regseg48")
-        model = models.get("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.REGSEG48, arch_params=self.cityscapes_pretrained_arch_params[Models.REGSEG48], **self.cityscapes_pretrained_ckpt_params)
         res = (
             trainer.test(
                 model=model, test_loader=self.cityscapes_dataset, test_metrics_list=[IoU(num_classes=20, ignore_index=19)], metrics_progress_verbose=True
@@ -372,11 +375,11 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["regseg48"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.REGSEG48], delta=0.001)
 
     def test_transfer_learning_regseg48_cityscapes(self):
         trainer = Trainer("regseg48_cityscapes_transfer_learning")
-        model = models.get("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.REGSEG48, arch_params=self.cityscapes_pretrained_arch_params[Models.REGSEG48], **self.cityscapes_pretrained_ckpt_params)
         trainer.train(
             model=model,
             train_loader=self.transfer_segmentation_dataset,
@@ -441,15 +444,20 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_efficientnet_b0_imagenet(self):
         trainer = Trainer("imagenet_pretrained_efficientnet_b0")
 
-        model = models.get("efficientnet_b0", arch_params=self.imagenet_pretrained_arch_params["efficientnet_b0"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(
+            Models.EFFICIENTNET_B0, arch_params=self.imagenet_pretrained_arch_params[Models.EFFICIENTNET_B0], **self.imagenet_pretrained_ckpt_params
+        )
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["efficientnet_b0"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.EFFICIENTNET_B0], delta=0.001)
 
     def test_transfer_learning_efficientnet_b0_imagenet(self):
         trainer = Trainer("imagenet_pretrained_efficientnet_b0_transfer_learning")
 
         model = models.get(
-            "efficientnet_b0", arch_params=self.imagenet_pretrained_arch_params["efficientnet_b0"], **self.imagenet_pretrained_ckpt_params, num_classes=5
+            Models.EFFICIENTNET_B0,
+            arch_params=self.imagenet_pretrained_arch_params[Models.EFFICIENTNET_B0],
+            **self.imagenet_pretrained_ckpt_params,
+            num_classes=5,
         )
         trainer.train(
             model=model,
@@ -484,7 +492,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_ssd_mobilenet_v1_coco(self):
         trainer = Trainer("coco_ssd_mobilenet_v1")
-        model = models.get("ssd_mobilenet_v1", arch_params=self.coco_pretrained_arch_params["coco_ssd_mobilenet_v1"], **self.coco_pretrained_ckpt_params)
+        model = models.get(Models.SSD_MOBILENET_V1, arch_params=self.coco_pretrained_arch_params["coco_ssd_mobilenet_v1"], **self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(
             model=model,
@@ -495,60 +503,60 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.coco_pretrained_maps["coco_ssd_mobilenet_v1"], delta=0.001)
 
     def test_pretrained_yolox_s_coco(self):
-        trainer = Trainer("yolox_s")
+        trainer = Trainer(Models.YOLOX_S)
 
-        model = models.get("yolox_s", **self.coco_pretrained_ckpt_params)
+        model = models.get(Models.YOLOX_S, **self.coco_pretrained_ckpt_params)
         res = trainer.test(
             model=model,
             test_loader=self.coco_dataset["yolox"],
             test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_s"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps[Models.YOLOX_S], delta=0.001)
 
     def test_pretrained_yolox_m_coco(self):
-        trainer = Trainer("yolox_m")
-        model = models.get("yolox_m", **self.coco_pretrained_ckpt_params)
+        trainer = Trainer(Models.YOLOX_M)
+        model = models.get(Models.YOLOX_M, **self.coco_pretrained_ckpt_params)
         res = trainer.test(
             model=model,
             test_loader=self.coco_dataset["yolox"],
             test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_m"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps[Models.YOLOX_M], delta=0.001)
 
     def test_pretrained_yolox_l_coco(self):
-        trainer = Trainer("yolox_l")
-        model = models.get("yolox_l", **self.coco_pretrained_ckpt_params)
+        trainer = Trainer(Models.YOLOX_L)
+        model = models.get(Models.YOLOX_L, **self.coco_pretrained_ckpt_params)
         res = trainer.test(
             model=model,
             test_loader=self.coco_dataset["yolox"],
             test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_l"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps[Models.YOLOX_L], delta=0.001)
 
     def test_pretrained_yolox_n_coco(self):
-        trainer = Trainer("yolox_n")
+        trainer = Trainer(Models.YOLOX_N)
 
-        model = models.get("yolox_n", **self.coco_pretrained_ckpt_params)
+        model = models.get(Models.YOLOX_N, **self.coco_pretrained_ckpt_params)
         res = trainer.test(
             model=model,
             test_loader=self.coco_dataset["yolox"],
             test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_n"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps[Models.YOLOX_N], delta=0.001)
 
     def test_pretrained_yolox_t_coco(self):
-        trainer = Trainer("yolox_t")
-        model = models.get("yolox_t", **self.coco_pretrained_ckpt_params)
+        trainer = Trainer(Models.YOLOX_T)
+        model = models.get(Models.YOLOX_T, **self.coco_pretrained_ckpt_params)
         res = trainer.test(
             model=model,
             test_loader=self.coco_dataset["yolox"],
             test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_t"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps[Models.YOLOX_T], delta=0.001)
 
     def test_transfer_learning_yolox_n_coco(self):
         trainer = Trainer("test_transfer_learning_yolox_n_coco")
-        model = models.get("yolox_n", **self.coco_pretrained_ckpt_params, num_classes=5)
+        model = models.get(Models.YOLOX_N, **self.coco_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
             training_params=self.transfer_detection_train_params_yolox,
@@ -560,7 +568,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer = Trainer("imagenet_pretrained_mobilenet_v3_large_transfer_learning")
 
         model = models.get(
-            "mobilenet_v3_large", arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params, num_classes=5
+            Models.MOBILENET_V3_LARGE, arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params, num_classes=5
         )
         trainer.train(
             model=model,
@@ -572,15 +580,15 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_mobilenet_v3_large_imagenet(self):
         trainer = Trainer("imagenet_mobilenet_v3_large")
 
-        model = models.get("mobilenet_v3_large", arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.MOBILENET_V3_LARGE, arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v3_large"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.MOBILENET_V3_LARGE], delta=0.001)
 
     def test_transfer_learning_mobilenet_v3_small_imagenet(self):
         trainer = Trainer("imagenet_pretrained_mobilenet_v3_small_transfer_learning")
 
         model = models.get(
-            "mobilenet_v3_small", arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params, num_classes=5
+            Models.MOBILENET_V3_SMALL, arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params, num_classes=5
         )
         trainer.train(
             model=model,
@@ -592,14 +600,16 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_mobilenet_v3_small_imagenet(self):
         trainer = Trainer("imagenet_mobilenet_v3_small")
 
-        model = models.get("mobilenet_v3_small", arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.MOBILENET_V3_SMALL, arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v3_small"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.MOBILENET_V3_SMALL], delta=0.001)
 
     def test_transfer_learning_mobilenet_v2_imagenet(self):
         trainer = Trainer("imagenet_pretrained_mobilenet_v2_transfer_learning")
 
-        model = models.get("mobilenet_v2", arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
+        model = models.get(
+            Models.MOBILENET_V2, arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params, num_classes=5
+        )
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -610,13 +620,14 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_mobilenet_v2_imagenet(self):
         trainer = Trainer("imagenet_mobilenet_v2")
 
-        model = models.get("mobilenet_v2", arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.MOBILENET_V2, arch_params=self.imagenet_pretrained_arch_params["mobilenet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v2"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.MOBILENET_V2], delta=0.001)
 
     def test_pretrained_stdc1_seg50_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_stdc1_seg50")
-        model = models.get("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params)
+
+        model = models.get(Models.STDC1_SEG50, arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params)
         res = (
             trainer.test(
                 model=model,
@@ -627,11 +638,13 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc1_seg50"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.STDC1_SEG50], delta=0.001)
 
     def test_transfer_learning_stdc1_seg50_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_stdc1_seg50_transfer_learning")
-        model = models.get("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params, num_classes=5)
+        model = models.get(
+            Models.STDC1_SEG50, arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params, num_classes=5
+        )
         trainer.train(
             model=model,
             training_params=self.stdc_transfer_segmentation_train_params,
@@ -641,7 +654,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_stdc1_seg75_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_stdc1_seg75")
-        model = models.get("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.STDC1_SEG75, arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params)
         res = (
             trainer.test(
                 model=model,
@@ -652,11 +665,13 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc1_seg75"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.STDC1_SEG75], delta=0.001)
 
     def test_transfer_learning_stdc1_seg75_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_stdc1_seg75_transfer_learning")
-        model = models.get("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params, num_classes=5)
+        model = models.get(
+            Models.STDC1_SEG75, arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params, num_classes=5
+        )
         trainer.train(
             model=model,
             training_params=self.stdc_transfer_segmentation_train_params,
@@ -666,7 +681,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_stdc2_seg50_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_stdc2_seg50")
-        model = models.get("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.STDC2_SEG50, arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params)
         res = (
             trainer.test(
                 model=model,
@@ -677,11 +692,13 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc2_seg50"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.STDC2_SEG50], delta=0.001)
 
     def test_transfer_learning_stdc2_seg50_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_stdc2_seg50_transfer_learning")
-        model = models.get("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params, num_classes=5)
+        model = models.get(
+            Models.STDC2_SEG50, arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params, num_classes=5
+        )
         trainer.train(
             model=model,
             training_params=self.stdc_transfer_segmentation_train_params,
@@ -691,7 +708,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_stdc2_seg75_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_stdc2_seg75")
-        model = models.get("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.STDC2_SEG75, arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params)
         res = (
             trainer.test(
                 model=model,
@@ -702,11 +719,13 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc2_seg75"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.STDC2_SEG75], delta=0.001)
 
     def test_transfer_learning_stdc2_seg75_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_stdc2_seg75_transfer_learning")
-        model = models.get("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params, num_classes=5)
+        model = models.get(
+            Models.STDC2_SEG75, arch_params=self.cityscapes_pretrained_arch_params["stdc"], **self.cityscapes_pretrained_ckpt_params, num_classes=5
+        )
         trainer.train(
             model=model,
             training_params=self.stdc_transfer_segmentation_train_params,
@@ -717,7 +736,9 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_transfer_learning_vit_base_imagenet21k(self):
         trainer = Trainer("imagenet21k_pretrained_vit_base")
 
-        model = models.get("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"], **self.imagenet21k_pretrained_ckpt_params, num_classes=5)
+        model = models.get(
+            Models.VIT_BASE, arch_params=self.imagenet_pretrained_arch_params[Models.VIT_BASE], **self.imagenet21k_pretrained_ckpt_params, num_classes=5
+        )
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -728,7 +749,9 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_transfer_learning_vit_large_imagenet21k(self):
         trainer = Trainer("imagenet21k_pretrained_vit_large")
 
-        model = models.get("vit_large", arch_params=self.imagenet_pretrained_arch_params["vit_base"], **self.imagenet21k_pretrained_ckpt_params, num_classes=5)
+        model = models.get(
+            Models.VIT_LARGE, arch_params=self.imagenet_pretrained_arch_params[Models.VIT_BASE], **self.imagenet21k_pretrained_ckpt_params, num_classes=5
+        )
         trainer.train(
             model=model,
             training_params=self.transfer_classification_train_params,
@@ -738,39 +761,44 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_vit_base_imagenet(self):
         trainer = Trainer("imagenet_pretrained_vit_base")
-        model = models.get("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.VIT_BASE, arch_params=self.imagenet_pretrained_arch_params[Models.VIT_BASE], **self.imagenet_pretrained_ckpt_params)
         res = (
             trainer.test(model=model, test_loader=self.imagenet_dataset_05_mean_std, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0]
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_base"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.VIT_BASE], delta=0.001)
 
     def test_pretrained_vit_large_imagenet(self):
         trainer = Trainer("imagenet_pretrained_vit_large")
-        model = models.get("vit_large", arch_params=self.imagenet_pretrained_arch_params["vit_base"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(Models.VIT_LARGE, arch_params=self.imagenet_pretrained_arch_params[Models.VIT_BASE], **self.imagenet_pretrained_ckpt_params)
         res = (
             trainer.test(model=model, test_loader=self.imagenet_dataset_05_mean_std, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0]
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_large"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.VIT_LARGE], delta=0.001)
 
     def test_pretrained_beit_base_imagenet(self):
         trainer = Trainer("imagenet_pretrained_beit_base")
-        model = models.get("beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"], **self.imagenet_pretrained_ckpt_params)
+        model = models.get(
+            Models.BEIT_BASE_PATCH16_224, arch_params=self.imagenet_pretrained_arch_params[Models.VIT_BASE], **self.imagenet_pretrained_ckpt_params
+        )
         res = (
             trainer.test(model=model, test_loader=self.imagenet_dataset_05_mean_std, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0]
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["beit_base_patch16_224"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies[Models.BEIT_BASE_PATCH16_224], delta=0.001)
 
     def test_transfer_learning_beit_base_imagenet(self):
         trainer = Trainer("test_transfer_learning_beit_base_imagenet")
 
         model = models.get(
-            "beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"], **self.imagenet_pretrained_ckpt_params, num_classes=5
+            Models.BEIT_BASE_PATCH16_224,
+            arch_params=self.imagenet_pretrained_arch_params[Models.VIT_BASE],
+            **self.imagenet_pretrained_ckpt_params,
+            num_classes=5,
         )
         trainer.train(
             model=model,

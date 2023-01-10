@@ -8,6 +8,7 @@ from super_gradients.training import models
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.metrics.segmentation_metrics import PixelAccuracy, IoU
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
+from super_gradients.common.object_names import Models
 
 
 class TestWithoutTrainTest(unittest.TestCase):
@@ -26,7 +27,7 @@ class TestWithoutTrainTest(unittest.TestCase):
     @staticmethod
     def get_classification_trainer(name=""):
         trainer = Trainer(name)
-        model = models.get("resnet18", num_classes=5)
+        model = models.get(Models.RESNET18, num_classes=5)
         return trainer, model
 
     @staticmethod
