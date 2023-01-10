@@ -10,9 +10,6 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__, "DEBUG")
 
 
-__all__ = ["check_packages"]
-
-
 def _get_requirements_path(requirements_file_name: str) -> Union[None, Path]:
     """Get the path of requirement.txt from the root if exist.
     There is a difference when installed from artifact or locally.
@@ -42,7 +39,7 @@ def _get_requirements(use_pro_requirements: bool) -> Optional[List[str]]:
     requirements_path = _get_requirements_path("requirements.txt")
     pro_requirements_path = _get_requirements_path("requirements.pro.txt")
 
-    if requirements_path is None:
+    if (requirements_path is None) or (pro_requirements_path is None):
         return None
 
     with open(requirements_path, "r") as f:
