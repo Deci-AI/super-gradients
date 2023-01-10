@@ -425,13 +425,13 @@ jobs:
 
       - deci-common/pip_test_package_installation_codeartifact_dev:
           package_name: "super-gradients"
-          version: 0.0.999b123
+          version: 0.0.999b123  #TODO: vhangwe to circkle cag
           venv_name: << parameters.dev_venv_name >>
 
-      - run:
+      - run: #TODO: vhangwe to circkle cag
           name: verify __version__
           command: |
-            . << parameters.dev_venv_name >>/bin/activate
+            . << parameters.dev_venv_name >>-super-gradients-0.0.999b123/bin/activate
             python3 tests/verify_version.py 0.0.999b123
 
 
