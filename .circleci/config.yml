@@ -422,20 +422,6 @@ jobs:
     docker:
       - image: cimg/python:<< parameters.py_version >>
     steps:
-      - deci-common/checkout_and_skip_build:
-          check_version_file: true
-      - run:
-          name: add requirements.txt and requirements.pro.txt to source code
-          command: |
-            cp requirements.txt src/super_gradients/requirements.txt
-            cp requirements.pro.txt src/super_gradients/requirements.pro.txt
-      - run:
-          name: edit package version
-          command: |
-            echo 0.0.999b123 > version.txt
-
-      - deci-common/pip_upload_package_codeartifact_all_accounts:
-          codeartifact_repository: "deci-packages"
 
       - deci-common/pip_test_package_installation_codeartifact_dev:
           package_name: "super-gradients"
