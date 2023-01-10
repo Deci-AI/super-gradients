@@ -25,9 +25,9 @@ def _get_requirements_path(requirements_file_name: str) -> Union[None, Path]:
           is copied/cloned from github, the requirements.txt was not copied to the super_gradients package root, so we
           need to go to the project root (.) to find it.
     """
-    file_path = Path(__file__)  # super-gradients/src/super_gradients/sanity_check/env_sanity_check.py
-    package_root = file_path.parent.parent  # moving to super-gradients/src/super_gradients
-    project_root = package_root.parent.parent  # moving to super-gradients
+    file_path = Path(__file__)  # Refers to: .../super-gradients/src/super_gradients/sanity_check/env_sanity_check.py
+    package_root = file_path.parent.parent  # Refers to: .../super-gradients/src/super_gradients
+    project_root = package_root.parent.parent  # Refers to .../super-gradients
 
     # If installed from artifact, requirements.txt is in package_root, if installed locally it is in project_root
     if (package_root / requirements_file_name).exists():
