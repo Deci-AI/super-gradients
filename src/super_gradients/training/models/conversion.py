@@ -102,7 +102,7 @@ def prepare_conversion_cfgs(cfg: DictConfig):
         )
         checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
         cfg.checkpoint_path = str(checkpoints_dir / cfg.ckpt_name)
-    cfg.out_path = cfg.out_path or cfg.checkpoint_path.replace(".ckpt", ".onnx")
+    cfg.out_path = cfg.out_path or cfg.checkpoint_path.replace(".pth", ".onnx")
     logger.info(f"Exporting checkpoint: {cfg.checkpoint_path} to ONNX.")
     return cfg, experiment_cfg
 
@@ -127,4 +127,5 @@ def convert_from_config(cfg: DictConfig) -> str:
     )
     cfg = parse_args(cfg, models.convert_to_onnx)
     out_path = models.convert_to_onnx(model=model, **cfg)
+    logger.info(f"Successfully exported model at {out_path}")
     return out_path
