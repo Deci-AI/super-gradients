@@ -92,7 +92,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
         }
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
-        self.coco_pretrained_arch_params = {"ssd_lite_mobilenet_v2": {"num_classes": 80}, "coco_ssd_mobilenet_v1": {"num_classes": 80}}
+        self.coco_pretrained_arch_params = {Models.SSD_LITE_MOBILENET_V2: {"num_classes": 80}, Models.SSD_MOBILENET_V1: {"num_classes": 80}}
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
 
         self.coco_dataset = {
@@ -103,8 +103,8 @@ class PretrainedModelsTest(unittest.TestCase):
         }
 
         self.coco_pretrained_maps = {
-            "ssd_lite_mobilenet_v2": 0.2041,
-            "coco_ssd_mobilenet_v1": 0.243,
+            Models.SSD_LITE_MOBILENET_V2: 0.2041,
+            Models.SSD_MOBILENET_V1: 0.243,
             Models.YOLOX_S: 0.4047,
             Models.YOLOX_M: 0.4640,
             Models.YOLOX_L: 0.4925,
@@ -152,9 +152,9 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_segmentation_subclass_pretrained_mious = {"shelfnet34_lw": 0.651}
         self.coco_segmentation_dataset = coco_segmentation_val()
 
-        self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim", Models.STDC1_SEG50, Models.REGSEG48]
+        self.cityscapes_pretrained_models = [Models.DDRNET_23, Models.DDRNET_23_SLIM, Models.STDC1_SEG50, Models.REGSEG48]
         self.cityscapes_pretrained_arch_params = {
-            "ddrnet_23": {"aux_head": True},
+            Models.DDRNET_23: {"aux_head": True},
             Models.REGSEG48: {},
             "stdc": {"use_aux_heads": True, "aux_head": True},
             "pplite_seg": {"use_aux_heads": True},
@@ -162,17 +162,17 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.cityscapes_pretrained_ckpt_params = {"pretrained_weights": "cityscapes"}
         self.cityscapes_pretrained_mious = {
-            "ddrnet_23": 0.8026,
-            "ddrnet_23_slim": 0.7801,
+            Models.DDRNET_23: 0.8026,
+            Models.DDRNET_23_SLIM: 0.7801,
             Models.STDC1_SEG50: 0.7511,
             Models.STDC1_SEG75: 0.7687,
             Models.STDC2_SEG50: 0.7644,
             Models.STDC2_SEG75: 0.7893,
             Models.REGSEG48: 0.7815,
-            "pp_lite_t_seg50": 0.7492,
-            "pp_lite_t_seg75": 0.7756,
-            "pp_lite_b_seg50": 0.7648,
-            "pp_lite_b_seg75": 0.7852,
+            Models.PP_LITE_T_SEG50: 0.7492,
+            Models.PP_LITE_T_SEG75: 0.7756,
+            Models.PP_LITE_B_SEG50: 0.7648,
+            Models.PP_LITE_B_SEG75: 0.7852,
         }
 
         self.cityscapes_dataset = cityscapes_val()
@@ -389,7 +389,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_ddrnet23_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_ddrnet23")
-        model = models.get("ddrnet_23", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.DDRNET_23, arch_params=self.cityscapes_pretrained_arch_params[Models.DDRNET_23], **self.cityscapes_pretrained_ckpt_params)
         res = (
             trainer.test(
                 model=model, test_loader=self.cityscapes_dataset, test_metrics_list=[IoU(num_classes=20, ignore_index=19)], metrics_progress_verbose=True
@@ -397,11 +397,13 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.DDRNET_23], delta=0.001)
 
     def test_pretrained_ddrnet23_slim_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_ddrnet23_slim")
-        model = models.get("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(
+            Models.DDRNET_23_SLIM, arch_params=self.cityscapes_pretrained_arch_params[Models.DDRNET_23], **self.cityscapes_pretrained_ckpt_params
+        )
         res = (
             trainer.test(
                 model=model, test_loader=self.cityscapes_dataset, test_metrics_list=[IoU(num_classes=20, ignore_index=19)], metrics_progress_verbose=True
@@ -409,11 +411,11 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23_slim"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.DDRNET_23_SLIM], delta=0.001)
 
     def test_transfer_learning_ddrnet23_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_ddrnet23_transfer_learning")
-        model = models.get("ddrnet_23", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.DDRNET_23, arch_params=self.cityscapes_pretrained_arch_params[Models.DDRNET_23], **self.cityscapes_pretrained_ckpt_params)
         trainer.train(
             model=model,
             training_params=self.ddrnet_transfer_segmentation_train_params,
@@ -423,7 +425,9 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_transfer_learning_ddrnet23_slim_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_ddrnet23_slim_transfer_learning")
-        model = models.get("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(
+            Models.DDRNET_23_SLIM, arch_params=self.cityscapes_pretrained_arch_params[Models.DDRNET_23], **self.cityscapes_pretrained_ckpt_params
+        )
         trainer.train(
             model=model,
             training_params=self.ddrnet_transfer_segmentation_train_params,
@@ -468,7 +472,9 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_ssd_lite_mobilenet_v2_coco(self):
         trainer = Trainer("coco_ssd_lite_mobilenet_v2")
-        model = models.get("ssd_lite_mobilenet_v2", arch_params=self.coco_pretrained_arch_params["ssd_lite_mobilenet_v2"], **self.coco_pretrained_ckpt_params)
+        model = models.get(
+            Models.SSD_LITE_MOBILENET_V2, arch_params=self.coco_pretrained_arch_params[Models.SSD_LITE_MOBILENET_V2], **self.coco_pretrained_ckpt_params
+        )
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(
             model=model,
@@ -476,13 +482,13 @@ class PretrainedModelsTest(unittest.TestCase):
             test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback, num_cls=80)],
             metrics_progress_verbose=True,
         )[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps[Models.SSD_LITE_MOBILENET_V2], delta=0.001)
 
     def test_transfer_learning_ssd_lite_mobilenet_v2_coco(self):
         trainer = Trainer("coco_ssd_lite_mobilenet_v2_transfer_learning")
-        transfer_arch_params = self.coco_pretrained_arch_params["ssd_lite_mobilenet_v2"].copy()
+        transfer_arch_params = self.coco_pretrained_arch_params[Models.SSD_LITE_MOBILENET_V2].copy()
         transfer_arch_params["num_classes"] = 5
-        model = models.get("ssd_lite_mobilenet_v2", arch_params=transfer_arch_params, **self.coco_pretrained_ckpt_params)
+        model = models.get(Models.SSD_LITE_MOBILENET_V2, arch_params=transfer_arch_params, **self.coco_pretrained_ckpt_params)
         trainer.train(
             model=model,
             training_params=self.transfer_detection_train_params_ssd,
@@ -491,8 +497,8 @@ class PretrainedModelsTest(unittest.TestCase):
         )
 
     def test_pretrained_ssd_mobilenet_v1_coco(self):
-        trainer = Trainer("coco_ssd_mobilenet_v1")
-        model = models.get(Models.SSD_MOBILENET_V1, arch_params=self.coco_pretrained_arch_params["coco_ssd_mobilenet_v1"], **self.coco_pretrained_ckpt_params)
+        trainer = Trainer(Models.SSD_MOBILENET_V1)
+        model = models.get(Models.SSD_MOBILENET_V1, arch_params=self.coco_pretrained_arch_params[Models.SSD_MOBILENET_V1], **self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(
             model=model,
@@ -500,7 +506,7 @@ class PretrainedModelsTest(unittest.TestCase):
             test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback, num_cls=80)],
             metrics_progress_verbose=True,
         )[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["coco_ssd_mobilenet_v1"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps[Models.SSD_MOBILENET_V1], delta=0.001)
 
     def test_pretrained_yolox_s_coco(self):
         trainer = Trainer(Models.YOLOX_S)
@@ -809,7 +815,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_pplite_t_seg50_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_pplite_t_seg50")
-        model = models.get("pp_lite_t_seg50", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.PP_LITE_T_SEG50, arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"], **self.cityscapes_pretrained_ckpt_params)
 
         res = (
             trainer.test(
@@ -821,11 +827,11 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_t_seg50"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.PP_LITE_T_SEG50], delta=0.001)
 
     def test_pretrained_pplite_t_seg75_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_pplite_t_seg75")
-        model = models.get("pp_lite_t_seg75", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.PP_LITE_T_SEG75, arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"], **self.cityscapes_pretrained_ckpt_params)
 
         res = (
             trainer.test(
@@ -837,11 +843,11 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_t_seg75"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.PP_LITE_T_SEG75], delta=0.001)
 
     def test_pretrained_pplite_b_seg50_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_pplite_b_seg50")
-        model = models.get("pp_lite_b_seg50", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.PP_LITE_B_SEG50, arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"], **self.cityscapes_pretrained_ckpt_params)
 
         res = (
             trainer.test(
@@ -853,11 +859,11 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_b_seg50"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.PP_LITE_B_SEG50], delta=0.001)
 
     def test_pretrained_pplite_b_seg75_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_pplite_b_seg75")
-        model = models.get("pp_lite_b_seg75", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.PP_LITE_B_SEG75, arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"], **self.cityscapes_pretrained_ckpt_params)
 
         res = (
             trainer.test(
@@ -869,7 +875,7 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_b_seg75"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.PP_LITE_B_SEG75], delta=0.001)
 
     def tearDown(self) -> None:
         if os.path.exists("~/.cache/torch/hub/"):

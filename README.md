@@ -44,7 +44,9 @@ ________________________________________________________________________________
 ```python
 # Load model with pretrained weights
 from super_gradients.training import models
-model = models.get("yolox_s", pretrained_weights="coco")
+from super_gradients.common.object_names import Models
+
+model = models.get(Models.YOLOX_S, pretrained_weights="coco")
 ```
 #### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
 
@@ -81,7 +83,10 @@ More example on how and why to use recipes can be found in [Recipes](#recipes)
 All SuperGradients models’ are production ready in the sense that they are compatible with deployment tools such as TensorRT (Nvidia) and OpenVINO (Intel) and can be easily taken into production. With a few lines of code you can easily integrate the models into your codebase.
 ```python
 # Load model with pretrained weights
-model = models.get("yolox_s", pretrained_weights="coco")
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+
+model = models.get(Models.YOLOX_S, pretrained_weights="coco")
 
 # Prepare model for conversion
 # Input size is in format of [Batch x Channels x Width x Height] where 640 is the standart COCO dataset dimensions
