@@ -1,9 +1,13 @@
+import pkg_resources
 from typing import List, Union, Optional
 from pathlib import Path
-import pkg_resources
 from packaging.requirements import Requirement
 
-from .display_utils import log_test_error, log_test_msg
+from .display_utils import format_error_msg
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__, "DEBUG")
 
 
 __all__ = ["check_packages"]
@@ -54,7 +58,7 @@ def _get_requirements(use_pro_requirements: bool) -> Optional[List[str]]:
     return list(valid_requirements)
 
 
-def check_packages(test_name: str) -> bool:
+def check_packages(test_name: str):
     """Check that all installed libs respect the requirement.txt and requirements.pro.txt if relevant.
 
     :param test_name: Name that is used to refer to this test.
@@ -65,22 +69,18 @@ def check_packages(test_name: str) -> bool:
     requirements = _get_requirements(use_pro_requirements="deci-lab-client" in installed_packages)
 
     if requirements is None:
-        log_test_msg(msg='Library check is not supported when super_gradients installed through "git+https://github.com/..." command')
-        return False
+        logger.info(msg='Library check is not supported when super_gradients installed through "git+https://github.com/..." command')
+        return
 
-    success = True
     for requirement in requirements:
         req = Requirement(requirement)
         package_name, package_spec = req.name.lower(), req.specifier
 
         if package_name not in installed_packages.keys():
             error = f"{package_name} required but not found"
-            log_test_error(test_name=test_name, error=error)
-            success = False
+            logger.error(msg=format_error_msg(test_name=test_name, error_msg=error))
         else:
             installed_version = installed_packages[package_name]
             if installed_version not in package_spec:
                 error = f"{package_name}=={installed_version} does not satisfy requirement ({requirement})"
-                log_test_error(test_name=test_name, error=error)
-                success = False
-    return success
+                logger.error(msg=format_error_msg(test_name=test_name, error_msg=error))
