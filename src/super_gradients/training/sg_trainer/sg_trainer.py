@@ -86,6 +86,7 @@ from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 from omegaconf import OmegaConf
+from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 
 logger = get_logger(__name__)
 
@@ -193,6 +194,7 @@ class Trainer:
 
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
+        self.max_forward_passes_train = None
 
     @property
     def device(self) -> str:
@@ -216,7 +218,21 @@ class Trainer:
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
+        # TRIGGER CFG MODIFYING CALLBACKS
+        cfg = cls._trigger_cfg_modifying_callbacks(cfg)
+
         trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+
+        # BUILD NETWORK
+        model = models.get(
+            model_name=cfg.architecture,
+            num_classes=cfg.arch_params.num_classes,
+            arch_params=cfg.arch_params,
+            strict_load=cfg.checkpoint_params.strict_load,
+            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+            load_backbone=cfg.checkpoint_params.load_backbone,
+        )
 
         # INSTANTIATE DATA LOADERS
 
@@ -232,16 +248,6 @@ class Trainer:
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
-        # BUILD NETWORK
-        model = models.get(
-            model_name=cfg.architecture,
-            num_classes=cfg.arch_params.num_classes,
-            arch_params=cfg.arch_params,
-            strict_load=cfg.checkpoint_params.strict_load,
-            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-            load_backbone=cfg.checkpoint_params.load_backbone,
-        )
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
         res = trainer.train(
@@ -253,6 +259,14 @@ class Trainer:
         )
 
         return model, res
+
+    @classmethod
+    def _trigger_cfg_modifying_callbacks(cls, cfg):
+        pre_launch_cbs = get_param(cfg, "pre_launch_callbacks_list", list())
+        pre_launch_cbs = ListFactory(PreLaunchCallbacksFactory()).get(pre_launch_cbs)
+        for plcb in pre_launch_cbs:
+            cfg = plcb(cfg)
+        return cfg
 
     @classmethod
     def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> Tuple[nn.Module, Tuple]:
@@ -445,7 +459,7 @@ class Trainer:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1:
+            if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1 or self.max_forward_passes_train == batch_idx:
                 break
 
         if not self.ddp_silent_mode:
@@ -965,6 +979,12 @@ class Trainer:
                         percentile: float, percentile value to use when Trainer,quant_modules_calib_method='percentile'.
                          Discarded when other methods are used (Default=99.99).
 
+                -   `max_forward_passes_train`: int, when not None- will break out of inner train loop (i.e iterating over
+                      train_loader) when reaching this number of batches. Usefull for debugging (default=None).
+
+                -   `kil_ddp_pgroup_on_end`: bool,  whether to kill the DDP process group in the end of training.
+                      Useful when launching consecutive DDP trainings with the same Trainer object (default=True).
+
 
         :return:
         """
@@ -1142,6 +1162,7 @@ class Trainer:
         )
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
+        self.max_forward_passes_train = self.training_params.max_forward_passes_train
 
         # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
         self._first_backward = True
@@ -1265,7 +1286,7 @@ class Trainer:
         finally:
             if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                 # CLEAN UP THE MULTI-GPU PROCESS GROUP WHEN DONE
-                if torch.distributed.is_initialized():
+                if torch.distributed.is_initialized() and self.training_params.kil_ddp_pgroup_on_end:
                     torch.distributed.destroy_process_group()
 
             # PHASE.TRAIN_END

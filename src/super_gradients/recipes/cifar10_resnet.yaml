@@ -26,6 +26,9 @@ training_hyperparams:
 
 ckpt_root_dir:
 
+pre_launch_callbacks_list:
+  - AutoTrainBatchSizeSelectionCallback
+
 architecture: resnet18_cifar
 
 experiment_name: resnet18_cifar
