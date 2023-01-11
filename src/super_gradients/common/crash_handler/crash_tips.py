@@ -189,13 +189,9 @@ class WrongHydraVersionTip(CrashTip):
 
 
 class InterpolationKeyErrorTip(CrashTip):
-    """Note: I think that this should be caught within the code instead"""
-
     @classmethod
     def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType):
         expected_str = "Interpolation key "
-        print("A ", isinstance(exc_value, omegaconf.errors.InterpolationKeyError), expected_str in str(exc_value))
-        print(str(exc_value))
         return isinstance(exc_value, omegaconf.errors.InterpolationKeyError) and expected_str in str(exc_value)
 
     @classmethod
