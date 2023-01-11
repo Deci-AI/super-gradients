@@ -1,7 +1,6 @@
 import pkg_resources
-from typing import List, Union, Optional
+from typing import List, Optional
 from pathlib import Path
-from packaging.requirements import Requirement
 
 from .display_utils import format_error_msg
 
@@ -10,7 +9,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__, "DEBUG")
 
 
-def _get_requirements_path(requirements_file_name: str) -> Union[None, Path]:
+def _get_requirements_path(requirements_file_name: str) -> Optional[Path]:
     """Get the path of requirement.txt from the root if exist.
     There is a difference when installed from artifact or locally.
         - In the first case, requirements.txt is copied to the package during the CI.
@@ -48,18 +47,13 @@ def _get_requirements(use_pro_requirements: bool) -> Optional[List[str]]:
     with open(pro_requirements_path, "r") as f:
         pro_requirements = f.read().splitlines()
 
-    valid_requirements = filter(
-        lambda x: x and x[0].isalpha(),
-        requirements + pro_requirements if use_pro_requirements else requirements,
-    )
-    return list(valid_requirements)
+    return requirements + pro_requirements if use_pro_requirements else requirements
 
 
 def check_packages(test_name: str):
-    """Check that all installed libs respect the requirement.txt and requirements.pro.txt if relevant.
+    """Check that all installed libs respect the requirement.txt, and requirements.pro.txt if relevant.
 
     :param test_name: Name that is used to refer to this test.
-    :return: True if test was successful, False otherwise
     """
 
     installed_packages = {package.key.lower(): package.version for package in pkg_resources.working_set}
@@ -69,9 +63,8 @@ def check_packages(test_name: str):
         logger.info(msg='Library check is not supported when super_gradients installed through "git+https://github.com/..." command')
         return
 
-    for requirement in requirements:
-        req = Requirement(requirement)
-        package_name, package_spec = req.name.lower(), req.specifier
+    for requirement in pkg_resources.parse_requirements(requirements):
+        package_name, package_spec = requirement.name.lower(), requirement.specifier
 
         if package_name not in installed_packages.keys():
             error = f"{package_name} required but not found"

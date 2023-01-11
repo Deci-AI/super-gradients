@@ -12,7 +12,6 @@ def check_os(test_name: str):
     """Check the operating system name and platform
 
     :param test_name: Name that is used to refer to this test.
-    :return: True if test was successful, False otherwise
     """
 
     if "linux" not in sys.platform.lower():
