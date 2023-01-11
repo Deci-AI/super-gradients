@@ -422,7 +422,11 @@ jobs:
     docker:
       - image: cimg/python:<< parameters.py_version >>
     steps:
-
+      - checkout
+      - run:
+          name: edit package version #TODO: vhangwe to circkle cag
+          command: |
+            echo 0.0.999b123 > version.txt
       - deci-common/pip_test_package_installation_codeartifact_dev:
           package_name: "super-gradients"
           version: 0.0.999b123  #TODO: vhangwe to circkle cag
