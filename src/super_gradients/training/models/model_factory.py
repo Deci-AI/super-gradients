@@ -7,10 +7,11 @@ import torch
 from super_gradients.common import StrictLoad
 from super_gradients.common.plugins.deci_client import DeciClient, client_enabled
 from super_gradients.training import utils as core_utils
+from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import HpmStruct
+from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training.utils.checkpoint_utils import (
     load_checkpoint_to_model,
     load_pretrained_weights,
@@ -42,7 +43,9 @@ def get_architecture(model_name: str, arch_params: HpmStruct, download_required_
     is_remote = False
     if not isinstance(model_name, str):
         raise ValueError("Parameter model_name is expected to be a string.")
-    elif model_name not in ARCHITECTURES.keys():
+
+    architecture = get_param(ARCHITECTURES, model_name)
+    if model_name not in ARCHITECTURES.keys() and architecture is None:
         if client_enabled:
             logger.info(f'The required model, "{model_name}", was not found in SuperGradients. Trying to load a model from remote deci-lab')
             deci_client = DeciClient()
@@ -63,11 +66,13 @@ def get_architecture(model_name: str, arch_params: HpmStruct, download_required_
             _arch_params.override(**arch_params.to_dict())
             arch_params, is_remote = _arch_params, True
         else:
-            raise ValueError(
-                f'The required model, "{model_name}", was not found in SuperGradients. See docs or all_architectures.py for supported model names.'
+            raise UnknownTypeException(
+                message=f'The required model, "{model_name}", was not found in SuperGradients. See docs or all_architectures.py for supported model names.',
+                unknown_type=model_name,
+                choices=list(ARCHITECTURES.keys()),
             )
 
-    return ARCHITECTURES[model_name], arch_params, pretrained_weights_path, is_remote
+    return get_param(ARCHITECTURES, model_name), arch_params, pretrained_weights_path, is_remote
 
 
 def instantiate_model(
@@ -139,6 +144,7 @@ def get(
     pretrained_weights: str = None,
     load_backbone: bool = False,
     download_required_code: bool = True,
+    checkpoint_num_classes: int = None,
 ) -> SgModule:
     """
     :param model_name:          Defines the model's architecture from models/ALL_ARCHITECTURES
@@ -153,11 +159,20 @@ def get(
     :param load_backbone:       Load the provided checkpoint to model.backbone instead of model.
     :param download_required_code: if model is not found in SG and is downloaded from a remote client, overriding this parameter with False
                                     will prevent additional code from being downloaded. This affects only models from remote client.
+    :param checkpoint_num_classes:  num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
+     Used when num_classes != checkpoint_num_class. In this case, the module will be initialized with checkpoint_num_class, then weights will be loaded. Finaly
+        replace_head(new_num_classes=num_classes) is called (useful when wanting to perform transfer learning, from a checkpoint outside of
+         then ones offered in SG model zoo).
+
 
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
     """
+    checkpoint_num_classes = checkpoint_num_classes or num_classes
 
-    net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights, download_required_code)
+    if checkpoint_num_classes:
+        net = instantiate_model(model_name, arch_params, checkpoint_num_classes, pretrained_weights, download_required_code)
+    else:
+        net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights, download_required_code)
 
     if load_backbone and not checkpoint_path:
         raise ValueError("Please set checkpoint_path when load_backbone=True")
@@ -172,4 +187,7 @@ def get(
             load_weights_only=True,
             load_ema_as_net=load_ema_as_net,
         )
+    if checkpoint_num_classes != num_classes:
+        net.replace_head(new_num_classes=num_classes)
+
     return net

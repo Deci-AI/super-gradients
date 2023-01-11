@@ -1,13 +1,15 @@
+import copy
 import os
-import cv2
 
+import cv2
 import numpy as np
 from pycocotools.coco import COCO
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
+from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
+from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 
 logger = get_logger(__name__)
 
@@ -46,6 +48,18 @@ class COCODetectionDataset(DetectionDataset):
         kwargs["all_classes_list"] = kwargs.get("all_classes_list") or COCO_DETECTION_CLASSES_LIST
         super().__init__(*args, **kwargs)
 
+        if len(self.original_classes) != len(self.all_classes_list):
+            if set(self.all_classes_list).issubset(set(self.original_classes)):
+                raise ParameterMismatchException(
+                    "Parameter `all_classes_list` contains a subset of classes from dataset JSON. "
+                    "Please use `class_inclusion_list` to train with reduced number of classes",
+                )
+            else:
+                raise DatasetValidationException(
+                    "Number of classes in dataset JSON do not match with number of classes in all_classes_list parameter. "
+                    "Most likely this indicates an error in your all_classes_list parameter"
+                )
+
     def _setup_data_source(self) -> int:
         """Initialize img_and_target_path_list and warn if label file is missing
 
@@ -53,7 +67,8 @@ class COCODetectionDataset(DetectionDataset):
         """
         self.coco = self._init_coco()
         self.class_ids = sorted(self.coco.getCatIds())
-        self.classes = list([category["name"] for category in self.coco.loadCats(self.class_ids)])
+        self.original_classes = list([category["name"] for category in self.coco.loadCats(self.class_ids)])
+        self.classes = copy.deepcopy(self.original_classes)
         self.sample_id_to_coco_id = self.coco.getImgIds()
         return len(self.sample_id_to_coco_id)
 

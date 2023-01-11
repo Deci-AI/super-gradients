@@ -1,68 +1,6 @@
 defaults:
   - coco_detection_dataset_params
 
-cache_dir: # path to a directory that will be used for caching (with numpy.memmap).
-cache_train_images: False
-cache_val_images: False
-
-batch_size: 32
-val_batch_size: 16
-train_image_size: 320
-val_image_size: 320
-train_input_dim:
-  - ${dataset_params.train_image_size}
-  - ${dataset_params.train_image_size}
-val_input_dim:
-  - ${dataset_params.val_image_size}
-  - ${dataset_params.val_image_size}
-
-targets_format:
-  _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat
-  value: LABEL_NORMALIZED_CXCYWH
-
-train_transforms:
-  - _target_: super_gradients.training.transforms.transforms.DetectionRandomAffine
-    degrees: 0.                   # rotation degrees, randomly sampled from [-degrees, degrees]
-    translate: 0.1                # image translation fraction
-    scales: [0.5, 1.5]            # random rescale range (keeps size by padding/cropping) after mosaic transform.
-    shear: 0.                     # shear degrees, randomly sampled from [-degrees, degrees]
-    target_size: ${dataset_params.train_input_dim}
-    filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
-    wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
-    area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
-    ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
-  - _target_: super_gradients.training.transforms.transforms.DetectionHSV
-    prob: 1.0                       # probability to apply HSV transform
-    hgain: 5                        # HSV transform hue gain (randomly sampled from [-hgain, hgain])
-    sgain: 30                       # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
-    vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
-  - _target_: super_gradients.training.transforms.transforms.DetectionHorizontalFlip
-    prob: 0.5                       # probability to apply horizontal flip
-  - _target_: super_gradients.training.transforms.transforms.DetectionPaddedRescale
-    input_dim: ${dataset_params.train_input_dim}
-    max_targets: 120
-  - _target_: super_gradients.training.transforms.transforms.DetectionTargetsFormatTransform
-    output_format: ${dataset_params.targets_format}
-
-val_transforms:
-  - _target_: super_gradients.training.transforms.transforms.DetectionPaddedRescale
-    input_dim: ${dataset_params.val_input_dim}
-  - _target_: super_gradients.training.transforms.transforms.DetectionTargetsFormatTransform
-    max_targets: 50
-    output_format: ${dataset_params.targets_format}
-
-val_collate_fn: # collate function for valset
-  _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
-train_collate_fn: # collate function for trainset
-  _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
-
-class_inclusion_list: # If not None,every class not included will be ignored.
-train_max_num_samples: # If not None, only specified number of samples will be loaded in train dataset
-val_max_num_samples:   # If not None, only specified number of samples will be loaded in test dataset
-with_crowd: False # whether to return "crowd" labels in validation
-
-# TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
-
 train_dataset_params:
   data_dir: /data/coco # root path to coco data
   subdir: images/train2017 # sub directory path of data_dir containing the train data.
@@ -92,9 +30,9 @@ train_dataset_params:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
         max_targets: 120
     - DetectionTargetsFormatTransform:
-        output_format:
-          _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat
-          value: LABEL_NORMALIZED_CXCYWH
+        image_shape: ${dataset_params.train_dataset_params.input_dim}
+        max_targets: 50
+        output_format: LABEL_NORMALIZED_CXCYWH
 
   tight_box_rotation: False
   class_inclusion_list:
@@ -127,10 +65,9 @@ val_dataset_params:
     - DetectionPaddedRescale:
         input_dim: ${dataset_params.val_dataset_params.input_dim}
     - DetectionTargetsFormatTransform:
+        image_shape: ${dataset_params.val_dataset_params.input_dim}
         max_targets: 50
-        output_format:
-          _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat
-          value: LABEL_NORMALIZED_CXCYWH
+        output_format: LABEL_NORMALIZED_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:

@@ -83,14 +83,17 @@ class WandBSGLogger(BaseSGLogger):
                 logger.warning(f"WANDB_BASE_URL environment parameter not set to {api_server}. Setting the parameter")
                 os.environ["WANDB_BASE_URL"] = api_server
 
-        wandb_id = None
+        # allow passing an arbitrary pre-defined wandb_id
+        wandb_id = kwargs.pop("wandb_id", None)
         self.resumed = resumed
         if self.resumed:
+            if wandb_id is not None:
+                logger.warning("Resuming the run with a previous WandB ID instead of the one from logger params")
             wandb_id = self._get_wandb_id()
 
         run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
         if save_code:
-            self._save_code()
+            self._save_code_lines()
 
         self._set_wandb_id(run.id)
         self.save_checkpoints_wandb = save_checkpoints_remote
@@ -98,7 +101,7 @@ class WandBSGLogger(BaseSGLogger):
         self.save_logs_wandb = save_logs_remote
 
     @multi_process_safe
-    def _save_code(self):
+    def _save_code_lines(self):
         """
         Save the current code to wandb.
         If a file named .wandbinclude is avilable in the root dir of the project the settings will be taken from the file.

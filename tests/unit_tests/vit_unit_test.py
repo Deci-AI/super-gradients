@@ -30,7 +30,7 @@ class TestViT(unittest.TestCase):
         """
         Validate vit_base
         """
-        trainer = Trainer("test_vit_base", device="cpu")
+        trainer = Trainer("test_vit_base")
         model = models.get("vit_base", arch_params=self.arch_params, num_classes=5)
         trainer.train(
             model=model, training_params=self.train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()

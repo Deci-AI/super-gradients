@@ -35,15 +35,15 @@ train_dataset_params:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
         max_targets: 120
     - DetectionTargetsFormatTransform:
-        output_format:
-          _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
-          value: LABEL_CXCYWH
+        image_shape: ${dataset_params.train_dataset_params.input_dim}
+        output_format: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:
   with_crowd: False
 
 train_dataloader_params:
+  shuffle: True
   batch_size: 16
   num_workers: 8
   batch_sampler: True
@@ -69,10 +69,9 @@ val_dataset_params:
   - DetectionPaddedRescale:
       input_dim: ${dataset_params.val_dataset_params.input_dim}
   - DetectionTargetsFormatTransform:
+      image_shape: ${dataset_params.val_dataset_params.input_dim}
       max_targets: 50
-      output_format:
-        _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
-        value: LABEL_CXCYWH
+      output_format: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:
