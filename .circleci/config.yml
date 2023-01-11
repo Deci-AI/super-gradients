@@ -320,12 +320,14 @@ jobs:
     parameters:
       py_version:
         type: string
+      dev_venv_name:
+        type: string
+        default: "dev-sg-${CIRCLE_BUILD_NUM}"
     docker:
       - image: cimg/python:<< parameters.py_version >>
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
-
       - run:
           name: add requirements.txt and requirements.pro.txt to source code
           command: |
@@ -342,12 +344,11 @@ jobs:
       - deci-common/pip_test_package_installation_codeartifact_dev:
           package_name: "super-gradients"
           version: $CIRCLE_TAG
-          venv_name: dev-sg-test
-
+          venv_name: << parameters.dev_venv_name >>
       - run:
-          name: verify __version__
+          name: verify that the output of __version__ is what we expect
           command: |
-            source
+            . << parameters.dev_venv_name >>-super-gradients-$CIRCLE_TAG/bin/activate
             python3 tests/verify_version.py $CIRCLE_TAG
 
       - deci-common/pip_test_package_installation_codeartifact_prod:
@@ -406,8 +407,6 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
-
-
 
 workflows:
   release:
