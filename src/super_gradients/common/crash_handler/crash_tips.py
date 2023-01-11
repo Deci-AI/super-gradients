@@ -2,6 +2,8 @@ import re
 from typing import Union, Tuple, List, Type
 from types import TracebackType
 
+import omegaconf
+
 from super_gradients.common.crash_handler.utils import indent_string, fmt_txt, json_str_to_dict
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -186,8 +188,32 @@ class WrongHydraVersionTip(CrashTip):
         return [tip]
 
 
+class InterpolationKeyErrorTip(CrashTip):
+    """Note: I think that this should be caught within the code instead"""
+
+    @classmethod
+    def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType):
+        expected_str = "Interpolation key "
+        print("A ", isinstance(exc_value, omegaconf.errors.InterpolationKeyError), expected_str in str(exc_value))
+        print(str(exc_value))
+        return isinstance(exc_value, omegaconf.errors.InterpolationKeyError) and expected_str in str(exc_value)
+
+    @classmethod
+    def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
+        variable = re.search("'(.*?)'", str(exc_value)).group(1)
+        tip = (
+            f"It looks like you encountered an error related to interpolation and the variable '{variable}'.\n"
+            "It's possible that this error is caused by not using the full path of the variable in your subfolder configuration.\n"
+            f"Please make sure that you are referring to the variable using the "
+            f"{fmt_txt('full path starting from the main configuration file', color='green')}.\n"
+            f"Try to replace '{fmt_txt(f'${{{variable}}}', color='red')}' with '{fmt_txt(f'${{full.path.to.{variable}}}', color='green')}', "
+            f"where 'path.to' is the actual path to reach 'x' from the root configuration file.\n"
+        )
+        return [tip]
+
+
 # /!\ Only the CrashTips classes listed below will be used !! /!\
-ALL_CRASH_TIPS: List[Type[CrashTip]] = [TorchCudaMissingTip, RecipeFactoryFormatTip, DDPNotInitializedTip, WrongHydraVersionTip]
+ALL_CRASH_TIPS: List[Type[CrashTip]] = [TorchCudaMissingTip, RecipeFactoryFormatTip, DDPNotInitializedTip, WrongHydraVersionTip, InterpolationKeyErrorTip]
 
 
 def get_relevant_crash_tip_message(exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Union[None, str]:
