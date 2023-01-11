@@ -436,7 +436,7 @@ jobs:
           name: verify __version__
           command: |
             . << parameters.dev_venv_name >>-super-gradients-0.0.999b123/bin/activate
-            python3 tests/verify_version.py 0.0.999b123
+            python3 tests/verify_version.py 3.0.6
 
 
 workflows:
