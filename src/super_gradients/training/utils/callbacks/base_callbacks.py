@@ -350,7 +350,7 @@ class CallbackHandler(Callback):
 
     def on_test_batch_start(self, context):
         for callback in self.callbacks:
-            callback.on_test_batch_end(context)
+            callback.on_test_batch_start(context)
 
     def on_test_batch_end(self, context):
         for callback in self.callbacks:
