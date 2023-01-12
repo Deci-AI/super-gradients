@@ -448,7 +448,6 @@ class Trainer:
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
             if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1:
                 break
-        self.phase_callback_handler.on_train_loader_end(context)
 
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
@@ -1199,7 +1198,6 @@ class Trainer:
                 # Phase.TRAIN_EPOCH_START
                 # RUN PHASE CALLBACKS
                 context.update_context(epoch=epoch)
-
                 self.phase_callback_handler.on_train_loader_start(context)
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
@@ -1649,6 +1647,13 @@ class Trainer:
             keep_model = self.net
             self.net = self.ema_model.ema
 
+        context = PhaseContext(
+            criterion=self.criterion,
+            device=self.device,
+            sg_logger=self.sg_logger,
+            context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
+        )
+
         self._prep_for_test(
             test_loader=test_loader,
             loss=loss,
@@ -1657,6 +1662,7 @@ class Trainer:
             test_phase_callbacks=test_phase_callbacks,
         )
 
+        self.phase_callback_handler.on_test_loader_start(context)
         test_results = self.evaluate(
             data_loader=self.test_loader,
             metrics=self.test_metrics,
@@ -1664,6 +1670,7 @@ class Trainer:
             silent_mode=silent_mode,
             metrics_progress_verbose=metrics_progress_verbose,
         )
+        self.phase_callback_handler.on_test_loader_end(context)
 
         # SWITCH BACK BETWEEN NETS SO AN ADDITIONAL TRAINING CAN BE DONE AFTER TEST
         if use_ema_net and self.ema_model is not None:

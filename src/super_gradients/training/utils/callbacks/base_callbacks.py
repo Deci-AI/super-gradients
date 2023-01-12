@@ -170,6 +170,9 @@ class Callback:
     def on_test_loader_start(self, context):
         pass
 
+    def on_test_batch_start(self, context):
+        pass
+
     def on_test_batch_end(self, context):
         pass
 
@@ -337,6 +340,10 @@ class CallbackHandler(Callback):
     def on_test_loader_start(self, context):
         for callback in self.callbacks:
             callback.on_test_loader_start(context)
+
+    def on_test_batch_start(self, context):
+        for callback in self.callbacks:
+            callback.on_test_batch_end(context)
 
     def on_test_batch_end(self, context):
         for callback in self.callbacks:
