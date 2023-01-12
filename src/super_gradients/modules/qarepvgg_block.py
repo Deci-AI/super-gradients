@@ -180,7 +180,15 @@ class QARepVGGBlock(nn.Module):
         else:
             id_out = self.identity(inputs)
 
-        return self.se(self.nonlinearity(self.post_bn(self.branch_3x3(inputs) + self.alpha * self.branch_1x1(inputs) + id_out)))
+        x_3x3 = self.branch_3x3(inputs)
+        x_1x1 = self.alpha * self.branch_1x1(inputs)
+
+        branches = x_3x3 + x_1x1 + id_out
+
+        out = self.nonlinearity(self.post_bn(branches))
+        se = self.se(out)
+
+        return se
 
     def _get_equivalent_kernel_bias_for_branches(self):
         """
