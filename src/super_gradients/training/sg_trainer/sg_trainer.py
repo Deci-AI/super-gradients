@@ -1750,18 +1750,19 @@ class Trainer:
                 inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
                 # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
+                context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
                 if evaluation_type == EvaluationType.VALIDATION:
                     self.phase_callback_handler.on_validation_batch_start(context)
                 else:
                     self.phase_callback_handler.on_test_batch_start(context)
 
                 output = self.net(inputs)
+                context.update_context(preds=output)
 
                 if self.criterion is not None:
                     # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
                     loss_tuple = self._get_losses(output, targets)[1].cpu()
-
-                context.update_context(batch_idx=batch_idx, inputs=inputs, preds=output, target=targets, loss_log_items=loss_tuple, **additional_batch_items)
+                    context.update_context(loss_log_items=loss_tuple)
 
                 # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
                 if evaluation_type == EvaluationType.VALIDATION:
