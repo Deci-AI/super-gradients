@@ -198,12 +198,12 @@ class InterpolationKeyErrorTip(CrashTip):
     def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
         variable = re.search("'(.*?)'", str(exc_value)).group(1)
         tip = (
-            f"It looks like you encountered an error related to interpolation and the variable '{variable}'.\n"
+            f"It looks like you encountered an error related to interpolation of the variable '{variable}'.\n"
             "It's possible that this error is caused by not using the full path of the variable in your subfolder configuration.\n"
             f"Please make sure that you are referring to the variable using the "
             f"{fmt_txt('full path starting from the main configuration file', color='green')}.\n"
             f"Try to replace '{fmt_txt(f'${{{variable}}}', color='red')}' with '{fmt_txt(f'${{full.path.to.{variable}}}', color='green')}', "
-            f"where 'path.to' is the actual path to reach 'x' from the root configuration file.\n"
+            f"where 'full.path.to' is the actual path to reach 'x', starting from the root configuration file.\n"
         )
         return [tip]
 
