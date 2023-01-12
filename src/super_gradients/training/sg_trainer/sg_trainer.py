@@ -193,6 +193,7 @@ class Trainer:
 
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
+        self.max_train_batches = None
 
     @property
     def device(self) -> str:
@@ -445,7 +446,7 @@ class Trainer:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1:
+            if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1 or self.max_train_batches == batch_idx:
                 break
 
         if not self.ddp_silent_mode:
@@ -965,6 +966,10 @@ class Trainer:
                         percentile: float, percentile value to use when Trainer,quant_modules_calib_method='percentile'.
                          Discarded when other methods are used (Default=99.99).
 
+                -   `max_train_batches`: int, when not None- will break out of inner train loop (i.e iterating over
+                      train_loader) when reaching this number of batches. Usefull for debugging (default=None).
+
+
 
         :return:
         """
@@ -1142,6 +1147,14 @@ class Trainer:
         )
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
+
+        if self.training_params.max_train_batches is not None and (
+            self.training_params.max_train_batches > len(self.train_loader) or self.training_params.max_train_batches <= 0
+        ):
+
+            raise ValueError("max_train_batches must be positive and smaller then len(train_loader).")
+
+        self.max_train_batches = self.training_params.max_train_batches
 
         # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
         self._first_backward = True

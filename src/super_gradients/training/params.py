@@ -68,6 +68,8 @@ DEFAULT_TRAINING_PARAMS = {
     "ckpt_name": "ckpt_latest.pth",
     "resume_strict_load": False,
     "sync_bn": False,
+    "max_train_batches": None,  # When not None- will break out of inner train loop
+    # (i.e iterating over train_loader) when reaching this number of batches.
 }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}
