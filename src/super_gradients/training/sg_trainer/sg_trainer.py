@@ -969,8 +969,11 @@ class Trainer:
                         percentile: float, percentile value to use when Trainer,quant_modules_calib_method='percentile'.
                          Discarded when other methods are used (Default=99.99).
 
-                -   `max_train_batches`: int, when not None- will break out of inner train loop (i.e iterating over
+                -   `max_train_batches`: int, for debug- when not None- will break out of inner train loop (i.e iterating over
                       train_loader) when reaching this number of batches. Usefull for debugging (default=None).
+
+                -   `max_valid_batches`: int, for debug- when not None- will break out of inner valid loop (i.e iterating over
+                      valid_loader) when reaching this number of batches. Usefull for debugging (default=None).
 
 
 
