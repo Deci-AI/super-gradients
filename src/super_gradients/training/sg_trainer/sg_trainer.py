@@ -545,7 +545,6 @@ class Trainer:
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_train_batch_gradient_step_end(context)
-            # self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
 
     def _save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None):
         """
@@ -589,7 +588,6 @@ class Trainer:
             self._save_best_checkpoint(epoch, state)
 
             # RUN PHASE CALLBACKS
-            # self.phase_callback_handler(Phase.VALIDATION_END_BEST_EPOCH, context)
             self.phase_callback_handler.on_validation_end_best_epoch(context)
 
             if isinstance(metric, torch.Tensor):
@@ -1172,7 +1170,6 @@ class Trainer:
             context_methods=self._get_context_methods(Phase.PRE_TRAINING),
             ema_model=self.ema_model,
         )
-        # self.phase_callback_handler(Phase.PRE_TRAINING, context)
         self.phase_callback_handler.on_training_start(context)
 
         first_batch = next(iter(self.train_loader))
