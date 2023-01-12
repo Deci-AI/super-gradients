@@ -128,61 +128,194 @@ class Callback:
 
     """
 
-    def on_training_start(self, context):
+    def on_training_start(self, context: PhaseContext) -> None:
+        """
+        Called once before start of the first epoch
+        At this point, the context argument is guaranteed to have the following attributes:
+        - optimizer
+        - net
+        - checkpoints_dir_path
+        - criterion
+        - sg_logger
+        - train_loader
+        - valid_loader
+        - training_params
+        - checkpoint_params
+        - architecture
+        - arch_params
+        - metric_to_watch
+        - device
+        - ema_model
+
+        :param context:
+        :return:
+        """
         pass
 
-    def on_train_loader_start(self, context):
+    def on_train_loader_start(self, context: PhaseContext) -> None:
+        """
+        Called each epoch at the start of train data loader (before getting the first batch).
+        At this point, the context argument is guaranteed to have the following attributes:
+        - epoch
+        :param context:
+        :return:
+        """
         pass
 
-    def on_train_batch_start(self, context):
+    def on_train_batch_start(self, context: PhaseContext) -> None:
+        """
+        Called at each batch after getting batch of data from data loader and moving it to target device.
+        This event triggered AFTER Trainer.pre_prediction_callback call (If it was defined).
+
+        At this point the context argument is guaranteed to have the following attributes:
+        - batch_idx
+        - inputs
+        - targets
+        - **additional_batch_items
+
+        :param context:
+        :return:
+        """
         pass
 
-    def on_train_batch_loss_end(self, context):
+    def on_train_batch_loss_end(self, context: PhaseContext) -> None:
+        """
+        Called after model forward and loss computation has been done.
+        At this point the context argument is guaranteed to have the following attributes:
+        - preds
+        - loss_log_items
+
+        :param context:
+        :return:
+        """
+
         pass
 
-    def on_train_batch_backward_end(self, context):
+    def on_train_batch_backward_end(self, context: PhaseContext) -> None:
+        """
+        Called after loss.backward() method was called for a given batch
+
+        :param context:
+        :return:
+        """
         pass
 
-    def on_train_batch_gradient_step_start(self, context):
+    def on_train_batch_gradient_step_start(self, context: PhaseContext) -> None:
+        """
+        Called before the graadient step is about to happen.
+        Good place to clip gradients (with respect to scaler), log gradients to data ratio, etc.
+        :param context:
+        :return:
+        """
         pass
 
-    def on_train_batch_gradient_step_end(self, context):
+    def on_train_batch_gradient_step_end(self, context: PhaseContext) -> None:
+        """
+        Called after gradient step has been performed. Good place to update LR (for step-based schedulers)
+        :param context:
+        :return:
+        """
         pass
 
-    def on_train_batch_end(self, context):
+    def on_train_batch_end(self, context: PhaseContext) -> None:
+        """
+        Called after all forward/backward/optimizer steps have been performed for a given batch and there is nothing left to do.
+
+        :param context:
+        :return:
+        """
+
         pass
 
-    def on_train_loader_end(self, context):
+    def on_train_loader_end(self, context: PhaseContext) -> None:
+        """
+        Called each epoch at the end of train data loader (after processing the last batch).
+        :param context:
+        :return:
+        """
+
         pass
 
-    def on_validation_loader_start(self, context):
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
+        """
+        Called each epoch at the start of validation data loader (before getting the first batch).
+        :param context:
+        :return:
+        """
+
         pass
 
-    def on_validation_batch_start(self, context):
+    def on_validation_batch_start(self, context: PhaseContext) -> None:
+        """
+        Called at each batch after getting batch of data from validation loader and moving it to target device.
+        :param context:
+        :return:
+        """
         pass
 
-    def on_validation_batch_end(self, context):
+    def on_validation_batch_end(self, context: PhaseContext) -> None:
+        """
+        Called after all forward step / loss / metric computation have been performed for a given batch and there is nothing left to do.
+        :param context:
+        :return:
+        """
         pass
 
-    def on_validation_loader_end(self, context):
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
+        """
+        Called each epoch at the end of validation data loader (after processing the last batch).
+        :param context:
+        :return:
+        """
         pass
 
-    def on_validation_end_best_epoch(self, context):
+    def on_validation_end_best_epoch(self, context: PhaseContext) -> None:
+        """
+        Called each epoch after validation has been performed and the best metric has been achieved.
+        :param context:
+        :return:
+        """
         pass
 
-    def on_test_loader_start(self, context):
+    def on_test_loader_start(self, context: PhaseContext) -> None:
+        """
+        Called once at the start of test data loader (before getting the first batch).
+        :param context:
+        :return:
+        """
+
         pass
 
-    def on_test_batch_start(self, context):
+    def on_test_batch_start(self, context: PhaseContext) -> None:
+        """
+        Called at each batch after getting batch of data from test loader and moving it to target device.
+        :param context:
+        :return:
+        """
         pass
 
-    def on_test_batch_end(self, context):
+    def on_test_batch_end(self, context: PhaseContext) -> None:
+        """
+        Called after all forward step have been performed for a given batch and there is nothing left to do.
+        :param context:
+        :return:
+        """
         pass
 
-    def on_test_loader_end(self, context):
+    def on_test_loader_end(self, context: PhaseContext) -> None:
+        """
+        Called once at the end of test data loader (after processing the last batch).
+        :param context:
+        :return:
+        """
         pass
 
-    def on_training_end(self, context):
+    def on_training_end(self, context: PhaseContext) -> None:
+        """
+        Called once after the training loop has finished (Due to reaching optimization criterion or because of an error.)
+        :param context:
+        :return:
+        """
         pass
 
 

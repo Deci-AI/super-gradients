@@ -413,11 +413,12 @@ class Trainer:
             batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
             inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
+            if self.pre_prediction_callback is not None:
+                inputs, targets = self.pre_prediction_callback(inputs, targets, batch_idx)
+
             context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
             self.phase_callback_handler.on_train_batch_start(context)
 
-            if self.pre_prediction_callback is not None:
-                inputs, targets = self.pre_prediction_callback(inputs, targets, batch_idx)
             # AUTOCAST IS ENABLED ONLY IF self.training_params.mixed_precision - IF enabled=False AUTOCAST HAS NO EFFECT
             with autocast(enabled=self.training_params.mixed_precision):
                 # FORWARD PASS TO GET NETWORK'S PREDICTIONS
