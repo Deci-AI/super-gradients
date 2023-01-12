@@ -448,7 +448,7 @@ class Trainer:
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
             if (self._infinite_train_loader and batch_idx == len(self.train_loader) - 1) or (
-                self.max_train_batches is not None and self.max_train_batches - 1 == batch_idx
+                self.max_train_batches is not None and self.max_train_batches - 1 >= batch_idx
             ):
                 break
 
@@ -1780,7 +1780,7 @@ class Trainer:
 
                     progress_bar_data_loader.set_postfix(**pbar_message_dict)
 
-                if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 == batch_idx:
+                if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 >= batch_idx:
                     break
 
         # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
