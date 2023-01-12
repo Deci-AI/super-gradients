@@ -1,8 +1,8 @@
-name: 'Release Integration Tests'
+name: 'Release Candidate Integration Tests'
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+rc[0-9]'
+      - '[0-9]+.[0-9]+.[0-9]+rc[0-9]+'
 
 jobs:
   release-integration-tests:
