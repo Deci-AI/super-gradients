@@ -7,9 +7,8 @@ __all__ = ["Phase", "PhaseCallback", "PhaseContext", "CallbackHandler", "Callbac
 class Phase(Enum):
     PRE_TRAINING = "PRE_TRAINING"
     TRAIN_EPOCH_START = "TRAIN_EPOCH_START"
-    TRAIN_BATCH_END = "TRAIN_BATCH_END"  # This event corresponds to forward + loss step
-
-    TRAIN_BATCH_STEP = "TRAIN_BATCH_STEP"  # This event corresponds to gradient update step
+    TRAIN_BATCH_END = "TRAIN_BATCH_END"  # This event corresponds to Callback.on_train_batch_loss_end
+    TRAIN_BATCH_STEP = "TRAIN_BATCH_STEP"  # This event corresponds to Callback.on_train_batch_gradient_step_end
     TRAIN_EPOCH_END = "TRAIN_EPOCH_END"
     VALIDATION_BATCH_END = "VALIDATION_BATCH_END"
     VALIDATION_EPOCH_END = "VALIDATION_EPOCH_END"
@@ -94,14 +93,18 @@ class PhaseContext:
 
 class Callback:
     """
-    Base callback class with all the callback methods:
+    Base callback class with all the callback methods. Derived classes may override one or many of the available events
+    to receive callbacks when such events are triggered by the training loop.
 
-    on_training_start(context)                             # called before training starts, good for setting up the warmup LR
+    The order of the events is as follows:
+
+    on_training_start(context)                              # called once before training starts, good for setting up the warmup LR
 
         for epoch in range(epochs):
             on_train_loader_start(context)
                 for batch in train_loader:
                     on_train_batch_start(context)
+                    on_train_batch_loss_end(context)               # called after loss has been computed
                     on_train_batch_backward_end(context)           # called after .backward() was called
                     on_train_batch_gradient_step_start(context)    # called before the optimizer step about to happen (gradient clipping, logging of gradients)
                     on_train_batch_gradient_step_end(context)      # called after gradient step was done, good place to update LR (for step-based schedulers)
@@ -134,6 +137,9 @@ class Callback:
     def on_train_batch_start(self, context):
         pass
 
+    def on_train_batch_loss_end(self, context):
+        pass
+
     def on_train_batch_backward_end(self, context):
         pass
 
@@ -141,9 +147,6 @@ class Callback:
         pass
 
     def on_train_batch_gradient_step_end(self, context):
-        pass
-
-    def on_train_batch_step(self, context):
         pass
 
     def on_train_batch_end(self, context):
@@ -220,6 +223,10 @@ class PhaseCallback(Callback):
         if self.phase == Phase.TRAIN_EPOCH_START:
             self(context)
 
+    def on_train_batch_loss_end(self, context):
+        if self.phase == Phase.TRAIN_BATCH_END:
+            self(context)
+
     def on_train_batch_gradient_step_end(self, context):
         if self.phase == Phase.TRAIN_BATCH_STEP:
             self(context)
@@ -289,6 +296,10 @@ class CallbackHandler(Callback):
         for callback in self.callbacks:
             callback.on_train_batch_start(context)
 
+    def on_train_batch_loss_end(self, context):
+        for callback in self.callbacks:
+            callback.on_train_batch_loss_end(context)
+
     def on_train_batch_backward_end(self, context):
         for callback in self.callbacks:
             callback.on_train_batch_backward_end(context)
@@ -304,10 +315,6 @@ class CallbackHandler(Callback):
     def on_train_batch_end(self, context):
         for callback in self.callbacks:
             callback.on_train_batch_end(context)
-
-    def on_train_batch_step(self, context):
-        for callback in self.callbacks:
-            callback.on_train_batch_step(context)
 
     def on_validation_loader_start(self, context):
         for callback in self.callbacks:
