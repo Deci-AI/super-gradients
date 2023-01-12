@@ -79,12 +79,11 @@ class MaxBatchesLoopBreakTest(unittest.TestCase):
         trainer.train(
             model=net,
             training_params=train_params,
-            train_loader=classification_test_dataloader(dataset_size=16, batch_size=4),
-            valid_loader=classification_test_dataloader(),
+            train_loader=classification_test_dataloader(),
+            valid_loader=classification_test_dataloader(dataset_size=16, batch_size=4),
         )
 
         # ASSERT LAST BATCH IDX IS 2
-        print(last_batch_collector.last_batch_idx)
         self.assertTrue(last_batch_collector.last_batch_idx == 2)
 
 
