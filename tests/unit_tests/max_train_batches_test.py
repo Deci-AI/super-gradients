@@ -7,8 +7,9 @@ from super_gradients.training.models import LeNet
 
 
 class LastBatchIdxCollector(PhaseCallback):
-    def __init__(self):
-        super().__init__(phase=Phase.TRAIN_BATCH_END)
+    def __init__(self, train: bool = True):
+        phase = Phase.TRAIN_BATCH_END if train else Phase.VALIDATION_BATCH_END
+        super().__init__(phase=phase)
         self.last_batch_idx = 0
 
     def __call__(self, context: PhaseContext):
@@ -16,7 +17,7 @@ class LastBatchIdxCollector(PhaseCallback):
 
 
 class MaxTrainBatchesBreakTest(unittest.TestCase):
-    def test_resume_training(self):
+    def test_max_train_batches_loop_break(self):
         last_batch_collector = LastBatchIdxCollector()
         train_params = {
             "max_epochs": 2,

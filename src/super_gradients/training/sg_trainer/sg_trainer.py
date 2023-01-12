@@ -194,6 +194,7 @@ class Trainer:
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
         self.max_train_batches = None
+        self.max_valid_batches = None
 
     @property
     def device(self) -> str:
@@ -446,7 +447,9 @@ class Trainer:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if (self._infinite_train_loader and batch_idx == len(self.train_loader) - 1) or self.max_train_batches - 1 == batch_idx:
+            if (self._infinite_train_loader and batch_idx == len(self.train_loader) - 1) or (
+                self.max_train_batches is not None and self.max_train_batches - 1 == batch_idx
+            ):
                 break
 
         if not self.ddp_silent_mode:
@@ -1156,6 +1159,13 @@ class Trainer:
 
         self.max_train_batches = self.training_params.max_train_batches
 
+        if self.training_params.max_valid_batches is not None and (
+            self.training_params.max_valid_batches > len(self.valid_loader) or self.training_params.max_valid_batches <= 0
+        ):
+
+            raise ValueError("max_valid_batches must be positive and smaller then len(valid_loader).")
+        self.max_valid_batches = self.training_params.max_valid_batches
+
         # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
         self._first_backward = True
 
@@ -1766,6 +1776,9 @@ class Trainer:
                     pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
                     progress_bar_data_loader.set_postfix(**pbar_message_dict)
+
+                if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 == batch_idx:
+                    break
 
         # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
         if not metrics_progress_verbose:
