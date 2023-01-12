@@ -93,23 +93,23 @@ def check_packages(test_name: str):
         if package_name not in installed_packages.keys():
             error = f"{package_name} required but not found"
             logger.error(msg=format_error_msg(test_name=test_name, error_msg=error))
-        else:
+            continue
 
-            installed_version_str = installed_packages[package_name]
-            for operator_str, req_version_str in requirement.specs:
+        installed_version_str = installed_packages[package_name]
+        for operator_str, req_version_str in requirement.specs:
 
-                installed_version = parse_version(installed_version_str)
-                req_version = parse_version(req_version_str)
-                req_spec = SpecifierSet(operator_str + req_version_str)
+            installed_version = parse_version(installed_version_str)
+            req_version = parse_version(req_version_str)
+            req_spec = SpecifierSet(operator_str + req_version_str)
 
-                if installed_version_str not in req_spec:
-                    error = f"{package_name}=={installed_version} does not satisfy requirement {requirement}"
+            if installed_version_str not in req_spec:
+                error = f"{package_name}=={installed_version} does not satisfy requirement {requirement}"
 
-                    requires_at_least = operator_str in ("==", "~=", ">=", ">")
-                    if requires_at_least and installed_version < req_version:
-                        logger.error(msg=format_error_msg(test_name=test_name, error_msg=error))
-                    else:
-                        logger.debug(msg=error)
+                requires_at_least = operator_str in ("==", "~=", ">=", ">")
+                if requires_at_least and installed_version < req_version:
+                    logger.error(msg=format_error_msg(test_name=test_name, error_msg=error))
+                else:
+                    logger.debug(msg=error)
 
 
 def env_sanity_check():
