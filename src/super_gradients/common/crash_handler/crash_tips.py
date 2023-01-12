@@ -202,8 +202,8 @@ class InterpolationKeyErrorTip(CrashTip):
             "It's possible that this error is caused by not using the full path of the variable in your subfolder configuration.\n"
             f"Please make sure that you are referring to the variable using the "
             f"{fmt_txt('full path starting from the main configuration file', color='green')}.\n"
-            f"Try to replace '{fmt_txt(f'${{{variable}}}', color='red')}' with '{fmt_txt(f'${{full.path.to.{variable}}}', color='green')}', "
-            f"where 'full.path.to' is the actual path to reach 'x', starting from the root configuration file.\n"
+            f"Try to replace '{fmt_txt(f'${{{variable}}}', color='red')}' with '{fmt_txt(f'${{full.path.to.{variable}}}', color='green')}', \n"
+            f"     where 'full.path.to' is the actual path to reach '{variable}', starting from the root configuration file.\n"
             f"Example: '{fmt_txt('${dataset_params.train_dataloader_params.batch_size}', color='green')}' "
             f"instead of '{fmt_txt('${train_dataloader_params.batch_size}', color='red')}'.\n"
         )
