@@ -26,9 +26,10 @@ class PreLaunchCallback:
 
 
 class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
-    def __init__(self, batch_size_start: int = 4096, size_step: int = 1024, num_forward_passes: int = 3):
-        self.batch_size_start = batch_size_start
+    def __init__(self, min_batch_size: int, size_step: int, num_forward_passes: int = 3, max_batch_size=None):
+        self.min_batch_size = min_batch_size
         self.size_step = size_step
+        self.max_batch_size = max_batch_size
         self.num_forward_passes = num_forward_passes
 
     def __call__(self, cfg: DictConfig) -> DictConfig:
@@ -36,7 +37,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
         # IMPORT IS HERE DUE TO CIRCULAR IMPORT PROBLEM
         from super_gradients.training.sg_trainer import Trainer
 
-        curr_batch_size = self.batch_size_start
+        curr_batch_size = self.min_batch_size
         # BUILD NETWORK
         model = models.get(
             model_name=cfg.architecture,
@@ -66,20 +67,13 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
 
             except RuntimeError as e:
                 if "out of memory" in str(e):
-                    if curr_batch_size == self.batch_size_start:
-                        logger.error("Ran out of memory for the smallest batch, try setting smaller batch_size_start.")
+                    if curr_batch_size == self.min_batch_size:
+                        logger.error("Ran out of memory for the smallest batch, try setting smaller min_batch_size.")
                         raise e
                     else:
                         logger.info(f"Ran out of memory for {curr_batch_size}, setting batch size to {curr_batch_size - self.size_step}.")
                         cfg.dataset_params.train_dataloader_params.batch_size = curr_batch_size - self.size_step
-                        for p in model.parameters():
-                            if p.grad is not None:
-                                del p.grad  # free some memory
-                        torch.cuda.empty_cache()
-
-                        # WAIT FOR ALL PROCESSES TO CLEAR THEIR MEMORY BEFORE MOVING ON
-                        if is_distributed():
-                            barrier()
+                        self._clear_model_gpu_mem(model)
                         return cfg
                 else:
                     raise e
@@ -87,11 +81,14 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
             else:
                 logger.info(f"Did not run out of memory for {curr_batch_size}, retrying batch {curr_batch_size + self.size_step}.")
                 curr_batch_size += self.size_step
-                for p in model.parameters():
-                    if p.grad is not None:
-                        del p.grad  # free some memory
-                torch.cuda.empty_cache()
+                self._clear_model_gpu_mem(model)
 
-                # WAIT FOR ALL PROCESSES TO CLEAR THEIR MEMORY BEFORE MOVING ON
-                if is_distributed():
-                    barrier()
+    @classmethod
+    def _clear_model_gpu_mem(cls, model):
+        for p in model.parameters():
+            if p.grad is not None:
+                del p.grad  # free some memory
+        torch.cuda.empty_cache()
+        # WAIT FOR ALL PROCESSES TO CLEAR THEIR MEMORY BEFORE MOVING ON
+        if is_distributed():
+            barrier()
