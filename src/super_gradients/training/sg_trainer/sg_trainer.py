@@ -446,7 +446,7 @@ class Trainer:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1 or self.max_train_batches == batch_idx:
+            if (self._infinite_train_loader and batch_idx == len(self.train_loader) - 1) or self.max_train_batches - 1 == batch_idx:
                 break
 
         if not self.ddp_silent_mode:
