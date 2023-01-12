@@ -204,6 +204,8 @@ class InterpolationKeyErrorTip(CrashTip):
             f"{fmt_txt('full path starting from the main configuration file', color='green')}.\n"
             f"Try to replace '{fmt_txt(f'${{{variable}}}', color='red')}' with '{fmt_txt(f'${{full.path.to.{variable}}}', color='green')}', "
             f"where 'full.path.to' is the actual path to reach 'x', starting from the root configuration file.\n"
+            f"Example: '{fmt_txt('${dataset_params.train_dataloader_params.batch_size}', color='green')}' "
+            f"instead of '{fmt_txt('${train_dataloader_params.batch_size}', color='red')}'.\n"
         )
         return [tip]
 
