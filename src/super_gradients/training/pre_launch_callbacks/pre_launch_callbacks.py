@@ -32,6 +32,8 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
         self.num_forward_passes = num_forward_passes
 
     def __call__(self, cfg: DictConfig) -> DictConfig:
+
+        # IMPORT IS HERE DUE TO CIRCULAR IMPORT PROBLEM
         from super_gradients.training.sg_trainer import Trainer
 
         curr_batch_size = self.batch_size_start
