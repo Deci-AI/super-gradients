@@ -9,7 +9,7 @@ from super_gradients.modules.skip_connections import Residual
 
 class QARepVGGBlock(nn.Module):
     """
-    QARepVGG (S4) block from 'Make RepVGG Greater Again: A Quantization-aware Approach' (https://arxiv.org/pdf/2212.01593.pdf)
+    QARepVGG (S3/S4) block from 'Make RepVGG Greater Again: A Quantization-aware Approach' (https://arxiv.org/pdf/2212.01593.pdf)
     It consists of three branches:
 
     3x3: a branch of a 3x3 Convolution + BatchNorm
@@ -59,9 +59,9 @@ class QARepVGGBlock(nn.Module):
         use_residual_connection: bool = True,
         use_alpha: bool = False,
         use_1x1_bias: bool = True,
+        use_post_bn: bool = True,
     ):
         """
-
         :param in_channels: Number of input channels
         :param out_channels: Number of output channels
         :param activation_type: Type of the nonlinearity
@@ -75,6 +75,7 @@ class QARepVGGBlock(nn.Module):
         :param use_residual_connection: Whether to add input x to the output (Enabled in RepVGG, disabled in PP-Yolo)
         :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch (PP-Yolo-E Plus)
         :param use_1x1_bias: If True, enables bias in the 1x1 convolution, authors don't mention it specifically
+        :param use_post_bn: If True, adds BatchNorm after the sum of three branches (S4), if False, BatchNorm is not added (S3)
         """
         super().__init__()
 
@@ -95,6 +96,7 @@ class QARepVGGBlock(nn.Module):
         self.use_residual_connection = use_residual_connection
         self.use_alpha = use_alpha
         self.use_1x1_bias = use_1x1_bias
+        self.use_post_bn = use_post_bn
 
         self.nonlinearity = activation_type(**activation_kwargs)
         self.se = se_type(**se_kwargs)
@@ -125,7 +127,9 @@ class QARepVGGBlock(nn.Module):
             bias=use_1x1_bias,
         )
 
-        if use_residual_connection and out_channels == in_channels and stride == 1:
+        if use_residual_connection:
+            assert out_channels == in_channels and stride == 1
+
             self.identity = Residual()
 
             input_dim = self.in_channels // self.groups
@@ -141,19 +145,34 @@ class QARepVGGBlock(nn.Module):
         else:
             self.alpha = 1.0
 
-        self.post_bn = nn.BatchNorm2d(num_features=out_channels)
+        if self.use_post_bn:
+            self.post_bn = nn.BatchNorm2d(num_features=out_channels)
+        else:
+            self.post_bn = nn.Identity()
 
-        self.qat_mode = False
-        self.deploy_mode = False
+        # placeholder to correctly register parameters
+        self.rbr_reparam = nn.Conv2d(
+            in_channels=self.branch_3x3.conv.in_channels,
+            out_channels=self.branch_3x3.conv.out_channels,
+            kernel_size=self.branch_3x3.conv.kernel_size,
+            stride=self.branch_3x3.conv.stride,
+            padding=self.branch_3x3.conv.padding,
+            dilation=self.branch_3x3.conv.dilation,
+            groups=self.branch_3x3.conv.groups,
+            bias=True,
+        )
+
+        self.partially_fused = False
+        self.fully_fused = False
 
         if not build_residual_branches:
             self.fuse_block_residual_branches()
 
     def forward(self, inputs):
-        if self.deploy_mode:
+        if self.fully_fused:
             return self.se(self.nonlinearity(self.rbr_reparam(inputs)))
 
-        if self.qat_mode:
+        if self.partially_fused:
             return self.se(self.nonlinearity(self.post_bn(self.rbr_reparam(inputs))))
 
         if self.identity is None:
@@ -209,30 +228,31 @@ class QARepVGGBlock(nn.Module):
 
         return kernel * A_, bias * A + b
 
-    def prepare_for_deploy(self):
+    def full_fusion(self):
         """Fuse everything into Conv-Act-SE, non-trainable, parameters detached
         converts a qarepvgg block from training model (with branches) to deployment mode (vgg like model)
         :return:
         :rtype:
         """
-        if self.deploy_mode:
+        if self.fully_fused:
             return
 
-        if not self.qat_mode:
-            self.prepare_for_qat()
+        if not self.partially_fused:
+            self.partial_fusion()
 
-        eq_kernel, eq_bias = self._fuse_bn_tensor(
-            self.rbr_reparam.weight,
-            self.rbr_reparam.bias,
-            self.post_bn.running_mean,
-            self.post_bn.running_var,
-            self.post_bn.weight,
-            self.post_bn.bias,
-            self.post_bn.eps,
-        )
+        if self.use_post_bn:
+            eq_kernel, eq_bias = self._fuse_bn_tensor(
+                self.rbr_reparam.weight,
+                self.rbr_reparam.bias,
+                self.post_bn.running_mean,
+                self.post_bn.running_var,
+                self.post_bn.weight,
+                self.post_bn.bias,
+                self.post_bn.eps,
+            )
 
-        self.rbr_reparam.weight.data = eq_kernel
-        self.rbr_reparam.bias.data = eq_bias
+            self.rbr_reparam.weight.data = eq_kernel
+            self.rbr_reparam.bias.data = eq_bias
 
         for para in self.parameters():
             para.detach_()
@@ -240,30 +260,21 @@ class QARepVGGBlock(nn.Module):
         if hasattr(self, "post_bn"):
             self.__delattr__("post_bn")
 
-        self.qat_mode = False
-        self.deploy_mode = True
+        self.partially_fused = False
+        self.fully_fused = True
 
-    def prepare_for_qat(self):
+    def partial_fusion(self):
         """Fuse branches into a single kernel, leave post_bn unfused, leave parameters differentiable"""
-        if self.qat_mode:
+        if self.partially_fused:
             return
 
-        if self.deploy_mode:
+        if self.fully_fused:
             # TODO: we actually can, all we need to do is insert the properly initialized post_bn back
             # init is not trivial, so not implemented for now
-            raise NotImplementedError("QARepVGGBlock can't be converted to QAT mode from deploy mode")
+            raise NotImplementedError("QARepVGGBlock can't be converted to partially fused from fully fused")
 
         kernel, bias = self._get_equivalent_kernel_bias_for_branches()
-        self.rbr_reparam = nn.Conv2d(
-            in_channels=self.branch_3x3.conv.in_channels,
-            out_channels=self.branch_3x3.conv.out_channels,
-            kernel_size=self.branch_3x3.conv.kernel_size,
-            stride=self.branch_3x3.conv.stride,
-            padding=self.branch_3x3.conv.padding,
-            dilation=self.branch_3x3.conv.dilation,
-            groups=self.branch_3x3.conv.groups,
-            bias=True,
-        )
+
         self.rbr_reparam.weight.data = kernel
         self.rbr_reparam.bias.data = bias
 
@@ -276,42 +287,11 @@ class QARepVGGBlock(nn.Module):
         if hasattr(self, "id_tensor"):
             self.__delattr__("id_tensor")
 
-        self.qat_mode = True
-        self.deploy_mode = False
+        self.partially_fused = True
+        self.fully_fused = False
 
     def fuse_block_residual_branches(self):
-        self.prepare_for_deploy()
+        self.full_fusion()
 
     def from_repvgg(self, repvgg_block: RepVGGBlock):
-        # src.conv3x3 -> self.conv3x3
-        # src.bn3x3 -> self.bn3x3
-
-        # src.conv1x1+src.bn1x1 -> self.conv1x1
-
-        # fuse(src.ncb) -> self.conv1x1
-        # fuse conv1x1, bn1x1
         raise NotImplementedError
-
-
-if __name__ == "__main__":
-    random_input = torch.randn([32, 3, 64, 64], dtype=torch.float32)
-
-    block = QARepVGGBlock(3, 3, use_1x1_bias=False)
-
-    block.train()
-
-    # collect BN statistics
-    for _ in range(10):
-        block(torch.randn([32, 3, 64, 64], dtype=torch.float32))
-
-    block.eval()
-
-    x_before = block(random_input)
-
-    block.prepare_for_qat()
-    x_after = block(random_input)
-    print((x_before - x_after).abs().sum())  # original RepVGG block has 0.001-0.03 with this use case
-
-    block.prepare_for_deploy()
-    x_after = block(random_input)
-    print((x_before - x_after).abs().sum())
