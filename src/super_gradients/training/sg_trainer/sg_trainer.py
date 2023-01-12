@@ -413,7 +413,7 @@ class Trainer:
             batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
             inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
-            context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets**additional_batch_items)
+            context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
             self.phase_callback_handler.on_train_batch_start(context)
 
             if self.pre_prediction_callback is not None:
