@@ -1648,13 +1648,6 @@ class Trainer:
             keep_model = self.net
             self.net = self.ema_model.ema
 
-        context = PhaseContext(
-            criterion=self.criterion,
-            device=self.device,
-            sg_logger=self.sg_logger,
-            context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
-        )
-
         self._prep_for_test(
             test_loader=test_loader,
             loss=loss,
@@ -1662,6 +1655,15 @@ class Trainer:
             loss_logging_items_names=loss_logging_items_names,
             test_phase_callbacks=test_phase_callbacks,
         )
+
+        context = PhaseContext(
+            criterion=self.criterion,
+            device=self.device,
+            sg_logger=self.sg_logger,
+            context_methods=self._get_context_methods(Phase.TEST_BATCH_END),
+        )
+        if test_metrics_list:
+            context.update_context(test_metrics=self.test_metrics)
 
         self.phase_callback_handler.on_test_loader_start(context)
         test_results = self.evaluate(
