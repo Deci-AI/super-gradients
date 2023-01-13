@@ -3,6 +3,5 @@ from super_gradients.training.losses import LOSSES
 
 
 class LossesFactory(BaseFactory):
-
     def __init__(self):
         super().__init__(LOSSES)

@@ -194,6 +194,8 @@ class Trainer:
 
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
+        self.max_train_batches = None
+        self.max_valid_batches = None
 
     @property
     def device(self) -> str:
@@ -450,7 +452,9 @@ class Trainer:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1:
+            if (self._infinite_train_loader and batch_idx == len(self.train_loader) - 1) or (
+                self.max_train_batches is not None and self.max_train_batches - 1 <= batch_idx
+            ):
                 break
 
         if not self.ddp_silent_mode:
@@ -973,6 +977,13 @@ class Trainer:
                         percentile: float, percentile value to use when Trainer,quant_modules_calib_method='percentile'.
                          Discarded when other methods are used (Default=99.99).
 
+                -   `max_train_batches`: int, for debug- when not None- will break out of inner train loop (i.e iterating over
+                      train_loader) when reaching this number of batches. Usefull for debugging (default=None).
+
+                -   `max_valid_batches`: int, for debug- when not None- will break out of inner valid loop (i.e iterating over
+                      valid_loader) when reaching this number of batches. Usefull for debugging (default=None).
+
+
 
         :return:
         """
@@ -1150,6 +1161,21 @@ class Trainer:
         )
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
+
+        if self.training_params.max_train_batches is not None and (
+            self.training_params.max_train_batches > len(self.train_loader) or self.training_params.max_train_batches <= 0
+        ):
+
+            raise ValueError("max_train_batches must be positive and smaller then len(train_loader).")
+
+        self.max_train_batches = self.training_params.max_train_batches
+
+        if self.training_params.max_valid_batches is not None and (
+            self.training_params.max_valid_batches > len(self.valid_loader) or self.training_params.max_valid_batches <= 0
+        ):
+
+            raise ValueError("max_valid_batches must be positive and smaller then len(valid_loader).")
+        self.max_valid_batches = self.training_params.max_valid_batches
 
         # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
         self._first_backward = True
@@ -1648,13 +1674,6 @@ class Trainer:
             keep_model = self.net
             self.net = self.ema_model.ema
 
-        context = PhaseContext(
-            criterion=self.criterion,
-            device=self.device,
-            sg_logger=self.sg_logger,
-            context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
-        )
-
         self._prep_for_test(
             test_loader=test_loader,
             loss=loss,
@@ -1662,6 +1681,15 @@ class Trainer:
             loss_logging_items_names=loss_logging_items_names,
             test_phase_callbacks=test_phase_callbacks,
         )
+
+        context = PhaseContext(
+            criterion=self.criterion,
+            device=self.device,
+            sg_logger=self.sg_logger,
+            context_methods=self._get_context_methods(Phase.TEST_BATCH_END),
+        )
+        if test_metrics_list:
+            context.update_context(test_metrics=self.test_metrics)
 
         self.phase_callback_handler.on_test_loader_start(context)
         test_results = self.evaluate(
@@ -1778,6 +1806,9 @@ class Trainer:
                     pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
                     progress_bar_data_loader.set_postfix(**pbar_message_dict)
+
+                if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
+                    break
 
         # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
         if not metrics_progress_verbose:
