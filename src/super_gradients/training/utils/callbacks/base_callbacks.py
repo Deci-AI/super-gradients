@@ -5,17 +5,17 @@ __all__ = ["Phase", "PhaseCallback", "PhaseContext", "CallbackHandler", "Callbac
 
 
 class Phase(Enum):
-    PRE_TRAINING = "PRE_TRAINING"
-    TRAIN_EPOCH_START = "TRAIN_EPOCH_START"
+    PRE_TRAINING = "PRE_TRAINING"  # This event corresponds to Callback.on_training_start
+    TRAIN_EPOCH_START = "TRAIN_EPOCH_START"  # This event corresponds to Callback.on_train_loader_start
     TRAIN_BATCH_END = "TRAIN_BATCH_END"  # This event corresponds to Callback.on_train_batch_loss_end
     TRAIN_BATCH_STEP = "TRAIN_BATCH_STEP"  # This event corresponds to Callback.on_train_batch_gradient_step_end
-    TRAIN_EPOCH_END = "TRAIN_EPOCH_END"
-    VALIDATION_BATCH_END = "VALIDATION_BATCH_END"
-    VALIDATION_EPOCH_END = "VALIDATION_EPOCH_END"
-    VALIDATION_END_BEST_EPOCH = "VALIDATION_END_BEST_EPOCH"
-    TEST_BATCH_END = "TEST_BATCH_END"
-    TEST_END = "TEST_END"
-    POST_TRAINING = "POST_TRAINING"
+    TRAIN_EPOCH_END = "TRAIN_EPOCH_END"  # This event corresponds to Callback.on_train_loader_end
+    VALIDATION_BATCH_END = "VALIDATION_BATCH_END"  # This event corresponds to Callback.on_validation_batch_end
+    VALIDATION_EPOCH_END = "VALIDATION_EPOCH_END"  # This event corresponds to Callback.on_validation_loader_end
+    VALIDATION_END_BEST_EPOCH = "VALIDATION_END_BEST_EPOCH"  # This event corresponds to Callback.on_validation_end_best_epoch
+    TEST_BATCH_END = "TEST_BATCH_END"  # This event corresponds to Callback.on_test_batch_end
+    TEST_END = "TEST_END"  # This event corresponds to Callback.on_test_loader_end
+    POST_TRAINING = "POST_TRAINING"  # This event corresponds to Callback.on_training_end
 
 
 class PhaseContext:
@@ -124,8 +124,36 @@ class Callback:
                 on_test_batch_end(context)
         on_test_end(context)
 
-    on_training_end(context)
+    on_training_end(context)                    # called once after training ends.
 
+    Correspondence mapping from the old callback API:
+
+    on_training_start(context)                                 <-> Phase.PRE_TRAINING
+    for epoch in range(epochs):
+        on_train_loader_start(context)                         <-> Phase.TRAIN_EPOCH_START
+            for batch in train_loader:
+                on_train_batch_start(context)
+                on_train_batch_loss_end(context)
+                on_train_batch_backward_end(context)           <-> Phase.TRAIN_BATCH_END
+                on_train_batch_gradient_step_start(context)
+                on_train_batch_gradient_step_end(context)      <-> Phase.TRAIN_BATCH_STEP
+                on_train_batch_end(context)
+        on_train_loader_end(context)                           <-> Phase.TRAIN_EPOCH_END
+
+        on_validation_loader_start(context)
+            for batch in validation_loader:
+                on_validation_batch_start(context)
+                on_validation_batch_end(context)               <-> Phase.VALIDATION_BATCH_END
+        on_validation_loader_end(context)                      <-> Phase.VALIDATION_EPOCH_END
+        on_validation_end_best_epoch(context)                  <-> Phase.VALIDATION_END_BEST_EPOCH
+
+    on_test_start(context)
+        for batch in test_loader:
+            on_test_batch_start(context)
+            on_test_batch_end(context)                         <-> Phase.TEST_BATCH_END
+    on_test_end(context)                                       <-> Phase.TEST_END
+
+    on_training_end(context)                                   <-> Phase.POST_TRAINING
     """
 
     def on_training_start(self, context: PhaseContext) -> None:
@@ -147,6 +175,7 @@ class Callback:
         - device
         - ema_model
 
+        The corresponding Phase enum value for this event is Phase.PRE_TRAINING.
         :param context:
         :return:
         """
@@ -157,6 +186,7 @@ class Callback:
         Called each epoch at the start of train data loader (before getting the first batch).
         At this point, the context argument is guaranteed to have the following attributes:
         - epoch
+        The corresponding Phase enum value for this event is Phase.TRAIN_EPOCH_START.
         :param context:
         :return:
         """
@@ -184,6 +214,7 @@ class Callback:
         At this point the context argument is guaranteed to have the following attributes:
         - preds
         - loss_log_items
+        The corresponding Phase enum value for this event is Phase.TRAIN_BATCH_END.
 
         :param context:
         :return:
@@ -212,6 +243,7 @@ class Callback:
     def on_train_batch_gradient_step_end(self, context: PhaseContext) -> None:
         """
         Called after gradient step has been performed. Good place to update LR (for step-based schedulers)
+        The corresponding Phase enum value for this event is Phase.TRAIN_BATCH_STEP.
         :param context:
         :return:
         """
@@ -230,6 +262,7 @@ class Callback:
     def on_train_loader_end(self, context: PhaseContext) -> None:
         """
         Called each epoch at the end of train data loader (after processing the last batch).
+        The corresponding Phase enum value for this event is Phase.TRAIN_EPOCH_END.
         :param context:
         :return:
         """
@@ -256,6 +289,7 @@ class Callback:
     def on_validation_batch_end(self, context: PhaseContext) -> None:
         """
         Called after all forward step / loss / metric computation have been performed for a given batch and there is nothing left to do.
+        The corresponding Phase enum value for this event is Phase.VALIDATION_BATCH_END.
         :param context:
         :return:
         """
@@ -264,6 +298,7 @@ class Callback:
     def on_validation_loader_end(self, context: PhaseContext) -> None:
         """
         Called each epoch at the end of validation data loader (after processing the last batch).
+        The corresponding Phase enum value for this event is Phase.VALIDATION_EPOCH_END.
         :param context:
         :return:
         """
@@ -272,6 +307,7 @@ class Callback:
     def on_validation_end_best_epoch(self, context: PhaseContext) -> None:
         """
         Called each epoch after validation has been performed and the best metric has been achieved.
+        The corresponding Phase enum value for this event is Phase.VALIDATION_END_BEST_EPOCH.
         :param context:
         :return:
         """
@@ -297,6 +333,7 @@ class Callback:
     def on_test_batch_end(self, context: PhaseContext) -> None:
         """
         Called after all forward step have been performed for a given batch and there is nothing left to do.
+        The corresponding Phase enum value for this event is Phase.TEST_BATCH_END.
         :param context:
         :return:
         """
@@ -305,6 +342,7 @@ class Callback:
     def on_test_loader_end(self, context: PhaseContext) -> None:
         """
         Called once at the end of test data loader (after processing the last batch).
+        The corresponding Phase enum value for this event is Phase.TEST_END.
         :param context:
         :return:
         """
@@ -313,6 +351,7 @@ class Callback:
     def on_training_end(self, context: PhaseContext) -> None:
         """
         Called once after the training loop has finished (Due to reaching optimization criterion or because of an error.)
+        The corresponding Phase enum value for this event is Phase.POST_TRAINING.
         :param context:
         :return:
         """
