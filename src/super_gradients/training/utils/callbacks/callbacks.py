@@ -12,7 +12,7 @@ import onnxruntime
 import torch
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase
+from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 
@@ -301,7 +301,7 @@ class EpochStepWarmupLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs >= context.epoch
 
 
-class BatchStepLinearWarmupLRCallback(LRCallbackBase):
+class BatchStepLinearWarmupLRCallback(Callback):
     """
     LR scheduling callback for linear step warmup on each batch step.
     LR climbs from warmup_initial_lr with to initial lr.
@@ -331,7 +331,7 @@ class BatchStepLinearWarmupLRCallback(LRCallbackBase):
         if lr_warmup_steps is None:
             lr_warmup_steps = int(train_loader_len * lr_warmup_epochs)
 
-        super(BatchStepLinearWarmupLRCallback, self).__init__(Phase.TRAIN_BATCH_STEP, initial_lr=initial_lr, train_loader_len=train_loader_len, **kwargs)
+        super(BatchStepLinearWarmupLRCallback, self).__init__(initial_lr=initial_lr, train_loader_len=train_loader_len, **kwargs)
 
         learning_rates = np.linspace(start=warmup_initial_lr, stop=initial_lr, num=train_loader_len * lr_warmup_epochs, endpoint=True)
 
@@ -344,15 +344,11 @@ class BatchStepLinearWarmupLRCallback(LRCallbackBase):
         self.train_loader_len = train_loader_len
         self.lr_warmup_steps = lr_warmup_steps
 
-    def perform_scheduling(self, context):
+    def on_train_batch_gradient_step_start(self, context: PhaseContext) -> None:
         global_training_step = context.batch_idx + context.epoch * self.train_loader_len
-        self.lr = self.learning_rates[global_training_step]
-        self.update_lr(context.optimizer, context.epoch, None)
-        logger.debug(f"Setting learning rate to for {self.lr:e} at warmup step {global_training_step}")
-
-    def is_lr_scheduling_enabled(self, context):
-        global_training_step = context.batch_idx + context.epoch * self.train_loader_len
-        return global_training_step <= self.lr_warmup_steps
+        if global_training_step < self.lr_warmup_steps:
+            self.lr = self.learning_rates[context.batch_idx]
+            self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
 
 class StepLRCallback(LRCallbackBase):
