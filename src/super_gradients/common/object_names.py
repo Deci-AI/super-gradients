@@ -51,12 +51,12 @@ class Transforms:
     DetectionHSV = "DetectionHSV"
     DetectionHorizontalFlip = "DetectionHorizontalFlip"
     DetectionPaddedRescale = "DetectionPaddedRescale"
-    DetectionTargetsFormat = "DetectionTargetsFormat"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
     RandAugmentTransform = "RandAugmentTransform"
     Lighting = "Lighting"
     RandomErase = "RandomErase"
+    Standardize = "Standardize"
 
     # From torch
     Compose = "Compose"
@@ -253,3 +253,18 @@ class Models:
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
     UNET_CUSTOM = "unet_custom"
     UNET_CUSTOM_CLS = "unet_custom_cls"
+
+
+class ConcatenatedTensorFormats:
+    XYXY_LABEL = "XYXY_LABEL"
+    XYWH_LABEL = "XYWH_LABEL"
+    CXCYWH_LABEL = "CXCYWH_LABEL"
+    LABEL_XYXY = "LABEL_XYXY"
+    LABEL_XYWH = "LABEL_XYWH"
+    LABEL_CXCYWH = "LABEL_CXCYWH"
+    NORMALIZED_XYXY_LABEL = "NORMALIZED_XYXY_LABEL"
+    NORMALIZED_XYWH_LABEL = "NORMALIZED_XYWH_LABEL"
+    NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
+    LABEL_NORMALIZED_XYXY = "LABEL_NORMALIZED_XYXY"
+    LABEL_NORMALIZED_XYWH = "LABEL_NORMALIZED_XYWH"
+    LABEL_NORMALIZED_CXCYWH = "LABEL_NORMALIZED_CXCYWH"

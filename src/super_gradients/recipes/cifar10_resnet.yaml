@@ -24,14 +24,14 @@ resume: False
 training_hyperparams:
   resume: ${resume}
 
-
 ckpt_root_dir:
 
 architecture: resnet18_cifar
 
 experiment_name: resnet18_cifar
 
-
+multi_gpu: Off
+num_gpus: 1
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
   run:

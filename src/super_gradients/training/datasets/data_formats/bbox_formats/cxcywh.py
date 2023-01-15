@@ -4,7 +4,7 @@ from typing import Tuple
 import numpy as np
 import torch
 
-from super_gradients.training.utils.bbox_formats.bbox_format import (
+from super_gradients.training.datasets.data_formats.bbox_formats.bbox_format import (
     BoundingBoxFormat,
 )
 

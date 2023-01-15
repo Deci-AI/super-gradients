@@ -21,3 +21,4 @@ from super_gradients.training.models.all_architectures import ARCHITECTURES, Mod
 from super_gradients.training.models.user_models import *
 from super_gradients.training.models.model_factory import get
 from super_gradients.training.models.arch_params_factory import get_arch_params
+from super_gradients.training.models.conversion import convert_to_onnx, convert_from_config

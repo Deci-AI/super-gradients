@@ -1,0 +1,18 @@
+name: 'Release Integration Tests'
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  release-integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Calling CircleCI job
+        shell: bash
+        run: |
+          curl --request POST \
+            --url https://circleci.com/api/v2/project/gh/Deci-AI/algo-integration-tests/pipeline \
+            --header 'Circle-Token: ${{ secrets.CIRCLE_CI_TOKEN }}' \
+            --header 'content-type: application/json' \
+            --data '{"parameters":{"sg_workflow_sg_version":"${{github.ref_name}}", "sg_workflow_install_from_scratch":true, "sg_workflow_run":true, "sg_workflow_rc":false }}'
