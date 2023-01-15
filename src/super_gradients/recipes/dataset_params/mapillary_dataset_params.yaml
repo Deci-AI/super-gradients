@@ -1,10 +1,10 @@
 config_version: '1.2'
 
-fill_values:
+config_ignore_values:
   '1.2': 65
   '2.0': 123
 
-fill_value: ${choose:${dataset_params.config_version},${dataset_params.fill_values}}
+mask_fill_value: ${choose:${dataset_params.config_version},${dataset_params.config_ignore_values}}
 
 train_dataset_params:
   root_dir: /data/mapillary-vistas-dataset_public_v2.0
@@ -30,7 +30,7 @@ train_dataset_params:
 
     - SegPadShortToCropSize:
         crop_size: 1024
-        fill_mask: ${dataset_params.fill_value}
+        fill_mask: ${dataset_params.mask_fill_value}
 
     - SegCropImageAndMask:
         crop_size: 1024
@@ -49,12 +49,7 @@ val_dataset_params:
 
     - SegPadToDivisible:
         divisible_value: 32
-        fill_mask: ${dataset_params.fill_value}
-
-    - SegCropImageAndMask:
-        crop_size: 512
-        mode: center
-
+        fill_mask: ${dataset_params.mask_fill_value}
 
 train_dataloader_params:
   shuffle: True
@@ -64,6 +59,9 @@ train_dataloader_params:
   pin_memory: True
 
 val_dataloader_params:
+  # Mapillary validation set include various image sizes.
+  # It is recommended to Rescale the long size to 2048 then perform validation.
+  # Unless the default transformation hasn't modified, it is not possible to batch the images to a common size.
   batch_size: 1
   num_workers: 8
   drop_last: False
