@@ -2,7 +2,7 @@ import os
 import logging
 import atexit
 
-
+from super_gradients.common import env_variables
 from super_gradients.common.environment.ddp_utils import multi_process_safe, is_distributed
 from super_gradients.common.crash_handler.exception import ExceptionInfo
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
@@ -41,7 +41,8 @@ def exception_upload_handler(platform_client):
 def setup_pro_user_monitoring() -> bool:
     """Setup the pro user environment for error logging and monitoring"""
     if _imported_deci_lab_failure is None:
-        upload_console_logs = os.getenv("UPLOAD_LOGS", "TRUE") == "TRUE"
+
+        upload_console_logs = env_variables.UPLOAD_LOGS == "TRUE"
         if upload_console_logs:
             logger.info("deci-lab-client package detected. activating automatic log uploading")
             logger.info("If you do not have a deci-lab-client credentials or you wish to disable this feature, please set the env variable UPLOAD_LOGS=FALSE")
@@ -52,7 +53,8 @@ def setup_pro_user_monitoring() -> bool:
 
             logger.info("Connecting to the deci platform ...")
             platform_client = DeciPlatformClient()
-            platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+
+            platform_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
             logger.info("Connection to the deci platform successful!")
 
             atexit.register(exception_upload_handler, platform_client)

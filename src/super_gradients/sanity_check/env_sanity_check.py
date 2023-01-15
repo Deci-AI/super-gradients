@@ -1,5 +1,4 @@
 import logging
-import os
 import sys
 from pip._internal.operations.freeze import freeze
 from typing import List, Dict, Union
@@ -119,7 +118,9 @@ def verify_os() -> List[str]:
 def run_env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
 
-    display_sanity_check = os.getenv("DISPLAY_SANITY_CHECK", "False") == "True"
+    from super_gradients.common import env_variables
+
+    display_sanity_check = env_variables.DISPLAY_SANITY_CHECK == "TRUE"
     stdout_log_level = logging.INFO if display_sanity_check else logging.DEBUG
 
     logger.setLevel(logging.DEBUG)  # We want to log everything regardless of DISPLAY_SANITY_CHECK
@@ -159,11 +160,11 @@ def run_env_sanity_check():
 
     # The last message needs to be displayed independently of DISPLAY_SANITY_CHECK
     if display_sanity_check:
-        logger.info("** This check can be hidden by setting the env variable DISPLAY_SANITY_CHECK=False prior to import. **")
+        logger.info("** This check can be hidden by setting the env variable DISPLAY_SANITY_CHECK=FALSE prior to import. **")
     else:
         logger.info(
             "** A sanity check is done when importing super_gradients for the first time. ** "
-            "-> You can see the details by setting the env variable DISPLAY_SANITY_CHECK=True prior to import."
+            "-> You can see the details by setting the env variable DISPLAY_SANITY_CHECK=TRUE prior to import."
         )
 
 

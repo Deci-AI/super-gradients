@@ -1,8 +1,8 @@
-import os
 import dataclasses
 
 import torch
 
+from super_gradients.common import env_variables
 from super_gradients.common.environment.argparse_utils import pop_local_rank
 
 
@@ -11,8 +11,8 @@ __all__ = ["device_config"]
 
 def _get_assigned_rank() -> int:
     """Get the rank assigned by DDP launcher. If not DDP subprocess, return -1."""
-    if os.getenv("LOCAL_RANK") is not None:
-        return int(os.getenv("LOCAL_RANK"))
+    if env_variables.LOCAL_RANK != -1:
+        return env_variables.LOCAL_RANK
     else:
         return pop_local_rank()
 

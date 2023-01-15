@@ -1,6 +1,6 @@
-import os
 import atexit
 
+from super_gradients.common import env_variables
 from super_gradients.common.crash_handler.exception import ExceptionInfo
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -15,7 +15,7 @@ def crash_tip_handler():
 
 
 def setup_crash_tips() -> bool:
-    if os.getenv("CRASH_HANDLER", "TRUE") != "FALSE":
+    if env_variables.CRASH_HANDLER != "FALSE":
         logger.info("Crash tips is enabled. You can set your environment variable to CRASH_HANDLER=FALSE to disable it")
         atexit.register(crash_tip_handler)
         return True

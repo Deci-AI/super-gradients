@@ -3,6 +3,7 @@ import logging
 import logging.config
 from typing import Union
 
+from super_gradients.common import env_variables
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
 
 
@@ -11,7 +12,8 @@ def get_logger(logger_name: str, log_level: Union[str, None] = None) -> logging.
     logger: logging.Logger = logging.getLogger(logger_name)
     if log_level is not None:
         logger.setLevel(log_level)
-    if int(os.getenv("LOCAL_RANK", -1)) > 0:
+
+    if int(env_variables.LOCAL_RANK) > 0:
         mute_current_process()
     return logger
 
