@@ -41,6 +41,20 @@ class ConcatenatedTensorFormat(DetectionOutputFormat):
     A layout defines the order of concatenated tensors. For instance:
     - layout: (bboxes, scores, labels) gives a Tensor that is product of torch.cat([bboxes, scores, labels], dim=1)
     - layout: (labels, bboxes) produce a Tensor from torch.cat([labels, bboxes], dim=1)
+
+
+    >>> from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+    >>> from super_gradients.training.datasets.data_formats.bbox_formats import XYXYCoordinateFormat, NormalizedXYWHCoordinateFormat
+    >>>
+    >>> custom_format = ConcatenatedTensorFormat(
+    >>>            layout=(
+    >>>                BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
+    >>>                TensorSliceItem(name="label", length=1),
+    >>>                TensorSliceItem(name="distance", length=1),
+    >>>                TensorSliceItem(name="attributes", length=4),
+    >>>            )
+    >>>        )
+
     """
 
     layout: Mapping[str, TensorSliceItem]
