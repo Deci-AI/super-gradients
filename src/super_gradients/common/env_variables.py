@@ -1,0 +1,14 @@
+import os
+
+# Infra
+DECI_PLATFORM_TOKEN = os.getenv("DECI_PLATFORM_TOKEN")
+WANDB_BASE_URL = os.getenv("WANDB_BASE_URL")
+AWS_PROFILE = os.getenv("AWS_PROFILE")
+
+# DDP
+LOCAL_RANK = os.getenv("LOCAL_RANK", -1)
+
+# Turn ON/OFF features
+CRASH_HANDLER = os.getenv("CRASH_HANDLER", "TRUE")
+UPLOAD_LOGS = os.getenv("UPLOAD_LOGS", "TRUE")
+DISPLAY_SANITY_CHECK = os.getenv("DISPLAY_SANITY_CHECK", "FALSE")

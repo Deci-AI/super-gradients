@@ -10,6 +10,7 @@ import torch
 import signal
 from typing import List
 
+from super_gradients.common import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
@@ -250,7 +251,8 @@ class DeciLabUploadCallback(PhaseCallback):
         self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
         self.platform_client = DeciPlatformClient("api.deci.ai", 443, https=True)
-        self.platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+
+        self.platform_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
     @staticmethod
     def log_optimization_failed():

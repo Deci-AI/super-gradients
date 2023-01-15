@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 
+from super_gradients.common import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
@@ -60,7 +61,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         )
 
         self.platform_client = DeciPlatformClient()
-        self.platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+        self.platform_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
         if model_name is None:
             logger.warning(
                 "'model_name' parameter not passed. "
