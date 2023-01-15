@@ -786,7 +786,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
             raise TypeError(
                 "DetectionTargetsFormat is not supported for input_format and output_format starting from super_gradients==3.0.7.\n"
                 "You can either:\n"
-                "\t - use builtin format among super_gradients.training.datasets.data_formats.default_formats.<FORMAT_NAME> (like XYXY_LABEL, CXCY_LABEL, ..)\n"
+                "\t - use builtin format among super_gradients.training.datasets.data_formats.default_formats.<FORMAT_NAME> (e.g. XYXY_LABEL, CXCY_LABEL, ..)\n"
                 "\t - define your custom format using super_gradients.training.datasets.data_formats.formats.ConcatenatedTensorFormat\n"
             )
         self.input_format = input_format
