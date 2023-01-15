@@ -1122,7 +1122,3 @@ class Standardize(torch.nn.Module):
 
     def forward(self, img):
         return img / self.max_val
-
-
-def my_func(input_format: ConcatenatedTensorFormat = XYXY_LABEL):
-    pass
