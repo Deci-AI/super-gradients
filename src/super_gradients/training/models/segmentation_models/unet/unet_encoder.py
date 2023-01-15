@@ -11,7 +11,7 @@ from super_gradients.training.models.classification_models.regnet import XBlock
 from super_gradients.training.models.classification_models.repvgg import RepVGGBlock
 from super_gradients.training.models.segmentation_models.stdc import STDCBlock
 from super_gradients.training.models import SgModule, HpmStruct
-from super_gradients.modules import ConvBNReLU
+from super_gradients.modules import ConvBNReLU, QARepVGGBlock
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.type_factory import TypeFactory
@@ -127,6 +127,28 @@ class RepVGGStage(BackboneStage):
         return nn.Sequential(*blocks)
 
 
+class QARepVGGStage(BackboneStage):
+    """
+    QARepVGG stage with QARepVGGBlock as building block. If `anti_alias=True`, `AntiAliasDownsample` module is used for
+    downsampling.
+    """
+
+    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, **kwargs):
+        blocks = []
+        # Anti alias gaussian down-sampling
+        if anti_alias and stride == 2:
+            blocks.append(AntiAliasDownsample(in_channels, stride))
+            stride = 1
+        # RepVGG blocks
+        blocks.extend(
+            [
+                QARepVGGBlock(in_channels, out_channels, stride=stride, use_residual_connection=False),
+                *[QARepVGGBlock(out_channels, out_channels) for _ in range(num_blocks - 1)],
+            ]
+        )
+        return nn.Sequential(*blocks)
+
+
 class RegnetXStage(BackboneStage):
     """
     RegNetX stage with XBlock as building block.
@@ -169,6 +191,7 @@ class RegnetXStage(BackboneStage):
 class DownBlockType(Enum):
     XBlock = RegnetXStage
     REPVGG = RepVGGStage
+    QAREPVGG = QARepVGGStage
     STDC = STDCStage
 
 
