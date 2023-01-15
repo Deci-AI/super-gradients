@@ -9,5 +9,5 @@ OPTIMIZERS = {
     Optimizers.ADAM: optim.Adam,
     Optimizers.RMS_PROP: optim.RMSprop,
     Optimizers.RMS_PROP_TF: RMSpropTF,
-    Optimizers.LAMB: Lamb
+    Optimizers.LAMB: Lamb,
 }
