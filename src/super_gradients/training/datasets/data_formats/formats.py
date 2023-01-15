@@ -47,13 +47,13 @@ class ConcatenatedTensorFormat(DetectionOutputFormat):
     >>> from super_gradients.training.datasets.data_formats.bbox_formats import XYXYCoordinateFormat, NormalizedXYWHCoordinateFormat
     >>>
     >>> custom_format = ConcatenatedTensorFormat(
-    >>>            layout=(
-    >>>                BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
-    >>>                TensorSliceItem(name="label", length=1),
-    >>>                TensorSliceItem(name="distance", length=1),
-    >>>                TensorSliceItem(name="attributes", length=4),
-    >>>            )
-    >>>        )
+    >>>     layout=(
+    >>>         BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
+    >>>         TensorSliceItem(name="label", length=1),
+    >>>         TensorSliceItem(name="distance", length=1),
+    >>>         TensorSliceItem(name="attributes", length=4),
+    >>>     )
+    >>> )
 
     """
 

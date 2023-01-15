@@ -775,7 +775,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     @resolve_param("output_format", ConcatenatedTensorFormatFactory())
     def __init__(
         self,
-        input_dim: tuple,
+        input_dim: Optional[tuple] = None,
         input_format: ConcatenatedTensorFormat = XYXY_LABEL,
         output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
@@ -784,9 +784,10 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         super(DetectionTargetsFormatTransform, self).__init__()
         if isinstance(input_format, DetectionTargetsFormat) or isinstance(output_format, DetectionTargetsFormat):
             raise TypeError(
-                "input_format and output_format do not support DetectionTargetsFormat anymore, since super_gradients==3.0.7.\n"
-                "Use instead ConcatenatedTensorFormat (check out the doc if you are not familiar). \nBuiltin Formats are already available"
-                "super_gradients.training.datasets.data_formats.default_formats.DEFAULT_CONCATENATED_TENSOR_FORMATS (XYXY_LABEL, LABEL_CXCY, ...)"
+                "DetectionTargetsFormat is not supported for input_format and output_format starting from super_gradients==3.0.7.\n"
+                "You can either:\n"
+                "\t - use builtin format among super_gradients.training.datasets.data_formats.default_formats.<FORMAT_NAME> (like XYXY_LABEL, CXCY_LABEL, ..)\n"
+                "\t - define your custom format using super_gradients.training.datasets.data_formats.formats.ConcatenatedTensorFormat\n"
             )
         self.input_format = input_format
         self.output_format = output_format
@@ -798,7 +799,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
             self._setup_input_dim_related_params(input_dim)
 
     def _setup_input_dim_related_params(self, input_dim: tuple):
-        """This method is meant for backward compatibility."""
+        """Setup all the parameters that are related to input_dim."""
         self.input_dim = input_dim
         self.min_bbox_edge_size = self.min_bbox_edge_size / max(input_dim) if self.output_format.bboxes_format.format.normalized else self.min_bbox_edge_size
         self.targets_format_converter = ConcatenatedTensorFormatConverter(
@@ -807,6 +808,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
 
     def __call__(self, sample: dict) -> dict:
 
+        # if self.input_dim not set yet, it will be set with first batch
         if self.input_dim is None:
             self._setup_input_dim_related_params(input_dim=sample["image"].shape[1:])
 
