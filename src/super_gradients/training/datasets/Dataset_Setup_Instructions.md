@@ -133,6 +133,76 @@ Dataset Structure:
 
 ### Segmentation Datasets
 
+
+<details>
+<summary>Cityscape</summary>
+
+1. Download dataset:
+   - a. cityscape dataset:
+     - gtFine: https://www.cityscapes-dataset.com/file-handling/?packageID=1
+     - leftImg8bit: https://www.cityscapes-dataset.com/file-handling/?packageID=3
+   - b. metadata folder: https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip
+
+
+2. a. Unzip and organize cityscape dataset as below:
+```
+  root_dir (in recipe default to /data/cityscapes)
+      ├─── gtFine
+      │       ├── test
+      │       │     ├── berlin
+      │       │     │   ├── berlin_000000_000019_gtFine_color.png
+      │       │     │   ├── berlin_000000_000019_gtFine_instanceIds.png
+      │       │     │   └── ...
+      │       │     ├── bielefeld
+      │       │     │   └── ...
+      │       │     └── ...
+      │       ├─── train
+      │       │     └── ...
+      │       └─── val
+      │             └── ...
+      └─── leftImg8bit
+              ├── test
+              │     └── ...
+              ├─── train
+              │     └── ...
+              └─── val
+                    └── ...
+```
+
+2. b. Unzip and organize metadata folder as below:
+```
+  lists
+      ├── labels.csv
+      ├── test.lst
+      ├── train.lst
+      ├── trainval.lst
+      └── val.lst
+```
+
+2. c. Move Metadata folder to the Cityscape folder
+```
+  root_dir (in recipe default to /data/cityscapes)
+      ├─── gtFine
+      │      └── ...
+      ├─── leftImg8bit
+      │      └── ...
+      └─── lists
+             └── ...
+```
+
+3. Instantiate the dataset:
+```python
+from super_gradients.training.datasets import CityscapesDataset
+
+train_set = CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.lst', labels_csv_path='lists/labels.csv', ...)
+```
+
+
+
+NOTE: this dataset is only available for training. To test, please use PascalVOC2012SegmentationDataSet.
+ </details>
+
+
 <details>
 <summary>Coco</summary>
 
