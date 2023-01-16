@@ -13,7 +13,6 @@ from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
 
-from super_gradients.common import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.hydra_utils import normalize_path
 
@@ -44,7 +43,6 @@ class DeciClient:
             return
 
         self.lab_client = instantiate_deci_platform_client()
-        self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
         GlobalHydra.instance().clear()
         self.super_gradients_version = "3.0.2"

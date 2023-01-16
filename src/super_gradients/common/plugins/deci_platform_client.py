@@ -16,6 +16,8 @@ def instantiate_deci_platform_client(api_port: int = 443, https: bool = True) ->
     if client_enabled:
         api_host = "api.deci.ai" if env_variables.PROD_ENVIRONMENT else "api.development.deci.ai"
         print(api_host)
-        return DeciPlatformClient(api_host=api_host)  # , api_port=api_port, https=https)
+        client = DeciPlatformClient(api_host=api_host)  # , api_port=api_port, https=https)
+        client.login(token=env_variables.DECI_PLATFORM_TOKEN)
+        return client
     else:
         raise RuntimeError("Trying to instantiate deci_lab_client.client.DeciPlatformClient but deci_lab_client not installed...")
