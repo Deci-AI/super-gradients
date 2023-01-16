@@ -8,7 +8,7 @@ from super_gradients.common.crash_handler.exception import ExceptionInfo
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
 
 try:
-    from deci_lab_client.client import DeciPlatformClient
+    from super_gradients.common.plugins.deci_platform_client import instantiate_deci_platform_client
     from deci_lab_client.types import S3SignedUrl
 
     _imported_deci_lab_failure = None
@@ -52,7 +52,7 @@ def setup_pro_user_monitoring() -> bool:
             os.environ["HYDRA_FULL_ERROR"] = "1"
 
             logger.info("Connecting to the deci platform ...")
-            platform_client = DeciPlatformClient()
+            platform_client = instantiate_deci_platform_client()
 
             platform_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
             logger.info("Connection to the deci platform successful!")

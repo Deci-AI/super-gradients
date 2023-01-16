@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 client_enabled = True
 try:
-    from deci_lab_client.client import DeciPlatformClient
+    from super_gradients.common.plugins.deci_platform_client import instantiate_deci_platform_client
     from deci_common.data_interfaces.files_data_interface import FilesDataInterface
     from deci_lab_client.models import AutoNACFileName
     from deci_lab_client import ApiException
@@ -42,7 +42,7 @@ class DeciClient:
             )
             return
 
-        self.lab_client = DeciPlatformClient()
+        self.lab_client = instantiate_deci_platform_client()
         GlobalHydra.instance().clear()
         self.super_gradients_version = None
         try:

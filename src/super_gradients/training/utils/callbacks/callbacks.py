@@ -19,7 +19,7 @@ import cv2
 logger = get_logger(__name__)
 
 try:
-    from deci_lab_client.client import DeciPlatformClient
+    from super_gradients.common.plugins.deci_platform_client import instantiate_deci_platform_client
     from deci_lab_client.models import ModelBenchmarkState
 
     _imported_deci_lab_failure = None
@@ -250,7 +250,7 @@ class DeciLabUploadCallback(PhaseCallback):
         self.optimization_request_form = optimization_request_form
         self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
-        self.platform_client = DeciPlatformClient("api.deci.ai", 443, https=True)
+        self.platform_client = instantiate_deci_platform_client()
 
         self.platform_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
