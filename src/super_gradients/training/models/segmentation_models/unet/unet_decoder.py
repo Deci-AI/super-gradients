@@ -5,7 +5,7 @@ from enum import Enum
 import torch.nn as nn
 import torch
 
-from super_gradients.modules import ConvBNReLU
+from super_gradients.modules import ConvBNReLU, CrossModelSkipConnection
 from super_gradients.training.utils.module_utils import make_upsample_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.list_factory import ListFactory
@@ -128,7 +128,7 @@ class Decoder(nn.Module):
 
     def _make_skip_projection(self, skip_channels_list: list, skip_expansion: float, is_skip_list: list, min_decoder_channels: int):
         if skip_expansion == 1.0:
-            return nn.ModuleList([nn.Identity()] * len(skip_channels_list)), skip_channels_list
+            return nn.ModuleList([CrossModelSkipConnection()] * len(skip_channels_list)), skip_channels_list
 
         projection_channels = [max(int(ch * skip_expansion), min_decoder_channels) for ch in skip_channels_list]
         blocks = nn.ModuleList()

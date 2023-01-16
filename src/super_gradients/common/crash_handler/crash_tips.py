@@ -17,6 +17,17 @@ class CrashTip:
     A tip is a more informative message with some suggestions for possible solutions or places to debug.
     """
 
+    _subclasses: List[Type["CrashTip"]] = []
+
+    @classmethod
+    def get_sub_classes(cls) -> List[Type["CrashTip"]]:
+        """Get all the classes inheriting from CrashTip"""
+        return cls._subclasses
+
+    def __init_subclass__(cls):
+        """Register any class inheriting from CrashTip"""
+        CrashTip._subclasses.append(cls)
+
     @classmethod
     def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> bool:
         """
@@ -210,13 +221,9 @@ class InterpolationKeyErrorTip(CrashTip):
         return [tip]
 
 
-# /!\ Only the CrashTips classes listed below will be used !! /!\
-ALL_CRASH_TIPS: List[Type[CrashTip]] = [TorchCudaMissingTip, RecipeFactoryFormatTip, DDPNotInitializedTip, WrongHydraVersionTip, InterpolationKeyErrorTip]
-
-
 def get_relevant_crash_tip_message(exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Union[None, str]:
     """Get a CrashTip class if relevant for input exception"""
-    for crash_tip in ALL_CRASH_TIPS:
+    for crash_tip in CrashTip.get_sub_classes():
         if crash_tip.is_relevant(exc_type, exc_value, exc_traceback):
             return crash_tip.get_message(exc_type, exc_value, exc_traceback)
     return None
