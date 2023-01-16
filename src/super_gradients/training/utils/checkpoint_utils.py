@@ -216,7 +216,7 @@ def load_checkpoint_to_model(
     checkpoint = read_ckpt_state_dict(ckpt_path=ckpt_local_path)
 
     if load_ema_as_net:
-        if checkpoint.get("ema_net") is not None:
+        if checkpoint.get("ema_net") is None:
             raise ValueError("Can't load ema network- no EMA network stored in checkpoint file")
         else:
             checkpoint["net"] = checkpoint["ema_net"]
