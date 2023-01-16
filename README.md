@@ -6,34 +6,6 @@
 [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Easily%20train%20or%20fine-tune%20SOTA%20computer%20vision%20models%20from%20one%20training%20repository&url=https://github.com/Deci-AI/super-gradients&via=deci_ai&hashtags=AI,deeplearning,computervision,training,opensource)
 
 #### Version 3 is out! Notebooks have been updated!
-______________________________________________________________________
-  
-  <p align="center">
-  <a href="https://www.supergradients.com/">Website</a> •
-  <a href="https://deci-ai.github.io/super-gradients/welcome.html">Docs</a> •
-  <a href="#getting-started">Getting Started</a> •
-  <a href="#implemented-model-architectures">Pretrained Models</a> •
-  <a href="#community">Community</a> •
-  <a href="#license">License</a> •
-  <a href="#deci-platform">Deci Platform</a>
-</p>
-<p align="center">
-  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
-  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
-  <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
-  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-34-brightgreen" />
-  <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
-  <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
-  <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
-  <a href="https://deci-ai.github.io/super-gradients/welcome.html"><img src="https://img.shields.io/badge/docs-sphinx-brightgreen" />
-</p>    
-</div>
-
-## Build with SuperGradients
-__________________________________________________________________________________________________________
-
-### Support various computer vision tasks
-<div align="center">
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Segmentation 1500x900 .png" width="250px">
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Object detection 1500X900.png" width="250px">
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Classification 1500x900.png" width="250px">
