@@ -16,17 +16,18 @@ class EarlyStop(PhaseCallback):
     mode_dict = {"min": torch.lt, "max": torch.gt}
     supported_phases = (Phase.VALIDATION_EPOCH_END, Phase.TRAIN_EPOCH_END)
 
-    def __init__(self,
-                 phase: Phase,
-                 monitor: str,
-                 mode: str = "min",
-                 min_delta: float = 0.0,
-                 patience: int = 3,
-                 check_finite: bool = True,
-                 threshold: Optional[float] = None,
-                 verbose: bool = False,
-                 strict: bool = True
-                 ):
+    def __init__(
+        self,
+        phase: Phase,
+        monitor: str,
+        mode: str = "min",
+        min_delta: float = 0.0,
+        patience: int = 3,
+        check_finite: bool = True,
+        threshold: Optional[float] = None,
+        verbose: bool = False,
+        strict: bool = True,
+    ):
         """
 
         :param phase: Callback phase event.
@@ -47,8 +48,7 @@ class EarlyStop(PhaseCallback):
         super(EarlyStop, self).__init__(phase)
 
         if phase not in self.supported_phases:
-            raise ValueError(f"EarlyStop doesn't support phase: {phase}, "
-                             f"excepted {', '.join([str(x) for x in self.supported_phases])}")
+            raise ValueError(f"EarlyStop doesn't support phase: {phase}, " f"excepted {', '.join([str(x) for x in self.supported_phases])}")
         self.phase = phase
         self.monitor_key = monitor
         self.min_delta = min_delta
@@ -83,18 +83,13 @@ class EarlyStop(PhaseCallback):
         if self.check_finite and not torch.isfinite(current):
             should_stop = True
             reason = (
-                f"Monitored metric {self.monitor_key} = {current} is not finite."
-                f" Previous best value was {self.best_score:.3f}. Signaling Trainer to stop."
+                f"Monitored metric {self.monitor_key} = {current} is not finite." f" Previous best value was {self.best_score:.3f}. Signaling Trainer to stop."
             )
 
         # check if current value reached threshold value
         elif self.threshold is not None and self.monitor_op(current, self.threshold):
             should_stop = True
-            reason = (
-                "Stopping threshold reached:"
-                f" {self.monitor_key} = {current} {self.monitor_op} {self.threshold}."
-                " Signaling Trainer to stop."
-            )
+            reason = "Stopping threshold reached:" f" {self.monitor_key} = {current} {self.monitor_op} {self.threshold}." " Signaling Trainer to stop."
 
         # check if current is an improvement of monitor_key metric.
         elif self.monitor_op(current - self.min_delta, self.best_score.to(current.device)):
@@ -147,4 +142,5 @@ class MissingMonitorKeyException(Exception):
     """
     Exception raised for missing monitor key in metrics_dict.
     """
+
     pass
