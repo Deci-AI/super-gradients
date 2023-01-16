@@ -34,9 +34,9 @@ ________________________________________________________________________________
 
 ### Support various computer vision tasks
 <div align="center">
-<img src="./docs/assets/SG_img/Segmentation 1500x900 .png" width="250px">
-<img src="./docs/assets/SG_img/Object detection 1500X900.png" width="250px">
-<img src="./docs/assets/SG_img/Classification 1500x900.png" width="250px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Segmentation 1500x900 .png" width="250px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Object detection 1500X900.png" width="250px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Classification 1500x900.png" width="250px">
 </div>
 
 
@@ -321,7 +321,7 @@ init_trainer()
 setup_device(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
 
 # Call the trainer
-Trainer(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, expriment_name=...)
+Trainer(expriment_name=...)
 
 # Everything you do below will run on 4 gpus
 
