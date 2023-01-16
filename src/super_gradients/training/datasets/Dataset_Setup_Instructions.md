@@ -198,8 +198,6 @@ train_set = CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.ls
 ```
 
 
-
-NOTE: this dataset is only available for training. To test, please use PascalVOC2012SegmentationDataSet.
  </details>
 
 
