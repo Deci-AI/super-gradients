@@ -119,6 +119,13 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
                     raise e
 
             else:
+                if self.max_batch_size is not None and curr_batch_size >= self.max_batch_size:
+                    logger.info(
+                        f"Did not run out of memory for {curr_batch_size} >= max_batch_size={self.max_batch_size}, " f"setting batch to {self.max_batch_size}."
+                    )
+                    cfg.dataset_params.train_dataloader_params.batch_size = self.max_batch_size
+                    self._clear_model_gpu_mem(model)
+                    return cfg
                 logger.info(f"Did not run out of memory for {curr_batch_size}, retrying batch {curr_batch_size + self.size_step}.")
                 curr_batch_size += self.size_step
                 self._clear_model_gpu_mem(model)
