@@ -8,8 +8,8 @@ parameters:
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
-    default: "10.3.1"
-#    default: "dev:alpha"
+#    default: "10.3.1"
+    default: "dev:alpha"
 
 orbs:
   deci-common: deci-ai/circleci-common-orb@<< pipeline.parameters.orb_version >>
@@ -87,6 +87,7 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
+          skip_md_files: true
       - deci-common/get_persisted_version_info
       - when:
           condition:
@@ -299,6 +300,8 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
+          skip_md_files: true
+
       - deci-common/get_persisted_version_info
       - run:
           name: edit package version
@@ -329,6 +332,7 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
+          skip_md_files: true
       - run:
           name: add requirements.txt and requirements.pro.txt to source code
           command: |
