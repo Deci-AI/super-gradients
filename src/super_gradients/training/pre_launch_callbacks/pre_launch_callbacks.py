@@ -55,7 +55,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
 
     :param min_batch_size: int, the first batch size to try running forward passes. Should fit memory.
 
-    :param size_step: int, the difference between 2 consecutive batch_ssize trials.
+    :param size_step: int, the difference between 2 consecutive batch_size trials.
 
     :param num_forward_passes: int, number of forward passes (i.e train_loader data iterations inside an epoch).
      Note that the more forward passes being done, the less the selected batch size is prawn to fail. This is because
@@ -64,9 +64,13 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
 
     :param max_batch_size: int, optional, upper limit of the batch sizes to try. When None, the search will continue until
      the maximal batch size that does not raise CUDA OUT OF MEMORY is found (deafult=None).
+
+    :param scale_lr: bool, whether to linearly scale cfg.training_hyperparams.initial_lr, i.e multiply by
+     FOUND_BATCH_SIZE/cfg.dataset_params.train_datalaoder_params.batch_size (default=True)
     """
 
-    def __init__(self, min_batch_size: int, size_step: int, num_forward_passes: int = 3, max_batch_size=None):
+    def __init__(self, min_batch_size: int, size_step: int, num_forward_passes: int = 3, max_batch_size=None, scale_lr: bool = True):
+        self.scale_lr = scale_lr
         self.min_batch_size = min_batch_size
         self.size_step = size_step
         self.max_batch_size = max_batch_size
@@ -112,6 +116,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
                         raise e
                     else:
                         logger.info(f"Ran out of memory for {curr_batch_size}, setting batch size to {curr_batch_size - self.size_step}.")
+                        self._adapt_lr_if_needed(cfg, found_batch_size=curr_batch_size - self.size_step)
                         cfg.dataset_params.train_dataloader_params.batch_size = curr_batch_size - self.size_step
                         self._clear_model_gpu_mem(model)
                         return cfg
@@ -123,12 +128,19 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
                     logger.info(
                         f"Did not run out of memory for {curr_batch_size} >= max_batch_size={self.max_batch_size}, " f"setting batch to {self.max_batch_size}."
                     )
+                    self._adapt_lr_if_needed(cfg, found_batch_size=self.max_batch_size)
                     cfg.dataset_params.train_dataloader_params.batch_size = self.max_batch_size
                     self._clear_model_gpu_mem(model)
                     return cfg
                 logger.info(f"Did not run out of memory for {curr_batch_size}, retrying batch {curr_batch_size + self.size_step}.")
                 curr_batch_size += self.size_step
                 self._clear_model_gpu_mem(model)
+
+    def _adapt_lr_if_needed(self, cfg: DictConfig, found_batch_size: int) -> DictConfig:
+        if self.scale_lr:
+            scale_factor = found_batch_size / cfg.dataset_params.train_dataloader_params.batch_size
+            cfg.training_hyperparams.initial_lr = cfg.training_hyperparams.initial_lr * scale_factor
+        return cfg
 
     @classmethod
     def _clear_model_gpu_mem(cls, model):
