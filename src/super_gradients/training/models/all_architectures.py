@@ -14,7 +14,7 @@ from super_gradients.training.models.detection_models.csp_darknet53 import CSPDa
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
-from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
+from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23, DDRNet39
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, ShelfNet503343, ShelfNet101
 from super_gradients.training.models.segmentation_models.stdc import STDC1Classification, STDC2Classification, STDC1Seg, STDC2Seg, STDCSegmentationBase
@@ -100,6 +100,7 @@ ARCHITECTURES = {
     Models.REPVGG_CUSTOM: repvgg.RepVggCustom,
     Models.DDRNET_23: DDRNet23,
     Models.DDRNET_23_SLIM: DDRNet23Slim,
+    Models.DDRNET_39: DDRNet39,
     Models.CUSTOM_DDRNET_23: AnyBackBoneDDRNet23,
     Models.STDC1_CLASSIFICATION: STDC1Classification,
     Models.STDC2_CLASSIFICATION: STDC2Classification,
