@@ -305,41 +305,44 @@ class BatchStepLinearWarmupLRCallback(Callback):
     """
     LR scheduling callback for linear step warmup on each batch step.
     LR climbs from warmup_initial_lr with to initial lr.
-
     """
 
-    def __init__(self, warmup_initial_lr: float, initial_lr: float, lr_warmup_epochs: int, train_loader_len: int, lr_warmup_steps: int = None, **kwargs):
+    def __init__(
+        self,
+        warmup_initial_lr: float,
+        initial_lr: float,
+        train_loader_len: int,
+        update_param_groups: bool,
+        lr_warmup_steps: int,
+        training_params,
+        net,
+        **kwargs,
+    ):
         """
 
         :param warmup_initial_lr: Starting learning rate
         :param initial_lr: Target learning rate after warmup
-        :param lr_warmup_epochs: Number of epochs to perform warmup. For fixed number of steps use lr_warmup_steps argument.
         :param train_loader_len: Length of train data loader
         :param lr_warmup_steps: Optional. If passed, will use fixed number of warmup steps to warmup LR. Default is None.
         :param kwargs:
         """
-        if lr_warmup_epochs is None and lr_warmup_steps is None:
-            raise RuntimeError("Either lr_warmup_epochs or lr_warmup_steps argument must be passed to LinearWarmupLRCallback. Both arguments are None")
 
-        if lr_warmup_epochs is not None and lr_warmup_steps is not None:
+        super(BatchStepLinearWarmupLRCallback, self).__init__()
+
+        if lr_warmup_steps > train_loader_len:
             logger.warning(
-                f"Both lr_warmup_epochs and lr_warmup_steps arguments are passed to LinearWarmupLRCallback. "
-                f"A lr_warmup_steps({lr_warmup_steps}) will overtake. "
-                f"To remove this warning please remove either `lr_warmup_steps` or `lr_warmup_epochs` from your config file."
+                f"Number of warmup steps ({lr_warmup_steps}) is greater than number of steps in epoch ({train_loader_len}). "
+                f"Warmup steps will be capped to number of steps in epoch to avoid interfering with any pre-epoch LR schedulers."
             )
 
-        if lr_warmup_steps is None:
-            lr_warmup_steps = int(train_loader_len * lr_warmup_epochs)
+        lr_warmup_steps = min(lr_warmup_steps, train_loader_len)
+        learning_rates = np.linspace(start=warmup_initial_lr, stop=initial_lr, num=lr_warmup_steps, endpoint=True)
 
-        super(BatchStepLinearWarmupLRCallback, self).__init__(initial_lr=initial_lr, train_loader_len=train_loader_len, **kwargs)
-
-        learning_rates = np.linspace(start=warmup_initial_lr, stop=initial_lr, num=train_loader_len * lr_warmup_epochs, endpoint=True)
-
-        logger.info(
-            f"Instantiating LinearWarmupLRCallback. "
-            f"Warmup scaling LR from {warmup_initial_lr:e} to {initial_lr:e} across {lr_warmup_steps} steps / {lr_warmup_steps} / {train_loader_len} epoch(s))."
-        )
-
+        self.lr = initial_lr
+        self.initial_lr = initial_lr
+        self.update_param_groups = update_param_groups
+        self.training_params = training_params
+        self.net = net
         self.learning_rates = learning_rates
         self.train_loader_len = train_loader_len
         self.lr_warmup_steps = lr_warmup_steps
@@ -347,8 +350,24 @@ class BatchStepLinearWarmupLRCallback(Callback):
     def on_train_batch_gradient_step_start(self, context: PhaseContext) -> None:
         global_training_step = context.batch_idx + context.epoch * self.train_loader_len
         if global_training_step < self.lr_warmup_steps:
-            self.lr = self.learning_rates[context.batch_idx]
+            self.lr = self.learning_rates[global_training_step]
             self.update_lr(context.optimizer, context.epoch, context.batch_idx)
+
+    def update_lr(self, optimizer, epoch, batch_idx=None):
+        """
+        Same as in LRCallbackBase
+        :param optimizer:
+        :param epoch:
+        :param batch_idx:
+        :return:
+        """
+        if self.update_param_groups:
+            param_groups = self.net.module.update_param_groups(optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len)
+            optimizer.param_groups = param_groups
+        else:
+            # UPDATE THE OPTIMIZERS PARAMETER
+            for param_group in optimizer.param_groups:
+                param_group["lr"] = self.lr
 
 
 class StepLRCallback(LRCallbackBase):

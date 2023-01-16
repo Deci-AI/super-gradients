@@ -1090,14 +1090,19 @@ class Trainer:
                     **self.training_params.to_dict(),
                 )
             )
-        if self.training_params.lr_warmup_epochs > 0:
-            warmup_mode = self.training_params.warmup_mode
-            if isinstance(warmup_mode, str):
-                warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
-            elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
-                warmup_callback_cls = warmup_mode
-            else:
-                raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
+
+        warmup_mode = self.training_params.warmup_mode
+        warmup_callback_cls = None
+        if isinstance(warmup_mode, str):
+            warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
+        elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
+            warmup_callback_cls = warmup_mode
+        elif warmup_mode is not None:
+            pass
+        else:
+            raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
+
+        if warmup_callback_cls is not None:
             self.phase_callbacks.append(
                 warmup_callback_cls(
                     train_loader_len=len(self.train_loader),
