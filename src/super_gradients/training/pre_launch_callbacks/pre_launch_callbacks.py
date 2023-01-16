@@ -26,6 +26,46 @@ class PreLaunchCallback:
 
 
 class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
+    """
+    AutoTrainBatchSizeSelectionCallback
+
+    Modifies cfg.dataset_params.train_dataloader_params.batch_size by searching for the maximal batch size that fits
+     gpu memory. Works out of the box for DDP.
+
+    The search is done by running a few forward passes for increasing batch sizes, until CUDA OUT OF MEMORY is raised:
+
+        For batch_size in range(min_batch_size:max_batch_size:size_step):
+            if batch_size raises CUDA OUT OF MEMORY ERROR:
+                return batch_size-size_step
+        return batch_size
+
+    Example usage: Inside the main recipe .YAML file (for example super_gradients/recipes/cifar10_resnet.yaml),
+     add the following:
+
+    pre_launch_callbacks_list:
+        - AutoTrainBatchSizeSelectionCallback:
+            min_batch_size: 128
+            size_step: 64
+            num_forward_passes: 10
+
+    Then, when running super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=...
+    this pre_launch_callback will modify cfg.dataset_params.train_dataloader_params.batch_size then pass cfg to
+     Trainer.train_from_config(cfg) and training will continue with the selected batch size.
+
+
+    :param min_batch_size: int, the first batch size to try running forward passes. Should fit memory.
+
+    :param size_step: int, the difference between 2 consecutive batch_ssize trials.
+
+    :param num_forward_passes: int, number of forward passes (i.e train_loader data iterations inside an epoch).
+     Note that the more forward passes being done, the less the selected batch size is prawn to fail. This is because
+      other then gradients, model computations, data and other fixed gpu memory that is being used- some more gpu memory
+       might be used by the metric objects and PhaseCallbacks.
+
+    :param max_batch_size: int, optional, upper limit of the batch sizes to try. When None, the search will continue until
+     the maximal batch size that does not raise CUDA OUT OF MEMORY is found (deafult=None).
+    """
+
     def __init__(self, min_batch_size: int, size_step: int, num_forward_passes: int = 3, max_batch_size=None):
         self.min_batch_size = min_batch_size
         self.size_step = size_step
