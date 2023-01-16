@@ -7,7 +7,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import torch
 
-from super_gradients.common import env_variables
+from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger

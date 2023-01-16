@@ -2,7 +2,7 @@ import dataclasses
 
 import torch
 
-from super_gradients.common import env_variables
+from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.environment.argparse_utils import pop_local_rank
 
 
@@ -21,7 +21,7 @@ def _get_assigned_rank() -> int:
 class DeviceConfig:
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     multi_gpu: str = None
-    assigned_rank: str = dataclasses.field(default=_get_assigned_rank(), init=False)
+    assigned_rank: int = dataclasses.field(default=_get_assigned_rank(), init=False)
 
 
 # Singleton holding the device information

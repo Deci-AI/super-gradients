@@ -3,7 +3,7 @@ import logging
 import logging.config
 from typing import Union
 
-from super_gradients.common import env_variables
+from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
 
 
