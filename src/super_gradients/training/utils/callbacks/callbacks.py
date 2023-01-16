@@ -347,7 +347,7 @@ class BatchStepLinearWarmupLRCallback(Callback):
         self.train_loader_len = train_loader_len
         self.lr_warmup_steps = lr_warmup_steps
 
-    def on_train_batch_gradient_step_start(self, context: PhaseContext) -> None:
+    def on_train_batch_start(self, context: PhaseContext) -> None:
         global_training_step = context.batch_idx + context.epoch * self.train_loader_len
         if global_training_step < self.lr_warmup_steps:
             self.lr = self.learning_rates[global_training_step]
