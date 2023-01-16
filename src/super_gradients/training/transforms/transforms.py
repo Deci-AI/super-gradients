@@ -11,7 +11,7 @@ import cv2
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
@@ -764,8 +764,8 @@ class DetectionTargetsFormatTransform(DetectionTransform):
 
     Convert targets in input_format to output_format, filter small bboxes and pad targets.
     Attributes:
-        image_shape:        Shape of the images to transform.
-        input_format:       Format of the input targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL
+        input_dim:          Shape of the images to transform.
+        input_format:       Format of the input targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL.
         output_format:      Format of the output targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL
         min_bbox_edge_size: bboxes with edge size lower then this values will be removed.
         max_targets:        Max objects in single image, padding target to this size.
@@ -775,20 +775,43 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     @resolve_param("output_format", ConcatenatedTensorFormatFactory())
     def __init__(
         self,
-        image_shape: tuple,
+        input_dim: Optional[tuple] = None,
         input_format: ConcatenatedTensorFormat = XYXY_LABEL,
         output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
         max_targets: int = 120,
     ):
         super(DetectionTargetsFormatTransform, self).__init__()
+        if isinstance(input_format, DetectionTargetsFormat) or isinstance(output_format, DetectionTargetsFormat):
+            raise TypeError(
+                "DetectionTargetsFormat is not supported for input_format and output_format starting from super_gradients==3.0.7.\n"
+                "You can either:\n"
+                "\t - use builtin format among super_gradients.training.datasets.data_formats.default_formats.<FORMAT_NAME> (e.g. XYXY_LABEL, CXCY_LABEL, ..)\n"
+                "\t - define your custom format using super_gradients.training.datasets.data_formats.formats.ConcatenatedTensorFormat\n"
+            )
         self.input_format = input_format
         self.output_format = output_format
         self.max_targets = max_targets
-        self.min_bbox_edge_size = min_bbox_edge_size / max(image_shape) if output_format.bboxes_format.format.normalized else min_bbox_edge_size
-        self.targets_format_converter = ConcatenatedTensorFormatConverter(input_format=input_format, output_format=output_format, image_shape=image_shape)
+        self.min_bbox_edge_size = min_bbox_edge_size
+        self.input_dim = None
+
+        if input_dim is not None:
+            self._setup_input_dim_related_params(input_dim)
+
+    def _setup_input_dim_related_params(self, input_dim: tuple):
+        """Setup all the parameters that are related to input_dim."""
+        self.input_dim = input_dim
+        self.min_bbox_edge_size = self.min_bbox_edge_size / max(input_dim) if self.output_format.bboxes_format.format.normalized else self.min_bbox_edge_size
+        self.targets_format_converter = ConcatenatedTensorFormatConverter(
+            input_format=self.input_format, output_format=self.output_format, image_shape=input_dim
+        )
 
     def __call__(self, sample: dict) -> dict:
+
+        # if self.input_dim not set yet, it will be set with first batch
+        if self.input_dim is None:
+            self._setup_input_dim_related_params(input_dim=sample["image"].shape[1:])
+
         sample["target"] = self.apply_on_targets(sample["target"])
         if "crowd_target" in sample.keys():
             sample["crowd_target"] = self.apply_on_targets(sample["crowd_target"])
