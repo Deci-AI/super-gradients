@@ -44,6 +44,8 @@ class DeciClient:
             return
 
         self.lab_client = instantiate_deci_platform_client()
+        self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
+
         GlobalHydra.instance().clear()
         self.super_gradients_version = "3.0.2"
         # try:
@@ -143,7 +145,6 @@ class DeciClient:
             optimization_request_form: The optimization parameters
         """
 
-        self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
         self.lab_client.add_model(
             add_model_request=model_meta_data,
             optimization_request=optimization_request_form,
