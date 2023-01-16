@@ -1,20 +1,21 @@
 import copy
-import os
-import time
-from enum import Enum
 import math
+import os
+import signal
+import time
+from typing import List
+
+import cv2
 import numpy as np
 import onnx
 import onnxruntime
 import torch
-import signal
-from typing import List
 
 from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
-import cv2
 
 logger = get_logger(__name__)
 
@@ -28,20 +29,6 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     _imported_deci_lab_failure = import_err
 
 
-class Phase(Enum):
-    PRE_TRAINING = "PRE_TRAINING"
-    TRAIN_BATCH_END = "TRAIN_BATCH_END"
-    TRAIN_BATCH_STEP = "TRAIN_BATCH_STEP"
-    TRAIN_EPOCH_START = "TRAIN_EPOCH_START"
-    TRAIN_EPOCH_END = "TRAIN_EPOCH_END"
-    VALIDATION_BATCH_END = "VALIDATION_BATCH_END"
-    VALIDATION_EPOCH_END = "VALIDATION_EPOCH_END"
-    VALIDATION_END_BEST_EPOCH = "VALIDATION_END_BEST_EPOCH"
-    TEST_BATCH_END = "TEST_BATCH_END"
-    TEST_END = "TEST_END"
-    POST_TRAINING = "POST_TRAINING"
-
-
 class ContextSgMethods:
     """
     Class for delegating Trainer's methods, so that only the relevant ones are ("phase wise") are accessible.
@@ -50,90 +37,6 @@ class ContextSgMethods:
     def __init__(self, **methods):
         for attr, attr_val in methods.items():
             setattr(self, attr, attr_val)
-
-
-class PhaseContext:
-    """
-    Represents the input for phase callbacks, and is constantly updated after callback calls.
-
-    """
-
-    def __init__(
-        self,
-        epoch=None,
-        batch_idx=None,
-        optimizer=None,
-        metrics_dict=None,
-        inputs=None,
-        preds=None,
-        target=None,
-        metrics_compute_fn=None,
-        loss_avg_meter=None,
-        loss_log_items=None,
-        criterion=None,
-        device=None,
-        experiment_name=None,
-        ckpt_dir=None,
-        net=None,
-        lr_warmup_epochs=None,
-        sg_logger=None,
-        train_loader=None,
-        valid_loader=None,
-        training_params=None,
-        ddp_silent_mode=None,
-        checkpoint_params=None,
-        architecture=None,
-        arch_params=None,
-        metric_idx_in_results_tuple=None,
-        metric_to_watch=None,
-        valid_metrics=None,
-        context_methods=None,
-        ema_model=None,
-    ):
-        self.epoch = epoch
-        self.batch_idx = batch_idx
-        self.optimizer = optimizer
-        self.inputs = inputs
-        self.preds = preds
-        self.target = target
-        self.metrics_dict = metrics_dict
-        self.metrics_compute_fn = metrics_compute_fn
-        self.loss_avg_meter = loss_avg_meter
-        self.loss_log_items = loss_log_items
-        self.criterion = criterion
-        self.device = device
-        self.stop_training = False
-        self.experiment_name = experiment_name
-        self.ckpt_dir = ckpt_dir
-        self.net = net
-        self.lr_warmup_epochs = lr_warmup_epochs
-        self.sg_logger = sg_logger
-        self.train_loader = train_loader
-        self.valid_loader = valid_loader
-        self.training_params = training_params
-        self.ddp_silent_mode = ddp_silent_mode
-        self.checkpoint_params = checkpoint_params
-        self.architecture = architecture
-        self.arch_params = arch_params
-        self.metric_to_watch = metric_to_watch
-        self.valid_metrics = valid_metrics
-        self.context_methods = context_methods
-        self.ema_model = ema_model
-
-    def update_context(self, **kwargs):
-        for attr, attr_val in kwargs.items():
-            setattr(self, attr, attr_val)
-
-
-class PhaseCallback:
-    def __init__(self, phase: Phase):
-        self.phase = phase
-
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def __repr__(self):
-        return self.__class__.__name__
 
 
 class ModelConversionCheckCallback(PhaseCallback):
@@ -714,23 +617,6 @@ class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
                 transform.close()
         iter(context.train_loader)
         context.criterion.use_l1 = True
-
-
-class CallbackHandler:
-    """
-    Runs all callbacks who's phase attribute equals to the given phase.
-
-    Attributes:
-        callbacks: List[PhaseCallback]. Callbacks to be run.
-    """
-
-    def __init__(self, callbacks):
-        self.callbacks = callbacks
-
-    def __call__(self, phase: Phase, context: PhaseContext):
-        for callback in self.callbacks:
-            if callback.phase == phase:
-                callback(context)
 
 
 class TestLRCallback(PhaseCallback):
