@@ -22,15 +22,12 @@ def format_error_msg(test_name: str, error_msg: str) -> str:
     return f"\33[31mFailed to verify {test_name}: {error_msg}\33[0m"
 
 
-def check_os(test_name: str):
-    """Check the operating system name and platform
-
-    :param test_name: Name that is used to refer to this test.
-    """
+def check_os():
+    """Check the operating system name and platform."""
 
     if "linux" not in sys.platform.lower():
         error = "Deci officially supports only Linux kernels. Some features may not work as expected."
-        logger.error(msg=format_error_msg(test_name=test_name, error_msg=error))
+        logger.error(msg=format_error_msg(test_name="operating system", error_msg=error))
 
 
 def get_requirements_path(requirements_file_name: str) -> Optional[Path]:
@@ -74,11 +71,11 @@ def get_requirements(use_pro_requirements: bool) -> Optional[List[str]]:
     return requirements + pro_requirements if use_pro_requirements else requirements
 
 
-def check_packages(test_name: str):
+def check_packages():
     """Check that all installed libs respect the requirement.txt, and requirements.pro.txt if relevant.
     Note: We only log an error
-    :param test_name: Name that is used to refer to this test.
     """
+    test_name = "installed packages"
 
     installed_packages = {package.key.lower(): package.version for package in pkg_resources.working_set}
     requirements = get_requirements(use_pro_requirements="deci-lab-client" in installed_packages)
@@ -115,8 +112,8 @@ def check_packages(test_name: str):
 def env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements."""
     if is_main_process():
-        check_os(test_name="operating system")
-        check_packages(test_name="installed packages")
+        check_os()
+        check_packages()
 
 
 if __name__ == "__main__":
