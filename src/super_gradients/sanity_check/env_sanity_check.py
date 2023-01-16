@@ -118,7 +118,7 @@ def verify_os() -> List[str]:
 def run_env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
 
-    from super_gradients.common import env_variables
+    from super_gradients.common.environment.env_variables import env_variables
 
     display_sanity_check = env_variables.DISPLAY_SANITY_CHECK == "TRUE"
     stdout_log_level = logging.INFO if display_sanity_check else logging.DEBUG
