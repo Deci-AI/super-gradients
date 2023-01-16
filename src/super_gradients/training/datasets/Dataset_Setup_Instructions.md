@@ -135,16 +135,16 @@ Dataset Structure:
 
 
 <details>
-<summary>Cityscape</summary>
+<summary>Cityscapes</summary>
 
 1. Download dataset:
-   - a. cityscape dataset:
+   - a. Cityscapes dataset:
      - gtFine: https://www.cityscapes-dataset.com/file-handling/?packageID=1
      - leftImg8bit: https://www.cityscapes-dataset.com/file-handling/?packageID=3
    - b. metadata folder: https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip
 
 
-2. a. Unzip and organize cityscape dataset as below:
+2. a. Unzip and organize cityscapes dataset as below:
 ```
   root_dir (in recipe default to /data/cityscapes)
       ├─── gtFine
@@ -179,7 +179,7 @@ Dataset Structure:
       └── val.lst
 ```
 
-2. c. Move Metadata folder to the Cityscape folder
+2. c. Move Metadata folder to the Cityscapes folder
 ```
   root_dir (in recipe default to /data/cityscapes)
       ├─── gtFine
