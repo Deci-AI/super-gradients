@@ -36,7 +36,6 @@ Here is a simple guideline to get you started with your first contribution
    $ pre-commit run --all-files
    ```
 -->
-7. Create a pull request against <b>master</b> branch.
 
 
 
