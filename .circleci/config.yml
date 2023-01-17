@@ -75,6 +75,8 @@ commands:
 
 jobs:
   build:
+    environment:
+      CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
     parameters:
       py_version:
         type: string
@@ -292,6 +294,8 @@ jobs:
 
 
   release_candidate:
+    environment:
+      CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
     parameters:
       py_version:
         type: string
@@ -321,6 +325,8 @@ jobs:
           version: $NEW_VERSION
 
   release_version:
+    environment:
+      CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
     parameters:
       py_version:
         type: string
