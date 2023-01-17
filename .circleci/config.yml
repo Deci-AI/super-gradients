@@ -75,6 +75,8 @@ commands:
 
 jobs:
   build:
+    environment:
+      CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
     parameters:
       py_version:
         type: string
@@ -87,6 +89,7 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
+          skip_md_files: true
       - deci-common/get_persisted_version_info
       - when:
           condition:
@@ -291,6 +294,8 @@ jobs:
 
 
   release_candidate:
+    environment:
+      CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
     parameters:
       py_version:
         type: string
@@ -299,6 +304,8 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
+          skip_md_files: true
+
       - deci-common/get_persisted_version_info
       - run:
           name: edit package version
@@ -318,6 +325,8 @@ jobs:
           version: $NEW_VERSION
 
   release_version:
+    environment:
+      CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
     parameters:
       py_version:
         type: string
@@ -329,6 +338,7 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
+          skip_md_files: true
       - run:
           name: add requirements.txt and requirements.pro.txt to source code
           command: |
