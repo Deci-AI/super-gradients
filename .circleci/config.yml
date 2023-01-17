@@ -143,7 +143,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             . venv/bin/activate
-            coverage run --source=super_gradients -m unittest tests/deci_core_unit_test_suite_runner.py
+            coverage run --source=super_gradients -m unittest discover tests/unit_tests/
             coverage report
             coverage html  # open htmlcov/index.html in a browser
       - store_artifacts:
