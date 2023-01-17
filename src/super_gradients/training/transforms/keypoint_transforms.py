@@ -3,9 +3,8 @@ from __future__ import division
 from __future__ import print_function
 
 import random
-import typing
 from abc import abstractmethod
-from typing import Tuple
+from typing import Tuple, List, Iterable
 
 import cv2
 import numpy as np
@@ -14,18 +13,25 @@ from torchvision.transforms import functional as F
 
 class KeypointTransform(object):
     @abstractmethod
-    def __call__(self, image, mask, joints, area, pose_scale_factor) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+
+        :param image: [H,W,3]
+        :param mask: [H,W]
+        :param joints: [Instances,Joints,3]
+        :return: (image, mask, joints)
+        """
         raise NotImplementedError
 
 
-class Compose(KeypointTransform):
-    def __init__(self, transforms):
+class KeypointsCompose(KeypointTransform):
+    def __init__(self, transforms: List[KeypointTransform]):
         self.transforms = transforms
 
-    def __call__(self, image, mask, joints, area, pose_scale_factor):
+    def __call__(self, image, mask, joints):
         for t in self.transforms:
-            image, mask, joints, area, pose_scale_factor = t(image, mask, joints, area, pose_scale_factor)
-        return image, mask, joints, area, pose_scale_factor
+            image, mask, joints = t(image, mask, joints)
+        return image, mask, joints
 
     def __repr__(self):
         format_string = self.__class__.__name__ + "("
@@ -37,8 +43,8 @@ class Compose(KeypointTransform):
 
 
 class ToTensor(KeypointTransform):
-    def __call__(self, image, mask, joints, area, pose_scale_factor):
-        return F.to_tensor(image), mask, joints, area, pose_scale_factor
+    def __call__(self, image, mask, joints):
+        return F.to_tensor(image), mask, joints
 
 
 class Normalize(KeypointTransform):
@@ -46,56 +52,54 @@ class Normalize(KeypointTransform):
         self.mean = mean
         self.std = std
 
-    def __call__(self, image, mask, joints, area, pose_scale_factor):
+    def __call__(self, image, mask, joints):
         image = F.normalize(image, mean=self.mean, std=self.std)
-        return image, mask, joints, area, pose_scale_factor
+        return image, mask, joints
 
 
-class RandomHorizontalFlip(KeypointTransform):
-    def __init__(self, flip_index, output_size, prob=0.5):
+class KeypointsRandomHorizontalFlip(KeypointTransform):
+    def __init__(self, flip_index: List[int], output_size: Tuple[int, int], prob: float = 0.5):
         self.flip_index = flip_index
         self.prob = prob
         rows, cols = output_size
-        self.output_size = [(rows, cols)]
+        self.output_size = (rows, cols)
 
-    def __call__(self, image, mask, joints, area, pose_scale_factor):
-        assert isinstance(mask, list)
-        assert isinstance(joints, list)
-        assert len(mask) == len(joints)
-        assert len(mask) == len(self.output_size)
+    def __call__(self, image, mask, joints):
+        if image.shape[:2] != self.output_size:
+            raise RuntimeError(f"Image shape ({image.shape[:2]}) does not match output size ({self.output_size}).")
+
+        if mask.shape[:2] != self.output_size:
+            raise RuntimeError(f"Mask shape ({mask.shape[:2]}) does not match output size ({self.output_size}).")
 
         if random.random() < self.prob:
             image = np.ascontiguousarray(np.fliplr(image))
-            # image = image[:, ::-1] - np.zeros_like(image)
-            for i, (rows, cols) in enumerate(self.output_size):
-                mask[i] = mask[i][:, ::-1] - np.zeros_like(mask[i])
-                joints[i] = joints[i][:, self.flip_index]
-                joints[i][:, :, 0] = cols - joints[i][:, :, 0] - 1
+            mask = np.ascontiguousarray(np.fliplr(mask))
 
-        return image, mask, joints, area, pose_scale_factor
+            rows, cols = self.output_size
+            joints = joints.copy()
+            joints = joints[:, self.flip_index]
+            joints[:, :, 0] = cols - joints[:, :, 0] - 1
+
+        return image, mask, joints
 
 
-class RandomVerticalFlip(KeypointTransform):
-    def __init__(self, output_size, prob=0.5):
+class KeypointsRandomVerticalFlip(KeypointTransform):
+    def __init__(self, prob: float = 0.5):
         self.prob = prob
-        rows, cols = output_size
-        self.output_size = [(rows, cols)]
 
-    def __call__(self, image, mask, joints, area, pose_scale_factor):
-        assert isinstance(mask, list)
-        assert isinstance(joints, list)
-        assert len(mask) == len(joints)
-        assert len(mask) == len(self.output_size)
+    def __call__(self, image, mask, joints):
+        if image.shape[:2] != mask.shape[:2]:
+            raise RuntimeError(f"Image shape ({image.shape[:2]}) does not match mask shape ({mask.shape[:2]}).")
 
         if random.random() < self.prob:
             image = np.ascontiguousarray(np.flipud(image))
+            mask = np.ascontiguousarray(np.flipud(mask))
+
+            rows, cols = image.shape[:2]
             joints = joints.copy()
+            joints[:, :, 1] = rows - joints[:, :, 1] - 1
 
-            for i, (rows, cols) in enumerate(self.output_size):
-                mask[i] = mask[i][::-1, :] - np.zeros_like(mask[i])
-                joints[i][:, :, 1] = rows - joints[i][:, :, 1] - 1
-
-        return image, mask, joints, area, pose_scale_factor
+        return image, mask, joints
 
 
 class LongestMaxSize(KeypointTransform):
@@ -104,11 +108,10 @@ class LongestMaxSize(KeypointTransform):
         self.interpolation = interpolation
         self.p = p
 
-    def __call__(self, image, mask, joints, area, pose_scale_factor: float):
+    def __call__(self, image, mask, joints: float):
         if random.random() < self.p:
             height, width = image.shape[:2]
             scale = min(self.max_height / height, self.max_width / width)
-
             image = self.rescale_image(image, scale, cv2.INTER_LINEAR)
 
             if image.shape[0] != self.max_height and image.shape[1] != self.max_width:
@@ -117,16 +120,12 @@ class LongestMaxSize(KeypointTransform):
             if image.shape[0] > self.max_height or image.shape[1] > self.max_width:
                 raise RuntimeError(f"Image shape is not as expected (scale={scale}, input_shape={height, width}, resized_shape={image.shape[:2]}")
 
-            for i in range(len(mask)):
-                mask[i] = self.rescale_image(mask[i], scale, cv2.INTER_LINEAR)
+            mask = self.rescale_image(mask, scale, cv2.INTER_LINEAR)
 
             joints = joints.copy()
-            for i in range(len(joints)):
-                joints[i][:, :, 0:2] = joints[i][:, :, 0:2] * scale
+            joints[:, :, 0:2] = joints[:, :, 0:2] * scale
 
-            area = area * scale * scale
-            pose_scale_factor = pose_scale_factor * scale
-        return image, mask, joints, area, pose_scale_factor
+        return image, mask, joints
 
     @classmethod
     def rescale_image(cls, img, scale, interpolation):
@@ -140,11 +139,17 @@ class LongestMaxSize(KeypointTransform):
 
 class PadIfNeeded(KeypointTransform):
     def __init__(self, output_size: Tuple[int, int], image_pad_value: int, mask_pad_value: float):
+        """
+
+        :param output_size: Desired image size (rows, cols)
+        :param image_pad_value:
+        :param mask_pad_value:
+        """
         self.min_height, self.min_width = output_size
-        self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, typing.Iterable) else int(image_pad_value)
+        self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
         self.mask_pad_value = mask_pad_value
 
-    def __call__(self, image, mask, joints, area, pose_scale_factor):
+    def __call__(self, image, mask, joints):
         height, width = image.shape[:2]
 
         pad_bottom = max(0, self.min_height - height)
@@ -152,14 +157,13 @@ class PadIfNeeded(KeypointTransform):
 
         image = cv2.copyMakeBorder(image, top=0, bottom=pad_bottom, left=0, right=pad_right, value=self.image_pad_value, borderType=cv2.BORDER_CONSTANT)
 
-        for i in range(len(mask)):
-            original_dtype = mask[i].dtype
-            mask[i] = cv2.copyMakeBorder(
-                mask[i].astype(np.uint8), top=0, bottom=pad_bottom, left=0, right=pad_right, value=self.mask_pad_value, borderType=cv2.BORDER_CONSTANT
-            )
-            mask[i] = mask[i].astype(original_dtype)
+        original_dtype = mask.dtype
+        mask = cv2.copyMakeBorder(
+            mask.astype(np.uint8), top=0, bottom=pad_bottom, left=0, right=pad_right, value=self.mask_pad_value, borderType=cv2.BORDER_CONSTANT
+        )
+        mask = mask.astype(original_dtype)
 
-        return image, mask, joints, area, pose_scale_factor
+        return image, mask, joints
 
 
 class RandomAffineTransform(KeypointTransform):
@@ -196,7 +200,7 @@ class RandomAffineTransform(KeypointTransform):
         self.max_scale = max_scale
         self.scale_type = scale_type
         self.max_translate = max_translate
-        self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, typing.Iterable) else int(image_pad_value)
+        self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
         self.mask_pad_value = mask_pad_value
         self.p = p
 
@@ -244,29 +248,22 @@ class RandomAffineTransform(KeypointTransform):
         joints = joints.reshape(-1, 2)
         return np.dot(np.concatenate((joints, joints[:, 0:1] * 0 + 1), axis=1), mat.T).reshape(shape)
 
-    def __call__(self, image, mask, joints, area, pose_scale_factor):
+    def __call__(self, image, mask, joints):
         """
 
         :param image: (np.ndarray) Image of shape [H,W,3]
-        :param mask: Single-element array with mask of [H,W] shape. TODO: Why it is a list of masks?
+        :param mask: Single-element array with mask of [H,W] shape.
         :param joints: Single-element array of joints of [Num instances, Num Joints, 3] shape. Semantics of last channel is: x, y, joint index (?)
         :param area: Area each instance occipy: [Num instances, 1]
         :return:
         """
-        assert isinstance(mask, list)
-        assert isinstance(joints, list)
-        assert len(mask) == len(joints)
-        assert len(mask) == len(self.output_size)
 
         if random.random() < self.p:
-            joints = joints.copy()
-
             height, width = image.shape[:2]
 
             center = np.array((width / 2, height / 2))
             if self.scale_type == "long":
                 scale = max(height, width) / 200
-                print("###################please modify range")
             elif self.scale_type == "short":
                 scale = min(height, width) / 200
             else:
@@ -281,24 +278,22 @@ class RandomAffineTransform(KeypointTransform):
                 center[0] += dx
                 center[1] += dy
 
-            for i, _output_size in enumerate(self.output_size):
-                # _output_size in rows, cols
-                mat_output, _ = self._get_affine_matrix(center, scale, _output_size, aug_rot)
-                mat_output = mat_output[:2]
-                mask[i] = cv2.warpAffine(
-                    mask[i],
-                    mat_output,
-                    (_output_size[1], _output_size[0]),
-                    borderValue=self.mask_pad_value,
-                    borderMode=cv2.BORDER_CONSTANT,
-                )
+            # _output_size in rows, cols
+            mat_output, _ = self._get_affine_matrix(center, scale, self.output_size, aug_rot)
+            mat_output = mat_output[:2]
+            mask = cv2.warpAffine(
+                mask,
+                mat_output,
+                (self.output_size[1], self.output_size[0]),
+                borderValue=self.mask_pad_value,
+                borderMode=cv2.BORDER_CONSTANT,
+            )
 
-                joints[i][:, :, 0:2] = self._affine_joints(joints[i][:, :, 0:2], mat_output)
+            joints = joints.copy()
+            joints[:, :, 0:2] = self._affine_joints(joints[:, :, 0:2], mat_output)
 
             mat_input, final_scale = self._get_affine_matrix(center, scale, self.input_size, aug_rot)
             mat_input = mat_input[:2]
-            area = area * final_scale
             image = cv2.warpAffine(image, mat_input, (self.input_size[1], self.input_size[0]), borderValue=self.image_pad_value, borderMode=cv2.BORDER_CONSTANT)
-            pose_scale_factor = pose_scale_factor * final_scale
 
-        return image, mask, joints, area, pose_scale_factor
+        return image, mask, joints
