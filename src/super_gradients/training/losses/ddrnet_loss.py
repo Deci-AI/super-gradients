@@ -4,12 +4,9 @@ from super_gradients.training.losses.ohem_ce_loss import OhemCELoss
 
 
 class DDRNetLoss(OhemCELoss):
-    def __init__(self,
-                 threshold: float = 0.7,
-                 ohem_percentage: float = 0.1,
-                 weights: list = [1.0, 0.4],
-                 ignore_label=255,
-                 num_pixels_exclude_ignored: bool = False):
+    def __init__(
+        self, threshold: float = 0.75, ohem_percentage: float = 0.1, weights: list = [1.0, 0.4], ignore_label=255, num_pixels_exclude_ignored: bool = False
+    ):
         """
         This loss is an extension of the Ohem (Online Hard Example Mining Cross Entropy) Loss.
 
@@ -25,12 +22,10 @@ class DDRNetLoss(OhemCELoss):
         :param num_pixels_exclude_ignored: whether to exclude ignore pixels when calculating the mining percentage.
         see OhemCELoss doc for more details.
         """
-        super().__init__(threshold=threshold, mining_percent=ohem_percentage, ignore_lb=ignore_label,
-                         num_pixels_exclude_ignored=num_pixels_exclude_ignored)
+        super().__init__(threshold=threshold, mining_percent=ohem_percentage, ignore_lb=ignore_label, num_pixels_exclude_ignored=num_pixels_exclude_ignored)
         self.weights = weights
 
-    def forward(self, predictions_list: Union[list, tuple, torch.Tensor],
-                targets: torch.Tensor):
+    def forward(self, predictions_list: Union[list, tuple, torch.Tensor], targets: torch.Tensor):
         if isinstance(predictions_list, torch.Tensor):
             predictions_list = (predictions_list,)
 
