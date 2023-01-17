@@ -5,7 +5,7 @@ from super_gradients.training.losses.ohem_ce_loss import OhemCELoss
 
 class DDRNetLoss(OhemCELoss):
     def __init__(
-        self, threshold: float = 0.75, ohem_percentage: float = 0.1, weights: list = [1.0, 0.4], ignore_label=255, num_pixels_exclude_ignored: bool = False
+        self, threshold: float = 0.75, ohem_percentage: float = 0.13, weights: list = [1.0, 0.4], ignore_label=255, num_pixels_exclude_ignored: bool = False
     ):
         """
         This loss is an extension of the Ohem (Online Hard Example Mining Cross Entropy) Loss.
