@@ -1394,10 +1394,6 @@ class Trainer:
         if not self.ddp_silent_mode:
             # Adding values to sg_logger
             # looping over last titles which corresponds to validation (and average model) metrics.
-            all_titles = self.results_titles[-1 * len(averaged_model_results_tuple) :]
-            result_dict = {all_titles[i]: averaged_model_results_tuple[i] for i in range(len(averaged_model_results_tuple))}
-
-            self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=self.max_epochs)
 
             average_model_tb_titles = ["Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]]
             write_struct = ""
