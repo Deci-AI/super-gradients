@@ -33,7 +33,7 @@ Here is a simple guideline to get you started with your first contribution
 
     * To run pre-commit on all files just run
    ```
-   $ pre-commit run --all-files
+   $ pre-commit run --all-filessss
    ```
 -->
 
