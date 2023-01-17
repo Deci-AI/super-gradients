@@ -17,7 +17,6 @@
 - [RepVGG](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/repvgg.py) - Making VGG-style ConvNets Great Again [https://arxiv.org/pdf/2101.03697.pdf](https://arxiv.org/pdf/2101.03697.pdf) 
 - [ResNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/resnet.py) - Deep Residual Learning for Image Recognition [https://arxiv.org/pdf/1512.03385](https://arxiv.org/pdf/1512.03385)  
 - [ResNeXt](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/resnext.py) - Aggregated Residual Transformations for Deep Neural Networks [https://arxiv.org/pdf/1611.05431](https://arxiv.org/pdf/1611.05431)
-- [SENet ](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/senet.py) - Squeeze-and-Excitation Networks[https://arxiv.org/pdf/1709.01507](https://arxiv.org/pdf/1709.01507)
 - [ShuffleNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/shufflenet.py) - [https://arxiv.org/pdf/1707.01083](https://arxiv.org/pdf/1707.01083)
 - [ShuffleNet v2](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/shufflenetv2.py) - Efficient Convolutional Neural Network for Mobile
 Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)

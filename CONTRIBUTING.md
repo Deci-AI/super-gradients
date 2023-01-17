@@ -14,7 +14,6 @@ Here is a simple guideline to get you started with your first contribution
 1. [Fork super-gradients](https://help.github.com/articles/fork-a-repo/) so you can make local changes and test them.
 1. Create a new branch for the issue. The branch naming convention is enforced by the CI/CD so please make sure you are using your_username/your_branch_name convention otherwise it will fail.
 1. Create relevant tests for the issue, please make sure you are covering unit, integration and e2e tests where required.
-1. Make code changes.
 1. Ensure all the tests pass and code formatting is up to standards, and follows [PEP8](https://www.python.org/dev/peps/pep-0008/).
 <!--1. We use [pre-commit](https://pre-commit.com/) package to run our pre-commit hooks. Black formatter and flake8 linter will be ran on each commit. In order to set up pre-commit on your machine, follow the steps here, please note that you only need to run these steps the first time you use pre-commit for this project.)
 
@@ -84,5 +83,3 @@ And the documentation will automatically update, based on <code>documentation/</
 The new documentation HTML will be generated to <code>docs/</code>. <br> 
 Once <code>docs/</code> is committed and pushed, GitHub Pages will use it.<br>
 The step of documentation update is currently manual.
-
-
