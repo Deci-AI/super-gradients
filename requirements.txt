@@ -32,5 +32,5 @@ wheel>=0.38.0
 # not directly required, pinned by Snyk to avoid a vulnerability
 pygments>=2.7.4
 stringcase>=1.2.0
-numpy<=1.23.*
+numpy<=1.23
 rapidfuzz
