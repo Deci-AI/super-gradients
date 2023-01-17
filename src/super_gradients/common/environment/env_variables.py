@@ -31,9 +31,5 @@ class EnvironmentVariables:
     def UPLOAD_LOGS(self):
         return os.getenv("UPLOAD_LOGS", "TRUE")
 
-    @property
-    def DISPLAY_SANITY_CHECK(self):
-        return os.getenv("DISPLAY_SANITY_CHECK", "FALSE")
-
 
 env_variables = EnvironmentVariables()
