@@ -1875,6 +1875,7 @@ class Trainer:
             if num_classes_new_head != arch_params.num_classes:
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
+        print(0)
 
         return net
 
