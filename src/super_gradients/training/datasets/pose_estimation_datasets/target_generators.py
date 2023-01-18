@@ -2,8 +2,10 @@ from typing import Tuple
 
 import cv2
 import numpy as np
+from super_gradients.common.registry.registry import register_target_generator
 
 
+@register_target_generator("DEKRTargetsGenerator")
 class DEKRTargetsGenerator:
     """
     Target generator for pose estimation task tailored for the DEKR paper (https://arxiv.org/abs/2104.02300)

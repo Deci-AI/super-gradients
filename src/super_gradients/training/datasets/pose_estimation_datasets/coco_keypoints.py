@@ -6,6 +6,9 @@ import numpy as np
 import pycocotools
 import torch
 from pycocotools.coco import COCO
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.target_generator_factory import TargetGeneratorsFactory
+from super_gradients.common.factories.transforms_factory import TransformsFactory
 from torch.utils.data import default_collate, Dataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -20,6 +23,8 @@ class COCOKeypointsDataset(Dataset):
     Use should pass a target generator class that is model-specific and generates the targets for the model.
     """
 
+    @resolve_param("transforms", TransformsFactory())
+    @resolve_param("target_generator", TargetGeneratorsFactory())
     def __init__(
         self,
         root_dir: str,
