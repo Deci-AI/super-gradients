@@ -12,7 +12,7 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 from torch.utils.data import default_collate, Dataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose
+from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointTransform
 
 logger = get_logger(__name__)
 
@@ -32,7 +32,7 @@ class COCOKeypointsDataset(Dataset):
         json_file: str,
         include_empty_samples: bool,
         target_generator,
-        transforms: KeypointsCompose,
+        transforms: List[KeypointTransform],
         min_instance_area: float,
     ):
         """
@@ -62,7 +62,7 @@ class COCOKeypointsDataset(Dataset):
         self.num_joints = len(self.joints)
         self.min_instance_area = min_instance_area
 
-        self.transforms = transforms
+        self.transforms = KeypointsCompose(transforms)
         self.target_generator = target_generator
 
         if not include_empty_samples:
