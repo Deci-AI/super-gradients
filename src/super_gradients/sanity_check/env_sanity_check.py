@@ -1,11 +1,9 @@
 import sys
 import pkg_resources
-from pkg_resources import parse_version, PkgResourcesDeprecationWarning
+from pkg_resources import parse_version
 from packaging.specifiers import SpecifierSet
 from typing import List, Optional
 from pathlib import Path
-import warnings
-
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.ddp_utils import is_main_process
@@ -96,13 +94,9 @@ def check_packages():
         installed_version_str = installed_packages[package_name]
         for operator_str, req_version_str in requirement.specs:
 
-            # We want to catch warnings raised when working with X.Y.* version pattern
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", PkgResourcesDeprecationWarning)
-
-                installed_version = parse_version(installed_version_str)
-                req_version = parse_version(req_version_str)
-                req_spec = SpecifierSet(operator_str + req_version_str)
+            installed_version = parse_version(installed_version_str)
+            req_version = parse_version(req_version_str)
+            req_spec = SpecifierSet(operator_str + req_version_str)
 
             if installed_version_str not in req_spec:
                 error = f"{package_name}=={installed_version} does not satisfy requirement {requirement}"
