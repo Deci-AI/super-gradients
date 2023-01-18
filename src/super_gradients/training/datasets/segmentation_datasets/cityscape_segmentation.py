@@ -66,7 +66,7 @@ class CityscapesDataset(SegmentationDataSet):
                    └── ...
 
     Example:
-        >> CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.lst', labels_csv_path='lists/labels.csv')
+        >> CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.lst', labels_csv_path='lists/labels.csv', ...)
     """
 
     def __init__(self, root_dir: str, list_file: str, labels_csv_path: str, **kwargs):
