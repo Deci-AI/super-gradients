@@ -2,6 +2,8 @@ import re
 from typing import Union, Tuple, List, Type
 from types import TracebackType
 
+import omegaconf
+
 from super_gradients.common.crash_handler.utils import indent_string, fmt_txt, json_str_to_dict
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -193,6 +195,28 @@ class WrongHydraVersionTip(CrashTip):
         tip = (
             f"{fmt_txt(f'hydra=={hydra.__version__}', color='red')} is not supported by SuperGradients. "
             f"Please run {fmt_txt('pip install hydra-core==1.2.0', color='green')}"
+        )
+        return [tip]
+
+
+class InterpolationKeyErrorTip(CrashTip):
+    @classmethod
+    def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType):
+        expected_str = "Interpolation key "
+        return isinstance(exc_value, omegaconf.errors.InterpolationKeyError) and expected_str in str(exc_value)
+
+    @classmethod
+    def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
+        variable = re.search("'(.*?)'", str(exc_value)).group(1)
+        tip = (
+            f"It looks like you encountered an error related to interpolation of the variable '{variable}'.\n"
+            "It's possible that this error is caused by not using the full path of the variable in your subfolder configuration.\n"
+            f"Please make sure that you are referring to the variable using the "
+            f"{fmt_txt('full path starting from the main configuration file', color='green')}.\n"
+            f"Try to replace '{fmt_txt(f'${{{variable}}}', color='red')}' with '{fmt_txt(f'${{full.path.to.{variable}}}', color='green')}', \n"
+            f"     where 'full.path.to' is the actual path to reach '{variable}', starting from the root configuration file.\n"
+            f"Example: '{fmt_txt('${dataset_params.train_dataloader_params.batch_size}', color='green')}' "
+            f"instead of '{fmt_txt('${train_dataloader_params.batch_size}', color='red')}'.\n"
         )
         return [tip]
 
