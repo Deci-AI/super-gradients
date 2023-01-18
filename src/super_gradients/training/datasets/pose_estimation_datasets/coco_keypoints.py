@@ -22,17 +22,17 @@ class COCOKeypointsDataset(Dataset):
 
     def __init__(
         self,
-        dataset_root: str,
+        root_dir: str,
         images_dir: str,
         json_file: str,
         include_empty_samples: bool,
         target_generator,
         transforms: KeypointsCompose,
-        min_instance_area: float = 128,
+        min_instance_area: float,
     ):
         """
 
-        :param dataset_root: Root directory of the COCO dataset
+        :param root_dir: Root directory of the COCO dataset
         :param images_dir: path suffix to the images directory inside the dataset_root
         :param json_file: path suffix to the json file inside the dataset_root
         :param include_empty_samples: if True, images without any annotations will be included in the dataset.
@@ -43,9 +43,9 @@ class COCOKeypointsDataset(Dataset):
         :param min_instance_area: Minimum area of an instance to be included in the dataset
         """
         super().__init__()
-        self.root = dataset_root
-        self.images_dir = os.path.join(dataset_root, images_dir)
-        self.json_file = os.path.join(dataset_root, json_file)
+        self.root = root_dir
+        self.images_dir = os.path.join(root_dir, images_dir)
+        self.json_file = os.path.join(root_dir, json_file)
 
         coco = COCO(self.json_file)
         if len(coco.dataset["categories"]) != 1:

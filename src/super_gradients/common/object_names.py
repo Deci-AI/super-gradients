@@ -94,6 +94,16 @@ class Transforms:
     RandomAutocontrast = "RandomAutocontrast"
     RandomEqualize = "RandomEqualize"
 
+    # Keypoints
+    KeypointsRandomAffineTransform = "KeypointsRandomAffineTransform"
+    KeypointsNormalize = "KeypointsNormalize"
+    KeypointsToTensor = "KeypointsToTensor"
+    KeypointTransform = "KeypointTransform"
+    KeypointsPadIfNeeded = "KeypointsPadIfNeeded"
+    KeypointsLongestMaxSize = "KeypointsLongestMaxSize"
+    KeypointsRandomVerticalFlip = "KeypointsRandomVerticalFlip"
+    KeypointsRandomHorizontalFlip = "KeypointsRandomHorizontalFlip"
+
 
 class Optimizers:
     """Static class holding all the supported optimizer names"""

@@ -13,7 +13,7 @@ def test_dataset():
     )
 
     dataset = COCOKeypointsDataset(
-        dataset_root="e:/coco2017",
+        root_dir="e:/coco2017",
         images_dir="images/train2017",
         json_file="annotations/person_keypoints_train2017.json",
         include_empty_samples=False,

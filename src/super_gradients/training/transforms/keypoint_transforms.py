@@ -6,6 +6,18 @@ import cv2
 import numpy as np
 from torchvision.transforms import functional as F
 
+__all__ = [
+    "KeypointsNormalize",
+    "KeypointsToTensor",
+    "KeypointsPadIfNeeded",
+    "KeypointsLongestMaxSize",
+    "KeypointTransform",
+    "KeypointsCompose",
+    "KeypointsRandomHorizontalFlip",
+    "KeypointsRandomAffineTransform",
+    "KeypointsRandomVerticalFlip",
+]
+
 
 class KeypointTransform(object):
     @abstractmethod
@@ -38,12 +50,12 @@ class KeypointsCompose(KeypointTransform):
         return format_string
 
 
-class ToTensor(KeypointTransform):
+class KeypointsToTensor(KeypointTransform):
     def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray):
         return F.to_tensor(image), mask, joints
 
 
-class Normalize(KeypointTransform):
+class KeypointsNormalize(KeypointTransform):
     def __init__(self, mean, std):
         self.mean = mean
         self.std = std
@@ -98,7 +110,7 @@ class KeypointsRandomVerticalFlip(KeypointTransform):
         return image, mask, joints
 
 
-class LongestMaxSize(KeypointTransform):
+class KeypointsLongestMaxSize(KeypointTransform):
     def __init__(self, max_sizes: Tuple[int, int], interpolation: int = cv2.INTER_LINEAR, prob: float = 1.0):
         self.max_height, self.max_width = max_sizes
         self.interpolation = interpolation
@@ -133,7 +145,7 @@ class LongestMaxSize(KeypointTransform):
         return img
 
 
-class PadIfNeeded(KeypointTransform):
+class KeypointsPadIfNeeded(KeypointTransform):
     def __init__(self, output_size: Tuple[int, int], image_pad_value: int, mask_pad_value: float):
         """
 
@@ -162,7 +174,7 @@ class PadIfNeeded(KeypointTransform):
         return image, mask, joints
 
 
-class RandomAffineTransform(KeypointTransform):
+class KeypointsRandomAffineTransform(KeypointTransform):
     def __init__(
         self,
         input_size: Tuple[int, int],
