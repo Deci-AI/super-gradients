@@ -28,24 +28,27 @@ class InitializeWithDataloadersTest(unittest.TestCase):
     def test_train_with_dataloaders(self):
         trainer = Trainer(experiment_name="test_name")
         model = models.get("resnet18", num_classes=5)
-        trainer.train(model=model,
-                      training_params={"max_epochs": 2,
-                                       "lr_updates": [5, 6, 12],
-                                       "lr_decay_factor": 0.01,
-                                       "lr_mode": "step",
-                                       "initial_lr": 0.01,
-                                       "loss": "cross_entropy",
-                                       "optimizer": "SGD",
-                                       "optimizer_params": {"weight_decay": 1e-5, "momentum": 0.9},
-                                       "train_metrics_list": [Accuracy()],
-                                       "valid_metrics_list": [Accuracy()],
-                                       "metric_to_watch": "Accuracy",
-                                       "greater_metric_to_watch_is_better": True},
-                      train_loader=self.testcase_trainloader,
-                      valid_loader=self.testcase_validloader,
-                      )
+        trainer.train(
+            model=model,
+            training_params={
+                "max_epochs": 2,
+                "lr_updates": [5, 6, 12],
+                "lr_decay_factor": 0.01,
+                "lr_mode": "step",
+                "initial_lr": 0.01,
+                "loss": "cross_entropy",
+                "optimizer": "SGD",
+                "optimizer_params": {"weight_decay": 1e-5, "momentum": 0.9},
+                "train_metrics_list": [Accuracy()],
+                "valid_metrics_list": [Accuracy()],
+                "metric_to_watch": "Accuracy",
+                "greater_metric_to_watch_is_better": True,
+            },
+            train_loader=self.testcase_trainloader,
+            valid_loader=self.testcase_validloader,
+        )
         self.assertTrue(0 < trainer.best_metric.item() < 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -13,10 +13,8 @@ from super_gradients.common.registry import register_model, register_metric, reg
 
 
 class RegistryTest(unittest.TestCase):
-
     def setUp(self):
-
-        @register_model('myconvnet')
+        @register_model("myconvnet")
         class MyConvNet(nn.Module):
             def __init__(self, num_classes):
                 super().__init__()
@@ -40,7 +38,7 @@ class RegistryTest(unittest.TestCase):
         def myconvnet_for_cifar10():
             return MyConvNet(num_classes=10)
 
-        @register_metric('custom_accuracy')  # Will be registered as "custom_accuracy"
+        @register_metric("custom_accuracy")  # Will be registered as "custom_accuracy"
         class CustomAccuracy(torchmetrics.Accuracy):
             def update(self, preds: torch.Tensor, target: torch.Tensor):
                 if target.shape == preds.shape:
@@ -54,30 +52,30 @@ class RegistryTest(unittest.TestCase):
                 return 1 - criterion_mse(output, target).item() / torch.var(target).item()
 
     def tearDown(self):
-        ARCHITECTURES.pop('myconvnet', None)
-        ARCHITECTURES.pop('myconvnet_for_cifar10', None)
-        METRICS.pop('custom_accuracy', None)
-        LOSSES.pop('custom_rsquared_loss', None)
+        ARCHITECTURES.pop("myconvnet", None)
+        ARCHITECTURES.pop("myconvnet_for_cifar10", None)
+        METRICS.pop("custom_accuracy", None)
+        LOSSES.pop("custom_rsquared_loss", None)
 
     def test_cls_is_registered(self):
-        assert ARCHITECTURES['myconvnet']
-        assert METRICS['custom_accuracy']
-        assert LOSSES['custom_rsquared_loss']
+        assert ARCHITECTURES["myconvnet"]
+        assert METRICS["custom_accuracy"]
+        assert LOSSES["custom_rsquared_loss"]
 
     def test_fn_is_registered(self):
-        assert ARCHITECTURES['myconvnet_for_cifar10']
+        assert ARCHITECTURES["myconvnet_for_cifar10"]
 
     def test_is_instantiable(self):
-        assert ARCHITECTURES['myconvnet_for_cifar10']()
-        assert ARCHITECTURES['myconvnet'](num_classes=10)
-        assert METRICS['custom_accuracy']()
-        assert LOSSES['custom_rsquared_loss']()
+        assert ARCHITECTURES["myconvnet_for_cifar10"]()
+        assert ARCHITECTURES["myconvnet"](num_classes=10)
+        assert METRICS["custom_accuracy"]()
+        assert LOSSES["custom_rsquared_loss"]()
 
     def test_model_outputs(self):
         torch.manual_seed(0)
-        model_1 = ARCHITECTURES['myconvnet_for_cifar10']()
+        model_1 = ARCHITECTURES["myconvnet_for_cifar10"]()
         torch.manual_seed(0)
-        model_2 = ARCHITECTURES['myconvnet'](num_classes=10)
+        model_2 = ARCHITECTURES["myconvnet"](num_classes=10)
         dummy_input = torch.randn(1, 3, 32, 32, requires_grad=False)
         x = model_1(dummy_input)
         y = model_2(dummy_input)
@@ -85,10 +83,11 @@ class RegistryTest(unittest.TestCase):
 
     def test_existing_key(self):
         with self.assertRaises(Exception):
+
             @register_model()
             def myconvnet_for_cifar10():
                 return
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

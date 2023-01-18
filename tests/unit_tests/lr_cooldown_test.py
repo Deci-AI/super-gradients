@@ -15,18 +15,32 @@ class LRCooldownTest(unittest.TestCase):
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
 
-        train_params = {"max_epochs": 7, "cosine_final_lr_ratio": 0.2, "lr_mode": "cosine",
-                        "lr_cooldown_epochs": 2,
-                        "lr_warmup_epochs": 3, "initial_lr": 1, "loss": "cross_entropy", "optimizer": 'SGD',
-                        "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                        "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-                        "metric_to_watch": "Accuracy",
-                        "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks}
+        train_params = {
+            "max_epochs": 7,
+            "cosine_final_lr_ratio": 0.2,
+            "lr_mode": "cosine",
+            "lr_cooldown_epochs": 2,
+            "lr_warmup_epochs": 3,
+            "initial_lr": 1,
+            "loss": "cross_entropy",
+            "optimizer": "SGD",
+            "criterion_params": {},
+            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+            "train_metrics_list": [Accuracy()],
+            "valid_metrics_list": [Accuracy()],
+            "metric_to_watch": "Accuracy",
+            "greater_metric_to_watch_is_better": True,
+            "ema": False,
+            "phase_callbacks": phase_callbacks,
+        }
 
         expected_lrs = [0.25, 0.5, 0.75, 0.9236067977499791, 0.4763932022500211, 0.4763932022500211, 0.4763932022500211]
-        trainer.train(model=net, training_params=train_params,
-                      train_loader=classification_test_dataloader(dataset_size=5, batch_size=4),
-                      valid_loader=classification_test_dataloader(dataset_size=5, batch_size=4))
+        trainer.train(
+            model=net,
+            training_params=train_params,
+            train_loader=classification_test_dataloader(dataset_size=5, batch_size=4),
+            valid_loader=classification_test_dataloader(dataset_size=5, batch_size=4),
+        )
 
         # ALTHOUGH NOT SEEN IN HERE, THE 4TH EPOCH USES LR=1, SO THIS IS THE EXPECTED LIST AS WE COLLECT
         # THE LRS AFTER THE UPDATE
