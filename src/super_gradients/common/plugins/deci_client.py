@@ -20,6 +20,8 @@ logger = get_logger(__name__)
 client_enabled = True
 try:
     from deci_lab_client.client import DeciPlatformClient
+    from deci_lab_client.types import S3SignedUrl
+    from deci_lab_client.models import ModelBenchmarkState
     from deci_common.data_interfaces.files_data_interface import FilesDataInterface
     from deci_lab_client.models import AutoNACFileName
     from deci_lab_client import ApiException
@@ -41,7 +43,11 @@ class DeciClient:
             )
             return
 
-        self.lab_client = DeciPlatformClient()
+        prod_mode = os.getenv("PROD_ENVIRONMENT") == "TRUE"
+        api_host = "api.deci.ai" if prod_mode else "api.development.deci.ai"
+        self.lab_client = DeciPlatformClient(api_host=api_host)
+        self.lab_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+
         GlobalHydra.instance().clear()
         self.super_gradients_version = None
         try:
@@ -140,9 +146,23 @@ class DeciClient:
             model_meta_data:           Metadata to accompany the model
             optimization_request_form: The optimization parameters
         """
-        self.lab_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
         self.lab_client.add_model(
             add_model_request=model_meta_data,
             optimization_request=optimization_request_form,
             local_loaded_model=model,
         )
+
+    def is_model_benchmarking(self, name: str) -> bool:
+        benchmark_state = self.lab_client.get_model_by_name(name=name).data.benchmark_state
+        return benchmark_state in [ModelBenchmarkState.IN_PROGRESS, ModelBenchmarkState.PENDING]
+
+    def register_experiment(self, name: str, model_name: str):
+        self.lab_client.register_experiment(name=name, model_name=model_name)
+
+    def save_experiment_file(self, file_path: str):
+        self.lab_client.save_experiment_file(file_path=file_path)
+
+    def upload_file_to_s3(self, tag: str, level: str, from_path: str):
+        data = self.lab_client.upload_log_url(tag=tag, level=level)
+        signed_url = S3SignedUrl(**data.data)
+        self.lab_client.upload_file_to_s3(from_path=from_path, s3_signed_url=signed_url)
