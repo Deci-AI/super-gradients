@@ -12,6 +12,7 @@ from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
 
+from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.hydra_utils import normalize_path
 
@@ -43,10 +44,9 @@ class DeciClient:
             )
             return
 
-        prod_mode = os.getenv("PROD_ENVIRONMENT") == "TRUE"
-        api_host = "api.deci.ai" if prod_mode else "api.development.deci.ai"
+        api_host = "api.deci.ai" if env_variables.PROD_ENVIRONMENT else "api.development.deci.ai"
         self.lab_client = DeciPlatformClient(api_host=api_host)
-        self.lab_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+        self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
         GlobalHydra.instance().clear()
         self.super_gradients_version = None
