@@ -7,8 +7,7 @@ import hydra
 import importlib.util
 
 import os
-
-# import pkg_resources
+import pkg_resources
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
@@ -20,7 +19,7 @@ logger = get_logger(__name__)
 
 client_enabled = True
 try:
-    from super_gradients.common.plugins.deci_platform_client import instantiate_deci_platform_client
+    from deci_lab_client.client import DeciPlatformClient
     from deci_common.data_interfaces.files_data_interface import FilesDataInterface
     from deci_lab_client.models import AutoNACFileName
     from deci_lab_client import ApiException
@@ -42,14 +41,13 @@ class DeciClient:
             )
             return
 
-        self.lab_client = instantiate_deci_platform_client()
-
+        self.lab_client = DeciPlatformClient()
         GlobalHydra.instance().clear()
-        self.super_gradients_version = "3.0.2"
-        # try:
-        #     self.super_gradients_version = pkg_resources.get_distribution("super_gradients").version
-        # except pkg_resources.DistributionNotFound:
-        #     self.super_gradients_version = "3.0.2"
+        self.super_gradients_version = None
+        try:
+            self.super_gradients_version = pkg_resources.get_distribution("super_gradients").version
+        except pkg_resources.DistributionNotFound:
+            self.super_gradients_version = "3.0.2"
 
     def _get_file(self, model_name: str, file_name: str) -> str:
         try:
@@ -142,7 +140,7 @@ class DeciClient:
             model_meta_data:           Metadata to accompany the model
             optimization_request_form: The optimization parameters
         """
-
+        self.lab_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
         self.lab_client.add_model(
             add_model_request=model_meta_data,
             optimization_request=optimization_request_form,
