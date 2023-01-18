@@ -6,7 +6,6 @@ from super_gradients.training.utils.segmentation_utils import to_one_hot
 
 
 class MaskAttentionLossTest(unittest.TestCase):
-
     def setUp(self) -> None:
         self.img_size = 32
         self.num_classes = 4
@@ -22,14 +21,11 @@ class MaskAttentionLossTest(unittest.TestCase):
     def _get_default_mask_tensor(self):
         mask = torch.zeros(self.batch, 1, self.img_size, self.img_size)
         # half tensor rows as 1
-        mask[:, :, self.img_size // 2:] = 1
+        mask[:, :, self.img_size // 2 :] = 1
         return mask.float()
 
     def _assertion_torch_values(self, expected_value: torch.Tensor, found_value: torch.Tensor, rtol: float = 1e-5):
-        self.assertTrue(
-            torch.allclose(found_value, expected_value, rtol=rtol),
-            msg=f"Unequal torch tensors: excepted: {expected_value}, found: {found_value}"
-        )
+        self.assertTrue(torch.allclose(found_value, expected_value, rtol=rtol), msg=f"Unequal torch tensors: excepted: {expected_value}, found: {found_value}")
 
     def test_with_cross_entropy_loss(self):
         """
@@ -40,14 +36,14 @@ class MaskAttentionLossTest(unittest.TestCase):
         target = self._get_default_target_tensor()
         mask = self._get_default_mask_tensor()
 
-        loss_weigths = [1., 0.5]
+        loss_weigths = [1.0, 0.5]
         ce_crit = nn.CrossEntropyLoss(reduction="none")
         mask_ce_crit = MaskAttentionLoss(criterion=ce_crit, loss_weights=loss_weigths)
 
         # expected result
         ce_loss = ce_crit(predict, target)
         _mask = mask.view_as(ce_loss)
-        mask_loss = (ce_loss * _mask)
+        mask_loss = ce_loss * _mask
         mask_loss = mask_loss[_mask == 1]  # consider only mask samples for mask loss computing
         expected_loss = ce_loss.mean() * loss_weigths[0] + mask_loss.mean() * loss_weigths[1]
 
@@ -65,14 +61,14 @@ class MaskAttentionLossTest(unittest.TestCase):
         target = torch.randn(self.batch, self.num_classes, self.img_size, self.img_size)
         mask = self._get_default_mask_tensor()
 
-        loss_weigths = [1., 0.5]
+        loss_weigths = [1.0, 0.5]
         ce_crit = nn.BCEWithLogitsLoss(reduction="none")
         mask_ce_crit = MaskAttentionLoss(criterion=ce_crit, loss_weights=loss_weigths)
 
         # expected result
         ce_loss = ce_crit(predict, target)
         _mask = mask.expand_as(ce_loss)
-        mask_loss = (ce_loss * _mask)
+        mask_loss = ce_loss * _mask
         mask_loss = mask_loss[_mask == 1]  # consider only mask samples for mask loss computing
         expected_loss = ce_loss.mean() * loss_weigths[0] + mask_loss.mean() * loss_weigths[1]
 
@@ -90,14 +86,14 @@ class MaskAttentionLossTest(unittest.TestCase):
         target = self._get_default_target_tensor()
         mask = self._get_default_mask_tensor()
 
-        loss_weigths = [1., 0.5]
+        loss_weigths = [1.0, 0.5]
         ce_crit = nn.CrossEntropyLoss(reduction="none")
         mask_ce_crit = MaskAttentionLoss(criterion=ce_crit, loss_weights=loss_weigths, reduction="none")
 
         # expected result
         ce_loss = ce_crit(predict, target)
         _mask = mask.view_as(ce_loss)
-        mask_loss = (ce_loss * _mask)
+        mask_loss = ce_loss * _mask
         expected_loss = ce_loss * loss_weigths[0] + mask_loss * loss_weigths[1]
 
         # mask ce loss result
@@ -111,10 +107,10 @@ class MaskAttentionLossTest(unittest.TestCase):
         kwargs = {"criterion": nn.CrossEntropyLoss(reduction="mean")}
         self.failUnlessRaises(ValueError, MaskAttentionLoss, **kwargs)
         # loss_weights must have only 2 values
-        kwargs = {"criterion": nn.CrossEntropyLoss(reduction="none"), "loss_weights": [1., 1., 1.]}
+        kwargs = {"criterion": nn.CrossEntropyLoss(reduction="none"), "loss_weights": [1.0, 1.0, 1.0]}
         self.failUnlessRaises(ValueError, MaskAttentionLoss, **kwargs)
         # mask loss_weight must be a positive value
-        kwargs = {"criterion": nn.CrossEntropyLoss(reduction="none"), "loss_weights": [1., 0.]}
+        kwargs = {"criterion": nn.CrossEntropyLoss(reduction="none"), "loss_weights": [1.0, 0.0]}
         self.failUnlessRaises(ValueError, MaskAttentionLoss, **kwargs)
 
     def test_multi_class_mask(self):
@@ -128,13 +124,13 @@ class MaskAttentionLossTest(unittest.TestCase):
         target = to_one_hot(target, self.num_classes).float()
         mask = torch.randint(0, 2, size=(self.batch, self.num_classes, self.img_size, self.img_size)).float()
 
-        loss_weigths = [1., 0.5]
+        loss_weigths = [1.0, 0.5]
         ce_crit = nn.MSELoss(reduction="none")
         mask_ce_crit = MaskAttentionLoss(criterion=ce_crit, loss_weights=loss_weigths)
 
         # expected result
         mse_loss = ce_crit(predict, target)
-        mask_loss = (mse_loss * mask)
+        mask_loss = mse_loss * mask
         mask_loss = mask_loss[mask == 1]  # consider only mask samples for mask loss computing
         expected_loss = mse_loss.mean() * loss_weigths[0] + mask_loss.mean() * loss_weigths[1]
 
@@ -148,10 +144,9 @@ class MaskAttentionLossTest(unittest.TestCase):
         Test assertion in mask broadcasting
         """
         predict = torch.randn(self.batch, self.num_classes, self.img_size, self.img_size)
-        target = torch.randint(0, self.num_classes,
-                               size=(self.batch, self.num_classes, self.img_size, self.img_size)).float()
+        target = torch.randint(0, self.num_classes, size=(self.batch, self.num_classes, self.img_size, self.img_size)).float()
 
-        loss_weigths = [1., 0.5]
+        loss_weigths = [1.0, 0.5]
         ce_crit = nn.BCEWithLogitsLoss(reduction="none")
         mask_ce_crit = MaskAttentionLoss(criterion=ce_crit, loss_weights=loss_weigths)
 
@@ -168,5 +163,5 @@ class MaskAttentionLossTest(unittest.TestCase):
         self.failUnlessRaises(AssertionError, mask_ce_crit, *(predict, target, mask))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
