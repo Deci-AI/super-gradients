@@ -1392,9 +1392,6 @@ class Trainer:
         self.net.load_state_dict(keep_state_dict)
 
         if not self.ddp_silent_mode:
-            # Adding values to sg_logger
-            # looping over last titles which corresponds to validation (and average model) metrics.
-
             average_model_tb_titles = ["Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]]
             write_struct = ""
             for ind, title in enumerate(average_model_tb_titles):
