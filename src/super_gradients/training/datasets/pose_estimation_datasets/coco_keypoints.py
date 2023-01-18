@@ -55,7 +55,7 @@ class COCOKeypointsDataset(Dataset):
         self.ids = list(self.coco.imgs.keys())
         self.joints = coco.dataset["categories"][0]["keypoints"]
         self.num_joints = len(self.joints)
-        self.min_object_area = min_instance_area
+        self.min_instance_area = min_instance_area
 
         self.transforms = transforms
         self.target_generator = target_generator
@@ -117,7 +117,7 @@ class COCOKeypointsDataset(Dataset):
 
         # Remove instances with too small area
         areas = self.compute_area(joints)
-        joints = joints[areas > self.min_object_area]
+        joints = joints[areas > self.min_instance_area]
 
         return joints
 
