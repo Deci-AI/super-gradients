@@ -17,6 +17,9 @@ orbs:
   docker: circleci/docker@2.2.0
   slack: circleci/slack@4.12.0 # see https://circleci.com/developer/orbs/orb/circleci/slack for examples and more
 
+environment: &environment
+  CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
+
 # This filter operates on SemVer2 tags only
 release_tag_filter: &release_tag_filter
   filters:
@@ -75,8 +78,7 @@ commands:
 
 jobs:
   build:
-    environment:
-      CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
+    <<: *environment
     parameters:
       py_version:
         type: string
@@ -294,8 +296,7 @@ jobs:
 
 
   release_candidate:
-    environment:
-      CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
+    <<: *environment
     parameters:
       py_version:
         type: string
@@ -325,8 +326,7 @@ jobs:
           version: $NEW_VERSION
 
   release_version:
-    environment:
-      CIRCLE_COMPARE_URL: << pipeline.project.git_url >>/compare/<< pipeline.git.base_revision >>..<<pipeline.git.revision>>
+    <<: *environment
     parameters:
       py_version:
         type: string
