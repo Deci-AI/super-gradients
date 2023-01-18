@@ -2,6 +2,7 @@ import sys
 import unittest
 import dataclasses
 from typing import Type
+import omegaconf
 from super_gradients.common.crash_handler.crash_tips import (
     get_relevant_crash_tip_message,
     CrashTip,
@@ -9,6 +10,7 @@ from super_gradients.common.crash_handler.crash_tips import (
     RecipeFactoryFormatTip,
     DDPNotInitializedTip,
     WrongHydraVersionTip,
+    InterpolationKeyErrorTip,
 )
 
 
@@ -45,6 +47,10 @@ class CrashTipTest(unittest.TestCase):
             DocumentedException(
                 exc_value=TypeError("__init__() got an unexpected keyword argument 'version_base'"),
                 expected_crash_tip=WrongHydraVersionTip,
+            ),
+            DocumentedException(
+                exc_value=omegaconf.errors.InterpolationKeyError("omegaconf.errors.InterpolationKeyError: Interpolation key 'x' not found"),
+                expected_crash_tip=InterpolationKeyErrorTip,
             ),
         ]
 
