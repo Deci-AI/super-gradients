@@ -105,7 +105,7 @@ class COCOKeypointsDataset(Dataset):
         Filter instances that are either too small or do not have visible keypoints
         :param joints: Array of shape [Num Instances, Num Joints, 3]
         :param image:
-        :return:
+        :return: [New Num Instances, Num Joints, 3], New Num Instances <= Num Instances
         """
         # Update visibility of joints for those that are outside the image
         outside_image_mask = (joints[:, :, 0] < 0) | (joints[:, :, 1] < 0) | (joints[:, :, 0] >= image.shape[1]) | (joints[:, :, 1] >= image.shape[0])
@@ -123,7 +123,11 @@ class COCOKeypointsDataset(Dataset):
 
     def get_joints(self, anno: List[Mapping[str, Any]]) -> np.ndarray:
         """
-
+        Decode the keypoints from the COCO annotation and return them as an array of shape [Num Instances, Num Joints, 3].
+        The visibility of keypoints is encoded in the third dimension of the array with following values:
+         - 0 being invisible (outside image)
+         - 1 present in image but occluded
+         - 2 - fully visible
         :param anno:
         :return: [Num Instances, Num Joints, 3], where last channel represents (x, y, visibility)
         """
