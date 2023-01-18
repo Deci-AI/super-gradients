@@ -26,7 +26,7 @@
 #      Backbones- downloaded from the author's official repo.
 #       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_bb_imagenet.pth
 #       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_slim_bb_imagenet.pth
-#       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet39_imagenet.pth
+#       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet39_bb_imagenet.pth
 #
 #      Logs, tensorboards and network checkpoints:
 #       DDRNet23:       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23/
