@@ -293,14 +293,16 @@ class EpochStepWarmupLRCallback(LRCallbackBase):
     def __init__(self, **kwargs):
         super(EpochStepWarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
         self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
-        self.warmup_step_size = (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs
+        self.warmup_step_size = (
+            (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs if self.training_params.lr_warmup_epochs > 0 else 0
+        )
 
     def perform_scheduling(self, context):
         self.lr = self.warmup_initial_lr + context.epoch * self.warmup_step_size
         self.update_lr(context.optimizer, context.epoch, None)
 
     def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs >= context.epoch
+        return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
 class BatchStepLinearWarmupLRCallback(Callback):
