@@ -42,6 +42,7 @@ class DeciClient:
             return
 
         self.lab_client = DeciPlatformClient()
+
         GlobalHydra.instance().clear()
         self.super_gradients_version = None
         try:
