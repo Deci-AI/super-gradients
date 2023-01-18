@@ -31,9 +31,5 @@ class EnvironmentVariables:
     def UPLOAD_LOGS(self):
         return os.getenv("UPLOAD_LOGS", "TRUE")
 
-    @property
-    def PROD_ENVIRONMENT(self) -> bool:
-        return os.getenv("PROD_ENVIRONMENT", "TRUE") == "TRUE"
-
 
 env_variables = EnvironmentVariables()

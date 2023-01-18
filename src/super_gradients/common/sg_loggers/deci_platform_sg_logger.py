@@ -1,13 +1,20 @@
 import os
 from typing import Optional
 
+from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
-from super_gradients.common.plugins.deci_client import DeciClient
 
 logger = get_logger(__name__)
 
+try:
+    from deci_lab_client.client import DeciPlatformClient
+
+    _imported_deci_lab_failure = None
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    logger.debug("Failed to import deci_lab_client")
+    _imported_deci_lab_failure = import_err
 
 TENSORBOARD_EVENTS_PREFIX = "events.out.tfevents"
 LOGS_PREFIX = "log_"
@@ -34,6 +41,9 @@ class DeciPlatformSGLogger(BaseSGLogger):
         model_name: Optional[str] = None,
     ):
 
+        if _imported_deci_lab_failure is not None:
+            raise _imported_deci_lab_failure
+
         super().__init__(
             project_name=project_name,
             experiment_name=experiment_name,
@@ -50,14 +60,14 @@ class DeciPlatformSGLogger(BaseSGLogger):
             monitor_system=monitor_system,
         )
 
+        self.platform_client = DeciPlatformClient()
+        self.platform_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
         if model_name is None:
             logger.warning(
                 "'model_name' parameter not passed. "
                 "The experiment won't be connected to an architecture in the Deci platform. "
                 "To pass a model_name, please use the 'sg_logger_params.model_name' field in the training recipe."
             )
-
-        self.platform_client = DeciClient()
         self.platform_client.register_experiment(name=experiment_name, model_name=model_name if model_name else None)
         self.checkpoints_dir_path = checkpoints_dir_path
 
