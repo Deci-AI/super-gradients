@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import random
 from abc import abstractmethod
 from typing import Tuple, List, Iterable
@@ -43,7 +39,7 @@ class KeypointsCompose(KeypointTransform):
 
 
 class ToTensor(KeypointTransform):
-    def __call__(self, image, mask, joints):
+    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray):
         return F.to_tensor(image), mask, joints
 
 
@@ -52,7 +48,7 @@ class Normalize(KeypointTransform):
         self.mean = mean
         self.std = std
 
-    def __call__(self, image, mask, joints):
+    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray):
         image = F.normalize(image, mean=self.mean, std=self.std)
         return image, mask, joints
 
@@ -103,13 +99,13 @@ class KeypointsRandomVerticalFlip(KeypointTransform):
 
 
 class LongestMaxSize(KeypointTransform):
-    def __init__(self, max_sizes: Tuple[int, int], interpolation: int = cv2.INTER_LINEAR, p: float = 1.0):
+    def __init__(self, max_sizes: Tuple[int, int], interpolation: int = cv2.INTER_LINEAR, prob: float = 1.0):
         self.max_height, self.max_width = max_sizes
         self.interpolation = interpolation
-        self.p = p
+        self.prob = prob
 
     def __call__(self, image, mask, joints: float):
-        if random.random() < self.p:
+        if random.random() < self.prob:
             height, width = image.shape[:2]
             scale = min(self.max_height / height, self.max_width / width)
             image = self.rescale_image(image, scale, cv2.INTER_LINEAR)

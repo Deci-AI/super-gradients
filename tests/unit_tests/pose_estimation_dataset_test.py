@@ -1,4 +1,4 @@
-from super_gradients.training.datasets.pose_estimation_datasets.coco_keypoints import COCOKeypoints
+from super_gradients.training.datasets.pose_estimation_datasets.coco_keypoints import COCOKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets.target_generators import DEKRTargetsGenerator
 from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointsRandomVerticalFlip
 
@@ -12,7 +12,7 @@ def test_dataset():
         offset_radius=4,
     )
 
-    dataset = COCOKeypoints(
+    dataset = COCOKeypointsDataset(
         dataset_root="e:/coco2017",
         images_dir="images/train2017",
         json_file="annotations/person_keypoints_train2017.json",

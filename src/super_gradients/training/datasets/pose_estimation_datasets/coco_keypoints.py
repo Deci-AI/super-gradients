@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 from typing import Tuple, List, Mapping, Any
 
@@ -18,8 +14,11 @@ from super_gradients.training.transforms.keypoint_transforms import KeypointsCom
 logger = get_logger(__name__)
 
 
-class COCOKeypoints(Dataset):
-    """ """
+class COCOKeypointsDataset(Dataset):
+    """
+    Dataset class for training pose estimation models on COCO Keypoints dataset.
+    Use should pass a target generator class that is model-specific and generates the targets for the model.
+    """
 
     def __init__(
         self,
@@ -31,6 +30,18 @@ class COCOKeypoints(Dataset):
         transforms: KeypointsCompose,
         min_instance_area: float = 128,
     ):
+        """
+
+        :param dataset_root: Root directory of the COCO dataset
+        :param images_dir: path suffix to the images directory inside the dataset_root
+        :param json_file: path suffix to the json file inside the dataset_root
+        :param include_empty_samples: if True, images without any annotations will be included in the dataset.
+            Otherwise, they will be filtered out.
+        :param target_generator: Target generator that will be used to generate the targets for the model.
+            See DEKRTargetsGenerator for an example.
+        :param transforms: Transforms to be applied to the image & keypoints
+        :param min_instance_area: Minimum area of an instance to be included in the dataset
+        """
         super().__init__()
         self.root = dataset_root
         self.images_dir = os.path.join(dataset_root, images_dir)
@@ -46,9 +57,6 @@ class COCOKeypoints(Dataset):
         self.num_joints = len(self.joints)
         self.min_object_area = min_instance_area
 
-        cats = [cat["name"] for cat in self.coco.loadCats(self.coco.getCatIds())]
-        self.classes = ["__background__"] + cats
-
         self.transforms = transforms
         self.target_generator = target_generator
 
@@ -56,20 +64,18 @@ class COCOKeypoints(Dataset):
             subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id, iscrowd=None)) > 0]
             self.ids = subset
 
-    def _get_image_path(self, file_name):
-        return os.path.join(self.images_dir, file_name)
-
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, Any, Mapping[str, Any]]:
         coco = self.coco
         img_id = self.ids[index]
         image_info = coco.loadImgs(img_id)[0]
         file_name = image_info["file_name"]
+        file_path = os.path.join(self.images_dir, file_name)
 
         ann_ids = coco.getAnnIds(imgIds=img_id)
         anno = coco.loadAnns(ann_ids)
         anno = [obj for obj in anno if bool(obj["iscrowd"]) is False and obj["num_keypoints"] > 0]
 
-        orig_image = cv2.imread(self._get_image_path(file_name), cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+        orig_image = cv2.imread(file_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
 
         if orig_image.shape[0] != image_info["height"] or orig_image.shape[1] != image_info["width"]:
             raise RuntimeError(f"Annotated image size ({image_info['height'],image_info['width']}) does not match image size in file {orig_image.shape[:2]}")
@@ -86,7 +92,7 @@ class COCOKeypoints(Dataset):
 
     def compute_area(self, joints: np.ndarray) -> np.ndarray:
         """
-        Compute area of a bounding box for each instance
+        Compute area of a bounding box for each instance.
         :param joints:  [Num Instances, Num Joints, 3]
         :return: [Num Instances]
         """

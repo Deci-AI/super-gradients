@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from typing import Tuple
 
 import cv2
@@ -102,7 +98,9 @@ class DEKRTargetsGenerator:
         joints, area = self.sort_joints_by_area(joints)
         joints = self.augment_with_center_joint(joints)
 
-        output_rows, output_cols = mask.shape[0] // self.output_stride, mask.shape[1] // self.output_stride
+        # Compute the size of the target maps
+        rows, cols = mask.shape
+        output_rows, output_cols = rows // self.output_stride, cols // self.output_stride
 
         heatmaps = np.zeros(
             shape=(num_joints_with_center, output_rows, output_cols),
@@ -122,8 +120,6 @@ class DEKRTargetsGenerator:
             (num_joints * 2, output_rows, output_cols),
             dtype=np.float32,
         )
-
-        rows, cols = mask.shape  # Rows/Cols corresponds here the original image size
 
         sx = output_cols / cols
         sy = output_rows / rows
