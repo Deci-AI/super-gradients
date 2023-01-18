@@ -99,6 +99,12 @@ qat_params:
   num_calib_batches: 2 # int, number of batches to collect the statistics from.
   percentile: 99.99 # float, percentile value to use when quant_modules_calib_method='percentile'. Discarded when other methods are used (Default=99.99).
 
+max_train_batches:  # For debug- when not None- will break out of inner train loop
+# (i.e iterating over train_loader) when reaching this number of batches.
+
+max_valid_batches:  # For debug- when not None- will break out of inner valid loop
+# (i.e iterating over valid_loader) when reaching this number of batches.
+
 sg_logger: base_sg_logger
 sg_logger_params:
   tb_files_user_prompt: False # Asks User for Tensorboard Deletion Prompt
