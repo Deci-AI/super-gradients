@@ -1,4 +1,5 @@
 import unittest
+import shutil
 import os
 import torch
 
@@ -27,7 +28,7 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
 
     @classmethod
     def _reached_goal_metric(cls, experiment_name: str, metric_value: float, delta: float):
-        checkpoints_dir_path = get_checkpoints_dir_path(experiment_name=experiment_name, ckpt_root_dir=CKPT_ROOT_DIR)
+        checkpoints_dir_path = get_checkpoints_dir_path(experiment_name=experiment_name)
         sd = torch.load(os.path.join(checkpoints_dir_path, "ckpt_best.pth"))
         metric_val_reached = sd["acc"].cpu().item()
         diff = abs(metric_val_reached - metric_value)
@@ -35,6 +36,14 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
             "Goal metric value: " + str(metric_value) + ", metric value reached: " + str(metric_val_reached) + ",diff: " + str(diff) + ", delta: " + str(delta)
         )
         return diff <= delta
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        # ERASE ALL THE FOLDERS THAT WERE CREATED DURING THIS TEST
+        for experiment_name in cls.experiment_names:
+            checkpoints_dir_path = get_checkpoints_dir_path(experiment_name=experiment_name)
+            if os.path.isdir(checkpoints_dir_path):
+                shutil.rmtree(checkpoints_dir_path)
 
 
 if __name__ == "__main__":
