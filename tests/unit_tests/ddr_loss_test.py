@@ -19,7 +19,7 @@ class DDRLossTest(unittest.TestCase):
         """
         No Auxiliary loss, only one prediction map
         """
-        weights = [1.]
+        weights = [1.0]
         criterion = DDRNetLoss((1 / self.num_classes - self.eps), ohem_percentage=0.1, weights=weights)
         bce_loss = -torch.log(torch.tensor(1 / self.num_classes))
         expected_loss = bce_loss * weights[0]
@@ -32,15 +32,14 @@ class DDRLossTest(unittest.TestCase):
         Auxiliary loss, 2 prediction maps, as DDRNet paper.
         """
         predictions = [self.predictions, self.predictions]
-        weights = [1., 0.4]
+        weights = [1.0, 0.4]
 
         criterion = DDRNetLoss((1 / self.num_classes - self.eps), ohem_percentage=0.1, weights=weights)
-        expected_loss = -torch.log(torch.tensor(1 / self.num_classes)) * weights[0] + \
-                        -torch.log(torch.tensor(1 / self.num_classes)) * weights[1]
+        expected_loss = -torch.log(torch.tensor(1 / self.num_classes)) * weights[0] + -torch.log(torch.tensor(1 / self.num_classes)) * weights[1]
         loss, _ = criterion(predictions, self.targets)
 
         self.assertAlmostEqual(expected_loss, loss, delta=1e-5)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
