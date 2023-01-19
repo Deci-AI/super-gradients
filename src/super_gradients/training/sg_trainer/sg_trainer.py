@@ -16,7 +16,7 @@ from piptools.scripts.sync import _get_installed_distributions
 
 from torch.utils.data.distributed import DistributedSampler
 
-from super_gradients.common.environment.checkpoint_dir_utils import get_checkpoints_dir_path
+from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory

@@ -10,7 +10,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training import models
-from super_gradients.common.environment.checkpoint_dir_utils import get_checkpoints_dir_path
+from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg
 from super_gradients.training.utils.sg_trainer_utils import parse_args
 import os

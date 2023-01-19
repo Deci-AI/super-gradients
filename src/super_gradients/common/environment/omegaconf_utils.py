@@ -3,7 +3,7 @@ import sys
 
 from omegaconf import OmegaConf
 
-from super_gradients.common.environment.checkpoint_dir_utils import get_checkpoints_dir_path
+from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 
 
 def get_cls(cls_path: str):
