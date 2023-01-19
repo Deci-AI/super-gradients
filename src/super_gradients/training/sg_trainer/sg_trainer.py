@@ -2,7 +2,6 @@ import inspect
 import os
 from copy import deepcopy
 from typing import Union, Tuple, Mapping, Dict
-from pathlib import Path
 
 import numpy as np
 import torch
@@ -299,8 +298,8 @@ class Trainer:
             logger.info(
                 "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
             )
-            checkpoints_dir = Path(get_checkpoints_dir(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-            cfg.checkpoint_params.checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
+            checkpoints_dir = get_checkpoints_dir(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+            cfg.checkpoint_params.checkpoint_path = os.path.join(checkpoints_dir, cfg.training_hyperparams.ckpt_name)
 
         logger.info(f"Evaluating checkpoint: {cfg.checkpoint_params.checkpoint_path}")
 
@@ -510,7 +509,7 @@ class Trainer:
 
         if self.training_params.average_best_models:
             self.model_weight_averaging = ModelWeightAveraging(
-                self.checkpoints_dir_path,
+                ckpt_dir=self.checkpoints_dir_path,
                 greater_is_better=self.greater_metric_to_watch_is_better,
                 source_ckpt_folder_name=self.source_ckpt_folder_name,
                 metric_to_watch=self.metric_to_watch,
