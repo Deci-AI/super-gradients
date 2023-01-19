@@ -16,7 +16,7 @@ from piptools.scripts.sync import _get_installed_distributions
 
 from torch.utils.data.distributed import DistributedSampler
 
-from super_gradients.common.environment.checkpoint_dir_utils import get_checkpoints_dir
+from super_gradients.common.environment.checkpoint_dir_utils import get_checkpoints_dir_path
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
@@ -176,7 +176,7 @@ class Trainer:
         self.experiment_name = experiment_name
         self.ckpt_name = None
 
-        self.checkpoints_dir_path = get_checkpoints_dir(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
+        self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
         self.phase_callback_handler: CallbackHandler = None
 
         # SET THE DEFAULTS
@@ -298,7 +298,7 @@ class Trainer:
             logger.info(
                 "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
             )
-            checkpoints_dir = get_checkpoints_dir(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+            checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
             cfg.checkpoint_params.checkpoint_path = os.path.join(checkpoints_dir, cfg.training_hyperparams.ckpt_name)
 
         logger.info(f"Evaluating checkpoint: {cfg.checkpoint_params.checkpoint_path}")

@@ -3,7 +3,7 @@ import shutil
 import os
 import torch
 
-from super_gradients.common.environment.checkpoint_dir_utils import get_checkpoints_dir
+from super_gradients.common.environment.checkpoint_dir_utils import get_checkpoints_dir_path
 
 
 class ShortenedRecipesAccuracyTests(unittest.TestCase):
@@ -15,7 +15,7 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
         self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cifar10_resnet_accuracy_test", metric_value=0.9167, delta=0.05))
 
     def test_convert_shortened_cifar10_resnet(self):
-        ckpt_dir = get_checkpoints_dir(experiment_name="shortened_cifar10_resnet_accuracy_test")
+        ckpt_dir = get_checkpoints_dir_path(experiment_name="shortened_cifar10_resnet_accuracy_test")
         self.assertTrue(os.path.exists(os.path.join(ckpt_dir, "ckpt_best.onnx")))
 
     def test_shortened_coco2017_yolox_n_map(self):
@@ -26,7 +26,7 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
 
     @classmethod
     def _reached_goal_metric(cls, experiment_name: str, metric_value: float, delta: float):
-        checkpoints_dir_path = get_checkpoints_dir(experiment_name=experiment_name)
+        checkpoints_dir_path = get_checkpoints_dir_path(experiment_name=experiment_name)
         sd = torch.load(os.path.join(checkpoints_dir_path, "ckpt_best.pth"))
         metric_val_reached = sd["acc"].cpu().item()
         diff = abs(metric_val_reached - metric_value)
@@ -39,7 +39,7 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
     def tearDownClass(cls) -> None:
         # ERASE ALL THE FOLDERS THAT WERE CREATED DURING THIS TEST
         for experiment_name in cls.experiment_names:
-            checkpoints_dir_path = get_checkpoints_dir(experiment_name=experiment_name)
+            checkpoints_dir_path = get_checkpoints_dir_path(experiment_name=experiment_name)
             if os.path.isdir(checkpoints_dir_path):
                 shutil.rmtree(checkpoints_dir_path)
 

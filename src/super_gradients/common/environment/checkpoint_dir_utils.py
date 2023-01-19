@@ -8,7 +8,7 @@ except Exception:
     PKG_CHECKPOINTS_DIR = None
 
 
-def get_checkpoints_dir(experiment_name: str, ckpt_root_dir: str = None) -> str:
+def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None) -> str:
     """Get the directory that includes all the checkpoints (and logs) of an experiment.
 
     :param experiment_name:     Name of the experiment.
