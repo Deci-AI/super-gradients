@@ -467,7 +467,7 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
-      - recipe_tests:
+      - recipe_tests
       - release_version:
           py_version: "3.7"
           requires:
