@@ -32,8 +32,8 @@ class EnvironmentVariables:
         return os.getenv("UPLOAD_LOGS", "TRUE")
 
     @property
-    def PROD_ENVIRONMENT(self) -> bool:
-        return os.getenv("PROD_ENVIRONMENT", "TRUE") == "TRUE"
+    def DECI_API_HOST(self) -> str:
+        return os.getenv("DECI_API_HOST", default="api.deci.ai")
 
 
 env_variables = EnvironmentVariables()

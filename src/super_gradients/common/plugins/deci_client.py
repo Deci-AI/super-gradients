@@ -44,8 +44,7 @@ class DeciClient:
             )
             return
 
-        api_host = "api.deci.ai" if env_variables.PROD_ENVIRONMENT else "api.development.deci.ai"
-        self.lab_client = DeciPlatformClient(api_host=api_host)
+        self.lab_client = DeciPlatformClient(api_host=env_variables.DECI_API_HOST)
         self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
         GlobalHydra.instance().clear()
