@@ -2,6 +2,7 @@ import inspect
 import os
 from copy import deepcopy
 from typing import Union, Tuple, Mapping, Dict
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -16,7 +17,7 @@ from piptools.scripts.sync import _get_installed_distributions
 
 from torch.utils.data.distributed import DistributedSampler
 
-from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
+from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
@@ -176,7 +177,7 @@ class Trainer:
         self.experiment_name = experiment_name
         self.ckpt_name = None
 
-        self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
+        self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
         self.phase_callback_handler: CallbackHandler = None
 
         # SET THE DEFAULTS
@@ -298,8 +299,8 @@ class Trainer:
             logger.info(
                 "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
             )
-            checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
-            cfg.checkpoint_params.checkpoint_path = os.path.join(checkpoints_dir, cfg.training_hyperparams.ckpt_name)
+            checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
+            cfg.checkpoint_params.checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
 
         logger.info(f"Evaluating checkpoint: {cfg.checkpoint_params.checkpoint_path}")
 
@@ -509,7 +510,7 @@ class Trainer:
 
         if self.training_params.average_best_models:
             self.model_weight_averaging = ModelWeightAveraging(
-                ckpt_dir=self.checkpoints_dir_path,
+                self.checkpoints_dir_path,
                 greater_is_better=self.greater_metric_to_watch_is_better,
                 source_ckpt_folder_name=self.source_ckpt_folder_name,
                 metric_to_watch=self.metric_to_watch,
@@ -1463,10 +1464,17 @@ class Trainer:
         """
 
         if self.load_checkpoint or self.external_checkpoint_path:
-            checkpoint_path = self.external_checkpoint_path or os.path.join(self.checkpoints_dir_path, self.ckpt_name)
+            # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST
+            ckpt_local_path = get_ckpt_local_path(
+                source_ckpt_folder_name=self.source_ckpt_folder_name,
+                experiment_name=self.experiment_name,
+                ckpt_name=self.ckpt_name,
+                external_checkpoint_path=self.external_checkpoint_path,
+            )
 
+            # LOAD CHECKPOINT TO MODEL
             self.checkpoint = load_checkpoint_to_model(
-                checkpoint_path=checkpoint_path,
+                ckpt_local_path=ckpt_local_path,
                 load_backbone=self.load_backbone,
                 net=self.net,
                 strict=self.strict_load.value if isinstance(self.strict_load, StrictLoad) else self.strict_load,

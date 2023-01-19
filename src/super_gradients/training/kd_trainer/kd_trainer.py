@@ -214,7 +214,7 @@ class KDTrainer(Trainer):
             # ALWAYS LOAD ITS EMA IF IT EXISTS
             load_teachers_ema = "ema_net" in read_ckpt_state_dict(teacher_checkpoint_path).keys()
             load_checkpoint_to_model(
-                checkpoint_path=teacher_checkpoint_path,
+                ckpt_local_path=teacher_checkpoint_path,
                 load_backbone=False,
                 net=teacher_net,
                 strict="no_key_matching",

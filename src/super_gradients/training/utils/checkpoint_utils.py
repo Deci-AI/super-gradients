@@ -151,28 +151,28 @@ def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
 
 
 def load_checkpoint_to_model(
-    checkpoint_path: str, load_backbone: bool, net: torch.nn.Module, strict: str, load_weights_only: bool, load_ema_as_net: bool = False
+    ckpt_local_path: str, load_backbone: bool, net: torch.nn.Module, strict: str, load_weights_only: bool, load_ema_as_net: bool = False
 ):
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
 
     @param load_ema_as_net: Will load the EMA inside the checkpoint file to the network when set
-    @param checkpoint_path: local path to the checkpoint file
+    @param ckpt_local_path: local path to the checkpoint file
     @param load_backbone: whether to load the checkpoint as a backbone
     @param net: network to load the checkpoint to
     @param strict:
     @param load_weights_only:
     @return:
     """
-    if checkpoint_path is None or not os.path.exists(checkpoint_path):
-        error_msg = "Error - loading Model Checkpoint: Path {} does not exist".format(checkpoint_path)
+    if ckpt_local_path is None or not os.path.exists(ckpt_local_path):
+        error_msg = "Error - loading Model Checkpoint: Path {} does not exist".format(ckpt_local_path)
         raise RuntimeError(error_msg)
 
     if load_backbone and not hasattr(net, "backbone"):
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
 
     # LOAD THE LOCAL CHECKPOINT PATH INTO A state_dict OBJECT
-    checkpoint = read_ckpt_state_dict(ckpt_path=checkpoint_path)
+    checkpoint = read_ckpt_state_dict(ckpt_path=ckpt_local_path)
 
     if load_ema_as_net:
         if "ema_net" not in checkpoint.keys():
@@ -188,7 +188,7 @@ def load_checkpoint_to_model(
 
     message_suffix = " checkpoint." if not load_ema_as_net else " EMA checkpoint."
     message_model = "model" if not load_backbone else "model's backbone"
-    logger.info("Successfully loaded " + message_model + " weights from " + checkpoint_path + message_suffix)
+    logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
 
     if load_weights_only or load_backbone:
         # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS
