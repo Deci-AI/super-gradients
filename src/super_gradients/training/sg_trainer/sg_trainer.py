@@ -704,9 +704,25 @@ class Trainer:
 
                     Learning rate scheduling function to be used when `lr_mode` is 'function'.
 
+                - `warmup_mode`: Union[str, Type[LRCallbackBase], None]
+
+                    If not None, define how the learning rate will be increased during the warmup phase.
+                    Currently, only 'warmup_linear_epoch' and `warmup_linear_step` modes are supported.
+
                 - `lr_warmup_epochs` : int (default=0)
 
                     Number of epochs for learning rate warm up - see https://arxiv.org/pdf/1706.02677.pdf (Section 2.2).
+                    Relevant for `warmup_mode=warmup_linear_epoch`.
+                    When lr_warmup_epochs > 0, the learning rate will be increased linearly from 0 to the `initial_lr`
+                    once per epoch.
+
+                - `lr_warmup_steps` : int (default=0)
+
+                    Number of steps for learning rate warm up - see https://arxiv.org/pdf/1706.02677.pdf (Section 2.2).
+                    Relevant for `warmup_mode=warmup_linear_step`.
+                    When lr_warmup_steps > 0, the learning rate will be increased linearly from 0 to the `initial_lr`
+                    for a total number of steps according to formula: min(lr_warmup_steps, len(train_loader)).
+                    The capping is done to avoid interference of warmup with epoch-based schedulers.
 
                 - `cosine_final_lr_ratio` : float (default=0.01)
                     Final learning rate ratio (only relevant when `lr_mode`='cosine'). The cosine starts from initial_lr and reaches
