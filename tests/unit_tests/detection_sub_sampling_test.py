@@ -12,9 +12,9 @@ class DummyDetectionDataset(DetectionDataset):
 
         self.dataset_size = dataset_size
         self.image_size = input_dim
-        kwargs['all_classes_list'] = ["class_0", "class_1", "class_2"]
-        kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
-        super().__init__(data_dir='', input_dim=input_dim, *args, **kwargs)
+        kwargs["all_classes_list"] = ["class_0", "class_1", "class_2"]
+        kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
+        super().__init__(data_dir="", input_dim=input_dim, *args, **kwargs)
 
     def _setup_data_source(self):
         return self.dataset_size
@@ -30,7 +30,6 @@ class DummyDetectionDataset(DetectionDataset):
 
 
 class TestDetectionDatasetSubsampling(unittest.TestCase):
-
     def test_subsampling(self):
         """Check that subsampling works"""
         for max_num_samples in [1, 1_000, 1_000_000]:
@@ -38,5 +37,5 @@ class TestDetectionDatasetSubsampling(unittest.TestCase):
             self.assertEqual(len(test_dataset), min(max_num_samples, 100_000))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
