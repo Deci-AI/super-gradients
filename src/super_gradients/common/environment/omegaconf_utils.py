@@ -1,10 +1,9 @@
 import importlib
-import os
 import sys
 
 from omegaconf import OmegaConf
 
-from super_gradients.common.environment import environment_config
+from super_gradients.common.environment.checkpoint_dir_utils import get_checkpoints_dir
 
 
 def get_cls(cls_path: str):
@@ -20,11 +19,7 @@ def get_cls(cls_path: str):
 
 
 def hydra_output_dir_resolver(ckpt_root_dir: str, experiment_name: str) -> str:
-    if ckpt_root_dir is None:
-        output_dir_path = environment_config.PKG_CHECKPOINTS_DIR + os.path.sep + experiment_name
-    else:
-        output_dir_path = ckpt_root_dir + os.path.sep + experiment_name
-    return output_dir_path
+    return get_checkpoints_dir(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
 
 
 def register_hydra_resolvers():

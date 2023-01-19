@@ -7,7 +7,6 @@ import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
 from super_gradients.training.pretrained_models import MODEL_URLS
-from super_gradients.common.environment import environment_config
 
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
@@ -16,46 +15,6 @@ except (ModuleNotFoundError, ImportError, NameError):
 
 
 logger = get_logger(__name__)
-
-
-def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
-    """Creating the checkpoint directory of a given experiment.
-    :param experiment_name:     Name of the experiment.
-    :param ckpt_root_dir:       Local root directory path where all experiment logging directories will
-                                reside. When none is give, it is assumed that pkg_resources.resource_filename('checkpoints', "")
-                                exists and will be used.
-    :return:                    checkpoints_dir_path
-    """
-    if ckpt_root_dir:
-        return os.path.join(ckpt_root_dir, experiment_name)
-    elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
-        return os.path.join(environment_config.PKG_CHECKPOINTS_DIR, experiment_name)
-    else:
-        raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to resources.")
-
-
-def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, external_checkpoint_path: str):
-    """
-    Gets the local path to the checkpoint file, which will be:
-        - By default: YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name.
-        - if the checkpoint file is remotely located:
-            when overwrite_local_checkpoint=True then it will be saved in a temporary path which will be returned,
-            otherwise it will be downloaded to YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name and overwrite
-            YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name/ckpt_name if such file exists.
-        - external_checkpoint_path when external_checkpoint_path != None
-
-    @param source_ckpt_folder_name: The folder where the checkpoint is saved. When set to None- uses the experiment_name.
-    @param experiment_name: experiment name attr in trainer
-    @param ckpt_name: checkpoint filename
-    @param external_checkpoint_path: full path to checkpoint file (that might be located outside of super_gradients/checkpoints directory)
-    @return:
-    """
-    if external_checkpoint_path:
-        return external_checkpoint_path
-    else:
-        checkpoints_folder_name = source_ckpt_folder_name or experiment_name
-        checkpoints_dir_path = get_checkpoints_dir_path(checkpoints_folder_name)
-        return os.path.join(checkpoints_dir_path, ckpt_name)
 
 
 def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str):
@@ -192,28 +151,28 @@ def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
 
 
 def load_checkpoint_to_model(
-    ckpt_local_path: str, load_backbone: bool, net: torch.nn.Module, strict: str, load_weights_only: bool, load_ema_as_net: bool = False
+    checkpoint_path: str, load_backbone: bool, net: torch.nn.Module, strict: str, load_weights_only: bool, load_ema_as_net: bool = False
 ):
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
 
     @param load_ema_as_net: Will load the EMA inside the checkpoint file to the network when set
-    @param ckpt_local_path: local path to the checkpoint file
+    @param checkpoint_path: local path to the checkpoint file
     @param load_backbone: whether to load the checkpoint as a backbone
     @param net: network to load the checkpoint to
     @param strict:
     @param load_weights_only:
     @return:
     """
-    if ckpt_local_path is None or not os.path.exists(ckpt_local_path):
-        error_msg = "Error - loading Model Checkpoint: Path {} does not exist".format(ckpt_local_path)
+    if checkpoint_path is None or not os.path.exists(checkpoint_path):
+        error_msg = "Error - loading Model Checkpoint: Path {} does not exist".format(checkpoint_path)
         raise RuntimeError(error_msg)
 
     if load_backbone and not hasattr(net, "backbone"):
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
 
     # LOAD THE LOCAL CHECKPOINT PATH INTO A state_dict OBJECT
-    checkpoint = read_ckpt_state_dict(ckpt_path=ckpt_local_path)
+    checkpoint = read_ckpt_state_dict(ckpt_path=checkpoint_path)
 
     if load_ema_as_net:
         if "ema_net" not in checkpoint.keys():
@@ -229,7 +188,7 @@ def load_checkpoint_to_model(
 
     message_suffix = " checkpoint." if not load_ema_as_net else " EMA checkpoint."
     message_model = "model" if not load_backbone else "model's backbone"
-    logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
+    logger.info("Successfully loaded " + message_model + " weights from " + checkpoint_path + message_suffix)
 
     if load_weights_only or load_backbone:
         # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS

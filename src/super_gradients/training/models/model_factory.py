@@ -180,7 +180,7 @@ def get(
     if checkpoint_path:
         load_ema_as_net = "ema_net" in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
         _ = load_checkpoint_to_model(
-            ckpt_local_path=checkpoint_path,
+            checkpoint_path=checkpoint_path,
             load_backbone=load_backbone,
             net=net,
             strict=strict_load.value if hasattr(strict_load, "value") else strict_load,
