@@ -10,8 +10,9 @@ from super_gradients.training.utils.callbacks import TestLRCallback, LRCallbackB
 
 
 class CollectLRCallback(Callback):
-    per_step_learning_rates = []
-    per_epoch_learning_rates = []
+    def __init__(self):
+        self.per_step_learning_rates = []
+        self.per_epoch_learning_rates = []
 
     def on_train_batch_end(self, context: PhaseContext) -> None:
         self.per_step_learning_rates.append(context.optimizer.param_groups[0]["lr"])
