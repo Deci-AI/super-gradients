@@ -507,7 +507,7 @@ ________________________________________________________________________________
 <summary>General requirements</summary>
   
 - Python 3.7, 3.8 or 3.9 installed.
-- 1.9.0 <= torch <= 1.13.1 
+- 1.9.0 <= torch < 1.14 
   - https://pytorch.org/get-started/locally/
 - The python packages that are specified in requirements.txt;
 
