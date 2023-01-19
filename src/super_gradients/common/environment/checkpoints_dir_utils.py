@@ -12,8 +12,7 @@ def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None) ->
     """Get the directory that includes all the checkpoints (and logs) of an experiment.
 
     :param experiment_name:     Name of the experiment.
-    :param ckpt_root_dir:       Path to the directory where all the experiments are organised, each sub-folder including the checkpoints of a
-                                specific experiment.
+    :param ckpt_root_dir:       Path to the directory where all the experiments are organised, each sub-folder representing a specific experiment.
                                 If None, it is assumed that pkg_resources.resource_filename('checkpoints', "") exists and will be used.
     :return:                    Path of folder where the experiment checkpoints and logs will be stored.
     """
