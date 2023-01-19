@@ -11,22 +11,13 @@ import onnx
 import onnxruntime
 import torch
 
-from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
+from super_gradients.common.plugins.deci_client import DeciClient
 
 logger = get_logger(__name__)
-
-try:
-    from deci_lab_client.client import DeciPlatformClient
-    from deci_lab_client.models import ModelBenchmarkState
-
-    _imported_deci_lab_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.debug("Failed to import deci_lab_client")
-    _imported_deci_lab_failure = import_err
 
 
 class ContextSgMethods:
@@ -146,16 +137,12 @@ class DeciLabUploadCallback(PhaseCallback):
 
     def __init__(self, model_meta_data, optimization_request_form, ckpt_name="ckpt_best.pth", **kwargs):
         super().__init__(phase=Phase.POST_TRAINING)
-        if _imported_deci_lab_failure is not None:
-            raise _imported_deci_lab_failure
 
         self.model_meta_data = model_meta_data
         self.optimization_request_form = optimization_request_form
         self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
-        self.platform_client = DeciPlatformClient("api.deci.ai", 443, https=True)
-
-        self.platform_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
+        self.platform_client = DeciClient()
 
     @staticmethod
     def log_optimization_failed():
@@ -168,11 +155,7 @@ class DeciLabUploadCallback(PhaseCallback):
         Args:
             model: The resulting model from the training process
         """
-        self.platform_client.add_model(
-            add_model_request=self.model_meta_data,
-            optimization_request=self.optimization_request_form,
-            local_loaded_model=model,
-        )
+        self.platform_client.upload_model(model=model, model_meta_data=self.model_meta_data, optimization_request_form=self.optimization_request_form)
 
     def get_optimization_status(self, optimized_model_name: str):
         """
@@ -194,11 +177,10 @@ class DeciLabUploadCallback(PhaseCallback):
 
         finished = False
         while not finished:
-            optimized_model = self.platform_client.get_model_by_name(name=optimized_model_name).data
-            if optimized_model.benchmark_state not in [ModelBenchmarkState.IN_PROGRESS, ModelBenchmarkState.PENDING]:
-                finished = True
-            else:
+            if self.platform_client.is_model_benchmarking(name=optimized_model_name):
                 time.sleep(30)
+            else:
+                finished = True
 
         signal.alarm(0)
         return True
