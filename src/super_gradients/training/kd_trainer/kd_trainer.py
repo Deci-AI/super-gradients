@@ -1,6 +1,6 @@
 import hydra
 import torch.nn
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 
 from super_gradients.training.utils.distributed_training_utils import setup_device
@@ -85,6 +85,8 @@ class KDTrainer(Trainer):
             load_backbone=cfg.teacher_checkpoint_params.load_backbone,
         )
 
+        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
+
         # TRAIN
         trainer.train(
             training_params=cfg.training_hyperparams,
@@ -95,6 +97,7 @@ class KDTrainer(Trainer):
             run_teacher_on_eval=cfg.run_teacher_on_eval,
             train_loader=train_dataloader,
             valid_loader=val_dataloader,
+            additional_configs_to_log=recipe_logged_cfg,
         )
 
     def _validate_args(self, arch_params, architecture, checkpoint_params, **kwargs):
