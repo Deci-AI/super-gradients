@@ -5,8 +5,6 @@ import torch
 
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 
-CKPT_ROOT_DIR = "~/recipe_test/checkpoints"
-
 
 class ShortenedRecipesAccuracyTests(unittest.TestCase):
     @classmethod
@@ -17,7 +15,7 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
         self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cifar10_resnet_accuracy_test", metric_value=0.9167, delta=0.05))
 
     def test_convert_shortened_cifar10_resnet(self):
-        ckpt_dir = get_checkpoints_dir_path(experiment_name="shortened_cifar10_resnet_accuracy_test", ckpt_root_dir=CKPT_ROOT_DIR)
+        ckpt_dir = get_checkpoints_dir_path(experiment_name="shortened_cifar10_resnet_accuracy_test")
         self.assertTrue(os.path.exists(os.path.join(ckpt_dir, "ckpt_best.onnx")))
 
     def test_shortened_coco2017_yolox_n_map(self):
