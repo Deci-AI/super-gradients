@@ -70,7 +70,7 @@ class LRWarmupTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
             "ema": False,
             "phase_callbacks": phase_callbacks,
-            "warmup_mode": "linear_step",
+            "warmup_mode": "linear_epoch_step",
         }
 
         expected_lrs = [0.25, 0.5, 0.75, 1.0, 1.0]
@@ -121,7 +121,7 @@ class LRWarmupTest(unittest.TestCase):
         # THE LRS AFTER THE UPDATE
         self.assertListEqual(lrs, expected_lrs)
 
-    def test_lr_warmup_per_step_with_lr_scheduling(self):
+    def test_warmup_linear_batch_step(self):
         # Define model
         net = LeNet()
         trainer = Trainer("lr_warmup_test_per_step")
@@ -174,7 +174,7 @@ class LRWarmupTest(unittest.TestCase):
         np.testing.assert_allclose(collect_lr_callback.per_step_learning_rates[:100], expected_warmup_lrs, rtol=1e-4)
         np.testing.assert_allclose(collect_lr_callback.per_step_learning_rates[100:], expected_cosine_lrs, rtol=1e-4)
 
-    def test_warmup_initial_lr(self):
+    def test_warmup_linear_epoch_step(self):
         # Define model
         net = LeNet()
         trainer = Trainer("test_warmup_initial_lr")
@@ -187,6 +187,8 @@ class LRWarmupTest(unittest.TestCase):
             "lr_decay_factor": 0.1,
             "lr_mode": "step",
             "lr_warmup_epochs": 3,
+            "initial_lr": 1,
+            "warmup_initial_lr": 4.0,
             "loss": "cross_entropy",
             "optimizer": "SGD",
             "criterion_params": {},
@@ -197,9 +199,7 @@ class LRWarmupTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
             "ema": False,
             "phase_callbacks": [collect_lr_callback],
-            "warmup_mode": "linear_step",
-            "initial_lr": 1,
-            "warmup_initial_lr": 4.0,
+            "warmup_mode": "linear_epoch_step",
         }
 
         expected_lrs = [4.0, 3.0, 2.0, 1.0, 1.0]
