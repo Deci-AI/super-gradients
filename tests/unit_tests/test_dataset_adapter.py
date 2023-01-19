@@ -3,6 +3,11 @@ import random
 import numpy as np
 from typing import List, Tuple
 
+import torch
+
+# from super_gradients.training.utils.detection_utils import DetectionCollateFN
+from super_gradients.training.transforms.transforms import pad_targets
+
 
 def _generate_image_sample() -> np.ndarray:
     return np.array([np.random.random((3, 64, 64))])
@@ -17,7 +22,7 @@ def _generate_target_sample() -> Tuple[List, List]:
     return bboxes, cls_ids
 
 
-class DictDataset:
+class DictDataset(torch.utils.data.Dataset):
     """Dummy Dataset that returns a few fields grouped as a dict"""
 
     def __len__(self):
@@ -29,18 +34,29 @@ class DictDataset:
         return {"img": image, "bboxes": bboxes, "cls_ids": cls_ids, "index": item}
 
 
-def dict_dataset_adapter_function():
-    pass
+def dict_dataset_adapter_function(original_item: dict):
+    img = original_item["img"]
+    target = np.array([[cls_id, *bbox] for cls_id, bbox in zip(original_item["cls_ids"], original_item["bboxes"])])
+    return img, pad_targets(targets=target, max_targets=10)
 
 
-class DatasetAdaptor:
+class DatasetAdaptor(torch.utils.data.Dataset):
+    """
+
+    :param adapter_function: Converts the Dataset output into a format that is compatible with the collate function.
+
+    """
+
     def __init__(self, dataset, adapter_function):
         self._dataset = dataset
         self.adapter_function = adapter_function
 
     def __getitem__(self, index):
         item = self._dataset[index]
-        return item
+        return self.adapter_function(item)
+
+    def __getattr__(self, item):
+        getattr(self._dataset, item)
 
 
 class TestAutoAugment(unittest.TestCase):
@@ -53,12 +69,16 @@ class TestAutoAugment(unittest.TestCase):
             self.assertIsInstance(item, tuple, "The dataset wrapper needs to return a tuple")
             self.assertGreaterEqual(len(item), 2, "The dataset needs to be made of at least 2 values (typically image, target)")
 
-    # def test_adaptor_dataloader(self):
-    #     self.dict_dataset_wrapper
-    # wrapped_dataset = DatasetAdaptor(dataset=original_dataset, adapter_function=dict_dataset_adapter_function)
-    # for item in iter(wrapped_dataset):
-    #     self.assertIsInstance(item, tuple, "The dataset wrapper needs to return a tuple")
-    #     self.assertGreaterEqual(len(item), 2, "The dataset needs to be made of at least 2 values (typically image, target)")
+    def test_adaptor_dataloader(self):
+        from super_gradients.training import dataloaders
+
+        val_dataloader = dataloaders.get(
+            dataset=self.dict_dataset_wrapper,
+            dataloader_params={"batch_size": 2},
+        )
+        for img, target in iter(val_dataloader):
+            self.assertIsInstance(img, torch.Tensor)
+            self.assertIsInstance(target, torch.Tensor)
 
 
 if __name__ == "__main__":

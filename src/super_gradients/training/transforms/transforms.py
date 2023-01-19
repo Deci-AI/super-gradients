@@ -820,25 +820,27 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     def apply_on_targets(self, targets: np.ndarray) -> np.ndarray:
         """Convert targets in input_format to output_format, filter small bboxes and pad targets"""
         targets = self.targets_format_converter(targets)
-        targets = self.filter_small_bboxes(targets)
-        targets = self.pad_targets(targets)
+        targets = filter_small_bboxes(targets=targets, tensor_format=self.output_format, min_bbox_edge_size=self.min_bbox_edge_size)
+        targets = pad_targets(targets=targets, max_targets=self.max_targets)
         return targets
 
-    def filter_small_bboxes(self, targets: np.ndarray) -> np.ndarray:
-        """Filter bboxes smaller than specified threshold."""
 
-        def _is_big_enough(bboxes: np.ndarray) -> np.ndarray:
-            return np.minimum(bboxes[:, 2], bboxes[:, 3]) > self.min_bbox_edge_size
+def filter_small_bboxes(targets: np.ndarray, tensor_format: ConcatenatedTensorFormat, min_bbox_edge_size: float) -> np.ndarray:
+    """Filter bboxes smaller than specified threshold."""
 
-        targets = filter_on_bboxes(fn=_is_big_enough, tensor=targets, tensor_format=self.output_format)
-        return targets
+    def _is_big_enough(bboxes: np.ndarray) -> np.ndarray:
+        return np.minimum(bboxes[:, 2], bboxes[:, 3]) > min_bbox_edge_size
 
-    def pad_targets(self, targets: np.ndarray) -> np.ndarray:
-        """Pad targets."""
-        padded_targets = np.zeros((self.max_targets, targets.shape[-1]))
-        padded_targets[range(len(targets))[: self.max_targets]] = targets[: self.max_targets]
-        padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
-        return padded_targets
+    targets = filter_on_bboxes(fn=_is_big_enough, tensor=targets, tensor_format=tensor_format)
+    return targets
+
+
+def pad_targets(targets: np.ndarray, max_targets: int) -> np.ndarray:
+    """Pad targets."""
+    padded_targets = np.zeros((max_targets, targets.shape[-1]))
+    padded_targets[range(len(targets))[:max_targets]] = targets[:max_targets]
+    padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
+    return padded_targets
 
 
 def get_aug_params(value: Union[tuple, float], center: float = 0):
