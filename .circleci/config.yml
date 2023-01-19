@@ -402,6 +402,7 @@ jobs:
       - run:
           name: install requirements and run recipe tests
           command: |
+            pwd
             << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
             source << parameters.sg_new_env_name >>/bin/activate
             python3.8 -m pip install --upgrade setuptools pip wheel
