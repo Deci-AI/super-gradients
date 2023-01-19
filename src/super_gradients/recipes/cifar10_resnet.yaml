@@ -20,11 +20,11 @@ val_dataloader: cifar10_val
 
 data_loader_num_workers: 8
 
-resume: True
+resume: False
 training_hyperparams:
   resume: ${resume}
 
-ckpt_root_dir: /home/louis.dupont/PycharmProjects/super-gradients/checkpoints/TEST-CKPT
+ckpt_root_dir:
 
 architecture: resnet18_cifar
 

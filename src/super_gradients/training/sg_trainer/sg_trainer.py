@@ -1559,7 +1559,6 @@ class Trainer:
             if sg_logger not in SG_LOGGERS:
                 raise RuntimeError("sg_logger not defined in SG_LOGGERS")
 
-            # TODO: check how checkpoints_dir_path is set
             self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
         else:
             raise RuntimeError("sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger")
