@@ -3,7 +3,7 @@ import math
 import os
 import signal
 import time
-from typing import List
+from typing import List, Union
 
 import cv2
 import numpy as np
@@ -354,7 +354,7 @@ class BatchStepLinearWarmupLRCallback(Callback):
     def on_train_batch_start(self, context: PhaseContext) -> None:
         global_training_step = context.batch_idx + context.epoch * self.train_loader_len
         if global_training_step < self.lr_warmup_steps:
-            self.lr = self.learning_rates[global_training_step]
+            self.lr = float(self.learning_rates[global_training_step])
             self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def update_lr(self, optimizer, epoch, batch_idx=None):
@@ -459,16 +459,28 @@ class CosineLRCallback(LRCallbackBase):
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
         effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        current_iter = self.train_loader_len * effective_epoch + context.batch_idx
-        max_iter = self.train_loader_len * effective_max_epochs
-        lr = 0.5 * self.initial_lr * (1.0 + math.cos(current_iter / (max_iter + 1) * math.pi))
-        # the cosine starts from initial_lr and reaches initial_lr * cosine_final_lr_ratio in last epoch
-        self.lr = lr * (1 - self.cosine_final_lr_ratio) + (self.initial_lr * self.cosine_final_lr_ratio)
+        current_iter = max(0, self.train_loader_len * effective_epoch + context.batch_idx - self.training_params.lr_warmup_steps)
+        max_iter = self.train_loader_len * effective_max_epochs - self.training_params.lr_warmup_steps
+
+        lr = self.compute_learning_rate(current_iter, max_iter, self.initial_lr, self.cosine_final_lr_ratio)
+        self.lr = float(lr)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
+        # Account of per-step warmup
+        if self.training_params.lr_warmup_steps > 0:
+            current_step = self.train_loader_len * context.epoch + context.batch_idx
+            return current_step >= self.training_params.lr_warmup_steps
+
         post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
+
+    @classmethod
+    def compute_learning_rate(cls, step: Union[float, np.ndarray], total_steps: float, initial_lr: float, final_lr_ratio: float):
+        # the cosine starts from initial_lr and reaches initial_lr * cosine_final_lr_ratio in last epoch
+
+        lr = 0.5 * initial_lr * (1.0 + np.cos(step / (total_steps + 1) * math.pi))
+        return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
 class FunctionLRCallback(LRCallbackBase):

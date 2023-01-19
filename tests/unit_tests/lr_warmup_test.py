@@ -6,7 +6,18 @@ from super_gradients.training import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models import LeNet
-from super_gradients.training.utils.callbacks import TestLRCallback, LRCallbackBase, Phase
+from super_gradients.training.utils.callbacks import TestLRCallback, LRCallbackBase, Phase, Callback, PhaseContext, CosineLRCallback
+
+
+class CollectLRCallback(Callback):
+    per_step_learning_rates = []
+    per_epoch_learning_rates = []
+
+    def on_train_batch_end(self, context: PhaseContext) -> None:
+        self.per_step_learning_rates.append(context.optimizer.param_groups[0]["lr"])
+
+    def on_train_loader_end(self, context: PhaseContext) -> None:
+        self.per_epoch_learning_rates.append(context.optimizer.param_groups[0]["lr"])
 
 
 class ExponentialWarmupLRCallback(LRCallbackBase):
@@ -115,19 +126,21 @@ class LRWarmupTest(unittest.TestCase):
         net = LeNet()
         trainer = Trainer("lr_warmup_test_per_step")
 
-        lrs = []
-        phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
+        collect_lr_callback = CollectLRCallback()
+
+        warmup_initial_lr = 0.05
+        lr_warmup_steps = 100
+        initial_lr = 1
+        cosine_final_lr_ratio = 0.2
+        max_epochs = 5
 
         train_params = {
-            "max_epochs": 5,
-            "cosine_final_lr_ratio": 0.2,
-            "lr_mode": "step",
-            "lr_updates": [1, 2, 3, 4],
-            "lr_decay_factor": 0.1,
-            "warmup_initial_lr": 0.05,
+            "max_epochs": max_epochs,
+            "lr_mode": "cosine",
+            "cosine_final_lr_ratio": cosine_final_lr_ratio,
+            "warmup_initial_lr": warmup_initial_lr,
             "warmup_mode": "linear_batch_step",
-            "lr_warmup_steps": 100,
-            "linear_epoch_step": 0,
+            "lr_warmup_steps": lr_warmup_steps,
             "initial_lr": 1,
             "loss": "cross_entropy",
             "optimizer": "SGD",
@@ -138,26 +151,35 @@ class LRWarmupTest(unittest.TestCase):
             "metric_to_watch": "Accuracy",
             "greater_metric_to_watch_is_better": True,
             "ema": False,
-            "phase_callbacks": phase_callbacks,
+            "phase_callbacks": [collect_lr_callback],
         }
 
-        expected_lrs = [1.0, 0.1, 0.01, 0.001, 0.0001]
+        train_loader = classification_test_dataloader(batch_size=4, dataset_size=1024)
+        valid_loader = classification_test_dataloader(batch_size=4, dataset_size=5)
+
+        expected_warmup_lrs = np.linspace(warmup_initial_lr, initial_lr, lr_warmup_steps).tolist()
+        total_steps = max_epochs * len(train_loader) - lr_warmup_steps
+
+        expected_cosine_lrs = CosineLRCallback.compute_learning_rate(
+            step=np.arange(0, total_steps), total_steps=total_steps, initial_lr=initial_lr, final_lr_ratio=cosine_final_lr_ratio
+        )
+
         trainer.train(
             model=net,
             training_params=train_params,
-            train_loader=classification_test_dataloader(batch_size=4, dataset_size=1024),
-            valid_loader=classification_test_dataloader(batch_size=4, dataset_size=5),
+            train_loader=train_loader,
+            valid_loader=valid_loader,
         )
 
-        np.testing.assert_allclose(lrs, expected_lrs, rtol=1e-4)
+        np.testing.assert_allclose(collect_lr_callback.per_step_learning_rates[:100], expected_warmup_lrs, rtol=1e-4)
+        np.testing.assert_allclose(collect_lr_callback.per_step_learning_rates[100:], expected_cosine_lrs, rtol=1e-4)
 
     def test_warmup_initial_lr(self):
         # Define model
         net = LeNet()
         trainer = Trainer("test_warmup_initial_lr")
 
-        lrs = []
-        phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
+        collect_lr_callback = CollectLRCallback()
 
         train_params = {
             "max_epochs": 5,
@@ -174,7 +196,7 @@ class LRWarmupTest(unittest.TestCase):
             "metric_to_watch": "Accuracy",
             "greater_metric_to_watch_is_better": True,
             "ema": False,
-            "phase_callbacks": phase_callbacks,
+            "phase_callbacks": [collect_lr_callback],
             "warmup_mode": "linear_step",
             "initial_lr": 1,
             "warmup_initial_lr": 4.0,
@@ -187,7 +209,7 @@ class LRWarmupTest(unittest.TestCase):
             train_loader=classification_test_dataloader(batch_size=4, dataset_size=5),
             valid_loader=classification_test_dataloader(batch_size=4, dataset_size=5),
         )
-        self.assertListEqual(lrs, expected_lrs)
+        self.assertListEqual(collect_lr_callback.per_epoch_learning_rates, expected_lrs)
 
     def test_custom_lr_warmup(self):
         # Define model
