@@ -404,15 +404,17 @@ jobs:
           command: |
             << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
             source << parameters.sg_new_env_name >>/bin/activate
+            mkdir -p ~/recipe_test/checkpoints
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
             python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=shortened_cifar10_resnet_accuracy_test training_hyperparams.max_epochs=100 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/convert_recipe_example/convert_recipe_example.py --config-name=cifar10_conversion_params experiment_name=shortened_cifar10_resnet_accuracy_test
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox experiment_name=shortened_coco2017_yolox_n_map_test architecture=yolox_n training_hyperparams.loss=yolox_fast_loss training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_regseg48 experiment_name=shortened_cityscapes_regseg48_iou_test training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=shortened_cifar10_resnet_accuracy_test training_hyperparams.max_epochs=100 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4 ckpt_root_dir=~/recipe_test/checkpoints
+            python3.8 src/super_gradients/examples/convert_recipe_example/convert_recipe_example.py --config-name=cifar10_conversion_params experiment_name=shortened_cifar10_resnet_accuracy_test ckpt_root_dir=~/recipe_test/checkpoints
+            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox experiment_name=shortened_coco2017_yolox_n_map_test architecture=yolox_n training_hyperparams.loss=yolox_fast_loss training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4 ckpt_root_dir=~/recipe_test/checkpoints
+            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_regseg48 experiment_name=shortened_cityscapes_regseg48_iou_test training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4 ckpt_root_dir=~/recipe_test/checkpoints
             coverage run --source=super_gradients -m unittest tests/deci_core_recipe_test_suite_runner.py
+            rm -r ~/recipe_test
 
       - run:
           name: Remove new environment when failed
