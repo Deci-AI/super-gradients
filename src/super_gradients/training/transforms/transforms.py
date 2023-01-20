@@ -830,8 +830,8 @@ class DetectionRGB2BGR(DetectionTransform):
         self.prob = prob
 
     def __call__(self, sample: dict) -> dict:
-        if sample["image"].shape[2] < 3:
-            raise ValueError("HSV transform expects at least 3 channels, got: " + str(sample["image"].shape[2]))
+        if sample["image"].shape[2] != 3:
+            raise ValueError("DetectionRGB2BGR expects image to have 3 channels, got: " + str(sample["image"].shape[2]))
 
         if random.random() < self.prob:
             sample["image"] = sample["image"][..., ::-1]
