@@ -1,5 +1,4 @@
 # PACKAGE IMPORTS FOR EXTERNAL USAGE
-import cv2
 from super_gradients.training.transforms.transforms import (
     DetectionMosaic,
     DetectionRandomAffine,
@@ -29,5 +28,3 @@ __all__ = [
     "imported_albumentations_failure",
     "Standardize",
 ]
-
-cv2.setNumThreads(0)
