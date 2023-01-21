@@ -438,7 +438,7 @@ workflows:
             - login_to_codeartifact_release
           <<: *release_tag_filter
       - recipe_tests:
-          <<: *release_tag_filter
+#          <<: *release_tag_filter
       - release_version:
           py_version: "3.7"
           requires:
