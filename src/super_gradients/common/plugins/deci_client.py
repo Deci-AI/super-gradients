@@ -155,16 +155,33 @@ class DeciClient:
         )
 
     def is_model_benchmarking(self, name: str) -> bool:
+        """Check if a given model is still benchmarking or not.
+        :param name: The mode name.
+        """
         benchmark_state = self.lab_client.get_model_by_name(name=name).data.benchmark_state
         return benchmark_state in [ModelBenchmarkState.IN_PROGRESS, ModelBenchmarkState.PENDING]
 
     def register_experiment(self, name: str, model_name: str):
+        """Registers a training experiment in Deci's backend.
+        :param name:        Name of the experiment to register
+        :param model_name:  Name of the model architecture to connect the experiment to
+        """
         self.lab_client.register_experiment(name=name, model_name=model_name)
 
     def save_experiment_file(self, file_path: str):
+        """
+        Uploads a training related file to Deci's location in S3. This can be a TensorBoard file or a log
+        :params file_path: The local path of the file to be uploaded
+        """
         self.lab_client.save_experiment_file(file_path=file_path)
 
     def upload_file_to_s3(self, tag: str, level: str, from_path: str):
+        """Upload a file to the platform S3 bucket.
+
+        :param tag:         Tag that will be associated to the file.
+        :param level:       Logging level that will be used to notify the monitoring system that the file was uploaded.
+        :param from_path:   Path of the file to upload.
+        """
         data = self.lab_client.upload_log_url(tag=tag, level=level)
         signed_url = S3SignedUrl(**data.data)
         self.lab_client.upload_file_to_s3(from_path=from_path, s3_signed_url=signed_url)
