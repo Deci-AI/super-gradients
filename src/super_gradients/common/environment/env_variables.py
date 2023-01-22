@@ -28,8 +28,12 @@ class EnvironmentVariables:
         return os.getenv("CRASH_HANDLER", "TRUE")
 
     @property
-    def UPLOAD_LOGS(self):
-        return os.getenv("UPLOAD_LOGS", "TRUE")
+    def UPLOAD_LOGS(self) -> bool:
+        return os.getenv("UPLOAD_LOGS", "TRUE") == "TRUE"
+
+    @property
+    def DECI_API_HOST(self) -> str:
+        return os.getenv("DECI_API_HOST", default="api.deci.ai")
 
 
 env_variables = EnvironmentVariables()
