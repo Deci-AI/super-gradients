@@ -133,7 +133,7 @@ jobs:
       - run:
           name: setup custom environment variables
           command: |
-            echo 'export PYTHONPATH=$(pwd)' >> $BASH_ENV
+            echo 'export PYTHONPATH=/home/circleci/super_gradients' >> $BASH_ENV
             echo 'export UPLOAD_LOGS=FALSE' >> $BASH_ENV
       - run:
           name: install package
@@ -428,7 +428,6 @@ jobs:
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_x dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco_segmentation_shelfnet_lw dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2 dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False num_gpus=4
@@ -442,7 +441,11 @@ jobs:
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50 dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False num_gpus=4
             python3.8 src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False num_gpus=4
-#            coverage run --source=super_gradients -m unittest tests/deci_core_recipe_test_suite_runner.py
+            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=shortened_cifar10_resnet_accuracy_test training_hyperparams.max_epochs=100 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/examples/convert_recipe_example/convert_recipe_example.py --config-name=cifar10_conversion_params experiment_name=shortened_cifar10_resnet_accuracy_test
+            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox experiment_name=shortened_coco2017_yolox_n_map_test architecture=yolox_n training_hyperparams.loss=yolox_fast_loss training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_regseg48 experiment_name=shortened_cityscapes_regseg48_iou_test training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
+            coverage run --source=super_gradients -m unittest tests/deci_core_recipe_test_suite_runner.py
 
       - run:
           name: Remove new environment when failed
