@@ -15,7 +15,7 @@ from super_gradients.training.datasets import PascalVOCDetectionDataset, COCODet
 from super_gradients.training.transforms import DetectionMosaic, DetectionPaddedRescale, DetectionTargetsFormatTransform
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
-from super_gradients.training.utils.hydra_utils import normalize_path
+from super_gradients.common.environment.path_utils import normalize_path
 
 
 class COCODetectionDataset6Channels(COCODetectionDataset):

@@ -17,7 +17,7 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
     PascalVOCDetectionDataset,
 )
 from super_gradients.training.utils import get_param
-from super_gradients.training.utils.hydra_utils import normalize_path
+from super_gradients.common.environment.path_utils import normalize_path
 from super_gradients.training.datasets import ImageNetDataset
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
 from super_gradients.training.datasets.classification_datasets.cifar import (
