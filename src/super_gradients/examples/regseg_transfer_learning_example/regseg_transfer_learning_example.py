@@ -34,7 +34,7 @@ trainer = Trainer("regseg48_transfer_learning_old_dice_diff_lrs_head_fixed_50_ep
 # THIS IS WHERE THE MAGIC HAPPENS- SINCE TRAINER'S CLASSES ATTRIBUTE WAS SET TO BE DIFFERENT FROM CITYSCAPES'S, AFTER
 # LOADING THE PRETRAINED REGSET, IT WILL CALL IT'S REPLACE_HEAD METHOD AND CHANGE IT'S SEGMENTATION HEAD LAYER ACCORDING
 # TO OUR BINARY SEGMENTATION DATASET
-model = models.get(Models.RREGSEG48, pretrained_weights="cityscapes", num_classes=1)
+model = models.get(Models.REGSEG48, pretrained_weights="cityscapes", num_classes=1)
 
 # DEFINE TRAINING PARAMS. SEE DOCS FOR THE FULL LIST.
 train_params = {
