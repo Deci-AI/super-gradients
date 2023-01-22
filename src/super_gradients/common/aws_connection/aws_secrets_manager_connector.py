@@ -107,14 +107,7 @@ class AWSSecretsManagerConnector:
 
         except Exception as ex:
             error = (
-                "["
-                + current_class_name
-                + "] - Caught Exception while trying to connect to aws to get credentials from secrets manager: "
-                + '"'
-                + str(ex)
-                + '"'
-                + " for "
-                + str(secrets_path)
+                f'[{current_class_name}] - Caught Exception while trying to connect to aws to get credentials from secrets manager: "{ex}" for {secrets_path}'
             )
             logger.error(error)
             raise EnvironmentError(error)

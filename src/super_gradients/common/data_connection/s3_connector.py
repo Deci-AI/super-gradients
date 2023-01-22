@@ -174,9 +174,7 @@ class S3Connector(ILogger):
             return True
 
         except Exception as ex:
-            self._logger.critical(
-                "[" + sys._getframe().f_code.co_name + "] - Caught Exception while trying to upload file " + str(filename_to_upload) + "to S3" + str(ex)
-            )
+            self._logger.critical(f"[{sys._getframe().f_code.co_name}] - Caught Exception while trying to upload file {filename_to_upload} to S3 {ex}")
             return False
 
     @explicit_params_validation(validation_type="NoneOrEmpty")
@@ -195,9 +193,7 @@ class S3Connector(ILogger):
             if ex.response["Error"]["Code"] == "404":
                 self._logger.error("[" + sys._getframe().f_code.co_name + "] - Key does exist in bucket)")
             else:
-                self._logger.critical(
-                    "[" + sys._getframe().f_code.co_name + "] - Caught Exception while trying to download key " + str(key_to_download) + " from S3 " + str(ex)
-                )
+                self._logger.critical(f"[{sys._getframe().f_code.co_name}] - Caught Exception while trying to download key {key_to_download} from S3 {ex}")
             return False
 
         return True
