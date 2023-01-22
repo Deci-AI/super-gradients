@@ -6,6 +6,8 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import torch
+
+from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
@@ -79,7 +81,7 @@ class WandBSGLogger(BaseSGLogger):
         )
 
         if api_server is not None:
-            if api_server != os.getenv("WANDB_BASE_URL"):
+            if api_server != env_variables.WANDB_BASE_URL:
                 logger.warning(f"WANDB_BASE_URL environment parameter not set to {api_server}. Setting the parameter")
                 os.environ["WANDB_BASE_URL"] = api_server
 

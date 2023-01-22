@@ -12,8 +12,9 @@ from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
 
+from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.hydra_utils import normalize_path
+from super_gradients.common.environment.path_utils import normalize_path
 
 logger = get_logger(__name__)
 
@@ -140,7 +141,8 @@ class DeciClient:
             model_meta_data:           Metadata to accompany the model
             optimization_request_form: The optimization parameters
         """
-        self.lab_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+
+        self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
         self.lab_client.add_model(
             add_model_request=model_meta_data,
             optimization_request=optimization_request_form,

@@ -1,6 +1,9 @@
 import os
 import sys
-from super_gradients.common import S3Connector, explicit_params_validation
+
+from super_gradients.common.data_connection.s3_connector import S3Connector
+from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
+from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import ILogger
 
 
@@ -33,7 +36,8 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
             self.data_connection_source = "s3"
 
             if data_connection_credentials is None:
-                data_connection_credentials = os.getenv("AWS_PROFILE")
+
+                data_connection_credentials = env_variables.AWS_PROFILE
 
             self.s3_connector = S3Connector(data_connection_credentials, self.model_repo_bucket_name)
 
