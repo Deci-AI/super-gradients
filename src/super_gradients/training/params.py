@@ -69,6 +69,7 @@ DEFAULT_TRAINING_PARAMS = {
     "ckpt_name": "ckpt_latest.pth",
     "resume_strict_load": False,
     "sync_bn": False,
+    "kill_ddp_pgroup_on_end": True,  # Whether to kill the DDP process group in the end of training.
     "max_train_batches": None,  # For debug- when not None- will break out of inner train loop
     # (i.e iterating over train_loader) when reaching this number of batches.
     "max_valid_batches": None,  # For debug- when not None- will break out of inner valid loop
