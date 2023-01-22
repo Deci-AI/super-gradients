@@ -5,7 +5,6 @@ from super_gradients.training.datasets.datasets_utils import DetectionMultiscale
 
 
 class MultiScaleTest(unittest.TestCase):
-
     def setUp(self) -> None:
         self.size = (1024, 512)
         self.batch_size = 12
@@ -31,5 +30,5 @@ class MultiScaleTest(unittest.TestCase):
                 self.assertListEqual(post_multiscale_input_shapes[0], post_multiscale_input_shapes[-1])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,7 @@ from copy import deepcopy
 
 DEFAULT_TRAINING_PARAMS = {
     "lr_warmup_epochs": 0,
+    "lr_warmup_steps": 0,
     "lr_cooldown_epochs": 0,
     "warmup_initial_lr": None,
     "cosine_final_lr_ratio": 0.01,
