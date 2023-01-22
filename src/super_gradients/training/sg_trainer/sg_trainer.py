@@ -1313,7 +1313,7 @@ class Trainer:
         finally:
             if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                 # CLEAN UP THE MULTI-GPU PROCESS GROUP WHEN DONE
-                if torch.distributed.is_initialized() and self.training_params.kil_ddp_pgroup_on_end:
+                if torch.distributed.is_initialized() and self.training_params.kill_ddp_pgroup_on_end:
                     torch.distributed.destroy_process_group()
 
             # PHASE.TRAIN_END

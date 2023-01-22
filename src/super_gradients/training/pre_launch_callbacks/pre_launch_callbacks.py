@@ -100,7 +100,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
         tmp_cfg.training_hyperparams.save_model = False
         tmp_cfg.training_hyperparams.max_epochs = 1
         tmp_cfg.training_hyperparams.average_best_models = False
-        tmp_cfg.training_hyperparams.kil_ddp_pgroup_on_end = False
+        tmp_cfg.training_hyperparams.kill_ddp_pgroup_on_end = False
         tmp_cfg.pre_launch_callbacks_list = []
 
         while True:
