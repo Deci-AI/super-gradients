@@ -35,10 +35,10 @@ architecture: ssd_lite_mobilenet_v2
 
 data_loader_num_workers: 8
 
-experiment_suffix: res${dataset_params.train_image_size}
+experiment_suffix: res320
 experiment_name: ${architecture}_coco_${experiment_suffix}
 
-anchors_resolution: ${dataset_params.val_image_size}x${dataset_params.val_image_size}
+anchors_resolution: 320x320
 anchors_name: stride_16_plus_big
 dboxes: ${anchors.${anchors_resolution}.${anchors_name}}
 
