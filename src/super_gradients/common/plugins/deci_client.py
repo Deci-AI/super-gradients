@@ -24,7 +24,7 @@ client_enabled = True
 try:
     from deci_lab_client.client import DeciPlatformClient
     from deci_lab_client.types import S3SignedUrl
-    from deci_lab_client.models import ModelBenchmarkState, ModelMetadata
+    from deci_lab_client.models import ModelBenchmarkState
     from deci_common.data_interfaces.files_data_interface import FilesDataInterface
     from deci_lab_client.models import AutoNACFileName
     from deci_lab_client import ApiException
@@ -188,7 +188,7 @@ class DeciClient:
 
     def add_model(
         self,
-        model_metadata: ModelMetadata,
+        model_metadata,
         hardware_types: List[str],
         model_path: Optional[str] = None,
         model: Optional[nn.Module] = None,
