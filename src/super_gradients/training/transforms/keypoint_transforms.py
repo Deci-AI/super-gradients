@@ -249,7 +249,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         self.max_translate = max_translate
         self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
         self.mask_pad_value = mask_pad_value
-        self.p = prob
+        self.prob = prob
 
     def _get_affine_matrix(self, center, scale, output_size: Tuple[int, int], rot=0):
         """
@@ -305,7 +305,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         :return:
         """
 
-        if random.random() < self.p:
+        if random.random() < self.prob:
             height, width = image.shape[:2]
 
             center = np.array((width / 2, height / 2))
