@@ -29,11 +29,21 @@ class EMAIntegrationTest(unittest.TestCase):
     def tearDownClass(cls) -> None:
         pass
 
-    def test_train(self):
+    def test_train_ema_disabled(self):
         self._init_model()
-        self._train({})
+        self._train(None)
+
+    def test_train_exp_decay(self):
         self._init_model()
-        self._train({"exp_activation": False})
+        self._train({"decay_type": "exp", "beta": 15, "decay": 0.9999})
+
+    def test_train_threshold_decay(self):
+        self._init_model()
+        self._train({"decay_type": "threshold", "decay": 0.9999})
+
+    def test_train_constant_decay(self):
+        self._init_model()
+        self._train({"decay_type": "constant", "decay": 0.9999})
 
     def _train(self, ema_params):
         training_params = {
@@ -46,7 +56,7 @@ class EMAIntegrationTest(unittest.TestCase):
             "loss": "cross_entropy",
             "optimizer": "SGD",
             "criterion_params": {},
-            "ema": True,
+            "ema": ema_params is not None,
             "ema_params": ema_params,
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [Accuracy(), Top5()],
