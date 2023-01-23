@@ -30,10 +30,11 @@ train_dataset_params:
         max_translate: 40
         image_pad_value: [ 127, 127, 127 ]
         mask_pad_value: 1
+        prob: 0.5
 
-    - KeypointsToTensor
+    - KeypointsImageToTensor
 
-    - KeypointsNormalize:
+    - KeypointsImageNormalize:
         mean: [ 0.485, 0.456, 0.406 ]
         std: [ 0.229, 0.224, 0.225 ]
 
@@ -55,9 +56,9 @@ val_dataset_params:
         image_pad_value: [ 127, 127, 127 ]
         mask_pad_value: 1
 
-    - KeypointsToTensor
+    - KeypointsImageToTensor
 
-    - KeypointsNormalize:
+    - KeypointsImageNormalize:
         mean: [0.485, 0.456, 0.406]
         std: [0.229, 0.224, 0.225]
 

@@ -68,8 +68,8 @@ from torchvision.transforms import (
 )
 from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsRandomAffineTransform,
-    KeypointsNormalize,
-    KeypointsToTensor,
+    KeypointsImageNormalize,
+    KeypointsImageToTensor,
     KeypointTransform,
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
@@ -140,8 +140,8 @@ TRANSFORMS = {
     Transforms.Standardize: Standardize,
     # Keypoints
     Transforms.KeypointsRandomAffineTransform: KeypointsRandomAffineTransform,
-    Transforms.KeypointsNormalize: KeypointsNormalize,
-    Transforms.KeypointsToTensor: KeypointsToTensor,
+    Transforms.KeypointsNormalize: KeypointsImageNormalize,
+    Transforms.KeypointsToTensor: KeypointsImageToTensor,
     Transforms.KeypointTransform: KeypointTransform,
     Transforms.KeypointsPadIfNeeded: KeypointsPadIfNeeded,
     Transforms.KeypointsLongestMaxSize: KeypointsLongestMaxSize,
