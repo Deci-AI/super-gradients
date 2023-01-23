@@ -1,6 +1,5 @@
 from typing import List, Type
 from abc import ABC, abstractmethod
-from enum import Enum
 
 import torch.nn as nn
 import torch
@@ -68,13 +67,14 @@ class UpCatBlock(AbstractUpFuseBlock):
         return self.last_convs(x)
 
 
-class UpBlockType(Enum):
-    UP_FACTOR = UpFactorBlock
-    UP_CAT = UpCatBlock
+UP_FUSE_BLOCKS = dict(
+    UpCatBlock=UpCatBlock,
+    UpFactorBlock=UpFactorBlock,
+)
 
 
 class Decoder(nn.Module):
-    @resolve_param("up_block_types", ListFactory(TypeFactory.from_enum_cls(UpBlockType)))
+    @resolve_param("up_block_types", ListFactory(TypeFactory(UP_FUSE_BLOCKS)))
     def __init__(
         self,
         skip_channels_list: List[int],

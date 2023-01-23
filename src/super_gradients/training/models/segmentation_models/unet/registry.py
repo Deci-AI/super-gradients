@@ -1,6 +1,0 @@
-from super_gradients.common.registry.registry import create_register_decorator
-from super_gradients.training.models.segmentation_models.unet.factory import BACKBONE_STAGES, UP_FUSE_BLOCKS
-
-
-register_unet_backbone_stage = create_register_decorator(registry=BACKBONE_STAGES)
-register_unet_up_block = create_register_decorator(registry=UP_FUSE_BLOCKS)

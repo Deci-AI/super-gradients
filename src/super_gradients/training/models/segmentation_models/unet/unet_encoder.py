@@ -1,6 +1,5 @@
 import math
 from typing import List, Type, Optional
-from enum import Enum
 from abc import ABC, abstractmethod
 
 import torch
@@ -188,15 +187,16 @@ class RegnetXStage(BackboneStage):
         return 1
 
 
-class DownBlockType(Enum):
-    XBlock = RegnetXStage
-    REPVGG = RepVGGStage
-    QAREPVGG = QARepVGGStage
-    STDC = STDCStage
+BACKBONE_STAGES = dict(
+    RepVGGStage=RepVGGStage,
+    QARepVGGStage=QARepVGGStage,
+    STDCStage=STDCStage,
+    RegnetXStage=RegnetXStage,
+)
 
 
 class UNetBackboneBase(AbstractUNetBackbone):
-    @resolve_param("block_types_list", ListFactory(TypeFactory.from_enum_cls(DownBlockType)))
+    @resolve_param("block_types_list", ListFactory(TypeFactory(BACKBONE_STAGES)))
     def __init__(
         self,
         strides_list: List[int],
