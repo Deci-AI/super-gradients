@@ -15,7 +15,7 @@ class PoseEstimationDatasetIntegrationTest(unittest.TestCase):
     def setUp(self) -> None:
         super_gradients.init_trainer()
 
-    def test_detection_dataset_transforms_with_unique_channel_count(self):
+    def test_datasets_instantiation(self):
         GlobalHydra.instance().clear()
         sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
         dataset_config = os.path.join("dataset_params", "coco_pose_estimation_dekr_dataset_params")
