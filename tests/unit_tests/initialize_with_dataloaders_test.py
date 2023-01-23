@@ -1,5 +1,6 @@
 import unittest
 
+from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
 from super_gradients import Trainer
@@ -27,7 +28,7 @@ class InitializeWithDataloadersTest(unittest.TestCase):
 
     def test_train_with_dataloaders(self):
         trainer = Trainer(experiment_name="test_name")
-        model = models.get("resnet18", num_classes=5)
+        model = models.get(Models.RESNET18, num_classes=5)
         trainer.train(
             model=model,
             training_params={
