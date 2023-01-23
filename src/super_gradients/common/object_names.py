@@ -99,8 +99,8 @@ class Transforms:
 
     # Keypoints
     KeypointsRandomAffineTransform = "KeypointsRandomAffineTransform"
-    KeypointsNormalize = "KeypointsNormalize"
-    KeypointsToTensor = "KeypointsToTensor"
+    KeypointsImageNormalize = "KeypointsImageNormalize"
+    KeypointsImageToTensor = "KeypointsImageToTensor"
     KeypointTransform = "KeypointTransform"
     KeypointsPadIfNeeded = "KeypointsPadIfNeeded"
     KeypointsLongestMaxSize = "KeypointsLongestMaxSize"

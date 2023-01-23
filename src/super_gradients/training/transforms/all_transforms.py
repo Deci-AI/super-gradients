@@ -140,8 +140,8 @@ TRANSFORMS = {
     Transforms.Standardize: Standardize,
     # Keypoints
     Transforms.KeypointsRandomAffineTransform: KeypointsRandomAffineTransform,
-    Transforms.KeypointsNormalize: KeypointsImageNormalize,
-    Transforms.KeypointsToTensor: KeypointsImageToTensor,
+    Transforms.KeypointsImageNormalize: KeypointsImageNormalize,
+    Transforms.KeypointsImageToTensor: KeypointsImageToTensor,
     Transforms.KeypointTransform: KeypointTransform,
     Transforms.KeypointsPadIfNeeded: KeypointsPadIfNeeded,
     Transforms.KeypointsLongestMaxSize: KeypointsLongestMaxSize,
