@@ -70,14 +70,13 @@ class COCOKeypointsDataset(Dataset):
             self.ids = subset
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, Any, Mapping[str, Any]]:
-        coco = self.coco
         img_id = self.ids[index]
-        image_info = coco.loadImgs(img_id)[0]
+        image_info = self.coco.loadImgs(img_id)[0]
         file_name = image_info["file_name"]
         file_path = os.path.join(self.images_dir, file_name)
 
-        ann_ids = coco.getAnnIds(imgIds=img_id)
-        anno = coco.loadAnns(ann_ids)
+        ann_ids = self.coco.getAnnIds(imgIds=img_id)
+        anno = self.coco.loadAnns(ann_ids)
         anno = [obj for obj in anno if bool(obj["iscrowd"]) is False and obj["num_keypoints"] > 0]
 
         orig_image = cv2.imread(file_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
@@ -94,6 +93,9 @@ class COCOKeypointsDataset(Dataset):
 
         targets = self.target_generator(img, joints, mask)
         return img, targets, {"joints": joints, "file_name": image_info["file_name"]}
+
+    def __len__(self):
+        return len(self.ids)
 
     def compute_area(self, joints: np.ndarray) -> np.ndarray:
         """

@@ -7,7 +7,7 @@ from hydra.core.global_hydra import GlobalHydra
 
 import super_gradients
 from super_gradients.common.environment.path_utils import normalize_path
-from super_gradients.training.dataloaders.dataloaders import _process_dataset_params
+from super_gradients.training.dataloaders.dataloaders import _process_dataset_params, get_data_loader
 from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 
 
@@ -30,6 +30,13 @@ class PoseEstimationDatasetIntegrationTest(unittest.TestCase):
 
             val_dataset = COCOKeypointsDataset(**val_dataset_params)
             assert val_dataset[0] is not None
+
+    def test_dataloaders_instantiation(self):
+        train_loader = get_data_loader("coco_pose_estimation_dekr_dataset_params", COCOKeypointsDataset, train=True)
+        val_loader = get_data_loader("coco_pose_estimation_dekr_dataset_params", COCOKeypointsDataset, train=False)
+
+        assert next(iter(train_loader)) is not None
+        assert next(iter(val_loader)) is not None
 
 
 if __name__ == "__main__":
