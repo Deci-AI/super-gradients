@@ -66,8 +66,10 @@ class ModelEMA:
     def update(self, model, step: int, total_steps: int):
         """
         Update the state of the EMA model.
-        :param model: current training model
-        :param training_percent: the percentage of the training process [0,1]. i.e 0.4 means 40% of the training have passed
+
+        :param model: Current training model
+        :param step: Current training step
+        :param total_steps: Total training steps
         """
         # Update EMA parameters
         with torch.no_grad():
