@@ -187,11 +187,34 @@ class RegnetXStage(BackboneStage):
         return 1
 
 
+class ConvStage(BackboneStage):
+    """
+    Conv stage with ConvBNReLU as building block. If `anti_alias=True`, `AntiAliasDownsample` module is used for
+    downsampling.
+    """
+
+    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, **kwargs):
+        blocks = []
+        # Anti alias gaussian down-sampling
+        if anti_alias and stride == 2:
+            blocks.append(AntiAliasDownsample(in_channels, stride))
+            stride = 1
+        # RepVGG blocks
+        blocks.extend(
+            [
+                ConvBNReLU(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False),
+                *[ConvBNReLU(out_channels, out_channels, kernel_size=3, padding=1, bias=False) for _ in range(num_blocks - 1)],
+            ]
+        )
+        return nn.Sequential(*blocks)
+
+
 BACKBONE_STAGES = dict(
     RepVGGStage=RepVGGStage,
     QARepVGGStage=QARepVGGStage,
     STDCStage=STDCStage,
     RegnetXStage=RegnetXStage,
+    ConvStage=ConvStage,
 )
 
 
