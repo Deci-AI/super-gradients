@@ -66,24 +66,19 @@ class KeypointsNormalize(KeypointTransform):
 
 
 class KeypointsRandomHorizontalFlip(KeypointTransform):
-    def __init__(self, flip_index: List[int], output_size: Tuple[int, int], prob: float = 0.5):
+    def __init__(self, flip_index: List[int], prob: float = 0.5):
         self.flip_index = flip_index
         self.prob = prob
-        rows, cols = output_size
-        self.output_size = (rows, cols)
 
     def __call__(self, image, mask, joints):
-        if image.shape[:2] != self.output_size:
-            raise RuntimeError(f"Image shape ({image.shape[:2]}) does not match output size ({self.output_size}).")
-
-        if mask.shape[:2] != self.output_size:
-            raise RuntimeError(f"Mask shape ({mask.shape[:2]}) does not match output size ({self.output_size}).")
+        if image.shape[:2] != mask.shape[:2]:
+            raise RuntimeError(f"Image shape ({image.shape[:2]}) does not match mask shape ({mask.shape[:2]}).")
 
         if random.random() < self.prob:
             image = np.ascontiguousarray(np.fliplr(image))
             mask = np.ascontiguousarray(np.fliplr(mask))
+            rows, cols = image.shape[:2]
 
-            rows, cols = self.output_size
             joints = joints.copy()
             joints = joints[:, self.flip_index]
             joints[:, :, 0] = cols - joints[:, :, 0] - 1

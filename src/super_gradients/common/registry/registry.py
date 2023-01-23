@@ -8,8 +8,9 @@ from super_gradients.training.losses.all_losses import LOSSES
 from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
 from super_gradients.training.utils.callbacks.all_callbacks import CALLBACKS
 from super_gradients.training.transforms.all_transforms import TRANSFORMS
-from super_gradients.training.datasets.all_datasets import ALL_DATASETS, ALL_TARGET_GENERATORS
+from super_gradients.training.datasets.all_datasets import ALL_DATASETS
 from super_gradients.training.pre_launch_callbacks import ALL_PRE_LAUNCH_CALLBACKS
+from super_gradients.training.datasets.all_target_generators import ALL_TARGET_GENERATORS
 
 
 def create_register_decorator(registry: Dict[str, Callable]) -> Callable:

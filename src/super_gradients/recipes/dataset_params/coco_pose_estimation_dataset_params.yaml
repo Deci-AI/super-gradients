@@ -9,7 +9,6 @@ train_dataset_params:
   transforms:
     - KeypointsLongestMaxSize:
         max_sizes: [ 640, 640 ]
-        p: 1.0
 
     - KeypointsPadIfNeeded:
         output_size: [ 640, 640 ]
@@ -49,7 +48,6 @@ val_dataset_params:
   transforms:
     - KeypointsLongestMaxSize:
         max_sizes: [ 640, 640 ]
-        p: 1.0
 
     - KeypointsPadIfNeeded:
         output_size: [ 640, 640 ]

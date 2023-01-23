@@ -27,5 +27,3 @@ ALL_DATASETS = {
     "PascalVOCAndAUGUnifiedDataset": PascalVOCAndAUGUnifiedDataset,
     "COCOKeypointsDataset": COCOKeypointsDataset,
 }
-
-ALL_TARGET_GENERATORS = {}
