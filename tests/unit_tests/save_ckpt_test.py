@@ -3,6 +3,7 @@ import os
 from super_gradients.training import Trainer, models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
+from super_gradients.common.object_names import Models
 
 
 class SaveCkptListUnitTest(unittest.TestCase):
@@ -31,7 +32,7 @@ class SaveCkptListUnitTest(unittest.TestCase):
         trainer = Trainer("save_ckpt_test")
 
         # Build Model
-        model = models.get("resnet18_cifar", arch_params={"num_classes": 10})
+        model = models.get(Models.RESNET18_CIFAR, arch_params={"num_classes": 10})
 
         # Train Model (and save ckpt_epoch_list)
         trainer.train(model=model, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
