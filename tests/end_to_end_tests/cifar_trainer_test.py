@@ -1,5 +1,6 @@
 import unittest
 
+from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
 import super_gradients
@@ -18,7 +19,7 @@ class TestCifarTrainer(unittest.TestCase):
         super_gradients.init_trainer()
         trainer = Trainer("test")
         cifar10_train_dl, cifar10_val_dl = cifar10_train(), cifar10_val()
-        model = models.get("resnet18_cifar", arch_params={"num_classes": 10})
+        model = models.get(Models.RESNET18_CIFAR, arch_params={"num_classes": 10})
         trainer.train(
             model=model,
             training_params={
@@ -37,7 +38,7 @@ class TestCifarTrainer(unittest.TestCase):
         super_gradients.init_trainer()
         trainer = Trainer("test")
         cifar100_train_dl, cifar100_val_dl = cifar100_train(), cifar100_val()
-        model = models.get("resnet18_cifar", arch_params={"num_classes": 100})
+        model = models.get(Models.RESNET18_CIFAR, arch_params={"num_classes": 100})
         trainer.train(
             model=model,
             training_params={

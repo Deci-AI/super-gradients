@@ -1,5 +1,6 @@
 import unittest
 
+from super_gradients.common.object_names import Models
 from super_gradients.training import Trainer, models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
@@ -27,12 +28,12 @@ class LocalCkptHeadReplacementTest(unittest.TestCase):
         }
 
         # Define Model
-        net = models.get("resnet18", num_classes=5)
+        net = models.get(Models.RESNET18, num_classes=5)
         trainer = Trainer("test_resume_training")
         trainer.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
         ckpt_path = os.path.join(trainer.checkpoints_dir_path, "ckpt_latest.pth")
 
-        net2 = models.get("resnet18", num_classes=10, checkpoint_num_classes=5, checkpoint_path=ckpt_path)
+        net2 = models.get(Models.RESNET18, num_classes=10, checkpoint_num_classes=5, checkpoint_path=ckpt_path)
         self.assertFalse(check_models_have_same_weights(net, net2))
 
         net.linear = None

@@ -1,4 +1,6 @@
 import unittest
+
+from super_gradients.common.object_names import Models
 from super_gradients.training import Trainer, models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy
@@ -28,7 +30,7 @@ class ForwardpassPrepFNTest(unittest.TestCase):
     def test_resizing_with_forward_pass_prep_fn(self):
         # Define Model
         trainer = Trainer("ForwardpassPrepFNTest")
-        model = models.get("resnet18", num_classes=5)
+        model = models.get(Models.RESNET18, num_classes=5)
 
         sizes = []
         phase_callbacks = [TestInputSizesCallback(sizes)]
