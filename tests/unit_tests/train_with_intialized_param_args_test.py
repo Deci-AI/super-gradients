@@ -7,6 +7,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
 from torchmetrics import F1Score
 
 from super_gradients import Trainer
+from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5, ToyTestClassificationMetric
@@ -22,7 +23,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         trainer = Trainer("external_criterion_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
         train_params = {
             "max_epochs": 2,
             "lr_updates": [1],
@@ -45,7 +46,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         trainer = Trainer("external_optimizer_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
         optimizer = SGD(params=model.parameters(), lr=0.1)
         train_params = {
             "max_epochs": 2,
@@ -70,7 +71,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         dataloader = classification_test_dataloader(batch_size=10)
 
         lr = 0.3
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
         optimizer = SGD(params=model.parameters(), lr=lr)
         lr_scheduler = MultiStepLR(optimizer=optimizer, milestones=[1, 2], gamma=0.1)
         phase_callbacks = [LRSchedulerCallback(lr_scheduler, Phase.TRAIN_EPOCH_END)]
@@ -95,7 +96,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         trainer = Trainer("external_scheduler_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
         optimizer = SGD  # a class - not an instance
 
         train_params = {
@@ -117,7 +118,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         dataloader = classification_test_dataloader(batch_size=10)
 
         lr = 0.3
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
         optimizer = SGD(params=model.parameters(), lr=lr)
         lr_scheduler = ReduceLROnPlateau(optimizer=optimizer, patience=0)
         phase_callbacks = [LRSchedulerCallback(lr_scheduler, Phase.VALIDATION_EPOCH_END, "ToyTestClassificationMetric")]
@@ -142,7 +143,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         trainer = Trainer("external_metric_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
         train_params = {
             "max_epochs": 2,
             "lr_updates": [1],
@@ -172,7 +173,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size)
         val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size)
 
-        model = models.get("resnet18", num_classes=5)
+        model = models.get(Models.RESNET18, num_classes=5)
         train_params = {
             "max_epochs": 2,
             "lr_updates": [1],

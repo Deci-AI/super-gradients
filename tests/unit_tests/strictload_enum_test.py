@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import unittest
 
+from super_gradients.common.object_names import Models
 from super_gradients.common.sg_loggers import BaseSGLogger
 from super_gradients.training import Trainer
 import torch
@@ -98,8 +99,8 @@ class StrictLoadEnumTest(unittest.TestCase):
 
     def test_strict_load_on(self):
         # Define Model
-        model = models.get("resnet18", arch_params={"num_classes": 1000})
-        pretrained_model = models.get("resnet18", arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 1000})
+        pretrained_model = models.get(Models.RESNET18, arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
 
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(model, pretrained_model)
@@ -107,15 +108,15 @@ class StrictLoadEnumTest(unittest.TestCase):
         pretrained_sd_path = os.path.join(self.temp_working_file_dir, "pretrained_net_strict_load_on.pth")
         torch.save(pretrained_model.state_dict(), pretrained_sd_path)
 
-        model = models.get("resnet18", arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
 
         # Assert the weights were loaded correctly
         assert self.check_models_have_same_weights(model, pretrained_model)
 
     def test_strict_load_off(self):
         # Define Model
-        model = models.get("resnet18", arch_params={"num_classes": 1000})
-        pretrained_model = models.get("resnet18", arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 1000})
+        pretrained_model = models.get(Models.RESNET18, arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
 
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(model, pretrained_model)
@@ -125,17 +126,17 @@ class StrictLoadEnumTest(unittest.TestCase):
         torch.save(pretrained_model.state_dict(), pretrained_sd_path)
 
         with self.assertRaises(RuntimeError):
-            models.get("resnet18", arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
+            models.get(Models.RESNET18, arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
 
-        model = models.get("resnet18", arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.OFF)
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.OFF)
         del model.linear
         # Assert the weights were loaded correctly
         assert self.check_models_have_same_weights(model, pretrained_model)
 
     def test_strict_load_no_key_matching_sg_checkpoint(self):
         # Define Model
-        model = models.get("resnet18", arch_params={"num_classes": 1000})
-        pretrained_model = models.get("resnet18", arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 1000})
+        pretrained_model = models.get(Models.RESNET18, arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
 
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(model, pretrained_model)
@@ -144,9 +145,9 @@ class StrictLoadEnumTest(unittest.TestCase):
         torch.save(self.change_state_dict_keys(pretrained_model.state_dict()), pretrained_sd_path)
 
         with self.assertRaises(RuntimeError):
-            models.get("resnet18", arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
+            models.get(Models.RESNET18, arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
 
-        model = models.get("resnet18", arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.NO_KEY_MATCHING)
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.NO_KEY_MATCHING)
         # Assert the weights were loaded correctly
         assert self.check_models_have_same_weights(model, pretrained_model)
 

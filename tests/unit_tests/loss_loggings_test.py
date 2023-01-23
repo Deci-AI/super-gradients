@@ -4,6 +4,7 @@ from torch import Tensor
 from torchmetrics import Accuracy
 import torch
 from super_gradients import Trainer
+from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 
@@ -29,7 +30,7 @@ class LossLoggingsTest(unittest.TestCase):
         trainer = Trainer("test_single_item_logging", model_checkpoints_location="local")
         dataloader = classification_test_dataloader(batch_size=10)
 
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
         train_params = {
             "max_epochs": 1,
             "lr_updates": [1],
@@ -53,7 +54,7 @@ class LossLoggingsTest(unittest.TestCase):
         trainer = Trainer("test_multiple_unnamed_components_loss_logging", model_checkpoints_location="local")
         dataloader = classification_test_dataloader(batch_size=10)
 
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
         train_params = {
             "max_epochs": 1,
             "lr_updates": [1],
@@ -77,7 +78,7 @@ class LossLoggingsTest(unittest.TestCase):
         trainer = Trainer("test_multiple_named_components_loss_logging", model_checkpoints_location="local")
         dataloader = classification_test_dataloader(batch_size=10)
 
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get(Models.RESNET18, arch_params={"num_classes": 5})
         train_params = {
             "max_epochs": 1,
             "lr_updates": [1],
