@@ -1,5 +1,6 @@
 defaults:
   - coco_pose_estimation_dataset_params
+  - _self_
 
 train_dataset_params:
   target_generator:
