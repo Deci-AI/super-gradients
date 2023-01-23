@@ -314,7 +314,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
             elif self.scale_type == "short":
                 scale = min(height, width) / 200
             else:
-                raise ValueError("Unkonw scale type: {}".format(self.scale_type))
+                raise ValueError("Unknown scale type: {}".format(self.scale_type))
             aug_scale = np.random.random() * (self.max_scale - self.min_scale) + self.min_scale
             scale *= aug_scale
             aug_rot = (np.random.random() * 2 - 1) * self.max_rotation
