@@ -8,7 +8,6 @@ from super_gradients.training.datasets.segmentation_datasets.segmentation_datase
 
 
 class SegmentationTransformsTest(unittest.TestCase):
-
     def setUp(self) -> None:
         self.default_image_value = 0
         self.default_mask_value = 0
@@ -16,7 +15,7 @@ class SegmentationTransformsTest(unittest.TestCase):
     def create_sample(self, size):
         sample = {
             "image": Image.new(mode="RGB", size=size, color=self.default_image_value),
-            "mask": Image.new(mode="L", size=size, color=self.default_mask_value)
+            "mask": Image.new(mode="L", size=size, color=self.default_mask_value),
         }
         return sample
 
@@ -151,8 +150,8 @@ class SegmentationTransformsTest(unittest.TestCase):
         out_image = image_to_tensor(out["image"])
 
         # test transformed mask values
-        original_values = out_mask[128 // 2:-128 // 2].unique().tolist()
-        pad_values = torch.cat([out_mask[:128 // 2], out_mask[-128 // 2:]], dim=0).unique().tolist()
+        original_values = out_mask[128 // 2 : -128 // 2].unique().tolist()
+        pad_values = torch.cat([out_mask[: 128 // 2], out_mask[-128 // 2 :]], dim=0).unique().tolist()
 
         self.assertEqual(len(original_values), 1)
         self.assertEqual(original_values[0], self.default_mask_value)
@@ -161,8 +160,8 @@ class SegmentationTransformsTest(unittest.TestCase):
         self.assertEqual(pad_values[0], fill_mask_value)
 
         # test transformed image values
-        original_values = out_image[:, 128 // 2:-128 // 2].unique().tolist()
-        pad_values = torch.cat([out_image[:, :128 // 2], out_image[:, -128 // 2:]], dim=1).unique().tolist()
+        original_values = out_image[:, 128 // 2 : -128 // 2].unique().tolist()
+        pad_values = torch.cat([out_image[:, : 128 // 2], out_image[:, -128 // 2 :]], dim=1).unique().tolist()
 
         self.assertEqual(len(original_values), 1)
         self.assertEqual(original_values[0], self.default_image_value)
@@ -201,10 +200,7 @@ class SegmentationTransformsTest(unittest.TestCase):
         out_size = (512, 512)
         sample = self.create_sample(in_size)
 
-        transform = Compose([
-            SegRescale(long_size=out_size[0]),         # rescale to (512, 256)
-            SegPadShortToCropSize(crop_size=out_size)  # pad to (512, 512)
-        ])
+        transform = Compose([SegRescale(long_size=out_size[0]), SegPadShortToCropSize(crop_size=out_size)])  # rescale to (512, 256)  # pad to (512, 512)
         out = transform(sample)
         self.assertEqual(out_size, out["image"].size)
 
@@ -213,15 +209,13 @@ class SegmentationTransformsTest(unittest.TestCase):
         crop_size = (256, 128)
         sample = self.create_sample(img_size)
 
-        transform = Compose([
-            SegRandomRescale(scales=(0.1, 2.0)),
-            SegPadShortToCropSize(crop_size=crop_size),
-            SegCropImageAndMask(crop_size=crop_size, mode="random")
-        ])
+        transform = Compose(
+            [SegRandomRescale(scales=(0.1, 2.0)), SegPadShortToCropSize(crop_size=crop_size), SegCropImageAndMask(crop_size=crop_size, mode="random")]
+        )
 
         out = transform(sample)
         self.assertEqual(crop_size, out["image"].size)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -3,7 +3,7 @@ import pkg_resources
 from hydra import compose, initialize_config_dir
 from hydra.core.global_hydra import GlobalHydra
 from super_gradients.training.utils.utils import override_default_params_without_nones
-from super_gradients.training.utils.hydra_utils import normalize_path
+from super_gradients.common.environment.path_utils import normalize_path
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from typing import Dict
 

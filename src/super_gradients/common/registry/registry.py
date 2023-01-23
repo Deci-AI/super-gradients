@@ -9,6 +9,7 @@ from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
 from super_gradients.training.utils.callbacks.all_callbacks import CALLBACKS
 from super_gradients.training.transforms.all_transforms import TRANSFORMS
 from super_gradients.training.datasets.all_datasets import ALL_DATASETS
+from super_gradients.training.pre_launch_callbacks import ALL_PRE_LAUNCH_CALLBACKS
 from super_gradients.training.datasets.target_generator import ALL_TARGET_GENERATORS
 
 
@@ -52,4 +53,5 @@ register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)
 register_callback = create_register_decorator(registry=CALLBACKS)
 register_transform = create_register_decorator(registry=TRANSFORMS)
 register_dataset = create_register_decorator(registry=ALL_DATASETS)
+register_pre_launch_callback = create_register_decorator(registry=ALL_PRE_LAUNCH_CALLBACKS)
 register_target_generator = create_register_decorator(registry=ALL_TARGET_GENERATORS)
