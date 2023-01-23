@@ -7,7 +7,6 @@ import hydra
 import importlib.util
 
 import os
-import pkg_resources
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
@@ -52,10 +51,7 @@ class DeciClient:
 
         GlobalHydra.instance().clear()
         self.super_gradients_version = None
-        try:
-            self.super_gradients_version = pkg_resources.get_distribution("super_gradients").version
-        except pkg_resources.DistributionNotFound:
-            self.super_gradients_version = super_gradients.__version__
+        self.super_gradients_version = super_gradients.__version__
 
     def _get_file(self, model_name: str, file_name: str) -> str:
         try:

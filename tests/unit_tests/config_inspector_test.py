@@ -5,6 +5,7 @@ import unittest
 import pkg_resources
 from omegaconf import OmegaConf
 
+from super_gradients.common.object_names import Models
 from super_gradients.training.models import SgModule, get_arch_params
 from super_gradients.training.models.model_factory import get_architecture
 from super_gradients.training.utils import HpmStruct
@@ -215,7 +216,7 @@ class ConfigInspectTest(unittest.TestCase):
 
     def test_resnet18_cifar_arch_params(self):
         arch_params = get_arch_params("resnet18_cifar_arch_params")
-        architecture_cls, arch_params, pretrained_weights_path, is_remote = get_architecture("resnet18", HpmStruct(**arch_params))
+        architecture_cls, arch_params, pretrained_weights_path, is_remote = get_architecture(Models.RESNET18, HpmStruct(**arch_params))
 
         with raise_if_unused_params(arch_params) as tracked_arch_params:
             _ = architecture_cls(arch_params=tracked_arch_params)

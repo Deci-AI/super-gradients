@@ -131,9 +131,10 @@ Want to try our pre-trained models on your machine? Import SuperGradients, initi
     
 import super_gradients
 from super_gradients.training import Trainer, models, dataloaders
+from super_gradients.common.object_names import Models
 
 trainer = Trainer(experiment_name="yoloxn_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
-model = models.get("yolox_n", pretrained_weights="coco", num_classes= 80)
+model = models.get(Models.YOLOX_N, pretrained_weights="coco", num_classes= 80)
 train_loader = dataloaders.coco2017_train()
 valid_loader = dataloaders.coco2017_val()
 train_params = {...}

@@ -39,7 +39,7 @@
 
 defaults:
   - training_hyperparams: cityscapes_default_train_params
-  - dataset_params: cityscapes_pplite_seg75_dataset_params
+  - dataset_params: cityscapes_ppliteseg_seg75_dataset_params
   - checkpoint_params: default_checkpoint_params
   - _self_
 
@@ -84,4 +84,3 @@ hydra:
   run:
     # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
     dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
-

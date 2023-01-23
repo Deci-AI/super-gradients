@@ -1,5 +1,6 @@
 import unittest
 
+from super_gradients.common.object_names import Models
 from super_gradients.training.dataloaders.dataloaders import coco2017_train, coco2017_val
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 
@@ -19,7 +20,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
 
         trainer = Trainer("dataset_statistics_visual_test")
 
-        model = models.get("yolox_s")
+        model = models.get(Models.YOLOX_S)
 
         training_params = {
             "max_epochs": 1,  # we dont really need the actual training to run
