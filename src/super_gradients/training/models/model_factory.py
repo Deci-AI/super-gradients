@@ -48,16 +48,18 @@ def get_architecture(model_name: str, arch_params: HpmStruct, download_required_
     if model_name not in ARCHITECTURES.keys() and architecture is None:
         if client_enabled:
             logger.info(f'The required model, "{model_name}", was not found in SuperGradients. Trying to load a model from remote deci-lab')
+
             deci_client = DeciClient()
+            if not deci_client.includes_model(model_name=model_name):
+                raise ValueError(
+                    f'The required model "{model_name}", was not found in SuperGradients and remote deci-lab. See docs or '
+                    f"all_architectures.py for supported model names."
+                )
+
             _arch_params = deci_client.get_model_arch_params(model_name)
             if download_required_code:
                 deci_client.download_and_load_model_additional_code(model_name, Path.cwd())
 
-            if _arch_params is None:
-                raise ValueError(
-                    f'The required model, "{model_name}", was not found in SuperGradients and remote deci-lab. See docs or '
-                    f"all_architectures.py for supported model names."
-                )
             _arch_params = hydra.utils.instantiate(_arch_params)
             pretrained_weights_path = deci_client.get_model_weights(model_name)
             model_name = _arch_params["model_name"]
