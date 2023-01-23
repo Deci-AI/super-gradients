@@ -67,9 +67,34 @@ class UpCatBlock(AbstractUpFuseBlock):
         return self.last_convs(x)
 
 
+class UpSumBlock(AbstractUpFuseBlock):
+    """
+    Fuse features with concatenation and followed Convolutions.
+    """
+
+    def __init__(self, in_channels: int, skip_channels: int, out_channels: int, up_factor: int, mode: str, num_repeats: int, **kwargs):
+        super().__init__(in_channels=in_channels, skip_channels=skip_channels, out_channels=out_channels)
+        self.proj_conv = (
+            nn.Identity() if skip_channels == in_channels else ConvBNReLU(skip_channels, in_channels, kernel_size=1, bias=False, use_activation=False)
+        )
+        self.up_path = make_upsample_module(scale_factor=up_factor, upsample_mode=mode, align_corners=False)
+
+        self.last_convs = nn.Sequential(
+            ConvBNReLU(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.Sequential(*[ConvBNReLU(out_channels, out_channels, kernel_size=3, padding=1, bias=False) for _ in range(num_repeats - 1)]),
+        )
+
+    def forward(self, x, skip):
+        skip = self.proj_conv(skip)
+        x = self.up_path(x)
+        x = x + skip
+        return self.last_convs(x)
+
+
 UP_FUSE_BLOCKS = dict(
     UpCatBlock=UpCatBlock,
     UpFactorBlock=UpFactorBlock,
+    UpSumBlock=UpSumBlock,
 )
 
 
