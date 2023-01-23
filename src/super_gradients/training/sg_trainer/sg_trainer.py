@@ -552,6 +552,10 @@ class Trainer:
             torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
 
         # ACCUMULATE GRADIENT FOR X BATCHES BEFORE OPTIMIZING
+        local_step = batch_idx + 1
+        global_step = local_step + len(self.train_loader) * epoch
+        total_steps = len(self.train_loader) * self.max_epochs
+
         integrated_batches_num = batch_idx + len(self.train_loader) * epoch + 1
 
         if integrated_batches_num % self.batch_accumulate == 0:
@@ -563,8 +567,6 @@ class Trainer:
 
             self.optimizer.zero_grad()
             if self.ema:
-                global_step = len(self.train_loader) * epoch + batch_idx
-                total_steps = 0  # TODO FIll this
                 self.ema_model.update(self.net, step=global_step, total_steps=total_steps)
 
             # RUN PHASE CALLBACKS
