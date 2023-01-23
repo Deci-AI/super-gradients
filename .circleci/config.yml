@@ -146,12 +146,13 @@ jobs:
           no_output_timeout: 30m
           command: |
             . venv/bin/activate
-            coverage run --source=super_gradients -m unittest tests/deci_core_unit_test_suite_runner.py
+            coverage run --source=super_gradients -m unittest --junit-xml=/tmp/test_results_<< pipeline.id >>.xml tests/deci_core_unit_test_suite_runner.py
             coverage report
             coverage html  # open htmlcov/index.html in a browser
+      - store_test_results:
+          path: /tmp/test_results_<< pipeline.id >>.xml
       - store_artifacts:
           path: htmlcov
-
       - store_artifacts:
           path: ~/sg_logs
 
@@ -412,7 +413,9 @@ jobs:
             python3.8 src/super_gradients/examples/convert_recipe_example/convert_recipe_example.py --config-name=cifar10_conversion_params experiment_name=shortened_cifar10_resnet_accuracy_test
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox experiment_name=shortened_coco2017_yolox_n_map_test architecture=yolox_n training_hyperparams.loss=yolox_fast_loss training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_regseg48 experiment_name=shortened_cityscapes_regseg48_iou_test training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
-            coverage run --source=super_gradients -m unittest tests/deci_core_recipe_test_suite_runner.py
+            coverage run --source=super_gradients -m unittest --junit-xml=/tmp/test_results_<< pipeline.id >>.xml tests/deci_core_recipe_test_suite_runner.py
+      - store_test_results:
+          path: /tmp/test_results_<< pipeline.id >>.xml
 
       - run:
           name: Remove new environment when failed
