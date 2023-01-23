@@ -556,9 +556,7 @@ class Trainer:
         global_step = local_step + len(self.train_loader) * epoch
         total_steps = len(self.train_loader) * self.max_epochs
 
-        integrated_batches_num = batch_idx + len(self.train_loader) * epoch + 1
-
-        if integrated_batches_num % self.batch_accumulate == 0:
+        if global_step % self.batch_accumulate == 0:
             self.phase_callback_handler.on_train_batch_gradient_step_start(context)
 
             # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
