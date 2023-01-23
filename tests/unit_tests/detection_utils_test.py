@@ -4,6 +4,7 @@ import unittest
 import numpy as np
 import torch.cuda
 
+from super_gradients.common.object_names import Models
 from super_gradients.training import Trainer, utils as core_utils, models
 from super_gradients.training.dataloaders.dataloaders import coco2017_val
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
@@ -16,7 +17,7 @@ from tests.core_test_utils import is_data_available
 class TestDetectionUtils(unittest.TestCase):
     def setUp(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = models.get("yolox_n", pretrained_weights="coco").to(self.device)
+        self.model = models.get(Models.YOLOX_N, pretrained_weights="coco").to(self.device)
         self.model.eval()
 
     @unittest.skipIf(not is_data_available(), "run only when /data is available")

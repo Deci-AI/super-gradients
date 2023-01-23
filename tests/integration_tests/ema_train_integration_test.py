@@ -1,3 +1,4 @@
+from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
@@ -22,7 +23,7 @@ class CallWrapper:
 class EMAIntegrationTest(unittest.TestCase):
     def _init_model(self) -> None:
         self.trainer = Trainer("resnet18_cifar_ema_test")
-        self.model = models.get("resnet18_cifar", arch_params={"num_classes": 5})
+        self.model = models.get(Models.RESNET18_CIFAR, arch_params={"num_classes": 5})
 
     @classmethod
     def tearDownClass(cls) -> None:

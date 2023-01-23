@@ -1,6 +1,7 @@
 import shutil
 import unittest
 
+from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
 import super_gradients
@@ -41,7 +42,7 @@ class TestTrainer(unittest.TestCase):
     @staticmethod
     def get_classification_trainer(name=""):
         trainer = Trainer(name)
-        model = models.get("resnet18", num_classes=5)
+        model = models.get(Models.RESNET18, num_classes=5)
         return trainer, model
 
     def test_train(self):
