@@ -2,6 +2,7 @@ from typing import Tuple
 
 import cv2
 import numpy as np
+from torch import Tensor
 
 
 class DEKRTargetsGenerator:
@@ -13,6 +14,10 @@ class DEKRTargetsGenerator:
         """
 
         :param output_stride: Downsampling factor for target maps (w.r.t to input image resolution)
+        :param sigma: Sigma of the gaussian kernel used to generate the heatmap (Effective radius of the heatmap would be 3*sigma)
+        :param center_sigma: Sigma of the gaussian kernel used to generate the instance "center" heatmap (Effective radius of the heatmap would be 3*sigma)
+        :param bg_weight: Weight assigned to all background pixels (used to re-weight the heatmap loss)
+        :param offset_radius: Radius for the offset encoding (in pixels)
         """
         self.output_stride = output_stride
         self.sigma = sigma
@@ -75,10 +80,10 @@ class DEKRTargetsGenerator:
         joints = np.array(augmented_joints, dtype=np.float32).reshape((-1, num_joints_with_center, 3))
         return joints
 
-    def __call__(self, image, joints: np.ndarray, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Encode the keypoints into dense targets that participate in loss computation.
-        :param image: [H, W, 3]
+        :param image: Image tensor [3, H, W]
         :param joints: [Instances, NumJoints, 3]
         :param mask: [H,W] A mask that indicates which pixels should be included (1) or which one should be excluded (0) from loss computation.
         :return: Tuple of (heatmap, mask, offset, offset_weight)
@@ -87,9 +92,10 @@ class DEKRTargetsGenerator:
             offset     - [NumJoints*2, H // Output Stride, W // Output Stride]
             offset_weight - [NumJoints*2, H // Output Stride, W // Output Stride]
         """
-        if image.shape[0] != mask.shape[0] or image.shape[1] != mask.shape[1]:
-            raise ValueError("Image and mask should have the same shape")
-        if image.shape[0] % self.output_stride != 0 or image.shape[1] % self.output_stride != 0:
+        if image.shape[1:3] != mask.shape[:2]:
+            raise ValueError(f"Image and mask should have the same shape {image.shape[1:3]} != {mask.shape[:2]}")
+
+        if image.shape[1] % self.output_stride != 0 or image.shape[2] % self.output_stride != 0:
             raise ValueError("Image shape should be divisible by output stride")
 
         num_instances, num_joints, _ = joints.shape

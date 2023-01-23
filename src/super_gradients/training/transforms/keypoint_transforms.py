@@ -196,7 +196,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         rows, cols = output_size
 
         self.input_size = input_size
-        self.output_size = [(rows, cols)]
+        self.output_size = (rows, cols)
 
         self.max_rotation = max_rotation
         self.min_scale = min_scale

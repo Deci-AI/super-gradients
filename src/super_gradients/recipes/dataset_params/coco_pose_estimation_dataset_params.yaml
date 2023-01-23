@@ -1,5 +1,6 @@
 train_dataset_params:
-  data_dir: /data/coco # root path to coco data
+  #data_dir: /data/coco # root path to coco data
+  data_dir: e:/coco2017
   images_dir: images/train2017
   json_file: annotations/person_keypoints_train2017.json
 
@@ -17,7 +18,7 @@ train_dataset_params:
 
     - KeypointsRandomHorizontalFlip:
         # Note these indexes are COCO-specific. If you're using a different dataset, you'll need to change these accordingly.
-        flip_index: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 17 ]
+        flip_index: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15 ]
         prob: 0.5
 
     - KeypointsRandomAffineTransform:
@@ -31,7 +32,7 @@ train_dataset_params:
         image_pad_value: [ 127, 127, 127 ]
         mask_pad_value: 1
 
-    - KeypointsToTensor:
+    - KeypointsToTensor: {}
 
     - KeypointsNormalize:
         mean: [ 0.485, 0.456, 0.406 ]
@@ -40,7 +41,9 @@ train_dataset_params:
   target_generator: ???
 
 val_dataset_params:
-  data_dir: /data/coco/
+  #data_dir: /data/coco/
+  data_dir: e:/coco2017
+
   images_dir: images/val2017
   json_file: annotations/person_keypoints_val2017.json
   include_empty_samples: True
@@ -54,7 +57,7 @@ val_dataset_params:
         image_pad_value: [ 127, 127, 127 ]
         mask_pad_value: 1
 
-    - KeypointsToTensor:
+    - KeypointsToTensor: {}
 
     - KeypointsNormalize:
         mean: [0.485, 0.456, 0.406]
