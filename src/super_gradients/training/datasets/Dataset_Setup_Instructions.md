@@ -384,3 +384,39 @@ valid_set = SuperviselyPersonsDataset(root_dir='.../supervisely-persons', list_f
 
 NOTE: this dataset is only available for training. To test, please use PascalVOC2012SegmentationDataSet.
  </details>
+
+
+
+### Pose Estimation Datasets
+
+
+<details>
+<summary>COCO 2017</summary>
+
+1. Download coco dataset:
+    - annotations: http://images.cocodataset.org/annotations/annotations_trainval2017.zip
+    - train2017: http://images.cocodataset.org/zips/train2017.zip
+    - val2017: http://images.cocodataset.org/zips/val2017.zip
+
+2. Unzip and organize it as below:
+```
+    coco
+    ├── annotations
+    │      ├─ person_keypoints_train2017.json
+    │      ├─ person_keypoints_val2017.json
+    │      └─ ...
+    └── images
+        ├── train2017
+        │   ├─ 000000000001.jpg
+        │   └─ ...
+        └── val2017
+            └─ ...
+```
+
+3. Instantiate the dataset:
+```python
+from super_gradients.training.datasets import COCOKeypointsDataset
+train_set = COCOKeypointsDataset(data_dir='.../coco', images_dir='images/train2017', json_file='annotations/instances_train2017.json', ...)
+valid_set = COCOKeypointsDataset(data_dir='.../coco', images_dir='images/val2017', json_file='annotations/instances_val2017.json', ...)
+```
+</details>
