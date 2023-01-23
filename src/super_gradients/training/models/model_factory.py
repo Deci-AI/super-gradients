@@ -53,7 +53,7 @@ def get_architecture(model_name: str, arch_params: HpmStruct, download_required_
             _arch_params = deci_client.get_model_arch_params(model_name)
             if _arch_params is None:
                 raise ValueError(
-                    f'The required model "{model_name}", was not found in SuperGradients and remote deci-lab (at {deci_client.api_host}). '
+                    f'The required model "{model_name}", was not found in SuperGradients and remote deci-lab. '
                     f"See docs or all_architectures.py for supported model names."
                 )
 
