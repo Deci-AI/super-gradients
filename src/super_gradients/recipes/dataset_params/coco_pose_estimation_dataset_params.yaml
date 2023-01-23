@@ -1,6 +1,5 @@
 train_dataset_params:
-  #data_dir: /data/coco # root path to coco data
-  data_dir: e:/coco2017
+  data_dir: /data/coco # root path to coco data
   images_dir: images/train2017
   json_file: annotations/person_keypoints_train2017.json
 
@@ -41,8 +40,7 @@ train_dataset_params:
   target_generator: ???
 
 val_dataset_params:
-  #data_dir: /data/coco/
-  data_dir: e:/coco2017
+  data_dir: /data/coco/
 
   images_dir: images/val2017
   json_file: annotations/person_keypoints_val2017.json
