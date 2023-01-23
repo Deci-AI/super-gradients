@@ -450,7 +450,8 @@ jobs:
       - run:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
-          when: on_fail§
+          when: on_fail
+
   recipe_sanity_tests_classification:
     machine: true
     resource_class: deci-ai/sg-gpu-on-premise
@@ -492,6 +493,7 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+
   recipe_sanity_tests_segmentation:
     machine: true
     resource_class: deci-ai/sg-gpu-on-premise
@@ -534,6 +536,7 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+
   recipe_sanity_tests_detection:
     machine: true
     resource_class: deci-ai/sg-gpu-on-premise
