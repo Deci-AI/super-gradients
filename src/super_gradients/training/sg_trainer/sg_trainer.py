@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import hydra
 from omegaconf import DictConfig
+from super_gradients.training.utils.ema_decay_schedules import EMA_DECAY_FUNCTIONS
 from torch import nn
 from torch.utils.data import DataLoader, SequentialSampler
 from torch.cuda.amp import GradScaler, autocast
@@ -562,7 +563,9 @@ class Trainer:
 
             self.optimizer.zero_grad()
             if self.ema:
-                self.ema_model.update(self.net, integrated_batches_num / (len(self.train_loader) * self.max_epochs))
+                global_step = len(self.train_loader) * epoch + batch_idx
+                total_steps = 0  # TODO FIll this
+                self.ema_model.update(self.net, step=global_step, total_steps=total_steps)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_train_batch_gradient_step_end(context)
@@ -1902,14 +1905,15 @@ class Trainer:
 
         return net
 
-    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> ModelEMA:
+    def _instantiate_ema_model(self, decay_type: str, decay: float, **kwargs) -> ModelEMA:
         """Instantiate ema model for standard SgModule.
-        :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value
-                      until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
-        :param beta: the exponent coefficient. The higher the beta, the sooner in the training the decay will saturate to
-                     its final value. beta=15 is ~40% of the training process.
+        :param decay: The maximum decay value. As the training process advances, the decay will climb towards this value according to decay_type schedule.
+                      See EMA_DECAY_FUNCTIONS for more details.
+
+        :param kwargs: Additional parameters for the decay function. See EMA_DECAY_FUNCTIONS for more details.
         """
-        return ModelEMA(self.net, decay, beta, exp_activation)
+        decay_function = EMA_DECAY_FUNCTIONS[decay_type](**kwargs)
+        return ModelEMA(self.net, decay, decay_function)
 
     @property
     def get_net(self):
