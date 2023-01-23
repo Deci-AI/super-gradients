@@ -1,6 +1,7 @@
 import hydra
 import torch.nn
 from omegaconf import DictConfig, OmegaConf
+from super_gradients.training.utils.ema_decay_schedules import EMA_DECAY_FUNCTIONS
 from torch.utils.data import DataLoader
 
 from super_gradients.training.utils.distributed_training_utils import setup_device
@@ -255,17 +256,16 @@ class KDTrainer(Trainer):
         )
         return hyper_param_config
 
-    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> KDModelEMA:
+    def _instantiate_ema_model(self, decay_type: str, decay: float, **kwargs) -> KDModelEMA:
         """Instantiate KD ema model for KDModule.
 
-        If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.
-        :param decay:           the maximum decay value. as the training process advances, the decay will climb towards
-                                this value until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
-        :param beta:            the exponent coefficient. The higher the beta, the sooner in the training the decay will
-                                saturate to its final value. beta=15 is ~40% of the training process.
-        :param exp_activation:
+        :param decay: The maximum decay value. As the training process advances, the decay will climb towards this value according to decay_type schedule.
+                      See EMA_DECAY_FUNCTIONS for more details.
+
+        :param kwargs: Additional parameters for the decay function. See EMA_DECAY_FUNCTIONS for more details.
         """
-        return KDModelEMA(self.net, decay, beta, exp_activation)
+        decay_function = EMA_DECAY_FUNCTIONS[decay_type](**kwargs)
+        return KDModelEMA(self.net, decay, decay_function)
 
     def _save_best_checkpoint(self, epoch, state):
         """
