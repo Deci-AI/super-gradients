@@ -4,7 +4,7 @@ from typing import Tuple, Type, Optional
 import hydra
 import torch
 
-from super_gradients.common import StrictLoad
+from super_gradients.common.data_types.enum.strict_load import StrictLoad
 from super_gradients.common.plugins.deci_client import DeciClient, client_enabled
 from super_gradients.training import utils as core_utils
 from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException

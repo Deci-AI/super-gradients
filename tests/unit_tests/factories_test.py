@@ -5,6 +5,7 @@ import torch
 from super_gradients import Trainer
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
+from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.losses import LabelSmoothingCrossEntropyLoss
@@ -15,7 +16,7 @@ from torch import nn
 class FactoriesTest(unittest.TestCase):
     def test_training_with_factories(self):
         trainer = Trainer("test_train_with_factories")
-        net = models.get("resnet18", num_classes=5)
+        net = models.get(Models.RESNET18, num_classes=5)
         train_params = {
             "max_epochs": 2,
             "lr_updates": [1],

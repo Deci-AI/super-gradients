@@ -86,6 +86,7 @@ from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 from omegaconf import OmegaConf
+from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 
 logger = get_logger(__name__)
 
@@ -219,7 +220,21 @@ class Trainer:
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
+        # TRIGGER CFG MODIFYING CALLBACKS
+        cfg = cls._trigger_cfg_modifying_callbacks(cfg)
+
         trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+
+        # BUILD NETWORK
+        model = models.get(
+            model_name=cfg.architecture,
+            num_classes=cfg.arch_params.num_classes,
+            arch_params=cfg.arch_params,
+            strict_load=cfg.checkpoint_params.strict_load,
+            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+            load_backbone=cfg.checkpoint_params.load_backbone,
+        )
 
         # INSTANTIATE DATA LOADERS
 
@@ -235,16 +250,6 @@ class Trainer:
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
-        # BUILD NETWORK
-        model = models.get(
-            model_name=cfg.architecture,
-            num_classes=cfg.arch_params.num_classes,
-            arch_params=cfg.arch_params,
-            strict_load=cfg.checkpoint_params.strict_load,
-            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-            load_backbone=cfg.checkpoint_params.load_backbone,
-        )
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
         res = trainer.train(
@@ -256,6 +261,14 @@ class Trainer:
         )
 
         return model, res
+
+    @classmethod
+    def _trigger_cfg_modifying_callbacks(cls, cfg):
+        pre_launch_cbs = get_param(cfg, "pre_launch_callbacks_list", list())
+        pre_launch_cbs = ListFactory(PreLaunchCallbacksFactory()).get(pre_launch_cbs)
+        for plcb in pre_launch_cbs:
+            cfg = plcb(cfg)
+        return cfg
 
     @classmethod
     def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> Tuple[nn.Module, Tuple]:
@@ -593,7 +606,7 @@ class Trainer:
         if (metric > self.best_metric and self.greater_metric_to_watch_is_better) or (metric < self.best_metric and not self.greater_metric_to_watch_is_better):
             # STORE THE CURRENT metric AS BEST
             self.best_metric = metric
-            self._save_best_checkpoint(epoch, state)
+            self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_validation_end_best_epoch(context)
@@ -604,11 +617,8 @@ class Trainer:
 
         if self.training_params.average_best_models:
             net_for_averaging = self.ema_model.ema if self.ema else self.net
-            averaged_model_sd = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
-            self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict={"net": averaged_model_sd}, global_step=epoch)
-
-    def _save_best_checkpoint(self, epoch, state):
-        self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
+            state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
+            self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
     def _prep_net_for_train(self):
         if self.arch_params is None:
@@ -704,9 +714,25 @@ class Trainer:
 
                     Learning rate scheduling function to be used when `lr_mode` is 'function'.
 
+                - `warmup_mode`: Union[str, Type[LRCallbackBase], None]
+
+                    If not None, define how the learning rate will be increased during the warmup phase.
+                    Currently, only 'warmup_linear_epoch' and `warmup_linear_step` modes are supported.
+
                 - `lr_warmup_epochs` : int (default=0)
 
                     Number of epochs for learning rate warm up - see https://arxiv.org/pdf/1706.02677.pdf (Section 2.2).
+                    Relevant for `warmup_mode=warmup_linear_epoch`.
+                    When lr_warmup_epochs > 0, the learning rate will be increased linearly from 0 to the `initial_lr`
+                    once per epoch.
+
+                - `lr_warmup_steps` : int (default=0)
+
+                    Number of steps for learning rate warm up - see https://arxiv.org/pdf/1706.02677.pdf (Section 2.2).
+                    Relevant for `warmup_mode=warmup_linear_step`.
+                    When lr_warmup_steps > 0, the learning rate will be increased linearly from 0 to the `initial_lr`
+                    for a total number of steps according to formula: min(lr_warmup_steps, len(train_loader)).
+                    The capping is done to avoid interference of warmup with epoch-based schedulers.
 
                 - `cosine_final_lr_ratio` : float (default=0.01)
                     Final learning rate ratio (only relevant when `lr_mode`='cosine'). The cosine starts from initial_lr and reaches
@@ -1090,14 +1116,19 @@ class Trainer:
                     **self.training_params.to_dict(),
                 )
             )
-        if self.training_params.lr_warmup_epochs > 0:
-            warmup_mode = self.training_params.warmup_mode
-            if isinstance(warmup_mode, str):
-                warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
-            elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
-                warmup_callback_cls = warmup_mode
-            else:
-                raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
+
+        warmup_mode = self.training_params.warmup_mode
+        warmup_callback_cls = None
+        if isinstance(warmup_mode, str):
+            warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
+        elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
+            warmup_callback_cls = warmup_mode
+        elif warmup_mode is not None:
+            pass
+        else:
+            raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
+
+        if warmup_callback_cls is not None:
             self.phase_callbacks.append(
                 warmup_callback_cls(
                     train_loader_len=len(self.train_loader),
@@ -1300,7 +1331,7 @@ class Trainer:
         finally:
             if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                 # CLEAN UP THE MULTI-GPU PROCESS GROUP WHEN DONE
-                if torch.distributed.is_initialized():
+                if torch.distributed.is_initialized() and self.training_params.kill_ddp_pgroup_on_end:
                     torch.distributed.destroy_process_group()
 
             # PHASE.TRAIN_END
@@ -1392,13 +1423,6 @@ class Trainer:
         self.net.load_state_dict(keep_state_dict)
 
         if not self.ddp_silent_mode:
-            # Adding values to sg_logger
-            # looping over last titles which corresponds to validation (and average model) metrics.
-            all_titles = self.results_titles[-1 * len(averaged_model_results_tuple) :]
-            result_dict = {all_titles[i]: averaged_model_results_tuple[i] for i in range(len(averaged_model_results_tuple))}
-
-            self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=self.max_epochs)
-
             average_model_tb_titles = ["Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]]
             write_struct = ""
             for ind, title in enumerate(average_model_tb_titles):

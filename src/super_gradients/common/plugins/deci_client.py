@@ -1,29 +1,33 @@
 import json
 import sys
 from zipfile import ZipFile
-
+from typing import List, Optional, Any
 import hydra
 
 import importlib.util
 
 import os
-import pkg_resources
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
 
+import super_gradients
 from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.hydra_utils import normalize_path
+from super_gradients.common.environment.path_utils import normalize_path
+
 
 logger = get_logger(__name__)
 
 client_enabled = True
 try:
     from deci_lab_client.client import DeciPlatformClient
+    from deci_lab_client.types import S3SignedUrl
+    from deci_lab_client.models import ModelBenchmarkState
     from deci_common.data_interfaces.files_data_interface import FilesDataInterface
     from deci_lab_client.models import AutoNACFileName
     from deci_lab_client import ApiException
+
 except (ImportError, NameError):
     client_enabled = False
 
@@ -42,14 +46,12 @@ class DeciClient:
             )
             return
 
-        self.lab_client = DeciPlatformClient()
+        self.lab_client = DeciPlatformClient(api_host=env_variables.DECI_API_HOST)
+        self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
         GlobalHydra.instance().clear()
         self.super_gradients_version = None
-        try:
-            self.super_gradients_version = pkg_resources.get_distribution("super_gradients").version
-        except pkg_resources.DistributionNotFound:
-            self.super_gradients_version = "3.0.2"
+        self.super_gradients_version = super_gradients.__version__
 
     def _get_file(self, model_name: str, file_name: str) -> str:
         try:
@@ -142,10 +144,64 @@ class DeciClient:
             model_meta_data:           Metadata to accompany the model
             optimization_request_form: The optimization parameters
         """
-
-        self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
         self.lab_client.add_model(
             add_model_request=model_meta_data,
             optimization_request=optimization_request_form,
             local_loaded_model=model,
         )
+
+    def is_model_benchmarking(self, name: str) -> bool:
+        """Check if a given model is still benchmarking or not.
+        :param name: The mode name.
+        """
+        benchmark_state = self.lab_client.get_model_by_name(name=name).data.benchmark_state
+        return benchmark_state in [ModelBenchmarkState.IN_PROGRESS, ModelBenchmarkState.PENDING]
+
+    def register_experiment(self, name: str, model_name: str):
+        """Registers a training experiment in Deci's backend.
+        :param name:        Name of the experiment to register
+        :param model_name:  Name of the model architecture to connect the experiment to
+        """
+        self.lab_client.register_experiment(name=name, model_name=model_name)
+
+    def save_experiment_file(self, file_path: str):
+        """
+        Uploads a training related file to Deci's location in S3. This can be a TensorBoard file or a log
+        :params file_path: The local path of the file to be uploaded
+        """
+        self.lab_client.save_experiment_file(file_path=file_path)
+
+    def upload_file_to_s3(self, tag: str, level: str, from_path: str):
+        """Upload a file to the platform S3 bucket.
+
+        :param tag:         Tag that will be associated to the file.
+        :param level:       Logging level that will be used to notify the monitoring system that the file was uploaded.
+        :param from_path:   Path of the file to upload.
+        """
+        data = self.lab_client.upload_log_url(tag=tag, level=level)
+        signed_url = S3SignedUrl(**data.data)
+        self.lab_client.upload_file_to_s3(from_path=from_path, s3_signed_url=signed_url)
+
+    def add_model(
+        self,
+        model_metadata,
+        hardware_types: List[str],
+        model_path: Optional[str] = None,
+        model: Optional[nn.Module] = None,
+        **kwargs: Any,
+    ):
+        """Adds a new model to the company's model repository.
+        :param model_metadata: The model metadata.
+        :param hardware_types: The hardware types you want to benchmark the model on.
+        :param model_path:      The path of the model on the local operating system.
+        :param model:           Pytorch loaded model object.
+                                If your model's framework is pytorch you may pass the following parameters as kwargs in order to control the conversion to onnx
+        :param kwargs: Extra arguments to be passed to the PyTorch to ONNX conversion, for example:
+            opset_version
+            do_constant_folding
+            dynamic_axes
+            input_names
+            output_names
+        """
+
+        self.lab_client.add_model_v2(model_metadata=model_metadata, hardware_types=hardware_types, model_path=model_path, model=model, **kwargs)

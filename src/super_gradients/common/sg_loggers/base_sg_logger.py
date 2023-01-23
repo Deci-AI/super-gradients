@@ -9,7 +9,7 @@ import numpy as np
 import psutil
 import torch
 from PIL import Image
-from super_gradients.common import ADNNModelRepositoryDataInterfaces
+from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.code_save_decorator import saved_codes
 from super_gradients.common.environment.ddp_utils import multi_process_safe
