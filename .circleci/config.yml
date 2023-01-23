@@ -591,10 +591,15 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
-      - recipe_accuracy_tests
-      - recipe_sanity_tests_classification
-      - recipe_sanity_tests_segmentation
-      - recipe_sanity_tests_detection
+      - recipe_accuracy_tests:
+          <<: *release_tag_filter
+      - recipe_sanity_tests_classification:
+          <<: *release_tag_filter
+      - recipe_sanity_tests_segmentation:
+          <<: *release_tag_filter
+      - recipe_sanity_tests_detection:
+          <<: *release_tag_filter
+
       - release_version:
           py_version: "3.7"
           requires:
