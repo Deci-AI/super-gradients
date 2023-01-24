@@ -1,7 +1,7 @@
 import sys
 import unittest
 
-from tests.integration_tests import TestDataset, EMAIntegrationTest, LRTest
+from tests.integration_tests import EMAIntegrationTest, LRTest, PoseEstimationDatasetIntegrationTest
 
 
 class CoreIntegrationTestSuiteRunner:
@@ -16,9 +16,9 @@ class CoreIntegrationTestSuiteRunner:
         _add_modules_to_integration_tests_suite - Adds unit tests to the Unit Tests Test Suite
             :return:
         """
-        self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDataset))
         self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(EMAIntegrationTest))
         self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRTest))
+        self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(PoseEstimationDatasetIntegrationTest))
 
 
 if __name__ == "__main__":
