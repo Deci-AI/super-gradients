@@ -256,14 +256,58 @@ class KDTrainer(Trainer):
         )
         return hyper_param_config
 
-    def _instantiate_ema_model(self, decay_type: str, decay: float, **kwargs) -> KDModelEMA:
-        """Instantiate KD ema model for KDModule.
-
-        :param decay: The maximum decay value. As the training process advances, the decay will climb towards this value according to decay_type schedule.
-                      See EMA_DECAY_FUNCTIONS for more details.
-
+    def _instantiate_ema_model(self, decay_type: str = None, decay: float = None, **kwargs) -> KDModelEMA:
+        """Instantiate ema model for standard SgModule.
+        :param decay_type: (str) The decay climb schedule. See EMA_DECAY_FUNCTIONS for more details.
+        :param decay: The maximum decay value. As the training process advances, the decay will climb towards this value
+                      according to decay_type schedule. See EMA_DECAY_FUNCTIONS for more details.
         :param kwargs: Additional parameters for the decay function. See EMA_DECAY_FUNCTIONS for more details.
         """
+        if decay is None:
+            logger.warning(
+                "Parameter `decay` is not specified for EMA model. Please specify `decay` parameter explicitly in your config:\n"
+                "ema: True\n"
+                "ema_params: \n"
+                "  decay: 0.9999\n"
+                "  decay_type=exp\n"
+                "  beta: 15\n"
+                "In the next major release of SG this warning will become an error."
+            )
+
+        if "exp_activation" in kwargs:
+            logger.warning(
+                "Parameter `exp_activation` is deprecated for EMA model. Please update your config to use decay_type: str (constant|exp|threshold) instead:\n"
+                "ema: True\n"
+                "ema_params: \n"
+                "  decay: 0.9999\n"
+                "  decay_type=exp\n"
+                "  beta: 15\n"
+                "\n"
+                "ema: True\n"
+                "ema_params: \n"
+                "  decay: 0.9999\n"
+                "  decay_type=constant\n"
+                "\n"
+                "ema: True\n"
+                "ema_params: \n"
+                "  decay: 0.9999\n"
+                "  decay_type=threshold\n"
+                "In the next major release of SG this warning will become an error."
+            )
+            decay_type = "exp" if bool(kwargs.pop("exp_activation")) else "constant"
+
+        if decay_type is None:
+            logger.warning(
+                "Parameter decay_type is not specified for EMA model. Please specify decay_type parameter explicitly in your config:\n"
+                "ema: True\n"
+                "ema_params: \n"
+                "  decay: 0.9999\n"
+                "  decay_type=exp\n"
+                "  beta: 15\n"
+                "In the next major release of SG this warning will become an error."
+            )
+            decay_type = "exp"
+
         decay_function = EMA_DECAY_FUNCTIONS[decay_type](**kwargs)
         return KDModelEMA(self.net, decay, decay_function)
 

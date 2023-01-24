@@ -45,6 +45,10 @@ class EMAIntegrationTest(unittest.TestCase):
         self._init_model()
         self._train({"decay_type": "constant", "decay": 0.9999})
 
+    def test_train_with_old_ema_params(self):
+        self._init_model()
+        self._train({"decay": 0.9999, "exp_activation": True, "beta": 10})
+
     def _train(self, ema_params):
         ema_enable = ema_params is not None
         training_params = {
