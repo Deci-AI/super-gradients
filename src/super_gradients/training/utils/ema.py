@@ -119,7 +119,7 @@ class ModelEMA:
         except KeyError:
             raise UnknownTypeException(decay_type, list(EMA_DECAY_FUNCTIONS.keys()))
 
-        decay_function = decay_cls[decay_type](**kwargs)
+        decay_function = decay_cls(**kwargs)
         return cls(model, decay, decay_function)
 
     def update(self, model, step: int, total_steps: int):
