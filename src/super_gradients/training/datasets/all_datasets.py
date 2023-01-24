@@ -9,6 +9,7 @@ from super_gradients.training.datasets.segmentation_datasets import (
     SuperviselyPersonsDataset,
     PascalVOCAndAUGUnifiedDataset,
 )
+from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 
 ALL_DATASETS = {
     "Cifar10": Cifar10,
@@ -24,4 +25,5 @@ ALL_DATASETS = {
     "CityscapesDataset": CityscapesDataset,
     "SuperviselyPersonsDataset": SuperviselyPersonsDataset,
     "PascalVOCAndAUGUnifiedDataset": PascalVOCAndAUGUnifiedDataset,
+    "COCOKeypointsDataset": COCOKeypointsDataset,
 }
