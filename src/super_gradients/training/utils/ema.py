@@ -5,10 +5,14 @@ from typing import Union
 import torch
 from torch import nn
 
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
 from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.kd_modules.kd_module import KDModule
-from super_gradients.training.utils.ema_decay_schedules import IDecayFunction
+from super_gradients.training.utils.ema_decay_schedules import IDecayFunction, EMA_DECAY_FUNCTIONS
+
+logger = get_logger(__name__)
 
 
 def copy_attr(a: nn.Module, b: nn.Module, include: Union[list, tuple] = (), exclude: Union[list, tuple] = ()):
@@ -62,6 +66,61 @@ class ModelEMA:
             self.exclude_attributes = []
         for p in self.ema.module.parameters():
             p.requires_grad_(False)
+
+    @classmethod
+    def from_params(cls, model: nn.Module, decay_type: str = None, decay: float = None, **kwargs):
+        if decay is None:
+            logger.warning(
+                "Parameter `decay` is not specified for EMA params. Please specify `decay` parameter explicitly in your config:\n"
+                "ema: True\n"
+                "ema_params: \n"
+                "  decay: 0.9999\n"
+                "  decay_type: exp\n"
+                "  beta: 15\n"
+                "Will default to decay: 0.9999\n"
+                "In the next major release of SG this warning will become an error."
+            )
+            decay = 0.9999
+
+        if "exp_activation" in kwargs:
+            logger.warning(
+                "Parameter `exp_activation` is deprecated for EMA model. Please update your config to use decay_type: str (constant|exp|threshold) instead:\n"
+                "ema: True\n"
+                "ema_params: \n"
+                "  decay: 0.9999\n"
+                "  decay_type: exp # Equivalent to exp_activation: True\n"
+                "  beta: 15\n"
+                "\n"
+                "ema: True\n"
+                "ema_params: \n"
+                "  decay: 0.9999\n"
+                "  decay_type: constant # Equivalent to exp_activation: False\n"
+                "\n"
+                "In the next major release of SG this warning will become an error."
+            )
+            decay_type = "exp" if bool(kwargs.pop("exp_activation")) else "constant"
+
+        if decay_type is None:
+            logger.warning(
+                "Parameter decay_type is not specified for EMA model. Please specify decay_type parameter explicitly in your config:\n"
+                "ema: True\n"
+                "ema_params: \n"
+                "  decay: 0.9999\n"
+                "  decay_type: constant|exp|threshold\n"
+                "Will default to `exp` decay with beta = 15\n"
+                "In the next major release of SG this warning will become an error."
+            )
+            decay_type = "exp"
+            if "beta" not in kwargs:
+                kwargs["beta"] = 15
+
+        try:
+            decay_cls = EMA_DECAY_FUNCTIONS[decay_type]
+        except KeyError:
+            raise UnknownTypeException(decay_type, list(EMA_DECAY_FUNCTIONS.keys()))
+
+        decay_function = decay_cls[decay_type](**kwargs)
+        return cls(model, decay, decay_function)
 
     def update(self, model, step: int, total_steps: int):
         """
