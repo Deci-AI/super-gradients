@@ -46,6 +46,7 @@ class EMAIntegrationTest(unittest.TestCase):
         self._train({"decay_type": "constant", "decay": 0.9999})
 
     def _train(self, ema_params):
+        ema_enable = ema_params is not None
         training_params = {
             "max_epochs": 4,
             "lr_updates": [4],
@@ -56,7 +57,7 @@ class EMAIntegrationTest(unittest.TestCase):
             "loss": "cross_entropy",
             "optimizer": "SGD",
             "criterion_params": {},
-            "ema": ema_params is not None,
+            "ema": ema_enable,
             "ema_params": ema_params,
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [Accuracy(), Top5()],
@@ -78,7 +79,7 @@ class EMAIntegrationTest(unittest.TestCase):
             model=self.model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
         )
 
-        self.assertIsNotNone(self.trainer.ema_model)
+        self.assertEqual(self.trainer.ema_model is not None, ema_enable)
 
 
 if __name__ == "__main__":
