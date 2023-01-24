@@ -135,14 +135,15 @@ class KeypointsLongestMaxSize(KeypointTransform):
     Resize image, mask and joints to ensure that resulting image does not exceed max_sizes (rows, cols).
     """
 
-    def __init__(self, max_sizes: Tuple[int, int], interpolation: int = cv2.INTER_LINEAR, prob: float = 1.0):
+    def __init__(self, max_height: int, max_width: int, interpolation: int = cv2.INTER_LINEAR, prob: float = 1.0):
         """
 
         :param max_sizes: (rows, cols) - Maximum size of the image after resizing
         :param interpolation: Used interpolation method for image
         :param prob: Probability of applying this transform
         """
-        self.max_height, self.max_width = max_sizes
+        self.max_height = max_height
+        self.max_width = max_width
         self.interpolation = interpolation
         self.prob = prob
 
@@ -181,14 +182,15 @@ class KeypointsPadIfNeeded(KeypointTransform):
     Image and mask padded from right and bottom, thus joints remains unchanged.
     """
 
-    def __init__(self, output_size: Tuple[int, int], image_pad_value: int, mask_pad_value: float):
+    def __init__(self, min_height: int, min_width: int, image_pad_value: int, mask_pad_value: float):
         """
 
         :param output_size: Desired image size (rows, cols)
         :param image_pad_value: Padding value of image
         :param mask_pad_value: Padding value for mask
         """
-        self.min_height, self.min_width = output_size
+        self.min_height = min_height
+        self.min_width = min_width
         self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
         self.mask_pad_value = mask_pad_value
 

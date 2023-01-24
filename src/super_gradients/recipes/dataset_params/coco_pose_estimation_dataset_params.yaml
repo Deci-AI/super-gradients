@@ -8,10 +8,12 @@ train_dataset_params:
 
   transforms:
     - KeypointsLongestMaxSize:
-        max_sizes: [ 640, 640 ]
+        max_height: 640
+        max_width: 640
 
     - KeypointsPadIfNeeded:
-        output_size: [ 640, 640 ]
+        min_height: 640
+        min_width: 640
         image_pad_value: [ 127, 127, 127 ]
         mask_pad_value: 1
 
@@ -46,10 +48,12 @@ val_dataset_params:
   min_instance_area: 128
   transforms:
     - KeypointsLongestMaxSize:
-        max_sizes: [ 640, 640 ]
+        max_height: 640
+        max_width: 640
 
     - KeypointsPadIfNeeded:
-        output_size: [ 640, 640 ]
+        min_height: 640
+        min_width: 640
         image_pad_value: [ 127, 127, 127 ]
         mask_pad_value: 1
 
