@@ -1,23 +1,22 @@
 import os
-from typing import Tuple, List, Mapping, Any
+from typing import Tuple, List, Mapping, Any, Dict
 
 import cv2
 import numpy as np
 import pycocotools
-import torch
 from pycocotools.coco import COCO
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.target_generator_factory import TargetGeneratorsFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
-from torch.utils.data import default_collate, Dataset
-
-from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointTransform
+from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
+from super_gradients.training.transforms.keypoint_transforms import KeypointTransform
 
 logger = get_logger(__name__)
 
 
-class COCOKeypointsDataset(Dataset):
+class COCOKeypointsDataset(BaseKeypointsDataset):
     """
     Dataset class for training pose estimation models on COCO Keypoints dataset.
     Use should pass a target generator class that is model-specific and generates the targets for the model.
@@ -47,7 +46,7 @@ class COCOKeypointsDataset(Dataset):
         :param transforms: Transforms to be applied to the image & keypoints
         :param min_instance_area: Minimum area of an instance to be included in the dataset
         """
-        super().__init__()
+        super().__init__(transforms=transforms, target_generator=target_generator, min_instance_area=min_instance_area)
         self.root = data_dir
         self.images_dir = os.path.join(data_dir, images_dir)
         self.json_file = os.path.join(data_dir, json_file)
@@ -60,21 +59,19 @@ class COCOKeypointsDataset(Dataset):
         self.ids = list(self.coco.imgs.keys())
         self.joints = coco.dataset["categories"][0]["keypoints"]
         self.num_joints = len(self.joints)
-        self.min_instance_area = min_instance_area
-
-        self.transforms = KeypointsCompose(transforms)
-        self.target_generator = target_generator
 
         if not include_empty_samples:
             subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id, iscrowd=None)) > 0]
             self.ids = subset
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Any, Mapping[str, Any]]:
+    def __len__(self):
+        return len(self.ids)
+
+    def load_sample(self, index) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Dict[str, Any]]:
         img_id = self.ids[index]
         image_info = self.coco.loadImgs(img_id)[0]
         file_name = image_info["file_name"]
         file_path = os.path.join(self.images_dir, file_name)
-
         ann_ids = self.coco.getAnnIds(imgIds=img_id)
         anno = self.coco.loadAnns(ann_ids)
         anno = [obj for obj in anno if bool(obj["iscrowd"]) is False and obj["num_keypoints"] > 0]
@@ -86,47 +83,9 @@ class COCOKeypointsDataset(Dataset):
 
         joints: np.ndarray = self.get_joints(anno)
         mask: np.ndarray = self.get_mask(anno, image_info)
+        extras = dict(file_name=image_info["file_name"])
 
-        img, mask, joints = self.transforms(orig_image, mask, joints)
-
-        joints = self.filter_joints(joints, img)
-
-        targets = self.target_generator(img, joints, mask)
-        return img, targets, {"joints": joints, "file_name": image_info["file_name"]}
-
-    def __len__(self):
-        return len(self.ids)
-
-    def compute_area(self, joints: np.ndarray) -> np.ndarray:
-        """
-        Compute area of a bounding box for each instance.
-        :param joints:  [Num Instances, Num Joints, 3]
-        :return: [Num Instances]
-        """
-        w = np.max(joints[:, :, 0], axis=-1) - np.min(joints[:, :, 0], axis=-1)
-        h = np.max(joints[:, :, 1], axis=-1) - np.min(joints[:, :, 1], axis=-1)
-        return w * h
-
-    def filter_joints(self, joints: np.ndarray, image: np.ndarray) -> np.ndarray:
-        """
-        Filter instances that are either too small or do not have visible keypoints
-        :param joints: Array of shape [Num Instances, Num Joints, 3]
-        :param image:
-        :return: [New Num Instances, Num Joints, 3], New Num Instances <= Num Instances
-        """
-        # Update visibility of joints for those that are outside the image
-        outside_image_mask = (joints[:, :, 0] < 0) | (joints[:, :, 1] < 0) | (joints[:, :, 0] >= image.shape[1]) | (joints[:, :, 1] >= image.shape[0])
-        joints[outside_image_mask, 2] = 0
-
-        # Filter instances with all invisible keypoints
-        instances_with_visible_joints = np.count_nonzero(joints[:, :, 2], axis=-1) > 0
-        joints = joints[instances_with_visible_joints]
-
-        # Remove instances with too small area
-        areas = self.compute_area(joints)
-        joints = joints[areas > self.min_instance_area]
-
-        return joints
+        return orig_image, joints, mask, extras
 
     def get_joints(self, anno: List[Mapping[str, Any]]) -> np.ndarray:
         """
@@ -177,24 +136,3 @@ class COCOKeypointsDataset(Dataset):
                     m += mask
 
         return (m < 0.5).astype(np.float32)
-
-
-class COCOKeypointsCollate:
-    """
-    Collate image & targets, return extras as is.
-    """
-
-    def __call__(self, batch):
-        images = []
-        targets = []
-        extras = []
-        for image, target, extra in batch:
-            images.append(image)
-            targets.append(target)
-            extras.append(extra)
-
-        extras = {k: [dic[k] for dic in extras] for k in extras[0]}  # Convert list of dicts to dict of lists
-
-        images = default_collate(images)
-        targets = default_collate(targets)
-        return images, targets, extras

@@ -73,13 +73,13 @@ train_dataloader_params:
     _target_: super_gradients.training.utils.utils.load_func
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
   collate_fn:
-    _target_: super_gradients.training.datasets.pose_estimation_datasets.COCOKeypointsCollate
+    _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
 
 val_dataloader_params:
   batch_size: 24
   num_workers: 8
   drop_last: False
   collate_fn:
-    _target_: super_gradients.training.datasets.pose_estimation_datasets.COCOKeypointsCollate
+    _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
 
 _convert_: all

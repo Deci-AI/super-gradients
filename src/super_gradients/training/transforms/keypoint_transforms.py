@@ -1,6 +1,6 @@
 import random
 from abc import abstractmethod
-from typing import Tuple, List, Iterable
+from typing import Tuple, List, Iterable, Union
 
 import cv2
 import numpy as np
@@ -44,7 +44,7 @@ class KeypointsCompose(KeypointTransform):
     def __init__(self, transforms: List[KeypointTransform]):
         self.transforms = transforms
 
-    def __call__(self, image, mask, joints):
+    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray) -> Tuple[Union[np.ndarray, Tensor], np.ndarray, np.ndarray]:
         for t in self.transforms:
             image, mask, joints = t(image, mask, joints)
         return image, mask, joints
