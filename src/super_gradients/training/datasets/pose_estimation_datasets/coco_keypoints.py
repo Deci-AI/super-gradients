@@ -85,7 +85,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         mask: np.ndarray = self.get_mask(anno, image_info)
         extras = dict(file_name=image_info["file_name"])
 
-        return orig_image, joints, mask, extras
+        return orig_image, mask, joints, extras
 
     def get_joints(self, anno: List[Mapping[str, Any]]) -> np.ndarray:
         """

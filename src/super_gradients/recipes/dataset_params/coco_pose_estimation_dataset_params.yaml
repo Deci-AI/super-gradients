@@ -21,13 +21,10 @@ train_dataset_params:
         prob: 0.5
 
     - KeypointsRandomAffineTransform:
-        input_size: [ 640, 640 ]
-        output_size: [ 640, 640 ]
         max_rotation: 30
         min_scale: 0.75
         max_scale: 1.5
-        scale_type: 'short'
-        max_translate: 40
+        max_translate: 0.2
         image_pad_value: [ 127, 127, 127 ]
         mask_pad_value: 1
         prob: 0.5
