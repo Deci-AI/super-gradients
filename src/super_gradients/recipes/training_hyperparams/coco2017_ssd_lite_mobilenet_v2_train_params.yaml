@@ -1,3 +1,6 @@
+defaults:
+  - default_train_params
+
 ema: True
 max_epochs: 400
 lr_mode: cosine

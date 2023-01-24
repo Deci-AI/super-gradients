@@ -5,8 +5,10 @@ import pkg_resources
 import torch
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
+from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
+from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
 from super_gradients.training.pretrained_models import MODEL_URLS
+
 
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url

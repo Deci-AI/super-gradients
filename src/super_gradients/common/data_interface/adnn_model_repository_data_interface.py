@@ -1,7 +1,8 @@
 import os
 import sys
 
-from super_gradients.common import S3Connector, explicit_params_validation
+from super_gradients.common.data_connection.s3_connector import S3Connector
+from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
 from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import ILogger
 
