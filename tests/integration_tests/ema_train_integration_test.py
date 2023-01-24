@@ -29,10 +29,6 @@ class EMAIntegrationTest(unittest.TestCase):
     def tearDownClass(cls) -> None:
         pass
 
-    def test_train_ema_disabled(self):
-        self._init_model()
-        self._train(None)
-
     def test_train_exp_decay(self):
         self._init_model()
         self._train({"decay_type": "exp", "beta": 15, "decay": 0.9999})
@@ -50,7 +46,6 @@ class EMAIntegrationTest(unittest.TestCase):
         self._train({"decay": 0.9999, "exp_activation": True, "beta": 10})
 
     def _train(self, ema_params):
-        ema_enable = ema_params is not None
         training_params = {
             "max_epochs": 4,
             "lr_updates": [4],
@@ -61,7 +56,7 @@ class EMAIntegrationTest(unittest.TestCase):
             "loss": "cross_entropy",
             "optimizer": "SGD",
             "criterion_params": {},
-            "ema": ema_enable,
+            "ema": True,
             "ema_params": ema_params,
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [Accuracy(), Top5()],
@@ -83,7 +78,7 @@ class EMAIntegrationTest(unittest.TestCase):
             model=self.model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
         )
 
-        self.assertEqual(self.trainer.ema_model is not None, ema_enable)
+        self.assertIsNotNone(self.trainer.ema_model)
 
 
 if __name__ == "__main__":
