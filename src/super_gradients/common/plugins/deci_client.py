@@ -7,7 +7,6 @@ import hydra
 import importlib.util
 
 import os
-import pkg_resources
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
@@ -51,16 +50,11 @@ class DeciClient:
         self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
         GlobalHydra.instance().clear()
-        self.super_gradients_version = None
-        try:
-            self.super_gradients_version = pkg_resources.get_distribution("super_gradients").version
-        except pkg_resources.DistributionNotFound:
-            self.super_gradients_version = super_gradients.__version__
 
     def _get_file(self, model_name: str, file_name: str) -> str:
         try:
             response = self.lab_client.get_autonac_model_file_link(
-                model_name=model_name, file_name=file_name, super_gradients_version=self.super_gradients_version
+                model_name=model_name, file_name=file_name, super_gradients_version=super_gradients.__version__
             )
             download_link = response.data
         except ApiException as e:
