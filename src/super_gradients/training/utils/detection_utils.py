@@ -3,7 +3,7 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, List, Union, Tuple, Optional, Dict
+from typing import Callable, List, Union, Tuple, Optional
 
 import cv2
 import matplotlib.pyplot as plt
@@ -12,7 +12,6 @@ import numpy as np
 import torch
 import torchvision
 from torch import nn
-from torch.utils.data._utils.collate import default_collate
 from omegaconf import ListConfig
 
 
@@ -661,37 +660,6 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     bbox[:, 0::2] = np.clip(bbox[:, 0::2] * scale_ratio + padw, 0, w_max)
     bbox[:, 1::2] = np.clip(bbox[:, 1::2] * scale_ratio + padh, 0, h_max)
     return bbox
-
-
-class DetectionCollateFN:
-    """
-    Collate function for Yolox training
-    """
-
-    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
-        batch = default_collate(data)
-        ims, targets = batch[0:2]
-        return ims, self._format_targets(targets)
-
-    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
-        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
-        targets_merged = []
-        for i in range(targets.shape[0]):
-            targets_im = targets[i, : nlabel[i]]
-            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
-            targets_merged.append(torch.cat((batch_column, targets_im), 1))
-        return torch.cat(targets_merged, 0)
-
-
-class CrowdDetectionCollateFN(DetectionCollateFN):
-    """
-    Collate function for Yolox training with additional_batch_items that includes crowd targets
-    """
-
-    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
-        batch = default_collate(data)
-        ims, targets, crowd_targets = batch[0:3]
-        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
 
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:

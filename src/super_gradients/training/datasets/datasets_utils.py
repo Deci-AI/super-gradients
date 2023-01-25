@@ -94,7 +94,7 @@ def get_mean_and_std(dataset):
 
 class AbstractCollateFunction(ABC):
     """
-    A collate function (for torch DataLoader)
+    A collate_fn function (for torch DataLoader)
     """
 
     @abstractmethod
@@ -104,7 +104,7 @@ class AbstractCollateFunction(ABC):
 
 class ComposedCollateFunction(AbstractCollateFunction):
     """
-    A function (for torch DataLoader) which executes a sequence of sub collate functions
+    A function (for torch DataLoader) which executes a sequence of sub collate_fn functions
     """
 
     def __init__(self, functions: list):
@@ -129,7 +129,7 @@ class AtomicInteger:
 
 class MultiScaleCollateFunction(AbstractCollateFunction):
     """
-    a collate function to implement multi-scale data augmentation
+    a collate_fn function to implement multi-scale data augmentation
     according to https://arxiv.org/pdf/1612.08242.pdf
     """
 
@@ -139,7 +139,7 @@ class MultiScaleCollateFunction(AbstractCollateFunction):
 
     def __init__(self, target_size: int = None, min_image_size: int = None, max_image_size: int = None, image_size_steps: int = 32, change_frequency: int = 10):
         """
-        set parameters for the multi-scale collate function
+        set parameters for the multi-scale collate_fn function
         the possible image sizes are in range [min_image_size, max_image_size] in steps of image_size_steps
         a new size will be randomly selected every change_frequency calls to the collate_fn()
             :param target_size: scales will be [0.66 * target_size, 1.5 * target_size]
@@ -171,7 +171,7 @@ class MultiScaleCollateFunction(AbstractCollateFunction):
 
             # Important: this implementation was tailored for a specific input. it assumes the batch is a tuple where
             # the images are the first item
-            assert isinstance(batch, tuple), "this collate function expects the input to be a tuple (images, labels)"
+            assert isinstance(batch, tuple), "this collate_fn function expects the input to be a tuple (images, labels)"
             images = batch[0]
             if self._counter % self.frequency == 0:
                 self._current_size = random.choice(self.sizes)
