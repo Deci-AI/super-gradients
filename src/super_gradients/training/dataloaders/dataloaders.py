@@ -32,6 +32,7 @@ from super_gradients.training.datasets.segmentation_datasets import (
     SuperviselyPersonsDataset,
 )
 from super_gradients.common.factories.samplers_factory import SamplersFactory
+from super_gradients.common.factories.collate_fn_factory import CollateFunctionFactory
 from super_gradients.training.utils.distributed_training_utils import (
     wait_for_the_master,
     get_local_rank,
@@ -107,6 +108,7 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
 def _process_sampler_params(dataloader_params, dataset, default_dataloader_params):
     is_dist = super_gradients.is_distributed()
     dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
+    dataloader_params["collate_fn"] = CollateFunctionFactory().get(dataloader_params["collate_fn"])
     if get_param(dataloader_params, "sampler") is not None:
         dataloader_params = _instantiate_sampler(dataset, dataloader_params)
     elif is_dist:
