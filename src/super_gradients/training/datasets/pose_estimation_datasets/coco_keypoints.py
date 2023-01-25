@@ -1,0 +1,138 @@
+import os
+from typing import Tuple, List, Mapping, Any, Dict
+
+import cv2
+import numpy as np
+import pycocotools
+from pycocotools.coco import COCO
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.target_generator_factory import TargetGeneratorsFactory
+from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
+from super_gradients.training.transforms.keypoint_transforms import KeypointTransform
+
+logger = get_logger(__name__)
+
+
+class COCOKeypointsDataset(BaseKeypointsDataset):
+    """
+    Dataset class for training pose estimation models on COCO Keypoints dataset.
+    Use should pass a target generator class that is model-specific and generates the targets for the model.
+    """
+
+    @resolve_param("transforms", TransformsFactory())
+    @resolve_param("target_generator", TargetGeneratorsFactory())
+    def __init__(
+        self,
+        data_dir: str,
+        images_dir: str,
+        json_file: str,
+        include_empty_samples: bool,
+        target_generator,
+        transforms: List[KeypointTransform],
+        min_instance_area: float,
+    ):
+        """
+
+        :param data_dir: Root directory of the COCO dataset
+        :param images_dir: path suffix to the images directory inside the dataset_root
+        :param json_file: path suffix to the json file inside the dataset_root
+        :param include_empty_samples: if True, images without any annotations will be included in the dataset.
+            Otherwise, they will be filtered out.
+        :param target_generator: Target generator that will be used to generate the targets for the model.
+            See DEKRTargetsGenerator for an example.
+        :param transforms: Transforms to be applied to the image & keypoints
+        :param min_instance_area: Minimum area of an instance to be included in the dataset
+        """
+        super().__init__(transforms=transforms, target_generator=target_generator, min_instance_area=min_instance_area)
+        self.root = data_dir
+        self.images_dir = os.path.join(data_dir, images_dir)
+        self.json_file = os.path.join(data_dir, json_file)
+
+        coco = COCO(self.json_file)
+        if len(coco.dataset["categories"]) != 1:
+            raise ValueError("Dataset must contain exactly one category")
+
+        self.coco = coco
+        self.ids = list(self.coco.imgs.keys())
+        self.joints = coco.dataset["categories"][0]["keypoints"]
+        self.num_joints = len(self.joints)
+
+        if not include_empty_samples:
+            subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id, iscrowd=None)) > 0]
+            self.ids = subset
+
+    def __len__(self):
+        return len(self.ids)
+
+    def load_sample(self, index) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Dict[str, Any]]:
+        img_id = self.ids[index]
+        image_info = self.coco.loadImgs(img_id)[0]
+        file_name = image_info["file_name"]
+        file_path = os.path.join(self.images_dir, file_name)
+        ann_ids = self.coco.getAnnIds(imgIds=img_id)
+        anno = self.coco.loadAnns(ann_ids)
+        anno = [obj for obj in anno if bool(obj["iscrowd"]) is False and obj["num_keypoints"] > 0]
+
+        orig_image = cv2.imread(file_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+
+        if orig_image.shape[0] != image_info["height"] or orig_image.shape[1] != image_info["width"]:
+            raise RuntimeError(f"Annotated image size ({image_info['height'],image_info['width']}) does not match image size in file {orig_image.shape[:2]}")
+
+        joints: np.ndarray = self.get_joints(anno)
+        mask: np.ndarray = self.get_mask(anno, image_info)
+        extras = dict(file_name=image_info["file_name"])
+
+        return orig_image, mask, joints, extras
+
+    def get_joints(self, anno: List[Mapping[str, Any]]) -> np.ndarray:
+        """
+        Decode the keypoints from the COCO annotation and return them as an array of shape [Num Instances, Num Joints, 3].
+        The visibility of keypoints is encoded in the third dimension of the array with following values:
+         - 0 being invisible (outside image)
+         - 1 present in image but occluded
+         - 2 - fully visible
+        :param anno:
+        :return: [Num Instances, Num Joints, 3], where last channel represents (x, y, visibility)
+        """
+        joints = []
+
+        for i, obj in enumerate(anno):
+            keypoints = np.array(obj["keypoints"]).reshape([-1, 3])
+            joints.append(keypoints)
+
+        num_instances = len(joints)
+        joints = np.array(joints, dtype=np.float32).reshape((num_instances, self.num_joints, 3))
+        return joints
+
+    def get_mask(self, anno, img_info) -> np.ndarray:
+        """
+        This method computes ignore mask, which describes crowd objects / objects w/o keypoints to exclude these predictions from contributing to the loss
+        :param anno:
+        :param img_info:
+        :return: Float mask of [H,W] shape (same as image dimensions),
+            where 1.0 values corresponds to pixels that should contribute to the loss, and 0.0 pixels indicates areas that should be excluded.
+        """
+        m = np.zeros((img_info["height"], img_info["width"]), dtype=np.float32)
+
+        for obj in anno:
+            if obj["iscrowd"]:
+                rle = pycocotools.mask.frPyObjects(obj["segmentation"], img_info["height"], img_info["width"])
+                mask = pycocotools.mask.decode(rle)
+                if mask.shape != m.shape:
+                    logger.warning(f"Mask shape {mask.shape} does not match image shape {m.shape} for image {img_info['file_name']}")
+                    continue
+                m += mask
+            elif obj["num_keypoints"] == 0:
+                rles = pycocotools.mask.frPyObjects(obj["segmentation"], img_info["height"], img_info["width"])
+                for rle in rles:
+                    mask = pycocotools.mask.decode(rle)
+                    if mask.shape != m.shape:
+                        logger.warning(f"Mask shape {mask.shape} does not match image shape {m.shape} for image {img_info['file_name']}")
+                        continue
+
+                    m += mask
+
+        return (m < 0.5).astype(np.float32)

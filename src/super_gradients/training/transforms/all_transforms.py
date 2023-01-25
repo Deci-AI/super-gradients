@@ -66,7 +66,16 @@ from torchvision.transforms import (
     RandomAutocontrast,
     RandomEqualize,
 )
-
+from super_gradients.training.transforms.keypoint_transforms import (
+    KeypointsRandomAffineTransform,
+    KeypointsImageNormalize,
+    KeypointsImageToTensor,
+    KeypointTransform,
+    KeypointsPadIfNeeded,
+    KeypointsLongestMaxSize,
+    KeypointsRandomVerticalFlip,
+    KeypointsRandomHorizontalFlip,
+)
 
 TRANSFORMS = {
     Transforms.SegRandomFlip: SegRandomFlip,
@@ -129,6 +138,15 @@ TRANSFORMS = {
     Transforms.RandomAutocontrast: RandomAutocontrast,
     Transforms.RandomEqualize: RandomEqualize,
     Transforms.Standardize: Standardize,
+    # Keypoints
+    Transforms.KeypointsRandomAffineTransform: KeypointsRandomAffineTransform,
+    Transforms.KeypointsImageNormalize: KeypointsImageNormalize,
+    Transforms.KeypointsImageToTensor: KeypointsImageToTensor,
+    Transforms.KeypointTransform: KeypointTransform,
+    Transforms.KeypointsPadIfNeeded: KeypointsPadIfNeeded,
+    Transforms.KeypointsLongestMaxSize: KeypointsLongestMaxSize,
+    Transforms.KeypointsRandomVerticalFlip: KeypointsRandomVerticalFlip,
+    Transforms.KeypointsRandomHorizontalFlip: KeypointsRandomHorizontalFlip,
 }
 logger = get_logger(__name__)
 

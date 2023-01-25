@@ -39,6 +39,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import override_default_params_without_nones
 from super_gradients.common.factories.datasets_factory import DatasetsFactory
+from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 
 logger = get_logger(__name__)
 
@@ -590,6 +591,26 @@ def pascal_voc_detection_val(dataset_params: Dict = None, dataloader_params: Dic
     )
 
 
+def coco2017_pose_train(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="coco_pose_estimation_dataset_params",
+        dataset_cls=COCOKeypointsDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def coco2017_pose_val(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="coco_pose_estimation_dataset_params",
+        dataset_cls=COCOKeypointsDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
 ALL_DATALOADERS = {
     "coco2017_train": coco2017_train,
     "coco2017_val": coco2017_val,
@@ -597,6 +618,8 @@ ALL_DATALOADERS = {
     "coco2017_val_yolox": coco2017_val_yolox,
     "coco2017_train_ssd_lite_mobilenet_v2": coco2017_train_ssd_lite_mobilenet_v2,
     "coco2017_val_ssd_lite_mobilenet_v2": coco2017_val_ssd_lite_mobilenet_v2,
+    "coco2017_pose_train": coco2017_pose_train,
+    "coco2017_pose_val": coco2017_pose_val,
     "imagenet_train": imagenet_train,
     "imagenet_val": imagenet_val,
     "imagenet_efficientnet_train": imagenet_efficientnet_train,
