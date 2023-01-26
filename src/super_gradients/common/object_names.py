@@ -113,6 +113,7 @@ class Optimizers:
 
     SGD = "SGD"
     ADAM = "Adam"
+    ADAMW = "AdamW"
     RMS_PROP = "RMSprop"
     RMS_PROP_TF = "RMSpropTF"
     LAMB = "Lamb"
