@@ -7,17 +7,8 @@ loading custom datasets.
 In the tutorial provided, we demonstrate how to fine-tune PPLiteSeg on a subset of the Supervisely dataset.
 You can run the following code in our [google collab](https://colab.research.google.com/drive/1d7cU0NsUj7jnOF1YSap_DH9r79G3-Cr4?usp=sharing#scrollTo=GqH4VGMroWec).
 
-## Requirements
-Before you begin, please install Super-Gradients
-
-```bash
-pip install super_gradients==3.0.5
-```
-
 ## Load a dataset
 In this example we will work with supervisely-persons. If it's the first time you are using this dataset, or if you want to use another dataset please check out [dataset setup instructions](...)
-
-
 ```py
 from super_gradients.training import dataloaders
 
@@ -77,12 +68,13 @@ Notes:
 
 
 ### Setup training parameters
-
+The training parameters includes loss, metrics, learning rates and much more. You can check out the [default training parameters](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml).
+For this task, we will train for 30 epoch, using Binary IoU using the SGD optimizer.
 ```py
 from super_gradients.training.metrics.segmentation_metrics import BinaryIOU
 
 train_params = {
-    "max_epochs": 5,
+    "max_epochs": 30,
     "lr_mode": "cosine",
     "initial_lr": 0.005,
     "lr_warmup_epochs": 5,
