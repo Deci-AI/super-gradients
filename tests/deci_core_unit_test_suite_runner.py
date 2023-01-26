@@ -29,6 +29,7 @@ from tests.unit_tests.export_onnx_test import TestModelsONNXExport
 from tests.unit_tests.local_ckpt_head_replacement_test import LocalCkptHeadReplacementTest
 from tests.unit_tests.max_batches_loop_break_test import MaxBatchesLoopBreakTest
 from tests.unit_tests.phase_delegates_test import ContextMethodsTest
+from tests.unit_tests.pose_estimation_metrics_test import TestPoseEstimationMetrics
 from tests.unit_tests.quantization_utility_tests import QuantizationUtilityTest
 from tests.unit_tests.random_erase_test import RandomEraseTest
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
@@ -123,6 +124,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MaxBatchesLoopBreakTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestTrainingUtils))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestTransforms))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationMetrics))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
