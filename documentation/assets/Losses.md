@@ -22,7 +22,7 @@ All of the above, are just string aliases for the underlying torch.nn.Module cla
 When using configuration files, for example training using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...)):
     
 
-In your `my_yolox_training_hyperparams.yaml` file:
+In your `my_training_hyperparams.yaml` file:
   ```yaml
     ...
     ...
