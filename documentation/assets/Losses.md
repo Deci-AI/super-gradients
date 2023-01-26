@@ -15,11 +15,14 @@ SuperGradients provides multiple Loss function implementations for various tasks
     kd_loss
     dice_ce_edge_loss
 
+All of the above, are just string aliases for the underlying torch.nn.Module classes, implementing the specified loss functions.
 
-Usage:
+##Basic Usage of Implemented Loss Functions in SG:
 
-- When using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...):
-    - In your `my_yolox_training_hyperparams.yaml` file:
+When using configuration files, for example training using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...)):
+    
+
+In your `my_yolox_training_hyperparams.yaml` file:
   ```yaml
     ...
     ...
@@ -34,7 +37,7 @@ Usage:
    `criterion_params` dictionary will be unpacked to the underlying `yolox_loss` class constructor.
 
 
-- When using a direct Trainer.train(...) call:
+Another usage case, is when using a direct Trainer.train(...) call:
    - In your `my_training_script.py`
    ```python
         ...
@@ -49,7 +52,7 @@ Usage:
             "criterion_params": {}
             ...
         }
-        trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
+        trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
    ```
    Note that object names in SG are not case-sensitive nor symbol-sensitive, so `"CrossEntropy` could have been passed as well.
    Since most IDEs support auto-completion, for your convenience, you can use our object_names module:
@@ -75,29 +78,29 @@ forward(preds, target):
 ```
 And as the argument names suggest- the first argument is the model's output, and target is the label/ground truth (argument naming is arbitrary and does not need to be specifically 'preds' or 'target').
 Loss functions accepting additional arguments in their `forward` method will be supported in the future.
-- When using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...):
-    - In your ``my_loss.py``, register your loss class by decorating the class with `register_loss`:
-      ```python
-         import torch.nn
-         from super_gradients.common.registry import register_loss
-         
-         @register_loss("my_loss")
-         class MyLoss(torch.nn.Module):
+When using configuration files, for example training using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...)),  In your ``my_loss.py``, register your loss class by decorating the class with `register_loss`:
+```python
+ import torch.nn
+ from super_gradients.common.registry import register_loss
+ 
+ @register_loss("my_loss")
+ class MyLoss(torch.nn.Module):
            ...
-      ```
-    - Then, in your `my_training_hyperparams.yaml`, use `"my_loss"` in the same way as any other loss supported in SG:
+```
+Then, in your `my_training_hyperparams.yaml`, use `"my_loss"` in the same way as any other loss supported in SG:
   ```yaml
-    ...
-    ...
-    
-    loss: my_loss
-    
-    criterion_params:
-      ...
+...
+...
+
+loss: my_loss
+
+criterion_params:
+  ...
   ```      
-    - Last, in your ``my_train_from_recipe_script.py`` file, just import the newly registered class (even though the class itself is unused, just to trigger the registry):
+Last, in your ``my_train_from_recipe_script.py`` file, just import the newly registered class (even though the class itself is unused, just to trigger the registry):
         
-    ```python
+```python
+
   from omegaconf import DictConfig
   import hydra
   import pkg_resources
@@ -119,35 +122,34 @@ Loss functions accepting additional arguments in their `forward` method will be 
       run()
 
 
-
-    ```
+```
 ## Passing Instantiated nn.Module Objects as Loss Functions
 
 SuperGradients also supports passing instantiated nn.Module Objects as demonstrated below:
-- When using a direct Trainer.train(...) call:
-   - In you `my_training_script.py`
-   ```python
-        ...
-        trainer = Trainer("external_criterion_test")
-        train_dataloader = ...
-        valid_dataloader = ...
-        model = ...
-  
-        train_params = {
-            ...
-            "loss": torch.nn.CrossEntropy()
-            ...
-        }
-        trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
-   ```
-  - Though not as convenient as using `register_loss`, one can also equivalently instantiate objects when using train_from_recipe (or similar, when the underlying train method being called is Trainer.train_from_config(...)
-    As demonstrated below:
-    - In your `my_training_hyperparams.yaml` file:
-  ```yaml
-    ...
-    ...
-    loss:
-      _target_: torch.nn.CrossEntropy
+When using a direct Trainer.train(...) call, in your `my_training_script.py` simply pass the instantiated nn.Module under the "loss" key inside training_params:
+```python
+...
+trainer = Trainer("external_criterion_test")
+train_dataloader = ...
+valid_dataloader = ...
+model = ...
 
-  ```
+train_params = {
+    ...
+    "loss": torch.nn.CrossEntropy()
+    ...
+}
+trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
+   ```
+Though not as convenient as using `register_loss`, one can also equivalently instantiate objects when using train_from_recipe (or similar, when the underlying train method is Trainer.train_from_config(...) as demonstrated below:
+
+
+In your `my_training_hyperparams.yaml` file:
+```yaml
+  ...
+  ...
+  loss:
+    _target_: torch.nn.CrossEntropy
+
+```
   Note that when passing an instantiated loss object, `criterion_params` will be ignored.
