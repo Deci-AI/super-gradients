@@ -588,11 +588,21 @@ workflows:
           <<: *release_tag_filter
       - recipe_accuracy_tests:
           <<: *release_tag_filter
-      - recipe_sanity_tests_classification:
+      - recipe_sanity_tests_classification_pt1:
+          requires:
+            - recipe_accuracy_tests
+          <<: *release_tag_filter
+      - recipe_sanity_tests_classification_pt2:
+          requires:
+            - recipe_sanity_tests_classification_pt1
           <<: *release_tag_filter
       - recipe_sanity_tests_segmentation:
+          requires:
+            - recipe_sanity_tests_classification_pt2
           <<: *release_tag_filter
       - recipe_sanity_tests_detection:
+          requires:
+            - recipe_sanity_tests_segmentation
           <<: *release_tag_filter
 
       - release_version:
