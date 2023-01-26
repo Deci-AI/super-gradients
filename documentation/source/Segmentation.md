@@ -112,6 +112,37 @@ trainer.train(model=model, training_params=training_params, train_loader=train_d
 ```
 
 
+## Visualize the results
+
+```py
+from torchvision.transforms import Compose, ToTensor, Resize, Normalize, ToPILImage
+
+pre_proccess = Compose([
+    ToTensor(),
+    Normalize([.485, .456, .406], [.229, .224, .225])
+])
+
+demo_img_path = "/home/data/supervisely-persons/images/ache-adult-depression-expression-41253.png"
+img = Image.open(demo_img_path)
+# Resize the image and display
+img = Resize(size=(480, 320))(img)
+display(img)
+
+# Run pre-proccess - transforms to tensor and apply normalizations.
+img_inp = pre_proccess(img).unsqueeze(0).cuda()
+
+# Run inference
+mask = model(img_inp)
+
+# Run post-proccess - apply sigmoid to output probabilities, then apply hard
+# threshold of 0.5 for binary mask prediction. 
+mask = torch.sigmoid(mask).gt(0.5).squeeze()
+mask = ToPILImage()(mask.float())
+display(mask)
+```
+![segmentation_prediction.png](segmentation_prediction.png)
+
+
 ## Going further
 ### How to launch on multiple GPUs (DDP) ?
 To run the Training using Distributed Data Parallel (DDP), all you need to do is to call a magic function `setup_device` before instantiating the Trainer.
