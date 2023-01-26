@@ -9,6 +9,8 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 import json_tricks as json
+from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import remove_duplicate_annotations, make_keypoints_outside_image_invisible
+from super_gradients.training.metrics.cocoeval import COCOeval as PatchedCOCOeval
 
 
 class TestPoseEstimationMetrics(unittest.TestCase):
@@ -17,6 +19,9 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         assert os.path.isfile(gt_annotations_path)
 
         gt = COCO(gt_annotations_path)
+        gt = remove_duplicate_annotations(gt)
+        gt = make_keypoints_outside_image_invisible(gt)
+
         predictions = list(self.generate_noised_predictions(gt, instance_drop_probability=0.0, pose_offset=0.0))
 
         coco_pred = self.convert_predictions_to_coco_dict(predictions)
@@ -34,7 +39,12 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         E.evaluate()  # run per image evaluation
         E.accumulate()  # accumulate per image results
         E.summarize()  # display summary metrics of results
+        print(E.stats)
 
+        E = PatchedCOCOeval(gt, coco_dt, iouType="keypoints")
+        E.evaluate()  # run per image evaluation
+        E.accumulate()  # accumulate per image results
+        E.summarize()  # display summary metrics of results
         print(E.stats)
 
     def generate_noised_predictions(self, coco: COCO, instance_drop_probability: float, pose_offset: float) -> List[Tuple[np.ndarray, int]]:
@@ -57,14 +67,15 @@ class TestPoseEstimationMetrics(unittest.TestCase):
                     continue
 
                 keypoints = np.array(ann["keypoints"]).reshape(-1, 3).astype(np.float32)
-                keypoints[:, 0] += (2 * np.random.randn() - 1) * pose_offset
-                keypoints[:, 1] += (2 * np.random.randn() - 1) * pose_offset
+                if pose_offset > 0:
+                    keypoints[:, 0] += (2 * np.random.randn() - 1) * pose_offset
+                    keypoints[:, 1] += (2 * np.random.randn() - 1) * pose_offset
 
-                keypoints[:, 0] = np.clip(keypoints[:, 0], 0, image_width)
-                keypoints[:, 1] = np.clip(keypoints[:, 1], 0, image_height)
+                    keypoints[:, 0] = np.clip(keypoints[:, 0], 0, image_width)
+                    keypoints[:, 1] = np.clip(keypoints[:, 1], 0, image_height)
 
-                # Apply random score for visible keypoints
-                keypoints[:, 2] = (keypoints[:, 2] > 0) * np.random.randn(len(keypoints))
+                    # Apply random score for visible keypoints
+                    keypoints[:, 2] = (keypoints[:, 2] > 0) * np.random.randn(len(keypoints))
 
                 poses.append(keypoints)
 
@@ -73,7 +84,8 @@ class TestPoseEstimationMetrics(unittest.TestCase):
     def convert_predictions_to_coco_dict(self, predictions):
         kpts = collections.defaultdict(list)
         for poses, image_id_int in predictions:
-            scores = np.random.rand(len(poses))
+            # scores = np.random.rand(len(poses))
+            scores = [1] * len(poses)
             for person_index, kpt in enumerate(poses):
                 area = (np.max(kpt[:, 0]) - np.min(kpt[:, 0])) * (np.max(kpt[:, 1]) - np.min(kpt[:, 1]))
                 kpt = self._coco_process_keypoints(kpt)
