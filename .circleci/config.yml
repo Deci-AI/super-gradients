@@ -610,7 +610,8 @@ workflows:
           requires:
             - "build3.7"
             - recipe_accuracy_tests
-            - recipe_sanity_tests_classification
+            - recipe_sanity_tests_classification_pt1
+            - recipe_sanity_tests_classification_pt2
             - recipe_sanity_tests_segmentation
             - recipe_sanity_tests_detection
           <<: *release_tag_filter
