@@ -4,15 +4,97 @@
 # The changes are:
 # - added support for user-defined maxDet parameter (It was hard-coded to 20 in original implementation)
 # - removed print statements that output uninformative information
-import logging
+from typing import Union, List
 
 import numpy as np
 import datetime
 
 # import time
 from collections import defaultdict
-from pycocotools import mask as maskUtils
 import copy
+
+
+def compute_bbox(joints: np.ndarray) -> np.ndarray:
+    """
+    Compute bounding box for each instance and return it as a numpy array  [Num Instances, 4] where last dimension contains bbox in format X1,Y1,X2,Y2
+    :param joints:  [Num Instances, Num Joints, :2]
+    :return: [Num Instances, 4]
+    """
+    x1, x2 = np.max(joints[:, :, 0], axis=-1), np.min(joints[:, :, 0], axis=-1)
+    y1, y2 = np.max(joints[:, :, 1], axis=-1), np.min(joints[:, :, 1], axis=-1)
+    return np.stack([x1, y1, x2, y2], axis=-1)
+
+
+def computeKeypointsIoU(
+    pred_joints: Union[np.ndarray, List[np.ndarray]],
+    pred_scores: Union[np.ndarray, List[float]],
+    gt_joints: Union[np.ndarray, List[np.ndarray]],
+    gt_keypoint_visibility: Union[np.ndarray, List[float]],
+    sigmas: np.ndarray,
+    max_dets: int = 20,
+    gt_areas: np.ndarray = None,
+) -> np.ndarray:
+    """
+
+    :param pred_joints: [K, NumJoints, 2]
+    :param pred_scores: [K]
+    :param gt_joints:   [M, NumJoints, 2]
+    :param gt_keypoint_visibility: [M, NumJoints]
+    :param gt_areas: [M] Area of each ground truth instance. If None, we will use area of bounding box of each instance computed from gt_joints
+    :param sigmas: [NumJoints]
+    :return: IoU matrix [min(K, max_dets), M]
+    """
+
+    # Sort predictions by score from highest to lowest and retain only the top max_dets
+    inds = np.argsort(-pred_scores, kind="mergesort")
+    pred_joints = [pred_joints[i] for i in inds]
+
+    if len(pred_joints) > max_dets:
+        pred_joints = pred_joints[0:max_dets]
+
+    if len(gt_joints) == 0 or len(pred_joints) == 0:
+        return np.zeros((len(pred_joints), len(gt_joints)))
+
+    ious = np.zeros((len(pred_joints), len(gt_joints)))
+    vars = (sigmas * 2) ** 2
+    num_joints = len(sigmas)
+
+    gt_bboxes = compute_bbox(gt_joints)
+    if gt_areas is None:
+        gt_areas = (gt_bboxes[:, 2] - gt_bboxes[:, 0]) * (gt_bboxes[:, 3] - gt_bboxes[:, 1])
+
+    # compute oks between each detection and ground truth object
+    for gt_index, (gt_keypoints, gt_keypoint_visibility, gt_bbox, gt_area) in enumerate(zip(gt_joints, gt_keypoint_visibility, gt_bboxes, gt_areas)):
+        # create bounds for ignore regions(double the gt bbox)
+        xg = gt_keypoints[:, 0]
+        yg = gt_keypoints[:, 1]
+        k1 = np.count_nonzero(gt_keypoint_visibility > 0)
+
+        x0 = gt_bbox[0] - gt_bbox[2]
+        x1 = gt_bbox[0] + gt_bbox[2] * 2
+        y0 = gt_bbox[1] - gt_bbox[3]
+        y1 = gt_bbox[1] + gt_bbox[3] * 2
+
+        for pred_index, pred_keypoints in enumerate(pred_joints):
+            xd = pred_keypoints[:, 0]
+            yd = pred_keypoints[:, 1]
+            if k1 > 0:
+                # measure the per-keypoint distance if keypoints visible
+                dx = xd - xg
+                dy = yd - yg
+            else:
+                # measure minimum distance to keypoints in (x0,y0) & (x1,y1)
+                z = np.zeros((num_joints))
+                dx = np.max((z, x0 - xd), axis=0) + np.max((z, xd - x1), axis=0)
+                dy = np.max((z, y0 - yd), axis=0) + np.max((z, yd - y1), axis=0)
+
+            e = (dx**2 + dy**2) / vars / (gt_area + np.spacing(1)) / 2
+
+            if k1 > 0:
+                e = e[gt_keypoint_visibility > 0]
+            ious[pred_index, gt_index] = np.sum(np.exp(-e)) / e.shape[0]
+
+    return ious
 
 
 class COCOeval:
@@ -34,8 +116,6 @@ class COCOeval:
     #  recThrs    - [0:.01:1] R=101 recall thresholds for evaluation
     #  areaRng    - [...] A=4 object area ranges for evaluation
     #  maxDets    - [1 10 100] M=3 thresholds on max detections per image
-    #  iouType    - ['segm'] set iouType to 'segm', 'bbox' or 'keypoints'
-    #  iouType replaced the now DEPRECATED useSegm parameter.
     #  useCats    - [1] if true use category labels for evaluation
     # Note: if useCats=0 category labels are ignored as in proposal scoring.
     # Note: multiple areaRngs [Ax2] and maxDets [Mx1] can be specified.
@@ -65,22 +145,20 @@ class COCOeval:
     # Data, paper, and tutorials available at:  http://mscoco.org/
     # Code written by Piotr Dollar and Tsung-Yi Lin, 2015.
     # Licensed under the Simplified BSD License [see coco/license.txt]
-    def __init__(self, cocoGt=None, cocoDt=None, iouType="segm"):
+    def __init__(self, cocoGt=None, cocoDt=None):
         """
         Initialize CocoEval using coco APIs for gt and dt
         :param cocoGt: coco object with ground truth annotations
         :param cocoDt: coco object with detection results
         :return: None
         """
-        if not iouType:
-            print("iouType not specified. use default iouType segm")
         self.cocoGt = cocoGt  # ground truth COCO API
         self.cocoDt = cocoDt  # detections COCO API
         self.evalImgs = defaultdict(list)  # per-image per-category evaluation results [KxAxI] elements
         self.eval = {}  # accumulated evaluation results
         self._gts = defaultdict(list)  # gt for evaluation
         self._dts = defaultdict(list)  # dt for evaluation
-        self.params = Params(iouType=iouType)  # parameters
+        self.params = Params()  # parameters
         self._paramsEval = {}  # parameters for evaluation
         self.stats = []  # result summarization
         self.ious = {}  # ious between all gts and dts
@@ -94,12 +172,6 @@ class COCOeval:
         :return: None
         """
 
-        def _toMask(anns, coco):
-            # modify ann['segmentation'] by reference
-            for ann in anns:
-                rle = coco.annToRLE(ann)
-                ann["segmentation"] = rle
-
         p = self.params
         if p.useCats:
             gts = self.cocoGt.loadAnns(self.cocoGt.getAnnIds(imgIds=p.imgIds, catIds=p.catIds))
@@ -108,16 +180,11 @@ class COCOeval:
             gts = self.cocoGt.loadAnns(self.cocoGt.getAnnIds(imgIds=p.imgIds))
             dts = self.cocoDt.loadAnns(self.cocoDt.getAnnIds(imgIds=p.imgIds))
 
-        # convert ground truth to mask if iouType == 'segm'
-        if p.iouType == "segm":
-            _toMask(gts, self.cocoGt)
-            _toMask(dts, self.cocoDt)
         # set ignore flag
         for gt in gts:
             gt["ignore"] = gt["ignore"] if "ignore" in gt else 0
             gt["ignore"] = "iscrowd" in gt and gt["iscrowd"]
-            if p.iouType == "keypoints":
-                gt["ignore"] = (gt["num_keypoints"] == 0) or gt["ignore"]
+            gt["ignore"] = (gt["num_keypoints"] == 0) or gt["ignore"]
         self._gts = defaultdict(list)  # gt for evaluation
         self._dts = defaultdict(list)  # dt for evaluation
         for gt in gts:
@@ -132,14 +199,8 @@ class COCOeval:
         Run per image evaluation on given images and store results (a list of dict) in self.evalImgs
         :return: None
         """
-        # tic = time.time()
-        # print("Running per image evaluation...")
         p = self.params
-        # add backward compatibility if useSegm is specified in params
-        if p.useSegm is not None:
-            p.iouType = "segm" if p.useSegm == 1 else "bbox"
-            print("useSegm (deprecated) is not None. Running {} evaluation".format(p.iouType))
-        # print("Evaluate annotation type *{}*".format(p.iouType))
+
         p.imgIds = list(np.unique(p.imgIds))
         if p.useCats:
             p.catIds = list(np.unique(p.catIds))
@@ -150,46 +211,29 @@ class COCOeval:
         # loop through images, area range, max detection number
         catIds = p.catIds if p.useCats else [-1]
 
-        if p.iouType == "segm" or p.iouType == "bbox":
-            computeIoU = self.computeIoU
-        elif p.iouType == "keypoints":
-            computeIoU = self.computeOks
-        self.ious = {(imgId, catId): computeIoU(imgId, catId) for imgId in p.imgIds for catId in catIds}
+        self.ious = {(imgId, catId): self.computeOks(imgId, catId) for imgId in p.imgIds for catId in catIds}
 
         evaluateImg = self.evaluateImg
         maxDet = p.maxDets[-1]
         self.evalImgs = [evaluateImg(imgId, catId, areaRng, maxDet) for catId in catIds for areaRng in p.areaRng for imgId in p.imgIds]
         self._paramsEval = copy.deepcopy(self.params)
-        # toc = time.time()
-        # print("DONE (t={:0.2f}s).".format(toc - tic))
 
-    def computeIoU(self, imgId, catId):
+    def computeOksV2(self, imgId, catId):
         p = self.params
-        if p.useCats:
-            gt = self._gts[imgId, catId]
-            dt = self._dts[imgId, catId]
-        else:
-            gt = [_ for cId in p.catIds for _ in self._gts[imgId, cId]]
-            dt = [_ for cId in p.catIds for _ in self._dts[imgId, cId]]
-        if len(gt) == 0 and len(dt) == 0:
-            return []
-        inds = np.argsort([-d["score"] for d in dt], kind="mergesort")
-        dt = [dt[i] for i in inds]
-        if len(dt) > p.maxDets[-1]:
-            dt = dt[0 : p.maxDets[-1]]
+        # dimention here should be Nxm
+        gts = self._gts[imgId, catId]
+        dts = self._dts[imgId, catId]
 
-        if p.iouType == "segm":
-            g = [g["segmentation"] for g in gt]
-            d = [d["segmentation"] for d in dt]
-        elif p.iouType == "bbox":
-            g = [g["bbox"] for g in gt]
-            d = [d["bbox"] for d in dt]
-        else:
-            raise Exception("unknown iouType for iou computation")
-
-        # compute iou between each dt and gt region
-        iscrowd = [int(o["iscrowd"]) for o in gt]
-        ious = maskUtils.iou(d, g, iscrowd)
+        ious = computeKeypointsIoU(
+            pred_joints=[dt["keypoints"] for dt in dts],
+            pred_scores=[dt["score"] for dt in dts],
+            gt_joints=[gt["keypoints"][:, 0:2] for gt in gts],
+            gt_keypoint_visibility=[gt["keypoint_visibility"][:, 2] for gt in gts],
+            gt_areas=None,
+            # gt_areas=[gt["area"] for gt in gts],
+            max_dets=p.maxDets[-1],
+            sigmas=p.kpt_oks_sigmas,
+        )
         return ious
 
     def computeOks(self, imgId, catId):
@@ -234,7 +278,12 @@ class COCOeval:
                     z = np.zeros((k))
                     dx = np.max((z, x0 - xd), axis=0) + np.max((z, xd - x1), axis=0)
                     dy = np.max((z, y0 - yd), axis=0) + np.max((z, yd - y1), axis=0)
+
                 e = (dx**2 + dy**2) / vars / (gt["area"] + np.spacing(1)) / 2
+
+                # gt["bbox_area"] = bb[2] * bb[3]
+                # e = (dx**2 + dy**2) / vars / (gt["bbox_area"] + np.spacing(1)) / 2
+
                 if k1 > 0:
                     e = e[vg > 0]
                 ious[i, j] = np.sum(np.exp(-e)) / e.shape[0]
@@ -413,8 +462,8 @@ class COCOeval:
                             for ri, pi in enumerate(inds):
                                 q[ri] = pr[pi]
                                 ss[ri] = dtScoresSorted[pi]
-                        except Exception as e:
-                            logging.exception(e)
+                        except Exception:
+                            # It seems this try/except is just a silly way to handle corner cases
                             pass
                         precision[t, :, k, a, m] = np.array(q)
                         scores[t, :, k, a, m] = np.array(ss)
@@ -510,12 +559,8 @@ class COCOeval:
 
         if not self.eval:
             raise Exception("Please run accumulate() first")
-        iouType = self.params.iouType
-        if iouType == "segm" or iouType == "bbox":
-            summarize = _summarizeDets
-        elif iouType == "keypoints":
-            summarize = _summarizeKps
-        self.stats = summarize()
+
+        self.stats = _summarizeKps()
 
     def __str__(self):
         self.summarize()
@@ -525,17 +570,6 @@ class Params:
     """
     Params for coco evaluation api
     """
-
-    def setDetParams(self):
-        self.imgIds = []
-        self.catIds = []
-        # np.arange causes trouble.  the data point on arange is slightly larger than the true value
-        self.iouThrs = np.linspace(0.5, 0.95, int(np.round((0.95 - 0.5) / 0.05)) + 1, endpoint=True)
-        self.recThrs = np.linspace(0.0, 1.00, int(np.round((1.00 - 0.0) / 0.01)) + 1, endpoint=True)
-        self.maxDets = [1, 10, 100]
-        self.areaRng = [[0**2, 1e5**2], [0**2, 32**2], [32**2, 96**2], [96**2, 1e5**2]]
-        self.areaRngLbl = ["all", "small", "medium", "large"]
-        self.useCats = 1
 
     def setKpParams(self):
         self.imgIds = []
@@ -549,13 +583,5 @@ class Params:
         self.useCats = 1
         self.kpt_oks_sigmas = np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0
 
-    def __init__(self, iouType="segm"):
-        if iouType == "segm" or iouType == "bbox":
-            self.setDetParams()
-        elif iouType == "keypoints":
-            self.setKpParams()
-        else:
-            raise Exception("iouType not supported")
-        self.iouType = iouType
-        # useSegm is deprecated
-        self.useSegm = None
+    def __init__(self):
+        self.setKpParams()
