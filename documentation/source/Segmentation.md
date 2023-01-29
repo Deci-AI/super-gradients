@@ -48,11 +48,11 @@ for i in range(4, 7):
 
 Create a PPLiteSeg nn.Module, with 1 class segmentation head classifier. For simplicity `use_aux_head` is set as `False`
 and extra Auxiliary heads aren't used for training.
-
 ```py
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
 
+# The model is a torch.nn.module 
 model = models.get(
     model_name=Models.PP_LITE_T_SEG75,      # You can use any model listed in the Models.<Name>
     arch_params={"use_aux_heads": False},
@@ -64,7 +64,7 @@ Notes:
 - SG includes implementations of 
 [many different architectures](https://github.com/Deci-AI/super-gradients#implemented-model-architectures).
 - Most of these architectures have [pretrained checkpoints](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) so feel free to experiment!
-
+- You can use any torch.nn.module model with SuperGradients!
 
 
 ### Setup training parameters
@@ -94,7 +94,10 @@ train_params = {
 
 
 ### Launch Training
-Now you only need to setup a Trainer and launch the training!
+The Trainer in SuperGradient takes care of the entire training and validation process. 
+
+It serves as a convenient and efficient tool to handle all the details of the training process, allowing you to focus on the development of your model.
+
 ```py
 from super_gradients import Trainer
 
@@ -137,16 +140,4 @@ display(mask)
 
 ## Going further
 ### How to launch on multiple GPUs (DDP) ?
-To run the Training using Distributed Data Parallel (DDP), all you need to do is to call a magic function `setup_device` before instantiating the Trainer.
-```py
-from super_gradients import Trainer
-from super_gradients.training.utils.distributed_training_utils import setup_device
-
-# Launch DDP on 4 GPUs'
-setup_device(num_gpus=4)
-
-# Unchanged
-trainer = Trainer(...)
-trainer.train(...)
-```
-Note: To optimize running time we recommend to call `setup_device` as early as possible.
+Please check out our tutorial on [how to use multiple GPUs'](...)
