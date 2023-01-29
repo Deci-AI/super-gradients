@@ -267,6 +267,9 @@ training_hyperparams:
   initial_lr: 
   loss:
 experiment_name:
+  
+multi_gpu: # When training with multi GPU
+num_gpus: # When training with multi GPU
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
