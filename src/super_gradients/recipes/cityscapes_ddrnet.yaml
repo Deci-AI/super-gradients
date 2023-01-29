@@ -11,7 +11,7 @@
 #   2. Run the command:
 #      DDRNet23:       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet
 #      DDRNet23-Slim:  python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim
-# Note: add "checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path>" to use pretrained backbone
+# Note: add "checkpoint_params.checkpoint_path=<ddrnet23-backbone-pretrained-path>" to use pretrained backbone
 #
 #  Validation mIoU - Cityscapes, training time:
 #      DDRNet23:        input-size: [1024, 2048]     mIoU: 80.26     4 X RTX A5000, 12 H

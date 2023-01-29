@@ -47,7 +47,7 @@ training_hyperparams:
 ckpt_root_dir:
 
 multi_gpu: Off
-
+num_gpus: 1
 
 architecture: regnetY800
 experiment_name: ${architecture}

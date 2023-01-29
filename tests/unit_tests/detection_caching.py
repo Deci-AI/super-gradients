@@ -14,8 +14,8 @@ class DummyDetectionDataset(DetectionDataset):
 
         self.image_size = input_dim
         self.n_samples = 321
-        kwargs['all_classes_list'] = ["class_0", "class_1", "class_2"]
-        kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
+        kwargs["all_classes_list"] = ["class_0", "class_1", "class_2"]
+        kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
         super().__init__(input_dim=input_dim, *args, **kwargs)
 
     def _setup_data_source(self):
@@ -26,10 +26,7 @@ class DummyDetectionDataset(DetectionDataset):
         a seed to allow the random image to the same for a given sample_id
         """
         cls_id = sample_id % len(self.all_classes_list)
-        return {"img_path": str(sample_id),
-                "target": np.array([[0, 0, 10, 10, cls_id]]),
-                "resized_img_shape": self.image_size,
-                "seed": sample_id}
+        return {"img_path": str(sample_id), "target": np.array([[0, 0, 10, 10, cls_id]]), "resized_img_shape": self.image_size, "seed": sample_id}
 
     # We overwrite this to fake images
     def _load_image(self, index: int) -> np.ndarray:
@@ -39,23 +36,29 @@ class DummyDetectionDataset(DetectionDataset):
 
 class TestDetectionDatasetCaching(unittest.TestCase):
     def setUp(self) -> None:
-        self.temp_cache_dir = tempfile.TemporaryDirectory(prefix='cache').name
+        self.temp_cache_dir = tempfile.TemporaryDirectory(prefix="cache").name
         if not os.path.isdir(self.temp_cache_dir):
             os.mkdir(self.temp_cache_dir)
 
     def _count_cached_array(self):
-        return len(list(Path(self.temp_cache_dir).glob('*.array')))
+        return len(list(Path(self.temp_cache_dir).glob("*.array")))
 
     def _empty_cache(self):
-        for cache_file in Path(self.temp_cache_dir).glob('*.array'):
+        for cache_file in Path(self.temp_cache_dir).glob("*.array"):
             cache_file.unlink()
 
     def test_cache_keep_empty(self):
         self._empty_cache()
 
         datasets = [
-            DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=False, class_inclusion_list=class_inclusion_list,
-                                  cache=True, cache_dir=self.temp_cache_dir, data_dir='/home/')
+            DummyDetectionDataset(
+                input_dim=(640, 512),
+                ignore_empty_annotations=False,
+                class_inclusion_list=class_inclusion_list,
+                cache=True,
+                cache_dir=self.temp_cache_dir,
+                data_dir="/home/",
+            )
             for class_inclusion_list in [["class_0", "class_1", "class_2"], ["class_0"], ["class_1"], ["class_2"], ["class_1", "class_2"]]
         ]
 
@@ -69,8 +72,14 @@ class TestDetectionDatasetCaching(unittest.TestCase):
         self._empty_cache()
 
         datasets = [
-            DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True, class_inclusion_list=class_inclusion_list,
-                                  cache=True, cache_dir=self.temp_cache_dir, data_dir='/home/')
+            DummyDetectionDataset(
+                input_dim=(640, 512),
+                ignore_empty_annotations=True,
+                class_inclusion_list=class_inclusion_list,
+                cache=True,
+                cache_dir=self.temp_cache_dir,
+                data_dir="/home/",
+            )
             for class_inclusion_list in [["class_0", "class_1", "class_2"], ["class_0"], ["class_1"], ["class_2"], ["class_1", "class_2"]]
         ]
 
@@ -86,17 +95,15 @@ class TestDetectionDatasetCaching(unittest.TestCase):
         self._empty_cache()
         self.assertEqual(0, self._count_cached_array())
 
-        _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
-                                  cache=True, cache_dir=self.temp_cache_dir, data_dir='/home/')
+        _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True, cache=True, cache_dir=self.temp_cache_dir, data_dir="/home/")
         self.assertEqual(1, self._count_cached_array())
 
         for _ in range(5):
-            _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
-                                      cache=True, cache_dir=self.temp_cache_dir, data_dir='/home/')
+            _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True, cache=True, cache_dir=self.temp_cache_dir, data_dir="/home/")
             self.assertEqual(1, self._count_cached_array())
 
         self._empty_cache()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
