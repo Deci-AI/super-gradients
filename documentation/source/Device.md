@@ -1,162 +1,179 @@
-# Device
+# Training modes
 
 SuperGradients allows users to train models on different modes:
 - CPU
-- single GPU
+- single GPU - (CUDA)
 - single GPU - Data Parallel (DP)
 - multiple GPUs' - Distributed Data Parallel (DDP)
 
- 
-In the tutorial provided, we demonstrate how to use each mode.
 
-## Requirements
-Before you begin, please install Super-Gradients
+### CPU
+**Requirement**: None.
 
-```bash
-pip install super_gradients==3.0.5
-```
-
-## CPU
-
-
-
-```py
-from super_gradients.training import dataloaders
-
-root_dir = '/path/to/supervisely_dataset_dir'
-
-train_loader = dataloaders.supervisely_persons_train(dataset_params={"root_dir": root_dir}, dataloader_params={})
-valid_loader = dataloaders.supervisely_persons_val(dataset_params={"root_dir": root_dir}, dataloader_params={})
-```
-
-
-### Visualization
-Let's visualize what we've got there.
-
-We have images and labels, with the default batch size of 256 for training.
-```py
-from PIL import Image
-from torchvision.utils import draw_segmentation_masks
-from torchvision.transforms import ToTensor, ToPILImage, Resize
-import numpy as np
-import torch
-
-def plot_seg_data(img_path: str, target_path: str):
-  image = (ToTensor()(Image.open(img_path).convert('RGB')) * 255).type(torch.uint8)
-  target = torch.from_numpy(np.array(Image.open(target_path))).bool()
-  image = draw_segmentation_masks(image, target, colors="red", alpha=0.4)
-  image = Resize(size=200)(image)
-  display(ToPILImage()(image))
-
-for i in range(4, 7):
-  img_path, target_path = train_loader.dataset.samples_targets_tuples_list[i]
-  plot_seg_data(img_path, target_path)
-```
-![segmentation_target.png](segmentation_target.png)
-
-
-## Load the model from modelzoo
-
-Create a PPLiteSeg nn.Module, with 1 class segmentation head classifier. For simplicity `use_aux_head` is set as `False`
-and extra Auxiliary heads aren't used for training.
-
-```py
-from super_gradients.training import models
-from super_gradients.common.object_names import Models
-
-model = models.get(
-    model_name=Models.PP_LITE_T_SEG75,      # You can use any model listed in the Models.<Name>
-    arch_params={"use_aux_heads": False},
-    num_classes=1,                          # Change this if you work on another dataset with more classes
-    pretrained_weights="cityscapes"         # Drop this line to train from scratch
-)
-```
-Notes:
-- SG includes implementations of 
-[many different architectures](https://github.com/Deci-AI/super-gradients#implemented-model-architectures).
-- Most of these architectures have [pretrained checkpoints](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) so feel free to experiment!
-
-
-
-### Setup training parameters
-
-```py
-from super_gradients.training.metrics.segmentation_metrics import BinaryIOU
-
-train_params = {
-    "max_epochs": 5,
-    "lr_mode": "cosine",
-    "initial_lr": 0.005,
-    "lr_warmup_epochs": 5,
-    "multiply_head_lr": 10,
-    "optimizer": "SGD",
-    "loss": "bce_dice_loss",
-    "ema": True,
-    "zero_weight_decay_on_bias_and_bn": True,
-    "average_best_models": True,
-    "metric_to_watch": "target_IOU",
-    "greater_metric_to_watch_is_better": True,
-    "train_metrics_list": [BinaryIOU()],
-    "valid_metrics_list": [BinaryIOU()],
-    "loss_logging_items_names": ["loss"],
-}
-```
-
-
-### Launch Training
-Now you only need to setup a Trainer and launch the training!
-```py
-from super_gradients import Trainer
-
-trainer = Trainer(experiment_name="segmentation_example", ckpt_root_dir='/path/to/experiment/folder')
-
-trainer.train(model=model, training_params=training_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
-```
-
-
-## Visualize the results
-
-```py
-from torchvision.transforms import Compose, ToTensor, Resize, Normalize, ToPILImage
-
-pre_proccess = Compose([
-    ToTensor(),
-    Normalize([.485, .456, .406], [.229, .224, .225])
-])
-
-demo_img_path = "/home/data/supervisely-persons/images/ache-adult-depression-expression-41253.png"
-img = Image.open(demo_img_path)
-# Resize the image and display
-img = Resize(size=(480, 320))(img)
-display(img)
-
-# Run pre-proccess - transforms to tensor and apply normalizations.
-img_inp = pre_proccess(img).unsqueeze(0).cuda()
-
-# Run inference
-mask = model(img_inp)
-
-# Run post-proccess - apply sigmoid to output probabilities, then apply hard
-# threshold of 0.5 for binary mask prediction. 
-mask = torch.sigmoid(mask).gt(0.5).squeeze()
-mask = ToPILImage()(mask.float())
-display(mask)
-```
-![segmentation_prediction.png](segmentation_prediction.png)
-
-
-## Going further
-### How to launch on multiple GPUs (DDP) ?
-To run the Training using Distributed Data Parallel (DDP), all you need to do is to call a magic function `setup_device` before instantiating the Trainer.
+**How to use it**: If you don't have any CUDA device available, your training will automatically be run on CPU.
+Otherwise, the default device will be CUDA, but you can still easily set it to CPU using `setup_device` as follow:
 ```py
 from super_gradients import Trainer
 from super_gradients.training.utils.distributed_training_utils import setup_device
 
-# Launch DDP on 4 GPUs'
-setup_device(num_gpus=4)
+setup_device(device='cpu')
 
 # Unchanged
 trainer = Trainer(...)
 trainer.train(...)
 ```
-Note: To optimize running time we recommend to call `setup_device` as early as possible.
+
+
+
+### CUDA
+**Requirement**: Having at least one CUDA devices available
+
+**How to use it**: If you have at least one CUDA device, nothing! Otherwise, you will have to use CPU...
+
+
+
+### DP - Data Parallel
+**Requirement**: Having at least one CUDA devices available
+
+**How to use it**: All you need to do is to call a magic function `setup_device` before instantiating the Trainer.
+```py
+from super_gradients import Trainer
+from super_gradients.training.utils.distributed_training_utils import setup_device
+
+# Launch DP on 4 GPUs'
+setup_device(multi_gpu='DP', num_gpus=4)
+
+# Unchanged
+trainer = Trainer(...)
+trainer.train(...)
+```
+**Tip**: To optimize running time we recommend to call `setup_device` as early as possible.
+
+
+
+### DDP - Distributed Data Parallel
+**Requirement**: Having multiple CUDA devices available
+
+**How to use it**: All you need to do is to call a magic function `setup_device` before instantiating the Trainer.
+```py
+from super_gradients import Trainer
+from super_gradients.training.utils.distributed_training_utils import setup_device
+
+# Launch DDP on 4 GPUs'
+setup_device(num_gpus=4) # Equivalent to: setup_device(multi_gpu='DDP', num_gpus=4)
+
+# Unchanged
+trainer = Trainer(...)
+trainer.train(...)
+```
+**Tip**: To optimize running time we recommend to call `setup_device` as early as possible.
+
+---
+
+### What should you be aware when using DDP ?
+
+#### 1. DDP runs multiple processes
+When running DDP, you will work with multiple processes that will go through the whole training loop.
+This means that if you run DDP on 4 gpus, any action that you do will be run 4 times.
+
+This impacts especially printing, logging and file writing. To face this issue, SuperGradients provides a decorator 
+that will ensure that only one process will execute a specific function, whether you work with CPU, GPU, DP or even DDP.
+
+In the following example, the `print_hello` function will print *Hello world* only once, when it would be printed 4 times without the decorator... 
+```py
+from super_gradients.training.utils.distributed_training_utils import setup_device
+from super_gradients.common.environment.ddp_utils import multi_process_safe
+
+setup_device(num_gpus=4)
+
+@multi_process_safe # Try with and without this decorator
+def print_hello():
+    print('Hello world')
+
+print_hello()
+```
+
+
+#### 2. DDP requires specific Metric implementation!
+As explained, multiple processes are used to train a model with DDP, each on its own GPU. 
+This means that the metrics must be computed and aggregated across all the processes, and it requires the metric to be implemented using states.
+
+States are attributes to be reduced. They are defined using the built-in method `add_state()` and enables broadcasting 
+of the states among the different ranks when calling the `compute()` method.
+
+An example of state would be the number of correct predictions, which will be summed across the different processes, broadcasted to all of
+them before computing the metric value. You can see an example below. 
+
+*Feel free to check [torchmetrics documentation](https://torchmetrics.readthedocs.io/en/stable/references/metric.html) for more information on how to implement your own metric.* 
+
+**Example**
+In the following example, we start with a custom metric implemented to run on a single device:
+```py
+import torch
+from torchmetrics import Metric
+
+
+class Top5Accuracy(Metric):
+    def __init__(self):
+        super().__init__()
+        self.correct = torch.tensor(0.)
+        self.total = torch.tensor(0.)
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        batch_size = target.size(0)
+
+        # Get the top k predictions
+        _, pred = preds.topk(5, 1, True, True)
+        pred = pred.t()
+
+        # Count the number of correct predictions only for the highest 5
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+        correct5 = correct[:5].reshape(-1).float().sum(0)
+
+        self.correct += correct5.cpu()
+        self.total += batch_size
+
+    def compute(self):
+        return self.correct.float() / self.total
+```
+All you need to change to use your metric on DDP is to define your attribues `self.correct` and `self.total` with `add_state` and to define 
+a reduce function `dist_reduce_fx` that will be used to know how to combine the states when calling compute:
+```py
+import torch
+import torchmetrics
+
+class DDPTop1Accuracy(torchmetrics.Metric):
+    def __init__(self, dist_sync_on_step=False):
+        super().__init__(dist_sync_on_step=dist_sync_on_step)
+
+        self.add_state("correct", default=torch.tensor(0.), dist_reduce_fx="sum")   # Set correct to be a state
+        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")      # Set total to be a state
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        batch_size = target.size(0)
+
+        # Get the top k predictions
+        _, pred = preds.topk(5, 1, True, True)
+        pred = pred.t()
+
+        # Count the number of correct predictions only for the highest 5
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+        correct5 = correct[:5].reshape(-1).float().sum(0)
+
+        self.correct += correct5
+        self.total += batch_size
+
+    def compute(self):
+        return self.correct.float() / self.total
+```
+**How does it work step by step ?**
+1. DDP launches and pytorch creates a separate instance of your custom metric for each process.
+2. The `update()` method modifies the internal state of each instance in each process based on the inputs `preds` and `target` specific to that process.
+3. After an epoch, each process will have a unique state, for example:
+   - Process 1: correct=50, total=100
+   - Process 2: correct=30, total=100
+   - Process 3: correct=100, total=100
+4. Calling `compute()` triggers `torchmetrics.Metric` to gather and combine the states of each process. This reduction step can be customized by setting the `dist_reduce_fx`, which in this case is the `sum`. This usually happens at the end of the epoch.
+   - All processes: correct=180, total=300
+5. The `compute()` method then calculates the metric value according to your implementation. In this example, every process will return the same result: `0.6` (180 correct predictions out of 300 total predictions).
+6. Finally, calling `reset()` will reset the internal state of the metric, making it ready to accumulate new data at the start of the next epoch.
