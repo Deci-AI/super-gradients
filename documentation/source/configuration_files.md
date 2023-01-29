@@ -98,6 +98,20 @@ Try changing the `initial_lr` parameter in the file `src/super_gradients/recipes
 You will see a different result now. This is because the parameters from `cifar10_resnet_train_params.yaml` are used in `cifar10_resnet.yaml`
 (we will discuss thin in the next section). 
 
+Two more useful functionalities are 
+```commandline
+python resume_experiment.py --experiment_name=cifar10_resnet
+```
+
+that will resume the experiment from the last checkpoint, and
+
+```commandline
+evaluate_from_recipe.py --config-name=cifar10_resnet
+```
+that will run only the evaluation part of the recipe (without any training iterations)
+
+
+
 ## Hydra
 Hydra is an open-source Python framework that provides us with many useful functionalities for YAML management. You can learn about Hydra 
 [here](https://hydra.cc/docs/intro). We use Hydra to load YAML files and convert them into dictionaries, while 
@@ -117,6 +131,8 @@ if __name__ == "__main__":
 ```
 The `@hydra.main` decorator is looking for YAML files in the `super_gradients.recipes` according to the name of the configuration file provided 
 in the first arg of the command line. 
+
+In the experiment directory a `.hydra` subdirectory will be created. The configuration files related to this run will be saved by hydra to that subdirectory.  
 
 --------
 Two Hydra features worth mentioning are _YAML Composition_ and _Command-Line Overrides_.
@@ -138,6 +154,8 @@ into a single dictionary.
 
 The parameters will be referenced inside the YAML according to their origin. i.e. in the example above we can reference `training_hyperparams.initial_lr` 
 (initial_lr parameter from the cifar10_resnet_train_params.yaml file)
+
+The aggregated configuration file will be saved in the `.hydra` subdirectory.
 
 #### Command-Line Overrides
 When running with Hydra, you can override or even add configuration from the command line. These override will apply to the specific run only.
@@ -231,11 +249,33 @@ include required arguments, you will be expected to provide them when using this
 
 ```yaml
 ...
-architecture: MyNet
-    num_classes: 8
+architecture: 
+    MyNet:
+      num_classes: 8
 ...
 
 ```
+
+## Required Hyper-Parameters
+Most parameters can be defined by default when including `default_train_params` in you `defaults`.
+However, the following hyper-parameters are required to launch a training run:
+```yaml
+train_dataloader: 
+val_dataloader: 
+architecture: 
+training_hyperparams:
+  initial_lr: 
+  loss:
+experiment_name:
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
+```
+> Other parameters may also be required, depending on the specific model, dataset, loss function ect. 
+> Follow the error message in case you experiment did not launce properly.  
 
 ## Recipes library structure
 The `super_gradients/recipes` include the following subdirectories:
