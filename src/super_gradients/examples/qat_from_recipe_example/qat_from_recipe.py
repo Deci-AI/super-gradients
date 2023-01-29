@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import hydra
+import pkg_resources
 from omegaconf import DictConfig
 from torch import nn
 
@@ -63,7 +64,7 @@ def quantize_and_calibrate(
 
 def modify_training_params_for_qat(cfg):
     # Q/DQ Layers take a lot of space for activations in training mode
-    if cfg.qat_params.sq_params.get("learn_amax", False):
+    if cfg.quantization_params.sq_params.get("learn_amax", False):
         cfg.dataset_params.train_dataloader_params.batch_size //= 2
         cfg.dataset_params.val_dataloader_params.batch_size //= 2
 
@@ -71,7 +72,7 @@ def modify_training_params_for_qat(cfg):
     cfg.training_hyperparams.max_epochs //= 10
 
     # very small initial LR and WD
-    lr_decay_factor = cfg.qat_params.get("lr_decay_factor", 100.0)
+    lr_decay_factor = cfg.quantization_params.get("lr_decay_factor", 100.0)
     cfg.training_hyperparams.initial_lr /= lr_decay_factor
     if cfg.training_hyperparams.warmup_initial_lr is not None:
         cfg.training_hyperparams.warmup_initial_lr /= lr_decay_factor
@@ -96,17 +97,17 @@ def modify_training_params_for_qat(cfg):
     cfg.dataset_params.train_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
 
 
-@hydra.main(config_path="recipes", version_base="1.2")
+@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
 def main(cfg: DictConfig) -> None:
-    if "qat_params" not in cfg:
-        raise ValueError("Your recipe does not have qat_params. Add them to use QAT.")
+    if "quantization_params" not in cfg:
+        raise ValueError("Your recipe does not have quantization_params. Add them to use QAT.")
 
     if "checkpoint_path" not in cfg.checkpoint_params:
         raise ValueError("Starting checkpoint is a must for QAT finetuning.")
 
-    if cfg.qat_params.modify_recipe_params:
+    if cfg.quantization_params.modify_recipe_params:
         modify_training_params_for_qat(cfg=cfg)
-        logger.info("Modifying recipe to suit QAT. Add qat_params.modify_recipe_params=False to do it manually.")
+        logger.info("Modifying recipe to suit QAT. Add quantization_params.modify_recipe_params=False to do it manually.")
 
     cfg = hydra.utils.instantiate(cfg)
 
@@ -137,14 +138,14 @@ def main(cfg: DictConfig) -> None:
     quantize_and_calibrate(
         model,
         train_dataloader,
-        method_w=cfg.qat_params.sq_params.method_w,
-        method_i=cfg.qat_params.sq_params.method_i,
-        per_channel=cfg.qat_params.sq_params.per_channel,
-        learn_amax=cfg.qat_params.sq_params.learn_amax,
-        skip_modules=cfg.qat_params.sq_params.skip_modules,
-        num_calib_batches=cfg.qat_params.calib_params.num_calib_batches or (512 // cfg.dataset_params.train_dataloader_params.batch_size) or 1,
-        calibration_method=cfg.qat_params.calib_params.calib_method,
-        verbose=cfg.qat_params.verbose,
+        method_w=cfg.quantization_params.sq_params.method_w,
+        method_i=cfg.quantization_params.sq_params.method_i,
+        per_channel=cfg.quantization_params.sq_params.per_channel,
+        learn_amax=cfg.quantization_params.sq_params.learn_amax,
+        skip_modules=cfg.quantization_params.sq_params.skip_modules,
+        num_calib_batches=cfg.quantization_params.calib_params.num_calib_batches or (512 // cfg.dataset_params.train_dataloader_params.batch_size) or 1,
+        calibration_method=cfg.quantization_params.calib_params.calib_method,
+        verbose=cfg.quantization_params.verbose,
     )
 
     if cfg.training_hyperparams.max_epochs != 0:

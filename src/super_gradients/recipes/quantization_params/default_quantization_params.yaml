@@ -1,0 +1,13 @@
+modify_recipe_params: True
+verbose: False
+lr_decay_factor: 100.0
+
+sq_params:
+  method_w: "max"
+  method_i: "histogram"
+  per_channel: True
+  learn_amax: False
+  skip_modules: null
+calib_params:
+  calib_method: "percentile"
+  num_calib_batches: null
