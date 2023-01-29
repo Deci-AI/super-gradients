@@ -35,38 +35,59 @@ class ContextMethodsTest(unittest.TestCase):
 
         phase_callbacks = []
         for phase in Phase:
-            if phase in [Phase.PRE_TRAINING, Phase.TRAIN_EPOCH_START, Phase.TRAIN_EPOCH_END, Phase.VALIDATION_EPOCH_END,
-                         Phase.VALIDATION_END_BEST_EPOCH, Phase.POST_TRAINING]:
-                phase_callbacks.append(ContextMethodsCheckerCallback(phase=phase, accessible_method_names=["get_net",
-                                                                                                           "set_net",
-                                                                                                           "set_ckpt_best_name",
-                                                                                                           "reset_best_metric",
-                                                                                                           "validate_epoch"],
-                                                                     non_accessible_method_names=[]))
+            if phase in [
+                Phase.PRE_TRAINING,
+                Phase.TRAIN_EPOCH_START,
+                Phase.TRAIN_EPOCH_END,
+                Phase.VALIDATION_EPOCH_END,
+                Phase.VALIDATION_END_BEST_EPOCH,
+                Phase.POST_TRAINING,
+            ]:
+                phase_callbacks.append(
+                    ContextMethodsCheckerCallback(
+                        phase=phase,
+                        accessible_method_names=["get_net", "set_net", "set_ckpt_best_name", "reset_best_metric", "validate_epoch"],
+                        non_accessible_method_names=[],
+                    )
+                )
             else:
                 phase_callbacks.append(
-                    ContextMethodsCheckerCallback(phase=phase, non_accessible_method_names=["get_net",
-                                                                                            "set_net",
-                                                                                            "set_ckpt_best_name",
-                                                                                            "reset_best_metric",
-                                                                                            "validate_epoch",
-                                                                                            "set_ema"],
-                                                  accessible_method_names=[]))
+                    ContextMethodsCheckerCallback(
+                        phase=phase,
+                        non_accessible_method_names=["get_net", "set_net", "set_ckpt_best_name", "reset_best_metric", "validate_epoch", "set_ema"],
+                        accessible_method_names=[],
+                    )
+                )
 
-        train_params = {"max_epochs": 1, "lr_updates": [], "lr_decay_factor": 0.1, "lr_mode": "step",
-                        "lr_warmup_epochs": 0, "initial_lr": 1, "loss": "cross_entropy", "optimizer": 'SGD',
-                        "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                        "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-                        "metric_to_watch": "Accuracy",
-                        "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks}
+        train_params = {
+            "max_epochs": 1,
+            "lr_updates": [],
+            "lr_decay_factor": 0.1,
+            "lr_mode": "step",
+            "lr_warmup_epochs": 0,
+            "initial_lr": 1,
+            "loss": "cross_entropy",
+            "optimizer": "SGD",
+            "criterion_params": {},
+            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+            "train_metrics_list": [Accuracy()],
+            "valid_metrics_list": [Accuracy()],
+            "metric_to_watch": "Accuracy",
+            "greater_metric_to_watch_is_better": True,
+            "ema": False,
+            "phase_callbacks": phase_callbacks,
+        }
 
-        trainer.train(model=net, training_params=train_params,
-                      train_loader=classification_test_dataloader(batch_size=4),
-                      valid_loader=classification_test_dataloader(batch_size=4))
+        trainer.train(
+            model=net,
+            training_params=train_params,
+            train_loader=classification_test_dataloader(batch_size=4),
+            valid_loader=classification_test_dataloader(batch_size=4),
+        )
         for phase_callback in phase_callbacks:
             if isinstance(phase_callback, ContextMethodsCheckerCallback):
                 self.assertTrue(phase_callback.result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

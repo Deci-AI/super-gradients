@@ -1,3 +1,6 @@
+defaults:
+  - default_train_params
+
 max_epochs: 150
 initial_lr: 5e-3
 loss: shelfnet_ohem_loss

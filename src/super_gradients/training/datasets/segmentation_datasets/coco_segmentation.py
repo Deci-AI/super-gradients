@@ -154,6 +154,3 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
         print("Number of images in sub-dataset: ", len(sub_dataset_image_ids))
         torch.save(sub_dataset_image_ids, sub_dataset_image_ids_file_path)
         return sub_dataset_image_ids
-
-
-print("ok")
