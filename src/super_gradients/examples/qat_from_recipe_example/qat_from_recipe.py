@@ -14,6 +14,7 @@ from super_gradients.training.utils.module_utils import fuse_repvgg_blocks_resid
 from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
 from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
 from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
+from super_gradients.training.utils.sg_trainer_utils import parse_args
 
 logger = get_logger(__name__)
 
@@ -147,8 +148,10 @@ def main(cfg: DictConfig) -> None:
     )
 
     if cfg.training_hyperparams.max_epochs != 0:
-        trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
-        model, _ = trainer.train(model=model, train_loader=train_dataloader, valid_loader=val_dataloader, training_params=cfg.training_hyperparams)
+        kwargs = parse_args(cfg, Trainer.__init__)
+        kwargs.pop("multi_gpu")
+        trainer = Trainer(**kwargs)
+        trainer.train(model=model, train_loader=train_dataloader, valid_loader=val_dataloader, training_params=cfg.training_hyperparams)
         suffix = "qat"
     else:
         logger.info("cfg.training_hyperparams.max_epochs is 0! Performing PTQ only!")
