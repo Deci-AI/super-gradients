@@ -101,7 +101,10 @@ It serves as a convenient and efficient tool to handle all the details of the tr
 ```py
 from super_gradients import Trainer
 
-trainer = Trainer(experiment_name="segmentation_example", ckpt_root_dir='/path/to/experiment/folder')
+trainer = Trainer(
+    experiment_name="segmentation_example",     # Your experiment checkpoints and logs will be saved in a folder names after the experiment_name.
+    ckpt_root_dir='/path/to/experiment/folder'  # Path to the folder where you want to save all of your experiments.
+)
 
 trainer.train(model=model, training_params=training_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
 ```
