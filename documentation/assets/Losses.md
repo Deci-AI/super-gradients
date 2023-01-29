@@ -61,8 +61,8 @@ When doing so, in your `my_training_hyperparams.yaml` file:
       strides: [8, 16, 32]  # output strides of all yolo outputs
       num_classes: 80
   ```
-  
-   `criterion_params` dictionary will be unpacked to the underlying `yolox_loss` class constructor.
+
+Note that two `training_params` parameters define the loss function:  `loss` which defines the type of the loss, and`criterion_params` dictionary which will be unpacked to the underlying `yolox_loss` class constructor.
 
 ## Passing Instantiated nn.Module Objects as Loss Functions
 
