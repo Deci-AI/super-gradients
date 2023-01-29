@@ -97,12 +97,23 @@ class Transforms:
     RandomAutocontrast = "RandomAutocontrast"
     RandomEqualize = "RandomEqualize"
 
+    # Keypoints
+    KeypointsRandomAffineTransform = "KeypointsRandomAffineTransform"
+    KeypointsImageNormalize = "KeypointsImageNormalize"
+    KeypointsImageToTensor = "KeypointsImageToTensor"
+    KeypointTransform = "KeypointTransform"
+    KeypointsPadIfNeeded = "KeypointsPadIfNeeded"
+    KeypointsLongestMaxSize = "KeypointsLongestMaxSize"
+    KeypointsRandomVerticalFlip = "KeypointsRandomVerticalFlip"
+    KeypointsRandomHorizontalFlip = "KeypointsRandomHorizontalFlip"
+
 
 class Optimizers:
     """Static class holding all the supported optimizer names"""
 
     SGD = "SGD"
     ADAM = "Adam"
+    ADAMW = "AdamW"
     RMS_PROP = "RMSprop"
     RMS_PROP_TF = "RMSpropTF"
     LAMB = "Lamb"
