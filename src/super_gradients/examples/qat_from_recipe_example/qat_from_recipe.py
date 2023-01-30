@@ -1,4 +1,19 @@
-from pathlib import Path
+"""
+Code for running PTQ/QAT on SuperGradients recipes.
+Usage:
+    python qat_from_recipe.py
+        --config-name=your_non_qat_recipe
+        arch_params=your_desired_arch_params
+        +quantization_params=default_quantization_params OR your_desired_quantization_params
+        +checkpoint_params.checkpoint_path=/full/path/to/your/checkpoint
+
+if `training_hyperparams.max_epochs=0`, only PTQ will be performed
+To use recipe for QAT as is, set `quantization_params.default_qat_recipe.enable` to False
+
+This script is proven NOT to work with DDP!
+"""
+
+import os
 
 import hydra
 import pkg_resources
@@ -9,7 +24,7 @@ from super_gradients import Trainer, init_trainer
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
+from super_gradients.training.metrics.metric_utils import get_metrics_dict
 from super_gradients.training.utils.distributed_training_utils import setup_device
 from super_gradients.training.utils.module_utils import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
@@ -27,6 +42,7 @@ def quantize_and_calibrate(
     method_w="max",
     method_i="mse",
     calibration_method=None,
+    percentile=99.99,
     per_channel=True,
     learn_amax=False,
     skip_modules=None,
@@ -55,7 +71,13 @@ def quantize_and_calibrate(
     model.to(device=device)  # we have new modules, they can be on different devices
 
     calibration_method = calibration_method or method_i
-    calibrator.calibrate_model(model, method=calibration_method, calib_data_loader=calibration_dataloader, num_calib_batches=num_calib_batches)
+    calibrator.calibrate_model(
+        model,
+        method=calibration_method,
+        calib_data_loader=calibration_dataloader,
+        num_calib_batches=num_calib_batches,
+        percentile=percentile,
+    )
     model.to(device=device)  # we can have _amax buffers scattered over different devices
 
     model.train()
@@ -64,7 +86,7 @@ def quantize_and_calibrate(
 
 def modify_training_params_for_qat(cfg):
     # Q/DQ Layers take a lot of space for activations in training mode
-    if cfg.quantization_params.sq_params.get("learn_amax", False):
+    if cfg.quantization_params.selective_quantizer_params.learn_amax:
         cfg.dataset_params.train_dataloader_params.batch_size //= 2
         cfg.dataset_params.val_dataloader_params.batch_size //= 2
 
@@ -72,14 +94,15 @@ def modify_training_params_for_qat(cfg):
     cfg.training_hyperparams.max_epochs //= 10
 
     # very small initial LR and WD
-    lr_decay_factor = cfg.quantization_params.get("lr_decay_factor", 100.0)
-    cfg.training_hyperparams.initial_lr /= lr_decay_factor
-    if cfg.training_hyperparams.warmup_initial_lr is not None:
-        cfg.training_hyperparams.warmup_initial_lr /= lr_decay_factor
-    else:
-        cfg.training_hyperparams.warmup_initial_lr = cfg.training_hyperparams.initial_lr / 100.0
+    lr_decay_factor = cfg.quantization_params.default_qat_recipe.lr_decay_factor
 
-    cfg.training_hyperparams.optimizer_params.weight_decay /= lr_decay_factor
+    cfg.training_hyperparams.initial_lr *= lr_decay_factor
+    if cfg.training_hyperparams.warmup_initial_lr is not None:
+        cfg.training_hyperparams.warmup_initial_lr *= lr_decay_factor
+    else:
+        cfg.training_hyperparams.warmup_initial_lr = cfg.training_hyperparams.initial_lr * 0.01
+
+    cfg.training_hyperparams.optimizer_params.weight_decay *= lr_decay_factor
 
     # as recommended by pytorch-quantization docs
     cfg.training_hyperparams.lr_mode = "cosine"
@@ -97,7 +120,7 @@ def modify_training_params_for_qat(cfg):
     cfg.dataset_params.train_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
 
 
-@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
+@hydra.main(config_path=pkg_resources.resource_filename("recipes", ""), version_base="1.2")
 def main(cfg: DictConfig) -> None:
     if "quantization_params" not in cfg:
         raise ValueError("Your recipe does not have quantization_params. Add them to use QAT.")
@@ -105,9 +128,9 @@ def main(cfg: DictConfig) -> None:
     if "checkpoint_path" not in cfg.checkpoint_params:
         raise ValueError("Starting checkpoint is a must for QAT finetuning.")
 
-    if cfg.quantization_params.modify_recipe_params:
+    if cfg.quantization_params.default_qat_recipe.enable:
         modify_training_params_for_qat(cfg=cfg)
-        logger.info("Modifying recipe to suit QAT. Add quantization_params.modify_recipe_params=False to do it manually.")
+        logger.info("Modifying recipe to suit QAT. Add quantization_params.default_qat_recipe.enable=False to do it manually.")
 
     cfg = hydra.utils.instantiate(cfg)
 
@@ -127,8 +150,8 @@ def main(cfg: DictConfig) -> None:
 
     # BUILD NETWORK
     model = models.get(
-        model_name=cfg.architecture,
-        num_classes=cfg.arch_params.num_classes,
+        model_name=cfg.arch_params.get("model_name", None) or cfg.architecture,
+        num_classes=cfg.get("num_classes", None) or cfg.arch_params.num_classes,
         arch_params=cfg.arch_params,
         pretrained_weights=cfg.checkpoint_params.pretrained_weights,
         checkpoint_path=cfg.checkpoint_params.checkpoint_path,
@@ -138,29 +161,39 @@ def main(cfg: DictConfig) -> None:
     quantize_and_calibrate(
         model,
         train_dataloader,
-        method_w=cfg.quantization_params.sq_params.method_w,
-        method_i=cfg.quantization_params.sq_params.method_i,
-        per_channel=cfg.quantization_params.sq_params.per_channel,
-        learn_amax=cfg.quantization_params.sq_params.learn_amax,
-        skip_modules=cfg.quantization_params.sq_params.skip_modules,
+        method_w=cfg.quantization_params.selective_quantizer_params.method_w,
+        method_i=cfg.quantization_params.selective_quantizer_params.method_i,
+        per_channel=cfg.quantization_params.selective_quantizer_params.per_channel,
+        learn_amax=cfg.quantization_params.selective_quantizer_params.learn_amax,
+        skip_modules=cfg.quantization_params.selective_quantizer_params.skip_modules,
         num_calib_batches=cfg.quantization_params.calib_params.num_calib_batches or (512 // cfg.dataset_params.train_dataloader_params.batch_size) or 1,
         calibration_method=cfg.quantization_params.calib_params.calib_method,
-        verbose=cfg.quantization_params.verbose,
+        percentile=cfg.quantization_params.calib_params.percentile,
+        verbose=cfg.quantization_params.calib_params.verbose,
     )
 
+    kwargs = parse_args(cfg, Trainer.__init__)
+    kwargs.pop("multi_gpu")
+    trainer = Trainer(**kwargs)
+
     if cfg.training_hyperparams.max_epochs != 0:
-        kwargs = parse_args(cfg, Trainer.__init__)
-        kwargs.pop("multi_gpu")
-        trainer = Trainer(**kwargs)
         trainer.train(model=model, train_loader=train_dataloader, valid_loader=val_dataloader, training_params=cfg.training_hyperparams)
         suffix = "qat"
     else:
         logger.info("cfg.training_hyperparams.max_epochs is 0! Performing PTQ only!")
         suffix = "ptq"
 
+    val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
+    valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
+    results = ["Validate Results"]
+    results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
+    logger.info("\n".join(results))
+
     input_shape = next(iter(val_dataloader))[0].shape
-    checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-    qat_path = str(checkpoints_dir / f"{cfg.experiment_name}_{'x'.join((str(x) for x in input_shape))}_{suffix}.onnx")
+    if not os.path.exists(trainer.checkpoints_dir_path):
+        os.makedirs(trainer.checkpoints_dir_path)
+
+    qat_path = os.path.join(trainer.checkpoints_dir_path, f"{cfg.experiment_name}_{'x'.join((str(x) for x in input_shape))}_{suffix}.onnx")
     export_quantized_module_to_onnx(
         model=model.cpu(),
         onnx_filename=qat_path,
@@ -168,7 +201,7 @@ def main(cfg: DictConfig) -> None:
         input_size=input_shape,
         train=False,
     )
-    logger.info(f"Exporting QAT ONNX to {qat_path}")
+    logger.info(f"Exporting {suffix.upper()} ONNX to {qat_path}")
 
 
 if __name__ == "__main__":
