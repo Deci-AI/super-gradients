@@ -14,15 +14,31 @@ from collections import defaultdict
 import copy
 
 
-def compute_bbox(joints: np.ndarray) -> np.ndarray:
+def compute_visible_bbox_xywh(joints: np.ndarray, visibility_mask: np.ndarray) -> np.ndarray:
     """
-    Compute bounding box for each instance and return it as a numpy array  [Num Instances, 4] where last dimension contains bbox in format X1,Y1,X2,Y2
-    :param joints:  [Num Instances, Num Joints, :2]
-    :return: [Num Instances, 4]
+    Compute the bounding box (X,Y,W,H) of the visible joints for each instance.
+
+    :param joints:  [Num Instances, Num Joints, 2+] last channel must have dimension of
+                    at least 2 that is considered to contain (X,Y) coordinates of the keypoint
+    :param visibility_mask: [Num Instances, Num Joints]
+    :return: A numpy array [Num Instances, 4] where last dimension contains bbox in format XYWH
     """
-    x1, x2 = np.max(joints[:, :, 0], axis=-1), np.min(joints[:, :, 0], axis=-1)
-    y1, y2 = np.max(joints[:, :, 1], axis=-1), np.min(joints[:, :, 1], axis=-1)
-    return np.stack([x1, y1, x2, y2], axis=-1)
+    visibility_mask = visibility_mask > 0
+    initial_value = 1_000_000
+
+    x1 = np.min(joints[:, :, 0], where=visibility_mask, initial=initial_value, axis=-1)
+    y1 = np.min(joints[:, :, 1], where=visibility_mask, initial=initial_value, axis=-1)
+
+    x1[x1 == initial_value] = 0
+    y1[y1 == initial_value] = 0
+
+    x2 = np.max(joints[:, :, 0], where=visibility_mask, initial=0, axis=-1)
+    y2 = np.max(joints[:, :, 1], where=visibility_mask, initial=0, axis=-1)
+
+    w = x2 - x1
+    h = y2 - y1
+
+    return np.stack([x1, y1, w, h], axis=-1)
 
 
 def computeKeypointsIoU(
@@ -33,19 +49,24 @@ def computeKeypointsIoU(
     sigmas: np.ndarray,
     max_dets: int = 20,
     gt_areas: np.ndarray = None,
+    gt_bboxes: np.ndarray = None,
 ) -> np.ndarray:
     """
 
-    :param pred_joints: [K, NumJoints, 2]
+    :param pred_joints: [K, NumJoints, 2] or [K, NumJoints, 3]
     :param pred_scores: [K]
     :param gt_joints:   [M, NumJoints, 2]
     :param gt_keypoint_visibility: [M, NumJoints]
-    :param gt_areas: [M] Area of each ground truth instance. If None, we will use area of bounding box of each instance computed from gt_joints
+    :param gt_areas: [M] Area of each ground truth instance. COCOEval uses area of the instance mask to scale OKs, so it must be provided separately.
+        If None, we will use area of bounding box of each instance computed from gt_joints.
+
+    :param gt_bboxes: [M, 4] Bounding box (X,Y,W,H) of each ground truth instance. If None, we will use bounding box of each instance computed from gt_joints.
     :param sigmas: [NumJoints]
     :return: IoU matrix [min(K, max_dets), M]
     """
 
     # Sort predictions by score from highest to lowest and retain only the top max_dets
+    pred_scores = np.array(pred_scores)
     inds = np.argsort(-pred_scores, kind="mergesort")
     pred_joints = [pred_joints[i] for i in inds]
 
@@ -59,9 +80,11 @@ def computeKeypointsIoU(
     vars = (sigmas * 2) ** 2
     num_joints = len(sigmas)
 
-    gt_bboxes = compute_bbox(gt_joints)
+    if gt_bboxes is None:
+        gt_bboxes = compute_visible_bbox_xywh(gt_joints, gt_keypoint_visibility)
+
     if gt_areas is None:
-        gt_areas = (gt_bboxes[:, 2] - gt_bboxes[:, 0]) * (gt_bboxes[:, 3] - gt_bboxes[:, 1])
+        gt_areas = gt_bboxes[:, 2] * gt_bboxes[:, 3]
 
     # compute oks between each detection and ground truth object
     for gt_index, (gt_keypoints, gt_keypoint_visibility, gt_bbox, gt_area) in enumerate(zip(gt_joints, gt_keypoint_visibility, gt_bboxes, gt_areas)):
@@ -211,82 +234,40 @@ class COCOeval:
         # loop through images, area range, max detection number
         catIds = p.catIds if p.useCats else [-1]
 
-        self.ious = {(imgId, catId): self.computeOks(imgId, catId) for imgId in p.imgIds for catId in catIds}
+        self.ious = {(imgId, catId): self.computeOksV2(imgId, catId) for imgId in p.imgIds for catId in catIds}
 
-        evaluateImg = self.evaluateImg
         maxDet = p.maxDets[-1]
-        self.evalImgs = [evaluateImg(imgId, catId, areaRng, maxDet) for catId in catIds for areaRng in p.areaRng for imgId in p.imgIds]
+        self.evalImgs = [self.evaluateImg(imgId, catId, areaRng, maxDet) for catId in catIds for areaRng in p.areaRng for imgId in p.imgIds]
         self._paramsEval = copy.deepcopy(self.params)
 
     def computeOksV2(self, imgId, catId):
         p = self.params
         # dimention here should be Nxm
-        gts = self._gts[imgId, catId]
-        dts = self._dts[imgId, catId]
+        groundtruths = self._gts[imgId, catId]
+        predictions = self._dts[imgId, catId]
+
+        # Note this unpacking will be removed once we get rid of COCO format
+        pred_keypoints = np.array([np.array(dt["keypoints"]).reshape(-1, 3) for dt in predictions])
+        pred_scores = np.array([dt["score"] for dt in predictions])
+
+        gt_keypoints_with_visibility = np.array([np.array(gt["keypoints"]).reshape(-1, 3) for gt in groundtruths])
+        gt_joints = gt_keypoints_with_visibility[:, :, 0:2] if len(gt_keypoints_with_visibility) else []
+        gt_keypoint_visibility = gt_keypoints_with_visibility[:, :, 2] if len(gt_keypoints_with_visibility) else []
+        gt_areas = np.array([gt["area"] for gt in groundtruths])
+        gt_bboxes = np.array([gt["bbox"] for gt in groundtruths])
+        # gt_areas = None
+        # gt_bboxes = None
 
         ious = computeKeypointsIoU(
-            pred_joints=[dt["keypoints"] for dt in dts],
-            pred_scores=[dt["score"] for dt in dts],
-            gt_joints=[gt["keypoints"][:, 0:2] for gt in gts],
-            gt_keypoint_visibility=[gt["keypoint_visibility"][:, 2] for gt in gts],
-            gt_areas=None,
-            # gt_areas=[gt["area"] for gt in gts],
+            pred_joints=pred_keypoints,
+            pred_scores=pred_scores,
+            gt_joints=gt_joints,
+            gt_keypoint_visibility=gt_keypoint_visibility,
+            gt_areas=gt_areas,
+            gt_bboxes=gt_bboxes,
             max_dets=p.maxDets[-1],
             sigmas=p.kpt_oks_sigmas,
         )
-        return ious
-
-    def computeOks(self, imgId, catId):
-        p = self.params
-        # dimention here should be Nxm
-        gts = self._gts[imgId, catId]
-        dts = self._dts[imgId, catId]
-        inds = np.argsort([-d["score"] for d in dts], kind="mergesort")
-        dts = [dts[i] for i in inds]
-        if len(dts) > p.maxDets[-1]:
-            dts = dts[0 : p.maxDets[-1]]
-        # if len(gts) == 0 and len(dts) == 0:
-        if len(gts) == 0 or len(dts) == 0:
-            return []
-        ious = np.zeros((len(dts), len(gts)))
-        sigmas = p.kpt_oks_sigmas
-        vars = (sigmas * 2) ** 2
-        k = len(sigmas)
-        # compute oks between each detection and ground truth object
-        for j, gt in enumerate(gts):
-            # create bounds for ignore regions(double the gt bbox)
-            g = np.array(gt["keypoints"])
-            xg = g[0::3]
-            yg = g[1::3]
-            vg = g[2::3]
-            k1 = np.count_nonzero(vg > 0)
-            bb = gt["bbox"]
-            x0 = bb[0] - bb[2]
-            x1 = bb[0] + bb[2] * 2
-            y0 = bb[1] - bb[3]
-            y1 = bb[1] + bb[3] * 2
-            for i, dt in enumerate(dts):
-                d = np.array(dt["keypoints"])
-                xd = d[0::3]
-                yd = d[1::3]
-                if k1 > 0:
-                    # measure the per-keypoint distance if keypoints visible
-                    dx = xd - xg
-                    dy = yd - yg
-                else:
-                    # measure minimum distance to keypoints in (x0,y0) & (x1,y1)
-                    z = np.zeros((k))
-                    dx = np.max((z, x0 - xd), axis=0) + np.max((z, xd - x1), axis=0)
-                    dy = np.max((z, y0 - yd), axis=0) + np.max((z, yd - y1), axis=0)
-
-                e = (dx**2 + dy**2) / vars / (gt["area"] + np.spacing(1)) / 2
-
-                # gt["bbox_area"] = bb[2] * bb[3]
-                # e = (dx**2 + dy**2) / vars / (gt["bbox_area"] + np.spacing(1)) / 2
-
-                if k1 > 0:
-                    e = e[vg > 0]
-                ious[i, j] = np.sum(np.exp(-e)) / e.shape[0]
         return ious
 
     def evaluateImg(self, imgId, catId, aRng, maxDet):

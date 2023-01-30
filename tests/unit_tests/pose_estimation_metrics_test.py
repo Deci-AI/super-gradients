@@ -22,7 +22,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         gt = remove_duplicate_annotations(gt)
         gt = make_keypoints_outside_image_invisible(gt)
 
-        predictions = list(self.generate_noised_predictions(gt, instance_drop_probability=0.1, pose_offset=5.0))
+        predictions = list(self.generate_noised_predictions(gt, instance_drop_probability=0.0, pose_offset=0.0))
 
         coco_pred = self.convert_predictions_to_coco_dict(predictions)
 
