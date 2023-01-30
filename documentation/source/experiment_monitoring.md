@@ -62,3 +62,7 @@ training_params = {
 
 trainer.train(model=model, training_params=training_params, ...)
 ```
+
+
+## How to log custom information with a callback?
+TODO
