@@ -2,7 +2,7 @@ import os
 from typing import Optional
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger, EXPERIMENT_LOGS_PREFIX
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
 
@@ -10,7 +10,6 @@ logger = get_logger(__name__)
 
 
 TENSORBOARD_EVENTS_PREFIX = "events.out.tfevents"
-LOGS_PREFIX = "log_"
 
 
 class DeciPlatformSGLogger(BaseSGLogger):
@@ -74,7 +73,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
             raise ValueError("Provided directory does not exist")
 
         self._upload_latest_file_starting_with(start_with=TENSORBOARD_EVENTS_PREFIX)
-        self._upload_latest_file_starting_with(start_with=LOGS_PREFIX)
+        self._upload_latest_file_starting_with(start_with=EXPERIMENT_LOGS_PREFIX)
 
     @multi_process_safe
     def _upload_latest_file_starting_with(self, start_with: str):
@@ -89,5 +88,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         ]
 
         most_recent_file_path = max(files_path, key=os.path.getctime)
+        print("most_recent_file_path: ", most_recent_file_path)
+        print("------" * 20)
         self.platform_client.save_experiment_file(file_path=most_recent_file_path)
         logger.info(f"File saved to Deci platform: {most_recent_file_path}")
