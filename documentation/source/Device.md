@@ -1,13 +1,13 @@
 # Training modes
 
 SuperGradients allows users to train models on different modes:
-- CPU
-- single GPU - (CUDA)
-- single GPU - Data Parallel (DP)
-- multiple GPUs' - Distributed Data Parallel (DDP)
+1. CPU 
+2. single GPU - (CUDA)
+3. single GPU - Data Parallel (DP)
+4. multiple GPUs' - Distributed Data Parallel (DDP)
 
 
-### CPU
+## 1. CPU
 **Requirement**: None.
 
 **How to use it**: If you don't have any CUDA device available, your training will automatically be run on CPU.
@@ -25,14 +25,14 @@ trainer.train(...)
 
 
 
-### CUDA
+## 2. CUDA
 **Requirement**: Having at least one CUDA devices available
 
 **How to use it**: If you have at least one CUDA device, nothing! Otherwise, you will have to use CPU...
 
 
 
-### DP - Data Parallel
+## 3. DP - Data Parallel
 DataParallel (DP0 is single-process, multi-thread, technic for scaling deep learning model training across multiple GPUs on a single machine.
 
 The general flow is as below:
@@ -71,7 +71,7 @@ trainer.train(...)
 
 
 
-### DDP - Distributed Data Parallel
+## 4. DDP - Distributed Data Parallel
 Distributed Data Parallel (DDP) is a powerful technique for scaling deep learning model training across multiple GPUs. 
 It involves the use of multiple processes, each running on a different GPU and having its own instance of the model. 
 The processes communicate only to exchange gradients, making it a highly efficient and more scalable solution for training large models than Data Parallel (DP).
@@ -102,7 +102,6 @@ trainer.train(...)
 ```
 **Tip**: To optimize runtime we recommend to call `setup_device` as early as possible.
 
----
 
 ### What should you be aware when using DDP ?
 
@@ -200,7 +199,7 @@ class DDPTop1Accuracy(torchmetrics.Metric):
     def compute(self):
         return self.correct.float() / self.total
 ```
-**How does it work step by step ?**
+**Step by step explanation**
 1. DDP launches and pytorch creates a separate instance of your custom metric for each process.
 2. The `update()` method modifies the internal state of each instance in each process based on the inputs `preds` and `target` specific to that process.
 3. After an epoch, each process will have a unique state, for example:
@@ -214,8 +213,8 @@ class DDPTop1Accuracy(torchmetrics.Metric):
 
 ---
 
-## How to use it with recipes ?
-When using [recipes](...TOFILL) you simply need to set values of `gpu_mode` and `num_gpus`
+## How to set training mode with recipes ?
+When using [recipes](configuration_files.md) you simply need to set values of `gpu_mode` and `num_gpus`
 
 ```yaml
 # training_recipe.yaml
@@ -228,11 +227,3 @@ default:
 gpu_mode: DDP
 num_gpus: 4
 ```
-
----
-## Tips about `setup_device`
-If you skip gpu_mode (i.e. `gpu_mode=None`), it will be set according to the following logic:
-- `setup_device(num_gpus=0)`  => `gpu_mode='OFF'` and `device='cpu'`
-- `setup_device(num_gpus=1)`  => `gpu_mode='OFF'` and `device='gpu'`
-- `setup_device(num_gpus>=2)` => `gpu_mode='DDP'` and `device='gpu'`
-- `setup_device(num_gpus=-1)` => `gpu_mode='DDP'` and `device='gpu'` and `num_gpus=<N-AVAILABLE-GPUs>`
