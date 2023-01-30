@@ -2,7 +2,7 @@ import os
 from typing import Optional
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger, EXPERIMENT_LOGS_PREFIX
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger, EXPERIMENT_LOGS_PREFIX, LOGGER_LOGS_PREFIX, CONSOLE_LOGS_PREFIX
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
 
@@ -74,6 +74,8 @@ class DeciPlatformSGLogger(BaseSGLogger):
 
         self._upload_latest_file_starting_with(start_with=TENSORBOARD_EVENTS_PREFIX)
         self._upload_latest_file_starting_with(start_with=EXPERIMENT_LOGS_PREFIX)
+        self._upload_latest_file_starting_with(start_with=LOGGER_LOGS_PREFIX)
+        self._upload_latest_file_starting_with(start_with=CONSOLE_LOGS_PREFIX)
 
     @multi_process_safe
     def _upload_latest_file_starting_with(self, start_with: str):
