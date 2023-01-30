@@ -2,7 +2,7 @@ import os
 from typing import Optional
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger, EXPERIMENT_LOGS_PREFIX
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger, EXPERIMENT_LOGS_PREFIX, LOGGER_LOGS_PREFIX, CONSOLE_LOGS_PREFIX
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
 
@@ -74,6 +74,9 @@ class DeciPlatformSGLogger(BaseSGLogger):
 
         self._upload_latest_file_starting_with(start_with=TENSORBOARD_EVENTS_PREFIX)
         self._upload_latest_file_starting_with(start_with=EXPERIMENT_LOGS_PREFIX)
+        self._upload_latest_file_starting_with(start_with=LOGGER_LOGS_PREFIX)
+        self._upload_latest_file_starting_with(start_with=CONSOLE_LOGS_PREFIX)
+        self._upload_folder_files(folder_name=".hydra")
 
     @multi_process_safe
     def _upload_latest_file_starting_with(self, start_with: str):
@@ -88,7 +91,21 @@ class DeciPlatformSGLogger(BaseSGLogger):
         ]
 
         most_recent_file_path = max(files_path, key=os.path.getctime)
-        print("most_recent_file_path: ", most_recent_file_path)
-        print("------" * 20)
         self.platform_client.save_experiment_file(file_path=most_recent_file_path)
         logger.info(f"File saved to Deci platform: {most_recent_file_path}")
+
+    @multi_process_safe
+    def _upload_folder_files(self, folder_name: str):
+        """
+        Upload all the files of a given folder.
+
+        :param folder_name: Name of the folder that contains the files to upload
+        """
+        folder_path = os.path.join(self.checkpoints_dir_path, folder_name)
+
+        if not os.path.exists(folder_path):
+            return
+
+        for file in os.listdir(folder_path):
+            self.platform_client.save_experiment_file(file_path=f"{folder_path}/{file}")
+            logger.info(f"File saved to Deci platform: {folder_path}/{file}")
