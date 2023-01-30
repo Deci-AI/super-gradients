@@ -17,8 +17,8 @@ optimizer_params:
 
 ema: True
 ema_params:
-  exp_activation: False
   decay: 0.9999
+  decay_type: constant
 
 loss: cross_entropy
 criterion_params:
@@ -42,4 +42,3 @@ valid_metrics_list:                               # metrics for evaluation
   - Top5
 
 _convert_: all
-
