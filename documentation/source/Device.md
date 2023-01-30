@@ -33,6 +33,26 @@ trainer.train(...)
 
 
 ### DP - Data Parallel
+DataParallel (DP0 is single-process, multi-thread, technic for scaling deep learning model training across multiple GPUs on a single machine.
+
+The general flow is as below:
+- Split the data into smaller chunks (mini-batch) on GPU:0
+- Move one chunk of data per GPU
+- Copy the model to all available GPUs
+- Perform the forward pass on each GPU in parallel
+- Gather the outputs on GPU:0
+- Compute the loss on GPU:0
+- Share the loss to all the GPUs
+- Compute the gradients on each GPU
+- Gather and sum up gradients on GPU:0
+- Update model on GPU:0
+
+![img.png](images/DP.png)
+[Source: towardsdatascience](https://towardsdatascience.com/how-to-scale-training-on-multiple-gpus-dae1041f49d2)
+
+
+*For more detailed information, feel free to check out [this blog](https://towardsdatascience.com/how-to-scale-training-on-multiple-gpus-dae1041f49d2) for a more in-depth explanation.*
+
 **Requirement**: Having at least one CUDA devices available
 
 **How to use it**: All you need to do is to call a magic function `setup_device` before instantiating the Trainer.
@@ -47,11 +67,25 @@ setup_device(multi_gpu='DP', num_gpus=4)
 trainer = Trainer(...)
 trainer.train(...)
 ```
-**Tip**: To optimize running time we recommend to call `setup_device` as early as possible.
+**Tip**: To optimize runtime we recommend to call `setup_device` as early as possible.
 
 
 
 ### DDP - Distributed Data Parallel
+Distributed Data Parallel (DDP) is a powerful technique for scaling deep learning model training across multiple GPUs. 
+It involves the use of multiple processes, each running on a different GPU and having its own instance of the model. 
+The processes communicate only to exchange gradients, making it a highly efficient and more scalable solution for training large models than Data Parallel (DP).
+
+Although DDP can be more complex to set up than DP, the SuperGradients library abstracts away the complexity by handling the setup process behind the scenes. 
+This makes it easy for users to take advantage of the benefits of DDP without having to worry about the technical details. 
+We highly recommend using DDP over DP whenever possible.
+
+![img_1.png](images/DDP.png)
+
+[Source: towardsdatascience](https://towardsdatascience.com/how-to-scale-training-on-multiple-gpus-dae1041f49d2)
+
+*For more detailed information, feel free to check out [this blog](https://towardsdatascience.com/how-to-scale-training-on-multiple-gpus-dae1041f49d2) for a more in-depth explanation.*
+
 **Requirement**: Having multiple CUDA devices available
 
 **How to use it**: All you need to do is to call a magic function `setup_device` before instantiating the Trainer.
@@ -66,7 +100,7 @@ setup_device(num_gpus=4) # Equivalent to: setup_device(multi_gpu='DDP', num_gpus
 trainer = Trainer(...)
 trainer.train(...)
 ```
-**Tip**: To optimize running time we recommend to call `setup_device` as early as possible.
+**Tip**: To optimize runtime we recommend to call `setup_device` as early as possible.
 
 ---
 
@@ -177,3 +211,28 @@ class DDPTop1Accuracy(torchmetrics.Metric):
    - All processes: correct=180, total=300
 5. The `compute()` method then calculates the metric value according to your implementation. In this example, every process will return the same result: `0.6` (180 correct predictions out of 300 total predictions).
 6. Finally, calling `reset()` will reset the internal state of the metric, making it ready to accumulate new data at the start of the next epoch.
+
+---
+
+## How to use it with recipes ?
+When using [recipes](...TOFILL) you simply need to set values of `gpu_mode` and `num_gpus`
+
+```yaml
+# training_recipe.yaml
+default:
+   - ...
+
+...
+
+# Simply add this to run DDP on 4 nodes.
+gpu_mode: DDP
+num_gpus: 4
+```
+
+---
+## Tips about `setup_device`
+If you skip gpu_mode (i.e. `gpu_mode=None`), it will be set according to the following logic:
+- `setup_device(num_gpus=0)`  => `gpu_mode='OFF'` and `device='cpu'`
+- `setup_device(num_gpus=1)`  => `gpu_mode='OFF'` and `device='gpu'`
+- `setup_device(num_gpus>=2)` => `gpu_mode='DDP'` and `device='gpu'`
+- `setup_device(num_gpus=-1)` => `gpu_mode='DDP'` and `device='gpu'` and `num_gpus=<N-AVAILABLE-GPUs>`
