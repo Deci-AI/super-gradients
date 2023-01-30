@@ -88,7 +88,5 @@ class DeciPlatformSGLogger(BaseSGLogger):
         ]
 
         most_recent_file_path = max(files_path, key=os.path.getctime)
-        print("most_recent_file_path: ", most_recent_file_path)
-        print("------" * 20)
         self.platform_client.save_experiment_file(file_path=most_recent_file_path)
         logger.info(f"File saved to Deci platform: {most_recent_file_path}")
