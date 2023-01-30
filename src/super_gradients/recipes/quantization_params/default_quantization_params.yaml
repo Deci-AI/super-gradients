@@ -1,13 +1,16 @@
-modify_recipe_params: True
-verbose: False
-lr_decay_factor: 100.0
+default_qat_recipe:
+  enable: True              # disable if you have recipe that is suitable for QAT
+  lr_decay_factor: 1e-2     # lr, weight decay, warmup and cosine parameters will be derived from original recipe with this factor
 
-sq_params:
-  method_w: "max"
-  method_i: "histogram"
-  per_channel: True
-  learn_amax: False
-  skip_modules: null
+selective_quantizer_params:
+  method_w: "max"           # calibrator type for weights, acceptable types are ["max", "histogram"]
+  method_i: "histogram"     # calibrator type for inputs acceptable types are ["max", "histogram"]
+  per_channel: True         # per-channel quantization of weights, activations stay per-tensor by default
+  learn_amax: False         # enable learnable amax in all TensorQuantizers using straight-through estimator
+  skip_modules: null        # optional list of module names (strings) to skip from quantization
+
 calib_params:
-  calib_method: "percentile"
-  num_calib_batches: null
+  calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", mse"], "max" calibrators are not affected
+  percentile: 99.99           # percentile for all histogram calibrators with method "percentile", other calibrators are not affected
+  num_calib_batches: null     # number of batches to use for calibration, if null, 512 / batch_size will be used
+  verbose: False              # if calibrator should be verbose
