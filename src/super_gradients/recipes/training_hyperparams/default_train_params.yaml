@@ -30,8 +30,8 @@ criterion_params: {} # when `loss` is one of SuperGradient's built in options, i
 ema: False # whether to use Model Exponential Moving Average
 ema_params: # parameters for the ema model.
   decay: 0.9999
+  decay_type: exp
   beta: 15
-  exp_activation: True
 
 
 train_metrics_list: [] # Metrics to log during training. For more information on torchmetrics see https://torchmetrics.rtfd.io/en/latest/.

@@ -34,6 +34,7 @@ class KDEMATest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
             "average_best_models": False,
             "ema": True,
+            "ema_params": {"decay_type": "constant", "decay": 0.999},
         }
 
     def test_teacher_ema_not_duplicated(self):
