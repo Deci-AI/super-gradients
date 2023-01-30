@@ -544,10 +544,6 @@ class Trainer:
         self.scaler.scale(loss).backward()
         self.phase_callback_handler.on_train_batch_backward_end(context)
 
-        # APPLY GRADIENT CLIPPING IF REQUIRED
-        if self.training_params.clip_grad_norm:
-            torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
-
         # ACCUMULATE GRADIENT FOR X BATCHES BEFORE OPTIMIZING
         local_step = batch_idx + 1
         global_step = local_step + len(self.train_loader) * epoch
@@ -555,6 +551,11 @@ class Trainer:
 
         if global_step % self.batch_accumulate == 0:
             self.phase_callback_handler.on_train_batch_gradient_step_start(context)
+
+            # APPLY GRADIENT CLIPPING IF REQUIRED
+            if self.training_params.clip_grad_norm:
+                self.scaler.unscale_(self.optimizer)
+                torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
 
             # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
             self.scaler.step(self.optimizer)
