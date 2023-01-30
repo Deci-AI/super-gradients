@@ -47,7 +47,7 @@ The general flow is as below:
 - Gather and sum up gradients on GPU:0
 - Update model on GPU:0
 
-![img.png](images/DP.png)
+![images/DP.png](images/DP.png)
 [Source: towardsdatascience](https://towardsdatascience.com/how-to-scale-training-on-multiple-gpus-dae1041f49d2)
 
 
@@ -80,7 +80,7 @@ Although DDP can be more complex to set up than DP, the SuperGradients library a
 This makes it easy for users to take advantage of the benefits of DDP without having to worry about the technical details. 
 We highly recommend using DDP over DP whenever possible.
 
-![img_1.png](images/DDP.png)
+![images/DDP.png](images/DDP.png)
 
 [Source: towardsdatascience](https://towardsdatascience.com/how-to-scale-training-on-multiple-gpus-dae1041f49d2)
 
@@ -105,7 +105,7 @@ trainer.train(...)
 
 ### What should you be aware when using DDP ?
 
-#### 1. DDP runs multiple processes
+#### A. DDP runs multiple processes
 When running DDP, you will work with multiple processes that will go through the whole training loop.
 This means that if you run DDP on 4 gpus, any action that you do will be run 4 times.
 
@@ -127,7 +127,7 @@ print_hello()
 ```
 
 
-#### 2. DDP requires specific Metric implementation!
+#### B. DDP requires specific Metric implementation!
 As explained, multiple processes are used to train a model with DDP, each on its own GPU. 
 This means that the metrics must be computed and aggregated across all the processes, and it requires the metric to be implemented using states.
 
