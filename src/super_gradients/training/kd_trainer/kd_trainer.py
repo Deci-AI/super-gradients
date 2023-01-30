@@ -1,21 +1,14 @@
+from typing import Union, Dict, Mapping, Any
+
 import hydra
 import torch.nn
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 
-from super_gradients.training.utils.distributed_training_utils import setup_device
 from super_gradients.common import MultiGPUMode
-from super_gradients.training.dataloaders import dataloaders
-from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
-from super_gradients.training.models.kd_modules.kd_module import KDModule
-from super_gradients.training.sg_trainer import Trainer
-from typing import Union, Dict
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import utils as core_utils, models
-from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import get_param, HpmStruct
-from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, load_checkpoint_to_model
+from super_gradients.training.dataloaders import dataloaders
 from super_gradients.training.exceptions.kd_trainer_exceptions import (
     ArchitectureKwargsException,
     UnsupportedKDArchitectureException,
@@ -24,7 +17,15 @@ from super_gradients.training.exceptions.kd_trainer_exceptions import (
     TeacherKnowledgeException,
     UndefinedNumClassesException,
 )
+from super_gradients.training.models import SgModule
+from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
+from super_gradients.training.models.kd_modules.kd_module import KDModule
+from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
+from super_gradients.training.sg_trainer import Trainer
+from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallback
+from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, load_checkpoint_to_model
+from super_gradients.training.utils.distributed_training_utils import setup_device
 from super_gradients.training.utils.ema import KDModelEMA
 
 logger = get_logger(__name__)
@@ -255,17 +256,15 @@ class KDTrainer(Trainer):
         )
         return hyper_param_config
 
-    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> KDModelEMA:
-        """Instantiate KD ema model for KDModule.
-
-        If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.
-        :param decay:           the maximum decay value. as the training process advances, the decay will climb towards
-                                this value until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
-        :param beta:            the exponent coefficient. The higher the beta, the sooner in the training the decay will
-                                saturate to its final value. beta=15 is ~40% of the training process.
-        :param exp_activation:
+    def _instantiate_ema_model(self, ema_params: Mapping[str, Any]) -> KDModelEMA:
+        """Instantiate ema model for standard SgModule.
+        :param decay_type: (str) The decay climb schedule. See EMA_DECAY_FUNCTIONS for more details.
+        :param decay: The maximum decay value. As the training process advances, the decay will climb towards this value
+                      according to decay_type schedule. See EMA_DECAY_FUNCTIONS for more details.
+        :param kwargs: Additional parameters for the decay function. See EMA_DECAY_FUNCTIONS for more details.
         """
-        return KDModelEMA(self.net, decay, beta, exp_activation)
+        logger.info(f"Using EMA with params {ema_params}")
+        return KDModelEMA.from_params(self.net, **ema_params)
 
     def _save_best_checkpoint(self, epoch, state):
         """
