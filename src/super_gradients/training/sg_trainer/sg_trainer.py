@@ -1192,19 +1192,19 @@ class Trainer:
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
-        if self.training_params.max_train_batches is not None and (
-            self.training_params.max_train_batches > len(self.train_loader) or self.training_params.max_train_batches <= 0
-        ):
+        if self.training_params.max_train_batches is not None:
+            if self.training_params.max_train_batches > len(self.train_loader):
+                logger.warning("max_train_batches is greater than len(self.train_loader) and will have no effect.")
+            elif self.training_params.max_train_batches <= 0:
+                raise ValueError("max_train_batches must be positive.")
 
-            raise ValueError("max_train_batches must be positive and smaller then len(train_loader).")
+        if self.training_params.max_valid_batches is not None:
+            if self.training_params.max_valid_batches > len(self.valid_loader):
+                logger.warning("max_valid_batches is greater than len(self.valid_loader) and will have no effect.")
+            elif self.training_params.max_valid_batches <= 0:
+                raise ValueError("max_valid_batches must be positive.")
 
         self.max_train_batches = self.training_params.max_train_batches
-
-        if self.training_params.max_valid_batches is not None and (
-            self.training_params.max_valid_batches > len(self.valid_loader) or self.training_params.max_valid_batches <= 0
-        ):
-
-            raise ValueError("max_valid_batches must be positive and smaller then len(valid_loader).")
         self.max_valid_batches = self.training_params.max_valid_batches
 
         # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
