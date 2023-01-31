@@ -6,9 +6,15 @@ SuperGradients supports out-of-the-box Weights & Biases (wandb) and ClearML.
 Simply update your train parameters to specify your preferred third-party logging tool, and the Trainer will 
 take care of the rest, handling all the necessary logic and integration.
 
+### Tensorboard
+**requirements**: None
+
+Tensorboard is natively integrated into the training and validation steps. You can find how to use it in [this section](TODO:add_link_to_our_tn_description).
+
+
 ### Weights & Biases
 **requirements**:
-- Install wandb
+- Install `wandb`
 - Set up wandb according to the [official documentation](https://docs.wandb.ai/quickstart#1.-set-up-wandb)
 - Adapt your code like in the following example
 
@@ -37,8 +43,8 @@ trainer.train(model=model, training_params=training_params, ...)
 
 ### ClearML
 **requirements**:
-- Install clearml
-- Set up cleaml according to the [official documentation](https://clear.ml/docs/latest/docs/getting_started/ds/ds_first_steps#install-clearml)
+- Install `clearml` 
+- Set up CleaML according to the [official documentation](https://clear.ml/docs/latest/docs/getting_started/ds/ds_first_steps#install-clearml)
 - Adapt your code like in the following example
 
 ```python
