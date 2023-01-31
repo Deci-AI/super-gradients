@@ -94,7 +94,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         ]
 
         most_recent_file_path = max(files_path, key=os.path.getctime)
-        self._save_save_experiment_file(file_path=most_recent_file_path)
+        self._save_experiment_file(file_path=most_recent_file_path)
 
     @multi_process_safe
     def _upload_folder_files(self, folder_name: str):
@@ -109,13 +109,11 @@ class DeciPlatformSGLogger(BaseSGLogger):
             return
 
         for file in os.listdir(folder_path):
-            self._save_save_experiment_file(file_path=f"{folder_path}/{file}")
+            self._save_experiment_file(file_path=f"{folder_path}/{file}")
 
-    def _save_save_experiment_file(self, file_path: str):
-
+    def _save_experiment_file(self, file_path: str):
         with log_stdout():  # TODO: remove when platform_client remove prints from save_experiment_file
             self.platform_client.save_experiment_file(file_path=file_path)
-
         logger.info(f"File saved to Deci platform: {file_path}")
 
 
