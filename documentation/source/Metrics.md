@@ -1,8 +1,8 @@
 # Metrics in SG
 
-The purpose of metrics is, to allow you to monitor and quantify the training process. Therefore, they are an essential component in every deep learning training process.
+The purpose of metrics is to allow you to monitor and quantify the training process. Therefore, metrics are an essential component in every deep learning training process.
 For this purpose, we leverage the [torchmetrics](https://torchmetrics.rtfd.io/en/latest/) library.
-From `torchmetrics` homepage:
+From the `torchmetrics` homepage:
 
     "TorchMetrics is a collection of 90+ PyTorch metrics implementations and an easy-to-use API to create custom metrics. It offers:
     
@@ -16,7 +16,7 @@ From `torchmetrics` homepage:
     
     - Automatic accumulation over batches
     
-    - Automatic synchronization between multiple devices"
+    - Automatic synchronization between multiple devices."
 
 SG is compatible with any module metric implemented by torchmetrics (see complete list [here](https://torchmetrics.rtfd.io/en/latest/)).
 Apart from the native `torchmetrics` implementations, SG implements some metrics as `torchmetrics.Metric` objects as well:
@@ -35,7 +35,7 @@ Apart from the native `torchmetrics` implementations, SG implements some metrics
 
 ## Basic Usage of Implemented Metrics in SG:
 
-For coded training scripts (i.e. not [using configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)), the most basic usage is simply passing the metric objects through
+For coded training scripts (i.e., not [using configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)), the most basic usage is simply passing the metric objects through
 `train_metrics_list` and `valid_metrics_list`:
 
 ```python
@@ -59,9 +59,9 @@ trainer.train(model=model, training_params=train_params, train_loader=train_data
 
 Now, the metrics progress over the training epochs (and validation) will be displayed and logged in the Tensorboards, and any 3rd party SG Logger (see integration with Weights & Biases and Clearml in [repo homepage](https://github.com/Deci-AI/super-gradients#-integration-to-weights-and-biases-)).
 Metric results will be lowercase, with the appropriate suffix: `train_accuracy`, `train_top5`, `valid_accuracy`, `valid_top5`.
-Also notice the `metric_to_watch` training params that is set to `Accuracy` and `greater_metric_to_watch_is_better=True` meaning that we will monitor the validation accuracy and save checkpoints according to it.
+Also, notice the `metric_to_watch` set to `Accuracy` and `greater_metric_to_watch_is_better=True`, meaning that we will monitor the validation accuracy and save checkpoints according to it.
 Open any of the [tutorial notebooks](https://github.com/Deci-AI/super-gradients#getting-started) to see the metrics monitoring in action.
-For more info on checkpoints and logs follow our SG checkpoints tutorial.
+For more info on checkpoints and logs, follow our SG checkpoints tutorial.
 
 Equivalently, for [training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md), your `my_training_hyperparams.yaml` would contain:
 ```yaml
@@ -83,7 +83,7 @@ valid_metrics_list:                               # metrics for evaluation
 
 ## Using Custom Metrics in SG
 
-Suppose you implemented your own `MyAccuracy` (more information on how to do so [here](https://torchmetrics.readthedocs.io/en/latest/pages/implement.html)), for coded trainings you can simply pass an instance of it as done in the previous sub-section.
+Suppose you implemented your own `MyAccuracy` (more information on how to do so [here](https://torchmetrics.readthedocs.io/en/latest/pages/implement.html)), for coded training, you can pass an instance of it as done in the previous sub-section.
 For [training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md), first decorate your metric class with SG's `@register_metric` decorator:
 ```python
 from torchmetrics import Metric
@@ -108,7 +108,7 @@ class MyAccuracy(Metric):
         return self.correct.float() / self.total
 ```
 
-Next, use the registered metric in your your `my_training_hyperparams.yaml` by plugging in the registered name, just is if it was any other metric:
+Next, use the registered metric in your `my_training_hyperparams.yaml` by plugging in the registered name, just as if it was any other metric:
 ```yaml
 defaults:
   - default_train_params
@@ -126,7 +126,7 @@ valid_metrics_list:                               # metrics for evaluation
 ...
 ```
 
-Last, in your ``my_train_from_recipe_script.py`` file, just import the newly registered class (even though the class itself is unused, just to trigger the registry):
+Last, in your ``my_train_from_recipe_script.py`` file, import the newly registered class (even though the class itself is unused, just to trigger the registry):
         
 ```python
 
