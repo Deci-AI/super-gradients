@@ -80,9 +80,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         self.platform_client.save_experiment_file(
             file_path="/home/louis.dupont/PycharmProjects/super-gradients/checkpoints/deci_lab_export_test_model/average_model.pth"
         )
-        self.platform_client.save_experiment_file(
-            file_path="/home/louis.dupont/PycharmProjects/super-gradients/checkpoints/deci_lab_export_test_model/average_model2.pth"
-        )
+        self.platform_client.save_experiment_file(file_path="/home/louis.dupont/PycharmProjects/super-gradients/checkpoints/bigzipfile.zip")
         print("<<")
 
     @multi_process_safe

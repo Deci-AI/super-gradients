@@ -470,6 +470,8 @@ class Trainer:
 
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
+            raise ValueError("Upload value is bad")
+        raise ValueError("Upload value is very bad")
 
         self.train_monitored_values = sg_trainer_utils.update_monitored_values_dict(
             monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict
