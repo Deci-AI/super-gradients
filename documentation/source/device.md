@@ -3,7 +3,7 @@
 SuperGradients allows users to train models on different modes:
 1. CPU 
 2. single GPU - (CUDA)
-3. single GPU - Data Parallel (DP)
+3. multiple GPUs' - Data Parallel (DP)
 4. multiple GPUs' - Distributed Data Parallel (DDP)
 
 
@@ -33,7 +33,7 @@ trainer.train(...)
 
 
 ## 3. DP - Data Parallel
-DataParallel (DP0 is single-process, multi-thread, technic for scaling deep learning model training across multiple GPUs on a single machine.
+DataParallel (DP) is single-process, multi-thread, technic for scaling deep learning model training across multiple GPUs on a single machine.
 
 The general flow is as below:
 - Split the data into smaller chunks (mini-batch) on GPU:0
@@ -214,7 +214,7 @@ class DDPTop1Accuracy(torchmetrics.Metric):
 ---
 
 ## How to set training mode with recipes ?
-When using [recipes](configuration_files.md) you simply need to set values of `gpu_mode` and `num_gpus`
+When using [recipes](configuration_files.md) you simply need to set values of `gpu_mode` and `num_gpus`.
 
 ```yaml
 # training_recipe.yaml
