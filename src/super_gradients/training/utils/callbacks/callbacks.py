@@ -471,7 +471,7 @@ class FunctionLRCallback(LRCallbackBase):
     Hard coded rate scheduling for user defined lr scheduling function.
     """
 
-    @deprecated(target=None, deprecated_in="3.6.0", remove_in="3.7.0")
+    @deprecated(target=None, deprecated_in="3.6.0", remove_in="3.8.0")
     def __init__(self, max_epochs, lr_schedule_function, **kwargs):
         super(FunctionLRCallback, self).__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
         assert callable(lr_schedule_function), "self.lr_function must be callable"
