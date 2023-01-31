@@ -35,7 +35,7 @@ local file, providing you the convenience to review console outputs of any exper
 - Upon importing SuperGradients, console outputs and logs will be stored in `~/sg_logs/console.log`.
 - When instantiating the super_gradients.Trainer, all console outputs and logs will be redirected to the experiment folder `<ckpt_root_dir>/<experiment_name>/console_<date>.txt`.
 
-**How to set log level?** You can filter the logs displayed on the console by setting `CONSOLE_LOG_LEVEL=<LOG-LEVEL> # DEBUG/INFO/WARNING/ERROR`
+**How to set log level?** You can filter the logs displayed on the console by setting the environment variable `CONSOLE_LOG_LEVEL=<LOG-LEVEL> # DEBUG/INFO/WARNING/ERROR`
 
 
 
@@ -47,7 +47,7 @@ This means that it includes any log that was under the logging level (`logging.D
 
 **Where is it saved?** `<ckpt_root_dir>/<experiment_name>/logs_<date>.txt`
 
-**How to set log level?** You can filter the logs saved in the file by setting `FILE_LOG_LEVEL=<LOG-LEVEL> # DEBUG/INFO/WARNING/ERROR`
+**How to set log level?** You can filter the logs saved in the file by setting the environment variable `FILE_LOG_LEVEL=<LOG-LEVEL> # DEBUG/INFO/WARNING/ERROR`
 
 
 ## VI. (Additional) Hydra config folder
@@ -72,10 +72,10 @@ Only when training using hydra recipe.
         ├─ experiment_logs_<date>.txt       # Config and metrics related to experiment 
         ├─ console_<date>.txt               # Logs and prints that were displayed in the users console
         ├─ logs_<date>.txt                  # Every log
-        └─ .hydra
-             ├─config.yaml       # A single config file that regroups the config files used to run the experiment  
-             ├─hydra.yaml        # Some Hydra metadata
-             └─overrides.yaml    # Any override passed after --config-name=<config-name>
+        └─ .hydra                # (Additional) If experiment launched from a recipe:
+             ├─config.yaml          # A single config file that regroups the config files used to run the experiment  
+             ├─hydra.yaml           # Some Hydra metadata
+             └─overrides.yaml       # Any override passed after --config-name=<config-name>
 ```
 
 ## Other
