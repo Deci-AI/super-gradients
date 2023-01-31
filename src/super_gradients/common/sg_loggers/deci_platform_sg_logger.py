@@ -113,7 +113,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
 
     def _save_save_experiment_file(self, file_path: str):
 
-        with log_stdout():  # Workaround until platform_client removes prints from save_experiment_file.
+        with log_stdout():  # TODO: remove when platform_client remove prints from save_experiment_file
             self.platform_client.save_experiment_file(file_path=file_path)
 
         logger.info(f"File saved to Deci platform: {file_path}")
