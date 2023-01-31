@@ -1,4 +1,6 @@
 import os
+import io
+from contextlib import contextmanager
 from typing import Optional
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -110,6 +112,20 @@ class DeciPlatformSGLogger(BaseSGLogger):
             self._save_save_experiment_file(file_path=f"{folder_path}/{file}")
 
     def _save_save_experiment_file(self, file_path: str):
-        with redirect_stdout(None):  # Workaround until platform_client removes prints from save_experiment_file.
+
+        with log_stdout():  # Workaround until platform_client removes prints from save_experiment_file.
             self.platform_client.save_experiment_file(file_path=file_path)
+
         logger.info(f"File saved to Deci platform: {file_path}")
+
+
+@contextmanager
+def log_stdout():
+    """Redirect stdout to DEBUG."""
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        yield
+
+    redirected_str = buffer.getvalue()
+    if redirected_str:
+        logger.debug(msg=redirected_str)
