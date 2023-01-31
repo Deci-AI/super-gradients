@@ -249,6 +249,9 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def upload(self):
+        """Upload the local tensorboard and log files to remote system."""
+        self.flush()
+
         if self.save_tensorboard_remote:
             self.model_checkpoints_data_interface.save_remote_tensorboard_event_files(self.experiment_name, self._local_dir)
 
@@ -259,9 +262,12 @@ class BaseSGLogger(AbstractSGLogger):
     @multi_process_safe
     def flush(self):
         self.tensorboard_writer.flush()
+        ConsoleSink.flush()
 
     @multi_process_safe
     def close(self):
+        self.upload()
+
         if self.system_monitor is not None:
             self.system_monitor.close()
             logger.info("[CLEANUP] - Successfully stopped system monitoring process")
