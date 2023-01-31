@@ -106,7 +106,7 @@ max_train_batches:  # For debug- when not None- will break out of inner train lo
 max_valid_batches:  # For debug- when not None- will break out of inner valid loop
 # (i.e iterating over valid_loader) when reaching this number of batches.
 
-sg_logger: base_sg_logger
+sg_logger: deci_platform_sg_logger
 sg_logger_params:
   tb_files_user_prompt: False # Asks User for Tensorboard Deletion Prompt
   launch_tensorboard: False

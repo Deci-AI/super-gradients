@@ -76,6 +76,15 @@ class DeciPlatformSGLogger(BaseSGLogger):
         self._upload_latest_file_starting_with(start_with=TENSORBOARD_EVENTS_PREFIX)
         self._upload_latest_file_starting_with(start_with=LOGS_PREFIX)
 
+        print(">> START UPLOAD BIG FILE")
+        self.platform_client.save_experiment_file(
+            file_path="/home/louis.dupont/PycharmProjects/super-gradients/checkpoints/deci_lab_export_test_model/average_model.pth"
+        )
+        self.platform_client.save_experiment_file(
+            file_path="/home/louis.dupont/PycharmProjects/super-gradients/checkpoints/deci_lab_export_test_model/average_model2.pth"
+        )
+        print("<<")
+
     @multi_process_safe
     def _upload_latest_file_starting_with(self, start_with: str):
         """
