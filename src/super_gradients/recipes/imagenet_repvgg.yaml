@@ -37,7 +37,7 @@ multi_gpu: DDP
 num_gpus: 4
 
 architecture: repvgg_a0
-
+ckpt_root_dir:
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:

@@ -17,7 +17,7 @@ optimizer_params:
 
 ema: True
 ema_params:
-  exp_activation: False
+  decay_type: constant
   decay: 0.9999
 
 loss: cross_entropy
