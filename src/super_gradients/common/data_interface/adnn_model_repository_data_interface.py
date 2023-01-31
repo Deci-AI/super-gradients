@@ -26,7 +26,7 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
         """
         super().__init__()
         self.tb_events_file_prefix = "events.out.tfevents"
-        self.log_file_prefix = "log_"
+        self.log_file_prefix = "experiment_logs_"
         self.latest_checkpoint_filename = "ckpt_latest.pth"
         self.best_checkpoint_filename = "ckpt_best.pth"
 
