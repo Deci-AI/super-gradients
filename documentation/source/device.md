@@ -26,14 +26,14 @@ trainer.train(...)
 
 
 ## 2. CUDA
-**Requirement**: Having at least one CUDA devices available
+**Requirement**: Having at least one CUDA device available
 
 **How to use it**: If you have at least one CUDA device, nothing! Otherwise, you will have to use CPU...
 
 
 
 ## 3. DP - Data Parallel
-DataParallel (DP) is single-process, multi-thread, technic for scaling deep learning model training across multiple GPUs on a single machine.
+DataParallel (DP) is a single-process, multi-thread technic for scaling deep learning model training across multiple GPUs on a single machine.
 
 The general flow is as below:
 - Split the data into smaller chunks (mini-batch) on GPU:0
@@ -77,7 +77,7 @@ It involves the use of multiple processes, each running on a different GPU and h
 The processes communicate only to exchange gradients, making it a highly efficient and more scalable solution for training large models than Data Parallel (DP).
 
 Although DDP can be more complex to set up than DP, the SuperGradients library abstracts away the complexity by handling the setup process behind the scenes. 
-This makes it easy for users to take advantage of the benefits of DDP without having to worry about the technical details. 
+This makes it easy for users to take advantage of the benefits of DDP without having to worry about technical details. 
 We highly recommend using DDP over DP whenever possible.
 
 ![images/DDP.png](images/DDP.png)
@@ -103,14 +103,14 @@ trainer.train(...)
 **Tip**: To optimize runtime we recommend to call `setup_device` as early as possible.
 
 
-### What should you be aware when using DDP ?
+### What should you be aware of when using DDP ?
 
 #### A. DDP runs multiple processes
 When running DDP, you will work with multiple processes that will go through the whole training loop.
 This means that if you run DDP on 4 gpus, any action that you do will be run 4 times.
 
-This impacts especially printing, logging and file writing. To face this issue, SuperGradients provides a decorator 
-that will ensure that only one process will execute a specific function, whether you work with CPU, GPU, DP or even DDP.
+This impacts especially printing, logging, and file writing. To face this issue, SuperGradients provides a decorator 
+that will ensure that only one process will execute a specific function, whether you work with CPU, GPU, DP, or DDP.
 
 In the following example, the `print_hello` function will print *Hello world* only once, when it would be printed 4 times without the decorator... 
 ```py
@@ -131,10 +131,10 @@ print_hello()
 As explained, multiple processes are used to train a model with DDP, each on its own GPU. 
 This means that the metrics must be computed and aggregated across all the processes, and it requires the metric to be implemented using states.
 
-States are attributes to be reduced. They are defined using the built-in method `add_state()` and enables broadcasting 
+States are attributes to be reduced. They are defined using the built-in method `add_state()` and enable broadcasting 
 of the states among the different ranks when calling the `compute()` method.
 
-An example of state would be the number of correct predictions, which will be summed across the different processes, broadcasted to all of
+An example of a state would be the number of correct predictions, which will be summed across the different processes, and broadcasted to all of
 them before computing the metric value. You can see an example below. 
 
 *Feel free to check [torchmetrics documentation](https://torchmetrics.readthedocs.io/en/stable/references/metric.html) for more information on how to implement your own metric.* 
@@ -169,7 +169,7 @@ class Top5Accuracy(Metric):
     def compute(self):
         return self.correct.float() / self.total
 ```
-All you need to change to use your metric on DDP is to define your attribues `self.correct` and `self.total` with `add_state` and to define 
+All you need to change to use your metric on DDP is to define your attributes `self.correct` and `self.total` with `add_state` and to define 
 a reduce function `dist_reduce_fx` that will be used to know how to combine the states when calling compute:
 ```py
 import torch
@@ -200,7 +200,7 @@ class DDPTop1Accuracy(torchmetrics.Metric):
         return self.correct.float() / self.total
 ```
 **Step by step explanation**
-1. DDP launches and pytorch creates a separate instance of your custom metric for each process.
+1. DDP launches, and pytorch creates a separate instance of your custom metric for each process.
 2. The `update()` method modifies the internal state of each instance in each process based on the inputs `preds` and `target` specific to that process.
 3. After an epoch, each process will have a unique state, for example:
    - Process 1: correct=50, total=100
