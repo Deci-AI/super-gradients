@@ -4,7 +4,7 @@ Usage:
     python qat_from_recipe.py
         --config-name=your_non_qat_recipe
         arch_params=your_desired_arch_params
-        +quantization_params=default_quantization_params OR your_desired_quantization_params
+        +quantization_params=your_desired_quantization_params OR default_quantization_params
         +checkpoint_params.checkpoint_path=/full/path/to/your/checkpoint
 
 if `training_hyperparams.max_epochs=0`, only PTQ will be performed
@@ -25,12 +25,12 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.metrics.metric_utils import get_metrics_dict
+from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import setup_device
 from super_gradients.training.utils.module_utils import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
 from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
 from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
-from super_gradients.training.utils.sg_trainer_utils import parse_args
 
 logger = get_logger(__name__)
 
@@ -110,17 +110,28 @@ def modify_training_params_for_qat(cfg):
     cfg.training_hyperparams.cosine_final_lr_ratio = 0.01
 
     # do mess with Q/DQ
-    cfg.training_hyperparams.ema = False
-    cfg.training_hyperparams.sync_bn = False
-    cfg.training_hyperparams.phase_callbacks = []
-    cfg.multi_gpu = "OFF"
-    cfg.num_gpus = 1
+    if cfg.training_hyperparams.ema:
+        logger.warning("EMA will be disabled for QAT run.")
+        cfg.training_hyperparams.ema = False
+
+    if cfg.training_hyperparams.sync_bn:
+        logger.warning("SyncBatchNorm will be disabled for QAT run.")
+        cfg.training_hyperparams.sync_bn = False
+
+    if len(cfg.training_hyperparams.phase_callbacks) > 0:
+        logger.warning(f"Recipe contains {len(cfg.training_hyperparams.phase_callbacks)} phase callbacks. All of them will be disabled.")
+        cfg.training_hyperparams.phase_callbacks = []
+
+    if cfg.multi_gpu != "OFF" or cfg.num_gpus != 1:
+        logger.warning(f"Recipe requests multi_gpu={cfg.multi_gpu} and num_gpus={cfg.num_gpus}. Changing to multi_gpu=OFF and num_gpus=1")
+        cfg.multi_gpu = "OFF"
+        cfg.num_gpus = 1
 
     # no augmentations
     cfg.dataset_params.train_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
 
 
-@hydra.main(config_path=pkg_resources.resource_filename("recipes", ""), version_base="1.2")
+@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
 def main(cfg: DictConfig) -> None:
     if "quantization_params" not in cfg:
         raise ValueError("Your recipe does not have quantization_params. Add them to use QAT.")
@@ -172,36 +183,36 @@ def main(cfg: DictConfig) -> None:
         verbose=cfg.quantization_params.calib_params.verbose,
     )
 
-    kwargs = parse_args(cfg, Trainer.__init__)
-    kwargs.pop("multi_gpu")
-    trainer = Trainer(**kwargs)
+    logger.info("Performing validation of PTQ model...")
 
-    if cfg.training_hyperparams.max_epochs != 0:
-        trainer.train(model=model, train_loader=train_dataloader, valid_loader=val_dataloader, training_params=cfg.training_hyperparams)
-        suffix = "qat"
-    else:
-        logger.info("cfg.training_hyperparams.max_epochs is 0! Performing PTQ only!")
-        suffix = "ptq"
-
+    trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=get_param(cfg, "ckpt_root_dir", default_val=None))
     val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
     valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
     results = ["Validate Results"]
     results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
     logger.info("\n".join(results))
 
-    input_shape = next(iter(val_dataloader))[0].shape
-    if not os.path.exists(trainer.checkpoints_dir_path):
-        os.makedirs(trainer.checkpoints_dir_path)
+    if cfg.training_hyperparams.max_epochs != 0:
+        # new Trainer object because calling Trainer.train after Trainer.test messes up init of the model
+        trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=get_param(cfg, "ckpt_root_dir", default_val=None))
+        trainer.train(model=model, train_loader=train_dataloader, valid_loader=val_dataloader, training_params=cfg.training_hyperparams)
+        suffix = "qat"
+    else:
+        logger.info("cfg.training_hyperparams.max_epochs is 0! Performing PTQ only!")
+        suffix = "ptq"
 
-    qat_path = os.path.join(trainer.checkpoints_dir_path, f"{cfg.experiment_name}_{'x'.join((str(x) for x in input_shape))}_{suffix}.onnx")
+    input_shape = next(iter(val_dataloader))[0].shape
+    os.makedirs(trainer.checkpoints_dir_path, exist_ok=True)
+
+    qdq_onnx_path = os.path.join(trainer.checkpoints_dir_path, f"{cfg.experiment_name}_{'x'.join((str(x) for x in input_shape))}_{suffix}.onnx")
     export_quantized_module_to_onnx(
         model=model.cpu(),
-        onnx_filename=qat_path,
+        onnx_filename=qdq_onnx_path,
         input_shape=input_shape,
         input_size=input_shape,
         train=False,
     )
-    logger.info(f"Exporting {suffix.upper()} ONNX to {qat_path}")
+    logger.info(f"Exporting {suffix.upper()} ONNX to {qdq_onnx_path}")
 
 
 if __name__ == "__main__":
