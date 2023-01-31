@@ -156,6 +156,12 @@ class Samplers:
     INFINITE = "InfiniteSampler"
     REPEAT_AUG = "RepeatAugSampler"
     DISTRIBUTED = "DistributedSampler"
+    SAMPLER = "Sampler"
+    SEQUENTIAL = "SequentialSampler"
+    SUBSET_RANDOM = "SubsetRandomSampler"
+    RANDOM = "RandomSampler"
+    WEIGHTED_RANDOM = "WeightedRandomSampler"
+    BATCH = "BatchSampler"
 
 
 class ContextModules:
