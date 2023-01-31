@@ -1794,7 +1794,6 @@ class Trainer:
             pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
             progress_bar_data_loader.set_description(pbar_start_msg)
 
-        raise RuntimeError("STOPPP IT ALL")
         with torch.no_grad():
             for batch_idx, batch_items in enumerate(progress_bar_data_loader):
                 batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
@@ -1807,7 +1806,6 @@ class Trainer:
                 else:
                     self.phase_callback_handler.on_test_batch_start(context)
 
-                raise RuntimeError("STOPPP IT ALL")
                 output = self.net(inputs)
                 context.update_context(preds=output)
 
@@ -1832,6 +1830,7 @@ class Trainer:
 
                 if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
                     break
+
         # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
         if not metrics_progress_verbose:
             # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
