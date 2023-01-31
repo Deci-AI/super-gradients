@@ -64,5 +64,53 @@ trainer.train(model=model, training_params=training_params, ...)
 ```
 
 
-## How to log custom information with a callback?
-TODO
+## Uploading custom objects with a callback
+Callbacks are the way to go when it comes to insert small pieces of code into the training/validation loop of SuperGradients.
+For more information, please check out our tutorial on [how to use callbacks in SuperGradients](TODO:add_link)
+
+In this example, we create a callback to upload images with our `sg_logger`.
+If you didn't specify a `sg_logger` in your training params, these images will only be added to your tensorboard. 
+If you are working with WandB or ClearML, this will also be uploaded to the monitoring service you chose.
+
+```python
+from typing import List
+
+import cv2
+import numpy as np
+
+from super_gradients.training.utils.callbacks.base_callbacks import PhaseContext, Callback
+from super_gradients.training.utils.detection_utils import DetectionVisualization
+
+
+class DetectionVisualizationCallback(Callback):
+    """Visualize the last batch of each validation epoch"""
+
+    def __init__(self, classes: list, n_images: int = 10):
+        super(Callback, self).__init__()
+        self.classes = classes
+        self.n_images = n_images
+
+    def on_validation_loader_end(self, context: PhaseContext):
+        # preds = (context.preds[0].clone(), None)
+
+        batch_imgs: List[np.ndarray] = DetectionVisualization.visualize_batch(
+            image_tensor=context.inputs[: self.n_images],
+            pred_boxes=context.preds[: self.n_images],
+            target_boxes=context.target[: self.n_images],
+            batch_name='Validation epoch',
+            class_names=self.classes,
+        )
+        batch_imgs: np.ndarray = np.stack([cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs])
+        
+        # The important part for this example: uploading an image
+        context.sg_logger.add_images(
+            tag="val_epoch_end_images",
+            images=batch_imgs,
+            global_step=context.epoch,
+            data_format="NHWC",
+        )
+```
+
+The sg_logger can also be used to upload files, text, scalars (such as metrics), checkpoints, ...
+
+We encourage you to check out the documentation of `super_gradients.common.sg_loggers.base_sg_logger.BaseSGLogger` since every `sg_logger` inherits from it.
