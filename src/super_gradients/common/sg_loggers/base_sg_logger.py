@@ -271,6 +271,7 @@ class BaseSGLogger(AbstractSGLogger):
         if self.system_monitor is not None:
             self.system_monitor.close()
             logger.info("[CLEANUP] - Successfully stopped system monitoring process")
+
         self.tensorboard_writer.close()
         if self.tensor_board_process is not None:
             try:
