@@ -169,7 +169,7 @@ class BaseSGLogger(AbstractSGLogger):
         self.tensorboard_writer.flush()
 
         # WRITE THE EPOCH RESULTS TO LOG FILE
-        log_line = f"\nEpoch ({global_step}/{self.max_global_steps})  - "
+        log_line = f"\nEpoch {global_step} ({global_step+1}/{self.max_global_steps})  - "
         for tag, value in tag_scalar_dict.items():
             if isinstance(value, torch.Tensor):
                 value = value.item()
