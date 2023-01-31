@@ -468,9 +468,6 @@ class Trainer:
             ):
                 break
 
-        if not self.ddp_silent_mode:
-            self.sg_logger.upload()
-
         self.train_monitored_values = sg_trainer_utils.update_monitored_values_dict(
             monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict
         )
@@ -1315,6 +1312,7 @@ class Trainer:
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
                     self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch, context)
+                    self.sg_logger.upload()
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
