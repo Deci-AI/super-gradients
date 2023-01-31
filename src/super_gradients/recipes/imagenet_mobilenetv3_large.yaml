@@ -20,7 +20,7 @@ arch_params:
 experiment_name: mobileNetv3_large_training
 
 architecture: mobilenet_v3_large
-
+ckpt_root_dir:
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
