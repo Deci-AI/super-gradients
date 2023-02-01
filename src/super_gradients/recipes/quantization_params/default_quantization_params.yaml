@@ -1,6 +1,11 @@
-default_qat_recipe:
-  enable: True              # disable if you have recipe that is suitable for QAT
-  lr_decay_factor: 1e-2     # lr, weight decay, warmup and cosine parameters will be derived from original recipe with this factor
+modify_recipe_for_qat:
+  enable: True                  # disable if you have recipe that is suitable for QAT
+  lr_decay_factor: 1e-2         # lr, weight decay, warmup and cosine parameters will be derived from original recipe with this factor
+  batch_size_divisor: 2         # (int) constant to divide batch_size if selective_quantizer_params.learn_amax=True
+  max_epochs_divisor: 10        # (int) constant to divide training_hyperparams.max_epochs for QAT
+  warmup_epochs_divisor: 10     # (int) constant to divide modified training_hyperparams.max_epochs to get training_hyperparams.lr_warmup_epochs
+  cosine_final_lr_ratio: 0.01   # (float) ratio between the end and the start of cosine lr schedule, overrides training_hyperparams.cosine_final_lr_ratio
+  disable_phase_callbacks: True # some phase callbacks interfere with QAT, this flag disables ALL phase callbacks
 
 selective_quantizer_params:
   method_w: "max"           # calibrator type for weights, acceptable types are ["max", "histogram"]

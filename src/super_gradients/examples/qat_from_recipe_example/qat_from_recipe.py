@@ -1,16 +1,18 @@
 """
 Code for running PTQ/QAT on SuperGradients recipes.
+
+THIS SCRIPT WILL MODIFY YOUR RECIPE TO SUIT QAT.
+To use recipe as is, set `quantization_params.modify_recipe_for_qat.enable` to False
+
+This script is proven NOT to work with DDP and will disable it automatically!
+
+if `training_hyperparams.max_epochs=0`, only PTQ will be performed!
+
 Usage:
     python qat_from_recipe.py
-        --config-name=your_non_qat_recipe
-        arch_params=your_desired_arch_params
-        +quantization_params=your_desired_quantization_params OR default_quantization_params
+        --config-name=your_recipe
+        +quantization_params=default_quantization_params OR your_desired_quantization_params
         +checkpoint_params.checkpoint_path=/full/path/to/your/checkpoint
-
-if `training_hyperparams.max_epochs=0`, only PTQ will be performed
-To use recipe for QAT as is, set `quantization_params.default_qat_recipe.enable` to False
-
-This script is proven NOT to work with DDP!
 """
 
 import os
@@ -85,16 +87,20 @@ def quantize_and_calibrate(
 
 
 def modify_training_params_for_qat(cfg):
+    logger.info("Modifying recipe to suit QAT. Set quantization_params.modify_recipe_for_qat.enable=False to do it manually.")
+
     # Q/DQ Layers take a lot of space for activations in training mode
     if cfg.quantization_params.selective_quantizer_params.learn_amax:
-        cfg.dataset_params.train_dataloader_params.batch_size //= 2
-        cfg.dataset_params.val_dataloader_params.batch_size //= 2
+        cfg.dataset_params.train_dataloader_params.batch_size //= cfg.quantization_params.modify_recipe_for_qat.batch_size_divisor
+        cfg.dataset_params.val_dataloader_params.batch_size //= cfg.quantization_params.modify_recipe_for_qat.batch_size_divisor
 
-    # 10% of the training regime
-    cfg.training_hyperparams.max_epochs //= 10
+        logger.warning(f"New dataset_params.train_dataloader_params.batch_size: {cfg.dataset_params.train_dataloader_params.batch_size}")
+        logger.warning(f"New dataset_params.val_dataloader_params.batch_size: {cfg.dataset_params.val_dataloader_params.batch_size}")
 
-    # very small initial LR and WD
-    lr_decay_factor = cfg.quantization_params.default_qat_recipe.lr_decay_factor
+    cfg.training_hyperparams.max_epochs //= cfg.quantization_params.modify_recipe_for_qat.max_epochs_divisor
+    logger.warning(f"New number of epochs: {cfg.training_hyperparams.max_epochs}")
+
+    lr_decay_factor = cfg.quantization_params.modify_recipe_for_qat.lr_decay_factor
 
     cfg.training_hyperparams.initial_lr *= lr_decay_factor
     if cfg.training_hyperparams.warmup_initial_lr is not None:
@@ -104,10 +110,15 @@ def modify_training_params_for_qat(cfg):
 
     cfg.training_hyperparams.optimizer_params.weight_decay *= lr_decay_factor
 
+    logger.warning(f"New learning rate: {cfg.training_hyperparams.initial_lr}")
+    logger.warning(f"New weight decay: {cfg.training_hyperparams.optimizer_params.weight_decay}")
+
     # as recommended by pytorch-quantization docs
     cfg.training_hyperparams.lr_mode = "cosine"
-    cfg.training_hyperparams.lr_warmup_epochs = (cfg.training_hyperparams.max_epochs // 10) or 1
-    cfg.training_hyperparams.cosine_final_lr_ratio = 0.01
+    cfg.training_hyperparams.lr_warmup_epochs = (
+        cfg.training_hyperparams.max_epochs // cfg.quantization_params.modify_recipe_for_qat.warmup_epochs_divisor
+    ) or 1
+    cfg.training_hyperparams.cosine_final_lr_ratio = cfg.quantization_params.modify_recipe_for_qat.cosine_final_lr_ratio
 
     # do mess with Q/DQ
     if cfg.training_hyperparams.ema:
@@ -118,7 +129,7 @@ def modify_training_params_for_qat(cfg):
         logger.warning("SyncBatchNorm will be disabled for QAT run.")
         cfg.training_hyperparams.sync_bn = False
 
-    if len(cfg.training_hyperparams.phase_callbacks) > 0:
+    if cfg.quantization_params.modify_recipe_for_qat.disable_phase_callbacks and len(cfg.training_hyperparams.phase_callbacks) > 0:
         logger.warning(f"Recipe contains {len(cfg.training_hyperparams.phase_callbacks)} phase callbacks. All of them will be disabled.")
         cfg.training_hyperparams.phase_callbacks = []
 
@@ -128,24 +139,25 @@ def modify_training_params_for_qat(cfg):
         cfg.num_gpus = 1
 
     # no augmentations
-    cfg.dataset_params.train_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
+    if "transforms" in cfg.dataset_params.val_dataset_params:
+        cfg.dataset_params.train_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
 
 
-@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-def main(cfg: DictConfig) -> None:
+def qat_from_config(cfg):
     if "quantization_params" not in cfg:
         raise ValueError("Your recipe does not have quantization_params. Add them to use QAT.")
 
     if "checkpoint_path" not in cfg.checkpoint_params:
         raise ValueError("Starting checkpoint is a must for QAT finetuning.")
 
-    if cfg.quantization_params.default_qat_recipe.enable:
+    if cfg.quantization_params.modify_recipe_for_qat.enable:
         modify_training_params_for_qat(cfg=cfg)
-        logger.info("Modifying recipe to suit QAT. Add quantization_params.default_qat_recipe.enable=False to do it manually.")
 
-    cfg = hydra.utils.instantiate(cfg)
-
-    setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"), device="cuda")
+    setup_device(
+        multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF),
+        num_gpus=core_utils.get_param(cfg, "num_gpus"),
+        device="cuda",
+    )
 
     train_dataloader = dataloaders.get(
         name=cfg.train_dataloader,
@@ -213,6 +225,13 @@ def main(cfg: DictConfig) -> None:
         train=False,
     )
     logger.info(f"Exporting {suffix.upper()} ONNX to {qdq_onnx_path}")
+
+
+@hydra.main(config_path=pkg_resources.resource_filename("recipes", ""), version_base="1.2")
+def main(cfg: DictConfig) -> None:
+    cfg = hydra.utils.instantiate(cfg)
+
+    return qat_from_config(cfg)
 
 
 if __name__ == "__main__":
