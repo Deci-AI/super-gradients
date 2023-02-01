@@ -21,7 +21,6 @@ Tensorboard is natively integrated into the training and validation steps. You c
 ```python
 from super_gradients import Trainer
 
-# create a trainer object, look the declaration for more parameters
 trainer = Trainer("experiment_name")
 model = ...
 
@@ -50,7 +49,6 @@ trainer.train(model=model, training_params=training_params, ...)
 ```python
 from super_gradients import Trainer
 
-# create a trainer object, look the declaration for more parameters
 trainer = Trainer("experiment_name")
 model = ...
 
@@ -71,52 +69,35 @@ trainer.train(model=model, training_params=training_params, ...)
 
 
 ## Uploading custom objects with a callback
-Callbacks are the way to go when it comes to insert small pieces of code into the training/validation loop of SuperGradients.
+Callbacks are the way to go when it comes to inserting small pieces of code into the training/validation loop of SuperGradients.
 For more information, please check out our tutorial on [how to use callbacks in SuperGradients](TODO:add_link)
 
-In this example, we create a callback to upload images with our `sg_logger`.
-If you didn't specify a `sg_logger` in your training params, these images will only be added to your tensorboard. 
-If you are working with WandB or ClearML, this will also be uploaded to the monitoring service you chose.
-
+Here is a short example of how sg_logger can be used in callbacks:
 ```python
-from typing import List
-
-import cv2
-import numpy as np
-
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseContext, Callback
-from super_gradients.training.utils.detection_utils import DetectionVisualization
 
+def do_something(inputs, target, preds):
+    pass
 
-class DetectionVisualizationCallback(Callback):
-    """Visualize the last batch of each validation epoch"""
+class DetectionVisualizationCallback2(Callback):
+    """Save a custom metric to tensorboard and wandb/clearml"""
 
-    def __init__(self, classes: list, n_images: int = 10):
+    def __init__(self):
         super(Callback, self).__init__()
-        self.classes = classes
-        self.n_images = n_images
 
-    def on_validation_loader_end(self, context: PhaseContext):
-        # preds = (context.preds[0].clone(), None)
+    def on_validation_batch_end(self, context: PhaseContext) -> None:
 
-        batch_imgs: List[np.ndarray] = DetectionVisualization.visualize_batch(
-            image_tensor=context.inputs[: self.n_images],
-            pred_boxes=context.preds[: self.n_images],
-            target_boxes=context.target[: self.n_images],
-            batch_name='Validation epoch',
-            class_names=self.classes,
-        )
-        batch_imgs: np.ndarray = np.stack([cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs])
+        # Do something using the PhaseContext
+        custom_metric = do_something(context.inputs, context.target, context.preds)
         
-        # The important part for this example: uploading an image
-        context.sg_logger.add_images(
-            tag="val_epoch_end_images",
-            images=batch_imgs,
+        # Save it to the tensorboard and wandb/clearml
+        context.sg_logger.add_scalar(
+            tag="custom_metric",
+            scalar_value=custom_metric,
             global_step=context.epoch,
-            data_format="NHWC",
         )
 ```
 
-The sg_logger can also be used to upload files, text, scalars (such as metrics), checkpoints, ...
+The sg_logger can also be used to upload files, text, images, checkpoints, ...
 
-We encourage you to check out the documentation of `super_gradients.common.sg_loggers.base_sg_logger.BaseSGLogger` since every `sg_logger` inherits from it.
+We encourage you to check out the API documentation of `super_gradients.common.sg_loggers.base_sg_logger.BaseSGLogger` to see every available method.
