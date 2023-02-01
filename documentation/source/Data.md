@@ -1,35 +1,41 @@
 # Data in SG
 
-To handle data, SuperGradients takes use of two Pytorch primitives- `torch.utils.data.Dataset` which is in charge of generating the samples and their corresponding labels,
-and `torch.utils.data.DataLoader` that wraps an iterable around the Dataset to enable easy access to the samples. In other words, `torch.utils.data.Dataset` defines how to load a single sample,
-while `torch.utils.data.DataLoader` defines how to load batches of samples. For more information see https://pytorch.org/docs/stable/data.html.
+To handle data, SuperGradients takes use of two Pytorch primitives: `torch.utils.data.Dataset` - which is in charge of generating the samples and their corresponding labels,
+and `torch.utils.data.DataLoader` - that wraps an iterable around the Dataset to enable easy access to the samples. In other words, `torch.utils.data.Dataset` defines how to load a single sample,
+while `torch.utils.data.DataLoader` defines how to load batches of samples. For more information see [PyTorch documentation](https://pytorch.org/docs/stable/data.html).
 
 ## SG Datasets
 
 SuperGradients holds common public `torch.utils.data.Dataset` implementations for various tasks:
 
-    Cifar10
-    Cifar100
-    ImageNetDataset
-    COCODetectionDataset
-    DetectionDataset
-    PascalVOCDetectionDataset
-    SegmentationDataSet
-    CoCoSegmentationDataSet
-    PascalAUG2012SegmentationDataSet
-    PascalVOC2012SegmentationDataSet
-    CityscapesDataset
-    SuperviselyPersonsDataset
-    PascalVOCAndAUGUnifiedDataset
-    COCOKeypointsDataset
+    Classification:
+        Cifar10
+        Cifar100
+        ImageNetDataset
+    
+    Object Detection:
+        COCODetectionDataset
+        DetectionDataset
+        PascalVOCDetectionDataset
+    
+    Semantic Segmentation:
+        CoCoSegmentationDataSet
+        PascalAUG2012SegmentationDataSet
+        PascalVOC2012SegmentationDataSet
+        CityscapesDataset
+        SuperviselyPersonsDataset
+        PascalVOCAndAUGUnifiedDataset
+    
+    Pose Estimation:
+        COCOKeypointsDataset
 
-All of which can be imported from the `super_gradients.training.datasets` module. Note that some of the above implementations require following a few simple setup steps, which are all documented [here](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md))
-Once instantiated, any of the above can be simply passed to the `torch.utils.data.DataLoader` constructor, and be sued for training, validation or testing.
+All of which can be imported from the `super_gradients.training.datasets` module. Note that some of the above implementations require following a few simple setup steps, which are all documented [here](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md)
+Once instantiated, any of the above can be passed to the `torch.utils.data.DataLoader` constructor and be used for training, validation, or testing.
 
-Creating a `torch.utils.data.DataLoader` from some dataset can be tricky, especially when needing to define some parameters on the fly. For example, in distributed training (i.e DDP)
-the  `torch.utils.data.DataLoader` must be given a proper `Sampler`, such that the dataset indices will be divided among the different processes. Not acknowledging this and using the default
-`torch.utils.data.SequentialSampler` will lead the different processes to iterate over the same data samples giving little to no speedup over single GPU training! User beware!
-This is where SG's `training.dataloaders.get` comes in handy, by taking the burden of instantiating the right default sampler according to the training settings.
+Creating a `torch.utils.data.DataLoader` from a dataset can be tricky, especially when defining some parameters on the fly. For example, in distributed training (i.e DDP)
+the  `torch.utils.data.DataLoader` must be given a proper `Sampler` such that the dataset indices will be divided among the different processes. Not acknowledging this and using the default
+`torch.utils.data.SequentialSampler` will lead the other processes to iterate over the same data samples giving little to no speedup over single GPU training! User beware!
+This is where SG's `training.dataloaders.get` comes in handy by taking the burden of instantiating the proper default sampler according to the training settings.
 
 ```python
 
@@ -40,7 +46,7 @@ dataset = MyDataset(transforms=T.ToTensor())
 dataloader = dataloaders.get(dataset=dataset, dataloader_params={"batch_size": 4})
 ```
 
-Note that `dataloader_params` will be unpacked in the `torch.utils.data.DataLoader` constructor, after setting a proper sampler if one is not explicitly set.
+Note that `dataloader_params` will be unpacked in the `torch.utils.data.DataLoader` constructor after setting a proper sampler if one is not explicitly set.
 
 ## SG DataLoaders
 
