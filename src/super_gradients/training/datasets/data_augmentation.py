@@ -4,13 +4,11 @@ from torchvision.transforms import RandomErasing
 
 
 class DataAugmentation:
-
     @staticmethod
     def to_tensor():
         def _to_tensor(image):
             if len(image.shape) == 3:
-                return torch.from_numpy(
-                    image.transpose(2, 0, 1).astype(np.float32))
+                return torch.from_numpy(image.transpose(2, 0, 1).astype(np.float32))
             else:
                 return torch.from_numpy(image[None, :, :].astype(np.float32))
 
@@ -22,7 +20,7 @@ class DataAugmentation:
         std = np.array(std)
 
         def _normalize(image):
-            image = np.asarray(image).astype(np.float32) / 255.
+            image = np.asarray(image).astype(np.float32) / 255.0
             image = (image - mean) / std
             return image
 
@@ -65,10 +63,9 @@ class DataAugmentation:
 
 
 IMAGENET_PCA = {
-    'eigval': torch.Tensor([0.2175, 0.0188, 0.0045]),
-    'eigvec': torch.Tensor([[-0.5675, 0.7192, 0.4009],
-                            [-0.5808, -0.0045, -0.8140],
-                            [-0.5836, -0.6948, 0.4203]])}
+    "eigval": torch.Tensor([0.2175, 0.0188, 0.0045]),
+    "eigvec": torch.Tensor([[-0.5675, 0.7192, 0.4009], [-0.5808, -0.0045, -0.8140], [-0.5836, -0.6948, 0.4203]]),
+}
 
 
 class Lighting(object):
@@ -82,7 +79,7 @@ class Lighting(object):
         - 0.1 is that default in the original paper
     """
 
-    def __init__(self, alphastd, eigval=IMAGENET_PCA['eigval'], eigvec=IMAGENET_PCA['eigvec']):
+    def __init__(self, alphastd, eigval=IMAGENET_PCA["eigval"], eigvec=IMAGENET_PCA["eigvec"]):
         self.alphastd = alphastd
         self.eigval = eigval
         self.eigvec = eigvec
@@ -91,10 +88,7 @@ class Lighting(object):
         if self.alphastd == 0:
             return img
         alpha = img.new().resize_(3).normal_(0, self.alphastd)
-        rgb = self.eigvec.type_as(img).clone() \
-            .mul(alpha.view(1, 3).expand(3, 3)) \
-            .mul(self.eigval.view(1, 3).expand(3, 3)) \
-            .sum(1).squeeze()
+        rgb = self.eigvec.type_as(img).clone().mul(alpha.view(1, 3).expand(3, 3)).mul(self.eigval.view(1, 3).expand(3, 3)).sum(1).squeeze()
         return img.add(rgb.view(3, 1, 1).expand_as(img))
 
 
@@ -102,6 +96,7 @@ class RandomErase(RandomErasing):
     """
     A simple class that translates the parameters supported in SuperGradient's code base
     """
+
     def __init__(self, probability: float, value: str):
         # value might be a string representing a float. First we try to convert to float and if fails,
         # pass it as-is to super
