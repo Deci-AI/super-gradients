@@ -228,7 +228,7 @@ class PoseEstimationMetrics(Metric):
         coco_eval = COCOeval(coco, coco_dt, "keypoints")
         coco_eval.params.useSegm = None
         if self.oks_sigmas is not None:
-            coco_eval.params.kpt_oks_sigmas = self.oks_sigmas
+            coco_eval.params.sigmas = self.oks_sigmas
         coco_eval.params.maxDets = [self.max_objects_per_image]
         coco_eval.evaluate()
         coco_eval.accumulate()

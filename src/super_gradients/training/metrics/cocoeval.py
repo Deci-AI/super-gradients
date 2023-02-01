@@ -1,17 +1,12 @@
 # This file contains modified version of COCOEval class from pycocotools library,
 # which is used to compute mAP metric for pose estimation task.
-#
-# The changes are:
-# - added support for user-defined maxDet parameter (It was hard-coded to 20 in original implementation)
-# - removed print statements that output uninformative information
-from typing import Union, List
 
 import numpy as np
-import datetime
+import dataclasses
 
-# import time
 from collections import defaultdict
-import copy
+from typing import Union, List, Any, Tuple, Mapping
+from pycocotools.coco import COCO
 
 
 def compute_visible_bbox_xywh(joints: np.ndarray, visibility_mask: np.ndarray) -> np.ndarray:
@@ -39,6 +34,132 @@ def compute_visible_bbox_xywh(joints: np.ndarray, visibility_mask: np.ndarray) -
     h = y2 - y1
 
     return np.stack([x1, y1, w, h], axis=-1)
+
+
+@dataclasses.dataclass
+class EvaluationParams:
+    """
+    Params for computing pose estimation metrics
+    """
+
+    iou_thresholds: np.ndarray
+    recall_thresholds: np.ndarray
+    maxDets: int
+    area_ranges: Tuple[Tuple[float, float], ...]
+    area_ranges_labels: Tuple[str, ...]
+    useCats: bool
+    sigmas: np.ndarray
+
+    @classmethod
+    def get_predefined_coco_params(cls):
+        """
+        Create evaluation params for COCO dataset
+        :return:
+        """
+        return cls(
+            iou_thresholds=np.linspace(0.5, 0.95, int(np.round((0.95 - 0.5) / 0.05)) + 1, endpoint=True),
+            recall_thresholds=np.linspace(0.0, 1.00, int(np.round((1.00 - 0.0) / 0.01)) + 1, endpoint=True),
+            maxDets=20,
+            area_ranges=((0**2, 1e5**2), (32**2, 96**2), (96**2, 1e5**2)),
+            area_ranges_labels=("all", "medium", "large"),
+            useCats=True,
+            sigmas=np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0,
+        )
+
+
+@dataclasses.dataclass
+class ImageLevelEvaluationResult:
+    image_id: Union[str, int]
+    category_id: int
+    aRng: Tuple[int, int]
+    maxDet: int
+    dtIds: List
+    gtIds: List
+    dtMatches: Any
+    gtMatches: Any
+    dtScores: List
+    gtIgnore: Any
+    dtIgnore: Any
+
+
+@dataclasses.dataclass
+class DatasetLevelEvaluationResult:
+    params: EvaluationParams
+    counts: Tuple[int, int, int, int, int]
+    precision: np.ndarray
+    recall: np.ndarray
+    scores: np.ndarray
+
+    @property
+    def ap_metric(self):
+        return self._summarize(1, maxDets=self.params.maxDets)
+
+    @property
+    def ar_metric(self):
+        return self._summarize(1, maxDets=self.params.maxDets)
+
+    def all_metrics(self):
+        return {
+            "AP": self._summarize(1, maxDets=self.params.maxDets),
+            "AP_0.5": self._summarize(1, maxDets=self.params.maxDets, iouThr=0.5),
+            "AP_0.75": self._summarize(1, maxDets=self.params.maxDets, iouThr=0.75),
+            "AP_medium": self._summarize(1, maxDets=self.params.maxDets, areaRng="medium"),
+            "AP_large": self._summarize(1, maxDets=self.params.maxDets, areaRng="large"),
+            "AR": self._summarize(0, maxDets=self.params.maxDets),
+            "AR_0.5": self._summarize(0, maxDets=self.params.maxDets, iouThr=0.5),
+            "AR_0.75": self._summarize(0, maxDets=self.params.maxDets, iouThr=0.75),
+            "AR_medium": self._summarize(0, maxDets=self.params.maxDets, areaRng="medium"),
+            "AR_large": self._summarize(0, maxDets=self.params.maxDets, areaRng="large"),
+        }
+
+    def print(self):
+        p = self.params
+
+        def _print_summarize(ap=1, iouThr=None, areaRng="all", maxDets=100):
+            score = self._summarize(ap, iouThr, areaRng, maxDets)
+            iStr = " {:<18} {} @[ IoU={:<9} | area={:>6s} | maxDets={:>3d} ] = {:0.3f}"
+            titleStr = "Average Precision" if ap == 1 else "Average Recall"
+            typeStr = "(AP)" if ap == 1 else "(AR)"
+            iouStr = "{:0.2f}:{:0.2f}".format(p.iou_thresholds[0], p.iou_thresholds[-1]) if iouThr is None else "{:0.2f}".format(iouThr)
+            print(iStr.format(titleStr, typeStr, iouStr, areaRng, maxDets, score))
+
+        _print_summarize(1, maxDets=self.params.maxDets)
+        _print_summarize(1, maxDets=self.params.maxDets, iouThr=0.5)
+        _print_summarize(1, maxDets=self.params.maxDets, iouThr=0.75)
+        _print_summarize(1, maxDets=self.params.maxDets, areaRng="medium")
+        _print_summarize(1, maxDets=self.params.maxDets, areaRng="large")
+        _print_summarize(0, maxDets=self.params.maxDets)
+        _print_summarize(0, maxDets=self.params.maxDets, iouThr=0.5)
+        _print_summarize(0, maxDets=self.params.maxDets, iouThr=0.75)
+        _print_summarize(0, maxDets=self.params.maxDets, areaRng="medium")
+        _print_summarize(0, maxDets=self.params.maxDets, areaRng="large")
+
+    def _summarize(self, ap=1, iouThr=None, areaRng="all", maxDets=100):
+        p = self.params
+
+        aind = [i for i, aRng in enumerate(p.area_ranges_labels) if aRng == areaRng]
+        # mind = [i for i, mDet in enumerate(p.maxDets) if mDet == maxDets]
+        mind = [0]
+
+        if ap == 1:
+            # dimension of precision: [TxRxKxAxM]
+            s = self.precision
+        else:
+            # dimension of recall: [TxKxAxM]
+            s = self.recall
+
+        if iouThr is not None:
+            t = np.where(iouThr == p.iou_thresholds)[0]
+            s = s[t]
+
+        s = s[..., aind, mind]
+
+        if len(s[s > -1]) == 0:
+            mean_s = -1
+        else:
+            mean_s = np.mean(s[s > -1])
+
+        return mean_s
 
 
 def computeKeypointsIoU(
@@ -168,85 +289,57 @@ class COCOeval:
     # Data, paper, and tutorials available at:  http://mscoco.org/
     # Code written by Piotr Dollar and Tsung-Yi Lin, 2015.
     # Licensed under the Simplified BSD License [see coco/license.txt]
-    def __init__(self, cocoGt=None, cocoDt=None):
-        """
-        Initialize CocoEval using coco APIs for gt and dt
-        :param cocoGt: coco object with ground truth annotations
-        :param cocoDt: coco object with detection results
-        :return: None
-        """
-        self.cocoGt = cocoGt  # ground truth COCO API
-        self.cocoDt = cocoDt  # detections COCO API
-        self.evalImgs = defaultdict(list)  # per-image per-category evaluation results [KxAxI] elements
-        self.eval = {}  # accumulated evaluation results
-        self._gts = defaultdict(list)  # gt for evaluation
-        self._dts = defaultdict(list)  # dt for evaluation
-        self.params = Params()  # parameters
-        self._paramsEval = {}  # parameters for evaluation
-        self.stats = []  # result summarization
-        self.ious = {}  # ious between all gts and dts
-        if cocoGt is not None:
-            self.params.imgIds = sorted(cocoGt.getImgIds())
-            self.params.catIds = sorted(cocoGt.getCatIds())
+    def __init__(self, params: EvaluationParams):
+        self.params = params
 
-    def _prepare(self):
-        """
-        Prepare ._gts and ._dts for evaluation based on params
-        :return: None
+    def evaluate_from_coco(self, groundtruth: COCO, predictions: COCO):
         """
 
-        p = self.params
-        if p.useCats:
-            gts = self.cocoGt.loadAnns(self.cocoGt.getAnnIds(imgIds=p.imgIds, catIds=p.catIds))
-            dts = self.cocoDt.loadAnns(self.cocoDt.getAnnIds(imgIds=p.imgIds, catIds=p.catIds))
+        :param groundtruth: COCO-like object with ground truth annotations
+        :param predictions: COCO-like object with predictions
+        :return:
+        """
+        imgIds = list(sorted(groundtruth.getImgIds()))
+        catIds = list(np.unique(groundtruth.getCatIds()))
+
+        if self.params.useCats:
+            gts = groundtruth.loadAnns(groundtruth.getAnnIds(imgIds=imgIds, catIds=catIds))
+            dts = predictions.loadAnns(predictions.getAnnIds(imgIds=imgIds, catIds=catIds))
         else:
-            gts = self.cocoGt.loadAnns(self.cocoGt.getAnnIds(imgIds=p.imgIds))
-            dts = self.cocoDt.loadAnns(self.cocoDt.getAnnIds(imgIds=p.imgIds))
+            gts = groundtruth.loadAnns(groundtruth.getAnnIds(imgIds=imgIds))
+            dts = predictions.loadAnns(predictions.getAnnIds(imgIds=imgIds))
 
         # set ignore flag
         for gt in gts:
             gt["ignore"] = gt["ignore"] if "ignore" in gt else 0
             gt["ignore"] = "iscrowd" in gt and gt["iscrowd"]
-            gt["ignore"] = (gt["num_keypoints"] == 0) or gt["ignore"]
-        self._gts = defaultdict(list)  # gt for evaluation
-        self._dts = defaultdict(list)  # dt for evaluation
+            gt["ignore"] = (gt["num_keypoints"] == 0) or bool(gt["ignore"])
+
+        _gts = defaultdict(list)  # gt for evaluation
+        _dts = defaultdict(list)  # dt for evaluation
         for gt in gts:
-            self._gts[gt["image_id"], gt["category_id"]].append(gt)
+            _gts[gt["image_id"], gt["category_id"]].append(gt)
         for dt in dts:
-            self._dts[dt["image_id"], dt["category_id"]].append(dt)
-        self.evalImgs = defaultdict(list)  # per-image per-category evaluation results
-        self.eval = {}  # accumulated evaluation results
+            _dts[dt["image_id"], dt["category_id"]].append(dt)
 
-    def evaluate(self):
-        """
-        Run per image evaluation on given images and store results (a list of dict) in self.evalImgs
-        :return: None
-        """
-        p = self.params
+        catIds = catIds if self.params.useCats else [-1]
 
-        p.imgIds = list(np.unique(p.imgIds))
-        if p.useCats:
-            p.catIds = list(np.unique(p.catIds))
-        p.maxDets = sorted(p.maxDets)
-        self.params = p
+        # ious between all gts and dts
+        ious = {(imgId, catId): self.computeOksV2(_gts[imgId, catId], _dts[imgId, catId]) for imgId in imgIds for catId in catIds}
 
-        self._prepare()
-        # loop through images, area range, max detection number
-        catIds = p.catIds if p.useCats else [-1]
+        evalImgs = [
+            self.evaluateImg(imgId, catId, areaRng, self.params.maxDets, catIds, ious, _gts, _dts)
+            for catId in catIds
+            for areaRng in self.params.area_ranges
+            for imgId in imgIds
+        ]
+        result = self.accumulate(evalImgs, imgIds, catIds)
 
-        self.ious = {(imgId, catId): self.computeOksV2(imgId, catId) for imgId in p.imgIds for catId in catIds}
+        return result
 
-        maxDet = p.maxDets[-1]
-        self.evalImgs = [self.evaluateImg(imgId, catId, areaRng, maxDet) for catId in catIds for areaRng in p.areaRng for imgId in p.imgIds]
-        self._paramsEval = copy.deepcopy(self.params)
+    def computeOksV2(self, groundtruths, predictions):
 
-    def computeOksV2(self, imgId, catId):
-        p = self.params
-        # dimention here should be Nxm
-        groundtruths = self._gts[imgId, catId]
-        predictions = self._dts[imgId, catId]
-
-        # Note this unpacking will be removed once we get rid of COCO format
+        # TODO: Move this part to evaluate_from_coco
         pred_keypoints = np.array([np.array(dt["keypoints"]).reshape(-1, 3) for dt in predictions])
         pred_scores = np.array([dt["score"] for dt in predictions])
 
@@ -255,8 +348,7 @@ class COCOeval:
         gt_keypoint_visibility = gt_keypoints_with_visibility[:, :, 2] if len(gt_keypoints_with_visibility) else []
         gt_areas = np.array([gt["area"] for gt in groundtruths])
         gt_bboxes = np.array([gt["bbox"] for gt in groundtruths])
-        # gt_areas = None
-        # gt_bboxes = None
+        # TODO END: Move this part to evaluate_from_coco
 
         ious = computeKeypointsIoU(
             pred_joints=pred_keypoints,
@@ -265,23 +357,25 @@ class COCOeval:
             gt_keypoint_visibility=gt_keypoint_visibility,
             gt_areas=gt_areas,
             gt_bboxes=gt_bboxes,
-            max_dets=p.maxDets[-1],
-            sigmas=p.kpt_oks_sigmas,
+            max_dets=self.params.maxDets,
+            sigmas=self.params.sigmas,
         )
         return ious
 
-    def evaluateImg(self, imgId, catId, aRng, maxDet):
+    def evaluateImg(
+        self, imgId: int, catId: int, aRng, maxDet, catIds, ious, _gts: Mapping[Tuple[int, int], Any], _dts: Mapping[Tuple[int, int], Any]
+    ) -> ImageLevelEvaluationResult:
         """
         perform evaluation for single category and image
         :return: dict (single image results)
         """
         p = self.params
         if p.useCats:
-            gt = self._gts[imgId, catId]
-            dt = self._dts[imgId, catId]
+            gt = _gts[imgId, catId]
+            dt = _dts[imgId, catId]
         else:
-            gt = [_ for cId in p.catIds for _ in self._gts[imgId, cId]]
-            dt = [_ for cId in p.catIds for _ in self._dts[imgId, cId]]
+            gt = [_ for cId in catIds for _ in _gts[imgId, cId]]
+            dt = [_ for cId in catIds for _ in _dts[imgId, cId]]
         if len(gt) == 0 and len(dt) == 0:
             return None
 
@@ -298,9 +392,9 @@ class COCOeval:
         dt = [dt[i] for i in dtind[0:maxDet]]
         iscrowd = [int(o["iscrowd"]) for o in gt]
         # load computed ious
-        ious = self.ious[imgId, catId][:, gtind] if len(self.ious[imgId, catId]) > 0 else self.ious[imgId, catId]
+        ious = ious[imgId, catId][:, gtind] if len(ious[imgId, catId]) > 0 else ious[imgId, catId]
 
-        T = len(p.iouThrs)
+        T = len(p.iou_thresholds)
         G = len(gt)
         D = len(dt)
         gtm = np.zeros((T, G))
@@ -308,7 +402,7 @@ class COCOeval:
         gtIg = np.array([g["_ignore"] for g in gt])
         dtIg = np.zeros((T, D))
         if not len(ious) == 0:
-            for tind, t in enumerate(p.iouThrs):
+            for tind, t in enumerate(p.iou_thresholds):
                 for dind, d in enumerate(dt):
                     # information about best match so far (m=-1 -> unmatched)
                     iou = min([t, 1 - 1e-10])
@@ -336,21 +430,21 @@ class COCOeval:
         a = np.array([d["area"] < aRng[0] or d["area"] > aRng[1] for d in dt]).reshape((1, len(dt)))
         dtIg = np.logical_or(dtIg, np.logical_and(dtm == 0, np.repeat(a, T, 0)))
         # store results for given image and category
-        return {
-            "image_id": imgId,
-            "category_id": catId,
-            "aRng": aRng,
-            "maxDet": maxDet,
-            "dtIds": [d["id"] for d in dt],
-            "gtIds": [g["id"] for g in gt],
-            "dtMatches": dtm,
-            "gtMatches": gtm,
-            "dtScores": [d["score"] for d in dt],
-            "gtIgnore": gtIg,
-            "dtIgnore": dtIg,
-        }
+        return ImageLevelEvaluationResult(
+            image_id=imgId,
+            category_id=catId,
+            aRng=aRng,
+            maxDet=maxDet,
+            dtIds=[d["id"] for d in dt],
+            gtIds=[g["id"] for g in gt],
+            dtMatches=dtm,
+            gtMatches=gtm,
+            dtScores=[d["score"] for d in dt],
+            gtIgnore=gtIg,
+            dtIgnore=dtIg,
+        )
 
-    def accumulate(self, p=None):
+    def accumulate(self, evalImgs, imgIds, catIds):
         """
         Accumulate per image evaluation results and store the result in self.eval
         :param p: input params for evaluation
@@ -358,55 +452,52 @@ class COCOeval:
         """
         # print("Accumulating evaluation results...")
         # tic = time.time()
-        if not self.evalImgs:
-            print("Please run evaluate() first")
-        # allows input customized parameters
-        if p is None:
-            p = self.params
-        p.catIds = p.catIds if p.useCats == 1 else [-1]
-        T = len(p.iouThrs)
-        R = len(p.recThrs)
-        K = len(p.catIds) if p.useCats else 1
-        A = len(p.areaRng)
-        M = len(p.maxDets)
+
+        p = self.params
+
+        maxDets = [p.maxDets]
+
+        T = len(p.iou_thresholds)
+        R = len(p.recall_thresholds)
+        K = len(catIds)
+        A = len(p.area_ranges)
+        M = len(maxDets)
         precision = -np.ones((T, R, K, A, M))  # -1 for the precision of absent categories
         recall = -np.ones((T, K, A, M))
         scores = -np.ones((T, R, K, A, M))
 
         # create dictionary for future indexing
-        _pe = self._paramsEval
-        catIds = _pe.catIds if _pe.useCats else [-1]
         setK = set(catIds)
-        setA = set(map(tuple, _pe.areaRng))
-        setM = set(_pe.maxDets)
-        setI = set(_pe.imgIds)
+        setA = set(p.area_ranges)
+        setM = set(maxDets)
+        setI = set(imgIds)
         # get inds to evaluate
-        k_list = [n for n, k in enumerate(p.catIds) if k in setK]
-        m_list = [m for n, m in enumerate(p.maxDets) if m in setM]
-        a_list = [n for n, a in enumerate(map(lambda x: tuple(x), p.areaRng)) if a in setA]
-        i_list = [n for n, i in enumerate(p.imgIds) if i in setI]
-        I0 = len(_pe.imgIds)
-        A0 = len(_pe.areaRng)
+        k_list = [n for n, k in enumerate(catIds) if k in setK]
+        m_list = [m for n, m in enumerate(maxDets) if m in setM]
+        a_list = [n for n, a in enumerate(map(lambda x: tuple(x), p.area_ranges)) if a in setA]
+        i_list = [n for n, i in enumerate(imgIds) if i in setI]
+        I0 = len(imgIds)
+        A0 = len(p.area_ranges)
         # retrieve E at each category, area range, and max number of detections
         for k, k0 in enumerate(k_list):
             Nk = k0 * A0 * I0
             for a, a0 in enumerate(a_list):
                 Na = a0 * I0
                 for m, maxDet in enumerate(m_list):
-                    E = [self.evalImgs[Nk + Na + i] for i in i_list]
-                    E = [e for e in E if e is not None]
+                    E = [evalImgs[Nk + Na + i] for i in i_list]
+                    E: List[ImageLevelEvaluationResult] = [e for e in E if e is not None]
                     if len(E) == 0:
                         continue
-                    dtScores = np.concatenate([e["dtScores"][0:maxDet] for e in E])
+                    dtScores = np.concatenate([e.dtScores[0:maxDet] for e in E])
 
                     # different sorting method generates slightly different results.
                     # mergesort is used to be consistent as Matlab implementation.
                     inds = np.argsort(-dtScores, kind="mergesort")
                     dtScoresSorted = dtScores[inds]
 
-                    dtm = np.concatenate([e["dtMatches"][:, 0:maxDet] for e in E], axis=1)[:, inds]
-                    dtIg = np.concatenate([e["dtIgnore"][:, 0:maxDet] for e in E], axis=1)[:, inds]
-                    gtIg = np.concatenate([e["gtIgnore"] for e in E])
+                    dtm = np.concatenate([e.dtMatches[:, 0:maxDet] for e in E], axis=1)[:, inds]
+                    dtIg = np.concatenate([e.dtIgnore[:, 0:maxDet] for e in E], axis=1)[:, inds]
+                    gtIg = np.concatenate([e.gtIgnore for e in E])
                     npig = np.count_nonzero(gtIg == 0)
                     if npig == 0:
                         continue
@@ -438,7 +529,7 @@ class COCOeval:
                             if pr[i] > pr[i - 1]:
                                 pr[i - 1] = pr[i]
 
-                        inds = np.searchsorted(rc, p.recThrs, side="left")
+                        inds = np.searchsorted(rc, p.recall_thresholds, side="left")
                         try:
                             for ri, pi in enumerate(inds):
                                 q[ri] = pr[pi]
@@ -448,121 +539,10 @@ class COCOeval:
                             pass
                         precision[t, :, k, a, m] = np.array(q)
                         scores[t, :, k, a, m] = np.array(ss)
-        self.eval = {
-            "params": p,
-            "counts": [T, R, K, A, M],
-            "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "precision": precision,
-            "recall": recall,
-            "scores": scores,
-        }
-        # toc = time.time()
-        # print("DONE (t={:0.2f}s).".format(toc - tic))
-
-    def summarize(self):
-        """
-        Compute and display summary metrics for evaluation results.
-        Note this functin can *only* be applied on the default parameter setting
-        """
-
-        def _summarize(ap=1, iouThr=None, areaRng="all", maxDets=100):
-            p = self.params
-            iStr = " {:<18} {} @[ IoU={:<9} | area={:>6s} | maxDets={:>3d} ] = {:0.3f}"
-            titleStr = "Average Precision" if ap == 1 else "Average Recall"
-            typeStr = "(AP)" if ap == 1 else "(AR)"
-            iouStr = "{:0.2f}:{:0.2f}".format(p.iouThrs[0], p.iouThrs[-1]) if iouThr is None else "{:0.2f}".format(iouThr)
-
-            aind = [i for i, aRng in enumerate(p.areaRngLbl) if aRng == areaRng]
-            mind = [i for i, mDet in enumerate(p.maxDets) if mDet == maxDets]
-            if ap == 1:
-                # dimension of precision: [TxRxKxAxM]
-                s = self.eval["precision"]
-                # IoU
-                if iouThr is not None:
-                    t = np.where(iouThr == p.iouThrs)[0]
-                    s = s[t]
-                s = s[:, :, :, aind, mind]
-            else:
-                # dimension of recall: [TxKxAxM]
-                s = self.eval["recall"]
-                if iouThr is not None:
-                    t = np.where(iouThr == p.iouThrs)[0]
-                    s = s[t]
-                s = s[:, :, aind, mind]
-            if len(s[s > -1]) == 0:
-                mean_s = -1
-            else:
-                mean_s = np.mean(s[s > -1])
-            print(iStr.format(titleStr, typeStr, iouStr, areaRng, maxDets, mean_s))
-            return mean_s
-
-        def _summarizeDets():
-            stats = np.zeros((12,))
-            stats[0] = _summarize(1)
-            stats[1] = _summarize(1, iouThr=0.5, maxDets=self.params.maxDets[2])
-            stats[2] = _summarize(1, iouThr=0.75, maxDets=self.params.maxDets[2])
-            stats[3] = _summarize(1, areaRng="small", maxDets=self.params.maxDets[2])
-            stats[4] = _summarize(1, areaRng="medium", maxDets=self.params.maxDets[2])
-            stats[5] = _summarize(1, areaRng="large", maxDets=self.params.maxDets[2])
-            stats[6] = _summarize(0, maxDets=self.params.maxDets[0])
-            stats[7] = _summarize(0, maxDets=self.params.maxDets[1])
-            stats[8] = _summarize(0, maxDets=self.params.maxDets[2])
-            stats[9] = _summarize(0, areaRng="small", maxDets=self.params.maxDets[2])
-            stats[10] = _summarize(0, areaRng="medium", maxDets=self.params.maxDets[2])
-            stats[11] = _summarize(0, areaRng="large", maxDets=self.params.maxDets[2])
-            return stats
-
-        def _summarizeKps():
-            stats = np.zeros((10,))
-            # stats[0] = _summarize(1, maxDets=20)
-            # stats[1] = _summarize(1, maxDets=20, iouThr=.5)
-            # stats[2] = _summarize(1, maxDets=20, iouThr=.75)
-            # stats[3] = _summarize(1, maxDets=20, areaRng='medium')
-            # stats[4] = _summarize(1, maxDets=20, areaRng='large')
-            # stats[5] = _summarize(0, maxDets=20)
-            # stats[6] = _summarize(0, maxDets=20, iouThr=.5)
-            # stats[7] = _summarize(0, maxDets=20, iouThr=.75)
-            # stats[8] = _summarize(0, maxDets=20, areaRng='medium')
-            # stats[9] = _summarize(0, maxDets=20, areaRng='large')
-            # Edited
-            stats[0] = _summarize(1, maxDets=self.params.maxDets[0])
-            stats[1] = _summarize(1, maxDets=self.params.maxDets[0], iouThr=0.5)
-            stats[2] = _summarize(1, maxDets=self.params.maxDets[0], iouThr=0.75)
-            stats[3] = _summarize(1, maxDets=self.params.maxDets[0], areaRng="medium")
-            stats[4] = _summarize(1, maxDets=self.params.maxDets[0], areaRng="large")
-            stats[5] = _summarize(0, maxDets=self.params.maxDets[0])
-            stats[6] = _summarize(0, maxDets=self.params.maxDets[0], iouThr=0.5)
-            stats[7] = _summarize(0, maxDets=self.params.maxDets[0], iouThr=0.75)
-            stats[8] = _summarize(0, maxDets=self.params.maxDets[0], areaRng="medium")
-            stats[9] = _summarize(0, maxDets=self.params.maxDets[0], areaRng="large")
-
-            return stats
-
-        if not self.eval:
-            raise Exception("Please run accumulate() first")
-
-        self.stats = _summarizeKps()
-
-    def __str__(self):
-        self.summarize()
-
-
-class Params:
-    """
-    Params for coco evaluation api
-    """
-
-    def setKpParams(self):
-        self.imgIds = []
-        self.catIds = []
-        # np.arange causes trouble.  the data point on arange is slightly larger than the true value
-        self.iouThrs = np.linspace(0.5, 0.95, int(np.round((0.95 - 0.5) / 0.05)) + 1, endpoint=True)
-        self.recThrs = np.linspace(0.0, 1.00, int(np.round((1.00 - 0.0) / 0.01)) + 1, endpoint=True)
-        self.maxDets = [20]
-        self.areaRng = [[0**2, 1e5**2], [32**2, 96**2], [96**2, 1e5**2]]
-        self.areaRngLbl = ["all", "medium", "large"]
-        self.useCats = 1
-        self.kpt_oks_sigmas = np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0
-
-    def __init__(self):
-        self.setKpParams()
+        return DatasetLevelEvaluationResult(
+            params=p,
+            counts=(T, R, K, A, M),
+            precision=precision,
+            recall=recall,
+            scores=scores,
+        )

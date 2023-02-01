@@ -2,6 +2,7 @@ import collections
 import os.path
 import tempfile
 import unittest
+from pprint import pprint
 from typing import List, Tuple
 
 import numpy as np
@@ -10,7 +11,7 @@ from pycocotools.cocoeval import COCOeval
 
 import json_tricks as json
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import remove_duplicate_annotations, make_keypoints_outside_image_invisible
-from super_gradients.training.metrics.cocoeval import COCOeval as PatchedCOCOeval
+from super_gradients.training.metrics.cocoeval import COCOeval as PatchedCOCOeval, EvaluationParams
 
 
 class TestPoseEstimationMetrics(unittest.TestCase):
@@ -35,17 +36,18 @@ class TestPoseEstimationMetrics(unittest.TestCase):
             coco_dt = COCO(gt_annotations_path)
             coco_dt = coco_dt.loadRes(res_file)
 
+        evaluator = PatchedCOCOeval(EvaluationParams.get_predefined_coco_params())
+        results = evaluator.evaluate_from_coco(gt, coco_dt)
+        results.print()
+        pprint(results.all_metrics())
         E = COCOeval(gt, coco_dt, iouType="keypoints")
         E.evaluate()  # run per image evaluation
         E.accumulate()  # accumulate per image results
         E.summarize()  # display summary metrics of results
         print(E.stats)
 
-        E = PatchedCOCOeval(gt, coco_dt)
-        E.evaluate()  # run per image evaluation
-        E.accumulate()  # accumulate per image results
-        E.summarize()  # display summary metrics of results
-        print(E.stats)
+        self.assertAlmostEquals(E.stats[0], results.all_metrics()["AP"])
+        self.assertAlmostEquals(E.stats[5], results.all_metrics()["AR"])
 
     def generate_noised_predictions(self, coco: COCO, instance_drop_probability: float, pose_offset: float) -> List[Tuple[np.ndarray, int]]:
         """
