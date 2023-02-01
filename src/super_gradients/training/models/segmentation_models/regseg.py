@@ -12,71 +12,43 @@ from super_gradients.modules import ConvBNReLU
 
 DEFAULT_REGSEG48_BACKBONE_PARAMS = {
     "stages": [
-        [
-            [48, [1], 16, 2, 4]
-        ],
-        [
-            [128, [1], 16, 2, 4],
-            *[[128, [1], 16, 1, 4]] * 2
-        ],
+        [[48, [1], 16, 2, 4]],
+        [[128, [1], 16, 2, 4], *[[128, [1], 16, 1, 4]] * 2],
         [
             [256, [1], 16, 2, 4],
             [256, [1], 16, 1, 4],
             [256, [1, 2], 16, 1, 4],
             *[[256, [1, 4], 16, 1, 4]] * 4,
             *[[256, [1, 14], 16, 1, 4]] * 6,
-            [320, [1, 14], 16, 1, 4]
-        ]
+            [320, [1, 14], 16, 1, 4],
+        ],
     ]
 }
 
 DEFAULT_REGSEG53_BACKBONE_PARAMS = {
     "stages": [
-        [
-            [48, [1], 24, 2, 4],
-            [48, [1], 24, 1, 4]
-        ],
-        [
-            [120, [1], 24, 2, 4],
-            *[[120, [1], 24, 1, 4]] * 5
-        ],
+        [[48, [1], 24, 2, 4], [48, [1], 24, 1, 4]],
+        [[120, [1], 24, 2, 4], *[[120, [1], 24, 1, 4]] * 5],
         [
             [336, [1], 24, 2, 4],
             [336, [1], 24, 1, 4],
             [336, [1, 2], 24, 1, 4],
             *[[336, [1, 4], 24, 1, 4]] * 4,
             *[[336, [1, 14], 24, 1, 4]] * 6,
-            [384, [1, 14], 24, 1, 4]
-        ]
+            [384, [1, 14], 24, 1, 4],
+        ],
     ]
 }
 
-DEFAULT_REGSEG48_DECODER_PARAMS = {
-    "projection_out_channels": [8, 128, 128],
-    "interpolation": 'bilinear'
-}
+DEFAULT_REGSEG48_DECODER_PARAMS = {"projection_out_channels": [8, 128, 128], "interpolation": "bilinear"}
 
-DEFAULT_REGSEG53_DECODER_PARAMS = {
-    "projection_out_channels": [16, 256, 256],
-    "interpolation": 'bilinear'
-}
+DEFAULT_REGSEG53_DECODER_PARAMS = {"projection_out_channels": [16, 256, 256], "interpolation": "bilinear"}
 
-DEFAULT_REGSEG_HEAD_PARAMS = {
-    "dropout": 0.0,
-    "interpolation": 'bilinear',
-    "align_corners": False,
-    "upsample_factor": 4
-}
+DEFAULT_REGSEG_HEAD_PARAMS = {"dropout": 0.0, "interpolation": "bilinear", "align_corners": False, "upsample_factor": 4}
 
-DEFAULT_REGSEG48_HEAD_PARAMS = {
-    "mid_channels": 64,
-    **DEFAULT_REGSEG_HEAD_PARAMS
-}
+DEFAULT_REGSEG48_HEAD_PARAMS = {"mid_channels": 64, **DEFAULT_REGSEG_HEAD_PARAMS}
 
-DEFAULT_REGSEG53_HEAD_PARAMS = {
-    "mid_channels": 128,
-    **DEFAULT_REGSEG_HEAD_PARAMS
-}
+DEFAULT_REGSEG53_HEAD_PARAMS = {"mid_channels": 128, **DEFAULT_REGSEG_HEAD_PARAMS}
 
 
 class SqueezeAndExcitationBlock(nn.Module):
@@ -87,7 +59,7 @@ class SqueezeAndExcitationBlock(nn.Module):
             nn.Conv2d(in_channels, bottleneck_channels, 1, bias=True),
             nn.ReLU(inplace=True),
             nn.Conv2d(bottleneck_channels, in_channels, 1, bias=True),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
@@ -109,9 +81,7 @@ class AdaptiveShortcutBlock(nn.Module):
         if stride != 1:
             shortcut_layers[0] = nn.AvgPool2d(stride, stride, ceil_mode=True)  # override the identity layer
         if in_channels != out_channels or stride != 1:
-            shortcut_layers.append(
-                ConvBNReLU(in_channels, out_channels, kernel_size=1, bias=False, use_activation=False)
-            )
+            shortcut_layers.append(ConvBNReLU(in_channels, out_channels, kernel_size=1, bias=False, use_activation=False))
         self.shortcut = nn.Sequential(*shortcut_layers)
 
     def forward(self, x):
@@ -123,8 +93,7 @@ class SplitDilatedGroupConvBlock(nn.Module):
     Splits the input to "dilation groups", following grouped convolution with different dilation for each group
     """
 
-    def __init__(self, in_channels: int, split_dilations: List[int], group_width_per_split: int, stride: int,
-                 bias: bool):
+    def __init__(self, in_channels: int, split_dilations: List[int], group_width_per_split: int, stride: int, bias: bool):
         """
         :param split_dilations:         a list specifying the required dilations.
                                         the input will be split into len(dilations) groups,
@@ -133,17 +102,14 @@ class SplitDilatedGroupConvBlock(nn.Module):
         """
         super().__init__()
         self.num_splits = len(split_dilations)
-        assert (in_channels % self.num_splits == 0), \
-            f"Cannot split {in_channels} to {self.num_splits} groups with equal size."
+        assert in_channels % self.num_splits == 0, f"Cannot split {in_channels} to {self.num_splits} groups with equal size."
         group_channels = in_channels // self.num_splits
-        assert (group_channels % group_width_per_split == 0), \
-            f"Cannot split {group_channels} channels ({in_channels} / {self.num_splits} splits)" \
-            f" to groups with {group_width_per_split} channels per group."
+        assert group_channels % group_width_per_split == 0, (
+            f"Cannot split {group_channels} channels ({in_channels} / {self.num_splits} splits)" f" to groups with {group_width_per_split} channels per group."
+        )
         inner_groups = group_channels // group_width_per_split
         self.convs = nn.ModuleList(
-            nn.Conv2d(group_channels, group_channels, 3, padding=d, dilation=d,
-                      stride=stride, bias=bias, groups=inner_groups)
-            for d in split_dilations
+            nn.Conv2d(group_channels, group_channels, 3, padding=d, dilation=d, stride=stride, bias=bias, groups=inner_groups) for d in split_dilations
         )
         self._splits = [in_channels // self.num_splits] * self.num_splits
 
@@ -153,8 +119,7 @@ class SplitDilatedGroupConvBlock(nn.Module):
 
 
 class DBlock(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, dilations: List[int],
-                 group_width: int, stride: int, se_ratio: int = 4):
+    def __init__(self, in_channels: int, out_channels: int, dilations: List[int], group_width: int, stride: int, se_ratio: int = 4):
         """
         :param dilations:           a list specifying the required dilations.
                                     the input will be split into len(dilations) groups,
@@ -175,11 +140,9 @@ class DBlock(nn.Module):
 
         if len(dilations) == 1:  # minor optimization: no need to split if we only have 1 dilation group
             dilation = dilations[0]
-            dilated_conv = nn.Conv2d(out_channels, out_channels, 3, stride=stride, groups=groups,
-                                     padding=dilation, dilation=dilation, bias=False)
+            dilated_conv = nn.Conv2d(out_channels, out_channels, 3, stride=stride, groups=groups, padding=dilation, dilation=dilation, bias=False)
         else:
-            dilated_conv = SplitDilatedGroupConvBlock(out_channels, dilations, group_width_per_split=group_width,
-                                                      stride=stride, bias=False)
+            dilated_conv = SplitDilatedGroupConvBlock(out_channels, dilations, group_width_per_split=group_width, stride=stride, bias=False)
 
         self.d_block_path = nn.Sequential(
             ConvBNReLU(in_channels, out_channels, kernel_size=1, bias=False),
@@ -188,7 +151,7 @@ class DBlock(nn.Module):
             nn.ReLU(inplace=True),
             # the ratio of se block applied to `in_channels` as in the original paper
             SqueezeAndExcitationBlock(out_channels, in_channels // se_ratio),
-            ConvBNReLU(out_channels, out_channels, 1, use_activation=False, bias=False)
+            ConvBNReLU(out_channels, out_channels, 1, use_activation=False, bias=False),
         )
         self.relu = nn.ReLU(inplace=True)
 
@@ -199,8 +162,9 @@ class DBlock(nn.Module):
         return out
 
     def __str__(self):
-        return f"{self.__class__.__name__}_in{self.in_channels}_out{self.out_channels}" \
-               f"_d{self.dilations}_gw{self.group_width}_s{self.stride}_se{self.se_ratio}"
+        return (
+            f"{self.__class__.__name__}_in{self.in_channels}_out{self.out_channels}" f"_d{self.dilations}_gw{self.group_width}_s{self.stride}_se{self.se_ratio}"
+        )
 
 
 class RegSegDecoder(nn.Module):
@@ -210,19 +174,16 @@ class RegSegDecoder(nn.Module):
 
     def __init__(self, backbone_output_channels: List[int], decoder_config: dict):
         super().__init__()
-        projection_out_channels = decoder_config['projection_out_channels']
+        projection_out_channels = decoder_config["projection_out_channels"]
 
-        assert len(backbone_output_channels) == len(projection_out_channels) == 3, \
-            "This decoder is specific for 3 stages"
+        assert len(backbone_output_channels) == len(projection_out_channels) == 3, "This decoder is specific for 3 stages"
 
-        self.projections = nn.ModuleList([
-            ConvBNReLU(in_channels, out_channels, 1, bias=False)
-            for in_channels, out_channels in zip(backbone_output_channels, projection_out_channels)
-        ])
-        self.upsample = nn.Upsample(scale_factor=2, mode=decoder_config['interpolation'], align_corners=True)
+        self.projections = nn.ModuleList(
+            [ConvBNReLU(in_channels, out_channels, 1, bias=False) for in_channels, out_channels in zip(backbone_output_channels, projection_out_channels)]
+        )
+        self.upsample = nn.Upsample(scale_factor=2, mode=decoder_config["interpolation"], align_corners=True)
         mid_channels = projection_out_channels[1]
-        self.conv_bn_relu = ConvBNReLU(in_channels=mid_channels, out_channels=mid_channels // 2,
-                                       kernel_size=3, padding=1, bias=False)
+        self.conv_bn_relu = ConvBNReLU(in_channels=mid_channels, out_channels=mid_channels // 2, kernel_size=3, padding=1, bias=False)
         self.out_channels = mid_channels // 2 + projection_out_channels[0]  # original implementation: concat
 
     def forward(self, x_stages):
@@ -238,17 +199,15 @@ class RegSegDecoder(nn.Module):
 
 
 class RegSegHead(nn.Module):
-
     def __init__(self, in_channels: int, num_classes: int, head_config: dict):
         super().__init__()
         layers = list()
-        layers.append(ConvBNReLU(in_channels, head_config['mid_channels'], 3, bias=False, padding=1))
-        if head_config['dropout'] > 0:
-            layers.append(nn.Dropout(head_config['dropout'], inplace=False))
+        layers.append(ConvBNReLU(in_channels, head_config["mid_channels"], 3, bias=False, padding=1))
+        if head_config["dropout"] > 0:
+            layers.append(nn.Dropout(head_config["dropout"], inplace=False))
 
-        layers.append(nn.Conv2d(head_config['mid_channels'], num_classes, 1))
-        layers.append(nn.Upsample(scale_factor=head_config['upsample_factor'],
-                                  mode=head_config['interpolation'], align_corners=head_config['align_corners']))
+        layers.append(nn.Conv2d(head_config["mid_channels"], num_classes, 1))
+        layers.append(nn.Upsample(scale_factor=head_config["upsample_factor"], mode=head_config["interpolation"], align_corners=head_config["align_corners"]))
         self.head = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -258,8 +217,7 @@ class RegSegHead(nn.Module):
 class RegSegBackbone(nn.Module):
     def __init__(self, in_channels: int, backbone_config: dict):
         super().__init__()
-        self.stages, self.backbone_output_channels = \
-            self._generate_stages(in_channels, backbone_config["stages"])
+        self.stages, self.backbone_output_channels = self._generate_stages(in_channels, backbone_config["stages"])
 
     @staticmethod
     def _generate_stages(in_channels, backbone_stages):
@@ -290,7 +248,6 @@ class RegSegBackbone(nn.Module):
 
 
 class RegSeg(SgModule):
-
     def __init__(self, stem, backbone, decoder, head):
         super().__init__()
         self.stem = stem
@@ -316,17 +273,18 @@ class RegSeg(SgModule):
 
         multiply_lr_params, no_multiply_params = multiply_lr_params.items(), no_multiply_params.items()
 
-        param_groups = [{"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
-                        {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"}]
+        param_groups = [
+            {"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
+            {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"},
+        ]
         return param_groups
 
-    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
-                            total_batch: int) -> list:
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
         for param_group in param_groups:
-            param_group['lr'] = lr
+            param_group["lr"] = lr
             if param_group["name"] == "multiply_lr_params":
-                param_group['lr'] *= multiply_head_lr
+                param_group["lr"] *= multiply_head_lr
         return param_groups
 
     def replace_head(self, new_num_classes: int, head_config: dict):
@@ -334,15 +292,11 @@ class RegSeg(SgModule):
 
 
 class RegSeg48(RegSeg):
-
     def __init__(self, arch_params: HpmStruct):
         num_classes = get_param(arch_params, "num_classes")
         stem = ConvBNReLU(in_channels=3, out_channels=32, kernel_size=3, stride=2, padding=1)
         backbone = RegSegBackbone(in_channels=32, backbone_config=DEFAULT_REGSEG48_BACKBONE_PARAMS)
-        decoder = RegSegDecoder(
-            backbone.get_backbone_output_number_of_channels(),
-            DEFAULT_REGSEG48_DECODER_PARAMS
-        )
+        decoder = RegSegDecoder(backbone.get_backbone_output_number_of_channels(), DEFAULT_REGSEG48_DECODER_PARAMS)
         head = RegSegHead(decoder.out_channels, num_classes, DEFAULT_REGSEG48_HEAD_PARAMS)
         super().__init__(stem, backbone, decoder, head)
 
@@ -352,15 +306,11 @@ class RegSeg48(RegSeg):
 
 
 class RegSeg53(RegSeg):
-
     def __init__(self, arch_params: HpmStruct):
         num_classes = get_param(arch_params, "num_classes")
         stem = ConvBNReLU(in_channels=3, out_channels=32, kernel_size=3, stride=2, padding=1)
         backbone = RegSegBackbone(in_channels=32, backbone_config=DEFAULT_REGSEG53_BACKBONE_PARAMS)
-        decoder = RegSegDecoder(
-            backbone.get_backbone_output_number_of_channels(),
-            DEFAULT_REGSEG53_DECODER_PARAMS
-        )
+        decoder = RegSegDecoder(backbone.get_backbone_output_number_of_channels(), DEFAULT_REGSEG53_DECODER_PARAMS)
         head = RegSegHead(decoder.out_channels, num_classes, DEFAULT_REGSEG53_HEAD_PARAMS)
         super().__init__(stem, backbone, decoder, head)
 
