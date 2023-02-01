@@ -63,7 +63,7 @@ class AbstractSGLogger(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], data_format: str = 'CHW', global_step: int = None):
+    def add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], data_format: str = "CHW", global_step: int = None):
         """
         Add a single image to SGLogger.
         Typically, this function will add an image to tensorboard, save it to disk or add it to experiment management framework.
@@ -76,7 +76,7 @@ class AbstractSGLogger(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def add_images(self, tag: str, images: Union[torch.Tensor, np.array], data_format='NCHW', global_step: int = None):
+    def add_images(self, tag: str, images: Union[torch.Tensor, np.array], data_format="NCHW", global_step: int = None):
         """
         Add multiple images to SGLogger.
         Typically, this function will add images to tensorboard, save them to disk or add them to experiment management framework.
@@ -89,7 +89,7 @@ class AbstractSGLogger(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def add_histogram(self, tag: str, values: Union[torch.Tensor, np.array], bins: Union[str, np.array, list, int] = 'auto', global_step: int = None):
+    def add_histogram(self, tag: str, values: Union[torch.Tensor, np.array], bins: Union[str, np.array, list, int] = "auto", global_step: int = None):
         """
         Add a histogram to SGLogger.
         Typically, this function will add a histogram to tensorboard or add it to experiment management framework.
