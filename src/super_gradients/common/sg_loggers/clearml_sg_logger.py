@@ -212,8 +212,8 @@ class ClearMLSGLogger(BaseSGLogger):
             self.task.upload_artifact(name=name, artifact_object=self._get_tensorboard_file_name())
 
         if self.save_logs:
-            name = self.log_file_path.split("/")[-1]
-            self.task.upload_artifact(name=name, artifact_object=self.log_file_path)
+            name = self.experiment_log_path.split("/")[-1]
+            self.task.upload_artifact(name=name, artifact_object=self.experiment_log_path)
 
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = 0):
