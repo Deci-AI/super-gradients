@@ -12,5 +12,6 @@ class EvaluationType(str, Enum):
             VALIDATION
 
     """
-    TEST = 'TEST'
-    VALIDATION = 'VALIDATION'
+
+    TEST = "TEST"
+    VALIDATION = "VALIDATION"
