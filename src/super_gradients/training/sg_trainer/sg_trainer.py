@@ -1,41 +1,39 @@
 import inspect
 import os
 from copy import deepcopy
-from typing import Union, Tuple, Mapping, Dict
 from pathlib import Path
+from typing import Union, Tuple, Mapping, Dict, Any
 
+import hydra
 import numpy as np
 import torch
-import hydra
 from omegaconf import DictConfig
+from omegaconf import OmegaConf
+from piptools.scripts.sync import _get_installed_distributions
 from torch import nn
-from torch.utils.data import DataLoader, SequentialSampler
 from torch.cuda.amp import GradScaler, autocast
+from torch.utils.data import DataLoader, SequentialSampler
+from torch.utils.data.distributed import DistributedSampler
 from torchmetrics import MetricCollection
 from tqdm import tqdm
-from piptools.scripts.sync import _get_installed_distributions
 
-from torch.utils.data.distributed import DistributedSampler
-
-from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
-
-from super_gradients.common.factories.callbacks_factory import CallbacksFactory
-from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
-from super_gradients.training.models.all_architectures import ARCHITECTURES
-from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.environment.device_utils import device_config
+from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
+from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.models import SgModule
-from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import sg_trainer_utils, get_param
-from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
+from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
+from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
+from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
     get_metrics_results_tuple,
@@ -43,7 +41,30 @@ from super_gradients.training.metrics.metric_utils import (
     get_metrics_dict,
     get_train_loop_description_dict,
 )
+from super_gradients.training.models import SgModule
+from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.params import TrainingParams
+from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
+from super_gradients.training.utils import HpmStruct
+from super_gradients.training.utils import random_seed
+from super_gradients.training.utils import sg_trainer_utils, get_param
+from super_gradients.training.utils.callbacks import (
+    CallbackHandler,
+    Phase,
+    LR_SCHEDULERS_CLS_DICT,
+    PhaseContext,
+    MetricsUpdateCallback,
+    LR_WARMUP_CLS_DICT,
+    ContextSgMethods,
+    LRCallbackBase,
+)
+from super_gradients.training.utils.checkpoint_utils import (
+    get_ckpt_local_path,
+    read_ckpt_state_dict,
+    load_checkpoint_to_model,
+    load_pretrained_weights,
+    get_checkpoints_dir_path,
+)
 from super_gradients.training.utils.distributed_training_utils import (
     MultiGPUModeAutocastWrapper,
     reduce_results_tuple_for_ddp,
@@ -59,34 +80,11 @@ from super_gradients.training.utils.distributed_training_utils import (
     DDPNotSetupException,
 )
 from super_gradients.training.utils.ema import ModelEMA
+from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 from super_gradients.training.utils.optimizer_utils import build_optimizer
+from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
 from super_gradients.training.utils.utils import fuzzy_idx_in_list
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
-from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.training.utils import random_seed
-from super_gradients.training.utils.checkpoint_utils import (
-    get_ckpt_local_path,
-    read_ckpt_state_dict,
-    load_checkpoint_to_model,
-    load_pretrained_weights,
-    get_checkpoints_dir_path,
-)
-from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
-from super_gradients.training.utils.callbacks import (
-    CallbackHandler,
-    Phase,
-    LR_SCHEDULERS_CLS_DICT,
-    PhaseContext,
-    MetricsUpdateCallback,
-    LR_WARMUP_CLS_DICT,
-    ContextSgMethods,
-    LRCallbackBase,
-)
-from super_gradients.common.environment.device_utils import device_config
-from super_gradients.training.utils import HpmStruct
-from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
-from omegaconf import OmegaConf
-from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 
 logger = get_logger(__name__)
 
@@ -470,9 +468,6 @@ class Trainer:
             ):
                 break
 
-        if not self.ddp_silent_mode:
-            self.sg_logger.upload()
-
         self.train_monitored_values = sg_trainer_utils.update_monitored_values_dict(
             monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict
         )
@@ -546,15 +541,18 @@ class Trainer:
         self.scaler.scale(loss).backward()
         self.phase_callback_handler.on_train_batch_backward_end(context)
 
-        # APPLY GRADIENT CLIPPING IF REQUIRED
-        if self.training_params.clip_grad_norm:
-            torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
-
         # ACCUMULATE GRADIENT FOR X BATCHES BEFORE OPTIMIZING
-        integrated_batches_num = batch_idx + len(self.train_loader) * epoch + 1
+        local_step = batch_idx + 1
+        global_step = local_step + len(self.train_loader) * epoch
+        total_steps = len(self.train_loader) * self.max_epochs
 
-        if integrated_batches_num % self.batch_accumulate == 0:
+        if global_step % self.batch_accumulate == 0:
             self.phase_callback_handler.on_train_batch_gradient_step_start(context)
+
+            # APPLY GRADIENT CLIPPING IF REQUIRED
+            if self.training_params.clip_grad_norm:
+                self.scaler.unscale_(self.optimizer)
+                torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
 
             # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
             self.scaler.step(self.optimizer)
@@ -562,7 +560,7 @@ class Trainer:
 
             self.optimizer.zero_grad()
             if self.ema:
-                self.ema_model.update(self.net, integrated_batches_num / (len(self.train_loader) * self.max_epochs))
+                self.ema_model.update(self.net, step=global_step, total_steps=total_steps)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_train_batch_gradient_step_end(context)
@@ -1082,9 +1080,7 @@ class Trainer:
         num_batches = len(self.train_loader)
 
         if self.ema:
-            ema_params = self.training_params.ema_params
-            logger.info(f"Using EMA with params {ema_params}")
-            self.ema_model = self._instantiate_ema_model(**ema_params)
+            self.ema_model = self._instantiate_ema_model(self.training_params.ema_params)
             self.ema_model.updates = self.start_epoch * num_batches // self.batch_accumulate
             if self.load_checkpoint:
                 if "ema_net" in self.checkpoint.keys():
@@ -1193,19 +1189,19 @@ class Trainer:
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
-        if self.training_params.max_train_batches is not None and (
-            self.training_params.max_train_batches > len(self.train_loader) or self.training_params.max_train_batches <= 0
-        ):
+        if self.training_params.max_train_batches is not None:
+            if self.training_params.max_train_batches > len(self.train_loader):
+                logger.warning("max_train_batches is greater than len(self.train_loader) and will have no effect.")
+            elif self.training_params.max_train_batches <= 0:
+                raise ValueError("max_train_batches must be positive.")
 
-            raise ValueError("max_train_batches must be positive and smaller then len(train_loader).")
+        if self.training_params.max_valid_batches is not None:
+            if self.training_params.max_valid_batches > len(self.valid_loader):
+                logger.warning("max_valid_batches is greater than len(self.valid_loader) and will have no effect.")
+            elif self.training_params.max_valid_batches <= 0:
+                raise ValueError("max_valid_batches must be positive.")
 
         self.max_train_batches = self.training_params.max_train_batches
-
-        if self.training_params.max_valid_batches is not None and (
-            self.training_params.max_valid_batches > len(self.valid_loader) or self.training_params.max_valid_batches <= 0
-        ):
-
-            raise ValueError("max_valid_batches must be positive and smaller then len(valid_loader).")
         self.max_valid_batches = self.training_params.max_valid_batches
 
         # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
@@ -1316,6 +1312,7 @@ class Trainer:
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
                     self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch, context)
+                    self.sg_logger.upload()
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
@@ -1902,14 +1899,15 @@ class Trainer:
 
         return net
 
-    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> ModelEMA:
+    def _instantiate_ema_model(self, ema_params: Mapping[str, Any]) -> ModelEMA:
         """Instantiate ema model for standard SgModule.
-        :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value
-                      until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
-        :param beta: the exponent coefficient. The higher the beta, the sooner in the training the decay will saturate to
-                     its final value. beta=15 is ~40% of the training process.
+        :param decay_type: (str) The decay climb schedule. See EMA_DECAY_FUNCTIONS for more details.
+        :param decay: The maximum decay value. As the training process advances, the decay will climb towards this value
+                      according to decay_type schedule. See EMA_DECAY_FUNCTIONS for more details.
+        :param kwargs: Additional parameters for the decay function. See EMA_DECAY_FUNCTIONS for more details.
         """
-        return ModelEMA(self.net, decay, beta, exp_activation)
+        logger.info(f"Using EMA with params {ema_params}")
+        return ModelEMA.from_params(self.net, **ema_params)
 
     @property
     def get_net(self):

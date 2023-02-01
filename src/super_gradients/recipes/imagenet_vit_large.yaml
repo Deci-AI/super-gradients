@@ -29,7 +29,7 @@ architecture: vit_large
 experiment_name: vit_large_imagenet1k
 multi_gpu: DDP
 num_gpus: 8
-
+ckpt_root_dir:
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
