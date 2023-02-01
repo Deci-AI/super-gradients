@@ -5,7 +5,7 @@ import time
 from typing import Union
 
 
-from super_gradients.common.environment.env_variables import EnvironmentVariables
+from super_gradients.common.environment.env_variables import env_variables
 
 
 class AutoLoggerConfig:
@@ -55,8 +55,8 @@ class AutoLoggerConfig:
                 with open(filename, "w") as dst:
                     dst.write(src.read())
 
-        file_logging_level = log_level or EnvironmentVariables.FILE_LOG_LEVEL
-        console_logging_level = log_level or EnvironmentVariables.CONSOLE_LOG_LEVEL
+        file_logging_level = log_level or env_variables.FILE_LOG_LEVEL
+        console_logging_level = log_level or env_variables.CONSOLE_LOG_LEVEL
 
         cur_version = sys.version_info
         python_38 = (3, 8)
