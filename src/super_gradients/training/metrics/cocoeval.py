@@ -72,9 +72,6 @@ class ImageLevelEvaluationResult:
     image_id: Union[str, int]
     category_id: int
     aRng: Tuple[int, int]
-    maxDet: int
-    dtIds: List
-    gtIds: List
     dtMatches: Any
     gtMatches: Any
     dtScores: List
@@ -434,9 +431,6 @@ class COCOeval:
             image_id=imgId,
             category_id=catId,
             aRng=aRng,
-            maxDet=maxDet,
-            dtIds=[d["id"] for d in dt],
-            gtIds=[g["id"] for g in gt],
             dtMatches=dtm,
             gtMatches=gtm,
             dtScores=[d["score"] for d in dt],
