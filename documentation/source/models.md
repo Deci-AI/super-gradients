@@ -8,7 +8,7 @@ The 3 main use cases of the Model Zoo are to
 - Fine-tune a pre-trained model
 - Use a model (pre-trained or not) as the backbone of a larger architecture.
 
-### I. Instantiate a model
+### I. Instantiating a model
 
 To instantiate a model, specify the model name and the number of classes desired.
 ```python
@@ -28,7 +28,7 @@ default_resnet18 = models.get(model_name=object_names.Models.RESNET18, num_class
 ```
 
 
-### II. Instantiate a pretrained model
+### II. Instantiating a pretrained model
 When loading a pre-trained model, SuperGradients also provides a pre-trained head by default. 
 The head's dimension is determined by the number of classes in the dataset used for training.
 
@@ -83,4 +83,23 @@ class CustomModel(torch.nn.Module):
         return out
 
 model = CustomModel(backbone=backbone_resnet18)
+```
+
+
+### Playing with the model architecture parameters 
+
+All the SuperGradients model architectures can be parametrized using `arch_params`.
+You can find the documentation about parameters of every architecture, and their default values, in the [recipes](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/arch_params).
+
+
+In this example, we override the default params of [efficientnet_b0](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/efficientnet_b0_arch_params.yaml)
+```python
+from super_gradients.training import models
+
+arch_params = {
+    "drop_connect_rate": 0.3,
+    "image_size": 500,
+}
+
+yolox_custom = models.get(model_name="efficientnet_b0", arch_params=arch_params, num_classes=15)
 ```
