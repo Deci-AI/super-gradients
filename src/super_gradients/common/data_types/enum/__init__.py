@@ -5,4 +5,4 @@ from super_gradients.common.data_types.enum.multi_gpu_mode import MultiGPUMode
 from super_gradients.common.data_types.enum.upsample_mode import UpsampleMode
 
 
-__all__ = ['StrictLoad', 'DeepLearningTask', 'EvaluationType', 'MultiGPUMode', 'UpsampleMode']
+__all__ = ["StrictLoad", "DeepLearningTask", "EvaluationType", "MultiGPUMode", "UpsampleMode"]
