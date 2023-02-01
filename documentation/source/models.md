@@ -55,11 +55,11 @@ model = models.get(model_name="resnet18", num_classes=94, pretrained_weights="im
 
 
 ### III. Loading a Backbone
-SuperGradients allows you to load a model as a backbone, i.e. without the global pooling stage and the classifier head. 
+In deep learning, a backbone is a pre-trained neural network that serves as a starting point to build a larger architecture. 
+It is typically a feature extractor trained on a large dataset and meant to capture important features of the data. 
 
-This is useful when using the model as the backbone for a larger architecture.
+When loading a model as a backbone in SuperGradients, you will get the model without the global pooling stage and the classifier head.
 
-[CHECKUT BACKONE](...)
 ```python
 from super_gradients.training import models
 
@@ -67,20 +67,20 @@ from super_gradients.training import models
 backbone_resnet18 = models.get(model_name="resnet18", arch_params={"backbone_mode": True}, pretrained_weights="imagenet")
 ```
 
-
-
-
-
-
-
-
----
+This backbone model can later be used as part of another model
 ```python
-from super_gradients.training import models
+import torch
 
-# instantiate default pretrained resnet18
-default_resnet18 = models.get(model_name="resnet18", num_classes=100, pretrained_weights="imagenet")
+class CustomModel(torch.nn.Module):
+    def __init__(self, backbone):
+        super().__init__()
+        self._backbone = backbone
+        self._head = ...
 
-# instantiate pretrained resnet18, without classifier head. Output will be from the last stage before global pooling
-backbone_resnet18 = models.get(model_name="resnet18", arch_params={"backbone_mode": True}, pretrained_weights="imagenet")
+    def forward(self, x):
+        out = self._backbone(x)
+        out = self._head(out)
+        return out
+
+model = CustomModel(backbone=backbone_resnet18)
 ```
