@@ -26,12 +26,14 @@ trainer.train(
 The `decay` is a hyperparameter that controls the speed of the EMA update. It's value must be in `(0,1)` range.
 Larger values of `decay` will result in slower EMA model update.
 
-It is usually beneficial to have smaller decay values at the start of
-training and increase it as the training progresses. In SuperGradients we support several types of changing decay value over time:
+It is usually beneficial to have smaller decay values at the start of training and increase it as the training progresses. 
+In SuperGradients we support several types of changing decay value over time:
 
 - `constant`:  `"ema_params": {"decay": 0.9999, "decay_type": "constant"}`
 - `threshold`: `"ema_params": {"decay": 0.9999, "decay_type": "threshold"}`
 - `exp`:       `"ema_params": {"decay": 0.9999, "decay_type": "exp", "beta": 15}`
+
+![EMA Decay schedules](images/ema_decay_schedules.png)
 
 ## Knowledge Distillation
 
