@@ -35,6 +35,32 @@ In SuperGradients we support several types of changing decay value over time:
 
 ![EMA Decay schedules](images/ema_decay_schedules.png)
 
+## Adding your own decay schedule
+
+It is possible to bring your own decay schedule in SuperGradients. By subclassing from `IDecayFunction` one can implement a custom 
+function:
+
+```py
+from super_gradients.training.utils.ema_decay_schedules import IDecayFunction, EMA_DECAY_FUNCTIONS
+
+class LinearDecay(IDecayFunction):
+    def __init__(self, **kwargs):
+        pass
+
+    def __call__(self, decay: float, step: int, total_steps: int) -> float:
+      """
+      Compute EMA for specific training step following linear scaling rule [0..decay)
+        :param decay: The maximum decay value.
+        :param step: Current training step. The unit-range training percentage can be obtained by `step / total_steps`.
+        :param total_steps:  Total number of training steps.
+        :return: Computed decay value for a given step.
+      """
+      training_progress = step / total_steps
+      return decay * training_progress
+
+EMA_DECAY_FUNCTIONS["linear"] = LinearDecay
+```
+
 ## Knowledge Distillation
 
 EMA is also supported in knowledge distillation. To enable it one should add following parameters to the `training_params` similar to the above example:
