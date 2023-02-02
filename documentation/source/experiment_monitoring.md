@@ -177,7 +177,7 @@ We encourage you to check out the API documentation of `super_gradients.common.s
 
 
 ## Chose your monitoring tool in the recipes
-You can update a [recipe](configuration_files.md) to use the monitoring tool you want by setting the sg_logger and sg_logger_params in [recipes/training_hyperparams](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/training_hyperparams).
+You can update a [recipe](configuration_files.md) to use the monitoring tool you want by setting the `sg_logger` and `sg_logger_params` in [recipes/training_hyperparams](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/training_hyperparams).
 
 Here is an example for WandB;
 ```yaml
