@@ -695,6 +695,7 @@ workflows:
           use-remote-docker: true
           use-docker-credentials-store: true
           path: ./scripts
+          readme: ../README.md
           tag: latest,${CIRCLE_TAG}
           extra_build_args: '--build-arg VERSION=${CIRCLE_TAG}' #building from scratch as it faster and cheaper than download and retag
           requires:
@@ -707,7 +708,7 @@ workflows:
               name: docker/docker
           image: deciai/super-gradients
           remote-docker-version: << pipeline.parameters.remote_docker_version >>
-          update-description: true
+          update-description: false
           use-buildkit: true
           use-remote-docker: true
           use-docker-credentials-store: true
