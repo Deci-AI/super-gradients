@@ -32,8 +32,10 @@ SuperGradients holds common public `torch.utils.data.Dataset` implementations fo
 All of which can be imported from the `super_gradients.training.datasets` module. Note that some of the above implementations require following a few simple setup steps, which are all documented [here](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md)
 
 Creating a `torch.utils.data.DataLoader` from a dataset can be tricky, especially when defining some parameters on the fly. For example, in distributed training (i.e DDP)
-the  `torch.utils.data.DataLoader` must be given a proper `Sampler` such that the dataset indices will be divided among the different processes. Not acknowledging this and using the default
-`torch.utils.data.SequentialSampler` will lead the other processes to iterate over the same data samples giving little to no speedup over single GPU training! User beware!
+the  `torch.utils.data.DataLoader` must be given a proper `Sampler` such that the dataset indices will be divided among the different processes.
+```
+Warning: Using the wrong sampler when defining a dataloader to be used with DDP, will lead the different processes to iterate over the same data samples giving little to no speedup over single GPU training!
+```
 This is where SG's `training.dataloaders.get` comes in handy by taking the burden of instantiating the proper default sampler according to the training settings.
 Once instantiated, any of the above can be passed to the `torch.utils.data.DataLoader` constructor and be used for training, validation, or testing:
 
