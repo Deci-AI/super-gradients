@@ -61,6 +61,17 @@ class LinearDecay(IDecayFunction):
 EMA_DECAY_FUNCTIONS["linear"] = LinearDecay
 ```
 
+
+## How EMA weights are saved
+
+When EMA is enabled, saved checkpoints will contain additional `ema_net` attribute.
+Weights for EMA model are saved under `ema_net`.
+A regular (non-averaged) model weights are saved as `net` key in checkpoint as usual.
+
+When instantiating a model via `models.get`, a function will check whether `ema_net` is present in the checkpoint.
+In case `ema_net` is in checkpoint, the model will be initialized using EMA weights; otherwise a model will load initialized from regular weights saved in `net`.
+
+
 ## Knowledge Distillation
 
 EMA is also supported in knowledge distillation. To enable it one should add following parameters to the `training_params` similar to the above example:
