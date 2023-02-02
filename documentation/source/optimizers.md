@@ -24,7 +24,7 @@ trainer.train(
 )
 ```
 
-**Note**
+**Note**:
 The `optimizer_params` is a dictionary of all the optimizer parameters you want to set. It can be any argument defined in the optimizer `__init__` method , except for `params` because this argument corresponds to the model to optimize and is automatically provided by the Trainer.
 
 
