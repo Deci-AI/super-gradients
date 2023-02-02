@@ -5,9 +5,9 @@ SuperGradients supports out-of-the-box [pytorch optimizers](https://pytorch.org/
 [RMSpropTF](http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf) and 
 [Lamb](https://github.com/NVIDIA/DeepLearningExamples/blob/master/PyTorch/LanguageModeling/Transformer-XL/pytorch/lamb.py).
 
-### How to use ?
+### Set your optimizer in the code
 Optimizers should be part of the training parameters.
-SuperGradients takes care of associating the optimizer to the model and uses it to train the model.
+
 
 ```py
 from super_gradients import Trainer
@@ -20,6 +20,11 @@ trainer.train(
 )
 ```
 
+**Note**
+The `optimizer_params` is a dictionary of all the optimizer parameters you want to set. It can be any argument defined in the optimizer `__init__` method , except for `params` because this argument corresponds to the model to optimize and is automatically provided by the Trainer.
+
+
+### Set your optimizer in the recipes
 When working with recipes, you need to modify the [recipes/training_hyperparams](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/training_hyperparams) as below:
 
 ```yaml
