@@ -15,6 +15,5 @@ def apply_reduce(loss: torch.Tensor, reduction: Union[LossReduction, str]):
     elif reduction == LossReduction.SUM.value:
         loss = loss.sum()
     elif not LossReduction.NONE.value:
-        raise ValueError(f"Reduction mode is not supported, expected options are ['mean', 'sum', 'none']"
-                         f", found {reduction}")
+        raise ValueError(f"Reduction mode is not supported, expected options are ['mean', 'sum', 'none']" f", found {reduction}")
     return loss

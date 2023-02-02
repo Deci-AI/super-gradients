@@ -1,16 +1,18 @@
 import os
+import io
+from contextlib import contextmanager
 from typing import Optional
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger, EXPERIMENT_LOGS_PREFIX, LOGGER_LOGS_PREFIX, CONSOLE_LOGS_PREFIX
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
+from contextlib import redirect_stdout
 
 logger = get_logger(__name__)
 
 
 TENSORBOARD_EVENTS_PREFIX = "events.out.tfevents"
-LOGS_PREFIX = "log_"
 
 
 class DeciPlatformSGLogger(BaseSGLogger):
@@ -74,7 +76,10 @@ class DeciPlatformSGLogger(BaseSGLogger):
             raise ValueError("Provided directory does not exist")
 
         self._upload_latest_file_starting_with(start_with=TENSORBOARD_EVENTS_PREFIX)
-        self._upload_latest_file_starting_with(start_with=LOGS_PREFIX)
+        self._upload_latest_file_starting_with(start_with=EXPERIMENT_LOGS_PREFIX)
+        self._upload_latest_file_starting_with(start_with=LOGGER_LOGS_PREFIX)
+        self._upload_latest_file_starting_with(start_with=CONSOLE_LOGS_PREFIX)
+        self._upload_folder_files(folder_name=".hydra")
 
     @multi_process_safe
     def _upload_latest_file_starting_with(self, start_with: str):
@@ -89,5 +94,36 @@ class DeciPlatformSGLogger(BaseSGLogger):
         ]
 
         most_recent_file_path = max(files_path, key=os.path.getctime)
-        self.platform_client.save_experiment_file(file_path=most_recent_file_path)
-        logger.info(f"File saved to Deci platform: {most_recent_file_path}")
+        self._save_experiment_file(file_path=most_recent_file_path)
+
+    @multi_process_safe
+    def _upload_folder_files(self, folder_name: str):
+        """
+        Upload all the files of a given folder.
+
+        :param folder_name: Name of the folder that contains the files to upload
+        """
+        folder_path = os.path.join(self.checkpoints_dir_path, folder_name)
+
+        if not os.path.exists(folder_path):
+            return
+
+        for file in os.listdir(folder_path):
+            self._save_experiment_file(file_path=f"{folder_path}/{file}")
+
+    def _save_experiment_file(self, file_path: str):
+        with log_stdout():  # TODO: remove when platform_client remove prints from save_experiment_file
+            self.platform_client.save_experiment_file(file_path=file_path)
+        logger.info(f"File saved to Deci platform: {file_path}")
+
+
+@contextmanager
+def log_stdout():
+    """Redirect stdout to DEBUG."""
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        yield
+
+    redirected_str = buffer.getvalue()
+    if redirected_str:
+        logger.debug(msg=redirected_str)
