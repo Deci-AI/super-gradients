@@ -4,7 +4,6 @@ from super_gradients.common.factories.base_factory import AbstractFactory
 
 
 class ListFactory(AbstractFactory):
-
     def __init__(self, factry: AbstractFactory):
         self.factry = factry
 

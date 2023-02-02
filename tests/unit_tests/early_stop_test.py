@@ -45,13 +45,23 @@ class EarlyStopTest(unittest.TestCase):
         # batch_size is equal to length of dataset, to have only one step per epoch, to ease the test.
         self.net = ResNet18(num_classes=5, arch_params={})
         self.max_epochs = 10
-        self.train_params = {"max_epochs": self.max_epochs, "lr_updates": [1], "lr_decay_factor": 0.1,
-                             "lr_mode": "step",
-                             "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
-                             "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                             "train_metrics_list": [Accuracy()], "valid_metrics_list": [Top5()],
-                             "metric_to_watch": "Top5",
-                             "greater_metric_to_watch_is_better": True, "average_best_models": False}
+        self.train_params = {
+            "max_epochs": self.max_epochs,
+            "lr_updates": [1],
+            "lr_decay_factor": 0.1,
+            "lr_mode": "step",
+            "lr_warmup_epochs": 0,
+            "initial_lr": 0.1,
+            "loss": "cross_entropy",
+            "optimizer": "SGD",
+            "criterion_params": {},
+            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+            "train_metrics_list": [Accuracy()],
+            "valid_metrics_list": [Top5()],
+            "metric_to_watch": "Top5",
+            "greater_metric_to_watch_is_better": True,
+            "average_best_models": False,
+        }
 
     def test_min_mode_patience_metric(self):
         """
@@ -63,13 +73,14 @@ class EarlyStopTest(unittest.TestCase):
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="LossTest", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
 
-        loss_values = torch.tensor([1., 0.8, 0.81, 0.8, 0.9, 0.2, 0.1, 0.3, 0.05, 0.9])
+        loss_values = torch.tensor([1.0, 0.8, 0.81, 0.8, 0.9, 0.2, 0.1, 0.3, 0.05, 0.9])
         fake_loss = LossTest(loss_values)
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
-                      valid_loader=classification_test_dataloader())
+        trainer.train(
+            model=self.net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
         excepted_end_epoch = 5
 
         # count divided by 2, because loss counter used for both train and eval.
@@ -81,18 +92,17 @@ class EarlyStopTest(unittest.TestCase):
         epochs.
         """
         trainer = Trainer("early_stop_test")
-        early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=3,
-                                   verbose=True)
+        early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=3, verbose=True)
         phase_callbacks = [early_stop_acc]
 
         metric_values = torch.tensor([0.2, 0.1, 0.3, 0.28, 0.2, 0.1, 0.33, 0.05, 0.9, 0.99])
         fake_metric = MetricTest(metric_values)
         train_params = self.train_params.copy()
-        train_params.update(
-            {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
+        train_params.update({"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
-                      valid_loader=classification_test_dataloader())
+        trainer.train(
+            model=self.net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
         excepted_end_epoch = 6
 
         self.assertEqual(excepted_end_epoch, fake_metric.count)
@@ -106,13 +116,14 @@ class EarlyStopTest(unittest.TestCase):
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="LossTest", mode="min", threshold=0.1, verbose=True)
         phase_callbacks = [early_stop_loss]
 
-        loss_values = torch.tensor([1., 0.8, 0.4, 0.2, 0.09, 0.11, 0.105, 0.3, 0.05, 0.02])
+        loss_values = torch.tensor([1.0, 0.8, 0.4, 0.2, 0.09, 0.11, 0.105, 0.3, 0.05, 0.02])
         fake_loss = LossTest(loss_values)
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
-                      valid_loader=classification_test_dataloader())
+        trainer.train(
+            model=self.net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
         excepted_end_epoch = 5
         # count divided by 2, because loss counter used for both train and eval.
         self.assertEqual(excepted_end_epoch, fake_loss.count // 2)
@@ -123,18 +134,17 @@ class EarlyStopTest(unittest.TestCase):
         """
         trainer = Trainer("early_stop_test")
 
-        early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", threshold=0.94,
-                                   verbose=True)
+        early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", threshold=0.94, verbose=True)
         phase_callbacks = [early_stop_acc]
 
         metric_values = torch.tensor([0.2, 0.1, 0.6, 0.8, 0.9, 0.92, 0.95, 0.94, 0.948, 0.99])
         fake_metric = MetricTest(metric_values)
         train_params = self.train_params.copy()
-        train_params.update(
-            {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
+        train_params.update({"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
-                      valid_loader=classification_test_dataloader())
+        trainer.train(
+            model=self.net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
         excepted_end_epoch = 7
 
         self.assertEqual(excepted_end_epoch, fake_metric.count)
@@ -146,17 +156,17 @@ class EarlyStopTest(unittest.TestCase):
         # test Nan value
         trainer = Trainer("early_stop_test")
 
-        early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="LossTest", mode="min", check_finite=True,
-                                    verbose=True)
+        early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="LossTest", mode="min", check_finite=True, verbose=True)
         phase_callbacks = [early_stop_loss]
 
-        loss_values = torch.tensor([1., float('nan'), 0.81, 0.8, 0.9, 0.2, 0.1, 0.3, 0.05, 0.9])
+        loss_values = torch.tensor([1.0, float("nan"), 0.81, 0.8, 0.9, 0.2, 0.1, 0.3, 0.05, 0.9])
         fake_loss = LossTest(loss_values)
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
-                      valid_loader=classification_test_dataloader())
+        trainer.train(
+            model=self.net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
         excepted_end_epoch = 2
 
         self.assertEqual(excepted_end_epoch, fake_loss.count // 2)
@@ -167,13 +177,14 @@ class EarlyStopTest(unittest.TestCase):
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="LossTest", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
 
-        loss_values = torch.tensor([1., 0.8, float('inf'), 0.8, 0.9, 0.2, 0.1, 0.3, 0.05, 0.9])
+        loss_values = torch.tensor([1.0, 0.8, float("inf"), 0.8, 0.9, 0.2, 0.1, 0.3, 0.05, 0.9])
         fake_loss = LossTest(loss_values)
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
-                      valid_loader=classification_test_dataloader())
+        trainer.train(
+            model=self.net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
         excepted_end_epoch = 3
         # count divided by 2, because loss counter used for both train and eval.
         self.assertEqual(excepted_end_epoch, fake_loss.count // 2)
@@ -185,23 +196,22 @@ class EarlyStopTest(unittest.TestCase):
         """
         trainer = Trainer("early_stop_test")
 
-        early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=2,
-                                   min_delta=0.1, verbose=True)
+        early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=2, min_delta=0.1, verbose=True)
         phase_callbacks = [early_stop_acc]
 
         metric_values = torch.tensor([0.1, 0.2, 0.305, 0.31, 0.34, 0.42, 0.6, 0.8, 0.9, 0.99])
         fake_metric = MetricTest(metric_values)
         train_params = self.train_params.copy()
-        train_params.update(
-            {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
+        train_params.update({"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
-                      valid_loader=classification_test_dataloader())
+        trainer.train(
+            model=self.net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
 
         excepted_end_epoch = 5
 
         self.assertEqual(excepted_end_epoch, fake_metric.count)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -1,12 +1,12 @@
+from super_gradients.training.utils.callbacks.base_callbacks import CallbackHandler, PhaseCallback, Callback, PhaseContext, Phase
+
 from super_gradients.training.utils.callbacks.callbacks import (
-    Phase,
     ContextSgMethods,
-    PhaseContext,
-    PhaseCallback,
     ModelConversionCheckCallback,
     DeciLabUploadCallback,
     LRCallbackBase,
-    WarmupLRCallback,
+    EpochStepWarmupLRCallback,
+    BatchStepLinearWarmupLRCallback,
     StepLRCallback,
     ExponentialLRCallback,
     PolyLRCallback,
@@ -21,7 +21,6 @@ from super_gradients.training.utils.callbacks.callbacks import (
     BinarySegmentationVisualizationCallback,
     TrainingStageSwitchCallbackBase,
     YoloXTrainingStageSwitchCallback,
-    CallbackHandler,
     TestLRCallback,
 )
 
@@ -29,6 +28,7 @@ from super_gradients.training.utils.callbacks.all_callbacks import Callbacks, CA
 
 
 __all__ = [
+    "Callback",
     "Callbacks",
     "CALLBACKS",
     "LRSchedulers",
@@ -42,7 +42,8 @@ __all__ = [
     "ModelConversionCheckCallback",
     "DeciLabUploadCallback",
     "LRCallbackBase",
-    "WarmupLRCallback",
+    "EpochStepWarmupLRCallback",
+    "BatchStepLinearWarmupLRCallback",
     "StepLRCallback",
     "ExponentialLRCallback",
     "PolyLRCallback",

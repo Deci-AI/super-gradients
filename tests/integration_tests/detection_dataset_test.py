@@ -13,9 +13,9 @@ import super_gradients
 from super_gradients.training.dataloaders.dataloaders import _process_dataset_params
 from super_gradients.training.datasets import PascalVOCDetectionDataset, COCODetectionDataset
 from super_gradients.training.transforms import DetectionMosaic, DetectionPaddedRescale, DetectionTargetsFormatTransform
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
+from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
-from super_gradients.training.utils.hydra_utils import normalize_path
+from super_gradients.common.environment.path_utils import normalize_path
 
 
 class COCODetectionDataset6Channels(COCODetectionDataset):
@@ -35,7 +35,7 @@ class DatasetIntegrationTest(unittest.TestCase):
         transforms = [
             DetectionMosaic(input_dim=(640, 640), prob=0.8),
             DetectionPaddedRescale(input_dim=(640, 640), max_targets=120),
-            DetectionTargetsFormatTransform(output_format=DetectionTargetsFormat.XYXY_LABEL),
+            DetectionTargetsFormatTransform(input_dim=(640, 640), output_format=XYXY_LABEL),
         ]
 
         self.test_dir = tempfile.TemporaryDirectory().name

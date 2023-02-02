@@ -26,7 +26,7 @@ val_dataloader: coco_segmentation_val
 
 checkpoint_params:
   strict_load: True
-  load_backbone: True
+  load_backbone: False
   checkpoint_path:
 
 resume: False

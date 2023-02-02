@@ -9,12 +9,13 @@ class DropPath(nn.Module):
     Code taken from TIMM (https://github.com/rwightman/pytorch-image-models)
     Apache License 2.0
     """
+
     def __init__(self, drop_prob=None):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
 
     def forward(self, x):
-        if self.drop_prob == 0. or not self.training:
+        if self.drop_prob == 0.0 or not self.training:
             return x
 
         keep_prob = 1 - self.drop_prob
