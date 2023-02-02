@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import numpy as np
 
 __all__ = ["IDecayFunction", "ConstantDecay", "ThresholdDecay", "ExpDecay", "EMA_DECAY_FUNCTIONS"]
 
@@ -63,7 +64,6 @@ class ExpDecay(IDecayFunction):
 EMA_DECAY_FUNCTIONS = {"constant": ConstantDecay, "threshold": ThresholdDecay, "exp": ExpDecay}
 
 if __name__ == "__main__":
-    import numpy as np
     import matplotlib.pyplot as plt
 
     total_steps = 6_00_000
