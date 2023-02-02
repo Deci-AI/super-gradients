@@ -49,8 +49,6 @@ class DeciClient:
         self.lab_client = DeciPlatformClient(api_host=self.api_host)
         self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
-        self.super_gradients_version = super_gradients.__version__
-
     def _get_file(self, model_name: str, file_name: str) -> Optional[str]:
         """Get a file from the DeciPlatform if it exists, otherwise returns None
         :param model_name:  Name of the model to download from, as saved in the platform.
