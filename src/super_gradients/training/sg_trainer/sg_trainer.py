@@ -1,41 +1,39 @@
 import inspect
 import os
 from copy import deepcopy
-from typing import Union, Tuple, Mapping, Dict
 from pathlib import Path
+from typing import Union, Tuple, Mapping, Dict, Any
 
+import hydra
 import numpy as np
 import torch
-import hydra
 from omegaconf import DictConfig
+from omegaconf import OmegaConf
+from piptools.scripts.sync import _get_installed_distributions
 from torch import nn
-from torch.utils.data import DataLoader, SequentialSampler
 from torch.cuda.amp import GradScaler, autocast
+from torch.utils.data import DataLoader, SequentialSampler
+from torch.utils.data.distributed import DistributedSampler
 from torchmetrics import MetricCollection
 from tqdm import tqdm
-from piptools.scripts.sync import _get_installed_distributions
 
-from torch.utils.data.distributed import DistributedSampler
-
-from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
-
-from super_gradients.common.factories.callbacks_factory import CallbacksFactory
-from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
-from super_gradients.training.models.all_architectures import ARCHITECTURES
-from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.environment.device_utils import device_config
+from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
+from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.models import SgModule
-from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import sg_trainer_utils, get_param
-from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
+from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
+from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
+from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
     get_metrics_results_tuple,
@@ -43,7 +41,30 @@ from super_gradients.training.metrics.metric_utils import (
     get_metrics_dict,
     get_train_loop_description_dict,
 )
+from super_gradients.training.models import SgModule
+from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.params import TrainingParams
+from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
+from super_gradients.training.utils import HpmStruct
+from super_gradients.training.utils import random_seed
+from super_gradients.training.utils import sg_trainer_utils, get_param
+from super_gradients.training.utils.callbacks import (
+    CallbackHandler,
+    Phase,
+    LR_SCHEDULERS_CLS_DICT,
+    PhaseContext,
+    MetricsUpdateCallback,
+    LR_WARMUP_CLS_DICT,
+    ContextSgMethods,
+    LRCallbackBase,
+)
+from super_gradients.training.utils.checkpoint_utils import (
+    get_ckpt_local_path,
+    read_ckpt_state_dict,
+    load_checkpoint_to_model,
+    load_pretrained_weights,
+    get_checkpoints_dir_path,
+)
 from super_gradients.training.utils.distributed_training_utils import (
     MultiGPUModeAutocastWrapper,
     reduce_results_tuple_for_ddp,
@@ -59,33 +80,11 @@ from super_gradients.training.utils.distributed_training_utils import (
     DDPNotSetupException,
 )
 from super_gradients.training.utils.ema import ModelEMA
+from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 from super_gradients.training.utils.optimizer_utils import build_optimizer
+from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
 from super_gradients.training.utils.utils import fuzzy_idx_in_list
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
-from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.training.utils import random_seed
-from super_gradients.training.utils.checkpoint_utils import (
-    get_ckpt_local_path,
-    read_ckpt_state_dict,
-    load_checkpoint_to_model,
-    load_pretrained_weights,
-    get_checkpoints_dir_path,
-)
-from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
-from super_gradients.training.utils.callbacks import (
-    CallbackHandler,
-    Phase,
-    LR_SCHEDULERS_CLS_DICT,
-    PhaseContext,
-    MetricsUpdateCallback,
-    LR_WARMUP_CLS_DICT,
-    ContextSgMethods,
-    LRCallbackBase,
-)
-from super_gradients.common.environment.device_utils import device_config
-from super_gradients.training.utils import HpmStruct
-from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
-from omegaconf import OmegaConf
 
 logger = get_logger(__name__)
 
@@ -219,7 +218,21 @@ class Trainer:
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
+        # TRIGGER CFG MODIFYING CALLBACKS
+        cfg = cls._trigger_cfg_modifying_callbacks(cfg)
+
         trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+
+        # BUILD NETWORK
+        model = models.get(
+            model_name=cfg.architecture,
+            num_classes=cfg.arch_params.num_classes,
+            arch_params=cfg.arch_params,
+            strict_load=cfg.checkpoint_params.strict_load,
+            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+            load_backbone=cfg.checkpoint_params.load_backbone,
+        )
 
         # INSTANTIATE DATA LOADERS
 
@@ -235,16 +248,6 @@ class Trainer:
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
-        # BUILD NETWORK
-        model = models.get(
-            model_name=cfg.architecture,
-            num_classes=cfg.arch_params.num_classes,
-            arch_params=cfg.arch_params,
-            strict_load=cfg.checkpoint_params.strict_load,
-            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-            load_backbone=cfg.checkpoint_params.load_backbone,
-        )
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
         res = trainer.train(
@@ -256,6 +259,14 @@ class Trainer:
         )
 
         return model, res
+
+    @classmethod
+    def _trigger_cfg_modifying_callbacks(cls, cfg):
+        pre_launch_cbs = get_param(cfg, "pre_launch_callbacks_list", list())
+        pre_launch_cbs = ListFactory(PreLaunchCallbacksFactory()).get(pre_launch_cbs)
+        for plcb in pre_launch_cbs:
+            cfg = plcb(cfg)
+        return cfg
 
     @classmethod
     def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> Tuple[nn.Module, Tuple]:
@@ -457,9 +468,6 @@ class Trainer:
             ):
                 break
 
-        if not self.ddp_silent_mode:
-            self.sg_logger.upload()
-
         self.train_monitored_values = sg_trainer_utils.update_monitored_values_dict(
             monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict
         )
@@ -533,15 +541,18 @@ class Trainer:
         self.scaler.scale(loss).backward()
         self.phase_callback_handler.on_train_batch_backward_end(context)
 
-        # APPLY GRADIENT CLIPPING IF REQUIRED
-        if self.training_params.clip_grad_norm:
-            torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
-
         # ACCUMULATE GRADIENT FOR X BATCHES BEFORE OPTIMIZING
-        integrated_batches_num = batch_idx + len(self.train_loader) * epoch + 1
+        local_step = batch_idx + 1
+        global_step = local_step + len(self.train_loader) * epoch
+        total_steps = len(self.train_loader) * self.max_epochs
 
-        if integrated_batches_num % self.batch_accumulate == 0:
+        if global_step % self.batch_accumulate == 0:
             self.phase_callback_handler.on_train_batch_gradient_step_start(context)
+
+            # APPLY GRADIENT CLIPPING IF REQUIRED
+            if self.training_params.clip_grad_norm:
+                self.scaler.unscale_(self.optimizer)
+                torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
 
             # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
             self.scaler.step(self.optimizer)
@@ -549,7 +560,7 @@ class Trainer:
 
             self.optimizer.zero_grad()
             if self.ema:
-                self.ema_model.update(self.net, integrated_batches_num / (len(self.train_loader) * self.max_epochs))
+                self.ema_model.update(self.net, step=global_step, total_steps=total_steps)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_train_batch_gradient_step_end(context)
@@ -593,7 +604,7 @@ class Trainer:
         if (metric > self.best_metric and self.greater_metric_to_watch_is_better) or (metric < self.best_metric and not self.greater_metric_to_watch_is_better):
             # STORE THE CURRENT metric AS BEST
             self.best_metric = metric
-            self._save_best_checkpoint(epoch, state)
+            self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_validation_end_best_epoch(context)
@@ -604,11 +615,8 @@ class Trainer:
 
         if self.training_params.average_best_models:
             net_for_averaging = self.ema_model.ema if self.ema else self.net
-            averaged_model_sd = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
-            self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict={"net": averaged_model_sd}, global_step=epoch)
-
-    def _save_best_checkpoint(self, epoch, state):
-        self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
+            state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
+            self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
     def _prep_net_for_train(self):
         if self.arch_params is None:
@@ -704,9 +712,25 @@ class Trainer:
 
                     Learning rate scheduling function to be used when `lr_mode` is 'function'.
 
+                - `warmup_mode`: Union[str, Type[LRCallbackBase], None]
+
+                    If not None, define how the learning rate will be increased during the warmup phase.
+                    Currently, only 'warmup_linear_epoch' and `warmup_linear_step` modes are supported.
+
                 - `lr_warmup_epochs` : int (default=0)
 
                     Number of epochs for learning rate warm up - see https://arxiv.org/pdf/1706.02677.pdf (Section 2.2).
+                    Relevant for `warmup_mode=warmup_linear_epoch`.
+                    When lr_warmup_epochs > 0, the learning rate will be increased linearly from 0 to the `initial_lr`
+                    once per epoch.
+
+                - `lr_warmup_steps` : int (default=0)
+
+                    Number of steps for learning rate warm up - see https://arxiv.org/pdf/1706.02677.pdf (Section 2.2).
+                    Relevant for `warmup_mode=warmup_linear_step`.
+                    When lr_warmup_steps > 0, the learning rate will be increased linearly from 0 to the `initial_lr`
+                    for a total number of steps according to formula: min(lr_warmup_steps, len(train_loader)).
+                    The capping is done to avoid interference of warmup with epoch-based schedulers.
 
                 - `cosine_final_lr_ratio` : float (default=0.01)
                     Final learning rate ratio (only relevant when `lr_mode`='cosine'). The cosine starts from initial_lr and reaches
@@ -1056,9 +1080,7 @@ class Trainer:
         num_batches = len(self.train_loader)
 
         if self.ema:
-            ema_params = self.training_params.ema_params
-            logger.info(f"Using EMA with params {ema_params}")
-            self.ema_model = self._instantiate_ema_model(**ema_params)
+            self.ema_model = self._instantiate_ema_model(self.training_params.ema_params)
             self.ema_model.updates = self.start_epoch * num_batches // self.batch_accumulate
             if self.load_checkpoint:
                 if "ema_net" in self.checkpoint.keys():
@@ -1090,14 +1112,19 @@ class Trainer:
                     **self.training_params.to_dict(),
                 )
             )
-        if self.training_params.lr_warmup_epochs > 0:
-            warmup_mode = self.training_params.warmup_mode
-            if isinstance(warmup_mode, str):
-                warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
-            elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
-                warmup_callback_cls = warmup_mode
-            else:
-                raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
+
+        warmup_mode = self.training_params.warmup_mode
+        warmup_callback_cls = None
+        if isinstance(warmup_mode, str):
+            warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
+        elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
+            warmup_callback_cls = warmup_mode
+        elif warmup_mode is not None:
+            pass
+        else:
+            raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
+
+        if warmup_callback_cls is not None:
             self.phase_callbacks.append(
                 warmup_callback_cls(
                     train_loader_len=len(self.train_loader),
@@ -1162,19 +1189,19 @@ class Trainer:
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
-        if self.training_params.max_train_batches is not None and (
-            self.training_params.max_train_batches > len(self.train_loader) or self.training_params.max_train_batches <= 0
-        ):
+        if self.training_params.max_train_batches is not None:
+            if self.training_params.max_train_batches > len(self.train_loader):
+                logger.warning("max_train_batches is greater than len(self.train_loader) and will have no effect.")
+            elif self.training_params.max_train_batches <= 0:
+                raise ValueError("max_train_batches must be positive.")
 
-            raise ValueError("max_train_batches must be positive and smaller then len(train_loader).")
+        if self.training_params.max_valid_batches is not None:
+            if self.training_params.max_valid_batches > len(self.valid_loader):
+                logger.warning("max_valid_batches is greater than len(self.valid_loader) and will have no effect.")
+            elif self.training_params.max_valid_batches <= 0:
+                raise ValueError("max_valid_batches must be positive.")
 
         self.max_train_batches = self.training_params.max_train_batches
-
-        if self.training_params.max_valid_batches is not None and (
-            self.training_params.max_valid_batches > len(self.valid_loader) or self.training_params.max_valid_batches <= 0
-        ):
-
-            raise ValueError("max_valid_batches must be positive and smaller then len(valid_loader).")
         self.max_valid_batches = self.training_params.max_valid_batches
 
         # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
@@ -1285,6 +1312,7 @@ class Trainer:
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
                     self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch, context)
+                    self.sg_logger.upload()
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
@@ -1300,7 +1328,7 @@ class Trainer:
         finally:
             if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                 # CLEAN UP THE MULTI-GPU PROCESS GROUP WHEN DONE
-                if torch.distributed.is_initialized():
+                if torch.distributed.is_initialized() and self.training_params.kill_ddp_pgroup_on_end:
                     torch.distributed.destroy_process_group()
 
             # PHASE.TRAIN_END
@@ -1392,13 +1420,6 @@ class Trainer:
         self.net.load_state_dict(keep_state_dict)
 
         if not self.ddp_silent_mode:
-            # Adding values to sg_logger
-            # looping over last titles which corresponds to validation (and average model) metrics.
-            all_titles = self.results_titles[-1 * len(averaged_model_results_tuple) :]
-            result_dict = {all_titles[i]: averaged_model_results_tuple[i] for i in range(len(averaged_model_results_tuple))}
-
-            self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=self.max_epochs)
-
             average_model_tb_titles = ["Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]]
             write_struct = ""
             for ind, title in enumerate(average_model_tb_titles):
@@ -1878,14 +1899,15 @@ class Trainer:
 
         return net
 
-    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> ModelEMA:
+    def _instantiate_ema_model(self, ema_params: Mapping[str, Any]) -> ModelEMA:
         """Instantiate ema model for standard SgModule.
-        :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value
-                      until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
-        :param beta: the exponent coefficient. The higher the beta, the sooner in the training the decay will saturate to
-                     its final value. beta=15 is ~40% of the training process.
+        :param decay_type: (str) The decay climb schedule. See EMA_DECAY_FUNCTIONS for more details.
+        :param decay: The maximum decay value. As the training process advances, the decay will climb towards this value
+                      according to decay_type schedule. See EMA_DECAY_FUNCTIONS for more details.
+        :param kwargs: Additional parameters for the decay function. See EMA_DECAY_FUNCTIONS for more details.
         """
-        return ModelEMA(self.net, decay, beta, exp_activation)
+        logger.info(f"Using EMA with params {ema_params}")
+        return ModelEMA.from_params(self.net, **ema_params)
 
     @property
     def get_net(self):

@@ -8,6 +8,7 @@ from hydra import initialize_config_dir, compose
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import OmegaConf, open_dict, DictConfig
 
+from super_gradients.common.environment.path_utils import normalize_path
 from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
 
 
@@ -54,17 +55,6 @@ def add_params_to_cfg(cfg: DictConfig, params: List[str]):
     new_cfg = OmegaConf.from_dotlist(params)
     with open_dict(cfg):  # This is required to add new fields to existing config
         cfg.merge_with(new_cfg)
-
-
-def normalize_path(path: str) -> str:
-    """Normalize the directory of file path. Replace the Windows-style (\\) path separators with unix ones (/).
-    This is necessary when running on Windows since Hydra compose fails to find a configuration file is the config
-    directory contains backward slash symbol.
-
-    :param path: Input path string
-    :return: Output path string with all \\ symbols replaces with /.
-    """
-    return path.replace("\\", "/")
 
 
 def load_arch_params(config_name: str) -> DictConfig:

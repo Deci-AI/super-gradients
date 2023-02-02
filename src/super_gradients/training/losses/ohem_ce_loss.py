@@ -9,12 +9,7 @@ class OhemLoss(_Loss):
     OhemLoss - Online Hard Example Mining Cross Entropy Loss
     """
 
-    def __init__(self,
-                 threshold: float,
-                 mining_percent: float = 0.1,
-                 ignore_lb: int = -100,
-                 num_pixels_exclude_ignored: bool = True,
-                 criteria: _Loss = None):
+    def __init__(self, threshold: float, mining_percent: float = 0.1, ignore_lb: int = -100, num_pixels_exclude_ignored: bool = True, criteria: _Loss = None):
         """
         :param threshold: Sample below probability threshold, is considered hard.
         :param num_pixels_exclude_ignored: How to calculate total pixels from which extract mining percent of the
@@ -36,8 +31,8 @@ class OhemLoss(_Loss):
         self.ignore_lb = ignore_lb
         self.num_pixels_exclude_ignored = num_pixels_exclude_ignored
 
-        if criteria.reduction != 'none':
-            raise RequiredLossComponentReductionException("criteria", criteria.reduction, 'none')
+        if criteria.reduction != "none":
+            raise RequiredLossComponentReductionException("criteria", criteria.reduction, "none")
         self.criteria = criteria
 
     def forward(self, logits, labels):
@@ -51,7 +46,7 @@ class OhemLoss(_Loss):
             num_pixels = labels.numel()
         # if all pixels are ignore labels, return empty loss tensor
         if num_pixels == 0:
-            return torch.tensor([0.]).requires_grad_(True)
+            return torch.tensor([0.0]).requires_grad_(True)
 
         num_mining = int(self.mining_percent * num_pixels)
         # in case mining_percent=1, prevent out of bound exception
@@ -71,18 +66,12 @@ class OhemCELoss(OhemLoss):
     OhemLoss - Online Hard Example Mining Cross Entropy Loss
     """
 
-    def __init__(self,
-                 threshold: float,
-                 mining_percent: float = 0.1,
-                 ignore_lb: int = -100,
-                 num_pixels_exclude_ignored: bool = True):
+    def __init__(self, threshold: float, mining_percent: float = 0.1, ignore_lb: int = -100, num_pixels_exclude_ignored: bool = True):
         ignore_lb = -100 if ignore_lb is None or ignore_lb < 0 else ignore_lb
-        criteria = nn.CrossEntropyLoss(ignore_index=ignore_lb, reduction='none')
-        super(OhemCELoss, self).__init__(threshold=threshold,
-                                         mining_percent=mining_percent,
-                                         ignore_lb=ignore_lb,
-                                         num_pixels_exclude_ignored=num_pixels_exclude_ignored,
-                                         criteria=criteria)
+        criteria = nn.CrossEntropyLoss(ignore_index=ignore_lb, reduction="none")
+        super(OhemCELoss, self).__init__(
+            threshold=threshold, mining_percent=mining_percent, ignore_lb=ignore_lb, num_pixels_exclude_ignored=num_pixels_exclude_ignored, criteria=criteria
+        )
 
 
 class OhemBCELoss(OhemLoss):
@@ -90,16 +79,20 @@ class OhemBCELoss(OhemLoss):
     OhemBCELoss - Online Hard Example Mining Binary Cross Entropy Loss
     """
 
-    def __init__(self,
-                 threshold: float,
-                 mining_percent: float = 0.1,
-                 ignore_lb: int = -100,
-                 num_pixels_exclude_ignored: bool = True, ):
-        super(OhemBCELoss, self).__init__(threshold=threshold,
-                                          mining_percent=mining_percent,
-                                          ignore_lb=ignore_lb,
-                                          num_pixels_exclude_ignored=num_pixels_exclude_ignored,
-                                          criteria=nn.BCEWithLogitsLoss(reduction='none'))
+    def __init__(
+        self,
+        threshold: float,
+        mining_percent: float = 0.1,
+        ignore_lb: int = -100,
+        num_pixels_exclude_ignored: bool = True,
+    ):
+        super(OhemBCELoss, self).__init__(
+            threshold=threshold,
+            mining_percent=mining_percent,
+            ignore_lb=ignore_lb,
+            num_pixels_exclude_ignored=num_pixels_exclude_ignored,
+            criteria=nn.BCEWithLogitsLoss(reduction="none"),
+        )
 
     def forward(self, logits, labels):
 

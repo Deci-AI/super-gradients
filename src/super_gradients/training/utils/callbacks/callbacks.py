@@ -3,30 +3,22 @@ import math
 import os
 import signal
 import time
-from typing import List
+from typing import List, Union
 
 import cv2
 import numpy as np
 import onnx
 import onnxruntime
 import torch
+from deprecate import deprecated
 
-from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase
+from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
+from super_gradients.common.plugins.deci_client import DeciClient
 
 logger = get_logger(__name__)
-
-try:
-    from deci_lab_client.client import DeciPlatformClient
-    from deci_lab_client.models import ModelBenchmarkState
-
-    _imported_deci_lab_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.debug("Failed to import deci_lab_client")
-    _imported_deci_lab_failure = import_err
 
 
 class ContextSgMethods:
@@ -146,16 +138,12 @@ class DeciLabUploadCallback(PhaseCallback):
 
     def __init__(self, model_meta_data, optimization_request_form, ckpt_name="ckpt_best.pth", **kwargs):
         super().__init__(phase=Phase.POST_TRAINING)
-        if _imported_deci_lab_failure is not None:
-            raise _imported_deci_lab_failure
 
         self.model_meta_data = model_meta_data
         self.optimization_request_form = optimization_request_form
         self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
-        self.platform_client = DeciPlatformClient("api.deci.ai", 443, https=True)
-
-        self.platform_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
+        self.platform_client = DeciClient()
 
     @staticmethod
     def log_optimization_failed():
@@ -168,11 +156,7 @@ class DeciLabUploadCallback(PhaseCallback):
         Args:
             model: The resulting model from the training process
         """
-        self.platform_client.add_model(
-            add_model_request=self.model_meta_data,
-            optimization_request=self.optimization_request_form,
-            local_loaded_model=model,
-        )
+        self.platform_client.upload_model(model=model, model_meta_data=self.model_meta_data, optimization_request_form=self.optimization_request_form)
 
     def get_optimization_status(self, optimized_model_name: str):
         """
@@ -194,11 +178,10 @@ class DeciLabUploadCallback(PhaseCallback):
 
         finished = False
         while not finished:
-            optimized_model = self.platform_client.get_model_by_name(name=optimized_model_name).data
-            if optimized_model.benchmark_state not in [ModelBenchmarkState.IN_PROGRESS, ModelBenchmarkState.PENDING]:
-                finished = True
-            else:
+            if self.platform_client.is_model_benchmarking(name=optimized_model_name):
                 time.sleep(30)
+            else:
+                finished = True
 
         signal.alarm(0)
         return True
@@ -282,25 +265,96 @@ class LRCallbackBase(PhaseCallback):
                 param_group["lr"] = self.lr
 
 
-class WarmupLRCallback(LRCallbackBase):
+class EpochStepWarmupLRCallback(LRCallbackBase):
     """
-    LR scheduling callback for linear step warmup.
-    LR climbs from warmup_initial_lr with even steps to initial lr. When warmup_initial_lr is None- LR climb starts from
+    LR scheduling callback for linear step warmup. This scheduler uses a whole epoch as single step.
+    LR climbs from warmup_initial_lr with even steps to initial lr. When warmup_initial_lr is None - LR climb starts from
      initial_lr/(1+warmup_epochs).
 
     """
 
     def __init__(self, **kwargs):
-        super(WarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
+        super(EpochStepWarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
         self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
-        self.warmup_step_size = (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs
+        self.warmup_step_size = (
+            (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs if self.training_params.lr_warmup_epochs > 0 else 0
+        )
 
     def perform_scheduling(self, context):
         self.lr = self.warmup_initial_lr + context.epoch * self.warmup_step_size
         self.update_lr(context.optimizer, context.epoch, None)
 
     def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs >= context.epoch
+        return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
+
+
+class BatchStepLinearWarmupLRCallback(Callback):
+    """
+    LR scheduling callback for linear step warmup on each batch step.
+    LR climbs from warmup_initial_lr with to initial lr.
+    """
+
+    def __init__(
+        self,
+        warmup_initial_lr: float,
+        initial_lr: float,
+        train_loader_len: int,
+        update_param_groups: bool,
+        lr_warmup_steps: int,
+        training_params,
+        net,
+        **kwargs,
+    ):
+        """
+
+        :param warmup_initial_lr: Starting learning rate
+        :param initial_lr: Target learning rate after warmup
+        :param train_loader_len: Length of train data loader
+        :param lr_warmup_steps: Optional. If passed, will use fixed number of warmup steps to warmup LR. Default is None.
+        :param kwargs:
+        """
+
+        super(BatchStepLinearWarmupLRCallback, self).__init__()
+
+        if lr_warmup_steps > train_loader_len:
+            logger.warning(
+                f"Number of warmup steps ({lr_warmup_steps}) is greater than number of steps in epoch ({train_loader_len}). "
+                f"Warmup steps will be capped to number of steps in epoch to avoid interfering with any pre-epoch LR schedulers."
+            )
+
+        lr_warmup_steps = min(lr_warmup_steps, train_loader_len)
+        learning_rates = np.linspace(start=warmup_initial_lr, stop=initial_lr, num=lr_warmup_steps, endpoint=True)
+
+        self.lr = initial_lr
+        self.initial_lr = initial_lr
+        self.update_param_groups = update_param_groups
+        self.training_params = training_params
+        self.net = net
+        self.learning_rates = learning_rates
+        self.train_loader_len = train_loader_len
+        self.lr_warmup_steps = lr_warmup_steps
+
+    def on_train_batch_start(self, context: PhaseContext) -> None:
+        global_training_step = context.batch_idx + context.epoch * self.train_loader_len
+        if global_training_step < self.lr_warmup_steps:
+            self.lr = float(self.learning_rates[global_training_step])
+            self.update_lr(context.optimizer, context.epoch, context.batch_idx)
+
+    def update_lr(self, optimizer, epoch, batch_idx=None):
+        """
+        Same as in LRCallbackBase
+        :param optimizer:
+        :param epoch:
+        :param batch_idx:
+        :return:
+        """
+        if self.update_param_groups:
+            param_groups = self.net.module.update_param_groups(optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len)
+            optimizer.param_groups = param_groups
+        else:
+            # UPDATE THE OPTIMIZERS PARAMETER
+            for param_group in optimizer.param_groups:
+                param_group["lr"] = self.lr
 
 
 class StepLRCallback(LRCallbackBase):
@@ -388,16 +442,28 @@ class CosineLRCallback(LRCallbackBase):
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
         effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        current_iter = self.train_loader_len * effective_epoch + context.batch_idx
-        max_iter = self.train_loader_len * effective_max_epochs
-        lr = 0.5 * self.initial_lr * (1.0 + math.cos(current_iter / (max_iter + 1) * math.pi))
-        # the cosine starts from initial_lr and reaches initial_lr * cosine_final_lr_ratio in last epoch
-        self.lr = lr * (1 - self.cosine_final_lr_ratio) + (self.initial_lr * self.cosine_final_lr_ratio)
+        current_iter = max(0, self.train_loader_len * effective_epoch + context.batch_idx - self.training_params.lr_warmup_steps)
+        max_iter = self.train_loader_len * effective_max_epochs - self.training_params.lr_warmup_steps
+
+        lr = self.compute_learning_rate(current_iter, max_iter, self.initial_lr, self.cosine_final_lr_ratio)
+        self.lr = float(lr)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
+        # Account of per-step warmup
+        if self.training_params.lr_warmup_steps > 0:
+            current_step = self.train_loader_len * context.epoch + context.batch_idx
+            return current_step >= self.training_params.lr_warmup_steps
+
         post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
+
+    @classmethod
+    def compute_learning_rate(cls, step: Union[float, np.ndarray], total_steps: float, initial_lr: float, final_lr_ratio: float):
+        # the cosine starts from initial_lr and reaches initial_lr * cosine_final_lr_ratio in last epoch
+
+        lr = 0.5 * initial_lr * (1.0 + np.cos(step / (total_steps + 1) * math.pi))
+        return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
 class FunctionLRCallback(LRCallbackBase):
@@ -405,9 +471,10 @@ class FunctionLRCallback(LRCallbackBase):
     Hard coded rate scheduling for user defined lr scheduling function.
     """
 
+    @deprecated(target=None, deprecated_in="3.6.0", remove_in="4.0.0")
     def __init__(self, max_epochs, lr_schedule_function, **kwargs):
         super(FunctionLRCallback, self).__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
-        assert callable(self.lr_schedule_function), "self.lr_function must be callable"
+        assert callable(lr_schedule_function), "self.lr_function must be callable"
         self.lr_schedule_function = lr_schedule_function
         self.max_epochs = max_epochs
 

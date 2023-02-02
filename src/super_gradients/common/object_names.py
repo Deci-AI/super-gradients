@@ -48,7 +48,10 @@ class Transforms:
     DetectionRandomAffine = "DetectionRandomAffine"
     DetectionMixup = "DetectionMixup"
     DetectionHSV = "DetectionHSV"
+    DetectionRGB2BGR = "DetectionRGB2BGR"
+    DetectionRandomRotate90 = "DetectionRandomRotate90"
     DetectionHorizontalFlip = "DetectionHorizontalFlip"
+    DetectionRescale = "DetectionRescale"
     DetectionPaddedRescale = "DetectionPaddedRescale"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
@@ -94,12 +97,23 @@ class Transforms:
     RandomAutocontrast = "RandomAutocontrast"
     RandomEqualize = "RandomEqualize"
 
+    # Keypoints
+    KeypointsRandomAffineTransform = "KeypointsRandomAffineTransform"
+    KeypointsImageNormalize = "KeypointsImageNormalize"
+    KeypointsImageToTensor = "KeypointsImageToTensor"
+    KeypointTransform = "KeypointTransform"
+    KeypointsPadIfNeeded = "KeypointsPadIfNeeded"
+    KeypointsLongestMaxSize = "KeypointsLongestMaxSize"
+    KeypointsRandomVerticalFlip = "KeypointsRandomVerticalFlip"
+    KeypointsRandomHorizontalFlip = "KeypointsRandomHorizontalFlip"
+
 
 class Optimizers:
     """Static class holding all the supported optimizer names"""
 
     SGD = "SGD"
     ADAM = "Adam"
+    ADAMW = "AdamW"
     RMS_PROP = "RMSprop"
     RMS_PROP_TF = "RMSpropTF"
     LAMB = "Lamb"
@@ -132,6 +146,8 @@ class LRWarmups:
     """Static class to hold all the supported LR Warmup names"""
 
     LINEAR_STEP = "linear_step"
+    LINEAR_EPOCH_STEP = "linear_epoch_step"
+    LINEAR_BATCH_STEP = "linear_batch_step"
 
 
 class Samplers:

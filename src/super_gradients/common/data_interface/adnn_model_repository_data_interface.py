@@ -1,7 +1,8 @@
 import os
 import sys
 
-from super_gradients.common import S3Connector, explicit_params_validation
+from super_gradients.common.data_connection.s3_connector import S3Connector
+from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
 from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import ILogger
 
@@ -25,7 +26,7 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
         """
         super().__init__()
         self.tb_events_file_prefix = "events.out.tfevents"
-        self.log_file_prefix = "log_"
+        self.log_file_prefix = "experiment_logs_"
         self.latest_checkpoint_filename = "ckpt_latest.pth"
         self.best_checkpoint_filename = "ckpt_best.pth"
 
