@@ -24,25 +24,23 @@ class AWSConnector:
             try:
                 if profile_name and boto3.session.Session(profile_name=profile_name).get_credentials():
                     # TRY USING A SPECIFIC PROFILE_NAME (USING A CREDENTIALS FILE)
-                    logger.info('Trying to connect to AWS using Credentials File with profile_name: ' + profile_name)
+                    logger.info("Trying to connect to AWS using Credentials File with profile_name: " + profile_name)
 
                     session = boto3.Session(profile_name=profile_name)
                     return session
 
             except ProfileNotFound as profileNotFoundException:
                 logger.debug(
-                    '[' + current_class_name + '] - Could not find profile name - Trying using Default Profile/IAM Role' + str(
-                        profileNotFoundException))
+                    "[" + current_class_name + "] - Could not find profile name - Trying using Default Profile/IAM Role" + str(profileNotFoundException)
+                )
 
             # TRY USING AN IAM ROLE (OR *DEFAULT* CREDENTIALS - USING A CREDENTIALS FILE)
-            logger.info('Trying to connect to AWS using IAM role or Default Credentials')
+            logger.info("Trying to connect to AWS using IAM role or Default Credentials")
             session = boto3.Session()
             return session
 
         except Exception as ex:
-            logger.critical(
-                '[' + current_class_name + '] - Caught Exception while trying to connect to AWS Credentials Manager ' + str(
-                    ex))
+            logger.critical("[" + current_class_name + "] - Caught Exception while trying to connect to AWS Credentials Manager " + str(ex))
             return None
 
     @staticmethod
@@ -57,7 +55,7 @@ class AWSConnector:
 
         aws_session = AWSConnector.__create_boto_3_session(profile_name=profile_name)
         if aws_session is None:
-            logger.error('Failed to initiate an AWS Session')
+            logger.error("Failed to initiate an AWS Session")
 
         return aws_session
 
@@ -74,7 +72,7 @@ class AWSConnector:
 
         aws_session = AWSConnector.__create_boto_3_session(profile_name=profile_name)
         if aws_session is None:
-            logger.error('Failed to connect to AWS client: ' + str(service_name))
+            logger.error("Failed to connect to AWS client: " + str(service_name))
 
         return aws_session.client(service_name=service_name)
 
@@ -91,7 +89,7 @@ class AWSConnector:
 
         aws_session = AWSConnector.__create_boto_3_session(profile_name=profile_name)
         if aws_session is None:
-            logger.error('Failed to connect to AWS client: ' + str(service_name))
+            logger.error("Failed to connect to AWS client: " + str(service_name))
 
         return aws_session.resource(service_name=service_name)
 
