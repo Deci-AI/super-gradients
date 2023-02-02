@@ -338,7 +338,7 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
-          skip_md_files: true
+          skip_md_files: false
       - run:
           name: add requirements.txt and requirements.pro.txt to source code
           command: |
