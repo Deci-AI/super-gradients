@@ -1,11 +1,15 @@
 # Optimizers
 
 Optimization is a critical step in the deep learning process as it determines how well the network will learn from the training data.
-SuperGradients supports out-of-the-box [pytorch optimizers](https://pytorch.org/docs/stable/optim.html#base-class) (SGD, Adam and AdamW), but also 
+SuperGradients supports out-of-the-box pytorch optimizers(
+[SGD](https://pytorch.org/docs/stable/generated/torch.optim.SGD.html#torch.optim.SGD), 
+[Adam](https://pytorch.org/docs/stable/generated/torch.optim.Adam.html#torch.optim.Adam) and 
+[AdamW](https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html#torch.optim.AdamW)
+), but also 
 [RMSpropTF](http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf) and 
 [Lamb](https://github.com/NVIDIA/DeepLearningExamples/blob/master/PyTorch/LanguageModeling/Transformer-XL/pytorch/lamb.py).
 
-### Set your optimizer in the code
+### Set the optimizer in the code
 Optimizers should be part of the training parameters.
 
 
@@ -24,7 +28,7 @@ trainer.train(
 The `optimizer_params` is a dictionary of all the optimizer parameters you want to set. It can be any argument defined in the optimizer `__init__` method , except for `params` because this argument corresponds to the model to optimize and is automatically provided by the Trainer.
 
 
-### Set your optimizer in the recipes
+### Set the optimizer in the recipes
 When working with recipes, you need to modify the [recipes/training_hyperparams](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/training_hyperparams) as below:
 
 ```yaml
