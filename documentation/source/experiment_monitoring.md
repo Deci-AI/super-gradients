@@ -80,6 +80,7 @@ from typing import Union
 
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
+from super_gradients.training.params import TrainingParams
 
 
 @register_logger()
@@ -92,8 +93,15 @@ class CustomSGLogger(BaseSGLogger):
         experiment_name: str,
         storage_location: str,
         resumed: bool,
-        training_params: dict,
+        training_params: TrainingParams,
         checkpoints_dir_path: str,
+        tb_files_user_prompt: bool = False,
+        launch_tensorboard: bool = False,
+        tensorboard_port: int = None,
+        save_checkpoints_remote: bool = True,
+        save_tensorboard_remote: bool = True,
+        save_logs_remote: bool = True,
+        monitor_system: bool = True,
     ):
         super().__init__(
             project_name=project_name,
@@ -102,6 +110,13 @@ class CustomSGLogger(BaseSGLogger):
             resumed=resumed,
             training_params=training_params,
             checkpoints_dir_path=checkpoints_dir_path,
+            tb_files_user_prompt=tb_files_user_prompt,
+            launch_tensorboard=launch_tensorboard,
+            tensorboard_port=tensorboard_port,
+            save_checkpoints_remote=save_checkpoints_remote,
+            save_tensorboard_remote=save_tensorboard_remote,
+            save_logs_remote=save_logs_remote,
+            monitor_system=monitor_system,
         )
         self.my_client = ... # instantiate your monitoring tool client
 
