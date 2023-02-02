@@ -23,9 +23,7 @@ class ShelfNetSemanticEncodingLoss(nn.CrossEntropyLoss):
         se_target = Variable(torch.zeros(batch, self.nclass))
         # FIXME - THIS IS WHAT apex MIGHT BE FAILING TO WORK WITH
         for i in range(batch):
-            hist = torch.histc(labels[i].cpu().data.float(),
-                               bins=self.nclass, min=0,
-                               max=self.nclass - 1)
+            hist = torch.histc(labels[i].cpu().data.float(), bins=self.nclass, min=0, max=self.nclass - 1)
             vect = hist > 0
             se_target[i] = vect
 

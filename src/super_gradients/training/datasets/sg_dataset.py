@@ -6,7 +6,7 @@ from typing import Callable
 from torchvision.datasets import VisionDataset
 from torchvision.datasets.folder import default_loader
 
-IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
+IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif", ".tiff", ".webp")
 
 
 class BaseSgVisionDataset(VisionDataset):
@@ -14,9 +14,16 @@ class BaseSgVisionDataset(VisionDataset):
     BaseSgVisionDataset
     """
 
-    def __init__(self, root: str, sample_loader: Callable = default_loader, target_loader: Callable = None,
-                 collate_fn: Callable = None, valid_sample_extensions: tuple = IMG_EXTENSIONS,
-                 sample_transform: Callable = None, target_transform: Callable = None):
+    def __init__(
+        self,
+        root: str,
+        sample_loader: Callable = default_loader,
+        target_loader: Callable = None,
+        collate_fn: Callable = None,
+        valid_sample_extensions: tuple = IMG_EXTENSIONS,
+        sample_transform: Callable = None,
+        target_transform: Callable = None,
+    ):
         """
         Ctor
             :param root:
@@ -82,7 +89,7 @@ class BaseSgVisionDataset(VisionDataset):
         return np.load(path)
 
     @staticmethod
-    def text_file_loader_func(text_file_path: str, inline_splitter: str = ' ') -> list:
+    def text_file_loader_func(text_file_path: str, inline_splitter: str = " ") -> list:
         """
         text_file_loader_func - Uses a line by line based code to get vectorized data from a text-based file
             :param text_file_path:  Input text file
@@ -107,11 +114,19 @@ class DirectoryDataSet(BaseSgVisionDataset):
 
     """
 
-    def __init__(self, root: str,
-                 samples_sub_directory: str, targets_sub_directory: str, target_extension: str,
-                 sample_loader: Callable = default_loader, target_loader: Callable = None, collate_fn: Callable = None,
-                 sample_extensions: tuple = IMG_EXTENSIONS, sample_transform: Callable = None,
-                 target_transform: Callable = None):
+    def __init__(
+        self,
+        root: str,
+        samples_sub_directory: str,
+        targets_sub_directory: str,
+        target_extension: str,
+        sample_loader: Callable = default_loader,
+        target_loader: Callable = None,
+        collate_fn: Callable = None,
+        sample_extensions: tuple = IMG_EXTENSIONS,
+        sample_transform: Callable = None,
+        target_transform: Callable = None,
+    ):
         """
         CTOR
             :param root:                    root directory that contains all of the Data Set
@@ -134,9 +149,15 @@ class DirectoryDataSet(BaseSgVisionDataset):
         self.samples_dir_suffix = samples_sub_directory
         self.targets_dir_suffix = targets_sub_directory
 
-        super().__init__(root=root, sample_loader=sample_loader, target_loader=target_loader,
-                         collate_fn=collate_fn, valid_sample_extensions=sample_extensions,
-                         sample_transform=sample_transform, target_transform=target_transform)
+        super().__init__(
+            root=root,
+            sample_loader=sample_loader,
+            target_loader=target_loader,
+            collate_fn=collate_fn,
+            valid_sample_extensions=sample_extensions,
+            sample_transform=sample_transform,
+            target_transform=target_transform,
+        )
 
     def __getitem__(self, item):
         """
@@ -172,7 +193,7 @@ class DirectoryDataSet(BaseSgVisionDataset):
         for sample_file_name in os.listdir(samples_dir_path):
             sample_file_path = samples_dir_path + os.path.sep + sample_file_name
             if os.path.isfile(sample_file_path) and self._validate_file(sample_file_path):
-                sample_file_prefix = str(sample_file_name.split('.')[:-1][0])
+                sample_file_prefix = str(sample_file_name.split(".")[:-1][0])
 
                 # TRY TO GET THE MATCHING LABEL
                 matching_target_file_name = sample_file_prefix + self.target_extension
@@ -185,10 +206,9 @@ class DirectoryDataSet(BaseSgVisionDataset):
             else:
                 missing_sample_files += 1
 
-        for counter_name, missing_files_counter in [('samples', missing_sample_files),
-                                                    ('targets', missing_target_files)]:
+        for counter_name, missing_files_counter in [("samples", missing_sample_files), ("targets", missing_target_files)]:
             if missing_files_counter > 0:
-                print(__name__ + ' There are ' + str(missing_files_counter) + ' missing  ' + counter_name)
+                print(__name__ + " There are " + str(missing_files_counter) + " missing  " + counter_name)
 
 
 class ListDataset(BaseSgVisionDataset):
@@ -205,21 +225,30 @@ class ListDataset(BaseSgVisionDataset):
                                                     /root/dataset/class_y/sample123.ext
     """
 
-    def __init__(self, root, file, sample_loader: Callable = default_loader, target_loader: Callable = None,
-                 collate_fn: Callable = None, sample_extensions: tuple = IMG_EXTENSIONS,
-                 sample_transform: Callable = None, target_transform: Callable = None, target_extension='.npy'):
+    def __init__(
+        self,
+        root,
+        file,
+        sample_loader: Callable = default_loader,
+        target_loader: Callable = None,
+        collate_fn: Callable = None,
+        sample_extensions: tuple = IMG_EXTENSIONS,
+        sample_transform: Callable = None,
+        target_transform: Callable = None,
+        target_extension=".npy",
+    ):
         """
-           CTOR
-               :param root:                    root directory that contains all of the Data Set
-               :param file:                    Path to the file with the samples list
-               :param sample_extensions:       file extension for samples
-               :param target_extension:        file extension of the targets
-               :param sample_loader:           Func to load samples
-               :param target_loader:           Func to load targets
-               :param collate_fn:              collate_fn func to process batches for the Data Loader
-               :param sample_transform:        Func to pre-process samples for data loading
-               :param target_transform:        Func to pre-process targets for data loading
-           """
+        CTOR
+            :param root:                    root directory that contains all of the Data Set
+            :param file:                    Path to the file with the samples list
+            :param sample_extensions:       file extension for samples
+            :param target_extension:        file extension of the targets
+            :param sample_loader:           Func to load samples
+            :param target_loader:           Func to load targets
+            :param collate_fn:              collate_fn func to process batches for the Data Loader
+            :param sample_transform:        Func to pre-process samples for data loading
+            :param target_transform:        Func to pre-process targets for data loading
+        """
 
         if target_loader is None:
             target_loader = self.numpy_loader_func
@@ -230,10 +259,15 @@ class ListDataset(BaseSgVisionDataset):
         self.extensions = sample_extensions
         self.target_extension = target_extension
 
-        super().__init__(root, sample_loader=sample_loader, target_loader=target_loader,
-                         collate_fn=collate_fn, sample_transform=sample_transform,
-                         valid_sample_extensions=sample_extensions,
-                         target_transform=target_transform)
+        super().__init__(
+            root,
+            sample_loader=sample_loader,
+            target_loader=target_loader,
+            collate_fn=collate_fn,
+            sample_transform=sample_transform,
+            valid_sample_extensions=sample_extensions,
+            target_transform=target_transform,
+        )
 
     def __getitem__(self, item):
         """
