@@ -55,7 +55,7 @@ class DeciClient:
         """Get a file from the DeciPlatform if it exists, otherwise returns None"""
         try:
             response = self.lab_client.get_autonac_model_file_link(
-                model_name=model_name, file_name=file_name, super_gradients_version=self.super_gradients_version
+                model_name=model_name, file_name=file_name, super_gradients_version=super_gradients.__version__
             )
             download_link = response.data
         except ApiException as e:

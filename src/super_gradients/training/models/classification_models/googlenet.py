@@ -9,13 +9,11 @@ import torch.nn.functional as F
 from collections import OrderedDict
 from super_gradients.training.models.sg_module import SgModule
 
-GoogLeNetOutputs = namedtuple('GoogLeNetOutputs', ['log_', 'aux_logits2', 'aux_logits1'])
+GoogLeNetOutputs = namedtuple("GoogLeNetOutputs", ["log_", "aux_logits2", "aux_logits1"])
 
 
 class GoogLeNet(SgModule):
-
-    def __init__(self, num_classes=1000, aux_logits=True, init_weights=True,
-                 backbone_mode=False, dropout=0.3):
+    def __init__(self, num_classes=1000, aux_logits=True, init_weights=True, backbone_mode=False, dropout=0.3):
         super(GoogLeNet, self).__init__()
 
         self.num_classes = num_classes
@@ -64,6 +62,7 @@ class GoogLeNet(SgModule):
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 import scipy.stats as stats
+
                 x = stats.truncnorm(-2, 2, scale=0.01)
                 values = torch.as_tensor(x.rvs(m.weight.numel()), dtype=m.weight.dtype)
                 values = values.view(m.weight.size())
@@ -150,14 +149,14 @@ class GoogLeNet(SgModule):
             pretrained_backbone_weights_dict = OrderedDict()
             for layer_name, weights in pretrained_model_weights_dict.items():
                 # GET THE LAYER NAME WITHOUT THE 'module.' PREFIX
-                name_without_module_prefix = layer_name.split('module.')[1]
+                name_without_module_prefix = layer_name.split("module.")[1]
 
                 # MAKE SURE THESE ARE NOT THE FINAL LAYERS
                 pretrained_backbone_weights_dict[name_without_module_prefix] = weights
             c_temp = torch.nn.Linear(1024, self.num_classes)
             torch.nn.init.xavier_uniform(c_temp.weight)
-            pretrained_backbone_weights_dict['fc.weight'] = c_temp.weight
-            pretrained_backbone_weights_dict['fc.bias'] = c_temp.bias
+            pretrained_backbone_weights_dict["fc.weight"] = c_temp.weight
+            pretrained_backbone_weights_dict["fc.bias"] = c_temp.bias
             # RETURNING THE UNMODIFIED/MODIFIED STATE DICT DEPENDING ON THE backbone_mode VALUE
             super().load_state_dict(pretrained_backbone_weights_dict, strict)
         else:
@@ -165,28 +164,17 @@ class GoogLeNet(SgModule):
 
 
 class Inception(nn.Module):
-
-    def __init__(self, in_channels, ch1x1, ch3x3red, ch3x3, ch5x5red, ch5x5, pool_proj,
-                 conv_block=None):
+    def __init__(self, in_channels, ch1x1, ch3x3red, ch3x3, ch5x5red, ch5x5, pool_proj, conv_block=None):
         super(Inception, self).__init__()
         if conv_block is None:
             conv_block = BasicConv2d
         self.branch1 = conv_block(in_channels, ch1x1, kernel_size=1)
 
-        self.branch2 = nn.Sequential(
-            conv_block(in_channels, ch3x3red, kernel_size=1),
-            conv_block(ch3x3red, ch3x3, kernel_size=3, padding=1)
-        )
+        self.branch2 = nn.Sequential(conv_block(in_channels, ch3x3red, kernel_size=1), conv_block(ch3x3red, ch3x3, kernel_size=3, padding=1))
 
-        self.branch3 = nn.Sequential(
-            conv_block(in_channels, ch5x5red, kernel_size=1),
-            conv_block(ch5x5red, ch5x5, kernel_size=3, padding=1)
-        )
+        self.branch3 = nn.Sequential(conv_block(in_channels, ch5x5red, kernel_size=1), conv_block(ch5x5red, ch5x5, kernel_size=3, padding=1))
 
-        self.branch4 = nn.Sequential(
-            nn.MaxPool2d(kernel_size=3, stride=1, padding=1, ceil_mode=True),
-            conv_block(in_channels, pool_proj, kernel_size=1)
-        )
+        self.branch4 = nn.Sequential(nn.MaxPool2d(kernel_size=3, stride=1, padding=1, ceil_mode=True), conv_block(in_channels, pool_proj, kernel_size=1))
 
     def _forward(self, x):
         branch1 = self.branch1(x)
@@ -203,7 +191,6 @@ class Inception(nn.Module):
 
 
 class InceptionAux(nn.Module):
-
     def __init__(self, in_channels, num_classes, conv_block=None):
         super(InceptionAux, self).__init__()
         if conv_block is None:
@@ -232,7 +219,6 @@ class InceptionAux(nn.Module):
 
 
 class BasicConv2d(nn.Module):
-
     def __init__(self, in_channels, out_channels, **kwargs):
         super(BasicConv2d, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)

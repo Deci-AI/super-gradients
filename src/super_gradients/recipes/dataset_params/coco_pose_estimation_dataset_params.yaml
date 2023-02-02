@@ -1,0 +1,86 @@
+train_dataset_params:
+  data_dir: /data/coco # root path to coco data
+  images_dir: images/train2017
+  json_file: annotations/person_keypoints_train2017.json
+
+  include_empty_samples: False
+  min_instance_area: 128
+
+  transforms:
+    - KeypointsLongestMaxSize:
+        max_height: 640
+        max_width: 640
+
+    - KeypointsPadIfNeeded:
+        min_height: 640
+        min_width: 640
+        image_pad_value: [ 127, 127, 127 ]
+        mask_pad_value: 1
+
+    - KeypointsRandomHorizontalFlip:
+        # Note these indexes are COCO-specific. If you're using a different dataset, you'll need to change these accordingly.
+        flip_index: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15 ]
+        prob: 0.5
+
+    - KeypointsRandomAffineTransform:
+        max_rotation: 30
+        min_scale: 0.75
+        max_scale: 1.5
+        max_translate: 0.2
+        image_pad_value: [ 127, 127, 127 ]
+        mask_pad_value: 1
+        prob: 0.5
+
+    - KeypointsImageToTensor
+
+    - KeypointsImageNormalize:
+        mean: [ 0.485, 0.456, 0.406 ]
+        std: [ 0.229, 0.224, 0.225 ]
+
+  target_generator: ???
+
+val_dataset_params:
+  data_dir: /data/coco/
+
+  images_dir: images/val2017
+  json_file: annotations/person_keypoints_val2017.json
+  include_empty_samples: True
+  min_instance_area: 128
+  transforms:
+    - KeypointsLongestMaxSize:
+        max_height: 640
+        max_width: 640
+
+    - KeypointsPadIfNeeded:
+        min_height: 640
+        min_width: 640
+        image_pad_value: [ 127, 127, 127 ]
+        mask_pad_value: 1
+
+    - KeypointsImageToTensor
+
+    - KeypointsImageNormalize:
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
+
+  target_generator: ???
+
+train_dataloader_params:
+  shuffle: True
+  batch_size: 8
+  num_workers: 8
+  drop_last: True
+  worker_init_fn:
+    _target_: super_gradients.training.utils.utils.load_func
+    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
+  collate_fn:
+    _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
+
+val_dataloader_params:
+  batch_size: 24
+  num_workers: 8
+  drop_last: False
+  collate_fn:
+    _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
+
+_convert_: all

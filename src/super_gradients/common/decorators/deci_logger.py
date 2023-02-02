@@ -1,4 +1,4 @@
-def deci_func_logger(_func=None, *, name: str = 'abstract_decorator'):
+def deci_func_logger(_func=None, *, name: str = "abstract_decorator"):
     """
     This decorator is used to wrap our functions with logs.
     It will log every enter and exit of the functon with the equivalent parameters as extras.
