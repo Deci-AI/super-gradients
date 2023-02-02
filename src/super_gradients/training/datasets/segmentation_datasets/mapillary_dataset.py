@@ -87,8 +87,8 @@ class MapillaryDataset(SegmentationDataSet):
         samples_dir = os.path.join(self.root, self.samples_sub_directory)
         labels_dir = os.path.join(self.root, self.targets_sub_directory)
 
-        sample_names = [n for n in os.listdir(samples_dir) if n.endswith(self.sample_extension)]
-        label_names = [n for n in os.listdir(labels_dir) if n.endswith(self.target_extension)]
+        sample_names = [n for n in sorted(os.listdir(samples_dir)) if n.endswith(self.sample_extension)]
+        label_names = [n for n in sorted(os.listdir(labels_dir)) if n.endswith(self.target_extension)]
 
         assert len(sample_names) == len(label_names), f"Number of samples: {len(sample_names)}," f" doesn't match the number of labels {len(label_names)}"
 
