@@ -1,7 +1,7 @@
 # Optimizers
 
 Optimization is a critical step in the deep learning process as it determines how well the network will learn from the training data.
-SuperGradients supports out-of-the-box [pytorch optimizers](https://pytorch.org/docs/stable/optim.html#base-class) SGD, Adam and AdamW, but also 
+SuperGradients supports out-of-the-box [pytorch optimizers](https://pytorch.org/docs/stable/optim.html#base-class) (SGD, Adam and AdamW), but also 
 [RMSpropTF](http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf) and 
 [Lamb](https://github.com/NVIDIA/DeepLearningExamples/blob/master/PyTorch/LanguageModeling/Transformer-XL/pytorch/lamb.py).
 
@@ -18,4 +18,16 @@ trainer.train(
     training_params={"optimizer": "Adam", "optimizer_params": {"eps": 1e-3}, ...}, 
     ...
 )
+```
+
+When working with recipes, you need to modify the [recipes/training_hyperparams](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/training_hyperparams) as below:
+
+```yaml
+# recipes/training_hyperparams/my_training_recipe.yaml
+
+...
+
+optimizer: Adam
+optimizer_params:
+  eps: 1e-3
 ```
