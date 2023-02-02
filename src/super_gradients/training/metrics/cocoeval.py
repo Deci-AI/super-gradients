@@ -45,8 +45,6 @@ class EvaluationParams:
     iou_thresholds: np.ndarray
     recall_thresholds: np.ndarray
     maxDets: int
-    area_ranges: Tuple[Tuple[float, float], ...]
-    area_ranges_labels: Tuple[str, ...]
     useCats: bool
     sigmas: np.ndarray
 
@@ -60,8 +58,6 @@ class EvaluationParams:
             iou_thresholds=np.linspace(0.5, 0.95, int(np.round((0.95 - 0.5) / 0.05)) + 1, endpoint=True),
             recall_thresholds=np.linspace(0.0, 1.00, int(np.round((1.00 - 0.0) / 0.01)) + 1, endpoint=True),
             maxDets=20,
-            area_ranges=((0**2, 1e5**2), (32**2, 96**2), (96**2, 1e5**2)),
-            area_ranges_labels=("all", "medium", "large"),
             useCats=True,
             sigmas=np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0,
         )
@@ -71,7 +67,6 @@ class EvaluationParams:
 class ImageLevelEvaluationResult:
     image_id: Union[str, int]
     category_id: int
-    aRng: Tuple[int, int]
     dtMatches: Any
     gtMatches: Any
     dtScores: List
@@ -82,59 +77,51 @@ class ImageLevelEvaluationResult:
 @dataclasses.dataclass
 class DatasetLevelEvaluationResult:
     params: EvaluationParams
-    counts: Tuple[int, int, int, int, int]
+    counts: Tuple[int, int, int, int]
     precision: np.ndarray
     recall: np.ndarray
     scores: np.ndarray
 
     @property
     def ap_metric(self):
-        return self._summarize(1, maxDets=self.params.maxDets)
+        return self._summarize(1)
 
     @property
     def ar_metric(self):
-        return self._summarize(1, maxDets=self.params.maxDets)
+        return self._summarize(1)
 
     def all_metrics(self):
         return {
-            "AP": self._summarize(1, maxDets=self.params.maxDets),
-            "AP_0.5": self._summarize(1, maxDets=self.params.maxDets, iouThr=0.5),
-            "AP_0.75": self._summarize(1, maxDets=self.params.maxDets, iouThr=0.75),
-            "AP_medium": self._summarize(1, maxDets=self.params.maxDets, areaRng="medium"),
-            "AP_large": self._summarize(1, maxDets=self.params.maxDets, areaRng="large"),
-            "AR": self._summarize(0, maxDets=self.params.maxDets),
-            "AR_0.5": self._summarize(0, maxDets=self.params.maxDets, iouThr=0.5),
-            "AR_0.75": self._summarize(0, maxDets=self.params.maxDets, iouThr=0.75),
-            "AR_medium": self._summarize(0, maxDets=self.params.maxDets, areaRng="medium"),
-            "AR_large": self._summarize(0, maxDets=self.params.maxDets, areaRng="large"),
+            "AP": self._summarize(1),
+            "AP_0.5": self._summarize(1, iouThr=0.5),
+            "AP_0.75": self._summarize(1, iouThr=0.75),
+            "AR": self._summarize(0),
+            "AR_0.5": self._summarize(0, iouThr=0.5),
+            "AR_0.75": self._summarize(0, iouThr=0.75),
         }
 
     def print(self):
         p = self.params
 
-        def _print_summarize(ap=1, iouThr=None, areaRng="all", maxDets=100):
-            score = self._summarize(ap, iouThr, areaRng, maxDets)
-            iStr = " {:<18} {} @[ IoU={:<9} | area={:>6s} | maxDets={:>3d} ] = {:0.3f}"
+        def _print_summarize(ap=1, iouThr=None):
+            score = self._summarize(ap, iouThr)
+            iStr = " {:<18} {} @[ IoU={:<9} ] = {:0.3f}"
             titleStr = "Average Precision" if ap == 1 else "Average Recall"
             typeStr = "(AP)" if ap == 1 else "(AR)"
             iouStr = "{:0.2f}:{:0.2f}".format(p.iou_thresholds[0], p.iou_thresholds[-1]) if iouThr is None else "{:0.2f}".format(iouThr)
-            print(iStr.format(titleStr, typeStr, iouStr, areaRng, maxDets, score))
+            print(iStr.format(titleStr, typeStr, iouStr, score))
 
-        _print_summarize(1, maxDets=self.params.maxDets)
-        _print_summarize(1, maxDets=self.params.maxDets, iouThr=0.5)
-        _print_summarize(1, maxDets=self.params.maxDets, iouThr=0.75)
-        _print_summarize(1, maxDets=self.params.maxDets, areaRng="medium")
-        _print_summarize(1, maxDets=self.params.maxDets, areaRng="large")
-        _print_summarize(0, maxDets=self.params.maxDets)
-        _print_summarize(0, maxDets=self.params.maxDets, iouThr=0.5)
-        _print_summarize(0, maxDets=self.params.maxDets, iouThr=0.75)
-        _print_summarize(0, maxDets=self.params.maxDets, areaRng="medium")
-        _print_summarize(0, maxDets=self.params.maxDets, areaRng="large")
+        _print_summarize(1)
+        _print_summarize(1, iouThr=0.5)
+        _print_summarize(1, iouThr=0.75)
+        _print_summarize(0)
+        _print_summarize(0, iouThr=0.5)
+        _print_summarize(0, iouThr=0.75)
 
-    def _summarize(self, ap=1, iouThr=None, areaRng="all", maxDets=100):
+    def _summarize(self, ap=1, iouThr=None):
         p = self.params
 
-        aind = [i for i, aRng in enumerate(p.area_ranges_labels) if aRng == areaRng]
+        aind = [0]
         # mind = [i for i, mDet in enumerate(p.maxDets) if mDet == maxDets]
         mind = [0]
 
@@ -324,12 +311,7 @@ class COCOeval:
         # ious between all gts and dts
         ious = {(imgId, catId): self.computeOksV2(_gts[imgId, catId], _dts[imgId, catId]) for imgId in imgIds for catId in catIds}
 
-        evalImgs = [
-            self.evaluateImg(imgId, catId, areaRng, self.params.maxDets, catIds, ious, _gts, _dts)
-            for catId in catIds
-            for areaRng in self.params.area_ranges
-            for imgId in imgIds
-        ]
+        evalImgs = [self.evaluateImg(imgId, catId, self.params.maxDets, catIds, ious, _gts, _dts) for catId in catIds for imgId in imgIds]
         result = self.accumulate(evalImgs, imgIds, catIds)
 
         return result
@@ -360,7 +342,7 @@ class COCOeval:
         return ious
 
     def evaluateImg(
-        self, imgId: int, catId: int, aRng, maxDet, catIds, ious, _gts: Mapping[Tuple[int, int], Any], _dts: Mapping[Tuple[int, int], Any]
+        self, imgId: int, catId: int, maxDet, catIds, ious, _gts: Mapping[Tuple[int, int], Any], _dts: Mapping[Tuple[int, int], Any]
     ) -> ImageLevelEvaluationResult:
         """
         perform evaluation for single category and image
@@ -376,14 +358,8 @@ class COCOeval:
         if len(gt) == 0 and len(dt) == 0:
             return None
 
-        for g in gt:
-            if g["ignore"] or (g["area"] < aRng[0] or g["area"] > aRng[1]):
-                g["_ignore"] = 1
-            else:
-                g["_ignore"] = 0
-
         # sort dt highest score first, sort gt ignore last
-        gtind = np.argsort([g["_ignore"] for g in gt], kind="mergesort")
+        gtind = np.argsort([g["ignore"] for g in gt], kind="mergesort")
         gt = [gt[i] for i in gtind]
         dtind = np.argsort([-d["score"] for d in dt], kind="mergesort")
         dt = [dt[i] for i in dtind[0:maxDet]]
@@ -396,7 +372,7 @@ class COCOeval:
         D = len(dt)
         gtm = np.zeros((T, G))
         dtm = np.zeros((T, D))
-        gtIg = np.array([g["_ignore"] for g in gt])
+        gtIg = np.array([g["ignore"] for g in gt])
         dtIg = np.zeros((T, D))
         if not len(ious) == 0:
             for tind, t in enumerate(p.iou_thresholds):
@@ -423,14 +399,11 @@ class COCOeval:
                     dtIg[tind, dind] = gtIg[m]
                     dtm[tind, dind] = gt[m]["id"]
                     gtm[tind, m] = d["id"]
-        # set unmatched detections outside of area range to ignore
-        a = np.array([d["area"] < aRng[0] or d["area"] > aRng[1] for d in dt]).reshape((1, len(dt)))
-        dtIg = np.logical_or(dtIg, np.logical_and(dtm == 0, np.repeat(a, T, 0)))
+
         # store results for given image and category
         return ImageLevelEvaluationResult(
             image_id=imgId,
             category_id=catId,
-            aRng=aRng,
             dtMatches=dtm,
             gtMatches=gtm,
             dtScores=[d["score"] for d in dt],
@@ -454,88 +427,84 @@ class COCOeval:
         T = len(p.iou_thresholds)
         R = len(p.recall_thresholds)
         K = len(catIds)
-        A = len(p.area_ranges)
+
         M = len(maxDets)
-        precision = -np.ones((T, R, K, A, M))  # -1 for the precision of absent categories
-        recall = -np.ones((T, K, A, M))
-        scores = -np.ones((T, R, K, A, M))
+        precision = -np.ones((T, R, K, M))  # -1 for the precision of absent categories
+        recall = -np.ones((T, K, M))
+        scores = -np.ones((T, R, K, M))
 
         # create dictionary for future indexing
         setK = set(catIds)
-        setA = set(p.area_ranges)
         setM = set(maxDets)
         setI = set(imgIds)
         # get inds to evaluate
         k_list = [n for n, k in enumerate(catIds) if k in setK]
         m_list = [m for n, m in enumerate(maxDets) if m in setM]
-        a_list = [n for n, a in enumerate(map(lambda x: tuple(x), p.area_ranges)) if a in setA]
         i_list = [n for n, i in enumerate(imgIds) if i in setI]
         I0 = len(imgIds)
-        A0 = len(p.area_ranges)
+
         # retrieve E at each category, area range, and max number of detections
         for k, k0 in enumerate(k_list):
-            Nk = k0 * A0 * I0
-            for a, a0 in enumerate(a_list):
-                Na = a0 * I0
-                for m, maxDet in enumerate(m_list):
-                    E = [evalImgs[Nk + Na + i] for i in i_list]
-                    E: List[ImageLevelEvaluationResult] = [e for e in E if e is not None]
-                    if len(E) == 0:
-                        continue
-                    dtScores = np.concatenate([e.dtScores[0:maxDet] for e in E])
+            Nk = k0 * I0
+            for m, maxDet in enumerate(m_list):
+                E = [evalImgs[Nk + i] for i in i_list]
+                E: List[ImageLevelEvaluationResult] = [e for e in E if e is not None]
+                if len(E) == 0:
+                    continue
+                dtScores = np.concatenate([e.dtScores[0:maxDet] for e in E])
 
-                    # different sorting method generates slightly different results.
-                    # mergesort is used to be consistent as Matlab implementation.
-                    inds = np.argsort(-dtScores, kind="mergesort")
-                    dtScoresSorted = dtScores[inds]
+                # different sorting method generates slightly different results.
+                # mergesort is used to be consistent as Matlab implementation.
+                inds = np.argsort(-dtScores, kind="mergesort")
+                dtScoresSorted = dtScores[inds]
 
-                    dtm = np.concatenate([e.dtMatches[:, 0:maxDet] for e in E], axis=1)[:, inds]
-                    dtIg = np.concatenate([e.dtIgnore[:, 0:maxDet] for e in E], axis=1)[:, inds]
-                    gtIg = np.concatenate([e.gtIgnore for e in E])
-                    npig = np.count_nonzero(gtIg == 0)
-                    if npig == 0:
-                        continue
-                    tps = np.logical_and(dtm, np.logical_not(dtIg))
-                    fps = np.logical_and(np.logical_not(dtm), np.logical_not(dtIg))
+                dtm = np.concatenate([e.dtMatches[:, 0:maxDet] for e in E], axis=1)[:, inds]
+                dtIg = np.concatenate([e.dtIgnore[:, 0:maxDet] for e in E], axis=1)[:, inds]
+                gtIg = np.concatenate([e.gtIgnore for e in E])
+                npig = np.count_nonzero(gtIg == 0)
+                if npig == 0:
+                    continue
+                tps = np.logical_and(dtm, np.logical_not(dtIg))
+                fps = np.logical_and(np.logical_not(dtm), np.logical_not(dtIg))
 
-                    tp_sum = np.cumsum(tps, axis=1).astype(dtype=np.float)
-                    fp_sum = np.cumsum(fps, axis=1).astype(dtype=np.float)
-                    for t, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
-                        tp = np.array(tp)
-                        fp = np.array(fp)
-                        nd = len(tp)
-                        rc = tp / npig
-                        pr = tp / (fp + tp + np.spacing(1))
-                        q = np.zeros((R,))
-                        ss = np.zeros((R,))
+                tp_sum = np.cumsum(tps, axis=1).astype(dtype=np.float)
+                fp_sum = np.cumsum(fps, axis=1).astype(dtype=np.float)
+                for t, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
+                    tp = np.array(tp)
+                    fp = np.array(fp)
+                    nd = len(tp)
+                    rc = tp / npig
+                    pr = tp / (fp + tp + np.spacing(1))
+                    q = np.zeros((R,))
+                    ss = np.zeros((R,))
 
-                        if nd:
-                            recall[t, k, a, m] = rc[-1]
-                        else:
-                            recall[t, k, a, m] = 0
+                    if nd:
+                        recall[t, k, m] = rc[-1]
+                    else:
+                        recall[t, k, m] = 0
 
-                        # numpy is slow without cython optimization for accessing elements
-                        # use python array gets significant speed improvement
-                        pr = pr.tolist()
-                        q = q.tolist()
+                    # numpy is slow without cython optimization for accessing elements
+                    # use python array gets significant speed improvement
+                    pr = pr.tolist()
+                    q = q.tolist()
 
-                        for i in range(nd - 1, 0, -1):
-                            if pr[i] > pr[i - 1]:
-                                pr[i - 1] = pr[i]
+                    for i in range(nd - 1, 0, -1):
+                        if pr[i] > pr[i - 1]:
+                            pr[i - 1] = pr[i]
 
-                        inds = np.searchsorted(rc, p.recall_thresholds, side="left")
-                        try:
-                            for ri, pi in enumerate(inds):
-                                q[ri] = pr[pi]
-                                ss[ri] = dtScoresSorted[pi]
-                        except Exception:
-                            # It seems this try/except is just a silly way to handle corner cases
-                            pass
-                        precision[t, :, k, a, m] = np.array(q)
-                        scores[t, :, k, a, m] = np.array(ss)
+                    inds = np.searchsorted(rc, p.recall_thresholds, side="left")
+                    try:
+                        for ri, pi in enumerate(inds):
+                            q[ri] = pr[pi]
+                            ss[ri] = dtScoresSorted[pi]
+                    except Exception:
+                        # It seems this try/except is just a silly way to handle corner cases
+                        pass
+                    precision[t, :, k, m] = np.array(q)
+                    scores[t, :, k, m] = np.array(ss)
         return DatasetLevelEvaluationResult(
             params=p,
-            counts=(T, R, K, A, M),
+            counts=(T, R, K, M),
             precision=precision,
             recall=recall,
             scores=scores,
