@@ -2,7 +2,7 @@
 
 To handle data, SuperGradients takes use of two Pytorch primitives: `torch.utils.data.Dataset` - which is in charge of generating the samples and their corresponding labels,
 and `torch.utils.data.DataLoader` - that wraps an iterable around the Dataset to enable easy access to the samples. In other words, `torch.utils.data.Dataset` defines how to load a single sample,
-while `torch.utils.data.DataLoader` defines how to load batches of samples. For more information see [PyTorch documentation](https://pytorch.org/docs/stable/data.html).
+while `torch.utils.data.DataLoader` defines how to load batches of samples. For more information, see [PyTorch documentation](https://pytorch.org/docs/stable/data.html).
 
 ## SG Datasets
 
@@ -31,10 +31,10 @@ SuperGradients holds common public `torch.utils.data.Dataset` implementations fo
 
 All of which can be imported from the `super_gradients.training.datasets` module. Note that some of the above implementations require following a few simple setup steps, which are all documented [here](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md)
 
-Creating a `torch.utils.data.DataLoader` from a dataset can be tricky, especially when defining some parameters on the fly. For example, in distributed training (i.e DDP)
+Creating a `torch.utils.data.DataLoader` from a dataset can be tricky, especially when defining some parameters on the fly. For example, in distributed training (i.e., DDP)
 the  `torch.utils.data.DataLoader` must be given a proper `Sampler` such that the dataset indices will be divided among the different processes.
 ```
-Warning: Using the wrong sampler when defining a dataloader to be used with DDP, will lead the different processes to iterate over the same data samples giving little to no speedup over single GPU training!
+Warning: Using the wrong sampler when defining a data loader to be used with DDP will lead the different processes to iterate over the same data samples giving little to no speedup over single GPU training!
 ```
 This is where SG's `training.dataloaders.get` comes in handy by taking the burden of instantiating the proper default sampler according to the training settings.
 Once instantiated, any of the above can be passed to the `torch.utils.data.DataLoader` constructor and be used for training, validation, or testing:
@@ -67,7 +67,7 @@ Note that `dataloader_params` will be unpacked in the `torch.utils.data.DataLoad
 
 ## SG DataLoaders
 
-As mentioned above, once instantiated, the `torch.utils.data.DataLoader` objects are the ones forming batches.
+As mentioned above, once instantiated, the `torch.utils.data.DataLoader` objects form batches.
 Therefore- these are the objects being passed to Trainer.train(...):
 
 ```python
@@ -120,15 +120,15 @@ These are simply the `torch.utils.data.DataLoader` configured by the recipe's `d
     pascal_voc_detection_val
 
 All of which can be imported from the `super_gradients.training.dataloaders` module, and 
-Obviously, your training needs won't always align exactly with the same configuration as our recipes.
+Your training needs will sometimes align differently with our recipes.
 Therefore, overriding any underlying `Dataset` constructor parameter and any `DataLoader` parameter is possible through
 the two named arguments: `dataset_params` and `dataloader_params`, which will override the recipe ones (by entry).
 
 
-For example, the code below will instantiate the data loader used for training, in our `imagenet_resnet50` recipe
+For example, the code below will instantiate the data loader used for training in our `imagenet_resnet50` recipe
 (including all data augmentations and any other data-related setting which we defined for training Resnet50 on Imagenet)
 but changing the batch size for our needs.
-We can then, also with a one-liner, instantiate the validation dataloader, and call train() as always:
+We can then, also with a one-liner, instantiate the validation dataloader and call train() as always:
 
 ```python
 from super_gradients.training.dataloaders import imagenet_resnet50_train, imagenet_resnet50_val
@@ -148,9 +148,9 @@ trainer.train(model=model, training_params=train_params, train_loader=train_data
 
 ### SG DataLoaders - Training with Configuration Files
 
-If you are not familiar with training with configuration files, follow [this link](https://github.com/Deci-AI/super-gradients/tree/master/documentation/source).
+If you are still getting familiar with training with configuration files, follow [this link](https://github.com/Deci-AI/super-gradients/tree/master/documentation/source).
 
-Any of the SG predefined data loaders listed earlier can be simply referenced by their names.
+Their names can reference any of the SG-predefined data loaders listed earlier.
 For example, using the imagenet_resnet50_train and imagenet_resnet50_val:
 
 ```yaml
@@ -171,12 +171,12 @@ val_dataset_params:
 val_dataloader_params:
 
 ```
-As their names suggest- the parameters under `train_dataset_params` will be passed to the Dataset, and the parameters under `train_dataloader_params` will be passed to the DataLoader.
-As in the previous sub-section, both `train_dataloader_params` and `train_dataset_params` will override the the corresponding
+As their names suggest- the parameters under `train_dataset_params` will be passed to the Dataset, and the parameters under `train_dataloader_params` will be given to the DataLoader.
+As in the previous sub-section, both `train_dataloader_params` and `train_dataset_params` will override the corresponding
 parameters defined for the predefined data loader ( in our case, imagenet_resnet50 recipe's dataset_params.train_dataset_params, and
 imagenet_renet50 recipe's dataset_params.train_dataloader_params).
 The same logic holds for the validation set as well.
-To demonstrate, lets look what a configuration for training with the same data settings as in the previous code snippet looks like:
+To demonstrate, let's look at what a configuration for training with the same data settings as in the previous code snippet looks like:
 ```yaml
 train_dataloader: imagenet_resnet50_train
 val_dataloader: imagenet_resnet50_val
@@ -195,7 +195,7 @@ dataset_params:
 
 ## Using Custom Datasets in SG
 
-Suppose we have already our own `torch.utils.data.Dataset` class:
+Suppose we already have our own `torch.utils.data.Dataset` class:
 ```python
 import torch
 
@@ -204,7 +204,7 @@ class MyCustomDataset(torch.utils.data.Dataset):
         ...
 ```
 
-For coded training launch, we can simply instantiate it, then use it in the same way as the first code snippet to create
+For coded training launch, we can instantiate it, then use it in the same way as the first code snippet to create
 the data loaders and call train():
 
 
@@ -238,8 +238,7 @@ class MyCustomDataset(torch.utils.data.Dataset):
     def __init__(self, train: bool, image_size: int):
         ...
 ```
-Then, use your newly registered dataset class in your configuration (of course, can be split, use defaults, etc), by specifying
-plugging in in `dataset` entry, inside dataloader_params, while leaving out (or leaving empty) `train_dataloader` and `valid_dataloader`:
+Then, use your newly registered dataset class in your configuration (of course, it can be split, use defaults, etc.) by referencing its name in the `dataset` entry inside dataloader_params while leaving out (or leaving empty) `train_dataloader` and `valid_dataloader`:
 
 
 ```yaml
@@ -260,7 +259,7 @@ dataset_params:
 
 ```
 
-Last, in your ``my_train_from_recipe_script.py`` file, just import the newly registered class (even though the class itself is unused, just to trigger the registry):
+Last, in your ``my_train_from_recipe_script.py`` file, import the newly registered class (even though the class itself is unused, just to trigger the registry):
         
 ```python
 
