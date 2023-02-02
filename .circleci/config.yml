@@ -685,8 +685,9 @@ workflows:
       #      <<: *release_tag_filter
        - docker/publish:  # works on release
           executor:
-            image: cimg/base:stable-20.04
-            name: docker/docker
+              image: cimg/base
+              tag: stable-20.04
+              name: docker/docker
           image: deciai/super-gradients
           remote-docker-version: << pipeline.parameters.remote_docker_version >>
           update-description: true
@@ -701,8 +702,9 @@ workflows:
           # <<: *release_tag_filter
        - docker/publish: # works on release
           executor:
-            image: cimg/base:stable-20.04
-            name: docker/docker
+              image: cimg/base
+              tag: stable-20.04
+              name: docker/docker
           image: deciai/super-gradients
           remote-docker-version: << pipeline.parameters.remote_docker_version >>
           update-description: true
