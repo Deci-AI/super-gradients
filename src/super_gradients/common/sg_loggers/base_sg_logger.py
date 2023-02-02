@@ -9,7 +9,7 @@ import numpy as np
 import psutil
 import torch
 from PIL import Image
-from super_gradients.common import ADNNModelRepositoryDataInterfaces
+from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.code_save_decorator import saved_codes
 from super_gradients.common.environment.ddp_utils import multi_process_safe
@@ -21,6 +21,10 @@ from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
 
 logger = get_logger(__name__)
+
+EXPERIMENT_LOGS_PREFIX = "experiment_logs"
+LOGGER_LOGS_PREFIX = "logs"
+CONSOLE_LOGS_PREFIX = "console"
 
 
 class BaseSGLogger(AbstractSGLogger):
@@ -120,16 +124,22 @@ class BaseSGLogger(AbstractSGLogger):
     @multi_process_safe
     def _init_log_file(self):
         time_string = time.strftime("%b%d_%H_%M_%S", time.localtime())
-        # There are two log files, since the regular log_file_path used for `manual` logging of configs/other info
-        self.log_file_path = f"{self._local_dir}/log_{time_string}.txt"
-        self.log_full_file_path = f"{self._local_dir}/sg_logs_{time_string}.txt"
-        self.console_sink_path = f"{self._local_dir}/console_{time_string}.txt"
-        AutoLoggerConfig.setup_logging(filename=self.log_full_file_path, copy_already_logged_messages=True)
+
+        # Where the experiment related info will be saved (config and training/validation results per epoch_
+        self.experiment_log_path = f"{self._local_dir}/{EXPERIMENT_LOGS_PREFIX}_{time_string}.txt"
+
+        # Where the logger.log will be saved
+        self.logs_path = f"{self._local_dir}/{LOGGER_LOGS_PREFIX}_{time_string}.txt"
+
+        # Where the console prints/logs will be saved
+        self.console_sink_path = f"{self._local_dir}/{CONSOLE_LOGS_PREFIX}_{time_string}.txt"
+
+        AutoLoggerConfig.setup_logging(filename=self.logs_path, copy_already_logged_messages=True)
         ConsoleSink.set_location(filename=self.console_sink_path)
 
     @multi_process_safe
     def _write_to_log_file(self, lines: list):
-        with open(self.log_file_path, "a" if os.path.exists(self.log_file_path) else "w") as log_file:
+        with open(self.experiment_log_path, "a" if os.path.exists(self.experiment_log_path) else "w") as log_file:
             for line in lines:
                 log_file.write(line + "\n")
 
@@ -159,7 +169,7 @@ class BaseSGLogger(AbstractSGLogger):
         self.tensorboard_writer.flush()
 
         # WRITE THE EPOCH RESULTS TO LOG FILE
-        log_line = f"\nEpoch ({global_step}/{self.max_global_steps})  - "
+        log_line = f"\nEpoch {global_step} ({global_step+1}/{self.max_global_steps})  - "
         for tag, value in tag_scalar_dict.items():
             if isinstance(value, torch.Tensor):
                 value = value.item()
@@ -239,22 +249,29 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def upload(self):
+        """Upload the local tensorboard and log files to remote system."""
+        self.flush()
+
         if self.save_tensorboard_remote:
             self.model_checkpoints_data_interface.save_remote_tensorboard_event_files(self.experiment_name, self._local_dir)
 
         if self.save_logs_remote:
-            log_file_name = self.log_file_path.split("/")[-1]
+            log_file_name = self.experiment_log_path.split("/")[-1]
             self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, log_file_name)
 
     @multi_process_safe
     def flush(self):
         self.tensorboard_writer.flush()
+        ConsoleSink.flush()
 
     @multi_process_safe
     def close(self):
+        self.upload()
+
         if self.system_monitor is not None:
             self.system_monitor.close()
             logger.info("[CLEANUP] - Successfully stopped system monitoring process")
+
         self.tensorboard_writer.close()
         if self.tensor_board_process is not None:
             try:

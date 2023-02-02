@@ -1,10 +1,11 @@
+from super_gradients.common.object_names import Models
 from super_gradients.training import Trainer, models
 from super_gradients.training.metrics.classification_metrics import Accuracy, Top5
 from super_gradients.training.dataloaders.dataloaders import cifar10_train, cifar10_val
 
 
 trainer = Trainer(experiment_name="demo-clearml-logger")
-model = models.get("resnet18", num_classes=10)
+model = models.get(Models.RESNET18, num_classes=10)
 
 training_params = {
     "max_epochs": 20,

@@ -8,7 +8,7 @@
 #   2. Run the command:
 #       STDC1-Seg50: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50
 #       STDC2-Seg50: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50 architecture=stdc2_seg
-# Note: add "checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path>" to use pretrained backbone
+# Note: add "checkpoint_params.checkpoint_path=<stdc1-backbone-pretrained-path>" to use pretrained backbone
 #
 #
 #

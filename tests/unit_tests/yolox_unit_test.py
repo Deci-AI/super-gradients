@@ -40,5 +40,5 @@ class TestYOLOX(unittest.TestCase):
                 self.assertIsNotNone(output_augment)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

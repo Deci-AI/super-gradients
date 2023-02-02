@@ -8,7 +8,7 @@ from hydra import initialize_config_dir, compose
 from hydra.core.global_hydra import GlobalHydra
 
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNet
-from super_gradients.training.utils.hydra_utils import normalize_path
+from super_gradients.common.environment.path_utils import normalize_path
 
 
 class PPYoloETests(unittest.TestCase):

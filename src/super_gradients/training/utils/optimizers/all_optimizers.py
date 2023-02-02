@@ -6,6 +6,7 @@ from super_gradients.training.utils.optimizers.lamb import Lamb
 OPTIMIZERS = {
     Optimizers.SGD: optim.SGD,
     Optimizers.ADAM: optim.Adam,
+    Optimizers.ADAMW: optim.AdamW,
     Optimizers.RMS_PROP: optim.RMSprop,
     Optimizers.RMS_PROP_TF: RMSpropTF,
     Optimizers.LAMB: Lamb,

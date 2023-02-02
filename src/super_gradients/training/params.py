@@ -3,6 +3,7 @@ from copy import deepcopy
 
 DEFAULT_TRAINING_PARAMS = {
     "lr_warmup_epochs": 0,
+    "lr_warmup_steps": 0,
     "lr_cooldown_epochs": 0,
     "warmup_initial_lr": None,
     "cosine_final_lr_ratio": 0.01,
@@ -68,6 +69,11 @@ DEFAULT_TRAINING_PARAMS = {
     "ckpt_name": "ckpt_latest.pth",
     "resume_strict_load": False,
     "sync_bn": False,
+    "kill_ddp_pgroup_on_end": True,  # Whether to kill the DDP process group in the end of training.
+    "max_train_batches": None,  # For debug- when not None- will break out of inner train loop
+    # (i.e iterating over train_loader) when reaching this number of batches.
+    "max_valid_batches": None,  # For debug- when not None- will break out of inner valid loop
+    # (i.e iterating over valid_loader) when reaching this number of batches.
 }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}

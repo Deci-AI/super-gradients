@@ -21,7 +21,10 @@ from super_gradients.training.transforms.transforms import (
     DetectionRandomAffine,
     DetectionMixup,
     DetectionHSV,
+    DetectionRGB2BGR,
+    DetectionRandomRotate90,
     DetectionHorizontalFlip,
+    DetectionRescale,
     DetectionPaddedRescale,
     DetectionTargetsFormatTransform,
     Standardize,
@@ -63,6 +66,16 @@ from torchvision.transforms import (
     RandomAutocontrast,
     RandomEqualize,
 )
+from super_gradients.training.transforms.keypoint_transforms import (
+    KeypointsRandomAffineTransform,
+    KeypointsImageNormalize,
+    KeypointsImageToTensor,
+    KeypointTransform,
+    KeypointsPadIfNeeded,
+    KeypointsLongestMaxSize,
+    KeypointsRandomVerticalFlip,
+    KeypointsRandomHorizontalFlip,
+)
 
 TRANSFORMS = {
     Transforms.SegRandomFlip: SegRandomFlip,
@@ -79,7 +92,10 @@ TRANSFORMS = {
     Transforms.DetectionRandomAffine: DetectionRandomAffine,
     Transforms.DetectionMixup: DetectionMixup,
     Transforms.DetectionHSV: DetectionHSV,
+    Transforms.DetectionRGB2BGR: DetectionRGB2BGR,
+    Transforms.DetectionRandomRotate90: DetectionRandomRotate90,
     Transforms.DetectionHorizontalFlip: DetectionHorizontalFlip,
+    Transforms.DetectionRescale: DetectionRescale,
     Transforms.DetectionPaddedRescale: DetectionPaddedRescale,
     Transforms.DetectionTargetsFormatTransform: DetectionTargetsFormatTransform,
     Transforms.RandomResizedCropAndInterpolation: RandomResizedCropAndInterpolation,
@@ -123,6 +139,15 @@ TRANSFORMS = {
     Transforms.RandomAutocontrast: RandomAutocontrast,
     Transforms.RandomEqualize: RandomEqualize,
     Transforms.Standardize: Standardize,
+    # Keypoints
+    Transforms.KeypointsRandomAffineTransform: KeypointsRandomAffineTransform,
+    Transforms.KeypointsImageNormalize: KeypointsImageNormalize,
+    Transforms.KeypointsImageToTensor: KeypointsImageToTensor,
+    Transforms.KeypointTransform: KeypointTransform,
+    Transforms.KeypointsPadIfNeeded: KeypointsPadIfNeeded,
+    Transforms.KeypointsLongestMaxSize: KeypointsLongestMaxSize,
+    Transforms.KeypointsRandomVerticalFlip: KeypointsRandomVerticalFlip,
+    Transforms.KeypointsRandomHorizontalFlip: KeypointsRandomHorizontalFlip,
 }
 logger = get_logger(__name__)
 

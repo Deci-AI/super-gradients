@@ -4,7 +4,7 @@ from typing import Callable
 
 
 class _ExplicitParamsValidator:
-    def __init__(self, function: Callable, validation_type: str = 'None'):
+    def __init__(self, function: Callable, validation_type: str = "None"):
         """
         ExplicitParamsValidator
             :param function:
@@ -23,7 +23,7 @@ class _ExplicitParamsValidator:
             :param kwargs:
             :return:
         """
-        if not hasattr(self, 'func'):
+        if not hasattr(self, "func"):
             self.func = args[0]
             return self
 
@@ -39,12 +39,12 @@ class _ExplicitParamsValidator:
         """
         var_names = inspect.getfullargspec(self.func)[0]
 
-        explicit_args_var_names = list(var_names[:len(args)])
+        explicit_args_var_names = list(var_names[: len(args)])
 
         # FOR CLASS METHOD REMOVE THE EXPLICIT DEMAND FOR self PARAMETER
         for params_list in [explicit_args_var_names, list(kwargs.keys())]:
-            if 'self' in params_list:
-                params_list.remove('self')
+            if "self" in params_list:
+                params_list.remove("self")
 
         # FIRST OF ALL HANDLE ALL OF THE KEYWORD ARGUMENTS
         for kwarg, value in kwargs.items():
@@ -63,19 +63,20 @@ class _ExplicitParamsValidator:
         :param value:
         :return:
         """
-        if self.validation_type == 'NoneOrEmpty':
+        if self.validation_type == "NoneOrEmpty":
             if not value:
-                raise ValueError('Input param: ' + str(input_param) + ' is Empty')
+                raise ValueError("Input param: " + str(input_param) + " is Empty")
 
         if value is None:
-            raise ValueError('Input param: ' + str(input_param) + ' is None')
+            raise ValueError("Input param: " + str(input_param) + " is None")
 
 
 # WRAPS THE RETRY DECORATOR CLASS TO ENABLE CALLING WITHOUT PARAMS
-def explicit_params_validation(function: Callable = None, validation_type: str = 'None'):
+def explicit_params_validation(function: Callable = None, validation_type: str = "None"):
     if function is not None:
         return _ExplicitParamsValidator(function=function)
     else:
+
         def wrapper(function):
             return _ExplicitParamsValidator(function=function, validation_type=validation_type)
 

@@ -16,7 +16,7 @@ ema: True
 ema_params:
   decay: 0.9999
   beta: 15
-  exp_activation: True
+  decay_type: exp
 
 train_metrics_list:
   - PixelAccuracy:

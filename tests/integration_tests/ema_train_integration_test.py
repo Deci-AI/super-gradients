@@ -1,3 +1,4 @@
+from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
@@ -22,17 +23,27 @@ class CallWrapper:
 class EMAIntegrationTest(unittest.TestCase):
     def _init_model(self) -> None:
         self.trainer = Trainer("resnet18_cifar_ema_test")
-        self.model = models.get("resnet18_cifar", arch_params={"num_classes": 5})
+        self.model = models.get(Models.RESNET18_CIFAR, arch_params={"num_classes": 5})
 
     @classmethod
     def tearDownClass(cls) -> None:
         pass
 
-    def test_train(self):
+    def test_train_exp_decay(self):
         self._init_model()
-        self._train({})
+        self._train({"decay_type": "exp", "beta": 15, "decay": 0.9999})
+
+    def test_train_threshold_decay(self):
         self._init_model()
-        self._train({"exp_activation": False})
+        self._train({"decay_type": "threshold", "decay": 0.9999})
+
+    def test_train_constant_decay(self):
+        self._init_model()
+        self._train({"decay_type": "constant", "decay": 0.9999})
+
+    def test_train_with_old_ema_params(self):
+        self._init_model()
+        self._train({"decay": 0.9999, "exp_activation": True, "beta": 10})
 
     def _train(self, ema_params):
         training_params = {
