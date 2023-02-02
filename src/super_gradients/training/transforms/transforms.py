@@ -338,7 +338,6 @@ class SegPadToDivisible(SegmentationTransform):
         padded_w = int(math.ceil(w / self.divisible_value) * self.divisible_value)
         padded_h = int(math.ceil(h / self.divisible_value) * self.divisible_value)
 
-        # pad images from center symmetrically
         if w != padded_w or h != padded_h:
             padh = padded_h - h
             padw = padded_w - w
