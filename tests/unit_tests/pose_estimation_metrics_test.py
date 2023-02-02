@@ -40,6 +40,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         results = evaluator.evaluate_from_coco(gt, coco_dt)
         results.print()
         pprint(results.all_metrics())
+
         E = COCOeval(gt, coco_dt, iouType="keypoints")
         E.evaluate()  # run per image evaluation
         E.accumulate()  # accumulate per image results

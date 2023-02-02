@@ -77,7 +77,7 @@ class ImageLevelEvaluationResult:
 @dataclasses.dataclass
 class DatasetLevelEvaluationResult:
     params: EvaluationParams
-    counts: Tuple[int, int, int, int]
+    counts: Tuple[int, int, int]
     precision: np.ndarray
     recall: np.ndarray
     scores: np.ndarray
@@ -121,10 +121,6 @@ class DatasetLevelEvaluationResult:
     def _summarize(self, ap=1, iouThr=None):
         p = self.params
 
-        aind = [0]
-        # mind = [i for i, mDet in enumerate(p.maxDets) if mDet == maxDets]
-        mind = [0]
-
         if ap == 1:
             # dimension of precision: [TxRxKxAxM]
             s = self.precision
@@ -135,8 +131,6 @@ class DatasetLevelEvaluationResult:
         if iouThr is not None:
             t = np.where(iouThr == p.iou_thresholds)[0]
             s = s[t]
-
-        s = s[..., aind, mind]
 
         if len(s[s > -1]) == 0:
             mean_s = -1
@@ -422,89 +416,84 @@ class COCOeval:
 
         p = self.params
 
-        maxDets = [p.maxDets]
-
         T = len(p.iou_thresholds)
         R = len(p.recall_thresholds)
         K = len(catIds)
 
-        M = len(maxDets)
-        precision = -np.ones((T, R, K, M))  # -1 for the precision of absent categories
-        recall = -np.ones((T, K, M))
-        scores = -np.ones((T, R, K, M))
+        precision = -np.ones((T, R, K))  # -1 for the precision of absent categories
+        recall = -np.ones((T, K))
+        scores = -np.ones((T, R, K))
 
         # create dictionary for future indexing
         setK = set(catIds)
-        setM = set(maxDets)
         setI = set(imgIds)
         # get inds to evaluate
         k_list = [n for n, k in enumerate(catIds) if k in setK]
-        m_list = [m for n, m in enumerate(maxDets) if m in setM]
         i_list = [n for n, i in enumerate(imgIds) if i in setI]
         I0 = len(imgIds)
 
         # retrieve E at each category, area range, and max number of detections
         for k, k0 in enumerate(k_list):
             Nk = k0 * I0
-            for m, maxDet in enumerate(m_list):
-                E = [evalImgs[Nk + i] for i in i_list]
-                E: List[ImageLevelEvaluationResult] = [e for e in E if e is not None]
-                if len(E) == 0:
-                    continue
-                dtScores = np.concatenate([e.dtScores[0:maxDet] for e in E])
+            E = [evalImgs[Nk + i] for i in i_list]
+            E: List[ImageLevelEvaluationResult] = [e for e in E if e is not None]
+            if len(E) == 0:
+                continue
+            dtScores = np.concatenate([e.dtScores[0 : p.maxDets] for e in E])
 
-                # different sorting method generates slightly different results.
-                # mergesort is used to be consistent as Matlab implementation.
-                inds = np.argsort(-dtScores, kind="mergesort")
-                dtScoresSorted = dtScores[inds]
+            # different sorting method generates slightly different results.
+            # mergesort is used to be consistent as Matlab implementation.
+            inds = np.argsort(-dtScores, kind="mergesort")
+            dtScoresSorted = dtScores[inds]
 
-                dtm = np.concatenate([e.dtMatches[:, 0:maxDet] for e in E], axis=1)[:, inds]
-                dtIg = np.concatenate([e.dtIgnore[:, 0:maxDet] for e in E], axis=1)[:, inds]
-                gtIg = np.concatenate([e.gtIgnore for e in E])
-                npig = np.count_nonzero(gtIg == 0)
-                if npig == 0:
-                    continue
-                tps = np.logical_and(dtm, np.logical_not(dtIg))
-                fps = np.logical_and(np.logical_not(dtm), np.logical_not(dtIg))
+            dtm = np.concatenate([e.dtMatches[:, 0 : p.maxDets] for e in E], axis=1)[:, inds]
+            dtIg = np.concatenate([e.dtIgnore[:, 0 : p.maxDets] for e in E], axis=1)[:, inds]
+            gtIg = np.concatenate([e.gtIgnore for e in E])
+            npig = np.count_nonzero(gtIg == 0)
+            if npig == 0:
+                continue
+            tps = np.logical_and(dtm, np.logical_not(dtIg))
+            fps = np.logical_and(np.logical_not(dtm), np.logical_not(dtIg))
 
-                tp_sum = np.cumsum(tps, axis=1).astype(dtype=np.float)
-                fp_sum = np.cumsum(fps, axis=1).astype(dtype=np.float)
-                for t, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
-                    tp = np.array(tp)
-                    fp = np.array(fp)
-                    nd = len(tp)
-                    rc = tp / npig
-                    pr = tp / (fp + tp + np.spacing(1))
-                    q = np.zeros((R,))
-                    ss = np.zeros((R,))
+            tp_sum = np.cumsum(tps, axis=1).astype(dtype=np.float)
+            fp_sum = np.cumsum(fps, axis=1).astype(dtype=np.float)
+            for t, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
+                tp = np.array(tp)
+                fp = np.array(fp)
+                nd = len(tp)
+                rc = tp / npig
+                pr = tp / (fp + tp + np.spacing(1))
+                q = np.zeros((R,))
+                ss = np.zeros((R,))
 
-                    if nd:
-                        recall[t, k, m] = rc[-1]
-                    else:
-                        recall[t, k, m] = 0
+                if nd:
+                    recall[t, k] = rc[-1]
+                else:
+                    recall[t, k] = 0
 
-                    # numpy is slow without cython optimization for accessing elements
-                    # use python array gets significant speed improvement
-                    pr = pr.tolist()
-                    q = q.tolist()
+                # numpy is slow without cython optimization for accessing elements
+                # use python array gets significant speed improvement
+                pr = pr.tolist()
+                q = q.tolist()
 
-                    for i in range(nd - 1, 0, -1):
-                        if pr[i] > pr[i - 1]:
-                            pr[i - 1] = pr[i]
+                for i in range(nd - 1, 0, -1):
+                    if pr[i] > pr[i - 1]:
+                        pr[i - 1] = pr[i]
 
-                    inds = np.searchsorted(rc, p.recall_thresholds, side="left")
-                    try:
-                        for ri, pi in enumerate(inds):
-                            q[ri] = pr[pi]
-                            ss[ri] = dtScoresSorted[pi]
-                    except Exception:
-                        # It seems this try/except is just a silly way to handle corner cases
-                        pass
-                    precision[t, :, k, m] = np.array(q)
-                    scores[t, :, k, m] = np.array(ss)
+                inds = np.searchsorted(rc, p.recall_thresholds, side="left")
+                try:
+                    for ri, pi in enumerate(inds):
+                        q[ri] = pr[pi]
+                        ss[ri] = dtScoresSorted[pi]
+                except Exception:
+                    # It seems this try/except is just a silly way to handle corner cases
+                    pass
+                precision[t, :, k] = np.array(q)
+                scores[t, :, k] = np.array(ss)
+
         return DatasetLevelEvaluationResult(
             params=p,
-            counts=(T, R, K, M),
+            counts=(T, R, K),
             precision=precision,
             recall=recall,
             scores=scores,
