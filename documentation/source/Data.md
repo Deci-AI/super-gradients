@@ -67,7 +67,7 @@ Note that `dataloader_params` will be unpacked in the `torch.utils.data.DataLoad
 
 ## SG DataLoaders
 
-As mentioned above- once instantiated, the `torch.utils.data.DataLoader` objects are the ones forming batches.
+As mentioned above, once instantiated, the `torch.utils.data.DataLoader` objects are the ones forming batches.
 Therefore- these are the objects being passed to Trainer.train(...):
 
 ```python
@@ -134,8 +134,8 @@ We can then, also with a one-liner, instantiate the validation dataloader, and c
 from super_gradients.training.dataloaders import imagenet_resnet50_train, imagenet_resnet50_val
 from super_gradients.training import Trainer
 
-train_dataloader = imagenet_resnet50_train(dataloader_params={"batch_size": 4})
-valid_dataloader = imagenet_resnet50_val()
+train_dataloader = imagenet_resnet50_train(dataloader_params={"batch_size": 4, "shuffle": True}, dataset_params={"root": "/my_data_dir/Imagenet/train"})
+valid_dataloader = imagenet_resnet50_val(dataloader_params={"batch_size": 16}, dataset_params={"root": "/my_data_dir/Imagenet/val"})
 
 ...
 trainer = Trainer("my_imagenet_training_experiment")
@@ -146,11 +146,11 @@ trainer.train(model=model, training_params=train_params, train_loader=train_data
    
    ```
 
-### SG DataLoaders- Training with Configuration Files
+### SG DataLoaders - Training with Configuration Files
 
-If you are not familiar with training with configuration files, follow see this [link](https://github.com/Deci-AI/super-gradients/tree/master/documentation/source).
+If you are not familiar with training with configuration files, follow [this link](https://github.com/Deci-AI/super-gradients/tree/master/documentation/source).
 
-Any of the SG predefined data loaders listed earlier can be simply plugged in by their names.
+Any of the SG predefined data loaders listed earlier can be simply referenced by their names.
 For example, using the imagenet_resnet50_train and imagenet_resnet50_val:
 
 ```yaml
@@ -171,27 +171,27 @@ val_dataset_params:
 val_dataloader_params:
 
 ```
-As their names suggest- these entries `train_dataset_params` will be passed to the underlying `torch.utils.data.Dataset`
-class constructor and `train_dataloader_params` will be passed to the `torch.utils.data.DataLoader` constructor.
+As their names suggest- the parameters under `train_dataset_params` will be passed to the Dataset, and the parameters under `train_dataloader_params` will be passed to the DataLoader.
 As in the previous sub-section, both `train_dataloader_params` and `train_dataset_params` will override the the corresponding
 parameters defined for the predefined data loader ( in our case, imagenet_resnet50 recipe's dataset_params.train_dataset_params, and
 imagenet_renet50 recipe's dataset_params.train_dataloader_params).
-This occurs equivalently for the validation set as well.
-To demonstrate, to train with the same data settings as in the previous code snippet:
+The same logic holds for the validation set as well.
+To demonstrate, lets look what a configuration for training with the same data settings as in the previous code snippet looks like:
 ```yaml
 train_dataloader: imagenet_resnet50_train
 val_dataloader: imagenet_resnet50_val
 dataset_params:
     train_dataset_params:
+      root: /my_data_dir/Imagenet/train
     train_dataloader_params:
-      batch_size: 2
+      batch_size: 4
+      shuffle: True
     val_dataset_params:
+      root: /my_data_dir/Imagenet/val
     val_dataloader_params:
+      batch_size: 16
 
 ```
-
-Such config will result in training with `imagenet_resnet50` the exact same train data loader, but modifying the batch size to be 2, and using the same 
-validation data loader as the original recipe.
 
 ## Using Custom Datasets in SG
 
