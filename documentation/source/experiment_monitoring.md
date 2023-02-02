@@ -6,7 +6,7 @@ You can also inherit from our base class to integrate any monitoring tool with m
 ### Tensorboard
 **requirements**: None
 
-Tensorboard is natively integrated into the training and validation steps. You can find how to use it in [this section](TODO:add_link_to_our_tn_description).
+Tensorboard is natively integrated into the training and validation steps. You can find how to use it in [this section](logs.md).
 
 
 ### Weights & Biases
@@ -136,7 +136,7 @@ trainer.train(model=model, training_params=training_params, ...)
 ```
 
 **Notes**:
- - `@multi_process_safe` prevents multiple training nodes to do the same action. Check out [DDP documentation](TODO) for more details
+ - `@multi_process_safe` prevents multiple training nodes to do the same action. Check out [DDP documentation](device.md) for more details
  - `@register_logger()` registers your class into our factory, allowing it to be instantiated from a string.
  - `sg_logger_params` only requires `project_name`, the rest is provided by the Trainer.
 
@@ -177,7 +177,7 @@ We encourage you to check out the API documentation of `super_gradients.common.s
 
 
 ## Chose your monitoring tool in the recipes
-You can update a [recipe](configuration_files.md) to use the monitoring tool you want by setting the sg_logger and sg_logger_params in (recipes/training_hyperparams)[TODO].
+You can update a [recipe](configuration_files.md) to use the monitoring tool you want by setting the sg_logger and sg_logger_params in [recipes/training_hyperparams](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/training_hyperparams).
 
 Here is an example for WandB;
 ```yaml
