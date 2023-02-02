@@ -30,20 +30,35 @@ SuperGradients holds common public `torch.utils.data.Dataset` implementations fo
         COCOKeypointsDataset
 
 All of which can be imported from the `super_gradients.training.datasets` module. Note that some of the above implementations require following a few simple setup steps, which are all documented [here](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md)
-Once instantiated, any of the above can be passed to the `torch.utils.data.DataLoader` constructor and be used for training, validation, or testing.
 
 Creating a `torch.utils.data.DataLoader` from a dataset can be tricky, especially when defining some parameters on the fly. For example, in distributed training (i.e DDP)
 the  `torch.utils.data.DataLoader` must be given a proper `Sampler` such that the dataset indices will be divided among the different processes. Not acknowledging this and using the default
 `torch.utils.data.SequentialSampler` will lead the other processes to iterate over the same data samples giving little to no speedup over single GPU training! User beware!
 This is where SG's `training.dataloaders.get` comes in handy by taking the burden of instantiating the proper default sampler according to the training settings.
+Once instantiated, any of the above can be passed to the `torch.utils.data.DataLoader` constructor and be used for training, validation, or testing:
 
 ```python
 
 from my_dataset import MyDataset
 from super_gradients.training import dataloaders
+import torchvision.transforms as T
+from super_gradients.training import Trainer
+from super_gradients.training.metrics import Accuracy
 
-dataset = MyDataset(transforms=T.ToTensor())
-dataloader = dataloaders.get(dataset=dataset, dataloader_params={"batch_size": 4})
+trainer = Trainer("my_experiment")
+train_dataset = MyDataset(split="train", transforms=T.ToTensor())
+valid_dataset = MyDataset(split="validation", transforms=T.ToTensor())
+test_dataset = MyDataset(split="test", transforms=T.ToTensor())
+
+train_dataloader = dataloaders.get(dataset=train_dataset, dataloader_params={"batch_size": 4})
+valid_dataloader = dataloaders.get(dataset=valid_dataset, dataloader_params={"batch_size": 16})
+test_dataloader = dataloaders.get(dataset=test_dataset, dataloader_params={"batch_size": 16})
+
+model = ...
+train_params = {...}
+trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
+
+trainer.test(model=trainer.net, test_loader=test_dataloader, test_metrics_list=[Accuracy()])
 ```
 
 Note that `dataloader_params` will be unpacked in the `torch.utils.data.DataLoader` constructor after setting a proper sampler if one is not explicitly set.
