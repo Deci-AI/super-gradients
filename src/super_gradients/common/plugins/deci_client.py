@@ -52,7 +52,11 @@ class DeciClient:
         self.super_gradients_version = super_gradients.__version__
 
     def _get_file(self, model_name: str, file_name: str) -> Optional[str]:
-        """Get a file from the DeciPlatform if it exists, otherwise returns None"""
+        """Get a file from the DeciPlatform if it exists, otherwise returns None
+        :param model_name:  Name of the model to download from, as saved in the platform.
+        :param file_name:   Name of the file to download
+        :return:            Path were the downloaded file was saved to. None if not found.
+        """
         try:
             response = self.lab_client.get_autonac_model_file_link(
                 model_name=model_name, file_name=file_name, super_gradients_version=super_gradients.__version__
