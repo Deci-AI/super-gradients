@@ -693,7 +693,7 @@ workflows:
           use-buildkit: true
           use-remote-docker: true
           use-docker-credentials-store: true
-          dockerfiles: ./scripts/Dockerfile
+          path: ./scripts/Dockerfile
           tag: latest,3.0.7
           extra_build_args: '--build-arg VERSION=3.0.7' #building from scratch as it faster and cheaper than download and retag
           # requires:
@@ -709,7 +709,7 @@ workflows:
           use-buildkit: true
           use-remote-docker: true
           use-docker-credentials-store: true
-          dockerfiles: ./scripts/Dockerfile
+          path: ./scripts/Dockerfile
           tag: 3.0.7-runtime
           extra_build_args: '--build-arg VERSION=3.0.7 --build-arg DOCKER_IMAGE_TAG=11.3.1-runtime-ubuntu20.04'
           # requires:
