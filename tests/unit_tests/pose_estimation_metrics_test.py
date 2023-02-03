@@ -41,18 +41,20 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         r = evaluator2.evaluate_from_coco(gt, coco_dt)
         print("SG New")
         pprint(r.all_metrics())
+        pprint(r.precision)
 
         evaluator = PatchedCOCOeval(EvaluationParams.get_predefined_coco_params())
         evalImgs, imgIds, catIds = evaluator.evaluate_from_coco(gt, coco_dt)
 
         results_coco = evaluator.accumulate_with_coco(evalImgs, imgIds, catIds)
-        results_sg = evaluator.accumulate_with_sg(evalImgs, imgIds, catIds)
-
         print("COCO")
         pprint(results_coco.all_metrics())
+        pprint(results_coco.precision)
 
+        results_sg = evaluator.accumulate_with_sg(evalImgs, imgIds, catIds)
         print("SG")
         pprint(results_sg.all_metrics())
+        pprint(results_sg.precision)
 
         E = COCOeval(gt, coco_dt, iouType="keypoints")
         E.evaluate()  # run per image evaluation
