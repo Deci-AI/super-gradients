@@ -6,7 +6,11 @@ import dataclasses
 
 from collections import defaultdict
 from typing import Union, List, Any, Tuple, Mapping
+
+import torch
 from pycocotools.coco import COCO
+
+from super_gradients.training.utils.detection_utils import compute_detection_metrics_per_cls
 
 
 def compute_visible_bbox_xywh(joints: np.ndarray, visibility_mask: np.ndarray) -> np.ndarray:
@@ -69,9 +73,12 @@ class ImageLevelEvaluationResult:
     category_id: int
     dtMatches: Any
     gtMatches: Any
+
     dtScores: List
-    gtIgnore: Any
     dtIgnore: Any
+
+    gtIgnore: Any
+    gtIsCrowd: np.ndarray
 
 
 @dataclasses.dataclass
@@ -80,7 +87,6 @@ class DatasetLevelEvaluationResult:
     counts: Tuple[int, int, int]
     precision: np.ndarray
     recall: np.ndarray
-    scores: np.ndarray
 
     @property
     def ap_metric(self):
@@ -122,10 +128,8 @@ class DatasetLevelEvaluationResult:
         p = self.params
 
         if ap == 1:
-            # dimension of precision: [TxRxKxAxM]
             s = self.precision
         else:
-            # dimension of recall: [TxKxAxM]
             s = self.recall
 
         if iouThr is not None:
@@ -306,9 +310,9 @@ class COCOeval:
         ious = {(imgId, catId): self.computeOksV2(_gts[imgId, catId], _dts[imgId, catId]) for imgId in imgIds for catId in catIds}
 
         evalImgs = [self.evaluateImg(imgId, catId, self.params.maxDets, catIds, ious, _gts, _dts) for catId in catIds for imgId in imgIds]
-        result = self.accumulate(evalImgs, imgIds, catIds)
+        # result = self.accumulate_with_coco(evalImgs, imgIds, catIds)
 
-        return result
+        return evalImgs, imgIds, catIds
 
     def computeOksV2(self, groundtruths, predictions):
 
@@ -357,7 +361,7 @@ class COCOeval:
         gt = [gt[i] for i in gtind]
         dtind = np.argsort([-d["score"] for d in dt], kind="mergesort")
         dt = [dt[i] for i in dtind[0:maxDet]]
-        iscrowd = [int(o["iscrowd"]) for o in gt]
+        iscrowd = np.array([bool(o["iscrowd"]) for o in gt])
         # load computed ious
         ious = ious[imgId, catId][:, gtind] if len(ious[imgId, catId]) > 0 else ious[imgId, catId]
 
@@ -402,17 +406,16 @@ class COCOeval:
             gtMatches=gtm,
             dtScores=[d["score"] for d in dt],
             gtIgnore=gtIg,
+            gtIsCrowd=iscrowd,
             dtIgnore=dtIg,
         )
 
-    def accumulate(self, evalImgs, imgIds, catIds):
+    def accumulate_with_coco(self, evalImgs, imgIds, catIds):
         """
         Accumulate per image evaluation results and store the result in self.eval
         :param p: input params for evaluation
         :return: None
         """
-        # print("Accumulating evaluation results...")
-        # tic = time.time()
 
         p = self.params
 
@@ -422,7 +425,6 @@ class COCOeval:
 
         precision = -np.ones((T, R, K))  # -1 for the precision of absent categories
         recall = -np.ones((T, K))
-        scores = -np.ones((T, R, K))
 
         # create dictionary for future indexing
         setK = set(catIds)
@@ -432,7 +434,7 @@ class COCOeval:
         i_list = [n for n, i in enumerate(imgIds) if i in setI]
         I0 = len(imgIds)
 
-        # retrieve E at each category, area range, and max number of detections
+        # retrieve E at each category
         for k, k0 in enumerate(k_list):
             Nk = k0 * I0
             E = [evalImgs[Nk + i] for i in i_list]
@@ -444,7 +446,6 @@ class COCOeval:
             # different sorting method generates slightly different results.
             # mergesort is used to be consistent as Matlab implementation.
             inds = np.argsort(-dtScores, kind="mergesort")
-            dtScoresSorted = dtScores[inds]
 
             dtm = np.concatenate([e.dtMatches[:, 0 : p.maxDets] for e in E], axis=1)[:, inds]
             dtIg = np.concatenate([e.dtIgnore[:, 0 : p.maxDets] for e in E], axis=1)[:, inds]
@@ -464,7 +465,6 @@ class COCOeval:
                 rc = tp / npig
                 pr = tp / (fp + tp + np.spacing(1))
                 q = np.zeros((R,))
-                ss = np.zeros((R,))
 
                 if nd:
                     recall[t, k] = rc[-1]
@@ -484,17 +484,77 @@ class COCOeval:
                 try:
                     for ri, pi in enumerate(inds):
                         q[ri] = pr[pi]
-                        ss[ri] = dtScoresSorted[pi]
                 except Exception:
                     # It seems this try/except is just a silly way to handle corner cases
                     pass
                 precision[t, :, k] = np.array(q)
-                scores[t, :, k] = np.array(ss)
 
         return DatasetLevelEvaluationResult(
             params=p,
             counts=(T, R, K),
             precision=precision,
             recall=recall,
-            scores=scores,
+        )
+
+    def accumulate_with_sg(self, evalImgs, imgIds, catIds):
+        """
+        Accumulate per image evaluation results and store the result in self.eval
+        :param p: input params for evaluation
+        :return: None
+        """
+
+        p = self.params
+
+        T = len(p.iou_thresholds)
+        K = len(catIds)
+
+        # create dictionary for future indexing
+        setK = set(catIds)
+        setI = set(imgIds)
+        # get inds to evaluate
+        k_list = [n for n, k in enumerate(catIds) if k in setK]
+        i_list = [n for n, i in enumerate(imgIds) if i in setI]
+        I0 = len(imgIds)
+
+        precision = -torch.ones((T, K))
+        recall = -torch.ones((T, K))
+
+        # retrieve E at each category
+        for k, k0 in enumerate(k_list):
+            Nk = k0 * I0
+            E = [evalImgs[Nk + i] for i in i_list]
+            E: List[ImageLevelEvaluationResult] = [e for e in E if e is not None]
+            if len(E) == 0:
+                continue
+            dtScores = np.concatenate([e.dtScores[0 : p.maxDets] for e in E])
+
+            preds_matched = np.concatenate([e.dtMatches[:, 0 : p.maxDets] for e in E], axis=1)
+            preds_to_ignore = np.concatenate([e.dtIgnore[:, 0 : p.maxDets] for e in E], axis=1)
+            preds_scores = dtScores
+            gtIg = np.concatenate([e.gtIgnore for e in E])
+            gtCrowd = np.concatenate([e.gtIsCrowd for e in E])
+
+            n_non_ignored_targets = np.count_nonzero(gtIg == 0)
+            n_non_crowd = (gtCrowd == 0).sum()
+
+            if n_non_ignored_targets == 0:
+                continue
+
+            _, cls_precision, cls_recall = compute_detection_metrics_per_cls(
+                preds_matched=torch.from_numpy(preds_matched).moveaxis(0, 1) > 0,
+                preds_to_ignore=torch.from_numpy(preds_to_ignore).moveaxis(0, 1) > 0,
+                preds_scores=torch.from_numpy(preds_scores),
+                n_targets=n_non_crowd,
+                recall_thresholds=torch.from_numpy(p.recall_thresholds),
+                score_threshold=0,
+                device="cpu",
+            )
+            precision[:, k] = cls_precision
+            recall[:, k] = cls_recall
+
+        return DatasetLevelEvaluationResult(
+            params=p,
+            counts=(T, K),
+            precision=precision.detach().cpu().numpy(),
+            recall=recall.detach().cpu().numpy(),
         )

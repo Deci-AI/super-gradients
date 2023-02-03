@@ -231,7 +231,7 @@ class PoseEstimationMetrics(Metric):
             coco_eval.params.sigmas = self.oks_sigmas
         coco_eval.params.maxDets = [self.max_objects_per_image]
         coco_eval.evaluate()
-        coco_eval.accumulate()
+        coco_eval.accumulate_with_coco()
         coco_eval.summarize()
         stats_names = ["AP", "Ap .5", "AP .75", "AP (M)", "AP (L)", "AR", "AR .5", "AR .75", "AR (M)", "AR (L)"]
         info_str = []
