@@ -1,7 +1,7 @@
 # Phase Callbacks in SG
 
 Integrating your own code into an already existing training pipeline can draw much effort on the user's end.
-To tackle this challenge, a list of callables that will be triggered at certain points of the training code, can be passed through `phase_calbacks_list` inside `training_params`, when calling `Trainer.train(...)`.
+To tackle this challenge, a list of callables triggered at specific points of the training code can be passed through `phase_calbacks_list` inside `training_params` when calling `Trainer.train(...)`.
 
 SG's `super_gradients.training.utils.callbacks` module implements some common use cases as callbacks:
 
@@ -21,7 +21,7 @@ SG's `super_gradients.training.utils.callbacks` module implements some common us
     TrainingStageSwitchCallbackBase
     YoloXTrainingStageSwitchCallback
 
-For example, the YoloX's COCO detection training recipe uses `YoloXTrainingStageSwitchCallback` in order to turn off augmentations, and incorporate L1 loss starting from epoch 285:
+For example, the YoloX's COCO detection training recipe uses `YoloXTrainingStageSwitchCallback` to turn off augmentations and incorporate L1 loss starting from epoch 285:
 
 `super_gradients/recipes/training_hyperparams/coco2017_yolox_train_params.yaml`:
 
@@ -43,9 +43,9 @@ phase_callbacks:
 Another example is how we use `BinarySegmentationVisualizationCallback` to visualize predictions during training in our [Segmentation Transfer Learning Notebook](https://bit.ly/3qKwMbe):
 
 
-## Integrating Your Own Code with Callbacks
+## Integrating Your Code with Callbacks
 
-Integrating your own code requires implementing a callback that would be triggered in the equivalent areas inside SG's training pipeline.
+Integrating your code requires implementing a callback that `Trainer` would trigger in the equivalent areas inside SG's training pipeline.
 
 So let's first get familiar with `super_gradients.training.utils.callbacks.base_callbacks.Callback` class.
 
@@ -76,7 +76,7 @@ It implements the following methods:
 
 Our callback needs to inherit from the above class and override the appropriate methods according to the points at which we would like to trigger it.
 
-To understand which methods we need to override, we need to better understand when are the above methods triggered.
+To understand which methods we need to override, we need to understand better when are the above methods triggered.
 
 From the class docs, the order of the events is as follows:
 ```python
@@ -112,8 +112,8 @@ From the class docs, the order of the events is as follows:
 ```
 
 As you noticed, all of `Callback`'s methods expect a single argument - a `PhaseContext` instance.
-This argument gives access to some variables at the above-mentioned points in the code through its attributes.
-By looking at the documentation of the `Callback`'s specific methods we need to override, we can discover what variables are exposed.
+This argument gives access to some variables at the points mentioned above in the code through its attributes.
+We can discover what variables are exposed by looking at the documentation of the `Callback`'s specific methods we need to override.
 
 For example:
 ```python
@@ -141,13 +141,13 @@ For example:
         """
 ```
 
-Now let's implement our own callback.
+Now let's implement our callback.
 Suppose we would like to implement a simple callback that saves the first batch of images in each epoch for both training and validation
 in a new folder called "batch_images" under our local checkpoints directory.
 
 
 Our callback needs to be triggered in 3 places:
-1. At the start of training, creating a new "batch_images" under our local checkpoints directory.
+1. At the start of training, create a new "batch_images" under our local checkpoints directory.
 2. Before passing a train image batch through the network.
 3. Before passing a validation image batch through the network.
 
@@ -184,9 +184,9 @@ class SaveFirstBatchCallback(Callback):
 
 ```
 
-Note the `@multi_process_safe` decorator which allows the callback to be triggered once when running distributed training.
+Note the `@multi_process_safe` decorator, which allows the callback to be triggered precisely once when running distributed training.
 
-For coded training scripts (i.e., not [using configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)) we can just pass an instance of the callback through `phase_callbacks`:
+For coded training scripts (i.e., not [using configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)), we can pass an instance of the callback through `phase_callbacks`:
 
    ```python
 ...
@@ -255,7 +255,7 @@ phase_callbacks:
   - SaveFirstBatchCallback
 ```
 
-Last, in your ``my_train_from_recipe_script.py`` file, just import the newly registered class (even though the class itself is unused, just to trigger the registry):
+Last, in your ``my_train_from_recipe_script.py`` file, import the newly registered class (even though the class itself is unused, just to trigger the registry):
         
 ```python
 
@@ -278,6 +278,3 @@ Last, in your ``my_train_from_recipe_script.py`` file, just import the newly reg
   
   if __name__ == "__main__":
       run()
-
-
-```
