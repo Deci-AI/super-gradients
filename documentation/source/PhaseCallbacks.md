@@ -6,7 +6,6 @@ To tackle this challenge, a list of callables triggered at specific points of th
 SG's `super_gradients.training.utils.callbacks` module implements some common use cases as callbacks:
 
     ModelConversionCheckCallback
-    DeciLabUploadCallback
     LRCallbackBase
     EpochStepWarmupLRCallback
     BatchStepLinearWarmupLRCallback
@@ -45,7 +44,7 @@ Another example is how we use `BinarySegmentationVisualizationCallback` to visua
 
 ## Integrating Your Code with Callbacks
 
-Integrating your code requires implementing a callback that `Trainer` would trigger in the equivalent areas inside SG's training pipeline.
+Integrating your code requires implementing a callback that `Trainer` would trigger in the proper phases inside SG's training pipeline.
 
 So let's first get familiar with `super_gradients.training.utils.callbacks.base_callbacks.Callback` class.
 
