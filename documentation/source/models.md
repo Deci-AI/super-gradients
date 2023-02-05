@@ -1,4 +1,4 @@
-## Model Zoo
+## Models
 
 SuperGradients provides an extensive collection of state-of-the-art (SOTA) models in its [model zoo](http://bit.ly/3EGfKD4).
 These models are implemented as `torch.nn.Module` and can be used, customized, and trained like any other torch module.
@@ -18,7 +18,7 @@ from super_gradients.training import models
 default_resnet18 = models.get(model_name="resnet18", num_classes=100)
 ```
 
-Every model name is accessible in to [model zoo](http://bit.ly/3EGfKD4),but can also be dynamically accessed through `super_gradients.common.object_names` for autocompletion
+All model names are available in the [model zoo](http://bit.ly/3EGfKD4),but can also be dynamically accessed through `super_gradients.common.object_names` for autocompletion
 ```python
 from super_gradients.training import models
 from super_gradients.common import object_names
@@ -43,6 +43,7 @@ from super_gradients.training import models
 # Will reproduce the model zoo metrics on imagenet
 model = models.get(model_name="resnet18", pretrained_weights="imagenet")
 ```
+You can find the datasets used for pretraining our models in the [model zoo](http://bit.ly/3EGfKD4), and specify it in the `pretrained_weights`.
 
 **With new head**
 ```python
@@ -88,7 +89,7 @@ model = CustomModel(backbone=backbone_resnet18)
 
 ### Playing with the model architecture parameters 
 
-All the SuperGradients model architectures can be parametrized using `arch_params`.
+All of SuperGradients model architectures can be parametrized using `arch_params`.
 You can find the documentation about parameters of every architecture, and their default values, in the [recipes](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/arch_params).
 
 
