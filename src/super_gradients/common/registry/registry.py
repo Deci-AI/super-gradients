@@ -14,6 +14,7 @@ from super_gradients.training.pre_launch_callbacks import ALL_PRE_LAUNCH_CALLBAC
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import BACKBONE_STAGES
 from super_gradients.training.models.segmentation_models.unet.unet_decoder import UP_FUSE_BLOCKS
 from super_gradients.training.datasets.all_target_generators import ALL_TARGET_GENERATORS
+from super_gradients.training.utils.optimizers import OPTIMIZERS
 
 
 def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
@@ -61,3 +62,4 @@ register_unet_backbone_stage = create_register_decorator(registry=BACKBONE_STAGE
 register_unet_up_block = create_register_decorator(registry=UP_FUSE_BLOCKS)
 register_target_generator = create_register_decorator(registry=ALL_TARGET_GENERATORS)
 register_sg_logger = create_register_decorator(registry=SG_LOGGERS)
+register_optimizer = create_register_decorator(registry=OPTIMIZERS)
