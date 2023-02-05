@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple, Type, Optional
+from typing import Tuple, Type, Optional, Union
 
 import hydra
 import torch
@@ -20,6 +20,7 @@ from super_gradients.training.utils.checkpoint_utils import (
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
+from super_gradients.training.utils.config_utils import warn_if_unused_params
 
 logger = get_logger(__name__)
 
@@ -147,7 +148,7 @@ def get(
     load_backbone: bool = False,
     download_required_code: bool = True,
     checkpoint_num_classes: int = None,
-) -> SgModule:
+) -> Union[SgModule, torch.nn.Module]:
     """
     :param model_name:          Defines the model's architecture from models/ALL_ARCHITECTURES
     :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
@@ -169,27 +170,29 @@ def get(
 
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
     """
-    checkpoint_num_classes = checkpoint_num_classes or num_classes
+    arch_params = arch_params if arch_params else {}
+    with warn_if_unused_params(arch_params) as arch_params:
 
-    if checkpoint_num_classes:
-        net = instantiate_model(model_name, arch_params, checkpoint_num_classes, pretrained_weights, download_required_code)
-    else:
-        net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights, download_required_code)
+        checkpoint_num_classes = checkpoint_num_classes or num_classes
+        if checkpoint_num_classes:
+            net = instantiate_model(model_name, arch_params, checkpoint_num_classes, pretrained_weights, download_required_code)
+        else:
+            net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights, download_required_code)
 
-    if load_backbone and not checkpoint_path:
-        raise ValueError("Please set checkpoint_path when load_backbone=True")
+        if load_backbone and not checkpoint_path:
+            raise ValueError("Please set checkpoint_path when load_backbone=True")
 
-    if checkpoint_path:
-        load_ema_as_net = "ema_net" in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
-        _ = load_checkpoint_to_model(
-            ckpt_local_path=checkpoint_path,
-            load_backbone=load_backbone,
-            net=net,
-            strict=strict_load.value if hasattr(strict_load, "value") else strict_load,
-            load_weights_only=True,
-            load_ema_as_net=load_ema_as_net,
-        )
-    if checkpoint_num_classes != num_classes:
-        net.replace_head(new_num_classes=num_classes)
+        if checkpoint_path:
+            load_ema_as_net = "ema_net" in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
+            _ = load_checkpoint_to_model(
+                ckpt_local_path=checkpoint_path,
+                load_backbone=load_backbone,
+                net=net,
+                strict=strict_load.value if hasattr(strict_load, "value") else strict_load,
+                load_weights_only=True,
+                load_ema_as_net=load_ema_as_net,
+            )
+        if checkpoint_num_classes != num_classes:
+            net.replace_head(new_num_classes=num_classes)
 
     return net

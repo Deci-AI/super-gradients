@@ -9,7 +9,13 @@ from super_gradients.common.object_names import Models
 from super_gradients.training.models import SgModule, get_arch_params
 from super_gradients.training.models.model_factory import get_architecture
 from super_gradients.training.utils import HpmStruct
-from super_gradients.training.utils.config_utils import raise_if_unused_params, UnusedConfigParamException, AccessCounterDict, AccessCounterHpmStruct
+from super_gradients.training.utils.config_utils import (
+    raise_if_unused_params,
+    UnusedConfigParamException,
+    AccessCounterDict,
+    AccessCounterHpmStruct,
+    IS_UNUSED_MESSAGE_INTRO,
+)
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 
 
@@ -20,17 +26,17 @@ class ConfigInspectTest(unittest.TestCase):
 
         original_config = {"unused_param": True, "a": 1, "b": 2}
 
-        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
             config = copy.deepcopy(original_config)
             with raise_if_unused_params(config) as config:
                 _ = model_factory(config)
 
-        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
             config = OmegaConf.create(copy.deepcopy(original_config))
             with raise_if_unused_params(config) as config:
                 _ = model_factory(config)
 
-        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
             config = HpmStruct(**copy.deepcopy(original_config))
             with raise_if_unused_params(copy.deepcopy(config)) as config:
                 _ = model_factory(config)
@@ -43,7 +49,7 @@ class ConfigInspectTest(unittest.TestCase):
 
         original_config = {"unused_param": True, "a": 1, "b": 2}
 
-        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
             config = copy.deepcopy(original_config)
             with raise_if_unused_params(config) as config:
                 result = model_factory(config)
@@ -51,14 +57,14 @@ class ConfigInspectTest(unittest.TestCase):
 
             self.assertTrue("this_is_a_test_property_that_is_set_and_used" in config.get_used_params())
 
-        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
             config = OmegaConf.create(copy.deepcopy(original_config))
             with raise_if_unused_params(config) as config:
                 result = model_factory(config)
                 self.assertEqual(result, 42)
             self.assertTrue("this_is_a_test_property_that_is_set_and_used" in config.get_used_params())
 
-        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
             config = HpmStruct(**copy.deepcopy(original_config))
             with raise_if_unused_params(copy.deepcopy(config)) as config:
                 result = model_factory(config)
@@ -221,7 +227,7 @@ class ConfigInspectTest(unittest.TestCase):
         with raise_if_unused_params(arch_params) as tracked_arch_params:
             _ = architecture_cls(arch_params=tracked_arch_params)
 
-        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
             arch_params.override(me_is_not_used=True)
             with raise_if_unused_params(arch_params) as tracked_arch_params:
                 _ = architecture_cls(arch_params=tracked_arch_params)

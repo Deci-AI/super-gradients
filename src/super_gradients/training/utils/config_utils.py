@@ -12,6 +12,9 @@ from super_gradients.training.utils import HpmStruct
 logger = get_logger(__name__)
 
 
+IS_UNUSED_MESSAGE_INTRO = "Detected unused parameters in configuration object that were not consumed by caller"
+
+
 class UnusedConfigParamException(Exception):
     pass
 
@@ -177,7 +180,7 @@ class ConfigInspector:
     def __exit__(self, exc_type, exc_val, exc_tb):
         unused_params = self.wrapped_config.get_unused_params()
         if len(unused_params):
-            message = f"Detected unused parameters in configuration object that were not consumed by caller: {unused_params}"
+            message = f"{IS_UNUSED_MESSAGE_INTRO}: {unused_params}"
             if self.unused_params_action == "raise":
                 raise UnusedConfigParamException(message)
             elif self.unused_params_action == "warn":
