@@ -154,7 +154,7 @@ jobs:
           name: run tests with coverage
           no_output_timeout: 30m
           command: |
-            python3.8 -m venv << parameters.sg_new_env_name >>
+            << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
             source << parameters.sg_new_env_name >>/bin/activate
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
