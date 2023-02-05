@@ -119,11 +119,8 @@ These are simply the `torch.utils.data.DataLoader` configured by the recipe's `d
     pascal_voc_detection_train
     pascal_voc_detection_val
 
-All of which can be imported from the `super_gradients.training.dataloaders` module, and 
-Your training needs will sometimes align differently with our recipes.
-Therefore, overriding any underlying `Dataset` constructor parameter and any `DataLoader` parameter is possible through
-the two named arguments: `dataset_params` and `dataloader_params`, which will override the recipe ones (by entry).
-
+These DataLoader can be imported from the super_gradients.training.dataloaders module.
+Please note that these Dataset and DataLoader objects are already pre-defined with parameters required for specific training recipes. You can override these default parameters by passing two named arguments: dataset_params and dataloader_params(both of which are dictionaries), which will override the recipe settings. To learn which parameters you can override for each object, please refer to the YAML file with the same name.
 
 For example, the code below will instantiate the data loader used for training in our `imagenet_resnet50` recipe
 (including all data augmentations and any other data-related setting which we defined for training Resnet50 on Imagenet)
