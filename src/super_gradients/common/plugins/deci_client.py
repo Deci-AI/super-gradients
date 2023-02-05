@@ -1,12 +1,12 @@
+import os
 import json
 import sys
 from zipfile import ZipFile
 from typing import List, Optional, Any
+from pathlib import Path
+
 import hydra
-
 import importlib.util
-
-import os
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
@@ -14,7 +14,6 @@ from torch import nn
 import super_gradients
 from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.environment.path_utils import normalize_path
 
 
 logger = get_logger(__name__)
@@ -46,12 +45,16 @@ class DeciClient:
             )
             return
 
-        self.lab_client = DeciPlatformClient(api_host=env_variables.DECI_API_HOST)
+        self.api_host = env_variables.DECI_API_HOST
+        self.lab_client = DeciPlatformClient(api_host=self.api_host)
         self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
-        GlobalHydra.instance().clear()
-
-    def _get_file(self, model_name: str, file_name: str) -> str:
+    def _get_file(self, model_name: str, file_name: str) -> Optional[str]:
+        """Get a file from the DeciPlatform if it exists, otherwise returns None
+        :param model_name:  Name of the model to download from, as saved in the platform.
+        :param file_name:   Name of the file to download
+        :return:            Path were the downloaded file was saved to. None if not found.
+        """
         try:
             response = self.lab_client.get_autonac_model_file_link(
                 model_name=model_name, file_name=file_name, super_gradients_version=super_gradients.__version__
@@ -66,33 +69,32 @@ class DeciClient:
                 logger.error(f"Deci client: {json.loads(e.body)['message']}")
             else:
                 logger.debug(e.body)
-
             return None
+
         return FilesDataInterface.download_temporary_file(file_url=download_link)
 
-    def _get_model_cfg(self, model_name: str, cfg_file_name: str) -> DictConfig:
-        if not client_enabled:
+    def get_model_arch_params(self, model_name: str) -> Optional[DictConfig]:
+        """Get the model arch_params from DeciPlatform.
+        :param model_name:  Name of the model as saved in the platform.
+        :return:            arch_params. None if arch_params were not found for this specific model on this SG version."""
+        arch_params_file = self._get_file(model_name, AutoNACFileName.STRUCTURE_YAML)
+        if arch_params_file is None:
             return None
+        return _load_cfg(config_path=arch_params_file)
 
-        file = self._get_file(model_name=model_name, file_name=cfg_file_name)
-        if file is None:
+    def get_model_recipe(self, model_name: str) -> Optional[DictConfig]:
+        """Get the model recipe from DeciPlatform.
+        :param model_name:  Name of the model as saved in the platform.
+        :return:            recipe. None if recipe were not found for this specific model on this SG version."""
+        recipe_file = self._get_file(model_name, AutoNACFileName.RECIPE_YAML)
+        if recipe_file is None:
             return None
+        return _load_cfg(config_path=recipe_file)
 
-        split_file = file.split("/")
-        with hydra.initialize_config_dir(config_dir=normalize_path(f"{'/'.join(split_file[:-1])}/"), version_base=None):
-            cfg = hydra.compose(config_name=split_file[-1])
-        return cfg
-
-    def get_model_arch_params(self, model_name: str) -> DictConfig:
-        return self._get_model_cfg(model_name, AutoNACFileName.STRUCTURE_YAML)
-
-    def get_model_recipe(self, model_name: str) -> DictConfig:
-        return self._get_model_cfg(model_name, AutoNACFileName.RECIPE_YAML)
-
-    def get_model_weights(self, model_name: str) -> str:
-        if not client_enabled:
-            return None
-
+    def get_model_weights(self, model_name: str) -> Optional[str]:
+        """Get the path to model weights (downloaded locally).
+        :param model_name:  Name of the model as saved in the platform.
+        :return:            model_weights path. None if weights were not found for this specific model on this SG version."""
         return self._get_file(model_name=model_name, file_name=AutoNACFileName.WEIGHTS_PTH)
 
     def download_and_load_model_additional_code(self, model_name: str, target_path: str, package_name: str = "deci_model_code") -> None:
@@ -203,3 +205,14 @@ class DeciClient:
         """
 
         self.lab_client.add_model_v2(model_metadata=model_metadata, hardware_types=hardware_types, model_path=model_path, model=model, **kwargs)
+
+
+def _load_cfg(config_path: str) -> DictConfig:
+    """Load a hydra config file.
+    :param config_path: Full path of the hydra config file.
+    :return:            Hydra config instance"""
+    GlobalHydra.instance().clear()
+
+    arch_params_file = Path(config_path)
+    with hydra.initialize_config_dir(config_dir=str(arch_params_file.parent), version_base=None):
+        return hydra.compose(config_name=arch_params_file.name)
