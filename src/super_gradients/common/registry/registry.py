@@ -1,6 +1,7 @@
 import inspect
 from typing import Callable, Dict, Optional
 
+from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.training.dataloaders.dataloaders import ALL_DATALOADERS
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.metrics.all_metrics import METRICS
@@ -59,3 +60,4 @@ register_pre_launch_callback = create_register_decorator(registry=ALL_PRE_LAUNCH
 register_unet_backbone_stage = create_register_decorator(registry=BACKBONE_STAGES)
 register_unet_up_block = create_register_decorator(registry=UP_FUSE_BLOCKS)
 register_target_generator = create_register_decorator(registry=ALL_TARGET_GENERATORS)
+register_sg_logger = create_register_decorator(registry=SG_LOGGERS)
