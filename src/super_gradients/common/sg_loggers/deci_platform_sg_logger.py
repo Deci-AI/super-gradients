@@ -1,9 +1,13 @@
 import os
 import io
 from contextlib import contextmanager
-from typing import Optional
+from typing import Optional, Type
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.type_factory import TypeFactory
+from super_gradients.common.sg_loggers import SG_LOGGERS
+from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger, EXPERIMENT_LOGS_PREFIX, LOGGER_LOGS_PREFIX, CONSOLE_LOGS_PREFIX
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
@@ -15,9 +19,10 @@ logger = get_logger(__name__)
 TENSORBOARD_EVENTS_PREFIX = "events.out.tfevents"
 
 
-class DeciPlatformSGLogger(BaseSGLogger):
+class DeciPlatformSGLogger(AbstractSGLogger):
     """Logger responsible to push logs and tensorboard artifacts to Deci platform."""
 
+    @resolve_param("base_logger", TypeFactory(SG_LOGGERS))
     def __init__(
         self,
         project_name: str,
@@ -34,9 +39,10 @@ class DeciPlatformSGLogger(BaseSGLogger):
         save_logs_remote: bool = True,
         monitor_system: bool = True,
         model_name: Optional[str] = None,
+        base_logger: Optional[Type[AbstractSGLogger]] = BaseSGLogger,
     ):
 
-        super().__init__(
+        self._base_logger = base_logger(
             project_name=project_name,
             experiment_name=experiment_name,
             storage_location=storage_location,
@@ -69,7 +75,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         Upload both to the destination specified by the user (base behavior), and to Deci platform.
         """
         # Upload to the destination specified by the user
-        super(DeciPlatformSGLogger, self).upload()
+        self._base_logger.upload()
 
         # Upload to Deci platform
         if not os.path.isdir(self.checkpoints_dir_path):
