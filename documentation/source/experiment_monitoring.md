@@ -81,12 +81,13 @@ from typing import Union
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.training.params import TrainingParams
+from super_gradients.common.registry.registry import register_sg_logger
 
 
-@register_logger()
+@register_sg_logger()
 class CustomSGLogger(BaseSGLogger):
-    """Logger responsible to push logs and tensorboard artifacts to Deci platform."""
-
+    
+    # You can add more arguments, but these are mandatory 
     def __init__(
         self,
         project_name: str,
