@@ -588,11 +588,9 @@ workflows:
     jobs:
       - deci-common/persist_version_info:
           version_override: $CIRCLE_TAG
-          <<: *release_tag_filter
       - deci-common/codeartifact_login:
           name: "login_to_codeartifact_release"
           repo_name: "deci-packages"
-          <<: *release_tag_filter
       - build:
           name: "build3.7"
           py_version: "3.7"
@@ -600,9 +598,7 @@ workflows:
           requires:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
-          <<: *release_tag_filter
-      - recipe_sanity_tests_classification_pt1:
-          <<: *release_tag_filter
+      - recipe_sanity_tests_classification_pt1
       - recipe_sanity_tests_classification_pt2:
           requires:
             - recipe_sanity_tests_classification_pt1
