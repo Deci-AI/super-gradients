@@ -17,7 +17,7 @@ backbone_params:
 
 context_module:
   ASPP:
-    in_channels: ${last:${backbone_params.width_list}}
+    in_channels: ${last:${arch_params.backbone_params.width_list}}
     dilation_list: [2, 4, 6]
     in_out_ratio: 1.
     # legacy parameter to support old trained checkpoints that were trained by mistake with extra redundant
