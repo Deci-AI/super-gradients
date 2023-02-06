@@ -84,7 +84,7 @@ If your model (i.e. any `torch.nn.Module`) is lacking these methods, the same le
 But if you implement them, it will be taken into account by the Trainer just like with any other SuperGradients model.
 
 #### Example
-Let's imagine that you have your own custom model and that you want work with a different learning rate on the backbone.
+Assuming that you have your own custom model and that you want work with a different learning rate on the backbone.
 
 You first need to implement the `initialize_param_groups` and `update_param_groups` accordingly.
 
@@ -100,13 +100,13 @@ class MyModel(torch.nn.Module):
     ...
 
     def initialize_param_groups(self, lr: float, training_params) -> list:
-        # OPTIMIZE BACKBONE USING LR
+        # OPTIMIZE BACKBONE USING CUSTOM LR
         backbone_params = {
             "named_params": self.backbone.named_parameters(),
             "lr": lr * training_params['multiply_backbone_lr'] # You can use any parameter, just make sure to define it when you set up training_params
         }
 
-        # OPTIMIZE MAIN ARCHITECTURE LAYERS WITH 10x LR
+        # OPTIMIZE MAIN ARCHITECTURE LAYERS
         decoder_named_params = list(self.decoder.named_parameters())
         aux_head_named_parameters = list(self.aux_head.named_parameters())
         layers_params = {
@@ -130,13 +130,13 @@ class MyModel(torch.nn.Module):
 *Note: If working with recipe, don't forget to [register your model](configuration_files.md#registering-a-new-object).*
 
 
-Now you just need to set a value for `multiply_head_lr` in the training recipe.
+Now you just need to set a value for `multiply_backbone_lr` in the training recipe.
 ```yaml
 # my_training_hyperparams.yaml
 
 ...
 
-multiply_head_lr: 10 # This is used in our implementation of initialize_param_groups/update_param_groups
+multiply_backbone_lr: 10 # This is used in our implementation of initialize_param_groups/update_param_groups
 optimizer: OptimizerName # Any optimizer as described in the previous sections
 optimizer_params: {} # Any parameter for the optimizer you chose
 ```
