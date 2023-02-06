@@ -25,7 +25,7 @@ def _parse_project_root_path(path: str) -> Optional[str]:
     """Extract the path of first project that includes this path (recursively look into parent folders). Return None if no project found."""
     if path in ("", "/"):
         return None
-    is_project_root_path = any(os.path.exists(os.path.join(path, file)) for file in (".git", "requirements.txt", ".env", "setup.py"))
+    is_project_root_path = any(os.path.exists(os.path.join(path, file)) for file in (".git", "requirements.txt", ".env", "venv", "setup.py"))
     return path if is_project_root_path else _parse_project_root_path(path=os.path.dirname(path))
 
 
