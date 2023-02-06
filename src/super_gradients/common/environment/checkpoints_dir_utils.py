@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 def _get_project_root_path() -> Optional[str]:
     """Extract the path of first project that includes the script that was launched. Return None if no project found."""
-    script_path = sys.argv[0]
+    script_path = os.path.abspath(path=sys.argv[0])
     return _parse_project_root_path(path=os.path.dirname(script_path))
 
 
