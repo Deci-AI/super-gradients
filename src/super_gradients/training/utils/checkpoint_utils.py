@@ -163,14 +163,16 @@ def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckp
     """
     if "net" in source_ckpt.keys():
         source_ckpt = source_ckpt["net"]
-    model_state_dict_excluded = {k: v for k, v in model_state_dict.items() if not any(x in k for x in exclude)}
     new_ckpt_dict = {}
-    for (ckpt_key, ckpt_val), (model_key, model_val) in zip(source_ckpt.items(), model_state_dict_excluded.items()):
-        if solver is not None:
-            ckpt_val = solver(ckpt_key, ckpt_val, model_key, model_val)
-        if ckpt_val.shape != model_val.shape:
-            raise ValueError(f"ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}" f" with shape {model_val.shape} in the model")
-        new_ckpt_dict[model_key] = ckpt_val
+    for model_key, model_val in model_state_dict.items():
+        if model_key in source_ckpt and model_key not in exclude:
+            ckpt_val = source_ckpt[model_key]
+
+            if solver is not None:
+                ckpt_val = solver(model_key, ckpt_val, model_key, model_val)
+            if ckpt_val.shape != model_val.shape:
+                raise ValueError(f"Checkpoint weights with shape {ckpt_val.shape} does not match {model_key}" f" with shape {model_val.shape} in the model")
+            new_ckpt_dict[model_key] = ckpt_val
     return {"net": new_ckpt_dict}
 
 
