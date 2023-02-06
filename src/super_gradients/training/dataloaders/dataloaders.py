@@ -32,6 +32,7 @@ from super_gradients.training.datasets.segmentation_datasets import (
     SuperviselyPersonsDataset,
     MapillaryDataset,
 )
+from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import (
     wait_for_the_master,
@@ -101,6 +102,14 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
     default_dataloader_params = cfg.dataset_params.train_dataloader_params if train else cfg.dataset_params.val_dataloader_params
     default_dataloader_params = hydra.utils.instantiate(default_dataloader_params)
     dataloader_params = _process_sampler_params(dataloader_params, dataset, default_dataloader_params)
+    dataloader_params = _process_collate_fn_params(dataloader_params)
+
+    return dataloader_params
+
+
+def _process_collate_fn_params(dataloader_params):
+    if get_param(dataloader_params, "collate_fn") is not None:
+        dataloader_params["collate_fn"] = CollateFunctionsFactory().get(dataloader_params["collate_fn"])
 
     return dataloader_params
 
