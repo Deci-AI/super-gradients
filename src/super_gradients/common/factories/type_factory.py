@@ -51,7 +51,7 @@ class TypeFactory(AbstractFactory):
                     unknown_type=conf,
                     choices=list(self.type_dict.keys()),
                     message=f"Unknown object type: {conf} in configuration. valid types are: {self.type_dict.keys()} or a class "
-                    "type available in the env or in the form 'package_name.sub_package.MyClass'",
+                    "type available in the env or in the form 'package_name.sub_package.MyClass'\n",
                 )
         else:
             return conf
