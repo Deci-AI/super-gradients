@@ -162,7 +162,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.cityscapes_pretrained_ckpt_params = {"pretrained_weights": "cityscapes"}
         self.cityscapes_pretrained_mious = {
-            "ddrnet_39": 0.8132,
+            Models.DDRNET_39: 0.8132,
             Models.DDRNET_23: 0.8026,
             Models.DDRNET_23_SLIM: 0.7801,
             Models.STDC1_SEG50: 0.7511,
@@ -402,7 +402,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
     def test_pretrained_ddrnet39_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_ddrnet39")
-        model = models.get("ddrnet_39", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"], **self.cityscapes_pretrained_ckpt_params)
+        model = models.get(Models.DDRNET_39, arch_params=self.cityscapes_pretrained_arch_params[Models.DDRNET_23], **self.cityscapes_pretrained_ckpt_params)
         res = (
             trainer.test(
                 model=model, test_loader=self.cityscapes_dataset, test_metrics_list=[IoU(num_classes=20, ignore_index=19)], metrics_progress_verbose=True
@@ -410,7 +410,7 @@ class PretrainedModelsTest(unittest.TestCase):
             .cpu()
             .item()
         )
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_39"], delta=0.001)
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.DDRNET_39], delta=0.001)
 
     def test_pretrained_ddrnet23_slim_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_ddrnet23_slim")
