@@ -45,7 +45,7 @@ class TypeFactory(AbstractFactory):
                     return class_type
                 except Exception as e:
                     err = f"An error occurred while instantiating '{conf}' with exception: \n\t => {e}.\n"
-                    raise RuntimeError(err)
+                    raise ValueError(err)
             else:
                 raise UnknownTypeException(
                     unknown_type=conf,
