@@ -1,0 +1,46 @@
+# Troubleshooting
+
+This tutorial addresses some of the most frequent concerns we've seen.
+
+If you want more assistance in solving your problem, you may open a new 
+[Issue](https://github.com/Deci-AI/super-gradients/issues/new?assignees=&labels=&template=bug_report.md&title=) 
+in the SuperGradients repository.
+
+
+### GPU Memory Overflow
+
+
+It is pretty common to run out of memory when using GPU. This is shown with following exception:
+
+```
+CUDA out of memory. Tried to allocate 20.00 MiB (GPU 0; 10.76 GiB total capacity; 4.29 GiB already allocated; 10.12 MiB free; 4.46 GiB reserved in total by PyTorch)
+```
+
+To reduce memory usage, try the following:
+- Decrease the batch size (`dataset_params.train_dataloader_params.batch_size` and `dataset_params.val_dataloader_params.batch_size`)
+- Decrease the number of batch accumulation steps (`training_hyperparams.batch_accumulate`)
+
+
+### CUDA error: device-side assert triggered
+
+You may encounter a generic CUDA error message that lacks information regarding the cause of the error:
+
+```
+RuntimeError: CUDA error: device-side assert triggered
+```
+
+To get a better understanding of the root cause of the error, you have the choice between two approaches:
+
+**1. Run on CPU**
+
+When [running on CPU](device.md) you won't have this issue of CUDA hiding the root cause of the error.
+
+**2. Set Environment Variable**
+
+You can add the following environment variable at the beginning of your code.
+
+```py
+import os
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+```
+This will provide a full traceback indicating to the source of the error:
