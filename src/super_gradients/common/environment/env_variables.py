@@ -35,5 +35,13 @@ class EnvironmentVariables:
     def DECI_API_HOST(self) -> str:
         return os.getenv("DECI_API_HOST", default="api.deci.ai")
 
+    @property
+    def FILE_LOG_LEVEL(self) -> str:
+        return os.getenv("FILE_LOG_LEVEL", default="DEBUG").upper()
+
+    @property
+    def CONSOLE_LOG_LEVEL(self) -> str:
+        return os.getenv("CONSOLE_LOG_LEVEL", default="INFO").upper()
+
 
 env_variables = EnvironmentVariables()
