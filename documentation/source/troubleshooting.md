@@ -6,10 +6,9 @@ If you want more assistance in solving your problem, you may open a new
 [Issue](https://github.com/Deci-AI/super-gradients/issues/new?assignees=&labels=&template=bug_report.md&title=) 
 in the SuperGradients repository.
 
----
+
 
 ## GPU Memory Overflow
-
 
 It is pretty common to run out of memory when using GPU. This is shown with following exception:
 
@@ -20,6 +19,7 @@ CUDA out of memory. Tried to allocate 20.00 MiB (GPU 0; 10.76 GiB total capacity
 To reduce memory usage, try the following:
 - Decrease the batch size (`dataset_params.train_dataloader_params.batch_size` and `dataset_params.val_dataloader_params.batch_size`)
 - Decrease the number of batch accumulation steps (`training_hyperparams.batch_accumulate`)
+
 
 
 ## CUDA error: device-side assert triggered
