@@ -43,4 +43,4 @@ You can add the following environment variable at the beginning of your code.
 import os
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 ```
-This will provide a full traceback indicating to the source of the error:
+This will provide a full traceback indicating to the source of the error.
