@@ -248,6 +248,7 @@ class Models:
     REPVGG_CUSTOM = "repvgg_custom"
     DDRNET_23 = "ddrnet_23"
     DDRNET_23_SLIM = "ddrnet_23_slim"
+    DDRNET_39 = "ddrnet_39"
     CUSTOM_DDRNET_23 = "custom_ddrnet_23"
     STDC1_CLASSIFICATION = "stdc1_classification"
     STDC2_CLASSIFICATION = "stdc2_classification"
