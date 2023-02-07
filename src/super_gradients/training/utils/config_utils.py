@@ -1,6 +1,6 @@
 import abc
 from collections import defaultdict
-from typing import Mapping, Iterable, Set, Union
+from typing import Mapping, Iterable, Set, Union, Optional
 
 __all__ = ["raise_if_unused_params", "warn_if_unused_params", "UnusedConfigParamException"]
 
@@ -12,7 +12,7 @@ from super_gradients.training.utils import HpmStruct
 logger = get_logger(__name__)
 
 
-IS_UNUSED_MESSAGE_INTRO = "Detected unused parameters in configuration object that were not consumed by caller"
+DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX = "Detected unused parameters in configuration object that were not consumed by caller"
 
 
 class UnusedConfigParamException(Exception):
@@ -170,9 +170,10 @@ class AccessCounterList(list, AccessCounterMixin):
 
 
 class ConfigInspector:
-    def __init__(self, wrapped_config, unused_params_action: str):
+    def __init__(self, wrapped_config, unused_params_action: str, message_prefix: str = None):
         self.wrapped_config = wrapped_config
         self.unused_params_action = unused_params_action
+        self.message_prefix = message_prefix or DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX
 
     def __enter__(self):
         return self.wrapped_config
@@ -180,7 +181,7 @@ class ConfigInspector:
     def __exit__(self, exc_type, exc_val, exc_tb):
         unused_params = self.wrapped_config.get_unused_params()
         if len(unused_params):
-            message = f"{IS_UNUSED_MESSAGE_INTRO}: {unused_params}"
+            message = f"{self.message_prefix}: {unused_params}"
             if self.unused_params_action == "raise":
                 raise UnusedConfigParamException(message)
             elif self.unused_params_action == "warn":
@@ -191,7 +192,7 @@ class ConfigInspector:
                 raise KeyError(f"Encountered unknown action key {self.unused_params_action}")
 
 
-def raise_if_unused_params(config: Union[HpmStruct, DictConfig, ListConfig, Mapping, list, tuple]) -> ConfigInspector:
+def raise_if_unused_params(config: Union[HpmStruct, DictConfig, ListConfig, Mapping, list, tuple], config_name: Optional[str] = None) -> ConfigInspector:
     """
     A helper function to check whether all confuration parameters were used on given block of code. Motivation to have
     this check is to ensure there were no typo or outdated configuration parameters.
@@ -205,6 +206,7 @@ def raise_if_unused_params(config: Union[HpmStruct, DictConfig, ListConfig, Mapp
     >>>
 
     :param config: A config to check
+    :param config_name: Optional, name of the config that is being inspected. Will be shwon in the exception message if set.
     :return: An instance of ConfigInspector
     """
     if isinstance(config, HpmStruct):
@@ -216,10 +218,11 @@ def raise_if_unused_params(config: Union[HpmStruct, DictConfig, ListConfig, Mapp
     else:
         raise RuntimeError(f"Unsupported type. Root configuration object must be a mapping or list. Got type {type(config)}")
 
-    return ConfigInspector(wrapper_cls(config), unused_params_action="raise")
+    message_prefix = f"{config_name} contains parameters that are not required" if config_name else None
+    return ConfigInspector(wrapper_cls(config), unused_params_action="raise", message_prefix=message_prefix)
 
 
-def warn_if_unused_params(config):
+def warn_if_unused_params(config: Union[HpmStruct, DictConfig, ListConfig, Mapping, list, tuple], config_name: Optional[str] = None) -> ConfigInspector:
     """
     A helper function to check whether all confuration parameters were used on given block of code. Motivation to have
     this check is to ensure there were no typo or outdated configuration parameters.
@@ -233,6 +236,7 @@ def warn_if_unused_params(config):
     >>>
 
     :param config: A config to check
+    :param config_name: Optional, name of the config that is being inspected. Will be shwon in the warning message if set.
     :return: An instance of ConfigInspector
     """
     if isinstance(config, HpmStruct):
@@ -244,4 +248,5 @@ def warn_if_unused_params(config):
     else:
         raise RuntimeError("Unsupported type. Root configuration object must be a mapping or list.")
 
-    return ConfigInspector(wrapper_cls(config), unused_params_action="warn")
+    message_prefix = f"'{config_name}' contains parameters that are not required and will be ignored" if config_name else None
+    return ConfigInspector(wrapper_cls(config), unused_params_action="warn", message_prefix=message_prefix)

@@ -14,7 +14,7 @@ from super_gradients.training.utils.config_utils import (
     UnusedConfigParamException,
     AccessCounterDict,
     AccessCounterHpmStruct,
-    IS_UNUSED_MESSAGE_INTRO,
+    DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX,
 )
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 
@@ -26,17 +26,17 @@ class ConfigInspectTest(unittest.TestCase):
 
         original_config = {"unused_param": True, "a": 1, "b": 2}
 
-        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
+        with self.assertRaisesRegex(UnusedConfigParamException, DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX):
             config = copy.deepcopy(original_config)
             with raise_if_unused_params(config) as config:
                 _ = model_factory(config)
 
-        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
+        with self.assertRaisesRegex(UnusedConfigParamException, DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX):
             config = OmegaConf.create(copy.deepcopy(original_config))
             with raise_if_unused_params(config) as config:
                 _ = model_factory(config)
 
-        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
+        with self.assertRaisesRegex(UnusedConfigParamException, DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX):
             config = HpmStruct(**copy.deepcopy(original_config))
             with raise_if_unused_params(copy.deepcopy(config)) as config:
                 _ = model_factory(config)
@@ -49,7 +49,7 @@ class ConfigInspectTest(unittest.TestCase):
 
         original_config = {"unused_param": True, "a": 1, "b": 2}
 
-        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
+        with self.assertRaisesRegex(UnusedConfigParamException, DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX):
             config = copy.deepcopy(original_config)
             with raise_if_unused_params(config) as config:
                 result = model_factory(config)
@@ -57,14 +57,14 @@ class ConfigInspectTest(unittest.TestCase):
 
             self.assertTrue("this_is_a_test_property_that_is_set_and_used" in config.get_used_params())
 
-        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
+        with self.assertRaisesRegex(UnusedConfigParamException, DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX):
             config = OmegaConf.create(copy.deepcopy(original_config))
             with raise_if_unused_params(config) as config:
                 result = model_factory(config)
                 self.assertEqual(result, 42)
             self.assertTrue("this_is_a_test_property_that_is_set_and_used" in config.get_used_params())
 
-        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
+        with self.assertRaisesRegex(UnusedConfigParamException, DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX):
             config = HpmStruct(**copy.deepcopy(original_config))
             with raise_if_unused_params(copy.deepcopy(config)) as config:
                 result = model_factory(config)
@@ -227,7 +227,7 @@ class ConfigInspectTest(unittest.TestCase):
         with raise_if_unused_params(arch_params) as tracked_arch_params:
             _ = architecture_cls(arch_params=tracked_arch_params)
 
-        with self.assertRaisesRegex(UnusedConfigParamException, IS_UNUSED_MESSAGE_INTRO):
+        with self.assertRaisesRegex(UnusedConfigParamException, DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX):
             arch_params.override(me_is_not_used=True)
             with raise_if_unused_params(arch_params) as tracked_arch_params:
                 _ = architecture_cls(arch_params=tracked_arch_params)

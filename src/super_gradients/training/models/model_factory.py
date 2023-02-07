@@ -171,7 +171,8 @@ def get(
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
     """
     arch_params = arch_params if arch_params else {}
-    with warn_if_unused_params(arch_params) as arch_params:
+
+    with warn_if_unused_params(config=arch_params, config_name="arch_params") as arch_params:
 
         checkpoint_num_classes = checkpoint_num_classes or num_classes
         if checkpoint_num_classes:
