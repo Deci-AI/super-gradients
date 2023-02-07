@@ -464,12 +464,23 @@ with it using SuperGradients.
 
 Similar to using an external model, the custom loss function's class must inherit from `torch.nn.Module`. The 
 `forward()` function's first parameter needs to be the predictions tensor and the second parameter needs to be the
-targets tensor.
+target tensor.
 
 ```
 import torch
 import torch.nn as nn
-from torchmetrics import JaccardIndex
+
+
+class CustomIoU(torch.nn.Module):
+    def __init__(self):
+        super(CustomIoU, self).__init__()
+
+    def forward(self, preds, target):
+        intersection = torch.sum(target * preds)
+        union = torch.sum(target) + torch.sum(preds) - intersection + 1e-5
+        iou = intersection / union
+
+        return iou
 
 
 class CustomSegLoss(torch.nn.Module):
@@ -480,7 +491,7 @@ class CustomSegLoss(torch.nn.Module):
         self.iou_weight = iou_weight
 
         self.bce_loss = nn.BCELoss()
-        self.iou_func = JaccardIndex(num_classes=2)
+        self.iou_func = CustomIoU()
 
     def forward(self, preds, target):
 
@@ -490,12 +501,14 @@ class CustomSegLoss(torch.nn.Module):
         return self.bce_weight*bce_loss + self.iou_weight*iou_loss
 ```
 
-Notice that here the BCE loss term is obtained simply by using PyTorch's `BCELoss()`. To compute the IoU score, or
-the Jaccard Index, we use torchmetric's `JaccardIndex`. To compute the IoU, the pixel values in both images should
-be binary, i.e., 0's and 1's. Since in the model's forward function a sigmoid function is already applied to the
-output, we only need to binarize both the predictions and the target tensors with a threshold of 0.5 (remember, we are 
-using **soft** masks). When measuring segmentation performance, higher IoU is better. Since IoU score is a number 
-in [0, 1], we simply compute `IoU loss = 1 - IoU` to make it a valid loss function for gradient-descent optimization.
+Notice that here the BCE loss term is obtained simply by using PyTorch's `BCELoss()`. To compute the IoU score, we 
+have implemented an auxiliary class `CustomIoU`, which implements a naive, differentiable IoU function. Note that 
+in binary segmentation tasks, we are usually interested only in the foreground IoU. Therefore, `CustomIoU` disregards
+the background IoU. To compute the IoU, the pixel values in both images should be binary, i.e., 0's and 1's. 
+Since in the model's forward function a sigmoid function is already applied to the output, we only need to binarize 
+both the predictions and the target tensors with a threshold of 0.5 (remember, we are using **soft** masks). When 
+measuring segmentation performance, higher IoU is better. Since IoU score is a number in [0, 1], we simply compute 
+`IoU loss = 1 - IoU` to make it a valid loss function for gradient-descent optimization.
 
 The overall loss is a weighted sum of the BCE and the IoU loss terms, with weights `bce_weight` and `iou_weight`,
 respectively. 
@@ -513,28 +526,33 @@ We note that SuperGradients provides many built-in metrics, including variants o
 we aim to show the ease at which we can incorporate external metrics into our pipeline. SuperGradients supports any 
 metric of type `torchmetrics.Metric`.
 
-The metric we will use is torchmetrics' `JaccardIndex`, which was also used to implement our loss function. However,
-recall that we use soft masks. 
+The metric we will use is torchmetrics' `JaccardIndex`. However, recall that we use soft masks. 
 [JaccardIndex](https://torchmetrics.readthedocs.io/en/stable/classification/jaccard_index.html) requires the target
-tensor's elements to be integers. Therefore, we will need to modify it a bit. For more details about implementing a 
-custom metric using torchmetrics, see [here](https://torchmetrics.readthedocs.io/en/stable/pages/implement.html).
+tensor's elements to be integers. Also, as noted in the previous section, since this is a binary segmentation 
+task, we are interested in the foreground IoU. Therefore, we will need to modify the metric a bit. For more details 
+about implementing a custom metric using torchmetrics, see 
+[here](https://torchmetrics.readthedocs.io/en/stable/pages/implement.html).
 
 ```
 class SoftIoU(JaccardIndex):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(reduction='none', **kwargs)
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         target = torch.gt(target, 0.5).long()
         super().update(preds, target)
+
+    def compute(self):
+        return super().compute()[1]
 ```
 
-We have defined our `SoftIoU` class which inherits from `JaccardIndex`. The only modification we introduced to 
-`JaccardIndex` is that now the target tensor is binarized with a threshold of 0.5:
+We have defined our `SoftIoU` class which inherits from `JaccardIndex`. The only modifications we introduced to 
+`JaccardIndex` are:
 
-```
-target = torch.gt(target, 0.5).long()
-```
+1. The target tensor is binarized with a threshold of 0.5: `target = torch.gt(target, 0.5).long()`
+2. To get the IoU of the foreground alone, we set `reduction='none'` in the `__init__` function. This means that
+instead of computing the mean of the background and foreground IoUs, both values are returned, and in the `compute()`
+function we only take the second element, which corresponds to the foreground.
 
 Our custom metric is now ready to use with our training pipeline.
 
@@ -631,18 +649,18 @@ trainer.train(model=model,
 The training progress will be printed to the screen:
 
 ```
-[2023-02-05 15:25:58] INFO - sg_trainer.py - Started training for 100 epochs (0/99)
+[2023-02-06 11:44:35] INFO - sg_trainer.py - Started training for 100 epochs (0/99)
 
-Train epoch 0: 100%|██████████| 3443/3443 [19:16<00:00,  2.98it/s, CustomSegLoss=1.24, SoftIoU=0.914, gpu_mem=1.81]
+Train epoch 0: 100%|██████████| 3443/3443 [19:16<00:00,  2.98it/s, CustomSegLoss=0.24, SoftIoU=0.9, gpu_mem=1.81]
 Validation epoch 0: 100%|██████████| 431/431 [00:42<00:00, 10.23it/s]
 ===========================================================
 SUMMARY OF EPOCH 0
 ├── Training
-│   ├── Customsegloss = 1.2422
-│   └── Softiou = 0.9136
+│   ├── Customsegloss = 0.2466
+│   └── Softiou = 0.9
 └── Validation
-    ├── Customsegloss = 1.2342
-    └── Softiou = 0.9464
+    ├── Customsegloss = 0.1367
+    └── Softiou = 0.9483
 
 ===========================================================
 ```
@@ -653,21 +671,21 @@ is displayed, and in later epochs, a comparison with the previous epochs is prov
 
 ```
 ===========================================================
-SUMMARY OF EPOCH 4
+SUMMARY OF EPOCH 5
 ├── Training
-│   ├── Customsegloss = 1.2301
-│   │   ├── Best until now = 1.2303 (↘ -0.0003)
-│   │   └── Epoch N-1      = 1.2303 (↘ -0.0003)
-│   └── Softiou = 0.9585
-│       ├── Best until now = 0.9136 (↗ 0.0449)
-│       └── Epoch N-1      = 0.9575 (↗ 0.001)
+│   ├── Customsegloss = 0.0915
+│   │   ├── Best until now = 0.0945 (^[[32m↘ -0.003^[[0m)
+│   │   └── Epoch N-1      = 0.0945 (^[[32m↘ -0.003^[[0m)
+│   └── Softiou = 0.9651
+│       ├── Best until now = 0.9    (↗ 0.0651^[[0m)
+│       └── Epoch N-1      = 0.9639 (↗ 0.0011^[[0m)
 └── Validation
-    ├── Customsegloss = 1.228
-    │   ├── Best until now = 1.2281 (↘ -0.0001)
-    │   └── Epoch N-1      = 1.2281 (↘ -0.0001)
-    └── Softiou = 0.9639
-        ├── Best until now = 0.9464 (↗ 0.0175)
-        └── Epoch N-1      = 0.9617 (↗ 0.0022)
+    ├── Customsegloss = 0.0789
+    │   ├── Best until now = 0.0924 (^[[32m↘ -0.0135^[[0m)
+    │   └── Epoch N-1      = 0.0924 (^[[32m↘ -0.0135^[[0m)
+    └── Softiou = 0.9702
+        ├── Best until now = 0.9483 (↗ 0.0219^[[0m)
+        └── Epoch N-1      = 0.9657 (↗ 0.0045^[[0m)
 
 ===========================================================
 ```
