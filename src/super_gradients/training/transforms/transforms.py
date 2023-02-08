@@ -320,6 +320,40 @@ class SegPadShortToCropSize(SegmentationTransform):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
 
+class SegPadToDivisible(SegmentationTransform):
+    def __init__(self, divisible_value: int, fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0) -> None:
+        super().__init__()
+        self.divisible_value = divisible_value
+        self.fill_mask = fill_mask
+        self.fill_image = fill_image
+        self.fill_image = tuple(fill_image) if isinstance(fill_image, Sequence) else fill_image
+
+        self.check_valid_arguments()
+
+    def __call__(self, sample: dict):
+        image = sample["image"]
+        mask = sample["mask"]
+        w, h = image.size
+
+        padded_w = int(math.ceil(w / self.divisible_value) * self.divisible_value)
+        padded_h = int(math.ceil(h / self.divisible_value) * self.divisible_value)
+
+        if w != padded_w or h != padded_h:
+            padh = padded_h - h
+            padw = padded_w - w
+
+            image = ImageOps.expand(image, border=(0, 0, padw, padh), fill=self.fill_image)
+            mask = ImageOps.expand(mask, border=(0, 0, padw, padh), fill=self.fill_mask)
+
+        sample["image"] = image
+        sample["mask"] = mask
+
+        return sample
+
+    def check_valid_arguments(self):
+        self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
+
+
 class SegColorJitter(transforms.ColorJitter):
     def __call__(self, sample):
         sample["image"] = super(SegColorJitter, self).__call__(sample["image"])

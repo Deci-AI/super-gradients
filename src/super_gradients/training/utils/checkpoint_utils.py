@@ -19,20 +19,21 @@ except (ModuleNotFoundError, ImportError, NameError):
 logger = get_logger(__name__)
 
 
-def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str):
+def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str, solver=None):
     """
     Adaptively loads state_dict to net, by adapting the state_dict to net's layer names first.
-
-    @param net: (nn.Module) to load state_dict to
-    @param state_dict: (dict) Chekpoint state_dict
-    @param strict: (str) key matching strictness
+    :param net: (nn.Module) to load state_dict to
+    :param state_dict: (dict) Chekpoint state_dict
+    :param strict: (str) key matching strictness
+    :param solver: callable with signature (ckpt_key, ckpt_val, model_key, model_val)
+                     that returns a desired weight for ckpt_val.
     @return:
     """
     try:
         net.load_state_dict(state_dict["net"] if "net" in state_dict.keys() else state_dict, strict=strict)
     except (RuntimeError, ValueError, KeyError) as ex:
         if strict == "no_key_matching":
-            adapted_state_dict = adapt_state_dict_to_fit_model_layer_names(net.state_dict(), state_dict)
+            adapted_state_dict = adapt_state_dict_to_fit_model_layer_names(net.state_dict(), state_dict, solver=solver)
             net.load_state_dict(adapted_state_dict["net"], strict=True)
         else:
             raise_informative_runtime_error(net.state_dict(), state_dict, ex)
@@ -153,7 +154,12 @@ def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
 
 
 def load_checkpoint_to_model(
-    ckpt_local_path: str, load_backbone: bool, net: torch.nn.Module, strict: str, load_weights_only: bool, load_ema_as_net: bool = False
+    net: torch.nn.Module,
+    ckpt_local_path: str,
+    load_backbone: bool = False,
+    strict: str = "no_key_matching",
+    load_weights_only: bool = False,
+    load_ema_as_net: bool = False,
 ):
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
@@ -256,10 +262,7 @@ def _load_weights(architecture, model, pretrained_state_dict):
     if "ema_net" in pretrained_state_dict.keys():
         pretrained_state_dict["net"] = pretrained_state_dict["ema_net"]
     solver = _yolox_ckpt_solver if "yolox" in architecture else None
-    adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(
-        model_state_dict=model.state_dict(), source_ckpt=pretrained_state_dict, solver=solver
-    )
-    model.load_state_dict(adapted_pretrained_state_dict["net"], strict=False)
+    adaptive_load_state_dict(net=model, state_dict=pretrained_state_dict, strict="no_key_matching", solver=solver)
 
 
 def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pretrained_weights: str):
