@@ -17,7 +17,14 @@ from super_gradients.training.models.detection_models.yolox import YoloX_N, Yolo
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23, DDRNet39
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, ShelfNet503343, ShelfNet101
-from super_gradients.training.models.segmentation_models.stdc import STDC1Classification, STDC2Classification, STDC1Seg, STDC2Seg, STDCSegmentationBase
+from super_gradients.training.models.segmentation_models.stdc import (
+    STDC1Classification,
+    STDC2Classification,
+    STDC1Seg,
+    STDC2Seg,
+    CustomSTDCSegmentation,
+    STDCClassification,
+)
 
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
@@ -110,7 +117,8 @@ ARCHITECTURES = {
     Models.STDC2_SEG: STDC2Seg,
     Models.STDC2_SEG50: STDC2Seg,
     Models.STDC2_SEG75: STDC2Seg,
-    Models.CUSTOM_STDC: STDCSegmentationBase,
+    Models.STDC_CUSTOM: CustomSTDCSegmentation,
+    Models.STDC_CUSTOM_CLS: STDCClassification,
     Models.REGSEG48: RegSeg48,
     Models.KD_MODULE: KDModule,
     Models.VIT_BASE: ViTBase,
