@@ -36,20 +36,22 @@ class TypeFactory(AbstractFactory):
                 return self.type_dict[conf]
             elif isinstance(conf, str) and get_param(self.type_dict, conf) is not None:
                 return get_param(self.type_dict, conf)
-            else:
+            elif "." in conf:
+                *lib_path, module = conf.split(".")
+                lib = ".".join(lib_path)
                 try:
-                    lib = ".".join(conf.split(".")[:-1])
-                    module = conf.split(".")[-1]
                     lib = importlib.import_module(lib)  # Import the required packages
                     class_type = lib.__dict__[module]
                     return class_type
-                except RuntimeError:
-                    raise UnknownTypeException(
-                        unknown_type=conf,
-                        choices=list(self.type_dict.keys()),
-                        message=f"Unknown object type: {conf} in configuration. valid types are: {self.type_dict.keys()} or a class "
-                        "type available in the env (or the form "
-                        "'package_name.sub_package.MyClass' ",
-                    )
+                except Exception as e:
+                    err = f"An error occurred while instantiating '{conf}' with exception: \n\t => {e}.\n"
+                    raise ValueError(err)
+            else:
+                raise UnknownTypeException(
+                    unknown_type=conf,
+                    choices=list(self.type_dict.keys()),
+                    message=f"Unknown object type: {conf} in configuration. valid types are: {self.type_dict.keys()} or a class "
+                    "type available in the env or in the form 'package_name.sub_package.MyClass'\n",
+                )
         else:
             return conf
