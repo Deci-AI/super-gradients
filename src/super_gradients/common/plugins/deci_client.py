@@ -157,12 +157,12 @@ class DeciClient:
         benchmark_state = self.lab_client.get_model_by_name(name=name).data.benchmark_state
         return benchmark_state in [ModelBenchmarkState.IN_PROGRESS, ModelBenchmarkState.PENDING]
 
-    def register_experiment(self, name: str, model_name: str):
+    def register_experiment(self, name: str, model_name: str, resume: bool):
         """Registers a training experiment in Deci's backend.
         :param name:        Name of the experiment to register
         :param model_name:  Name of the model architecture to connect the experiment to
         """
-        self.lab_client.register_experiment(name=name, model_name=model_name)
+        self.lab_client.register_experiment(name=name, model_name=model_name, resume=resume)
 
     def save_experiment_file(self, file_path: str):
         """

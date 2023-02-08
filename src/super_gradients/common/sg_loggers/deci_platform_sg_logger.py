@@ -60,7 +60,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
             )
 
         self.platform_client = DeciClient()
-        self.platform_client.register_experiment(name=experiment_name, model_name=model_name if model_name else None)
+        self.platform_client.register_experiment(name=experiment_name, model_name=model_name if model_name else None, resume=resumed)
         self.checkpoints_dir_path = checkpoints_dir_path
 
     @multi_process_safe
