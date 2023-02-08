@@ -163,7 +163,7 @@ def compute_oks(
 
     :param gt_bboxes: [M, 4] Bounding box (X,Y,W,H) of each ground truth instance. If None, we will use bounding box of each instance computed from gt_joints.
     :param sigmas: [NumJoints]
-    :return: IoU matrix [min(K, max_dets), M]
+    :return: IoU matrix [K, M]
     """
 
     ious = torch.zeros((len(pred_joints), len(gt_joints)), device=pred_joints.device)
@@ -278,11 +278,11 @@ class COCOevalV2:
                 preds_matched, preds_to_ignore, preds_scores, num_targets = self.compute_img_keypoint_matching(
                     pred_keypoints,
                     pred_scores,
-                    targets=gt_keypoints[~gt_is_ignore, :, :2] if len(groundtruths) else [],
+                    targets=gt_keypoints[~gt_is_ignore, :, 0:2] if len(groundtruths) else [],
                     targets_visibilities=gt_keypoints[~gt_is_ignore, :, 2] if len(groundtruths) else [],
                     targets_areas=gt_areas[~gt_is_ignore],
                     targets_bboxes=gt_bboxes[~gt_is_ignore],
-                    crowd_targets=gt_keypoints[gt_is_ignore, :, :2] if len(groundtruths) else [],
+                    crowd_targets=gt_keypoints[gt_is_ignore, :, 0:2] if len(groundtruths) else [],
                     crowd_visibilities=gt_keypoints[gt_is_ignore, :, 2] if len(groundtruths) else [],
                     crowd_targets_areas=gt_areas[gt_is_ignore],
                     crowd_targets_bboxes=gt_bboxes[gt_is_ignore],
@@ -290,6 +290,9 @@ class COCOevalV2:
                     top_k=self.params.maxDets,
                 )
                 eval_results.append((preds_matched, preds_to_ignore, preds_scores, num_targets))
+
+                if False:
+                    print(imgId, "\npreds_matched\n", preds_matched.numpy(), "\npreds_to_ignore\n", preds_to_ignore.numpy())
 
             preds_matched = torch.cat([x[0] for x in eval_results], dim=0)
             preds_to_ignore = torch.cat([x[1] for x in eval_results], dim=0)
@@ -364,9 +367,8 @@ class COCOevalV2:
         preds_to_ignore = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
 
         # Ignore all but the predictions that were top_k
-        preds_idx_to_use = torch.topk(
-            pred_scores, k=min(top_k, len(pred_scores)), sorted=True, largest=True
-        ).indices  # torch.argsort(pred_scores) get_top_k_idx_per_cls(preds_scores, preds_cls, top_k)
+        k = min(top_k, len(pred_scores))
+        preds_idx_to_use = torch.topk(pred_scores, k=k, sorted=True, largest=True).indices
         preds_to_ignore[:, :] = True
         preds_to_ignore[preds_idx_to_use] = False
 
@@ -428,3 +430,4 @@ class COCOevalV2:
             preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
 
         return preds_matched, preds_to_ignore, pred_scores, len(targets)
+        # return preds_matched[preds_idx_to_use], preds_to_ignore[preds_idx_to_use], pred_scores[preds_idx_to_use], min(top_k, len(targets))

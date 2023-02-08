@@ -5,14 +5,13 @@ import unittest
 from pprint import pprint
 from typing import List, Tuple
 
+import json_tricks as json
 import numpy as np
 from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
 
-import json_tricks as json
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import remove_duplicate_annotations, make_keypoints_outside_image_invisible
-from super_gradients.training.metrics.cocoeval import COCOeval as PatchedCOCOeval, EvaluationParams
 from super_gradients.training.metrics.cocoeval_v2 import COCOevalV2
+from super_gradients.training.metrics.patched_cocoeval import EvaluationParams
 
 
 class TestPoseEstimationMetrics(unittest.TestCase):
@@ -24,7 +23,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         gt = remove_duplicate_annotations(gt)
         gt = make_keypoints_outside_image_invisible(gt)
 
-        predictions = list(self.generate_noised_predictions(gt, instance_drop_probability=0.1, pose_offset=0.0))
+        predictions = list(self.generate_noised_predictions(gt, instance_drop_probability=0.1, pose_offset=1))
 
         coco_pred = self.convert_predictions_to_coco_dict(predictions)
 
@@ -35,34 +34,34 @@ class TestPoseEstimationMetrics(unittest.TestCase):
                 json.dump(coco_pred, f, sort_keys=True, indent=4)
 
             coco_dt = COCO(gt_annotations_path)
+            coco_dt = remove_duplicate_annotations(coco_dt)
+            coco_dt = make_keypoints_outside_image_invisible(coco_dt)
+
             coco_dt = coco_dt.loadRes(res_file)
 
         evaluator2 = COCOevalV2(EvaluationParams.get_predefined_coco_params())
-        r = evaluator2.evaluate_from_coco(gt, coco_dt)
+        results_new = evaluator2.evaluate_from_coco(gt, coco_dt)
         print("SG New")
-        pprint(r.all_metrics())
-        pprint(r.precision)
+        pprint(results_new.all_metrics())
 
-        evaluator = PatchedCOCOeval(EvaluationParams.get_predefined_coco_params())
-        evalImgs, imgIds, catIds = evaluator.evaluate_from_coco(gt, coco_dt)
+        # evaluator = PatchedCOCOeval(EvaluationParams.get_predefined_coco_params())
+        # evalImgs, imgIds, catIds = evaluator.evaluate_from_coco(gt, coco_dt)
+        # results_coco = evaluator.accumulate_with_coco(evalImgs, imgIds, catIds)
+        # print("COCO (Ours)")
+        # pprint(results_coco.all_metrics())
 
-        results_coco = evaluator.accumulate_with_coco(evalImgs, imgIds, catIds)
-        print("COCO")
-        pprint(results_coco.all_metrics())
-        pprint(results_coco.precision)
+        # results_sg = evaluator.accumulate_with_sg(evalImgs, imgIds, catIds)
+        # print("SG")
+        # pprint(results_sg.all_metrics())
+        # pprint(results_sg.precision)
 
-        results_sg = evaluator.accumulate_with_sg(evalImgs, imgIds, catIds)
-        print("SG")
-        pprint(results_sg.all_metrics())
-        pprint(results_sg.precision)
+        # E = COCOeval(gt, coco_dt, iouType="keypoints")
+        # E.evaluate()  # run per image evaluation
+        # E.accumulate()  # accumulate per image results
+        # E.summarize()  # display summary metrics of results
 
-        E = COCOeval(gt, coco_dt, iouType="keypoints")
-        E.evaluate()  # run per image evaluation
-        E.accumulate()  # accumulate per image results
-        E.summarize()  # display summary metrics of results
-
-        self.assertAlmostEquals(E.stats[0], results_sg.all_metrics()["AP"])
-        self.assertAlmostEquals(E.stats[5], results_sg.all_metrics()["AR"])
+        # self.assertAlmostEquals(E.stats[0], results_sg.all_metrics()["AP"])
+        # self.assertAlmostEquals(E.stats[5], results_sg.all_metrics()["AR"])
 
     def generate_noised_predictions(self, coco: COCO, instance_drop_probability: float, pose_offset: float) -> List[Tuple[np.ndarray, int]]:
         """

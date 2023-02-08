@@ -17,7 +17,7 @@ from super_gradients.common.registry.registry import register_metric
 from torch import Tensor
 from torchmetrics import Metric
 
-from super_gradients.training.metrics.cocoeval import COCOeval
+from super_gradients.training.metrics.patched_cocoeval import COCOeval
 from pose_estimation.models.postprocessing import PoseEstimationPostPredictionCallback
 
 logger = get_logger(__name__)
