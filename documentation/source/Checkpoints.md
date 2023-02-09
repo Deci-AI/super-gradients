@@ -154,9 +154,22 @@ Let's demonstrate the different strict modes with a simple example:
 import torch
 
 class ModelA(torch.nn.Module):
+    def __init__(self):
+        super(ModelA, self).__init__()
+        self.conv1 = torch.nn.Conv2d(3, 6, 5)
+        self.conv2 = torch.nn.Conv2d(6, 16, 5)
 
+class ModelB(torch.nn.Module):
+    def __init__(self):
+        super(ModelB, self).__init__()
+        self.conv1 = torch.nn.Conv2d(3, 6, 5)
+        self.CONV2 = torch.nn.Sequential([torch.nn.Conv2d(6, 16, 5)])
+        
 ```
 
+Notice the above networks have identical weight structures but will have different keys in their `state_dict`s.
+This is why loading a checkpoint from either one to the other, using `strict=True`, will fail and crash. Using `strict=True` will not crash and succeed in loading the weights of the first layer only.
+Using SG's `no_key_matching` will successfully load a checkpoint from either one to the other.
 
 ### Loading Pretrained Weights from the SG Model Zoo
 
