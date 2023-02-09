@@ -30,6 +30,7 @@ from super_gradients.training.datasets.segmentation_datasets import (
     PascalVOC2012SegmentationDataSet,
     PascalVOCAndAUGUnifiedDataset,
     SuperviselyPersonsDataset,
+    MapillaryDataset,
 )
 from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
 from super_gradients.common.factories.samplers_factory import SamplersFactory
@@ -580,6 +581,26 @@ def supervisely_persons_val(dataset_params: Dict = None, dataloader_params: Dict
     )
 
 
+def mapillary_train(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="mapillary_dataset_params",
+        dataset_cls=MapillaryDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def mapillary_val(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="mapillary_dataset_params",
+        dataset_cls=MapillaryDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
 def pascal_voc_detection_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="pascal_voc_detection_dataset_params",
@@ -663,6 +684,8 @@ ALL_DATALOADERS = {
     "cityscapes_ddrnet_val": cityscapes_ddrnet_val,
     "coco_segmentation_train": coco_segmentation_train,
     "coco_segmentation_val": coco_segmentation_val,
+    "mapillary_train": mapillary_train,
+    "mapillary_val": mapillary_val,
     "pascal_aug_segmentation_train": pascal_aug_segmentation_train,
     "pascal_aug_segmentation_val": pascal_aug_segmentation_val,
     "pascal_voc_segmentation_train": pascal_voc_segmentation_train,

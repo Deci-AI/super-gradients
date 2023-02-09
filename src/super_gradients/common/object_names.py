@@ -43,6 +43,7 @@ class Transforms:
     SegCropImageAndMask = "SegCropImageAndMask"
     SegRandomGaussianBlur = "SegRandomGaussianBlur"
     SegPadShortToCropSize = "SegPadShortToCropSize"
+    SegPadToDivisible = "SegPadToDivisible"
     SegColorJitter = "SegColorJitter"
     DetectionMosaic = "DetectionMosaic"
     DetectionRandomAffine = "DetectionRandomAffine"
@@ -247,6 +248,7 @@ class Models:
     REPVGG_CUSTOM = "repvgg_custom"
     DDRNET_23 = "ddrnet_23"
     DDRNET_23_SLIM = "ddrnet_23_slim"
+    DDRNET_39 = "ddrnet_39"
     CUSTOM_DDRNET_23 = "custom_ddrnet_23"
     STDC1_CLASSIFICATION = "stdc1_classification"
     STDC2_CLASSIFICATION = "stdc2_classification"
@@ -256,7 +258,6 @@ class Models:
     STDC2_SEG = "stdc2_seg"
     STDC2_SEG50 = "stdc2_seg50"
     STDC2_SEG75 = "stdc2_seg75"
-    CUSTOM_STDC = "custom_stdc"
     REGSEG48 = "regseg48"
     KD_MODULE = "kd_module"
     VIT_BASE = "vit_base"
@@ -272,6 +273,8 @@ class Models:
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
     UNET_CUSTOM = "unet_custom"
     UNET_CUSTOM_CLS = "unet_custom_cls"
+    STDC_CUSTOM = "stdc_custom"
+    STDC_CUSTOM_CLS = "stdc_custom_cls"
 
 
 class ConcatenatedTensorFormats:
