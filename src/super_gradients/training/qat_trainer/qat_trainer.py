@@ -128,8 +128,11 @@ class QATTrainer(Trainer):
         logger.info("\n".join(results))
 
         # TRAIN
-        # TODO: make another more clear statement
-        if cfg.training_hyperparams.max_epochs != 0:
+        if cfg.quantization_params.ptq_only:
+            logger.info("cfg.quantization_params.ptq_only=True. Performing PTQ only!")
+            suffix = "ptq"
+            res = None
+        else:
             model.train()
             recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
             trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=get_param(cfg, "ckpt_root_dir", default_val=None))
@@ -141,10 +144,6 @@ class QATTrainer(Trainer):
                 additional_configs_to_log=recipe_logged_cfg,
             )
             suffix = "qat"
-        else:
-            logger.info("cfg.training_hyperparams.max_epochs is 0! Performing PTQ only!")
-            suffix = "ptq"
-            res = None
 
         # EXPORT QUANTIZED MODEL TO ONNX
         input_shape = next(iter(val_dataloader))[0].shape

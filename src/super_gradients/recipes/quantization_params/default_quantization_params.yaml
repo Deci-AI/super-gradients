@@ -1,3 +1,4 @@
+ptq_only: False
 selective_quantizer_params:
   calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
   calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
