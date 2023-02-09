@@ -9,14 +9,10 @@ from torch import nn
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.metrics.metric_utils import (
-    get_metrics_dict,
-)
+from super_gradients.training.metrics.metric_utils import get_metrics_dict
 from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.utils import get_param
-from super_gradients.training.utils.distributed_training_utils import (
-    setup_device,
-)
+from super_gradients.training.utils.distributed_training_utils import setup_device
 from super_gradients.training.utils.module_utils import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
 from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
@@ -29,11 +25,22 @@ class QATTrainer(Trainer):
     @classmethod
     def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
         """
-        Performs QAT according to cfg recipe configuration.
-        Recipe must have `quantization_params` and `checkpoint_params.checkpoint_path` in it.
+        Perform quantization aware training (QAT) according to a recipe configuration.
 
-        @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
-        @return: the model and the output of trainer.train(...) (i.e results tuple)
+        This method will instantiate all the objects specified in the recipe, build and quantize the model,
+        and calibrate the quantized model. The resulting quantized model and the output of the trainer.train()
+        method will be returned.
+
+        The quantized model will be exported to ONNX along with other checkpoints.
+
+        :param cfg: The parsed DictConfig object from yaml recipe files or a dictionary.
+        :return: A tuple containing the quantized model and the output of trainer.train() method.
+        :rtype: Tuple[nn.Module, Tuple]
+
+        :raises ValueError: If the recipe does not have the required key `quantization_params` or
+        `checkpoint_params.checkpoint_path` in it.
+        :raises NotImplementedError: If the recipe requests multiple GPUs or num_gpus is not equal to 1.
+
         """
 
         # INSTANTIATE ALL OBJECTS IN CFG
