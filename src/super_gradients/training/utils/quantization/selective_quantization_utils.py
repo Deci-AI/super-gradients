@@ -57,8 +57,8 @@ class SelectiveQuantizer:
     """
     :param custom_mappings:                             custom mappings that extend the default mappings with extra behaviour
     :param default_per_channel_quant_weights:           whether quant module weights should be per channel (default=True)
-    :param default_quant_modules_calib_method_weights:  default calibration method for weights (default='max')
-    :param default_quant_modules_calib_method_inputs:   default calibration method for inputs (default='percentile')
+    :param default_quant_modules_calibrator_weights:    default calibrator method for weights (default='max')
+    :param default_quant_modules_calibrator_inputs:     default calibrator method for inputs (default='histogram')
     :param default_learn_amax:                          EXPERIMENTAL! whether quant modules should have learnable amax (default=False)
     """
 
@@ -97,15 +97,15 @@ class SelectiveQuantizer:
         self,
         *,
         custom_mappings: dict = None,
-        default_quant_modules_calib_method_weights: str = "max",
-        default_quant_modules_calib_method_inputs: str = "percentile",
+        default_quant_modules_calibrator_weights: str = "max",
+        default_quant_modules_calibrator_inputs: str = "histogram",
         default_per_channel_quant_weights: bool = True,
         default_learn_amax: bool = False,
         verbose: bool = True,
     ) -> None:
         super().__init__()
-        self.default_quant_modules_calib_method_weights = default_quant_modules_calib_method_weights
-        self.default_quant_modules_calib_method_inputs = default_quant_modules_calib_method_inputs
+        self.default_quant_modules_calibrator_weights = default_quant_modules_calibrator_weights
+        self.default_quant_modules_calibrator_inputs = default_quant_modules_calibrator_inputs
         self.default_per_channel_quant_weights = default_per_channel_quant_weights
         self.default_learn_amax = default_learn_amax
         self.verbose = verbose
@@ -124,10 +124,10 @@ class SelectiveQuantizer:
                 logger.error("Learnable amax is suported only for per-tensor quantization. Disabling it for weights quantization!")
                 learn_amax = False
 
-            return QuantDescriptor(calib_method=methods[self.default_quant_modules_calib_method_weights], axis=axis, learn_amax=learn_amax)
+            return QuantDescriptor(calib_method=methods[self.default_quant_modules_calibrator_weights], axis=axis, learn_amax=learn_amax)
         else:
             # activations stay per-tensor by default
-            return QuantDescriptor(calib_method=methods[self.default_quant_modules_calib_method_inputs], learn_amax=self.default_learn_amax)
+            return QuantDescriptor(calib_method=methods[self.default_quant_modules_calibrator_inputs], learn_amax=self.default_learn_amax)
 
     def register_skip_quantization(self, *, layer_names: Optional[Set[str]] = None):
         if layer_names is not None:

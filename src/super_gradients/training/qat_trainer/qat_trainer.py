@@ -95,8 +95,8 @@ class QATTrainer(Trainer):
         fuse_repvgg_blocks_residual_branches(model)
 
         q_util = SelectiveQuantizer(
-            default_quant_modules_calib_method_weights=cfg.quantization_params.selective_quantizer_params.method_w,
-            default_quant_modules_calib_method_inputs=cfg.quantization_params.selective_quantizer_params.method_i,
+            default_quant_modules_calibrator_weights=cfg.quantization_params.selective_quantizer_params.calibrator_w,
+            default_quant_modules_calibrator_inputs=cfg.quantization_params.selective_quantizer_params.calibrator_i,
             default_per_channel_quant_weights=cfg.quantization_params.selective_quantizer_params.per_channel,
             default_learn_amax=cfg.quantization_params.selective_quantizer_params.learn_amax,
             verbose=cfg.quantization_params.calib_params.verbose,
@@ -112,10 +112,10 @@ class QATTrainer(Trainer):
         )
         calibrator.calibrate_model(
             model,
-            method=cfg.quantization_params.calib_params.calib_method,
+            method=cfg.quantization_params.calib_params.histogram_calib_method,
             calib_data_loader=train_dataloader,
             num_calib_batches=cfg.quantization_params.calib_params.num_calib_batches or (512 // cfg.dataset_params.train_dataloader_params.batch_size) or 1,
-            percentile=cfg.quantization_params.calib_params.percentile,
+            percentile=get_param(cfg.quantization_params.calib_params, "percentile", 99.99),
         )
 
         # VALIDATE PTQ MODEL AND PRINT SUMMARY

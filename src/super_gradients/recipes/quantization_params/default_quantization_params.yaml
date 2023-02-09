@@ -1,21 +1,12 @@
-modify_recipe_for_qat:
-  enable: True                  # disable if you have recipe that is suitable for QAT
-  lr_decay_factor: 1e-2         # lr, weight decay, warmup and cosine parameters will be derived from original recipe with this factor
-  batch_size_divisor: 2         # (int) constant to divide batch_size if selective_quantizer_params.learn_amax=True
-  max_epochs_divisor: 10        # (int) constant to divide training_hyperparams.max_epochs for QAT
-  warmup_epochs_divisor: 10     # (int) constant to divide modified training_hyperparams.max_epochs to get training_hyperparams.lr_warmup_epochs
-  cosine_final_lr_ratio: 0.01   # (float) ratio between the end and the start of cosine lr schedule, overrides training_hyperparams.cosine_final_lr_ratio
-  disable_phase_callbacks: True # some phase callbacks interfere with QAT, this flag disables ALL phase callbacks
-
 selective_quantizer_params:
-  method_w: "max"           # calibrator type for weights, acceptable types are ["max", "histogram"]
-  method_i: "histogram"     # calibrator type for inputs acceptable types are ["max", "histogram"]
-  per_channel: True         # per-channel quantization of weights, activations stay per-tensor by default
-  learn_amax: False         # enable learnable amax in all TensorQuantizers using straight-through estimator
-  skip_modules: null        # optional list of module names (strings) to skip from quantization
+  calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
+  calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
+  per_channel: True          # per-channel quantization of weights, activations stay per-tensor by default
+  learn_amax: False          # enable learnable amax in all TensorQuantizers using straight-through estimator
+  skip_modules: null         # optional list of module names (strings) to skip from quantization
 
 calib_params:
-  calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", mse"], "max" calibrators are not affected
-  percentile: 99.99           # percentile for all histogram calibrators with method "percentile", other calibrators are not affected
-  num_calib_batches: null     # number of batches to use for calibration, if null, 512 / batch_size will be used
-  verbose: False              # if calibrator should be verbose
+  histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", mse"], "max" calibrators always use "max"
+  percentile: 99.99                     # percentile for all histogram calibrators with method "percentile", other calibrators are not affected
+  num_calib_batches: null               # number of batches to use for calibration, if null, 512 / batch_size will be used
+  verbose: False                        # if calibrator should be verbose
