@@ -17,8 +17,8 @@ def non_default_calibrators_example():
 
     # Initialize the quantization utility, with different calibrators, and quantize the module
     q_util = SelectiveQuantizer(
-        default_quant_modules_calib_method_weights="percentile",
-        default_quant_modules_calib_method_inputs="entropy",
+        default_quant_modules_calibrator_weights="percentile",
+        default_quant_modules_calibrator_inputs="entropy",
         default_per_channel_quant_weights=False,
         default_learn_amax=False,
     )
