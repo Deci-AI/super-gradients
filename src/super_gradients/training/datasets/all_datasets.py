@@ -8,6 +8,7 @@ from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     SuperviselyPersonsDataset,
     PascalVOCAndAUGUnifiedDataset,
+    MapillaryDataset,
 )
 from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 
@@ -23,6 +24,7 @@ ALL_DATASETS = {
     "PascalAUG2012SegmentationDataSet": PascalAUG2012SegmentationDataSet,
     "PascalVOC2012SegmentationDataSet": PascalVOC2012SegmentationDataSet,
     "CityscapesDataset": CityscapesDataset,
+    "MapillaryDataset": MapillaryDataset,
     "SuperviselyPersonsDataset": SuperviselyPersonsDataset,
     "PascalVOCAndAUGUnifiedDataset": PascalVOCAndAUGUnifiedDataset,
     "COCOKeypointsDataset": COCOKeypointsDataset,
