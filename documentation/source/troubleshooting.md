@@ -46,3 +46,16 @@ import os
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 ```
 This will provide a full traceback indicating to the source of the error.
+
+
+## CUDA Version error
+
+When using SuperGradients for the first time, you might get this error;
+```
+OSError: .../lib/python3.8/site-packages/nvidia/cublas/lib/libcublas.so.11: undefined symbol: cublasLtGetStatusString, version libcublasLt.so.11
+```
+
+This may indicate a CUDA conflict between libraries (When Torchvision & Torch are installed for different CUDA versions) or the absence of CUDA support in your Torch version.
+To fix this you can:
+- Uninstall both torch and torchvision `pip unistall torch torchvision`
+- Install the torch version that respects your **os** & **compute platform** following the instruction from https://pytorch.org/
