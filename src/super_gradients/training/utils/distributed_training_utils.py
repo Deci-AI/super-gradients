@@ -208,8 +208,16 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = No
 def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None, device: str = "cuda"):
     """
     If required, launch ddp subprocesses.
-    :param multi_gpu:    DDP, DP, Off or AUTO
-    :param num_gpus:     Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
+    :param multi_gpu:   DDP, DP, Off or AUTO
+    :param num_gpus:    Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
+    :param device:      The device you want to use ('cpu' or 'cuda')
+
+    If you only set num_gpus, your device will be set up according to the following logic:
+        - `setup_device(num_gpus=0)`  => `gpu_mode='OFF'` and `device='cpu'`
+        - `setup_device(num_gpus=1)`  => `gpu_mode='OFF'` and `device='gpu'`
+        - `setup_device(num_gpus>=2)` => `gpu_mode='DDP'` and `device='gpu'`
+        - `setup_device(num_gpus=-1)` => `gpu_mode='DDP'` and `device='gpu'` and `num_gpus=<N-AVAILABLE-GPUs>`
+
     """
     init_trainer()
 

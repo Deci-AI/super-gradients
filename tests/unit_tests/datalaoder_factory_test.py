@@ -42,6 +42,8 @@ from super_gradients.training.dataloaders.dataloaders import (
     pascal_voc_detection_train,
     pascal_voc_detection_val,
     get,
+    mapillary_train,
+    mapillary_val,
 )
 from super_gradients.training.datasets import (
     COCODetectionDataset,
@@ -57,6 +59,7 @@ import torch
 import numpy as np
 
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PascalVOCUnifiedDetectionTrainDataset
+from super_gradients.training.datasets.segmentation_datasets import MapillaryDataset
 
 
 @register_dataset("FixedLenDataset")
@@ -269,6 +272,16 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = pascal_voc_detection_val()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, PascalVOCDetectionDataset))
+
+    def test_mapillary_train_creation(self):
+        dl_train = mapillary_train()
+        self.assertTrue(isinstance(dl_train, DataLoader))
+        self.assertTrue(isinstance(dl_train.dataset, MapillaryDataset))
+
+    def test_mapillary_val_creation(self):
+        dl_val = mapillary_val()
+        self.assertTrue(isinstance(dl_val, DataLoader))
+        self.assertTrue(isinstance(dl_val.dataset, MapillaryDataset))
 
     def test_get_with_external_dataset_creation(self):
         dataset = Cifar10(root="./data/cifar10", train=False, download=True)
