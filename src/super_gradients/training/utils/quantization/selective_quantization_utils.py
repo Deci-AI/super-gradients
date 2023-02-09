@@ -1,3 +1,4 @@
+import logging
 from typing import Tuple, Set, Type, Dict, Union, Callable, Optional
 from torch import nn
 
@@ -100,12 +101,14 @@ class SelectiveQuantizer:
         default_quant_modules_calib_method_inputs: str = "percentile",
         default_per_channel_quant_weights: bool = True,
         default_learn_amax: bool = False,
+        verbose: bool = True,
     ) -> None:
         super().__init__()
         self.default_quant_modules_calib_method_weights = default_quant_modules_calib_method_weights
         self.default_quant_modules_calib_method_inputs = default_quant_modules_calib_method_inputs
         self.default_per_channel_quant_weights = default_per_channel_quant_weights
         self.default_learn_amax = default_learn_amax
+        self.verbose = verbose
         self.mapping_instructions = self.mapping_instructions.copy()
         if custom_mappings is not None:
             self.mapping_instructions.update(custom_mappings)  # OVERRIDE DEFAULT WITH CUSTOM. CUSTOM IS PRIORITIZED
@@ -126,10 +129,14 @@ class SelectiveQuantizer:
             # activations stay per-tensor by default
             return QuantDescriptor(calib_method=methods[self.default_quant_modules_calib_method_inputs], learn_amax=self.default_learn_amax)
 
-    def register_skip_quantization(self, *, layer_names: Set[str]):
-        self.mapping_instructions.update(
-            {name: QuantizedMetadata(float_source=name, quantized_target_class=None, action=QuantizedMetadata.ReplacementAction.SKIP) for name in layer_names}
-        )
+    def register_skip_quantization(self, *, layer_names: Optional[Set[str]] = None):
+        if layer_names is not None:
+            self.mapping_instructions.update(
+                {
+                    name: QuantizedMetadata(float_source=name, quantized_target_class=None, action=QuantizedMetadata.ReplacementAction.SKIP)
+                    for name in layer_names
+                }
+            )
 
     def register_quantization_mapping(
         self, *, layer_names: Set[str], quantized_target_class: Type[SGQuantMixin], input_quant_descriptor=None, weights_quant_descriptor=None
@@ -300,8 +307,15 @@ class SelectiveQuantizer:
             **per_layer_mappings,
             **self.mapping_instructions,
         }  # we first regard the per layer mappings, and then override with the custom mappings in case there is overlap
+        logging_level = logging.getLogger("absl").getEffectiveLevel()
+        if not self.verbose:  # suppress pytorch-quantization spam
+            logging.getLogger("absl").setLevel("ERROR")
 
+        device = next(module.parameters()).device
         self._quantize_module_aux(mapping_instructions=mapping_instructions, module=module, nesting=(), preserve_state_dict=preserve_state_dict)
+        module.to(device)
+
+        logging.getLogger("absl").setLevel(logging_level)
 
     def _quantize_module_aux(self, mapping_instructions, module, nesting, preserve_state_dict):
         for name, child_module in module.named_children():

@@ -3,6 +3,7 @@ from super_gradients.training import ARCHITECTURES, losses, utils, datasets_util
 from super_gradients.examples.train_from_recipe_example import train_from_recipe
 from super_gradients.examples.train_from_kd_recipe_example import train_from_kd_recipe
 from super_gradients.sanity_check import env_sanity_check
+from super_gradients.training.qat_trainer.qat_trainer import QATTrainer
 from super_gradients.training.utils.distributed_training_utils import setup_device
 
 __all__ = [
@@ -13,6 +14,7 @@ __all__ = [
     "DataAugmentation",
     "Trainer",
     "KDTrainer",
+    "QATTrainer",
     "object_names",
     "init_trainer",
     "is_distributed",
