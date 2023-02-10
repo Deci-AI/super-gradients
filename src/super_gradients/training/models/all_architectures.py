@@ -17,7 +17,11 @@ from super_gradients.training.models.detection_models.yolox import YoloX_N, Yolo
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23, DDRNet39
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, ShelfNet503343, ShelfNet101
-from super_gradients.training.models.segmentation_models.stdc import (
+
+from super_gradients.training.models.kd_modules.kd_module import KDModule
+from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
+from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
+from super_gradients.training.models.segmentation_models.stdc.stdc import (
     STDC1Classification,
     STDC2Classification,
     STDC1Seg,
@@ -25,10 +29,6 @@ from super_gradients.training.models.segmentation_models.stdc import (
     CustomSTDCSegmentation,
     STDCClassification,
 )
-
-from super_gradients.training.models.kd_modules.kd_module import KDModule
-from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
-from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
 from super_gradients.training.models.segmentation_models.unet import UNetCustom, UnetClassification
 from super_gradients.common.object_names import Models
 
