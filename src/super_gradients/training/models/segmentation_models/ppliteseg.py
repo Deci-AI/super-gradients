@@ -4,7 +4,7 @@ from typing import Union, List
 from super_gradients.modules import ConvBNReLU
 from super_gradients.training.utils.module_utils import make_upsample_module
 from super_gradients.common.data_types.enum.upsample_mode import UpsampleMode
-from super_gradients.training.models.segmentation_models.stdc import STDC1Backbone, STDC2Backbone
+from super_gradients.training.models.segmentation_models.stdc.stdc_encoder import STDC1Backbone, STDC2Backbone
 from super_gradients.training.models.segmentation_models.common import SegmentationHead, AbstractSegmentationBackbone
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import HpmStruct, get_param, torch_version_is_greater_or_equal
