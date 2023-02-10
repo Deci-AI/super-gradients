@@ -47,7 +47,7 @@ initial_upsample:  # None
 
 final_upsample:
   Upsample:
-    scale_factor: 8
+    scale_factor: 2
     mode: ${upsample_mode}
     align_corners: ${align_corners}
 
