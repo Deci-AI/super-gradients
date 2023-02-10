@@ -97,6 +97,7 @@ class Transforms:
     RandomAdjustSharpness = "RandomAdjustSharpness"
     RandomAutocontrast = "RandomAutocontrast"
     RandomEqualize = "RandomEqualize"
+    Upsample = "Upsample"
 
     # Keypoints
     KeypointsRandomAffineTransform = "KeypointsRandomAffineTransform"

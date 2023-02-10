@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import unittest
 
+import torch
+
 from super_gradients.common.object_names import Models
 from super_gradients.training import Trainer
 from super_gradients.training.dataloaders import imagenet_val, imagenet_vit_base_val
@@ -156,7 +158,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.cityscapes_pretrained_arch_params = {
             Models.DDRNET_23: {"aux_head": True},
             Models.REGSEG48: {},
-            "stdc": {"use_aux_heads": True, "aux_head": True},
+            "stdc": {"use_aux_heads": True, "aux_head": True, "final_upsample": torch.nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True)},
             "pplite_seg": {"use_aux_heads": True},
         }
 

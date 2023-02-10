@@ -43,6 +43,7 @@
 defaults:
   - training_hyperparams: cityscapes_default_train_params
   - dataset_params: cityscapes_stdc_seg75_dataset_params
+  - arch_params: stdc_default_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
 

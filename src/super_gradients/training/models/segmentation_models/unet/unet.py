@@ -1,6 +1,7 @@
 import torch.nn as nn
 from typing import Optional, Union, List
 
+from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training import models
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
@@ -15,14 +16,15 @@ from super_gradients.training.models.segmentation_models.common import Segmentat
 
 class UNetBase(SegmentationModule):
     @resolve_param("context_module", ContextModulesFactory())
+    @resolve_param("initial_upsample", TransformsFactory())
+    @resolve_param("final_upsample", TransformsFactory())
     def __init__(
         self,
         num_classes: int,
         use_aux_heads: bool,
-        final_upsample_factor: int,
+        initial_upsample: Optional[nn.Upsample],
+        final_upsample: Optional[nn.Upsample],
         head_hidden_channels: Optional[int],
-        head_upsample_mode: Union[UpsampleMode, str],
-        align_corners: bool,
         backbone_params: dict,
         context_module: AbstractContextModule,
         decoder_params: dict,
@@ -32,11 +34,10 @@ class UNetBase(SegmentationModule):
         """
         :param num_classes: num classes to predict.
         :param use_aux_heads: Whether to use auxiliary heads.
-        :param final_upsample_factor: Final upsample scale factor after the segmentation head.
+        :param initial_upsample: Initial upsample before the stem.
+        :param final_upsample: Final upsample after the segmentation head.
         :param head_hidden_channels: num channels before the last classification layer. see `mid_channels` in
             `SegmentationHead` class.
-        :param head_upsample_mode: UpsampleMode of segmentation and auxiliary heads.
-        :param align_corners: align_corners arg of segmentation and auxiliary heads.
         :param backbone_params: params to build a `UNetBackboneBase`, include the following keys:
             - strides_list: List[int], list of stride per stage.
             - width_list: List[int], list of num channels per stage.
@@ -66,6 +67,7 @@ class UNetBase(SegmentationModule):
         """
         super().__init__(use_aux_heads=use_aux_heads)
         self.num_classes = num_classes
+        self.initial_upsample = initial_upsample or nn.Identity()
         # Init Backbone
         backbone = UNetBackboneBase(**backbone_params)
         # Init Encoder
@@ -80,18 +82,14 @@ class UNetBase(SegmentationModule):
                 num_classes=self.num_classes,
                 dropout=dropout,
             ),
-            nn.Identity()
-            if final_upsample_factor == 1
-            else make_upsample_module(scale_factor=final_upsample_factor, upsample_mode=head_upsample_mode, align_corners=align_corners),
+            final_upsample or nn.Identity(),
         )
         # Init Aux Heads
         if self.use_aux_heads:
             # Aux heads are applied if both conditions are true, use_aux_list is set as True and the correspondent
             # backbone features are outputted and set as True in backbone is_out_feature_list.
             aux_heads_params["use_aux_list"] = [a and b for a, b in zip(aux_heads_params["use_aux_list"], backbone_params["is_out_feature_list"])]
-            self.aux_heads = self.init_aux_heads(
-                in_channels_list=self.backbone.width_list, upsample_mode=head_upsample_mode, align_corners=align_corners, dropout=dropout, **aux_heads_params
-            )
+            self.aux_heads = self.init_aux_heads(in_channels_list=self.backbone.width_list, dropout=dropout, **aux_heads_params)
         self.init_params()
 
     @staticmethod
@@ -129,6 +127,7 @@ class UNetBase(SegmentationModule):
         return heads
 
     def forward(self, x):
+        x = self.initial_upsample(x)
         encoder_feats = self.encoder(x)
         x = self.decoder(encoder_feats)
         x = self.seg_head(x)

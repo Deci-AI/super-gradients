@@ -1,0 +1,7 @@
+initial_upsample:  # None
+
+final_upsample:
+  Upsample:
+    scale_factor: 8
+    mode: bilinear
+    align_corners: True

@@ -1,5 +1,18 @@
 import torch.nn as nn
+from abc import ABC, abstractmethod
+
+from typing import List
+
 from super_gradients.modules import ConvBNReLU
+
+
+class AbstractSegmentationBackbone(nn.Module, ABC):
+    @abstractmethod
+    def get_backbone_output_number_of_channels(self) -> List[int]:
+        """
+        :return: list on stages num channels.
+        """
+        raise NotImplementedError()
 
 
 class SegmentationHead(nn.Module):

@@ -8,6 +8,7 @@ import torch.nn.functional as F
 
 from super_gradients.training.models.classification_models.regnet import XBlock
 from super_gradients.training.models.classification_models.repvgg import RepVGGBlock
+from super_gradients.training.models.segmentation_models.common import AbstractSegmentationBackbone
 from super_gradients.training.models.segmentation_models.stdc import STDCBlock
 from super_gradients.training.models import SgModule, HpmStruct
 from super_gradients.modules import ConvBNReLU, QARepVGGBlock
@@ -32,25 +33,6 @@ class AntiAliasDownsample(nn.Module):
 
     def forward(self, x):
         return F.conv2d(x, self.filt, stride=self.stride, padding=1, groups=self.channels)
-
-
-class AbstractUNetBackbone(nn.Module, ABC):
-    """
-    All backbones for UNet segmentation models must implement this class.
-    """
-
-    @abstractmethod
-    def get_backbone_output_number_of_channels(self) -> List[int]:
-        """
-        :return: list of stages num channels.
-        """
-        raise NotImplementedError()
-
-    def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
-        """
-        :return: list of skip features from different resolutions to be fused by the decoder.
-        """
-        raise NotImplementedError()
 
 
 class BackboneStage(nn.Module, ABC):
@@ -218,7 +200,7 @@ BACKBONE_STAGES = dict(
 )
 
 
-class UNetBackboneBase(AbstractUNetBackbone):
+class UNetBackboneBase(AbstractSegmentationBackbone):
     @resolve_param("block_types_list", ListFactory(TypeFactory(BACKBONE_STAGES)))
     def __init__(
         self,
@@ -265,7 +247,7 @@ class UNetBackboneBase(AbstractUNetBackbone):
 
 
 class Encoder(nn.Module):
-    def __init__(self, backbone: AbstractUNetBackbone, context_module: Optional[nn.Module]):
+    def __init__(self, backbone: AbstractSegmentationBackbone, context_module: Optional[nn.Module]):
         super().__init__()
         self.backbone = backbone
         self.context_module = nn.Identity() if context_module is None else context_module

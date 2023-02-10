@@ -24,6 +24,9 @@ context_module:
     # biases before batchnorm operators. should be set to `False` for new training processes.
     use_bias: False
 
+upsample_mode: bilinear
+align_corners: False
+
 decoder_params:
   # skip expansion ratio value, before fusing the skip features from the encoder with the decoder features, a projection
   # convolution is applied upon the encoder features to project the num_channels by skip_expansion.
@@ -31,17 +34,26 @@ decoder_params:
   decoder_scale: 0.25   # num_channels width ratio between encoder stages and decoder stages.
   up_block_types: [UpCatBlock, UpCatBlock, UpCatBlock, UpCatBlock]    # See unet_decoder.UpBlockType for options.
   up_block_repeat_list: [ 1, 1, 1, 1]   # num of blocks per decoder stage, the `block` implementation depends on the up-block type.
-  mode: bilinear
-  align_corners: False
+  mode: ${upsample_mode}
+  align_corners: ${align_corners}
   up_factor: 2
   is_skip_list: [True, True, True, True]    # List of flags whether to use feature-map from encoder stage as skip connection or not.
   min_decoder_channels: 1                   # The minimum num_channels of decoder stages. Useful i.e if we want to keep the width above the num of classes.
 
 dropout: 0.
-final_upsample_factor: 2    # Final upsample scale factor after the segmentation head.
-head_upsample_mode: bilinear
-align_corners: False
 head_hidden_channels:   #  num channels before the last classification layer. see `mid_channels` in `SegmentationHead` class.
+
+initial_upsample:
+  Upsample:
+    scale_factor: 0.5
+    mode: ${upsample_mode}
+    align_corners: ${align_corners}
+
+final_upsample:
+  Upsample:
+    scale_factor: 2
+    mode: ${upsample_mode}
+    align_corners: ${align_corners}
 
 use_aux_heads: False
 aux_heads_params:
@@ -49,5 +61,5 @@ aux_heads_params:
   aux_heads_factor: [2, 4, 8, 16, 32]   # Upsample factor per encoder stage.
   aux_hidden_channels: [32, 32, 64, 64, 64]   # Hidden num channels before last classification layer, per encoder stage.
   aux_out_channels: [1, 1, 19, 19, 19]    # Output channels, can be refers as num_classes, of auxiliary head per encoder stage.
-
+  upsample_mode: ${upsample_mode}
 _convert_: all

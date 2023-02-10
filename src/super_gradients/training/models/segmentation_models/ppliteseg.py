@@ -4,8 +4,8 @@ from typing import Union, List
 from super_gradients.modules import ConvBNReLU
 from super_gradients.training.utils.module_utils import make_upsample_module
 from super_gradients.common.data_types.enum.upsample_mode import UpsampleMode
-from super_gradients.training.models.segmentation_models.stdc import AbstractSTDCBackbone, STDC1Backbone, STDC2Backbone
-from super_gradients.training.models.segmentation_models.common import SegmentationHead
+from super_gradients.training.models.segmentation_models.stdc import STDC1Backbone, STDC2Backbone
+from super_gradients.training.models.segmentation_models.common import SegmentationHead, AbstractSegmentationBackbone
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import HpmStruct, get_param, torch_version_is_greater_or_equal
 from super_gradients.training.models.segmentation_models.context_modules import SPPM
@@ -70,7 +70,7 @@ class PPLiteSegEncoder(nn.Module):
     Encoder for PPLiteSeg, include backbone followed by a context module.
     """
 
-    def __init__(self, backbone: AbstractSTDCBackbone, projection_channels_list: List[int], context_module: nn.Module):
+    def __init__(self, backbone: AbstractSegmentationBackbone, projection_channels_list: List[int], context_module: nn.Module):
         super().__init__()
         self.backbone = backbone
         self.context_module = context_module
@@ -140,7 +140,7 @@ class PPLiteSegBase(SegmentationModule):
     def __init__(
         self,
         num_classes,
-        backbone: AbstractSTDCBackbone,
+        backbone: AbstractSegmentationBackbone,
         projection_channels_list: List[int],
         sppm_inter_channels: int,
         sppm_out_channels: int,

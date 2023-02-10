@@ -7,6 +7,7 @@ from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.metrics.all_metrics import METRICS
 from super_gradients.training.losses.all_losses import LOSSES
 from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
+from super_gradients.training.models.segmentation_models.registry import SEGMENTATION_BACKBONES
 from super_gradients.training.utils.callbacks.all_callbacks import CALLBACKS
 from super_gradients.training.transforms.all_transforms import TRANSFORMS
 from super_gradients.training.datasets.all_datasets import ALL_DATASETS
@@ -62,6 +63,7 @@ register_dataset = create_register_decorator(registry=ALL_DATASETS)
 register_pre_launch_callback = create_register_decorator(registry=ALL_PRE_LAUNCH_CALLBACKS)
 register_unet_backbone_stage = create_register_decorator(registry=BACKBONE_STAGES)
 register_unet_up_block = create_register_decorator(registry=UP_FUSE_BLOCKS)
+register_segmentation_backbones = create_register_decorator(registry=SEGMENTATION_BACKBONES)
 register_target_generator = create_register_decorator(registry=ALL_TARGET_GENERATORS)
 register_sg_logger = create_register_decorator(registry=SG_LOGGERS)
 register_collate_function = create_register_decorator(registry=ALL_COLLATE_FUNCTIONS)

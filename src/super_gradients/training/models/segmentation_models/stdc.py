@@ -2,8 +2,7 @@
 Implementation of paper: "Rethinking BiSeNet For Real-time Semantic Segmentation", https://arxiv.org/abs/2104.13188
 Based on original implementation: https://github.com/MichaelFan01/STDC-Seg, cloned 23/08/2021, commit 59ff37f
 """
-from typing import Union, List
-from abc import ABC, abstractmethod
+from typing import Union, List, Optional
 
 import torch
 import torch.nn as nn
@@ -11,11 +10,12 @@ import torch.nn.functional as F
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.base_factory import BaseFactory
+from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.models import SgModule
+from super_gradients.training.models.segmentation_models.registry import SEGMENTATION_BACKBONES
 from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.modules import ConvBNReLU
-from super_gradients.training.models.segmentation_models.common import SegmentationHead
-
+from super_gradients.training.models.segmentation_models.common import SegmentationHead, AbstractSegmentationBackbone
 
 # default STDC argument as paper.
 STDC_SEG_DEFAULT_ARGS = {"context_fuse_channels": 128, "ffm_channels": 256, "aux_head_channels": 64, "detail_head_channels": 64}
@@ -84,25 +84,7 @@ class STDCBlock(nn.Module):
         return out
 
 
-class AbstractSTDCBackbone(nn.Module, ABC):
-    """
-    All backbones for STDC segmentation models must implement this class.
-    """
-
-    def validate_backbone(self):
-        assert len(self.get_backbone_output_number_of_channels()) == 3, (
-            f"Backbone for STDC segmentation must output 3 feature maps," f" found: {len(self.get_backbone_output_number_of_channels())}."
-        )
-
-    @abstractmethod
-    def get_backbone_output_number_of_channels(self) -> List[int]:
-        """
-        :return: list on stages num channels.
-        """
-        raise NotImplementedError()
-
-
-class STDCBackbone(AbstractSTDCBackbone):
+class STDCBackbone(AbstractSegmentationBackbone):
     def __init__(
         self,
         block_types: list,
@@ -342,7 +324,7 @@ class ContextPath(nn.Module):
      backbone.
     """
 
-    def __init__(self, backbone: AbstractSTDCBackbone, fuse_channels: int, use_aux_heads: bool):
+    def __init__(self, backbone: AbstractSegmentationBackbone, fuse_channels: int, use_aux_heads: bool):
         super(ContextPath, self).__init__()
         self.use_aux_heads = use_aux_heads
 
@@ -394,11 +376,15 @@ class STDCSegmentationBase(SgModule):
     :param dropout: segmentation heads dropout.
     """
 
-    @resolve_param("backbone", BaseFactory({"STDCBackbone": STDCBackbone}))
+    @resolve_param("backbone", BaseFactory(SEGMENTATION_BACKBONES))
+    @resolve_param("initial_upsample", TransformsFactory())
+    @resolve_param("final_upsample", TransformsFactory())
     def __init__(
         self,
-        backbone: AbstractSTDCBackbone,
+        backbone: AbstractSegmentationBackbone,
         num_classes: int,
+        initial_upsample: Optional[nn.Upsample],
+        final_upsample: Optional[nn.Upsample],
         context_fuse_channels: int,
         ffm_channels: int,
         aux_head_channels: int,
@@ -407,18 +393,16 @@ class STDCSegmentationBase(SgModule):
         dropout: float,
     ):
         super(STDCSegmentationBase, self).__init__()
-        backbone.validate_backbone()
+        self._validate_backbone(backbone)
         self._use_aux_heads = use_aux_heads
-
+        self.initial_upsample = initial_upsample or nn.Identity()
         self.cp = ContextPath(backbone, context_fuse_channels, use_aux_heads=use_aux_heads)
 
         stage3_s8_channels, stage4_s16_channels, stage5_s32_channels = backbone.get_backbone_output_number_of_channels()
 
         self.ffm = FeatureFusionModule(spatial_channels=stage3_s8_channels, context_channels=context_fuse_channels, out_channels=ffm_channels)
         # Main segmentation head
-        self.segmentation_head = nn.Sequential(
-            SegmentationHead(ffm_channels, ffm_channels, num_classes, dropout=dropout), nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True)
-        )
+        self.segmentation_head = nn.Sequential(SegmentationHead(ffm_channels, ffm_channels, num_classes, dropout=dropout), final_upsample or nn.Identity())
 
         if self._use_aux_heads:
             # Auxiliary heads
@@ -436,6 +420,11 @@ class STDCSegmentationBase(SgModule):
             )
 
         self.init_params()
+
+    def _validate_backbone(self, backbone: AbstractSegmentationBackbone):
+        n_outputs = len(backbone.get_backbone_output_number_of_channels())
+        if n_outputs != 3:
+            raise AssertionError(f"{self.__class__.__name__} assumes 3 outputs from the backbone. The provided {backbone.__class__.__name__} has {n_outputs}.")
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
@@ -496,6 +485,7 @@ class STDCSegmentationBase(SgModule):
                     nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
+        x = self.initial_upsample(x)
         cp_outs = self.cp(x)
         feat8, feat_cp8 = cp_outs[0], cp_outs[1]
         # fuse stage 3 with result of context path after ARM modules.
@@ -580,6 +570,8 @@ class CustomSTDCSegmentation(STDCSegmentationBase):
     def __init__(self, arch_params: HpmStruct):
         super().__init__(
             backbone=get_param(arch_params, "backbone"),
+            initial_upsample=get_param(arch_params, "initial_upsample"),
+            final_upsample=get_param(arch_params, "final_upsample"),
             num_classes=get_param(arch_params, "num_classes"),
             context_fuse_channels=get_param(arch_params, "context_fuse_channels", 128),
             ffm_channels=get_param(arch_params, "ffm_channels", 256),

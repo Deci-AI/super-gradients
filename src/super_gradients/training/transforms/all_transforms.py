@@ -1,3 +1,5 @@
+from torch.nn import Upsample
+
 from super_gradients.common.object_names import Transforms
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, rand_augment_transform
@@ -139,6 +141,7 @@ TRANSFORMS = {
     Transforms.RandomAutocontrast: RandomAutocontrast,
     Transforms.RandomEqualize: RandomEqualize,
     Transforms.Standardize: Standardize,
+    Transforms.Upsample: Upsample,
     # Keypoints
     Transforms.KeypointsRandomAffineTransform: KeypointsRandomAffineTransform,
     Transforms.KeypointsImageNormalize: KeypointsImageNormalize,
