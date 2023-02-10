@@ -58,4 +58,5 @@ aux_heads_params:
   aux_hidden_channels: [32, 32, 64, 64, 64]   # Hidden num channels before last classification layer, per encoder stage.
   aux_out_channels: [1, 1, 19, 19, 19]    # Output channels, can be refers as num_classes, of auxiliary head per encoder stage.
   upsample_mode: ${upsample_mode}
+  align_corners: ${align_corners}
 _convert_: all
