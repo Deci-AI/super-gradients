@@ -196,11 +196,10 @@ class UNetCustom(UNetBase):
         arch_params = HpmStruct(**models.get_arch_params("unet_default_arch_params.yaml", arch_params.to_dict()))
         super().__init__(
             num_classes=get_param(arch_params, "num_classes"),
+            initial_upsample=get_param(arch_params, "initial_upsample"),
+            final_upsample=get_param(arch_params, "final_upsample"),
             use_aux_heads=get_param(arch_params, "use_aux_heads", False),
-            final_upsample_factor=get_param(arch_params, "final_upsample_factor", 1),
             head_hidden_channels=get_param(arch_params, "head_hidden_channels"),
-            head_upsample_mode=get_param(arch_params, "head_upsample_mode", UpsampleMode.BILINEAR),
-            align_corners=get_param(arch_params, "align_corners", False),
             backbone_params=get_param(arch_params, "backbone_params"),
             context_module=get_param(arch_params, "context_module", nn.Identity()),
             decoder_params=get_param(arch_params, "decoder_params"),
