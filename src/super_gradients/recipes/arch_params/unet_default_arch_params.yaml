@@ -43,15 +43,11 @@ decoder_params:
 dropout: 0.
 head_hidden_channels:   #  num channels before the last classification layer. see `mid_channels` in `SegmentationHead` class.
 
-initial_upsample:
-  Upsample:
-    scale_factor: 0.5
-    mode: ${upsample_mode}
-    align_corners: ${align_corners}
+initial_upsample:  # None
 
 final_upsample:
   Upsample:
-    scale_factor: 2
+    scale_factor: 8
     mode: ${upsample_mode}
     align_corners: ${align_corners}
 
