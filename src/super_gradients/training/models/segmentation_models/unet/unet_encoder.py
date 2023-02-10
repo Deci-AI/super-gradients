@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from super_gradients.training.models.classification_models.regnet import XBlock
 from super_gradients.training.models.classification_models.repvgg import RepVGGBlock
 from super_gradients.training.models.segmentation_models.common import AbstractSegmentationBackbone
-from super_gradients.training.models.segmentation_models.stdc import STDCBlock
+from super_gradients.training.models.segmentation_models.stdc.stdc_block import STDCBlock
 from super_gradients.training.models import SgModule, HpmStruct
 from super_gradients.modules import ConvBNReLU, QARepVGGBlock
 from super_gradients.common.decorators.factory_decorator import resolve_param
