@@ -7,6 +7,10 @@ from super_gradients.modules import ConvBNReLU
 
 
 class AbstractSegmentationBackbone(nn.Module, ABC):
+    """
+    A base class for Backbones used as part of an Encoder (Segmentation)
+    """
+
     @abstractmethod
     def get_backbone_output_number_of_channels(self) -> List[int]:
         """
