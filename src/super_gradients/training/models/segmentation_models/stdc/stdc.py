@@ -179,7 +179,7 @@ class ContextPath(nn.Module):
 
         self.backbone = backbone
         # get num of channels for two last stages
-        channels16, channels32 = self.backbone.get_backbone_output_number_of_channels()[-2:]
+        channels16, channels32 = [_.channels for _ in self.backbone.get_backbone_output_spec()][-2:]
 
         self.context_embedding = ContextEmbeddingOnline(channels32, fuse_channels)
 
@@ -247,7 +247,7 @@ class STDCSegmentationBase(SgModule):
         self.initial_upsample = initial_upsample or nn.Identity()
         self.cp = ContextPath(backbone, context_fuse_channels, use_aux_heads=use_aux_heads)
 
-        stage3_s8_channels, stage4_s16_channels, stage5_s32_channels = backbone.get_backbone_output_number_of_channels()
+        stage3_s8_channels, stage4_s16_channels, stage5_s32_channels = [_.channels for _ in backbone.get_backbone_output_spec()]
 
         self.ffm = FeatureFusionModule(spatial_channels=stage3_s8_channels, context_channels=context_fuse_channels, out_channels=ffm_channels)
         # Main segmentation head
@@ -271,7 +271,7 @@ class STDCSegmentationBase(SgModule):
         self.init_params()
 
     def _validate_backbone(self, backbone: AbstractSegmentationBackbone):
-        n_outputs = len(backbone.get_backbone_output_number_of_channels())
+        n_outputs = len(backbone.get_backbone_output_spec())
         if n_outputs != 3:
             raise AssertionError(f"{self.__class__.__name__} assumes 3 outputs from the backbone. The provided {backbone.__class__.__name__} has {n_outputs}.")
 
@@ -358,7 +358,7 @@ class STDCSegmentationBase(SgModule):
         # Output layer's replacement- first modules in the sequences are the SegmentationHead modules.
         self.segmentation_head[0] = SegmentationHead(ffm_channels, ffm_channels, new_num_classes, dropout=dropout)
         if self.use_aux_heads:
-            stage3_s8_channels, stage4_s16_channels, stage5_s32_channels = self.backbone.get_backbone_output_number_of_channels()
+            stage3_s8_channels, stage4_s16_channels, stage5_s32_channels = [_.channels for _ in self.backbone.get_backbone_output_spec()]
             aux_head_channels = self.aux_head_s16[0].seg_head[-1].in_channels
             detail_head_channels = self.detail_head8[0].seg_head[-1].in_channels
 

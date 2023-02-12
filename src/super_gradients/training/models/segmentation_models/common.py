@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import torch.nn as nn
 from abc import ABC, abstractmethod
 
@@ -6,13 +8,23 @@ from typing import List
 from super_gradients.modules import ConvBNReLU
 
 
+@dataclass
+class FeatureMapOutputSpec:
+    """
+    A dataclass to hold spec for output feature map
+    """
+
+    channels: int
+    stride: int
+
+
 class AbstractSegmentationBackbone(nn.Module, ABC):
     """
     A base class for Backbones used as part of an Encoder (Segmentation)
     """
 
     @abstractmethod
-    def get_backbone_output_number_of_channels(self) -> List[int]:
+    def get_backbone_output_spec(self) -> List[FeatureMapOutputSpec]:
         """
         :return: list on stages num channels.
         """

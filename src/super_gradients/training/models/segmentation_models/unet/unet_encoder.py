@@ -2,13 +2,14 @@ import math
 from typing import List, Type, Optional
 from abc import ABC, abstractmethod
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from super_gradients.training.models.classification_models.regnet import XBlock
 from super_gradients.training.models.classification_models.repvgg import RepVGGBlock
-from super_gradients.training.models.segmentation_models.common import AbstractSegmentationBackbone
+from super_gradients.training.models.segmentation_models.common import AbstractSegmentationBackbone, FeatureMapOutputSpec
 from super_gradients.training.models.segmentation_models.stdc.stdc_block import STDCBlock
 from super_gradients.training.models import SgModule, HpmStruct
 from super_gradients.modules import ConvBNReLU, QARepVGGBlock
@@ -234,8 +235,9 @@ class UNetBackboneBase(AbstractSegmentationBackbone):
             self.num_stages == len(self.width_list) == len(self.num_blocks_list) == len(self.block_types_list) == len(self.is_out_feature_list)
         ), f"Backbone specification arguments must match to the num of stages: {self.num_stages}"
 
-    def get_backbone_output_number_of_channels(self) -> List[int]:
-        return [ch for ch, is_out in zip(self.width_list, self.is_out_feature_list) if is_out]
+    def get_backbone_output_spec(self) -> List[FeatureMapOutputSpec]:
+        cumulative_stride = np.cumprod(self.strides_list)
+        return [FeatureMapOutputSpec(channels=ch, stride=st) for ch, st, is_out in zip(self.width_list, cumulative_stride, self.is_out_feature_list) if is_out]
 
     def forward(self, x):
         outs = []
@@ -262,7 +264,7 @@ class Encoder(nn.Module):
         Return list of encoder output channels, which is backbone output channels and context module output channels in
         case the context module return different num of channels.
         """
-        channels_list = self.backbone.get_backbone_output_number_of_channels()
+        channels_list = [_.channels for _ in self.backbone.get_backbone_output_spec()]
         if hasattr(self.context_module, "out_channels") and self.context_module.out_channels is not None:
             channels_list[-1] = self.context_module.out_channels
         return channels_list
@@ -272,7 +274,7 @@ class UnetClassification(SgModule):
     def __init__(self, arch_params: HpmStruct):
         super().__init__()
         self.backbone = UNetBackboneBase(**arch_params.backbone_params)
-        out_channels = self.backbone.get_backbone_output_number_of_channels()[-1]
+        out_channels = self.backbone.get_backbone_output_spec()[-1]
 
         self.classifier_head = nn.Sequential(
             ConvBNReLU(out_channels, 1024, kernel_size=1, bias=False),

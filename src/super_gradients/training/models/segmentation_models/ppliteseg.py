@@ -74,7 +74,7 @@ class PPLiteSegEncoder(nn.Module):
         super().__init__()
         self.backbone = backbone
         self.context_module = context_module
-        feats_channels = backbone.get_backbone_output_number_of_channels()
+        feats_channels = [_.channels for _ in backbone.get_backbone_output_spec()]
         self.proj_convs = nn.ModuleList(
             [ConvBNReLU(feat_ch, proj_ch, kernel_size=3, padding=1, bias=False) for feat_ch, proj_ch in zip(feats_channels, projection_channels_list)]
         )
@@ -179,7 +179,7 @@ class PPLiteSegBase(SegmentationModule):
         super().__init__(use_aux_heads=use_aux_heads)
 
         # Init Encoder
-        backbone_out_channels = backbone.get_backbone_output_number_of_channels()
+        backbone_out_channels = [_.channels for _ in backbone.get_backbone_output_spec()]
         assert len(backbone_out_channels) == len(projection_channels_list), (
             f"The length of backbone outputs ({backbone_out_channels}) should match the length of projection channels" f"({len(projection_channels_list)})."
         )

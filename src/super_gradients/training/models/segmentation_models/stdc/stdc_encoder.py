@@ -4,7 +4,7 @@ from torch import nn
 
 from super_gradients.modules import ConvBNReLU
 
-from super_gradients.training.models.segmentation_models.common import AbstractSegmentationBackbone
+from super_gradients.training.models.segmentation_models.common import AbstractSegmentationBackbone, FeatureMapOutputSpec
 from super_gradients.training.models.segmentation_models.stdc.stdc_block import STDCBlock
 
 
@@ -38,6 +38,7 @@ class STDCBackbone(AbstractSegmentationBackbone):
         )
 
         self.out_widths = []
+        self.out_down_ratios = out_down_ratios
         self.stages = nn.ModuleDict()
         self.out_stage_keys = []
         down_ratio = 2
@@ -93,8 +94,8 @@ class STDCBackbone(AbstractSegmentationBackbone):
                 outputs.append(x)
         return tuple(outputs)
 
-    def get_backbone_output_number_of_channels(self) -> List[int]:
-        return self.out_widths
+    def get_backbone_output_spec(self) -> List[FeatureMapOutputSpec]:
+        return [FeatureMapOutputSpec(channels=ch, stride=st) for ch, st in zip(self.out_widths, self.out_down_ratios)]
 
 
 class STDC1Backbone(STDCBackbone):
