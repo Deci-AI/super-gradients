@@ -159,8 +159,6 @@ class Trainer:
         self.strict_load = StrictLoad.ON
         self.load_ema_as_net = False
         self.ckpt_best_name = "ckpt_best.pth"
-        self.enable_qat = False
-        self.qat_params = {}
         self._infinite_train_loader = False
         self._first_backward = True
 
@@ -975,32 +973,6 @@ class Trainer:
 
                     The best checkpoint (according to metric_to_watch) will be saved under this filename in the checkpoints directory.
 
-                -   `enable_qat`: bool (default=False)
-
-                    Adds a QATCallback to the phase callbacks, that triggers quantization aware training starting from
-                     qat_params["start_epoch"]
-
-                -   `qat_params`: dict-like object with the following key/values:
-
-                        start_epoch: int, first epoch to start QAT.
-
-                        quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
-                         computation of the quantized modules (default=percentile).
-
-                        per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).
-
-                        calibrate: bool, whether to perfrom calibration (default=False).
-
-                        calibrated_model_path: str, path to a calibrated checkpoint (default=None).
-
-                        calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset. When None,
-                         context.train_loader will be used (default=None).
-
-                        num_calib_batches: int, number of batches to collect the statistics from.
-
-                        percentile: float, percentile value to use when Trainer,quant_modules_calib_method='percentile'.
-                         Discarded when other methods are used (Default=99.99).
-
                 -   `max_train_batches`: int, for debug- when not None- will break out of inner train loop (i.e iterating over
                       train_loader) when reaching this number of batches. Usefull for debugging (default=None).
 
@@ -1137,13 +1109,6 @@ class Trainer:
 
         self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
         self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
-
-        # ADD CALLBACK FOR QAT
-        self.enable_qat = core_utils.get_param(self.training_params, "enable_qat", False)
-        if self.enable_qat:
-            raise NotImplementedError(
-                "QAT is not implemented as a plug-and-play feature yet. Please refer to examples/resnet_qat to learn how to do it manually."
-            )
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
