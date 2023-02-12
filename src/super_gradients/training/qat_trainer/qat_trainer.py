@@ -30,9 +30,6 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
 
 
 class QATTrainer(Trainer):
-    if _imported_pytorch_quantization_failure is not None:
-        raise _imported_pytorch_quantization_failure
-
     @classmethod
     def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
         """
@@ -51,8 +48,11 @@ class QATTrainer(Trainer):
         :raises ValueError: If the recipe does not have the required key `quantization_params` or
         `checkpoint_params.checkpoint_path` in it.
         :raises NotImplementedError: If the recipe requests multiple GPUs or num_gpus is not equal to 1.
+        :raises ImportError: If pytorch-quantization import was unsuccessful
 
         """
+        if _imported_pytorch_quantization_failure is not None:
+            raise _imported_pytorch_quantization_failure
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
