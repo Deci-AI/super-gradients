@@ -1,25 +1,21 @@
 import torch.nn as nn
 from typing import Optional, Union, List
 
-from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
-from super_gradients.training.models.segmentation_models.registry import SEGMENTATION_ENCODERS, SEGMENTATION_DECODERS
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training import models
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils.module_utils import make_upsample_module, UpsampleMode, fuse_repvgg_blocks_residual_branches
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import UNetBackbone, UNetEncoder
 from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
-from super_gradients.training.models.segmentation_models.unet.unet_decoder import Decoder
+from super_gradients.training.models.segmentation_models.unet.unet_decoder import UNetDecoder
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
 
 
 class UNetBase(SegmentationModule):
-    @resolve_param("encoder", BaseFactory(SEGMENTATION_ENCODERS))
     @resolve_param("context_module", ContextModulesFactory())
-    @resolve_param("decoder", BaseFactory(SEGMENTATION_DECODERS))
     @resolve_param("initial_upsample", TransformsFactory())
     @resolve_param("final_upsample", TransformsFactory())
     def __init__(
@@ -75,10 +71,10 @@ class UNetBase(SegmentationModule):
         # Init Backbone
         backbone = UNetBackbone(**backbone_params)
         # Init Encoder
-        self.encoder = (UNetEncoder(backbone),)  # context_module)
+        self.encoder = UNetEncoder(backbone, context_module)
         self.context = context_module
         # Init Decoder
-        self.decoder = Decoder(skip_channels_list=self.encoder.get_output_number_of_channels(), **decoder_params)
+        self.decoder = UNetDecoder(skip_channels_list=self.encoder.get_output_number_of_channels(), **decoder_params)
         # Init Segmentation Head
         self.seg_head = nn.Sequential(
             SegmentationHead(
