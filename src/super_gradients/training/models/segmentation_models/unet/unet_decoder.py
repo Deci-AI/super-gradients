@@ -98,7 +98,7 @@ UP_FUSE_BLOCKS = dict(
 )
 
 
-class Decoder(nn.Module):
+class UNetDecoder(nn.Module):
     @resolve_param("up_block_types", ListFactory(TypeFactory(UP_FUSE_BLOCKS)))
     def __init__(
         self,

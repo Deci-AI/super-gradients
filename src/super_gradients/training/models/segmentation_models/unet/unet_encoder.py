@@ -201,7 +201,7 @@ BACKBONE_STAGES = dict(
 )
 
 
-class UNetBackboneBase(AbstractSegmentationBackbone):
+class UNetBackbone(AbstractSegmentationBackbone):
     @resolve_param("block_types_list", ListFactory(TypeFactory(BACKBONE_STAGES)))
     def __init__(
         self,
@@ -248,7 +248,7 @@ class UNetBackboneBase(AbstractSegmentationBackbone):
         return outs
 
 
-class Encoder(nn.Module):
+class UNetEncoder(nn.Module):
     def __init__(self, backbone: AbstractSegmentationBackbone, context_module: Optional[nn.Module]):
         super().__init__()
         self.backbone = backbone
@@ -273,7 +273,7 @@ class Encoder(nn.Module):
 class UnetClassification(SgModule):
     def __init__(self, arch_params: HpmStruct):
         super().__init__()
-        self.backbone = UNetBackboneBase(**arch_params.backbone_params)
+        self.backbone = UNetBackbone(**arch_params.backbone_params)
         out_channels = self.backbone.get_backbone_output_spec()[-1]
 
         self.classifier_head = nn.Sequential(

@@ -3,16 +3,14 @@ Implementation of paper: "Rethinking BiSeNet For Real-time Semantic Segmentation
 Based on original implementation: https://github.com/MichaelFan01/STDC-Seg, cloned 23/08/2021, commit 59ff37f
 """
 from typing import Union, Optional
-
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.segmentation_models.registry import SEGMENTATION_BACKBONES
+from super_gradients.training.models.segmentation_models.stdc.stdc_decoder import STDCDecoder
 from super_gradients.training.models.segmentation_models.stdc.stdc_encoder import STDCBackbone, STDC1Backbone, STDC2Backbone
 from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.modules import ConvBNReLU
@@ -74,143 +72,6 @@ class STDCClassification(STDCClassificationBase):
         )
 
 
-class AttentionRefinementModule(nn.Module):
-    """
-    AttentionRefinementModule to apply on the last two backbone stages.
-    """
-
-    def __init__(self, in_channels: int, out_channels: int):
-        super(AttentionRefinementModule, self).__init__()
-        self.conv_first = ConvBNReLU(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
-        self.attention_block = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1), ConvBNReLU(out_channels, out_channels, kernel_size=1, bias=False, use_activation=False), nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        x = self.conv_first(x)
-        y = self.attention_block(x)
-        return torch.mul(x, y)
-
-
-class FeatureFusionModule(nn.Module):
-    """
-    Fuse features from higher resolution aka, spatial feature map with features from lower resolution with high
-     semantic information aka, context feature map.
-    :param spatial_channels: num channels of input from spatial path.
-    :param context_channels: num channels of input from context path.
-    :param out_channels: num channels of feature fusion module.
-    """
-
-    def __init__(self, spatial_channels: int, context_channels: int, out_channels: int):
-        super(FeatureFusionModule, self).__init__()
-        self.pw_conv = ConvBNReLU(spatial_channels + context_channels, out_channels, kernel_size=1, stride=1, bias=False)
-        # TODO - used without bias in convolutions by mistake, try to reproduce with bias=True
-        self.attention_block = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            ConvBNReLU(in_channels=out_channels, out_channels=out_channels // 4, kernel_size=1, use_normalization=False, bias=False),
-            nn.Conv2d(in_channels=out_channels // 4, out_channels=out_channels, kernel_size=1, bias=False),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, spatial_feats, context_feats):
-        feat = torch.cat([spatial_feats, context_feats], dim=1)
-        feat = self.pw_conv(feat)
-        atten = self.attention_block(feat)
-        feat_atten = torch.mul(feat, atten)
-        feat_out = feat_atten + feat
-        return feat_out
-
-
-class ContextEmbeddingOnline(nn.Module):
-    """
-    ContextEmbedding module that use global average pooling to 1x1 to extract context information, and then upsample
-    to original input size.
-    """
-
-    def __init__(self, in_channels: int, out_channels: int):
-        super(ContextEmbeddingOnline, self).__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.context_embedding = nn.Sequential(nn.AdaptiveAvgPool2d(1), ConvBNReLU(in_channels, out_channels, kernel_size=1, stride=1, bias=False))
-
-    def forward(self, x):
-        out_height, out_width = x.size()[2:]
-        x = self.context_embedding(x)
-        return F.interpolate(x, size=(out_height, out_width), mode="nearest")
-
-
-class ContextEmbeddingFixedSize(ContextEmbeddingOnline):
-    """
-    ContextEmbedding module that use a fixed size interpolation, supported with onnx conversion.
-    Prevent slice/cast/shape operations in onnx conversion for applying interpolation.
-    """
-
-    def __init__(self, in_channels: int, out_channels: int, upsample_size: Union[list, tuple]):
-        super(ContextEmbeddingFixedSize, self).__init__(in_channels, out_channels)
-        self.context_embedding.add_module("upsample", nn.Upsample(scale_factor=upsample_size, mode="nearest"))
-
-    @classmethod
-    def from_context_embedding_online(cls, ce_online: ContextEmbeddingOnline, upsample_size: Union[list, tuple]):
-        context = ContextEmbeddingFixedSize(in_channels=ce_online.in_channels, out_channels=ce_online.out_channels, upsample_size=upsample_size)
-        # keep training mode state as original module
-        context.train(ce_online.training)
-        context.load_state_dict(ce_online.state_dict())
-        return context
-
-    def forward(self, x):
-        return self.context_embedding(x)
-
-
-class ContextPath(nn.Module):
-    """
-    ContextPath in STDC output both the Spatial path and Context path. This module include a STDCBackbone and output
-    the stage3 feature map with down_ratio = 8 as the spatial feature map, and context feature map which is a result of
-    upsampling and fusion of context embedding, stage5 and stage4 after Arm modules, Which is also with same resolution
-    of the spatial feature map, down_ration = 8.
-    :param backbone: Backbone of type AbstractSTDCBackbone that return info about backbone output channels.
-    :param fuse_channels: num channels of the fused context path.
-    :param use_aux_heads: set True when training, output extra Auxiliary feature maps of the two last stages of the
-     backbone.
-    """
-
-    def __init__(self, backbone: AbstractSegmentationBackbone, fuse_channels: int, use_aux_heads: bool):
-        super(ContextPath, self).__init__()
-        self.use_aux_heads = use_aux_heads
-
-        self.backbone = backbone
-        # get num of channels for two last stages
-        channels16, channels32 = [_.channels for _ in self.backbone.get_backbone_output_spec()][-2:]
-
-        self.context_embedding = ContextEmbeddingOnline(channels32, fuse_channels)
-
-        self.arm32 = AttentionRefinementModule(channels32, fuse_channels)
-        self.upsample32 = nn.Sequential(
-            nn.Upsample(scale_factor=2, mode="nearest"), ConvBNReLU(fuse_channels, fuse_channels, kernel_size=3, padding=1, stride=1, bias=False)
-        )
-
-        self.arm16 = AttentionRefinementModule(channels16, fuse_channels)
-        self.upsample16 = nn.Sequential(
-            nn.Upsample(scale_factor=2, mode="nearest"), ConvBNReLU(fuse_channels, fuse_channels, kernel_size=3, padding=1, stride=1, bias=False)
-        )
-
-    def forward(self, x):
-        feat8, feat16, feat32 = self.backbone(x)
-
-        ce_feats = self.context_embedding(feat32)
-        feat32_arm = self.arm32(feat32)
-        feat32_arm = feat32_arm + ce_feats
-
-        feat32_up = self.upsample32(feat32_arm)
-
-        feat16_arm = self.arm16(feat16)
-        feat16_arm = feat16_arm + feat32_up
-        feat16_up = self.upsample16(feat16_arm)
-
-        if self.use_aux_heads:
-            return feat8, feat16_up, feat16, feat32
-        return feat8, feat16_up
-
-
 class STDCSegmentationBase(SgModule):
     """
     Base STDC Segmentation Module.
@@ -242,15 +103,18 @@ class STDCSegmentationBase(SgModule):
         dropout: float,
     ):
         super(STDCSegmentationBase, self).__init__()
-        self._validate_backbone(backbone)
+        self.backbone = backbone
+        self._validate_backbone()
         self._use_aux_heads = use_aux_heads
         self.initial_upsample = initial_upsample or nn.Identity()
-        self.cp = ContextPath(backbone, context_fuse_channels, use_aux_heads=use_aux_heads)
 
-        stage3_s8_channels, stage4_s16_channels, stage5_s32_channels = [_.channels for _ in backbone.get_backbone_output_spec()]
+        skip_channels = [_.channels for _ in backbone.get_backbone_output_spec()]
+        stage3_s8_channels, stage4_s16_channels, stage5_s32_channels = skip_channels
 
-        self.ffm = FeatureFusionModule(spatial_channels=stage3_s8_channels, context_channels=context_fuse_channels, out_channels=ffm_channels)
-        # Main segmentation head
+        self.decoder = STDCDecoder(
+            skip_channels_list=skip_channels, context_fuse_channels=context_fuse_channels, ffm_channels=ffm_channels, ffm_projection_channels=None
+        )
+
         self.segmentation_head = nn.Sequential(SegmentationHead(ffm_channels, ffm_channels, num_classes, dropout=dropout), final_upsample or nn.Identity())
 
         if self._use_aux_heads:
@@ -270,10 +134,12 @@ class STDCSegmentationBase(SgModule):
 
         self.init_params()
 
-    def _validate_backbone(self, backbone: AbstractSegmentationBackbone):
-        n_outputs = len(backbone.get_backbone_output_spec())
+    def _validate_backbone(self):
+        n_outputs = len(self.backbone.get_backbone_output_spec())
         if n_outputs != 3:
-            raise AssertionError(f"{self.__class__.__name__} assumes 3 outputs from the backbone. The provided {backbone.__class__.__name__} has {n_outputs}.")
+            raise AssertionError(
+                f"{self.__class__.__name__} assumes 3 outputs from the backbone. The provided {self.backbone.__class__.__name__} has {n_outputs}."
+            )
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
@@ -283,9 +149,7 @@ class STDCSegmentationBase(SgModule):
         """
         # set to false and delete auxiliary and detail heads modules.
         self.use_aux_heads = False
-
-        context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
-        self.cp.context_embedding = ContextEmbeddingFixedSize.from_context_embedding_online(self.cp.context_embedding, context_embedding_up_size)
+        self.decoder.prep_model_for_conversion(input_size, **kwargs)
 
     def _remove_auxiliary_and_detail_heads(self):
         attributes_to_delete = ["aux_head_s16", "aux_head_s32", "detail_head8"]
@@ -309,15 +173,7 @@ class STDCSegmentationBase(SgModule):
             raise ValueError("Cant turn use_aux_heads from False to True, you should initiate the module again with" " `use_aux_heads=True`")
         if not use_aux:
             self._remove_auxiliary_and_detail_heads()
-        self.cp.use_aux_heads = use_aux
         self._use_aux_heads = use_aux
-
-    @property
-    def backbone(self):
-        """
-        For Trainer load_backbone compatibility.
-        """
-        return self.cp.backbone
 
     def init_params(self):
         for m in self.modules():
@@ -335,24 +191,21 @@ class STDCSegmentationBase(SgModule):
 
     def forward(self, x):
         x = self.initial_upsample(x)
-        cp_outs = self.cp(x)
-        feat8, feat_cp8 = cp_outs[0], cp_outs[1]
-        # fuse stage 3 with result of context path after ARM modules.
-        feat_out = self.ffm(spatial_feats=feat8, context_feats=feat_cp8)
+        feat8, feat16, feat32 = self.backbone(x)
+        feat_out = self.decoder([feat8, feat16, feat32])
         feat_out = self.segmentation_head(feat_out)
 
         if not self.use_aux_heads:
             return feat_out
-        feat16, feat32 = cp_outs[2], cp_outs[3]
-        detail_out8 = self.detail_head8(feat8)
 
+        detail_out8 = self.detail_head8(feat8)
         aux_out_s16 = self.aux_head_s16(feat16)
         aux_out_s32 = self.aux_head_s32(feat32)
 
         return feat_out, aux_out_s32, aux_out_s16, detail_out8
 
     def replace_head(self, new_num_classes: int, **kwargs):
-        ffm_channels = self.ffm.attention_block[-2].out_channels
+        ffm_channels = self.decoder.ffm.attention_block[-2].out_channels
         dropout = self.segmentation_head[0].seg_head[1].p
 
         # Output layer's replacement- first modules in the sequences are the SegmentationHead modules.
@@ -404,7 +257,7 @@ class STDCSegmentationBase(SgModule):
         """
         multiply_lr_params, no_multiply_params = {}, {}
         for name, param in self.named_parameters():
-            if "cp." in name:
+            if "decoder." in name:
                 no_multiply_params[name] = param
             else:
                 multiply_lr_params[name] = param
