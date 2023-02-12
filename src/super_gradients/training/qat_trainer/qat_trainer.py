@@ -158,6 +158,6 @@ class QATTrainer(Trainer):
             input_size=input_shape,
             train=False,
         )
-        logger.info(f"Exporting {suffix.upper()} ONNX to {qdq_onnx_path}")
+        logger.info(f"Exported {suffix.upper()} ONNX to {qdq_onnx_path}")
 
         return model, res
