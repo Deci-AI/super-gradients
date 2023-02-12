@@ -14,12 +14,12 @@ From the [Pytorch Lightning](https://pytorch-lightning.readthedocs.io/en/stable/
 From the previous subsection, we understand that checkpoints saved at different times during training have different purposes.
 That's why in SG, multiple checkpoints are saved throughout training:
 
-| Checkpoint Filename        | When is it saved?           |
+| Checkpoint Filename | When is it saved?|
 | ------------- |:-------------:|
-| `ckpt_best.pth`     | Each time we reach a new best [metric_to_watch](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) when perfroming validation.|
-| `ckpt_latest.pth`     | At the end of every epoch, constantly overriding. |
-| `average_model.pth` | At the end of training - composed of 10 best models according to  [metric_to_watch](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) and will only be save when the training_param `average_best_models`=True.     |
-| `ckpt_epoch_{EPOCH_INDEX}.pth`| At the end of a fixed epoch number `EPOCH_INDEX` if it is specified through `save_ckpt_epoch_list` training_param |
+| `ckpt_best.pth` | Each time we reach a new best [metric_to_watch](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) when perfroming validation. |
+| `ckpt_latest.pth` | At the end of every epoch, constantly overriding. |
+| `average_model.pth` | At the end of training - composed of 10 best models according to  [metric_to_watch](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) and will only be save when the training_param `average_best_models`=True. |
+| `ckpt_epoch_{EPOCH_INDEX}.pth` | At the end of a fixed epoch number `EPOCH_INDEX` if it is specified through `save_ckpt_epoch_list` training_param |
 
 #### Where are the checkpoint files saved?
 
@@ -27,7 +27,7 @@ The checkpoint files will be saved at <PATH_TO_CKPT_ROOT_DIR>/experiment_name/.
 
 The user controls the checkpoint root directory, which can be passed to the `Trainer` constructor through the `ckpt_root_dir` argument.
 
-When working with a cloned version of SG, one can leave out the `ckpt_root_dir` arg, and checkpoints will be saved in the `checkpoints` module.
+When working with a cloned version of SG, one can leave out the `ckpt_root_dir` arg, and checkpoints will be saved under the `super_gradients/checkpoints` directory.
 
 ## Checkpoint Structure in SG
 
@@ -36,17 +36,17 @@ They hold additional information about the model's training besides the model we
 
 The checkpoint keys:
 
-"net": The network's state_dict (state_dict).
+> "net": The network's state_dict (state_dict).
 
-"acc": The network's achieved metric value on the validation set ([metric_to_watch in training_params](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) (float).
+> "acc": The network's achieved metric value on the validation set ([metric_to_watch in training_params](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) (float).
 
-"epoch": The last epoch performed.
+> "epoch": The last epoch performed.
 
-"optimizer_state_dict": The state_dict of the optimizer (state_dict).
+> "optimizer_state_dict": The state_dict of the optimizer (state_dict).
 
-"scaler_state_dict": Optional - only present when training with [mixed_precision=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/average_mixed_precision.md). The state_dict of Trainer.scaler.
+> "scaler_state_dict": Optional - only present when training with [mixed_precision=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/average_mixed_precision.md). The state_dict of Trainer.scaler.
 
-"ema_net": Optional - only present when training with [ema=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/EMA.md). The EMA model's state_dict. Note that `average_model.pth` lacks this entry even if ema=True since the average model's snapshots are of the EMA network already (i.e., the "net" entry is already an average of the EMA snapshots).
+> "ema_net": Optional - only present when training with [ema=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/EMA.md). The EMA model's state_dict. Note that `average_model.pth` lacks this entry even if ema=True since the average model's snapshots are of the EMA network already (i.e., the "net" entry is already an average of the EMA snapshots).
 
 ## Remote Checkpoint Saving with SG Loggers
 
@@ -113,7 +113,7 @@ Suppose we wish to load the weights from `ckpt_best.pth`. We can simply pass its
         model = models.get(model_name=Models.RESNET18, num_classes=10, checkpoint_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
    ```
 
-`Important: when loading SG-trained checkpoints using models.get(...), if the network was trained with EMA, the EMA weights will be the ones loaded. `
+> Important: when loading SG-trained checkpoints using models.get(...), if the network was trained with EMA, the EMA weights will be the ones loaded. 
 
 If we already possess an instance of our model, we can also directly use `load_checkpoint_to_model`:
 
@@ -172,7 +172,7 @@ class ModelB(torch.nn.Module):
 ```
 
 Notice the above networks have identical weight structures but will have different keys in their `state_dict`s.
-This is why loading a checkpoint from either one to the other, using `strict=True`, will fail and crash. Using `strict=True` will not crash and successfully load the first layer's weights only.
+This is why loading a checkpoint from either one to the other, using `strict=True`, will fail and crash. Using `strict=False` will not crash and successfully load the first layer's weights only.
 Using SG's `no_key_matching` will successfully load a checkpoint from either one to the other.
 
 ### Loading Pretrained Weights from the SG Model Zoo
@@ -264,7 +264,7 @@ In both cases, SG allows flexibility of the other training-related parameters. F
 > python train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=400
 ```
 
-This means that such flexibility comes with its price: we must be aware of any change in parameters (by command line overrides or hard-coded changes inside the yaml file configurations) if we wish to resume training.
+However, this flexibility comes with a price: we must be aware of any change in parameters (by command line overrides or hard-coded changes inside the yaml file configurations) if we wish to resume training.
 
 For this reason, SG also offers a safer option for resuming interrupted training - the `Trainer.resume_experiment(...)` method. It takes two arguments: `experiment_name` - the experiment's name to continue, and `ckpt_root_dir` - the directory including the checkpoints. It will resume training with the same settings the training was launched with.
 Note that resuming training this way requires the interrupted training to be launched with configuration files (i.e., `Trainer.train_from_config`), which outputs the Hydra final config to the `.hydra` directory inside the checkpoints directory.
