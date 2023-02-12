@@ -414,7 +414,7 @@ class QuantizationUtilityTest(unittest.TestCase):
         module = MyModel()
 
         # TEST
-        q_util = SelectiveQuantizer(default_quant_modules_calib_method_inputs="max", default_quant_modules_calib_method_weights="max")
+        q_util = SelectiveQuantizer(default_quant_modules_calibrator_inputs="max", default_quant_modules_calibrator_weights="max")
         q_util.quantize_module(module)
 
         x = torch.rand(1, 3, 32, 32)
