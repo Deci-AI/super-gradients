@@ -14,14 +14,25 @@ from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import setup_device
 from super_gradients.training.utils.module_utils import fuse_repvgg_blocks_residual_branches
-from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
-from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
-from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 
 logger = get_logger(__name__)
+try:
+    from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
+    from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
+    from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
+
+    _imported_pytorch_quantization_failure = None
+
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    logger.debug("Failed to import pytorch_quantization:")
+    logger.debug(import_err)
+    _imported_pytorch_quantization_failure = import_err
 
 
 class QATTrainer(Trainer):
+    if _imported_pytorch_quantization_failure is not None:
+        raise _imported_pytorch_quantization_failure
+
     @classmethod
     def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
         """
