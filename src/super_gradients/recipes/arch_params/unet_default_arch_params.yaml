@@ -32,6 +32,7 @@ decoder_params:
   up_block_types: [UpCatBlock, UpCatBlock, UpCatBlock, UpCatBlock]    # See unet_decoder.UpBlockType for options.
   up_block_repeat_list: [ 1, 1, 1, 1]   # num of blocks per decoder stage, the `block` implementation depends on the up-block type.
   mode: bilinear
+  fallback_mode: bilinear
   align_corners: False
   up_factor: 2
   is_skip_list: [True, True, True, True]    # List of flags whether to use feature-map from encoder stage as skip connection or not.

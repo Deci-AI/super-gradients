@@ -175,6 +175,26 @@ class NormalizationAdapter(torch.nn.Module):
         return x
 
 
+class PixelShuffle(nn.Module):
+    """
+    Equivalent to nn.PixelShuffle.
+    nn.PixelShuffle module is translated to `DepthToSpace` layer in ONNX, some compilation frameworks (i.e tflite),
+    doesn't support this layer. In that case this module should be used, it's translated to
+    reshape / transpose / reshape operations in ONNX graph.
+    """
+
+    def __init__(self, upscale_factor: int):
+        super().__init__()
+        self.scale = upscale_factor
+
+    def forward(self, x: torch.Tensor):
+        b, c, h, w = x.size()
+        x = x.reshape(b, torch.div(c, self.scale * self.scale, rounding_mode="trunc"), self.scale, self.scale, h, w)
+        x = x.permute(0, 1, 4, 2, 5, 3)
+        x = x.reshape(b, torch.div(c, self.scale * self.scale, rounding_mode="trunc"), h * self.scale, w * self.scale)
+        return x
+
+
 def make_upsample_module(scale_factor: int, upsample_mode: Union[str, UpsampleMode], align_corners: Optional[bool] = None):
     """
     Factory method for creating upsampling modules.
@@ -183,11 +203,19 @@ def make_upsample_module(scale_factor: int, upsample_mode: Union[str, UpsampleMo
     :return: nn.Module
     """
     upsample_mode = upsample_mode.value if isinstance(upsample_mode, UpsampleMode) else upsample_mode
+
     if upsample_mode == UpsampleMode.NEAREST.value:
         # Prevent ValueError when passing align_corners with nearest mode.
         module = nn.Upsample(scale_factor=scale_factor, mode=upsample_mode)
+
     elif upsample_mode in [UpsampleMode.BILINEAR.value, UpsampleMode.BICUBIC.value]:
         module = nn.Upsample(scale_factor=scale_factor, mode=upsample_mode, align_corners=align_corners)
+
+    elif upsample_mode == UpsampleMode.PIXEL_SHUFFLE.value:
+        module = PixelShuffle(upscale_factor=scale_factor)
+
+    elif upsample_mode == UpsampleMode.NN_PIXEL_SHUFFLE.value:
+        module = nn.PixelShuffle(upscale_factor=scale_factor)
     else:
         raise NotImplementedError(f"Upsample mode: `{upsample_mode}` is not supported.")
     return module
