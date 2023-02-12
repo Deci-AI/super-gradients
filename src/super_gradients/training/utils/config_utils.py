@@ -80,7 +80,7 @@ class AccessCounterMixin:
 
 
 class AccessCounterDict(Mapping, AccessCounterMixin):
-    def __init__(self, config: dict, access_counter: Mapping[str, int] = None, prefix: str = ""):
+    def __init__(self, config: Union[dict, DictConfig], access_counter: Mapping[str, int] = None, prefix: str = ""):
         super().__init__()
         self.config = config
         self._access_counter = access_counter or defaultdict(int)
