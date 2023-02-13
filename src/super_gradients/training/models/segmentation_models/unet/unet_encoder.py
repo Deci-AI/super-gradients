@@ -289,8 +289,13 @@ class Encoder(nn.Module):
 class UnetClassification(SgModule):
     def __init__(self, arch_params: HpmStruct):
         super().__init__()
-        self.backbone = UNetBackboneBase(**arch_params.backbone_params)
-        out_channels = self.backbone.get_backbone_output_number_of_channels()[-1]
+        backbone = UNetBackboneBase(**arch_params.backbone_params)
+
+        # Init Context Module
+        context_module = arch_params.context_module or nn.Identity()
+
+        self.encoder = Encoder(backbone, context_module)
+        out_channels = self.encoder.get_output_number_of_channels()[-1]
 
         self.classifier_head = nn.Sequential(
             ConvBNReLU(out_channels, 1024, kernel_size=1, bias=False),
@@ -301,5 +306,5 @@ class UnetClassification(SgModule):
         )
 
     def forward(self, x):
-        x = self.backbone(x)[-1]
+        x = self.encoder(x)[-1]
         return self.classifier_head(x)
