@@ -167,13 +167,15 @@ class COCODetectionDataset(DetectionDataset):
             crowd_target[ix, 0:4] = annotation["clean_bbox"]
             crowd_target[ix, 4] = cls
 
-        r = min(self.input_dim[0] / height, self.input_dim[1] / width)
-        target[:, :4] *= r
-        crowd_target[:, :4] *= r
-        target_segmentation *= r
-
         initial_img_shape = (height, width)
-        resized_img_shape = (int(height * r), int(width * r))
+        if self.input_dim is not None:
+            r = min(self.input_dim[0] / height, self.input_dim[1] / width)
+            target[:, :4] *= r
+            crowd_target[:, :4] *= r
+            target_segmentation *= r
+            resized_img_shape = (int(height * r), int(width * r))
+        else:
+            resized_img_shape = initial_img_shape
 
         file_name = img_metadata["file_name"] if "file_name" in img_metadata else "{:012}".format(img_id) + ".jpg"
         img_path = os.path.join(self.data_dir, self.subdir, file_name)
