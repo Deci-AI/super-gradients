@@ -100,8 +100,38 @@ from super_gradients.training.utils.quantization.selective_quantization_utils im
 class MyQuantBlock:
     ...
 ```
+
+#### QuantDescriptor API
+
+`QuantDescriptor` is a class that is used to configure `TensorQuantizer` for weights and activations. This class if from `pytorch-quantization` library and has the following API:
+
+```    
+Args:
+    num_bits: An integer. Number of bits of quantization. It is used to calculate scaling factor. Default 8.
+    name: Seems a nice thing to have
+
+Keyword Arguments:
+    fake_quant: A boolean. If True, use fake quantization mode. Default True.
+    axis: None, int or tuple of int. axes which will have its own max for computing scaling factor.
+        If None (the default), use per tensor scale.
+        Must be in the range [-rank(input_tensor), rank(input_tensor)).
+        e.g. For a KCRS weight tensor, quant_axis=(0) will yield per channel scaling.
+        Default None.
+    amax: A float or list/ndarray of floats of user specified absolute max range. If supplied,
+        ignore quant_axis and use this to quantize. If learn_amax is True, will be used to initialize
+        learnable amax. Default None.
+    learn_amax: A boolean. If True, learn amax. Default False.
+    scale_amax: A float. If supplied, multiply amax by scale_amax. Default None. It is useful for some
+        quick experiment.
+    calib_method: A string. One of ["max", "histogram"] indicates which calibration to use. Except the simple
+        max calibration, other methods are all hisogram based. Default "max".
+    unsigned: A Boolean. If True, use unsigned. Default False.
+```
+Use it to customize your flow. It is recommended to leave default values at least for early experiments. 
+
+
 ### Quantizing residuals and skip connections
-To improve performance of quantized models, quantization of residuals and skip connections is performed. SuperGradients API allow you to do it. In your source code, add one of the following, depending on the type of the skip connection: 
+To improve performance of quantized models, quantization of residuals and skip connections is performed. SuperGradients API allows you to do it. In your source code, add one of the following, depending on the type of the skip connection: 
 
 ```python
 from super_gradients.modules.skip_connections import (
@@ -114,6 +144,56 @@ from super_gradients.modules.skip_connections import (
 ```
 
 Use them for all inputs of the `sum`, `mul`, `div` and `concat` operations. `SelectiveQuantizer` will take care of them and will replace them with quantized counterparts. 
+
+For example, take a simple resnet-like block:
+
+```python
+from torch import nn
+import torch.nn.functional as F
+
+class ResNetLikeBlock(nn.Module):
+    def __init__(self, num_channels):
+        super(ResNetLikeBlock, self).__init__()
+        self.conv1 = nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(num_channels)
+        self.conv2 = nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(num_channels)
+        
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = F.relu(self.bn2(self.conv2(out)))
+        
+        out = F.relu(out + x)
+
+        return out
+```
+
+Its quantizeable modification will look like this:
+
+```python
+from torch import nn
+import torch.nn.functional as F
+from super_gradients.modules.skip_connections import Residual
+
+class ResNetLikeBlock(nn.Module):
+    def __init__(self, num_channels):
+        super(ResNetLikeBlock, self).__init__()
+        self.conv1 = nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(num_channels)
+        self.conv2 = nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(num_channels)
+        self.residual = Residual()
+        
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = F.relu(self.bn2(self.conv2(out)))
+        res = self.residual(x)
+        
+        out = F.relu(out + res)
+
+        return out
+```
+
 
 ### Calibration
 And after quantization, performing calibration take another two lines of code:
