@@ -14,6 +14,7 @@ class DEKRLoss(nn.Module):
 
     def __init__(self, heatmap_loss_factor: float = 1.0, offset_loss_factor: float = 0.1):
         """
+        Instantiate the DEKR loss function. It is two-component loss function, consisting of a heatmap (MSE) loss and an offset (Smooth L1) losses.
 
         :param heatmap_loss_factor: Weighting factor for heatmap loss
         :param offset_loss_factor: Weighting factor for offset loss
@@ -64,20 +65,14 @@ class DEKRLoss(nn.Module):
         return loss, components
 
     def heatmap_loss(self, pred_heatmap, true_heatmap, mask):
-        loss = ((pred_heatmap - true_heatmap) ** 2) * mask
+        loss = torch.nn.functional.mse_loss(pred_heatmap, true_heatmap, reduction="none") * mask
         loss = loss.mean()
         return loss
 
     def offset_loss(self, pred_offsets, true_offsets, weights):
         num_pos = torch.nonzero(weights > 0).size()[0]
-        loss = self.smooth_l1_loss(pred_offsets, true_offsets) * weights
+        loss = torch.nn.functional.smooth_l1_loss(pred_offsets, true_offsets, reduction="none", beta=1.0 / 9) * weights
         if num_pos == 0:
             num_pos = 1.0
         loss = loss.sum() / num_pos
-        return loss
-
-    def smooth_l1_loss(self, pred, gt, beta=1.0 / 9):
-        l1_loss = torch.abs(pred - gt)
-        cond = l1_loss < beta
-        loss = torch.where(cond, 0.5 * l1_loss**2 / beta, l1_loss - 0.5 * beta)
         return loss
