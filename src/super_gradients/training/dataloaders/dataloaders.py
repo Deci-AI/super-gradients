@@ -1,29 +1,29 @@
 import os.path
-import pkg_resources
 from typing import Dict
 
 import hydra
+import numpy as np
+import pkg_resources
+import super_gradients
+import torch
 from hydra import compose, initialize_config_dir
 from hydra.core.global_hydra import GlobalHydra
-
-import numpy as np
-import torch
-from torch.utils.data import BatchSampler, DataLoader, TensorDataset
-
-import super_gradients
-
-from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
-    PascalVOCUnifiedDetectionTrainDataset,
-    PascalVOCDetectionDataset,
-)
-from super_gradients.training.utils import get_param
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.path_utils import normalize_path
+from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
+from super_gradients.common.factories.datasets_factory import DatasetsFactory
+from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.datasets import ImageNetDataset
-from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
 from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar10,
     Cifar100,
 )
+from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
+from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
+    PascalVOCUnifiedDetectionTrainDataset,
+    PascalVOCDetectionDataset,
+)
+from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     CoCoSegmentationDataSet,
@@ -32,16 +32,13 @@ from super_gradients.training.datasets.segmentation_datasets import (
     SuperviselyPersonsDataset,
     MapillaryDataset,
 )
-from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
-from super_gradients.common.factories.samplers_factory import SamplersFactory
+from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import (
     wait_for_the_master,
     get_local_rank,
 )
-from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import override_default_params_without_nones
-from super_gradients.common.factories.datasets_factory import DatasetsFactory
-from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
+from torch.utils.data import BatchSampler, DataLoader, TensorDataset
 
 logger = get_logger(__name__)
 
@@ -156,6 +153,26 @@ def coco2017_train(dataset_params: Dict = None, dataloader_params: Dict = None):
 def coco2017_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_dataset_params",
+        dataset_cls=COCODetectionDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def coco2017_train_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="coco_detection_ppyoloe_dataset_params",
+        dataset_cls=COCODetectionDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def coco2017_val_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="coco_detection_ppyoloe_dataset_params",
         dataset_cls=COCODetectionDataset,
         train=False,
         dataset_params=dataset_params,
@@ -646,6 +663,8 @@ ALL_DATALOADERS = {
     "coco2017_val": coco2017_val,
     "coco2017_train_yolox": coco2017_train_yolox,
     "coco2017_val_yolox": coco2017_val_yolox,
+    "coco2017_train_ppyoloe": coco2017_train_ppyoloe,
+    "coco2017_val_ppyoloe": coco2017_val_ppyoloe,
     "coco2017_train_ssd_lite_mobilenet_v2": coco2017_train_ssd_lite_mobilenet_v2,
     "coco2017_val_ssd_lite_mobilenet_v2": coco2017_val_ssd_lite_mobilenet_v2,
     "coco2017_pose_train": coco2017_pose_train,
