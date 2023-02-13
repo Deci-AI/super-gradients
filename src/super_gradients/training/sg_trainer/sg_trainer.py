@@ -531,7 +531,7 @@ class Trainer:
         :param loss: The value computed by the loss function
         :param optimizer: An object that can perform a gradient step and zeroize model gradient
         :param epoch: number of epoch the training is on
-        :param batch_idx: number of iteration inside the current epoch
+        :param batch_idx: Zero-based number of iteration inside the current epoch
         :param context: current phase context
         :return:
         """
@@ -699,12 +699,16 @@ class Trainer:
 
                 -  `lr_mode` : str
 
-                    Learning rate scheduling policy, one of ['step','poly','cosine','function']. 'step' refers to
-                    constant updates at epoch numbers passed through `lr_updates`. 'cosine' refers to Cosine Anealing
-                    policy as mentioned in https://arxiv.org/abs/1608.03983. 'poly' refers to polynomial decrease i.e
-                    in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)),
-                    0.9)` 'function' refers to user defined learning rate scheduling function, that is passed through
-                    `lr_schedule_function`.
+                    Learning rate scheduling policy, one of ['step','poly','cosine','function'].
+
+                    'step' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
+
+                    'cosine' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
+                      The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
+
+                    'poly' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
+
+                    'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
 
                 - `lr_schedule_function` : Union[callable,None]
 
