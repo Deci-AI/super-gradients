@@ -13,6 +13,7 @@ class Losses:
     BCE_DICE_LOSS = "bce_dice_loss"
     KD_LOSS = "kd_loss"
     DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
+    DEKR_LOSS = "dekr_loss"
 
 
 class Metrics:
