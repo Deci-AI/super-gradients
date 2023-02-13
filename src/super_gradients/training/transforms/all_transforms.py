@@ -27,6 +27,7 @@ from super_gradients.training.transforms.transforms import (
     DetectionRescale,
     DetectionPaddedRescale,
     DetectionTargetsFormatTransform,
+    DetectionNormalize,
     Standardize,
 )
 from torchvision.transforms import (
@@ -98,6 +99,7 @@ TRANSFORMS = {
     Transforms.DetectionRescale: DetectionRescale,
     Transforms.DetectionPaddedRescale: DetectionPaddedRescale,
     Transforms.DetectionTargetsFormatTransform: DetectionTargetsFormatTransform,
+    Transforms.DetectionNormalize: DetectionNormalize,
     Transforms.RandomResizedCropAndInterpolation: RandomResizedCropAndInterpolation,
     Transforms.RandAugmentTransform: rand_augment_transform,
     Transforms.Lighting: Lighting,
