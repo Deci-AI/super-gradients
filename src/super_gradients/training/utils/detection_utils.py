@@ -1,19 +1,19 @@
 import math
 import os
 import pathlib
+import random
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional, Dict
 
 import cv2
 import matplotlib.pyplot as plt
-
 import numpy as np
 import torch
 import torchvision
+from omegaconf import ListConfig
 from torch import nn
 from torch.utils.data._utils.collate import default_collate
-from omegaconf import ListConfig
 
 
 class DetectionTargetsFormat(Enum):
@@ -683,6 +683,105 @@ class DetectionCollateFN:
         return torch.cat(targets_merged, 0)
 
 
+class PPYoloECollateFN:
+    """
+    Collate function for PPYoloE training
+    """
+
+    def __init__(self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None):
+        """
+
+        Args:
+            random_resize_sizes: (rows, cols)
+        """
+        self.random_resize_sizes = random_resize_sizes
+        self.random_resize_modes = random_resize_modes
+
+    def __repr__(self):
+        return f"PPYoloECollateFN(random_resize_sizes={self.random_resize_sizes}, random_resize_modes={self.random_resize_modes})"
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
+        if self.random_resize_sizes is not None:
+            data = self.random_resize(data)
+
+        batch = default_collate(data)
+        ims, targets = batch
+        targets = self._format_targets(targets)
+        ims = torch.moveaxis(ims, -1, 1).float()
+
+        return ims, targets
+
+    def random_resize(self, batch):
+        target_size = random.choice(self.random_resize_sizes)
+        interpolation = random.choice(self.random_resize_modes)
+        batch = [self.random_resize_sample(sample, target_size, interpolation) for sample in batch]
+        return batch
+
+    def random_resize_sample(self, sample, target_size, interpolation):
+        if len(sample) == 2:
+            image, targets = sample  # TARGETS ARE IN LABEL_CXCYWH
+            with_crowd = False
+        elif len(sample == 3):
+            image, targets, crowd_targets = sample
+            with_crowd = True
+        else:
+            raise RuntimeError()
+
+        dsize = int(target_size), int(target_size)
+        scale_factors = target_size / image.shape[0], target_size / image.shape[1]
+
+        image = cv2.resize(
+            image,
+            dsize=dsize,
+            interpolation=interpolation,
+        )
+
+        sy, sx = scale_factors
+        targets[:, 1:5] *= np.array([[sx, sy, sx, sy]], dtype=targets.dtype)
+        if with_crowd:
+            crowd_targets[:, 1:5] *= np.array([[sx, sy, sx, sy]], dtype=targets.dtype)
+            return image, targets, crowd_targets
+
+        return image, targets
+
+    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
+        """
+
+        :param targets:
+        :return: Tensor of shape [B, N, 6], where 6 elements are (index, c, cx, cy, w, h)
+        """
+        # Same collate as in YoloX. We convert to PPYoloTargets in the loss
+        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
+        targets_merged = []
+        for i in range(targets.shape[0]):
+            targets_im = targets[i, : nlabel[i]]
+            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
+            targets_merged.append(torch.cat((batch_column, targets_im), 1))
+
+        return torch.cat(targets_merged, 0)
+
+
+class CrowdDetectionPPYoloECollateFN(PPYoloECollateFN):
+    """
+    Collate function for Yolox training with additional_batch_items that includes crowd targets
+    """
+
+    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+
+        if self.random_resize_sizes is not None:
+            data = self.random_resize(data)
+
+        batch = default_collate(data)
+        ims, targets, crowd_targets = batch
+        if ims.shape[3] == 3:
+            ims = torch.moveaxis(ims, -1, 1).float()
+
+        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+
+
 class CrowdDetectionCollateFN(DetectionCollateFN):
     """
     Collate function for Yolox training with additional_batch_items that includes crowd targets
@@ -807,7 +906,7 @@ def compute_img_detection_matching(
     :param preds:           Tensor of shape (num_img_predictions, 6)
                             format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
     :param targets:         targets for this image of shape (num_img_targets, 6)
-                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+                            format:     (label, cx, cy, w, h, label) where cx,cy,w,h
     :param height:          dimensions of the image
     :param width:           dimensions of the image
     :param iou_thresholds:  Threshold to compute the mAP
@@ -858,9 +957,8 @@ def compute_img_detection_matching(
         # CHANGE bboxes TO FIT THE IMAGE SIZE
         change_bbox_bounds_for_image_size(preds, (height, width))
 
-        # if target_format == "xywh":
-        targets_box = convert_xywh_bbox_to_xyxy(targets_box)  # cxcywh2xyxy
-        crowd_target_box = convert_xywh_bbox_to_xyxy(crowd_target_box)  # convert_xywh_bbox_to_xyxy
+        targets_box = cxcywh2xyxy(targets_box)
+        crowd_target_box = cxcywh2xyxy(crowd_target_box)
 
         if denormalize_targets:
             targets_box[:, [0, 2]] *= width
