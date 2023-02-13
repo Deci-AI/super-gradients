@@ -202,6 +202,8 @@ class ConfigInspector:
         return self.wrapped_config
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            raise
         unused_params = self.wrapped_config.get_unused_params()
         if len(unused_params):
             message = f"Detected unused parameters in configuration object that were not consumed by caller: {unused_params}"
