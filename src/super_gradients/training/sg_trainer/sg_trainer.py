@@ -531,7 +531,7 @@ class Trainer:
         :param loss: The value computed by the loss function
         :param optimizer: An object that can perform a gradient step and zeroize model gradient
         :param epoch: number of epoch the training is on
-        :param batch_idx: number of iteration inside the current epoch
+        :param batch_idx: Zero-based number of iteration inside the current epoch
         :param context: current phase context
         :return:
         """

@@ -1,0 +1,31 @@
+depth_mult:
+width_mult:
+num_classes: 80
+
+backbone:
+  layers: [ 3, 6, 6, 3 ]                # Backbone's structure
+  channels: [ 64, 128, 256, 512, 1024 ] # Number of outputs channels for stem and consecutive feature maps
+  activation: silu
+  return_idx: [ 1, 2, 3 ]               # Indexes of feature maps to output, indiced 1,2,3 correspond to feature maps of stride 8,16,32
+  use_large_stem: True                  # If True, uses 3 conv+bn+act instead of 2 in stem blocks
+  use_alpha: False                      # If True, enables additional learnable weighting parameter for 1x1 branch in RepVGGBlock
+  pretrained_weights:
+
+neck:
+  in_channels: [256, 512, 1024]
+  out_channels: [768, 384, 192]
+  activation: silu
+  block_num: 3
+  stage_num: 1
+  spp: True
+
+head:
+  in_channels: [768, 384, 192]
+  activation: silu
+
+  fpn_strides: [32, 16, 8]
+  grid_cell_scale: 5.0
+  grid_cell_offset: 0.5
+  reg_max: 16 # Number of bins for size prediction
+
+  eval_size:    # Size of the image for evaluation. Setting this value can be beneficial for inference speed since anchors will not be regenerated for each forward call.

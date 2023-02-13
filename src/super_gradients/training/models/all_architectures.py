@@ -1,3 +1,4 @@
+from super_gradients.common.object_names import Models
 from super_gradients.training.models import ResNeXt50, ResNeXt101, GoogleNetV1
 from super_gradients.training.models.classification_models import repvgg, efficientnet, densenet, resnet, regnet
 from super_gradients.training.models.classification_models.mobilenetv2 import MobileNetV2Base, MobileNetV2_135, CustomMobileNetV2
@@ -12,6 +13,7 @@ from super_gradients.training.models.classification_models.shufflenetv2 import (
 from super_gradients.training.models.classification_models.vit import ViTBase, ViTLarge, ViTHuge
 from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
+from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_e import PPYoloE_M, PPYoloE_L, PPYoloE_X, PPYoloE_S
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23, DDRNet39
@@ -30,7 +32,6 @@ from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
 from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
 from super_gradients.training.models.segmentation_models.unet import UNetCustom, UnetClassification
-from super_gradients.common.object_names import Models
 
 ARCHITECTURES = {
     Models.RESNET18: resnet.ResNet18,
@@ -135,6 +136,10 @@ ARCHITECTURES = {
     Models.CUSTOM_ANYNET: regnet.CustomAnyNet,
     Models.UNET_CUSTOM: UNetCustom,
     Models.UNET_CUSTOM_CLS: UnetClassification,
+    Models.PP_YOLOE_S: PPYoloE_S,
+    Models.PP_YOLOE_M: PPYoloE_M,
+    Models.PP_YOLOE_L: PPYoloE_L,
+    Models.PP_YOLOE_X: PPYoloE_X,
 }
 
 KD_ARCHITECTURES = {Models.KD_MODULE: KDModule}
