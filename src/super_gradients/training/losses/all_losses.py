@@ -13,6 +13,7 @@ from super_gradients.training.losses import (
     DiceCEEdgeLoss,
 )
 from super_gradients.training.losses.stdc_loss import STDCLoss
+from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
 
 
 LOSSES = {
@@ -28,4 +29,5 @@ LOSSES = {
     Losses.BCE_DICE_LOSS: BCEDiceLoss,
     Losses.KD_LOSS: KDLogitsLoss,
     Losses.DICE_CE_EDGE_LOSS: DiceCEEdgeLoss,
+    Losses.PPYOLOE_LOSS: PPYoloELoss,
 }

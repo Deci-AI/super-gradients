@@ -15,6 +15,7 @@ from super_gradients.training.utils.callbacks.callbacks import (
     EpochStepWarmupLRCallback,
     BatchStepLinearWarmupLRCallback,
 )
+from super_gradients.training.utils.callbacks.ppyoloe_switch_callback import PPYoloETrainingStageSwitchCallback
 from super_gradients.training.utils.deprecated_utils import wrap_with_warning
 from super_gradients.training.utils.early_stopping import EarlyStop
 
@@ -27,6 +28,7 @@ CALLBACKS = {
     Callbacks.EARLY_STOP: EarlyStop,
     Callbacks.DETECTION_MULTISCALE_PREPREDICTION: DetectionMultiscalePrePredictionCallback,
     Callbacks.YOLOX_TRAINING_STAGE_SWITCH: YoloXTrainingStageSwitchCallback,
+    Callbacks.PPYOLOE_TRAINING_STAGE_SWITCH: PPYoloETrainingStageSwitchCallback,
 }
 
 
