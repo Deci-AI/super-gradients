@@ -1,3 +1,4 @@
+from super_gradients.training.models.segmentation_models.registry import SEGMENTATION_ENCODERS
 from super_gradients.training.models.sg_module import SgModule
 import torch.nn as nn
 from abc import abstractmethod, ABC
@@ -59,3 +60,11 @@ class SegmentationModule(SgModule, ABC):
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+
+
+class CustomSegmentationModule(SegmentationModule):
+    def __init__(self, encoder_params, decoder_params, head_params, auxiliary_heads_params):
+        encoder_type = encoder_params.pop("type")
+        encoder = SEGMENTATION_ENCODERS[encoder_type](encoder_params)
+
+        super().__init__()
