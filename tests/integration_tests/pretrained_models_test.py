@@ -14,8 +14,10 @@ from super_gradients.training.dataloaders.dataloaders import (
     cityscapes_stdc_seg50_val,
     cityscapes_stdc_seg75_val,
     segmentation_test_dataloader,
+    coco2017_val_ppyoloe,
 )
-from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN
+from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
+from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN, CrowdDetectionPPYoloECollateFN
 
 from super_gradients.training.metrics import Accuracy, IoU
 import os
@@ -97,6 +99,9 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.coco_dataset = {
             "yolox": coco2017_val_yolox(dataloader_params={"collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}),
+            "ppyoloe": coco2017_val_ppyoloe(
+                dataloader_params={"collate_fn": CrowdDetectionPPYoloECollateFN(), "batch_size": 1}, dataset_params={"with_crowd": True}
+            ),
             "ssd_mobilenet": coco2017_val_ssd_lite_mobilenet_v2(
                 dataloader_params={"collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}
             ),
@@ -110,6 +115,8 @@ class PretrainedModelsTest(unittest.TestCase):
             Models.YOLOX_L: 0.4925,
             Models.YOLOX_N: 0.2677,
             Models.YOLOX_T: 0.3718,
+            Models.PP_YOLOE_S: 0.4252,
+            Models.PP_YOLOE_M: 0.4711,
         }
 
         self.transfer_detection_dataset = detection_test_dataloader()
@@ -162,6 +169,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.cityscapes_pretrained_ckpt_params = {"pretrained_weights": "cityscapes"}
         self.cityscapes_pretrained_mious = {
+            Models.DDRNET_39: 0.8132,
             Models.DDRNET_23: 0.8026,
             Models.DDRNET_23_SLIM: 0.7801,
             Models.STDC1_SEG50: 0.7511,
@@ -399,6 +407,18 @@ class PretrainedModelsTest(unittest.TestCase):
         )
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.DDRNET_23], delta=0.001)
 
+    def test_pretrained_ddrnet39_cityscapes(self):
+        trainer = Trainer("cityscapes_pretrained_ddrnet39")
+        model = models.get(Models.DDRNET_39, arch_params=self.cityscapes_pretrained_arch_params[Models.DDRNET_23], **self.cityscapes_pretrained_ckpt_params)
+        res = (
+            trainer.test(
+                model=model, test_loader=self.cityscapes_dataset, test_metrics_list=[IoU(num_classes=20, ignore_index=19)], metrics_progress_verbose=True
+            )[0]
+            .cpu()
+            .item()
+        )
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious[Models.DDRNET_39], delta=0.001)
+
     def test_pretrained_ddrnet23_slim_cityscapes(self):
         trainer = Trainer("cityscapes_pretrained_ddrnet23_slim")
         model = models.get(
@@ -559,6 +579,44 @@ class PretrainedModelsTest(unittest.TestCase):
             test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps[Models.YOLOX_T], delta=0.001)
+
+    def test_pretrained_ppyoloe_s_coco(self):
+        trainer = Trainer(Models.PP_YOLOE_S)
+
+        model = models.get(Models.PP_YOLOE_S, **self.coco_pretrained_ckpt_params)
+        res = trainer.test(
+            model=model,
+            test_loader=self.coco_dataset["ppyoloe"],
+            test_metrics_list=[
+                DetectionMetrics(
+                    score_thres=0.1,
+                    top_k_predictions=300,
+                    num_cls=80,
+                    normalize_targets=True,
+                    post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01, nms_top_k=1000, max_predictions=300, nms_threshold=0.7),
+                )
+            ],
+        )[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps[Models.PP_YOLOE_S], delta=0.001)
+
+    def test_pretrained_ppyoloe_m_coco(self):
+        trainer = Trainer(Models.PP_YOLOE_M)
+
+        model = models.get(Models.PP_YOLOE_M, **self.coco_pretrained_ckpt_params)
+        res = trainer.test(
+            model=model,
+            test_loader=self.coco_dataset["ppyoloe"],
+            test_metrics_list=[
+                DetectionMetrics(
+                    score_thres=0.1,
+                    top_k_predictions=300,
+                    num_cls=80,
+                    normalize_targets=True,
+                    post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01, nms_top_k=1000, max_predictions=300, nms_threshold=0.7),
+                )
+            ],
+        )[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps[Models.PP_YOLOE_M], delta=0.001)
 
     def test_transfer_learning_yolox_n_coco(self):
         trainer = Trainer("test_transfer_learning_yolox_n_coco")
