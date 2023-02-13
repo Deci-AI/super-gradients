@@ -15,6 +15,7 @@ class DEKRLoss(nn.Module):
     def __init__(self, heatmap_loss_factor: float = 1.0, offset_loss_factor: float = 0.1):
         """
         Instantiate the DEKR loss function. It is two-component loss function, consisting of a heatmap (MSE) loss and an offset (Smooth L1) losses.
+        The total loss is the sum of the two individual losses, weighted by the corresponding factors.
 
         :param heatmap_loss_factor: Weighting factor for heatmap loss
         :param offset_loss_factor: Weighting factor for offset loss
