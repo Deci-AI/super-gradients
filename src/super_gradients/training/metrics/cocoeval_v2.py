@@ -1,6 +1,3 @@
-# This file contains modified version of COCOEval class from pycocotools library,
-# which is used to compute mAP metric for pose estimation task.
-
 import dataclasses
 from collections import defaultdict
 from typing import Union, List, Any, Tuple, Optional
@@ -59,11 +56,11 @@ class EvaluationParams:
         :return:
         """
         return cls(
-            iou_thresholds=np.linspace(0.5, 0.95, int(np.round((0.95 - 0.5) / 0.05)) + 1, endpoint=True),
-            recall_thresholds=np.linspace(0.0, 1.00, int(np.round((1.00 - 0.0) / 0.01)) + 1, endpoint=True),
+            iou_thresholds=np.linspace(0.5, 0.95, int(np.round((0.95 - 0.5) / 0.05)) + 1, endpoint=True, dtype=np.float32),
+            recall_thresholds=np.linspace(0.0, 1.00, int(np.round((1.00 - 0.0) / 0.01)) + 1, endpoint=True, dtype=np.float32),
             maxDets=20,
             useCats=True,
-            sigmas=np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0,
+            sigmas=np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89], dtype=np.float32) / 10.0,
         )
 
 
@@ -84,7 +81,6 @@ class ImageLevelEvaluationResult:
 @dataclasses.dataclass
 class DatasetLevelEvaluationResult:
     params: EvaluationParams
-    counts: Tuple[int, int, int]
     precision: np.ndarray
     recall: np.ndarray
 
@@ -196,12 +192,8 @@ def compute_oks(
                 dy = yd - yg
             else:
                 # measure minimum distance to keypoints in (x0,y0) & (x1,y1)
-                # z = torch.zeros((num_joints))
-                # dx = torch.max(z, (x0 - xd), dim=0) + torch.max(z, (xd - x1), dim=0)
-                # dy = torch.max(z, (y0 - yd), dim=0) + torch.max(z, (yd - y1), dim=0)
-
-                dx = torch.max((x0 - xd).clamp_min(0), dim=0).values + torch.max((xd - x1).clamp_min(0), dim=0).values
-                dy = torch.max((y0 - yd).clamp_min(0), dim=0).values + torch.max((yd - y1).clamp_min(0), dim=0).values
+                dx = (x0 - xd).clamp_min(0) + (xd - x1).clamp_min(0)
+                dy = (y0 - yd).clamp_min(0) + (yd - y1).clamp_min(0)
 
             e = (dx**2 + dy**2) / vars / (gt_area + np.spacing(1)) / 2
 
@@ -263,6 +255,9 @@ class COCOevalV2:
                 groundtruths = _gts[imgId, catId]
                 predictions = _dts[imgId, catId]
 
+                if len(groundtruths) == 0 and len(predictions) == 0:
+                    continue
+
                 pred_keypoints = (
                     torch.stack([torch.tensor(pred["keypoints"], dtype=torch.float).reshape(-1, 3) for pred in predictions]) if len(predictions) else []
                 )
@@ -282,17 +277,18 @@ class COCOevalV2:
                     targets_visibilities=gt_keypoints[~gt_is_ignore, :, 2] if len(groundtruths) else [],
                     targets_areas=gt_areas[~gt_is_ignore],
                     targets_bboxes=gt_bboxes[~gt_is_ignore],
+                    targets_ignored=gt_is_ignore[~gt_is_ignore],
                     crowd_targets=gt_keypoints[gt_is_ignore, :, 0:2] if len(groundtruths) else [],
                     crowd_visibilities=gt_keypoints[gt_is_ignore, :, 2] if len(groundtruths) else [],
                     crowd_targets_areas=gt_areas[gt_is_ignore],
                     crowd_targets_bboxes=gt_bboxes[gt_is_ignore],
+                    crowd_targets_ignored=gt_is_ignore[gt_is_ignore],
                     iou_thresholds=iou_thresholds,
                     top_k=self.params.maxDets,
+                    imgId=imgId,
                 )
-                eval_results.append((preds_matched, preds_to_ignore, preds_scores, num_targets))
 
-                if False:
-                    print(imgId, "\npreds_matched\n", preds_matched.numpy(), "\npreds_to_ignore\n", preds_to_ignore.numpy())
+                eval_results.append((preds_matched, preds_to_ignore, preds_scores, num_targets))
 
             preds_matched = torch.cat([x[0] for x in eval_results], dim=0)
             preds_to_ignore = torch.cat([x[1] for x in eval_results], dim=0)
@@ -302,7 +298,7 @@ class COCOevalV2:
             if n_targets == 0:
                 continue
 
-            _, cls_precision, cls_recall = compute_detection_metrics_per_cls(
+            ap, _, cls_recall = compute_detection_metrics_per_cls(
                 preds_matched=preds_matched,
                 preds_to_ignore=preds_to_ignore,
                 preds_scores=preds_scores,
@@ -311,12 +307,11 @@ class COCOevalV2:
                 score_threshold=0,
                 device="cpu",
             )
-            precision[:, k] = cls_precision
+            precision[:, k] = ap
             recall[:, k] = cls_recall
 
         return DatasetLevelEvaluationResult(
             params=self.params,
-            counts=(T, K),
             precision=precision.detach().cpu().numpy(),
             recall=recall.detach().cpu().numpy(),
         )
@@ -329,12 +324,15 @@ class COCOevalV2:
         targets_visibilities: torch.Tensor,
         targets_areas: Optional[torch.Tensor],
         targets_bboxes: Optional[torch.Tensor],
+        targets_ignored: Optional[torch.Tensor],
         crowd_targets: torch.Tensor,
         crowd_visibilities: torch.Tensor,
         crowd_targets_areas: Optional[torch.Tensor],
         crowd_targets_bboxes: Optional[torch.Tensor],
+        crowd_targets_ignored: Optional[torch.Tensor],
         iou_thresholds: torch.Tensor,
         top_k: int,
+        imgId: int,  # TODO: Remove me after debugging
     ) -> Tuple[Tensor, Tensor, Tensor, int]:
         """
         Match predictions and the targets (ground truth) with respect to IoU and confidence score for a given image.
@@ -397,10 +395,17 @@ class COCOevalV2:
                 # Vector[j], True when (pred_i, target_i) can be matched for the (j)th threshold
                 are_candidates_good = torch.logical_and(is_iou_above_threshold, are_candidates_free)
 
+                is_matching_with_ignore = are_candidates_free & are_candidates_good & targets_ignored[target_i]
+
+                if preds_matched[pred_i].any() and is_matching_with_ignore.any():
+                    continue
+
                 # For every threshold (j) where target_i and pred_i can be matched together ( are_candidates_good[j]==True )
                 # fill the matching placeholders with True
                 targets_matched[target_i, are_candidates_good] = True
                 preds_matched[pred_i, are_candidates_good] = True
+
+                preds_to_ignore[pred_i] = torch.logical_or(preds_to_ignore[pred_i], is_matching_with_ignore)
 
                 # When all the targets are matched with a prediction for every IoU Threshold, stop.
                 if targets_matched.all():
@@ -429,5 +434,6 @@ class COCOevalV2:
 
             preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
 
-        return preds_matched, preds_to_ignore, pred_scores, len(targets)
-        # return preds_matched[preds_idx_to_use], preds_to_ignore[preds_idx_to_use], pred_scores[preds_idx_to_use], min(top_k, len(targets))
+        # return preds_matched, preds_to_ignore, pred_scores, len(targets)
+        num_targets = len(targets) - torch.count_nonzero(targets_ignored)
+        return preds_matched[preds_idx_to_use], preds_to_ignore[preds_idx_to_use], pred_scores[preds_idx_to_use], num_targets.item()

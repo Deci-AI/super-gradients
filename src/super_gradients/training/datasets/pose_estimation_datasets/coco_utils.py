@@ -119,3 +119,26 @@ def remove_duplicate_annotations(coco: COCO):
         coco.createIndex()
 
     return coco
+
+
+def remove_crowd_annotations(coco: COCO):
+    ann_to_remove = []
+
+    image_ids = list(coco.imgs.keys())
+    for image_id in image_ids:
+        ann_ids = coco.getAnnIds(imgIds=image_id)
+        annotations = coco.loadAnns(ann_ids)
+
+        for ann in annotations:
+            if bool(ann["iscrowd"]):
+                ann_to_remove.append(ann["id"])
+
+    if len(ann_to_remove) > 0:
+        logger.debug(f"Removing {len(ann_to_remove)} crowd annotations")
+        len_before = len(coco.dataset["annotations"])
+        coco.dataset["annotations"] = [v for v in coco.dataset["annotations"] if v["id"] not in ann_to_remove]
+        len_after = len(coco.dataset["annotations"])
+        logger.debug(f"Removed {len_before - len_after} crowd annotations")
+        coco.createIndex()
+
+    return coco
