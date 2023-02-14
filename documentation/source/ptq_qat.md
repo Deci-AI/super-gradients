@@ -268,6 +268,11 @@ export_quantized_module_to_onnx(
 )
 ```
 
+Note that this ONNX uses fake quantization (refer to ONNX `QuantizeLinear/DequantizeLinear` for more info), while being in FP32 itself. To get a quantized model, you will need an inference framework that will compile ONNX into a runnable engine. Here is an example how to do it with NVIDIA's TensorRT:
+
+```shell
+trtexec --int8 --fp16 --onnx=qat_model_1x3x224x224.onnx --saveEngine=qat_model_1x3x224x224.pkl
+```
 ## Using SuperGradient's Recipes for PTQ/QAT
 
 The SuperGradient library provides a simple and easy-to-use API for both post-training quantization and quantization-aware training. By using the library's recipes, you can quickly and easily quantize models without having to write custom code.
