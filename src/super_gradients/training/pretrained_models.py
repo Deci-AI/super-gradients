@@ -19,6 +19,7 @@ MODEL_URLS = {
     "ddrnet_23_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23/average_model_2023_02_06.pth",
     "ddrnet_23_slim_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23_slim/average_model_2023_02_06.pth",
     "ddrnet_39_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet39/average_model.pth",
+    "ddrnet_39_cityscapes_auto_label": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet39_al/average_model.pth",
     #
     "stdc1_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc1_seg50_dice_edge/ckpt_best.pth",
     "stdc1_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/stdc1_seg75_cityscapes/ckpt_best.pth",
@@ -59,4 +60,12 @@ MODEL_URLS = {
     "ppyoloe_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/coco2017_ppyoloe_m.pth",
 }
 
-PRETRAINED_NUM_CLASSES = {"imagenet": 1000, "imagenet21k": 21843, "coco_segmentation_subclass": 21, "cityscapes": 19, "coco": 80, "cifar10": 10}
+PRETRAINED_NUM_CLASSES = {
+    "imagenet": 1000,
+    "imagenet21k": 21843,
+    "coco_segmentation_subclass": 21,
+    "cityscapes": 19,
+    "cityscapes_auto_label": 19,
+    "coco": 80,
+    "cifar10": 10,
+}

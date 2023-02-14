@@ -1,5 +1,6 @@
 from torch import nn
 from super_gradients.common.object_names import Losses
+from super_gradients.training.losses.seg_kd_loss import SegKDLoss
 from super_gradients.training.losses import (
     LabelSmoothingCrossEntropyLoss,
     ShelfNetOHEMLoss,
@@ -11,6 +12,7 @@ from super_gradients.training.losses import (
     YoloXFastDetectionLoss,
     KDLogitsLoss,
     DiceCEEdgeLoss,
+    # SegKDLoss,
 )
 from super_gradients.training.losses.stdc_loss import STDCLoss
 from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
@@ -30,4 +32,5 @@ LOSSES = {
     Losses.KD_LOSS: KDLogitsLoss,
     Losses.DICE_CE_EDGE_LOSS: DiceCEEdgeLoss,
     Losses.PPYOLOE_LOSS: PPYoloELoss,
+    Losses.SEG_KD_LOSS: SegKDLoss,
 }
