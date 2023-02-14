@@ -102,24 +102,6 @@ class DatasetLevelEvaluationResult:
             "AR_0.75": self._summarize(0, iouThr=0.75),
         }
 
-    def print(self):
-        p = self.params
-
-        def _print_summarize(ap=1, iouThr=None):
-            score = self._summarize(ap, iouThr)
-            iStr = " {:<18} {} @[ IoU={:<9} ] = {:0.3f}"
-            titleStr = "Average Precision" if ap == 1 else "Average Recall"
-            typeStr = "(AP)" if ap == 1 else "(AR)"
-            iouStr = "{:0.2f}:{:0.2f}".format(p.iou_thresholds[0], p.iou_thresholds[-1]) if iouThr is None else "{:0.2f}".format(iouThr)
-            print(iStr.format(titleStr, typeStr, iouStr, score))
-
-        _print_summarize(1)
-        _print_summarize(1, iouThr=0.5)
-        _print_summarize(1, iouThr=0.75)
-        _print_summarize(0)
-        _print_summarize(0, iouThr=0.5)
-        _print_summarize(0, iouThr=0.75)
-
     def _summarize(self, ap=1, iouThr=None):
         p = self.params
 
@@ -176,7 +158,7 @@ def compute_oks(
         # create bounds for ignore regions(double the gt bbox)
         xg = gt_keypoints[:, 0]
         yg = gt_keypoints[:, 1]
-        k1 = np.count_nonzero(gt_keypoint_visibility > 0)
+        k1 = torch.count_nonzero(gt_keypoint_visibility > 0)
 
         x0 = gt_bbox[0] - gt_bbox[2]
         x1 = gt_bbox[0] + gt_bbox[2] * 2
@@ -195,7 +177,7 @@ def compute_oks(
                 dx = (x0 - xd).clamp_min(0) + (xd - x1).clamp_min(0)
                 dy = (y0 - yd).clamp_min(0) + (yd - y1).clamp_min(0)
 
-            e = (dx**2 + dy**2) / vars / (gt_area + np.spacing(1)) / 2
+            e = (dx**2 + dy**2) / vars / (gt_area + torch.finfo(torch.float64).eps) / 2
 
             if k1 > 0:
                 e = e[gt_keypoint_visibility > 0]
@@ -204,11 +186,131 @@ def compute_oks(
     return ious
 
 
+def compute_img_keypoint_matching(
+    preds: torch.Tensor,
+    pred_scores: torch.Tensor,
+    targets: torch.Tensor,
+    targets_visibilities: torch.Tensor,
+    targets_areas: Optional[torch.Tensor],
+    targets_bboxes: Optional[torch.Tensor],
+    targets_ignored: Optional[torch.Tensor],
+    crowd_targets: torch.Tensor,
+    crowd_visibilities: torch.Tensor,
+    crowd_targets_areas: Optional[torch.Tensor],
+    crowd_targets_bboxes: Optional[torch.Tensor],
+    crowd_targets_ignored: Optional[torch.Tensor],
+    iou_thresholds: torch.Tensor,
+    sigmas: torch.Tensor,
+    top_k: int,
+) -> Tuple[Tensor, Tensor, Tensor, int]:
+    """
+    Match predictions and the targets (ground truth) with respect to IoU and confidence score for a given image.
+    :param preds:           Tensor of shape (K, NumJoints, 3)
+    :param targets:         targets for this image of shape (num_img_targets, 6)
+                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+    :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
+                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+    :param iou_thresholds:  Threshold to compute the mAP
+    :param top_k:           Number of predictions to keep per class, ordered by confidence score
+
+    :return:
+        :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
+                                True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
+        :preds_to_ignore:   Tensor of shape (num_img_predictions, n_iou_thresholds)
+                                True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
+    """
+    num_iou_thresholds = len(iou_thresholds)
+
+    device = preds.device if torch.is_tensor(preds) else (targets.device if torch.is_tensor(targets) else "cpu")
+
+    if preds is None or len(preds) == 0:
+        preds_matched = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
+        preds_to_ignore = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
+        preds_scores = torch.zeros((0,), dtype=torch.float, device=device)
+        return preds_matched, preds_to_ignore, preds_scores, len(targets)
+
+    preds_matched = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
+    targets_matched = torch.zeros(len(targets), num_iou_thresholds, dtype=torch.bool, device=device)
+    preds_to_ignore = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
+
+    # Ignore all but the predictions that were top_k
+    k = min(top_k, len(pred_scores))
+    preds_idx_to_use = torch.topk(pred_scores, k=k, sorted=True, largest=True).indices
+    preds_to_ignore[:, :] = True
+    preds_to_ignore[preds_idx_to_use] = False
+
+    if len(targets) > 0:
+        iou = compute_oks(preds[preds_idx_to_use], targets, targets_visibilities, sigmas, gt_areas=targets_areas, gt_bboxes=targets_bboxes)
+
+        # The matching priority is first detection confidence and then IoU value.
+        # The detection is already sorted by confidence in NMS, so here for each prediction we order the targets by iou.
+        sorted_iou, target_sorted = iou.sort(descending=True, stable=True)
+
+        # Only iterate over IoU values higher than min threshold to speed up the process
+        for pred_selected_i, target_sorted_i in (sorted_iou > iou_thresholds[0]).nonzero(as_tuple=False):
+
+            # pred_selected_i and target_sorted_i are relative to filters/sorting, so we extract their absolute indexes
+            pred_i = preds_idx_to_use[pred_selected_i]
+            target_i = target_sorted[pred_selected_i, target_sorted_i]
+
+            # Vector[j], True when IoU(pred_i, target_i) is above the (j)th threshold
+            is_iou_above_threshold = sorted_iou[pred_selected_i, target_sorted_i] > iou_thresholds
+
+            # Vector[j], True when both pred_i and target_i are not matched yet for the (j)th threshold
+            are_candidates_free = torch.logical_and(~preds_matched[pred_i, :], ~targets_matched[target_i, :])
+
+            # Vector[j], True when (pred_i, target_i) can be matched for the (j)th threshold
+            are_candidates_good = torch.logical_and(is_iou_above_threshold, are_candidates_free)
+
+            is_matching_with_ignore = are_candidates_free & are_candidates_good & targets_ignored[target_i]
+
+            if preds_matched[pred_i].any() and is_matching_with_ignore.any():
+                continue
+
+            # For every threshold (j) where target_i and pred_i can be matched together ( are_candidates_good[j]==True )
+            # fill the matching placeholders with True
+            targets_matched[target_i, are_candidates_good] = True
+            preds_matched[pred_i, are_candidates_good] = True
+
+            preds_to_ignore[pred_i] = torch.logical_or(preds_to_ignore[pred_i], is_matching_with_ignore)
+
+            # When all the targets are matched with a prediction for every IoU Threshold, stop.
+            if targets_matched.all():
+                break
+
+    # Crowd targets can be matched with many predictions.
+    # Therefore, for every prediction we just need to check if it has IoA large enough with any crowd target.
+    if len(crowd_targets) > 0:
+        # shape = (n_preds_to_use x n_crowd_targets)
+        ioa = compute_oks(
+            preds[preds_idx_to_use],
+            crowd_targets,
+            crowd_visibilities,
+            sigmas,
+            gt_areas=crowd_targets_areas,
+            gt_bboxes=crowd_targets_bboxes,
+        )
+
+        # For each prediction, we keep it's highest score with any crowd target (of same class)
+        # shape = (n_preds_to_use)
+        best_ioa, _ = ioa.max(1)
+
+        # If a prediction has IoA higher than threshold (with any target of same class), then there is a match
+        # shape = (n_preds_to_use x iou_thresholds)
+        is_matching_with_crowd = best_ioa.view(-1, 1) > iou_thresholds.view(1, -1)
+
+        preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
+
+    # return preds_matched, preds_to_ignore, pred_scores, len(targets)
+    num_targets = len(targets) - torch.count_nonzero(targets_ignored)
+    return preds_matched[preds_idx_to_use], preds_to_ignore[preds_idx_to_use], pred_scores[preds_idx_to_use], num_targets.item()
+
+
 class COCOevalV2:
     def __init__(self, params: EvaluationParams):
         self.params = params
 
-    def evaluate_from_coco(self, groundtruth: COCO, predictions: COCO):
+    def evaluate_from_coco(self, groundtruth: COCO, predictions: COCO, device="cpu"):
         """
 
         :param groundtruth: COCO-like object with ground truth annotations
@@ -243,10 +345,11 @@ class COCOevalV2:
         T = len(self.params.iou_thresholds)
         K = len(catIds)
 
-        precision = -torch.ones((T, K))
-        recall = -torch.ones((T, K))
-        iou_thresholds = torch.from_numpy(self.params.iou_thresholds)
-        recall_thresholds = torch.from_numpy(self.params.recall_thresholds)
+        precision = -torch.ones((T, K)).to(device)
+        recall = -torch.ones((T, K)).to(device)
+        iou_thresholds = torch.from_numpy(self.params.iou_thresholds).to(device)
+        recall_thresholds = torch.from_numpy(self.params.recall_thresholds).to(device)
+        sigmas = torch.from_numpy(self.params.sigmas).to(device).to(device)
 
         for k, catId in enumerate(catIds):
 
@@ -259,18 +362,22 @@ class COCOevalV2:
                     continue
 
                 pred_keypoints = (
-                    torch.stack([torch.tensor(pred["keypoints"], dtype=torch.float).reshape(-1, 3) for pred in predictions]) if len(predictions) else []
+                    torch.stack([torch.tensor(pred["keypoints"], dtype=torch.float).reshape(-1, 3) for pred in predictions]).to(device)
+                    if len(predictions)
+                    else []
                 )
-                pred_scores = torch.tensor([pred["score"] for pred in predictions], dtype=torch.float)
+                pred_scores = torch.tensor([pred["score"] for pred in predictions], dtype=torch.float).to(device)
 
                 gt_keypoints = (
-                    torch.stack([torch.tensor(gt["keypoints"], dtype=torch.float).reshape(-1, 3) for gt in groundtruths]) if len(groundtruths) else []
+                    torch.stack([torch.tensor(gt["keypoints"], dtype=torch.float).reshape(-1, 3) for gt in groundtruths]).to(device)
+                    if len(groundtruths)
+                    else []
                 )
-                gt_areas = torch.tensor([gt["area"] for gt in groundtruths], dtype=torch.float)
-                gt_bboxes = torch.tensor([gt["bbox"] for gt in groundtruths], dtype=torch.float)
-                gt_is_ignore = torch.tensor([gt["ignore"] for gt in groundtruths], dtype=torch.bool)
+                gt_areas = torch.tensor([gt["area"] for gt in groundtruths], dtype=torch.float).to(device)
+                gt_bboxes = torch.tensor([gt["bbox"] for gt in groundtruths], dtype=torch.float).to(device)
+                gt_is_ignore = torch.tensor([gt["ignore"] for gt in groundtruths], dtype=torch.bool).to(device)
 
-                preds_matched, preds_to_ignore, preds_scores, num_targets = self.compute_img_keypoint_matching(
+                preds_matched, preds_to_ignore, preds_scores, num_targets = compute_img_keypoint_matching(
                     pred_keypoints,
                     pred_scores,
                     targets=gt_keypoints[~gt_is_ignore, :, 0:2] if len(groundtruths) else [],
@@ -284,8 +391,8 @@ class COCOevalV2:
                     crowd_targets_bboxes=gt_bboxes[gt_is_ignore],
                     crowd_targets_ignored=gt_is_ignore[gt_is_ignore],
                     iou_thresholds=iou_thresholds,
+                    sigmas=sigmas,
                     top_k=self.params.maxDets,
-                    imgId=imgId,
                 )
 
                 eval_results.append((preds_matched, preds_to_ignore, preds_scores, num_targets))
@@ -305,7 +412,7 @@ class COCOevalV2:
                 n_targets=n_targets,
                 recall_thresholds=recall_thresholds,
                 score_threshold=0,
-                device="cpu",
+                device=device,
             )
             precision[:, k] = ap
             recall[:, k] = cls_recall
@@ -315,125 +422,3 @@ class COCOevalV2:
             precision=precision.detach().cpu().numpy(),
             recall=recall.detach().cpu().numpy(),
         )
-
-    def compute_img_keypoint_matching(
-        self,
-        preds: torch.Tensor,
-        pred_scores: torch.Tensor,
-        targets: torch.Tensor,
-        targets_visibilities: torch.Tensor,
-        targets_areas: Optional[torch.Tensor],
-        targets_bboxes: Optional[torch.Tensor],
-        targets_ignored: Optional[torch.Tensor],
-        crowd_targets: torch.Tensor,
-        crowd_visibilities: torch.Tensor,
-        crowd_targets_areas: Optional[torch.Tensor],
-        crowd_targets_bboxes: Optional[torch.Tensor],
-        crowd_targets_ignored: Optional[torch.Tensor],
-        iou_thresholds: torch.Tensor,
-        top_k: int,
-        imgId: int,  # TODO: Remove me after debugging
-    ) -> Tuple[Tensor, Tensor, Tensor, int]:
-        """
-        Match predictions and the targets (ground truth) with respect to IoU and confidence score for a given image.
-        :param preds:           Tensor of shape (K, NumJoints, 3)
-        :param targets:         targets for this image of shape (num_img_targets, 6)
-                                format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-        :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
-                                format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-        :param iou_thresholds:  Threshold to compute the mAP
-        :param top_k:           Number of predictions to keep per class, ordered by confidence score
-
-        :return:
-            :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
-                                    True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
-            :preds_to_ignore:   Tensor of shape (num_img_predictions, n_iou_thresholds)
-                                    True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
-        """
-        num_iou_thresholds = len(iou_thresholds)
-
-        device = preds.device if torch.is_tensor(preds) else (targets.device if torch.is_tensor(targets) else "cpu")
-
-        if preds is None or len(preds) == 0:
-            preds_matched = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
-            preds_to_ignore = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
-            preds_scores = torch.zeros((0,), dtype=torch.float, device=device)
-            return preds_matched, preds_to_ignore, preds_scores, len(targets)
-
-        preds_matched = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
-        targets_matched = torch.zeros(len(targets), num_iou_thresholds, dtype=torch.bool, device=device)
-        preds_to_ignore = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
-
-        # Ignore all but the predictions that were top_k
-        k = min(top_k, len(pred_scores))
-        preds_idx_to_use = torch.topk(pred_scores, k=k, sorted=True, largest=True).indices
-        preds_to_ignore[:, :] = True
-        preds_to_ignore[preds_idx_to_use] = False
-
-        sigmas = torch.from_numpy(self.params.sigmas).to(device)
-
-        if len(targets) > 0:
-            iou = compute_oks(preds[preds_idx_to_use], targets, targets_visibilities, sigmas, gt_areas=targets_areas, gt_bboxes=targets_bboxes)
-
-            # The matching priority is first detection confidence and then IoU value.
-            # The detection is already sorted by confidence in NMS, so here for each prediction we order the targets by iou.
-            sorted_iou, target_sorted = iou.sort(descending=True, stable=True)
-
-            # Only iterate over IoU values higher than min threshold to speed up the process
-            for pred_selected_i, target_sorted_i in (sorted_iou > iou_thresholds[0]).nonzero(as_tuple=False):
-
-                # pred_selected_i and target_sorted_i are relative to filters/sorting, so we extract their absolute indexes
-                pred_i = preds_idx_to_use[pred_selected_i]
-                target_i = target_sorted[pred_selected_i, target_sorted_i]
-
-                # Vector[j], True when IoU(pred_i, target_i) is above the (j)th threshold
-                is_iou_above_threshold = sorted_iou[pred_selected_i, target_sorted_i] > iou_thresholds
-
-                # Vector[j], True when both pred_i and target_i are not matched yet for the (j)th threshold
-                are_candidates_free = torch.logical_and(~preds_matched[pred_i, :], ~targets_matched[target_i, :])
-
-                # Vector[j], True when (pred_i, target_i) can be matched for the (j)th threshold
-                are_candidates_good = torch.logical_and(is_iou_above_threshold, are_candidates_free)
-
-                is_matching_with_ignore = are_candidates_free & are_candidates_good & targets_ignored[target_i]
-
-                if preds_matched[pred_i].any() and is_matching_with_ignore.any():
-                    continue
-
-                # For every threshold (j) where target_i and pred_i can be matched together ( are_candidates_good[j]==True )
-                # fill the matching placeholders with True
-                targets_matched[target_i, are_candidates_good] = True
-                preds_matched[pred_i, are_candidates_good] = True
-
-                preds_to_ignore[pred_i] = torch.logical_or(preds_to_ignore[pred_i], is_matching_with_ignore)
-
-                # When all the targets are matched with a prediction for every IoU Threshold, stop.
-                if targets_matched.all():
-                    break
-
-        # Crowd targets can be matched with many predictions.
-        # Therefore, for every prediction we just need to check if it has IoA large enough with any crowd target.
-        if len(crowd_targets) > 0:
-            # shape = (n_preds_to_use x n_crowd_targets)
-            ioa = compute_oks(
-                preds[preds_idx_to_use],
-                crowd_targets,
-                crowd_visibilities,
-                sigmas,
-                gt_areas=crowd_targets_areas,
-                gt_bboxes=crowd_targets_bboxes,
-            )
-
-            # For each prediction, we keep it's highest score with any crowd target (of same class)
-            # shape = (n_preds_to_use)
-            best_ioa, _ = ioa.max(1)
-
-            # If a prediction has IoA higher than threshold (with any target of same class), then there is a match
-            # shape = (n_preds_to_use x iou_thresholds)
-            is_matching_with_crowd = best_ioa.view(-1, 1) > iou_thresholds.view(1, -1)
-
-            preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
-
-        # return preds_matched, preds_to_ignore, pred_scores, len(targets)
-        num_targets = len(targets) - torch.count_nonzero(targets_ignored)
-        return preds_matched[preds_idx_to_use], preds_to_ignore[preds_idx_to_use], pred_scores[preds_idx_to_use], num_targets.item()

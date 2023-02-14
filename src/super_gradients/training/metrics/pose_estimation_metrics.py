@@ -2,82 +2,37 @@ import collections
 import itertools
 import os
 import tempfile
-import typing
-from typing import Dict, Union, List, Optional
+from typing import Dict, Union, List, Optional, Tuple, Callable, Iterable
 
-import json_tricks as json
 import numpy as np
 import pytorch_toolbelt.utils.distributed as ddp_toolbelt
-import super_gradients
 import torch
-from pycocotools.coco import COCO
 from pytorch_toolbelt.utils import fs
-from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.registry.registry import register_metric
 from torch import Tensor
 from torchmetrics import Metric
 
-from super_gradients.training.metrics.patched_cocoeval import COCOeval
-from pose_estimation.models.postprocessing import PoseEstimationPostPredictionCallback
+import super_gradients
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.registry.registry import register_metric
+from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching
 
 logger = get_logger(__name__)
 
 __all__ = ["PoseEstimationMetrics"]
 
 
-class PoseEstimationMetricsV2(Metric):
-    def __init__(
-        self,
-        post_prediction_callback: PoseEstimationPostPredictionCallback,
-        num_joints: int,
-        max_objects_per_image: int = 100,
-        oks_sigmas: Optional[typing.Iterable] = None,
-    ):
-        super().__init__(dist_sync_on_step=False)
-        self.num_joints = num_joints
-        self.max_objects_per_image = max_objects_per_image
-        self.stats_names = ["AP", "Ap .5", "AP .75", "AP (M)", "AP (L)", "AR", "AR .5", "AR .75", "AR (M)", "AR (L)"]
-        self.greater_component_is_better = dict((k, True) for k in self.stats_names)
-        self.oks_sigmas = None
-        if oks_sigmas is not None:
-            if len(oks_sigmas) != num_joints:
-                raise ValueError("Length of oks_sigmas should be equal to num_joints")
-            self.oks_sigmas = np.array(oks_sigmas).reshape(num_joints)
-            logger.info(f"Using user-defined OKS sigmas {self.oks_sigmas}")
-
-        self.component_names = list(self.greater_component_is_better.keys())
-        self.components = len(self.component_names)
-
-        self.post_prediction_callback = post_prediction_callback
-        self.is_distributed = super_gradients.is_distributed()
-        self.world_size = None
-        self.rank = None
-        # self.add_state("predictions", default=[], dist_reduce_fx=None)
-
-    def update(self, preds: typing.Tuple[Tensor, Tensor], target: torch.Tensor, gt_joints: List[np.ndarray]):
-        masked_preds = self.mask_predictions_wrt_to_annotations(preds, target)
-
-        predictions = self.post_prediction_callback(masked_preds)  # Decode raw predictions into poses
-        for (pred_poses, pred_scores), gt_poses in zip(predictions, gt_joints):
-            result = self.match_poses(pred_poses, pred_scores, gt_poses)
-            self.predictions += result
-
-
 @register_metric("PoseEstimationMetrics")
 class PoseEstimationMetrics(Metric):
-    """
-
-    Important notice: This metric expects that validation dataset does not resize images, and
-    they come in original resolution
-    """
+    """ """
 
     def __init__(
         self,
         json_file: str,
-        post_prediction_callback: PoseEstimationPostPredictionCallback,
+        post_prediction_callback: Callable,
         num_joints: int,
-        max_objects_per_image: int = 100,
-        oks_sigmas: Optional[typing.Iterable] = None,
+        max_objects_per_image: int = 20,
+        oks_sigmas: Optional[Iterable] = None,
+        iou_thresholds: Optional[Iterable] = None,
         remove_duplicate_instances=False,
         remove_keypoints_outside_image=False,
     ):
@@ -94,14 +49,20 @@ class PoseEstimationMetrics(Metric):
         self.max_objects_per_image = max_objects_per_image
         self.remove_duplicate_instances = remove_duplicate_instances
         self.remove_keypoints_outside_image = remove_keypoints_outside_image
-        self.stats_names = ["AP", "Ap .5", "AP .75", "AP (M)", "AP (L)", "AR", "AR .5", "AR .75", "AR (M)", "AR (L)"]
+        self.stats_names = ["AP", "Ap .5", "AP .75", "AR", "AR .5", "AR .75"]
         self.greater_component_is_better = dict((k, True) for k in self.stats_names)
+
         self.oks_sigmas = None
         if oks_sigmas is not None:
             if len(oks_sigmas) != num_joints:
                 raise ValueError("Length of oks_sigmas should be equal to num_joints")
             self.oks_sigmas = np.array(oks_sigmas).reshape(num_joints)
             logger.info(f"Using user-defined OKS sigmas {self.oks_sigmas}")
+
+        if iou_thresholds is None:
+            iou_thresholds = np.linspace(0.5, 0.95, int(np.round((0.95 - 0.5) / 0.05)) + 1, endpoint=True, dtype=np.float32)
+
+        self.iou_thresholds = torch.tensor(iou_thresholds)
 
         self.component_names = list(self.greater_component_is_better.keys())
         self.components = len(self.component_names)
@@ -111,8 +72,6 @@ class PoseEstimationMetrics(Metric):
         self.world_size = None
         self.rank = None
         self.add_state("predictions", default=[], dist_reduce_fx=None)
-        self.classes = ["__background__", "person"]
-        self._class_to_coco_ind = {"person": 1}
 
     def reset(self) -> None:
         self.predictions = []
@@ -129,29 +88,67 @@ class PoseEstimationMetrics(Metric):
         masked_preds = masked_heatmap, masked_offset
         return masked_preds
 
-    def update(self, preds: typing.Tuple[Tensor, Tensor], target: torch.Tensor, inputs: torch.tensor, file_name: List[str], pose_scale_factor: List[float]):
+    def update(
+        self,
+        predictions: Tuple[Tensor, Tensor],
+        target: torch.Tensor,
+        gt_joints: List[np.ndarray],
+        gt_areas: List[np.ndarray] = None,
+        gt_bboxes: List[np.ndarray] = None,
+    ):
         """
         Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
 
         :param preds :        Raw output of the mode (heatmap, offsets)
         :param target:        Tuple of tensors (gt_heatmap, mask, gt_offset, offset_weight)
-        :param inputs:        Input image tensor of shape (batch_size, n_img, height, width)
 
-        :param file_name:        List of corresponding filenames. Used to match the predictions with ground-truth
-        :param pose_scale_factor: Divide predicted joint coordinates by this scale factor to obtain the joints
-                                  in the coordinate system of the ground-truth JSON.
+        :param gt_joints:        List of ground-truth joints for each image in the batch
 
         """
-        masked_preds = self.mask_predictions_wrt_to_annotations(preds, target)
-
+        masked_preds = self.mask_predictions_wrt_to_annotations(predictions, target)
         predictions = self.post_prediction_callback(masked_preds)  # Decode raw predictions into poses
-        for (poses, scores), file_name, scale in zip(predictions, file_name, pose_scale_factor):
-            # Scale predictions back to resolution of the GT
-            scaled_poses = poses.copy()
-            if len(scaled_poses) > 0:
-                scaled_poses[:, :, 0:2] /= scale
 
-            self.predictions.append((scaled_poses, scores, file_name))  # Accumulate them in internal state
+        if gt_areas is None:
+            gt_areas = [None] * len(gt_joints)
+
+        if gt_bboxes is None:
+            gt_bboxes = [None] * len(gt_joints)
+
+        len(predictions)
+        for i in range(len(predictions)):
+            self.update_single_image(predictions[i], gt_joints[i], gt_areas=gt_areas[i], gt_bboxes=gt_bboxes[i])
+
+    def update_single_image(self, predictions: Tuple[Tensor, Tensor], groundtruths: np.ndarray, gt_bboxes: Optional[Tensor], gt_areas: Optional[Tensor]):
+        if len(predictions) == 0 and len(groundtruths) == 0:
+            return
+
+        pred_poses, pred_scores = predictions
+
+        pred_poses = torch.tensor(pred_poses, dtype=torch.float, device=self.device)
+        pred_scores = torch.tensor(pred_scores, dtype=torch.float, device=self.device)
+
+        gt_keypoints = torch.tensor(groundtruths, dtype=torch.float, device=self.device)
+        gt_is_ignore = torch.zeros_like(gt_keypoints[:, :, 2], dtype=torch.bool, device=self.device)  # TODO: Support is_crowd
+
+        preds_matched, preds_to_ignore, preds_scores, num_targets = compute_img_keypoint_matching(
+            pred_poses,
+            pred_scores,
+            targets=gt_keypoints[~gt_is_ignore, :, 0:2] if len(groundtruths) else [],
+            targets_visibilities=gt_keypoints[~gt_is_ignore, :, 2] if len(groundtruths) else [],
+            targets_areas=gt_areas[~gt_is_ignore],
+            targets_bboxes=gt_bboxes[~gt_is_ignore],
+            targets_ignored=gt_is_ignore[~gt_is_ignore],
+            crowd_targets=gt_keypoints[gt_is_ignore, :, 0:2] if len(groundtruths) else [],
+            crowd_visibilities=gt_keypoints[gt_is_ignore, :, 2] if len(groundtruths) else [],
+            crowd_targets_areas=gt_areas[gt_is_ignore],
+            crowd_targets_bboxes=gt_bboxes[gt_is_ignore],
+            crowd_targets_ignored=gt_is_ignore[gt_is_ignore],
+            iou_thresholds=self.iou_thresholds,
+            sigmas=self.oks_sigmas,
+            top_k=self.params.maxDets,
+        )
+
+        self.predictions.append((preds_matched, preds_to_ignore, preds_scores, num_targets))
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
         """
@@ -221,93 +218,3 @@ class PoseEstimationMetrics(Metric):
 
         name_value = collections.OrderedDict(info_str)
         return name_value
-
-    def _do_python_keypoint_eval(self, res_file):
-        coco = COCO(self.json_file)
-        coco_dt = coco.loadRes(res_file)
-        coco_eval = COCOeval(coco, coco_dt, "keypoints")
-        coco_eval.params.useSegm = None
-        if self.oks_sigmas is not None:
-            coco_eval.params.sigmas = self.oks_sigmas
-        coco_eval.params.maxDets = [self.max_objects_per_image]
-        coco_eval.evaluate()
-        coco_eval.accumulate_with_coco()
-        coco_eval.summarize()
-        stats_names = ["AP", "Ap .5", "AP .75", "AP (M)", "AP (L)", "AR", "AR .5", "AR .75", "AR (M)", "AR (L)"]
-        info_str = []
-        for ind, name in enumerate(stats_names):
-            info_str.append((name, coco_eval.stats[ind]))
-
-        return info_str
-
-    def _write_coco_keypoint_results(self, keypoints, res_file):
-        data_pack = [
-            {"cat_id": self._class_to_coco_ind[cls], "cls_ind": cls_ind, "cls": cls, "ann_type": "keypoints", "keypoints": keypoints}
-            for cls_ind, cls in enumerate(self.classes)
-            if not cls == "__background__"
-        ]
-
-        results = self._coco_keypoint_results_one_category_kernel(data_pack[0])
-        logger.info("=> Writing results json to %s" % res_file)
-        with open(res_file, "w") as f:
-            json.dump(results, f, sort_keys=True, indent=4)
-        try:
-            json.load(open(res_file))
-        except Exception:
-            content = []
-            with open(res_file, "r") as f:
-                for line in f:
-                    content.append(line)
-            content[-1] = "]"
-            with open(res_file, "w") as f:
-                for c in content:
-                    f.write(c)
-
-    def _coco_keypoint_results_one_category_kernel(self, data_pack):
-        cat_id = data_pack["cat_id"]
-        keypoints = data_pack["keypoints"]
-        cat_results = []
-        num_joints = self.num_joints
-
-        for img_kpts in keypoints:
-            if len(img_kpts) == 0:
-                continue
-
-            _key_points = np.array([img_kpts[k]["keypoints"] for k in range(len(img_kpts))])
-            key_points = np.zeros((_key_points.shape[0], num_joints * 3), dtype=np.float32)
-
-            for ipt in range(num_joints):
-                key_points[:, ipt * 3 + 0] = _key_points[:, ipt, 0]
-                key_points[:, ipt * 3 + 1] = _key_points[:, ipt, 1]
-                # keypoints score.
-                key_points[:, ipt * 3 + 2] = _key_points[:, ipt, 2]
-
-            for k in range(len(img_kpts)):
-                kpt = key_points[k].reshape((num_joints, 3))
-                left_top = np.amin(kpt, axis=0)
-                right_bottom = np.amax(kpt, axis=0)
-
-                w = right_bottom[0] - left_top[0]
-                h = right_bottom[1] - left_top[1]
-
-                cat_results.append(
-                    {
-                        "image_id": img_kpts[k]["image"],
-                        "category_id": cat_id,
-                        "keypoints": list(key_points[k]),
-                        "score": img_kpts[k]["score"],
-                        "bbox": list([left_top[0], left_top[1], w, h]),
-                    }
-                )
-
-        return cat_results
-
-    def processKeypoints(self, keypoints):
-        tmp = keypoints.copy()
-        if keypoints[:, 2].max() > 0:
-            # p = keypoints[keypoints[:, 2] > 0][:, :2].mean(axis=0) ## TODO: It was unused variable
-            num_keypoints = keypoints.shape[0]
-            for i in range(num_keypoints):
-                tmp[i][0:3] = [float(keypoints[i][0]), float(keypoints[i][1]), float(keypoints[i][2])]
-
-        return tmp
