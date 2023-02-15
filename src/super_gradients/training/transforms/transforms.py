@@ -1,13 +1,15 @@
 import collections
 import math
 import random
+from numbers import Number
 from typing import Optional, Union, Tuple, List, Sequence, Dict
 
+import cv2
+import numpy as np
 import torch.nn
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
-import numpy as np
-import cv2
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
@@ -541,7 +543,7 @@ class DetectionRandomAffine(DetectionTransform):
         translate=0.1,
         scales=0.1,
         shear=10,
-        target_size=(640, 640),
+        target_size: Optional[Tuple[int, int]] = (640, 640),
         filter_box_candidates: bool = False,
         wh_thr=2,
         ar_thr=20,
@@ -570,7 +572,7 @@ class DetectionRandomAffine(DetectionTransform):
                 sample["image"],
                 sample["target"],
                 sample.get("target_seg"),
-                target_size=self.target_size,
+                target_size=self.target_size or tuple(reversed(sample["image"].shape[:2])),
                 degrees=self.degrees,
                 translate=self.translate,
                 scales=self.scale,
@@ -616,6 +618,8 @@ class DetectionMixup(DetectionTransform):
     def __call__(self, sample: dict):
         if self.enable_mixup and random.random() < self.prob:
             origin_img, origin_labels = sample["image"], sample["target"]
+            target_dim = self.input_dim if self.input_dim is not None else sample["image"].shape[:2]
+
             cp_sample = sample["additional_samples"][0]
             img, cp_labels = cp_sample["image"], cp_sample["target"]
             cp_boxes = cp_labels[:, :4]
@@ -627,11 +631,11 @@ class DetectionMixup(DetectionTransform):
             jit_factor = random.uniform(*self.mixup_scale)
 
             if len(img.shape) == 3:
-                cp_img = np.ones((self.input_dim[0], self.input_dim[1], img.shape[2]), dtype=np.uint8) * self.border_value
+                cp_img = np.ones((target_dim[0], target_dim[1], 3), dtype=np.uint8) * self.border_value
             else:
-                cp_img = np.ones(self.input_dim, dtype=np.uint8) * self.border_value
+                cp_img = np.ones(target_dim, dtype=np.uint8) * self.border_value
 
-            cp_scale_ratio = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
+            cp_scale_ratio = min(target_dim[0] / img.shape[0], target_dim[1] / img.shape[1])
             resized_img = cv2.resize(
                 img,
                 (int(img.shape[1] * cp_scale_ratio), int(img.shape[0] * cp_scale_ratio)),
@@ -755,32 +759,32 @@ class DetectionHorizontalFlip(DetectionTransform):
 class DetectionRescale(DetectionTransform):
     """
     Resize image and bounding boxes to given image dimensions without preserving aspect ratio
+
     Attributes:
-        input_dim: (tuple) (rows, cols)
-        swap: image axis's to be rearranged.
+        output_shape: (tuple) (rows, cols)
+
     """
 
-    def __init__(self, input_dim: Tuple[int, int], swap=(2, 0, 1)):
+    def __init__(self, output_shape: Tuple[int, int]):
         super().__init__()
-        self.swap = swap
-        self.input_dim = input_dim
+        self.output_shape = output_shape
 
     def __call__(self, sample: Dict[str, np.array]):
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
 
         img_resized, scale_factors = self._rescale_image(img)
 
-        sample["image"] = img_resized.transpose(self.swap).astype(np.float32, copy=True)
+        sample["image"] = img_resized
         sample["target"] = self._rescale_target(targets, scale_factors)
         if crowd_targets is not None:
             sample["crowd_target"] = self._rescale_target(crowd_targets, scale_factors)
         return sample
 
     def _rescale_image(self, image):
-        sy, sx = self.input_dim[0] / image.shape[0], self.input_dim[1] / image.shape[1]
+        sy, sx = self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1]
         resized_img = cv2.resize(
             image,
-            dsize=(int(self.input_dim[1]), int(self.input_dim[0])),
+            dsize=(int(self.output_shape[1]), int(self.output_shape[0])),
             interpolation=cv2.INTER_LINEAR,
         )
         scale_factors = sy, sx
@@ -789,8 +793,10 @@ class DetectionRescale(DetectionTransform):
     def _rescale_target(self, targets: np.array, scale_factors: Tuple[float, float]) -> np.array:
         """SegRescale the target according to a coefficient used to rescale the image.
         This is done to have images and targets at the same scale.
+
         :param targets:  Target XYXY bboxes to rescale, shape (num_boxes, 5)
         :param r:        SegRescale coefficient that was applied to the image
+
         :return:         Rescaled targets, shape (num_boxes, 5)
         """
         sy, sx = scale_factors
@@ -829,13 +835,16 @@ class DetectionRandomRotate90(DetectionTransform):
     @classmethod
     def xyxy_bbox_rot90(cls, bboxes, factor: int, rows: int, cols: int):
         """Rotates a bounding box by 90 degrees CCW (see np.rot90)
+
         Args:
             bbox: A bounding box tuple (x_min, y_min, x_max, y_max).
             factor: Number of CCW rotations. Must be in set {0, 1, 2, 3} See np.rot90.
             rows: Image rows.
             cols: Image cols.
+
         Returns:
             tuple: A bounding box tuple (x_min, y_min, x_max, y_max).
+
         """
         x_min, y_min, x_max, y_max = bboxes[:, 0], bboxes[:, 1], bboxes[:, 2], bboxes[:, 3]
 
@@ -855,8 +864,10 @@ class DetectionRandomRotate90(DetectionTransform):
 class DetectionRGB2BGR(DetectionTransform):
     """
     Detection change Red & Blue channel of the image
+
     Attributes:
         prob: (float) probability to apply the transform.
+
     """
 
     def __init__(self, prob: float = 0.5):
@@ -864,8 +875,8 @@ class DetectionRGB2BGR(DetectionTransform):
         self.prob = prob
 
     def __call__(self, sample: dict) -> dict:
-        if sample["image"].shape[2] != 3:
-            raise ValueError("DetectionRGB2BGR expects image to have 3 channels, got: " + str(sample["image"].shape[2]))
+        if sample["image"].shape[2] < 3:
+            raise ValueError("DetectionRGB2BGR transform expects at least 3 channels, got: " + str(sample["image"].shape[2]))
 
         if random.random() < self.prob:
             sample["image"] = sample["image"][..., ::-1]
@@ -909,6 +920,21 @@ class DetectionHSV(DetectionTransform):
             self._additional_channels_warned = True
         if random.random() < self.prob:
             augment_hsv(sample["image"], self.hgain, self.sgain, self.vgain, self.bgr_channels)
+        return sample
+
+
+class DetectionNormalize(DetectionTransform):
+    """
+    Normalize image by subtracting mean and dividing by std.
+    """
+
+    def __init__(self, mean, std):
+        super().__init__()
+        self.mean = np.array(list(mean)).reshape((1, 1, -1)).astype(np.float32)
+        self.std = np.array(list(std)).reshape((1, 1, -1)).astype(np.float32)
+
+    def __call__(self, sample: dict) -> dict:
+        sample["image"] = (sample["image"] - self.mean) / self.std
         return sample
 
 
@@ -1004,8 +1030,8 @@ def get_aug_params(value: Union[tuple, float], center: float = 0):
     :param center: float, defines center to subtract when value is float.
     :return: generated value
     """
-    if isinstance(value, float):
-        return random.uniform(center - value, center + value)
+    if isinstance(value, Number):
+        return random.uniform(center - float(value), center + float(value))
     elif len(value) == 2:
         return random.uniform(value[0], value[1])
     else:

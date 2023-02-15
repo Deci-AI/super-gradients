@@ -3,7 +3,7 @@ backbone_params:
   strides_list: [2, 2, 2, 2, 2]   #  list of stride per stage.
   width_list: [32, 64, 128, 256, 512]   # list of num channels per stage.
   num_blocks_list: [2, 3, 3, 2, 2]    # list of num blocks per stage.
-  block_types_list: [REPVGG, REPVGG, REPVGG, REPVGG, REPVGG]   # list of block types per stage. See unet_encoder.DownBlockType for options.
+  block_types_list: [RepVGGStage, RepVGGStage, RepVGGStage, RepVGGStage, RepVGGStage]   # list of block types per stage. See unet_encoder.DownBlockType for options.
   is_out_feature_list: [ True, True, True, True, True ]   # list of flags whether stage features should be an output.
   block_params:
     anti_alias: True                # RepVGG stage param
@@ -17,7 +17,7 @@ backbone_params:
 
 context_module:
   ASPP:
-    in_channels: ${last:${backbone_params.width_list}}
+    in_channels: ${last:${arch_params.backbone_params.width_list}}
     dilation_list: [2, 4, 6]
     in_out_ratio: 1.
     # legacy parameter to support old trained checkpoints that were trained by mistake with extra redundant
@@ -29,7 +29,7 @@ decoder_params:
   # convolution is applied upon the encoder features to project the num_channels by skip_expansion.
   skip_expansion: 0.25
   decoder_scale: 0.25   # num_channels width ratio between encoder stages and decoder stages.
-  up_block_types: [UP_CAT, UP_CAT, UP_CAT, UP_CAT]    # See unet_decoder.UpBlockType for options.
+  up_block_types: [UpCatBlock, UpCatBlock, UpCatBlock, UpCatBlock]    # See unet_decoder.UpBlockType for options.
   up_block_repeat_list: [ 1, 1, 1, 1]   # num of blocks per decoder stage, the `block` implementation depends on the up-block type.
   mode: bilinear
   align_corners: False

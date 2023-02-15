@@ -51,11 +51,12 @@ from tests.unit_tests.detection_sub_classing_test import TestDetectionDatasetSub
 from tests.unit_tests.detection_output_adapter_test import TestDetectionOutputAdapter
 from tests.unit_tests.detection_caching import TestDetectionDatasetCaching
 from tests.unit_tests.multi_scaling_test import MultiScaleTest
-from tests.unit_tests.ppyoloe_unit_test import PPYoloETests
+from tests.unit_tests.ppyoloe_unit_test import TestPPYOLOE
 from tests.unit_tests.bbox_formats_test import BBoxFormatsTest
 from tests.unit_tests.config_inspector_test import ConfigInspectTest
 from tests.unit_tests.repvgg_block_tests import TestRepVGGBlock
 from tests.unit_tests.training_utils_test import TestTrainingUtils
+from tests.unit_tests.dekr_loss_test import DEKRLossTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -110,7 +111,6 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainingParamsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(CallTrainTwiceTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainOptimizerParamsOverride))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PPYoloETests))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(BBoxFormatsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ResumeTrainingTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(CallTrainAfterTestTest))
@@ -123,6 +123,8 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MaxBatchesLoopBreakTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestTrainingUtils))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestTransforms))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPPYOLOE))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DEKRLossTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
