@@ -1,0 +1,13 @@
+ptq_only: False              # whether to launch QAT, or leave PTQ only
+selective_quantizer_params:
+  calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
+  calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
+  per_channel: True          # per-channel quantization of weights, activations stay per-tensor by default
+  learn_amax: False          # enable learnable amax in all TensorQuantizers using straight-through estimator
+  skip_modules:              # optional list of module names (strings) to skip from quantization
+
+calib_params:
+  histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", mse"], "max" calibrators always use "max"
+  percentile: 99.99                     # percentile for all histogram calibrators with method "percentile", other calibrators are not affected
+  num_calib_batches:                    # number of batches to use for calibration, if None, 512 / batch_size will be used
+  verbose: False                        # if calibrator should be verbose

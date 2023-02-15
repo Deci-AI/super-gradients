@@ -1,5 +1,7 @@
 import collections
-from typing import List, Type, Tuple
+import os.path
+from pathlib import Path
+from typing import List, Type, Tuple, Union, Optional
 
 import torch
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -8,7 +10,9 @@ from torch import nn, Tensor
 
 from super_gradients.modules import RepVGGBlock, EffectiveSEBlock, ConvBNAct
 
-__all__ = ["CSPResNet"]
+__all__ = ["CSPResNet", "CSPResNetBasicBlock"]
+
+from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 
 
 class CSPResNetBasicBlock(nn.Module):
@@ -98,7 +102,7 @@ class CSPResStage(nn.Module):
             x = self.conv_down(x)
         y1 = self.conv1(x)
         y2 = self.blocks(self.conv2(x))
-        y = torch.concat([y1, y2], dim=1)
+        y = torch.cat([y1, y2], dim=1)
         y = self.attn(y)
         y = self.conv3(y)
         return y
@@ -120,6 +124,7 @@ class CSPResNet(nn.Module):
         width_mult: float,
         depth_mult: float,
         use_alpha: bool,
+        pretrained_weights: Optional[str] = None,
     ):
         """
 
@@ -131,6 +136,7 @@ class CSPResNet(nn.Module):
         :param width_mult: Scaling factor for a number of channels
         :param depth_mult: Scaling factor for a number of blocks in each stage
         :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch in RepVGGBlock
+        :param pretrained_weights:
         """
         super().__init__()
         channels = [max(round(num_channels * width_mult), 1) for num_channels in channels]
@@ -198,6 +204,16 @@ class CSPResNet(nn.Module):
         self._out_strides = [4 * 2**i for i in range(n)]
         self.return_idx = return_idx
 
+        if pretrained_weights:
+            if isinstance(pretrained_weights, (str, Path)) and os.path.isfile(str(pretrained_weights)):
+                state_dict = torch.load(str(pretrained_weights), map_location="cpu")
+            elif isinstance(pretrained_weights, str) and pretrained_weights.startswith("https://"):
+                with wait_for_the_master(get_local_rank()):
+                    state_dict = torch.hub.load_state_dict_from_url(pretrained_weights, map_location="cpu")
+            else:
+                raise ValueError("pretrained_weights argument should be a path to local file or url to remote file")
+            self.load_state_dict(state_dict)
+
     def forward(self, x: Tensor) -> List[Tensor]:
         x = self.stem(x)
         outs = []
@@ -207,3 +223,14 @@ class CSPResNet(nn.Module):
                 outs.append(x)
 
         return outs
+
+    def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
+        """
+        Prepare the model to be converted to ONNX or other frameworks.
+        Typically, this function will freeze the size of layers which is otherwise flexible, replace some modules
+        with convertible substitutes and remove all auxiliary or training related parts.
+        :param input_size: [H,W]
+        """
+        for module in self.modules():
+            if isinstance(module, RepVGGBlock):
+                module.fuse_block_residual_branches()

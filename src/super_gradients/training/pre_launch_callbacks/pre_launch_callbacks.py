@@ -1,3 +1,4 @@
+import copy
 from copy import deepcopy
 from typing import Union
 
@@ -151,3 +152,105 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
         # WAIT FOR ALL PROCESSES TO CLEAR THEIR MEMORY BEFORE MOVING ON
         if is_distributed():
             barrier()
+
+
+class QATRecipeModificationCallback(PreLaunchCallback):
+    """
+     QATRecipeModificationCallback(PreLaunchCallback)
+
+    This callback modifies the recipe for QAT to imlement rules of thumb based on the regular non-qat recipe.
+
+    :param int batch_size_divisor: Divisor used to calculate the batch size. Default value is 2.
+    :param int max_epochs_divisor: Divisor used to calculate the maximum number of epochs. Default value is 10.
+    :param float lr_decay_factor: Factor used to decay the learning rate, weight decay and warmup. Default value is 0.01.
+    :param int warmup_epochs_divisor: Divisor used to calculate the number of warm-up epochs. Default value is 10.
+    :param float cosine_final_lr_ratio: Ratio used to determine the final learning rate in a cosine annealing schedule. Default value is 0.01.
+    :param bool disable_phase_callbacks: Flag to control to disable phase callbacks, which can interfere with QAT. Default value is True.
+
+    Example usage:
+
+    Inside the main recipe .YAML file (for example super_gradients/recipes/cifar10_resnet.yaml), add the following:
+
+    pre_launch_callbacks_list:
+        - QATRecipeModificationCallback:
+            batch_size_divisor: 2
+            max_epochs_divisor: 10
+            lr_decay_factor: 0.01
+            warmup_epochs_divisor: 10
+            cosine_final_lr_ratio: 0.01
+            disable_phase_callbacks: True
+
+    USE THIS CALLBACK ONLY WITH QATTrainer!
+    """
+
+    def __init__(
+        self,
+        batch_size_divisor: int = 2,
+        max_epochs_divisor: int = 10,
+        lr_decay_factor: float = 0.01,
+        warmup_epochs_divisor: int = 10,
+        cosine_final_lr_ratio: float = 0.01,
+        disable_phase_callbacks: bool = True,
+    ):
+        self.disable_phase_callbacks = disable_phase_callbacks
+        self.cosine_final_lr_ratio = cosine_final_lr_ratio
+        self.warmup_epochs_divisor = warmup_epochs_divisor
+        self.lr_decay_factor = lr_decay_factor
+        self.max_epochs_divisor = max_epochs_divisor
+        self.batch_size_divisor = batch_size_divisor
+
+    def __call__(self, cfg: Union[dict, DictConfig]) -> Union[dict, DictConfig]:
+        logger.info("Modifying recipe to suit QAT rules of thumb. Remove QATRecipeModificationCallback to disable.")
+
+        cfg = copy.deepcopy(cfg)
+
+        # Q/DQ Layers take a lot of space for activations in training mode
+        if cfg.quantization_params.selective_quantizer_params.learn_amax:
+            cfg.dataset_params.train_dataloader_params.batch_size //= self.batch_size_divisor
+            cfg.dataset_params.val_dataloader_params.batch_size //= self.batch_size_divisor
+
+            logger.warning(f"New dataset_params.train_dataloader_params.batch_size: {cfg.dataset_params.train_dataloader_params.batch_size}")
+            logger.warning(f"New dataset_params.val_dataloader_params.batch_size: {cfg.dataset_params.val_dataloader_params.batch_size}")
+
+        cfg.training_hyperparams.max_epochs //= self.max_epochs_divisor
+        logger.warning(f"New number of epochs: {cfg.training_hyperparams.max_epochs}")
+
+        cfg.training_hyperparams.initial_lr *= self.lr_decay_factor
+        if cfg.training_hyperparams.warmup_initial_lr is not None:
+            cfg.training_hyperparams.warmup_initial_lr *= self.lr_decay_factor
+        else:
+            cfg.training_hyperparams.warmup_initial_lr = cfg.training_hyperparams.initial_lr * 0.01
+
+        cfg.training_hyperparams.optimizer_params.weight_decay *= self.lr_decay_factor
+
+        logger.warning(f"New learning rate: {cfg.training_hyperparams.initial_lr}")
+        logger.warning(f"New weight decay: {cfg.training_hyperparams.optimizer_params.weight_decay}")
+
+        # as recommended by pytorch-quantization docs
+        cfg.training_hyperparams.lr_mode = "cosine"
+        cfg.training_hyperparams.lr_warmup_epochs = (cfg.training_hyperparams.max_epochs // self.warmup_epochs_divisor) or 1
+        cfg.training_hyperparams.cosine_final_lr_ratio = self.cosine_final_lr_ratio
+
+        # do mess with Q/DQ
+        if cfg.training_hyperparams.ema:
+            logger.warning("EMA will be disabled for QAT run.")
+            cfg.training_hyperparams.ema = False
+
+        if cfg.training_hyperparams.sync_bn:
+            logger.warning("SyncBatchNorm will be disabled for QAT run.")
+            cfg.training_hyperparams.sync_bn = False
+
+        if self.disable_phase_callbacks and len(cfg.training_hyperparams.phase_callbacks) > 0:
+            logger.warning(f"Recipe contains {len(cfg.training_hyperparams.phase_callbacks)} phase callbacks. All of them will be disabled.")
+            cfg.training_hyperparams.phase_callbacks = []
+
+        if cfg.multi_gpu != "OFF" or cfg.num_gpus != 1:
+            logger.warning(f"Recipe requests multi_gpu={cfg.multi_gpu} and num_gpus={cfg.num_gpus}. Changing to multi_gpu=OFF and num_gpus=1")
+            cfg.multi_gpu = "OFF"
+            cfg.num_gpus = 1
+
+        # no augmentations
+        if "transforms" in cfg.dataset_params.val_dataset_params:
+            cfg.dataset_params.train_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
+
+        return cfg
