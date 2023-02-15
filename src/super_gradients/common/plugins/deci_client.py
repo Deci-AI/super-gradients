@@ -1,13 +1,11 @@
 import os
 import json
 import sys
+import shutil
 from zipfile import ZipFile
 from typing import List, Optional, Any
-from pathlib import Path
 
-import hydra
 import importlib.util
-from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
 
@@ -73,8 +71,6 @@ class DeciClient:
             return None
 
         file_path = FilesDataInterface.download_temporary_file(file_url=download_link)
-        if dest_dir_name:
-            file_path = _move_to_folder(src_file_path=file_path, dest_dir_name=dest_dir_name)
 
         return file_path
 
@@ -86,9 +82,13 @@ class DeciClient:
         if arch_params_file is None:
             return None
 
-        working_dir = os.path.dirname(os.path.dirname(arch_params_file))
         config_name = os.path.basename(arch_params_file)
-        return load_arch_params(config_name=config_name, recipes_dir_path=working_dir)
+        download_dir = os.path.dirname(arch_params_file)
+
+        # The arch_params config files need to be saved inside an "arch_params" folder
+        _move_file_to_folder(src_file_path=arch_params_file, dest_dir_name="arch_params")
+
+        return load_arch_params(config_name=config_name, recipes_dir_path=download_dir)
 
     def get_model_recipe(self, model_name: str) -> Optional[DictConfig]:
         """Get the model recipe from DeciPlatform.
@@ -98,9 +98,10 @@ class DeciClient:
         if recipe_file is None:
             return None
 
-        working_dir = os.path.dirname(recipe_file)
         config_name = os.path.basename(recipe_file)
-        return load_recipe(config_name=config_name, recipes_dir_path=working_dir)
+        download_dir = os.path.dirname(recipe_file)
+
+        return load_recipe(config_name=config_name, recipes_dir_path=download_dir)
 
     def get_model_weights(self, model_name: str) -> Optional[str]:
         """Get the path to model weights (downloaded locally).
@@ -218,10 +219,14 @@ class DeciClient:
         self.lab_client.add_model_v2(model_metadata=model_metadata, hardware_types=hardware_types, model_path=model_path, model=model, **kwargs)
 
 
-def _move_to_folder(src_file_path: str, dest_dir_name: str) -> str:
-    src_dir_path = os.path.dirname(src_file_path)
+def _move_file_to_folder(src_file_path: str, dest_dir_name: str) -> str:
+    """Move a file to a newly created folder in the same directory.
 
-    import shutil
+    :param src_file_path:   Path of the file to be moved.
+    :param dest_dir_name:   Name of the destination folder.
+    :return:                The path of the moved file.
+    """
+    src_dir_path = os.path.dirname(src_file_path)
 
     dest_dir_path = os.path.join(src_dir_path, dest_dir_name)
     dest_file_path = os.path.join(dest_dir_path, os.path.basename(src_file_path))
@@ -229,14 +234,3 @@ def _move_to_folder(src_file_path: str, dest_dir_name: str) -> str:
     os.makedirs(dest_dir_path, exist_ok=True)
     shutil.copyfile(src_file_path, dest_file_path)
     return dest_file_path
-
-
-def _load_cfg(config_path: str) -> DictConfig:
-    """Load a hydra config file.
-    :param config_path: Full path of the hydra config file.
-    :return:            Hydra config instance"""
-    GlobalHydra.instance().clear()
-
-    arch_params_file = Path(config_path)
-    with hydra.initialize_config_dir(config_dir=str(arch_params_file.parent), version_base=None):
-        return hydra.compose(config_name=arch_params_file.name)
