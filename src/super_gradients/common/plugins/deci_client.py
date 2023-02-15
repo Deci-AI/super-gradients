@@ -14,7 +14,7 @@ from torch import nn
 import super_gradients
 from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
-
+from super_gradients.common.environment.cfg_utils import load_arch_params, load_recipe
 
 logger = get_logger(__name__)
 
@@ -49,10 +49,11 @@ class DeciClient:
         self.lab_client = DeciPlatformClient(api_host=self.api_host)
         self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
-    def _get_file(self, model_name: str, file_name: str) -> Optional[str]:
+    def _get_file(self, model_name: str, file_name: str, dest_dir_name: Optional[str] = None) -> Optional[str]:
         """Get a file from the DeciPlatform if it exists, otherwise returns None
-        :param model_name:  Name of the model to download from, as saved in the platform.
-        :param file_name:   Name of the file to download
+        :param model_name:      Name of the model to download from, as saved in the platform.
+        :param file_name:       Name of the file to download
+        :param dest_dir_name:   Optional. If set, the the file will be saved in a subdirectory with this name.
         :return:            Path were the downloaded file was saved to. None if not found.
         """
         try:
@@ -71,16 +72,23 @@ class DeciClient:
                 logger.debug(e.body)
             return None
 
-        return FilesDataInterface.download_temporary_file(file_url=download_link)
+        file_path = FilesDataInterface.download_temporary_file(file_url=download_link)
+        if dest_dir_name:
+            file_path = _move_to_folder(src_file_path=file_path, dest_dir_name=dest_dir_name)
+
+        return file_path
 
     def get_model_arch_params(self, model_name: str) -> Optional[DictConfig]:
         """Get the model arch_params from DeciPlatform.
         :param model_name:  Name of the model as saved in the platform.
         :return:            arch_params. None if arch_params were not found for this specific model on this SG version."""
-        arch_params_file = self._get_file(model_name, AutoNACFileName.STRUCTURE_YAML)
+        arch_params_file = self._get_file(model_name, AutoNACFileName.STRUCTURE_YAML, dest_dir_name="arch_params")
         if arch_params_file is None:
             return None
-        return _load_cfg(config_path=arch_params_file)
+
+        working_dir = os.path.dirname(os.path.dirname(arch_params_file))
+        config_name = os.path.basename(arch_params_file)
+        return load_arch_params(config_name=config_name, recipes_dir_path=working_dir)
 
     def get_model_recipe(self, model_name: str) -> Optional[DictConfig]:
         """Get the model recipe from DeciPlatform.
@@ -89,7 +97,10 @@ class DeciClient:
         recipe_file = self._get_file(model_name, AutoNACFileName.RECIPE_YAML)
         if recipe_file is None:
             return None
-        return _load_cfg(config_path=recipe_file)
+
+        working_dir = os.path.dirname(recipe_file)
+        config_name = os.path.basename(recipe_file)
+        return load_recipe(config_name=config_name, recipes_dir_path=working_dir)
 
     def get_model_weights(self, model_name: str) -> Optional[str]:
         """Get the path to model weights (downloaded locally).
@@ -205,6 +216,19 @@ class DeciClient:
         """
 
         self.lab_client.add_model_v2(model_metadata=model_metadata, hardware_types=hardware_types, model_path=model_path, model=model, **kwargs)
+
+
+def _move_to_folder(src_file_path: str, dest_dir_name: str) -> str:
+    src_dir_path = os.path.dirname(src_file_path)
+
+    import shutil
+
+    dest_dir_path = os.path.join(src_dir_path, dest_dir_name)
+    dest_file_path = os.path.join(dest_dir_path, os.path.basename(src_file_path))
+
+    os.makedirs(dest_dir_path, exist_ok=True)
+    shutil.copyfile(src_file_path, dest_file_path)
+    return dest_file_path
 
 
 def _load_cfg(config_path: str) -> DictConfig:

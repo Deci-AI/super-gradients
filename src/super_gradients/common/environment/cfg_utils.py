@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 import pkg_resources
+from enum import Enum
 
 import hydra
 from hydra import initialize_config_dir, compose
@@ -57,13 +58,51 @@ def add_params_to_cfg(cfg: DictConfig, params: List[str]):
         cfg.merge_with(new_cfg)
 
 
-def load_arch_params(config_name: str) -> DictConfig:
-    """
-    :param config_name: name of a yaml with arch parameters
-    """
+class ConfigType(Enum):
+    MAIN_RECIPE = "recipe"
+    ANCHORS = "anchors"
+    ARCH_PARAMS = "arch_params"
+    CHECKPOINT_PARAMS = "checkpoint_params"
+    CONVERSION_PARAMS = "conversion_params"
+    DATASET_PARAMS = "dataset_params"
+    QUANTIZATION_PARAMS = "quantization_params"
+    TRAINING_HYPERPARAMS = "training_hyperparams"
+
+
+def load_cfg(config_name, config_type: ConfigType, recipes_dir_path: Optional[str] = None) -> DictConfig:
     GlobalHydra.instance().clear()
-    sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
-    dataset_config = os.path.join("arch_params", config_name)
-    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir), version_base="1.2"):
+
+    if recipes_dir_path is None:
+        recipes_dir_path = pkg_resources.resource_filename("super_gradients.recipes", "")
+
+    if config_type == ConfigType.MAIN_RECIPE:
+        config_relative_path = config_name
+    else:
+        config_relative_path = os.path.join(config_type.value, config_name)
+
+    with initialize_config_dir(config_dir=normalize_path(recipes_dir_path), version_base="1.2"):
         # config is relative to a module
-        return hydra.utils.instantiate(compose(config_name=normalize_path(dataset_config)).arch_params)
+        cfg = compose(config_name=normalize_path(config_relative_path))
+
+        if config_type != ConfigType.MAIN_RECIPE:
+            cfg = cfg[config_type.value]  # We only want to instantiate and work with a sub set of the whole config (arch_params, ...)
+
+        return hydra.utils.instantiate(cfg)
+
+
+def load_arch_params(config_name: str, recipes_dir_path: Optional[str] = None) -> DictConfig:
+    """
+    :param config_name:         Name of a yaml with arch parameters
+    :param recipes_dir_path:    Optional. Main directory where every recipe are stored.
+                                This directory should include an "arch_params" folder, which itself should include the config file named $config_name.
+    """
+    return load_cfg(config_name=config_name, recipes_dir_path=recipes_dir_path, config_type=ConfigType.ARCH_PARAMS)
+
+
+def load_recipe(config_name: str, recipes_dir_path: Optional[str] = None) -> DictConfig:
+    """
+    :param config_name:         Name of a yaml with arch parameters
+    :param recipes_dir_path:    Optional. Main directory where every recipe are stored.
+                                This directory should include the config file named $config_name.
+    """
+    return load_cfg(config_name=config_name, recipes_dir_path=recipes_dir_path, config_type=ConfigType.MAIN_RECIPE)

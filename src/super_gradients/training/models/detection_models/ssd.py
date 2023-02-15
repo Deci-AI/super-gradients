@@ -3,7 +3,7 @@ from typing import Union
 
 from omegaconf import DictConfig
 
-from super_gradients.training.utils.hydra_utils import load_arch_params
+from super_gradients.common.environment.cfg_utils import load_arch_params
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 

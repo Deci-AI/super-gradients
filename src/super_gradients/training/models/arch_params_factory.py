@@ -2,7 +2,7 @@ from typing import Dict
 
 from omegaconf import DictConfig
 
-from super_gradients.training.utils.hydra_utils import load_arch_params
+from super_gradients.common.environment.cfg_utils import load_arch_params
 
 
 def get_arch_params(config_name: str, overriding_params: Dict = None) -> DictConfig:
