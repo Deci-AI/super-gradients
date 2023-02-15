@@ -64,6 +64,14 @@ class ConfigInspectTest(unittest.TestCase):
                 self.assertEqual(result, 42)
             self.assertTrue("this_is_a_test_property_that_is_set_and_used" in config.get_used_params())
 
+    def test_inspector_raise_on_unused_args_with_modification_of_the_config_hpm_struct(self):
+        def model_factory(cfg):
+            cfg.this_is_a_test_property_that_is_set_but_not_used = 42
+            cfg.this_is_a_test_property_that_is_set_and_used = 39
+            return cfg.a + cfg.b + cfg.this_is_a_test_property_that_is_set_and_used
+
+        original_config = {"unused_param": True, "a": 1, "b": 2}
+
         with self.assertRaisesRegex(UnusedConfigParamException, DEFAULT_UNUSED_CONFIG_MESSAGE_PREFIX):
             config = HpmStruct(**copy.deepcopy(original_config))
             with raise_if_unused_params(copy.deepcopy(config)) as config:
