@@ -1,4 +1,5 @@
 import abc
+from copy import deepcopy
 from collections import defaultdict
 from typing import Mapping, Iterable, Set, Union
 
@@ -63,9 +64,23 @@ class AccessCounterMixin:
         unused_params = self.get_all_params() - self.get_used_params()
         return unused_params
 
+    def __copy__(self):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        result.__dict__.update(self.__dict__)
+        return result
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, deepcopy(v, memo))
+        return result
+
 
 class AccessCounterDict(Mapping, AccessCounterMixin):
-    def __init__(self, config: Mapping, access_counter: Mapping[str, int] = None, prefix: str = ""):
+    def __init__(self, config: Union[dict, DictConfig], access_counter: Mapping[str, int] = None, prefix: str = ""):
         super().__init__()
         self.config = config
         self._access_counter = access_counter or defaultdict(int)
@@ -83,6 +98,15 @@ class AccessCounterDict(Mapping, AccessCounterMixin):
     def __getattr__(self, item):
         value = self.config.__getitem__(item)
         return self.maybe_wrap_as_counter(value, item)
+
+    def __setitem__(self, key, value):
+        self.config[key] = value
+
+    def __repr__(self):
+        return self.config.__repr__()
+
+    def __str__(self):
+        return self.config.__str__()
 
     def get(self, item, default=None):
         value = self.config.get(item, default)
@@ -124,6 +148,9 @@ class AccessCounterHpmStruct(Mapping, AccessCounterMixin):
     def __getattr__(self, item):
         value = self.config.__dict__[item]
         return self.maybe_wrap_as_counter(value, item)
+
+    def __setitem__(self, key, value):
+        self.config[key] = value
 
     def get(self, item, default=None):
         value = self.config.__dict__.get(item, default)
@@ -175,6 +202,8 @@ class ConfigInspector:
         return self.wrapped_config
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            raise
         unused_params = self.wrapped_config.get_unused_params()
         if len(unused_params):
             message = f"Detected unused parameters in configuration object that were not consumed by caller: {unused_params}"
