@@ -9,7 +9,7 @@ from hydra.core.global_hydra import GlobalHydra
 from omegaconf import OmegaConf, open_dict, DictConfig
 
 from super_gradients.common.environment.path_utils import normalize_path
-from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
+from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 
 
 def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> DictConfig:
