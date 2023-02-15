@@ -1,4 +1,3 @@
-from super_gradients.training.models.segmentation_models.registry import SEGMENTATION_ENCODERS
 from super_gradients.training.models.sg_module import SgModule
 import torch.nn as nn
 from abc import abstractmethod, ABC
