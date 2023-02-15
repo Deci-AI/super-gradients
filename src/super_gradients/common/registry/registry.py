@@ -1,6 +1,7 @@
 import inspect
 from typing import Callable, Dict, Optional
 
+from super_gradients.training.utils.callbacks import LR_SCHEDULERS_CLS_DICT
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.training.dataloaders.dataloaders import ALL_DATALOADERS
 from super_gradients.training.models.all_architectures import ARCHITECTURES
@@ -65,6 +66,7 @@ register_unet_backbone_stage = create_register_decorator(registry=BACKBONE_STAGE
 register_unet_up_block = create_register_decorator(registry=UP_FUSE_BLOCKS)
 register_segmentation_backbone = create_register_decorator(registry=SEGMENTATION_BACKBONES)
 register_target_generator = create_register_decorator(registry=ALL_TARGET_GENERATORS)
+register_lr_scheduler = create_register_decorator(registry=LR_SCHEDULERS_CLS_DICT)
 register_sg_logger = create_register_decorator(registry=SG_LOGGERS)
 register_collate_function = create_register_decorator(registry=ALL_COLLATE_FUNCTIONS)
 register_sampler = create_register_decorator(registry=SAMPLERS)

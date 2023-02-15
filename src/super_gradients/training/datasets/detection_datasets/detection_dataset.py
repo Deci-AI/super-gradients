@@ -67,7 +67,7 @@ class DetectionDataset(Dataset):
     def __init__(
         self,
         data_dir: str,
-        input_dim: tuple,
+        input_dim: Optional[Tuple[int, int]],
         original_target_format: DetectionTargetsFormat,
         max_num_samples: int = None,
         cache: bool = False,
@@ -278,11 +278,12 @@ class DetectionDataset(Dataset):
         """
         img = self._load_image(index)
 
-        r = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
-        desired_size = (int(img.shape[1] * r), int(img.shape[0] * r))
+        if self.input_dim is not None:
+            r = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
+            desired_size = (int(img.shape[1] * r), int(img.shape[0] * r))
+            img = cv2.resize(src=img, dsize=desired_size, interpolation=cv2.INTER_LINEAR).astype(np.uint8)
 
-        resized_img = cv2.resize(src=img, dsize=desired_size, interpolation=cv2.INTER_LINEAR).astype(np.uint8)
-        return resized_img
+        return img
 
     def _load_image(self, index: int) -> np.ndarray:
         """Loads image at index with its original resolution.

@@ -7,12 +7,14 @@ class Losses:
     SHELFNET_OHEM_LOSS = "shelfnet_ohem_loss"
     SHELFNET_SE_LOSS = "shelfnet_se_loss"
     YOLOX_LOSS = "yolox_loss"
+    PPYOLOE_LOSS = "ppyoloe_loss"
     YOLOX_FAST_LOSS = "yolox_fast_loss"
     SSD_LOSS = "ssd_loss"
     STDC_LOSS = "stdc_loss"
     BCE_DICE_LOSS = "bce_dice_loss"
     KD_LOSS = "kd_loss"
     DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
+    DEKR_LOSS = "dekr_loss"
 
 
 class Metrics:
@@ -55,6 +57,8 @@ class Transforms:
     DetectionRescale = "DetectionRescale"
     DetectionPaddedRescale = "DetectionPaddedRescale"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
+    DetectionNormalize = "DetectionNormalize"
+    #
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
     RandAugmentTransform = "RandAugmentTransform"
     Lighting = "Lighting"
@@ -132,6 +136,8 @@ class Callbacks:
     EARLY_STOP = "EarlyStop"
     DETECTION_MULTISCALE_PREPREDICTION = "DetectionMultiscalePrePredictionCallback"
     YOLOX_TRAINING_STAGE_SWITCH = "YoloXTrainingStageSwitchCallback"
+    PPYOLOE_TRAINING_STAGE_SWITCH = "PPYoloETrainingStageSwitchCallback"
+    DETECTION_VISUALIZATION_CALLBACK = "DetectionVisualizationCallback"
 
 
 class LRSchedulers:
@@ -276,6 +282,10 @@ class Models:
     UNET_CUSTOM_CLS = "unet_custom_cls"
     STDC_CUSTOM = "stdc_custom"
     STDC_CUSTOM_CLS = "stdc_custom_cls"
+    PP_YOLOE_S = "ppyoloe_s"
+    PP_YOLOE_M = "ppyoloe_m"
+    PP_YOLOE_L = "ppyoloe_l"
+    PP_YOLOE_X = "ppyoloe_x"
 
 
 class ConcatenatedTensorFormats:
