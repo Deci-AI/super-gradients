@@ -15,25 +15,59 @@ from super_gradients.training.datasets.pose_estimation_datasets.coco_utils impor
     remove_duplicate_annotations,
     make_keypoints_outside_image_invisible,
 )
-from super_gradients.training.metrics.pose_estimation_utils import COCOevalV2
-from super_gradients.training.metrics.patched_cocoeval import EvaluationParams
+from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimationMetrics
 
 
 class TestPoseEstimationMetrics(unittest.TestCase):
-    def test_compare_pycocotools_with_our_implementation_cpu(self):
+    def test_compare_pycocotools_with_our_implementation_metric_cls(self):
         random.seed(0)
         np.random.seed(0)
 
         gt_annotations_path = "../data/coco2017/annotations/person_keypoints_val2017.json"
         assert os.path.isfile(gt_annotations_path)
 
+        # Load groundtruth annotations
         gt = COCO(gt_annotations_path)
         gt = remove_duplicate_annotations(gt)
         gt = make_keypoints_outside_image_invisible(gt)
 
-        predictions = list(self.generate_noised_predictions(gt, instance_drop_probability=0.1, pose_offset=1))
+        # Generate predictions by randomly dropping some instances and adding noise to remaining poses
+        (
+            predicted_poses,
+            predicted_scores,
+            groundtruths_poses,
+            groundtruths_iscrowd,
+            groundtruths_areas,
+            groundtruths_bboxes,
+            image_ids,
+        ) = self.generate_noised_predictions(gt, instance_drop_probability=0.1, pose_offset=1)
 
-        coco_pred = self.convert_predictions_to_coco_dict(predictions)
+        # Compute metrics using SG implementation
+        def convert_predictions_to_target_format(preds):
+            # This is out predictions decode function. Here it's no-op since we pass decoded predictions as the input
+            # but in real life this post-processing callback should be doing actual pose decoding & NMS
+            return preds
+
+        sg_metrics = PoseEstimationMetrics(
+            post_prediction_callback=convert_predictions_to_target_format,
+            num_joints=17,
+            max_objects_per_image=20,
+            iou_thresholds_to_report=(0.5, 0.75),
+        )
+
+        sg_metrics.update(
+            preds=(predicted_poses, predicted_scores),
+            target=None,
+            gt_joints=groundtruths_poses,
+            gt_iscrowd=groundtruths_iscrowd,
+            gt_areas=groundtruths_areas,
+            gt_bboxes=groundtruths_bboxes,
+        )
+
+        actual_metrics = sg_metrics.compute()
+        pprint(actual_metrics)
+
+        coco_pred = self._coco_convert_predictions_to_dict(predicted_poses, predicted_scores, image_ids)
 
         with tempfile.TemporaryDirectory() as td:
             res_file = os.path.join(td, "keypoints_coco2017_results.json")
@@ -47,63 +81,52 @@ class TestPoseEstimationMetrics(unittest.TestCase):
 
             coco_dt = coco_dt.loadRes(res_file)
 
-        sg_evaluator = COCOevalV2(EvaluationParams.get_predefined_coco_params())
-        sg_results = sg_evaluator.evaluate_from_coco(gt, coco_dt)
-        pprint(sg_results.all_metrics())
+            coco_evaluator = COCOeval(gt, coco_dt, iouType="keypoints")
+            coco_evaluator.evaluate()  # run per image evaluation
+            coco_evaluator.accumulate()  # accumulate per image results
+            coco_evaluator.summarize()  # display summary metrics of results
+            expected_metrics = coco_evaluator.stats
 
-        coco_evaluator = COCOeval(gt, coco_dt, iouType="keypoints")
-        coco_evaluator.evaluate()  # run per image evaluation
-        coco_evaluator.accumulate()  # accumulate per image results
-        coco_evaluator.summarize()  # display summary metrics of results
+        self.assertAlmostEquals(expected_metrics[0], actual_metrics["AP"], delta=0.001)
+        self.assertAlmostEquals(expected_metrics[5], actual_metrics["AR"], delta=0.001)
 
-        self.assertAlmostEquals(coco_evaluator.stats[0], sg_results.all_metrics()["AP"], delta=0.001)
-        self.assertAlmostEquals(coco_evaluator.stats[5], sg_results.all_metrics()["AR"], delta=0.001)
+    def test_metric_works_on_empty_predictions(self):
+        # Compute metrics using SG implementation
+        def convert_predictions_to_target_format(preds):
+            # This is out predictions decode function. Here it's no-op since we pass decoded predictions as the input
+            # but in real life this post-processing callback should be doing actual pose decoding & NMS
+            return preds
 
-    def test_compare_pycocotools_with_our_implementation_gpu(self):
-        random.seed(0)
-        np.random.seed(0)
+        sg_metrics = PoseEstimationMetrics(
+            post_prediction_callback=convert_predictions_to_target_format,
+            num_joints=17,
+            max_objects_per_image=20,
+            iou_thresholds=None,
+            oks_sigmas=None,
+        )
 
-        gt_annotations_path = "../data/coco2017/annotations/person_keypoints_val2017.json"
-        assert os.path.isfile(gt_annotations_path)
+        actual_metrics = sg_metrics.compute()
+        pprint(actual_metrics)
 
-        gt = COCO(gt_annotations_path)
-        gt = remove_duplicate_annotations(gt)
-        gt = make_keypoints_outside_image_invisible(gt)
+        self.assertEqual(-1, actual_metrics["AP"])
+        self.assertEqual(-1, actual_metrics["AR"])
 
-        predictions = list(self.generate_noised_predictions(gt, instance_drop_probability=0.1, pose_offset=1))
-
-        coco_pred = self.convert_predictions_to_coco_dict(predictions)
-
-        with tempfile.TemporaryDirectory() as td:
-            res_file = os.path.join(td, "keypoints_coco2017_results.json")
-
-            with open(res_file, "w") as f:
-                json.dump(coco_pred, f, sort_keys=True, indent=4)
-
-            coco_dt = COCO(gt_annotations_path)
-            coco_dt = remove_duplicate_annotations(coco_dt)
-            coco_dt = make_keypoints_outside_image_invisible(coco_dt)
-
-            coco_dt = coco_dt.loadRes(res_file)
-
-        sg_evaluator = COCOevalV2(EvaluationParams.get_predefined_coco_params())
-        sg_results = sg_evaluator.evaluate_from_coco(gt, coco_dt, device="cuda")
-        pprint(sg_results.all_metrics())
-
-        coco_evaluator = COCOeval(gt, coco_dt, iouType="keypoints")
-        coco_evaluator.evaluate()  # run per image evaluation
-        coco_evaluator.accumulate()  # accumulate per image results
-        coco_evaluator.summarize()  # display summary metrics of results
-
-        self.assertAlmostEquals(coco_evaluator.stats[0], sg_results.all_metrics()["AP"], delta=0.002)  # CUDA has slightly higher tolerance delta
-        self.assertAlmostEquals(coco_evaluator.stats[5], sg_results.all_metrics()["AR"], delta=0.002)  # CUDA has slightly higher tolerance delta
-
-    def generate_noised_predictions(self, coco: COCO, instance_drop_probability: float, pose_offset: float) -> List[Tuple[np.ndarray, int]]:
+    def generate_noised_predictions(self, coco: COCO, instance_drop_probability: float, pose_offset: float) -> Tuple[List, List, List]:
         """
 
         :param coco:
         :return: List of tuples (poses, image_id)
         """
+        image_ids = []
+
+        predicted_poses = []
+        predicted_scores = []
+
+        groundtruths_poses = []
+        groundtruths_iscrowd = []
+        groundtruths_areas = []
+        groundtruths_bboxes = []
+
         for image_id, image_info in coco.imgs.items():
             image_id_int = int(image_id)
             image_width = image_info["width"]
@@ -112,12 +135,24 @@ class TestPoseEstimationMetrics(unittest.TestCase):
             ann_ids = coco.getAnnIds(imgIds=image_id_int)
             anns = coco.loadAnns(ann_ids)
 
-            poses = []
+            image_pred_keypoints = []
+            image_gt_keypoints = []
+            image_gt_iscrowd = []
+            image_gt_areas = []
+            image_gt_bboxes = []
+
             for ann in anns:
+                gt_keypoints = np.array(ann["keypoints"]).reshape(-1, 3).astype(np.float32)
+
+                image_gt_keypoints.append(gt_keypoints)
+                image_gt_iscrowd.append(ann["iscrowd"])
+                image_gt_areas.append(ann["area"])
+                image_gt_bboxes.append(ann["bbox"])
+
                 if np.random.rand() < instance_drop_probability:
                     continue
 
-                keypoints = np.array(ann["keypoints"]).reshape(-1, 3).astype(np.float32)
+                keypoints = gt_keypoints.copy()
                 if pose_offset > 0:
                     keypoints[:, 0] += (2 * np.random.randn() - 1) * pose_offset
                     keypoints[:, 1] += (2 * np.random.randn() - 1) * pose_offset
@@ -128,15 +163,23 @@ class TestPoseEstimationMetrics(unittest.TestCase):
                     # Apply random score for visible keypoints
                     keypoints[:, 2] = (keypoints[:, 2] > 0) * np.random.randn(len(keypoints))
 
-                poses.append(keypoints)
+                image_pred_keypoints.append(keypoints)
 
-            yield np.array(poses), image_id_int
+            image_ids.append(image_id_int)
+            predicted_poses.append(image_pred_keypoints)
+            predicted_scores.append(np.random.rand(len(image_pred_keypoints)))
 
-    def convert_predictions_to_coco_dict(self, predictions):
+            groundtruths_poses.append(image_gt_keypoints)
+            groundtruths_iscrowd.append(np.array(image_gt_iscrowd, dtype=bool))
+            groundtruths_areas.append(np.array(image_gt_areas))
+            groundtruths_bboxes.append(np.array(image_gt_bboxes))
+
+        return predicted_poses, predicted_scores, groundtruths_poses, groundtruths_iscrowd, groundtruths_areas, groundtruths_bboxes, image_ids
+
+    def _coco_convert_predictions_to_dict(self, predicted_poses, predicted_scores, image_ids):
         kpts = collections.defaultdict(list)
-        for poses, image_id_int in predictions:
-            # scores = np.random.rand(len(poses))
-            scores = [1] * len(poses)
+        for poses, scores, image_id_int in zip(predicted_poses, predicted_scores, image_ids):
+
             for person_index, kpt in enumerate(poses):
                 area = (np.max(kpt[:, 0]) - np.min(kpt[:, 0])) * (np.max(kpt[:, 1]) - np.min(kpt[:, 1]))
                 kpt = self._coco_process_keypoints(kpt)
@@ -205,28 +248,6 @@ class TestPoseEstimationMetrics(unittest.TestCase):
                 )
 
         return cat_results
-
-    def _write_coco_keypoint_results(self, keypoints, res_file):
-        data_pack = [
-            {"cat_id": self._class_to_coco_ind[cls], "cls_ind": cls_ind, "cls": cls, "ann_type": "keypoints", "keypoints": keypoints}
-            for cls_ind, cls in enumerate(self.classes)
-            if not cls == "__background__"
-        ]
-
-        results = self._coco_keypoint_results_one_category_kernel(data_pack[0])
-        with open(res_file, "w") as f:
-            json.dump(results, f, sort_keys=True, indent=4)
-        try:
-            json.load(open(res_file))
-        except Exception:
-            content = []
-            with open(res_file, "r") as f:
-                for line in f:
-                    content.append(line)
-            content[-1] = "]"
-            with open(res_file, "w") as f:
-                for c in content:
-                    f.write(c)
 
     def _coco_process_keypoints(self, keypoints):
         tmp = keypoints.copy()
