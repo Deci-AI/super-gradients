@@ -14,7 +14,7 @@ from super_gradients.common.environment.checkpoints_dir_utils import get_checkpo
 
 
 class RecipeNotFoundError(Exception):
-    def __init__(self, config_name: str, config_dir, recipes_dir_path, config_type: str = "", postfix_err_msg: Optional[str] = None):
+    def __init__(self, config_name: str, config_dir: str, recipes_dir_path, config_type: str = "", postfix_err_msg: Optional[str] = None):
         config_dir = os.path.abspath(config_dir)
         message = f"Recipe '{os.path.join(config_dir, config_type, config_name.replace('.yaml', ''))}.yaml' was not found.\n"
 
