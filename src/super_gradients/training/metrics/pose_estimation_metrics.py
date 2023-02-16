@@ -116,7 +116,7 @@ class PoseEstimationMetrics(Metric):
         :param gt_iscrowd:       Optional argument indicating which instance is annotated with `iscrowd` flog and is not used for evaluation;
                                  If not provided, all instances are considered as non-crowd targets.
 
-        :param gt_bboxes:        Bounding boxes of the groundtruth instances.
+        :param gt_bboxes:        Bounding boxes of the groundtruth instances (XYWH).
                                  This is COCO-specific and is used in OKS computation for instances w/o visible keypoints.
                                  If not provided, the bounding box is computed as the minimum bounding box that contains all the keypoints.
 
