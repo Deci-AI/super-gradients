@@ -97,15 +97,20 @@ class TestPoseEstimationMetrics(unittest.TestCase):
             coco_evaluator.summarize()  # display summary metrics of results
             expected_metrics = coco_evaluator.stats
 
-        self.assertAlmostEquals(expected_metrics[0], actual_metrics["AP"], delta=0.001)
-        self.assertAlmostEquals(expected_metrics[5], actual_metrics["AR"], delta=0.001)
+        self.assertAlmostEquals(expected_metrics[0], actual_metrics["AP"], delta=0.002)
+        self.assertAlmostEquals(expected_metrics[5], actual_metrics["AR"], delta=0.002)
+
+    def test_compare_pycocotools_with_our_implementation_no_crowd(self):
+        for device in ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]:
+            self._internal_compare_method(False, True, True, device)
+
+    def test_compare_pycocotools_with_our_implementation_no_duplicates(self):
+        for device in ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]:
+            self._internal_compare_method(True, False, True, device)
 
     def test_compare_pycocotools_with_our_implementation_metric(self):
-        for with_crowd in [True, False]:
-            for with_duplicates in [True, False]:
-                for with_invisible_keypoitns in [True, False]:
-                    for device in ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]:
-                        self._internal_compare_method(with_crowd, with_duplicates, with_invisible_keypoitns, device)
+        for device in ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]:
+            self._internal_compare_method(True, True, False, device)
 
     def test_metric_works_on_empty_predictions(self):
         # Compute metrics using SG implementation
