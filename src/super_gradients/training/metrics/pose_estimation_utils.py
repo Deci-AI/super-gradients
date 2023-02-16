@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -97,37 +97,70 @@ def compute_oks(
 
 
 def compute_img_keypoint_matching(
-    preds: torch.Tensor,
-    pred_scores: torch.Tensor,
-    targets: torch.Tensor,
-    targets_visibilities: torch.Tensor,
-    targets_areas: Optional[torch.Tensor],
-    targets_bboxes: Optional[torch.Tensor],
-    targets_ignored: Optional[torch.Tensor],
-    crowd_targets: torch.Tensor,
-    crowd_visibilities: torch.Tensor,
-    crowd_targets_areas: Optional[torch.Tensor],
-    crowd_targets_bboxes: Optional[torch.Tensor],
-    crowd_targets_ignored: Optional[torch.Tensor],
+    preds: Tensor,
+    pred_scores: Tensor,
+    targets: Tensor,
+    targets_visibilities: Tensor,
+    targets_areas: Tensor,
+    targets_bboxes: Tensor,
+    targets_ignored: Tensor,
+    crowd_targets: Tensor,
+    crowd_visibilities: Tensor,
+    crowd_targets_areas: Tensor,
+    crowd_targets_bboxes: Tensor,
     iou_thresholds: torch.Tensor,
-    sigmas: torch.Tensor,
+    sigmas: Tensor,
     top_k: int,
 ) -> Tuple[Tensor, Tensor, Tensor, int]:
     """
     Match predictions and the targets (ground truth) with respect to IoU and confidence score for a given image.
-    :param preds:           Tensor of shape (K, NumJoints, 3)
-    :param targets:         targets for this image of shape (num_img_targets, 6)
-                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-    :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
-                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-    :param iou_thresholds:  Threshold to compute the mAP
-    :param top_k:           Number of predictions to keep per class, ordered by confidence score
+
+    :param preds:            Tensor of shape (K, NumJoints, 3) - Array of predicted skeletons.
+                             Last dimension encode X,Y and confidence score of each joint
+
+    :param pred_scores:      Tensor of shape (K) - Confidence scores for each pose
+
+    :param targets:          Targets joints (M, NumJoints, 2) - Array of groundtruth skeletons
+
+    :param targets_visibilities: Visibility status for each keypoint (M, NumJoints).
+                             Values are 0 - invisible, 1 - occluded, 2 - fully visible
+
+    :param targets_areas:    Tensor of shape (M) - Areas of target objects
+
+    :param targets_bboxes:   Tensor of shape (M,4) - Bounding boxes (XYWH) of targets
+
+    :param targets_ignored:  Tensor of shape (M) - Array of target that marked as ignored
+                             (E.g all keypoints are not visible or target does not fit the desired area range)
+
+    :param crowd_targets:    Targets joints (Mc, NumJoints, 3) - Array of groundtruth skeletons
+                             Last dimension encode X,Y and visibility score of each joint:
+                             (0 - invisible, 1 - occluded, 2 - fully visible)
+
+    :param crowd_visibilities: Visibility status for each keypoint of crowd targets (Mc, NumJoints).
+                             Values are 0 - invisible, 1 - occluded, 2 - fully visible
+
+    :param crowd_targets_areas: Tensor of shape (Mc) - Areas of target objects
+
+    :param crowd_targets_bboxes: Tensor of shape (Mc, 4) - Bounding boxes (XYWH) of crowd targets
+
+    :param iou_thresholds:  IoU Threshold to compute the mAP
+
+    :param sigmas:          Tensor of shape (NumJoints) with sigmas for each joint. Sigma value represent how 'hard'
+                            it is to locate the exact groundtruth position of the joint.
+
+    :param top_k:           Number of predictions to keep, ordered by confidence score
 
     :return:
-        :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
+        :preds_matched:     Tensor of shape (min(top_k, len(preds)), n_iou_thresholds)
                                 True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
-        :preds_to_ignore:   Tensor of shape (num_img_predictions, n_iou_thresholds)
+
+        :preds_to_ignore:   Tensor of shape (min(top_k, len(preds)), n_iou_thresholds)
                                 True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
+
+        :preds_scores:      Tensor of shape (min(top_k, len(preds))) with scores of top-k predictions
+
+        :num_targets:       Number of groundtruth targets (total num targets minus number of ignored)
+
     """
     num_iou_thresholds = len(iou_thresholds)
 

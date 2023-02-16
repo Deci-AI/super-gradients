@@ -201,7 +201,6 @@ class PoseEstimationMetrics(Metric):
         crowd_visibilities = gt_keypoints_visibility[gt_is_ignore] if len(groundtruths) else []
         crowd_targets_areas = gt_areas[gt_is_ignore]
         crowd_targets_bboxes = gt_bboxes[gt_is_ignore]
-        crowd_targets_ignored = gt_is_ignore[gt_is_ignore]
 
         preds_matched, preds_to_ignore, preds_scores, num_targets = compute_img_keypoint_matching(
             predicted_poses,
@@ -217,7 +216,6 @@ class PoseEstimationMetrics(Metric):
             crowd_visibilities=crowd_visibilities,
             crowd_targets_areas=crowd_targets_areas,
             crowd_targets_bboxes=crowd_targets_bboxes,
-            crowd_targets_ignored=crowd_targets_ignored,
             #
             iou_thresholds=self.iou_thresholds.to(self.device),
             sigmas=self.oks_sigmas.to(self.device),
