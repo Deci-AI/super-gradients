@@ -37,13 +37,21 @@ class PoseEstimationMetrics(Metric):
         Compute the AP & AR metrics for pose estimation. By default, this class returns only AP and AR values.
         If you need to get additional metrics (AP at specific threshold), pass these thresholds via `iou_thresholds_to_report` argument.
 
-        :param post_prediction_callback:
-        :param num_joints:
-        :param oks_sigmas: OKS sigma factor for custom keypoint detection dataset.
-                           If None, then metric will use default OKS from COCO and expect num_joints to be equal 17
-        :param recall_thresholds: List of recall thresholds to compute AP.
-                                  If None, then will use default 101 recall thresholds from COCO in range [0..1]
-        :param iou_thresholds: List of IoU thresholds to use. If None, then COCO version of IoU will be used (0.5 ... 0.95)
+        :param post_prediction_callback:  A callback to decode model predictions to poses. This should be callable that takes input (model predictions)
+                                          and returns a tuple of (poses, scores)
+
+        :param num_joints:                Number of joints per pose
+
+        :param max_objects_per_image:     Maximum number of predicted poses to include in evaluation (Top-K poses will be used).
+
+        :param oks_sigmas:                OKS sigma factor for custom keypoint detection dataset.
+                                          If None, then metric will use default OKS from COCO and expect num_joints to be equal 17
+
+        :param recall_thresholds:         List of recall thresholds to compute AP.
+                                          If None, then will use default 101 recall thresholds from COCO in range [0..1]
+
+        :param iou_thresholds:            List of IoU thresholds to use. If None, then COCO version of IoU will be used (0.5 ... 0.95)
+
         :param: iou_thresholds_to_report: List of IoU thresholds to return in metric.
 
         """
@@ -108,8 +116,9 @@ class PoseEstimationMetrics(Metric):
         """
         Decode the predictions and update the metric
 
-        :param preds :     Raw output of the model
-        :param target:          Targets for the model training (rarely used for evaluation)
+        :param preds :           Raw output of the model
+
+        :param target:           Targets for the model training (rarely used for evaluation)
 
         :param gt_joints:        List of ground-truth joints for each image in the batch. Each element is a numpy array of shape (num_instances, num_joints, 3).
                                  Note that augmentation/preprocessing transformations (Affine transforms specifically) must also be applied to gt_joints.
