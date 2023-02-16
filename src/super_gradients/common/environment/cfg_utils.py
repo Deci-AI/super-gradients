@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from typing import List, Optional
+
+import hydra
 import pkg_resources
 
 from hydra import initialize_config_dir, compose
@@ -11,22 +13,43 @@ from super_gradients.common.environment.path_utils import normalize_path
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 
 
-def load_recipe(config_name: str, config_dir: Optional[str] = None, overrides: Optional[list] = None) -> DictConfig:
+class RecipeNotFoundError(Exception):
+    def __init__(self, config_name: str, config_dir: str, recipes_dir_path, config_type: str = "", postfix_err_msg: Optional[str] = None):
+        config_dir = os.path.abspath(config_dir)
+        message = f"Recipe '{os.path.join(config_dir, config_type, config_name.replace('.yaml', ''))}.yaml' was not found.\n"
+
+        if recipes_dir_path is None:
+            message += "Note: If you are NOT loading a built-in SuperGradients recipe, please set recipes_dir_path=<path-to-your-recipe-directory>.\n"
+
+        if postfix_err_msg:
+            message += postfix_err_msg
+
+        self.config_name = config_name
+        self.config_dir = config_dir
+        self.recipes_dir_path = recipes_dir_path
+        self.message = message
+        super().__init__(self.message)
+
+
+def load_recipe(config_name: str, recipes_dir_path: Optional[str] = None, overrides: Optional[list] = None) -> DictConfig:
     """Load a single a file of the recipe directory.
 
-    :param config_name:     Name of the yaml to load (e.g. "cifar10_resnet")
-    :param config_dir:      Optional. Main directory where every recipe are stored. (e.g. ../super_gradients/recipes)
-                            This directory should include a folder corresponding to the subconfig, which itself should
-                            include the config file named after config_name.
-    :param overrides:       List of hydra overrides for config file
+    :param config_name:         Name of the yaml to load (e.g. "cifar10_resnet")
+    :param recipes_dir_path:    Optional. Main directory where every recipe are stored. (e.g. ../super_gradients/recipes)
+                                This directory should include a folder corresponding to the subconfig, which itself should
+                                include the config file named after config_name.
+    :param overrides:           List of hydra overrides for config file
     """
     GlobalHydra.instance().clear()
 
-    if config_dir is None:
-        config_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
+    config_dir = recipes_dir_path or pkg_resources.resource_filename("super_gradients.recipes", "")
 
     with initialize_config_dir(config_dir=normalize_path(config_dir), version_base="1.2"):
-        return compose(config_name=normalize_path(config_name), overrides=overrides if overrides else [])
+        try:
+            cfg = compose(config_name=normalize_path(config_name), overrides=overrides if overrides else [])
+        except hydra.errors.MissingConfigException:
+            raise RecipeNotFoundError(config_name=config_name, config_dir=config_dir, recipes_dir_path=recipes_dir_path)
+    return cfg
 
 
 def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> DictConfig:
@@ -58,7 +81,7 @@ def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> Dict
     # Load overrides that were used in previous run
     overrides_cfg = list(OmegaConf.load(resume_dir / "overrides.yaml"))
 
-    cfg = load_recipe(config_name="config.yaml", config_dir=normalize_path(str(resume_dir)), overrides=overrides_cfg)
+    cfg = load_recipe(config_name="config.yaml", recipes_dir_path=normalize_path(str(resume_dir)), overrides=overrides_cfg)
     return cfg
 
 
@@ -83,7 +106,20 @@ def load_recipe_from_subconfig(config_name: str, config_type: str, recipes_dir_p
     :param overrides:           List of hydra overrides for config file
     """
 
-    cfg = load_recipe(config_name=os.path.join(config_type, config_name), config_dir=recipes_dir_path, overrides=overrides)
+    try:
+        cfg = load_recipe(config_name=os.path.join(config_type, config_name), recipes_dir_path=recipes_dir_path, overrides=overrides)
+    except RecipeNotFoundError as e:
+        postfix_err_msg = (
+            f"Note: If your recipe is saved at '{os.path.join(e.config_dir, config_name.replace('.yaml', ''))}.yaml', please load it using load_recipe(...).\n"
+        )
+
+        raise RecipeNotFoundError(
+            config_name=config_name,
+            config_dir=e.config_dir,
+            config_type=config_type,
+            recipes_dir_path=recipes_dir_path,
+            postfix_err_msg=postfix_err_msg,
+        )
 
     # Because of the way we load the subconfig, cfg will start with a single key corresponding to the type (arch_params, ...) and don't want that.
     cfg = cfg[config_type]
