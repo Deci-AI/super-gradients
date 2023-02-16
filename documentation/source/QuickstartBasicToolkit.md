@@ -187,4 +187,4 @@ classes = train_dataloader.dataset.classes
 plt.xlabel(classes[torch.argmax(predictions)])
 plt.imshow(image)
 ```
-<img src="/images/frog_prediction.png" width="500">
+<img src="./images/frog_prediction.png" width="500">
