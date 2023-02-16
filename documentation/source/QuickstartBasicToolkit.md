@@ -2,6 +2,10 @@
 
 Learn the basics of model development with SuperGradients. Researchers and machine learning engineers should start here.
 
+
+<details>
+    <summary>1. Train a Model</summary>
+
 ##1. Train a Model
 
 0. Imports:
@@ -54,6 +58,12 @@ valid_loader=cifar10_val()
 ```python
 trainer.train(model=model, training_params=training_params, train_loader=train_loader, valid_loader=valid_loader)
 ```
+
+</details>
+
+<details>
+    <summary>2. Test a Model</summary>
+
 ##2. Test a Model
 
 0. Imports:
@@ -103,6 +113,13 @@ test_data_loader = cifar10_val()
 accuracy, top5 = trainer.test(model=model, test_loader=test_data_loader, test_metrics_list=test_metrics)
 print(f"Test results: Accuracy: {accuracy}, Top5: {top5}")
 ```
+
+</details>
+
+<details>
+    <summary>3. Use Pre-trained Models</summary>
+
+
 ##3. Use Pre-trained Models
 
 0. Imports:
@@ -134,7 +151,9 @@ model = models.get(Models.RESNET18, num_classes=10, checkpoint_path="/path/to/im
 
 Finetune or test your pre-trained model as done in the previous sections.
 
-
+</details>
+<details>
+    <summary>4. Predict</summary>
 
 ##4. Predict
 
@@ -190,3 +209,37 @@ plt.imshow(image)
 
 
 <img src="./images/frog_prediction.png" width="500">
+
+
+</details>
+
+<details>
+    <summary>5. Train using SGs Training Recipes</summary>
+
+##5. Train using SGs Training Recipes
+
+0. Setup:
+ - Clone the SG repo: 
+
+    ```shell
+    git clone https://github.com/Deci-AI/super-gradients
+    ```
+
+ - Move to the root of the clone project (where you find "requirements.txt" and "setup.py") and install super-gradients:
+
+    ```shell
+    pip install -e .
+    ```
+
+- Append super-gradients to the python path: (Replace "YOUR-LOCAL-PATH" with the path to the downloaded repo) to abvoid conflicts with any installed version of SG:
+    ```shell
+    export PYTHONPATH=$PYTHONPATH:<YOUR-LOCAL-PATH>/super-gradients/
+    ```
+
+1. Launch one of SGs [training recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/Training_Recipes.md). For example, Resnet18 on Cifar10:
+```shell
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=my_resnet18_cifar10_experiment
+```
+
+Learn more in detail on how to launch, customize and evaluate training recipes from our [training with configuration files tutorial](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)
+</details>
