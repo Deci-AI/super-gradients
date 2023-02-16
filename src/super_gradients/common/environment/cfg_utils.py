@@ -110,7 +110,7 @@ def load_recipe_from_subconfig(config_name: str, config_type: str, recipes_dir_p
         cfg = load_recipe(config_name=os.path.join(config_type, config_name), recipes_dir_path=recipes_dir_path, overrides=overrides)
     except RecipeNotFoundError as e:
         postfix_err_msg = (
-            f"Note: If your recipe is saved at '{os.path.join(e.config_dir, config_name.replace('.yaml', ''))}.yaml', please load it using load_recipe(...).\n"
+            f"Note: If your recipe is saved at '{os.path.join(e.config_dir, config_name.replace('.yaml', ''))}.yaml', you can load it with load_recipe(...).\n"
         )
 
         raise RecipeNotFoundError(
