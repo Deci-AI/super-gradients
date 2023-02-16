@@ -104,7 +104,7 @@ jobs:
             - run:
                 name: install Black Flake8 python linter
                 command: |
-                  pip install --user -r requirements.dev.txt
+                  pip install -r requirements.dev.txt
             - run:
                 name: Lint all python files changed since develop branch
                 command: |
