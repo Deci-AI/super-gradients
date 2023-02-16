@@ -43,7 +43,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
     """
     Class for creating dataloaders for taking defaults from yaml files in src/super_gradients/recipes.
 
-    :param config_name: yaml config filename in recipes (for example coco2017_yolox).
+    :param config_name: yaml config filename of dataset_params in recipes (for example coco_detection_dataset_params).
     :param dataset_cls: torch dataset uninitialized class.
     :param train: controls whether to take
         cfg.train_dataloader_params or cfg.valid_dataloader_params as defaults for the dataset constructor
