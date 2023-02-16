@@ -1,5 +1,6 @@
 from typing import Dict
 
+import hydra.utils
 from omegaconf import DictConfig
 
 from super_gradients.common.environment.cfg_utils import load_arch_params
@@ -16,6 +17,8 @@ def get_arch_params(config_name: str, overriding_params: Dict = None) -> DictCon
     overriding_params = overriding_params if overriding_params else dict()
 
     arch_params = load_arch_params(config_name=config_name)
+    arch_params = hydra.utils.instantiate(arch_params)
+
     arch_params.update(**overriding_params)
 
     return arch_params
