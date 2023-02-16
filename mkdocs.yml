@@ -1,4 +1,4 @@
-slte_name: super-gradients
+site_name: super-gradients
 nav:
 - Welcome:
   - Intro: ./README.md
