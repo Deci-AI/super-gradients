@@ -4,7 +4,7 @@ config_ignore_values:
   '1.2': 65
   '2.0': 123
 
-mask_fill_value: ${getitem:${dataset_params.config_ignore_values,${dataset_params.config_version}}}
+mask_fill_value: ${getitem:${dataset_params.config_ignore_values},${dataset_params.config_version}}
 
 train_dataset_params:
   root_dir: /data/mapillary-vistas-dataset_public_v2.0
