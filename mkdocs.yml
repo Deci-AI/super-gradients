@@ -1,0 +1,65 @@
+nav:
+- Welcome:
+  - Intro: README.md
+  - Model Zoo: ./src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md
+- Quick Start:
+  - Segmentation: ./documentation/source/Segmentation.md
+- Tutorials:
+  - Models: ./documentation/source/models.md
+  - Dataset:
+    - Data: ./documentation/source/Data.md
+    - Computer Vision Datasets: ./src/super_gradients/training/datasets/Dataset_Setup_Instructions.md
+  - Metrics: ./documentation/source/Metrics.md
+  - Optimizers: ./documentation/source/optimizers.md
+  - Phase Callbacks: ./documentation/source/PhaseCallbacks.md
+  - YAMLs and Recipes: ./documentation/source/configuration_files.md
+- Features:
+  - Training Modes: ./documentation/source/device.md
+  - Logging: ./documentation/source/logs.md
+  - Experiment Monitoring: ./documentation/source/experiment_monitoring.md
+  - EMA: ./documentation/source/EMA.md
+  - AMP: ./documentation/source/average_mixed_precision.md
+- Contribution: ./documentation/source/CONTRIBUTING.md
+- Code:
+    common:
+    - ./SuperGradients/docstring/common/data_connection.md
+    - ./SuperGradients/docstring/common/data_types.md
+    - ./SuperGradients/docstring/common/auto_logging.md
+    - ./SuperGradients/docstring/common/decorators.md
+    - ./SuperGradients/docstring/common/plugins.md
+    - ./SuperGradients/docstring/common/sg_loggers.md
+    - ./SuperGradients/docstring/common/aws_connection.md
+    - ./SuperGradients/docstring/common/object_names.md
+    - ./SuperGradients/docstring/common/exceptions.md
+    - ./SuperGradients/docstring/common/factories.md
+    - ./SuperGradients/docstring/common/registry.md
+    - ./SuperGradients/docstring/common/environment.md
+    - ./SuperGradients/docstring/common/abstractions.md
+    - ./SuperGradients/docstring/common/crash_handler.md
+    - ./SuperGradients/docstring/common/data_interface.md
+    modules:
+    - ./SuperGradients/docstring/modules/repvgg_block.md
+    - ./SuperGradients/docstring/modules/skip_connections.md
+    - ./SuperGradients/docstring/modules/conv_bn_act_block.md
+    - ./SuperGradients/docstring/modules/quantization.md
+    - ./SuperGradients/docstring/modules/se_blocks.md
+    - ./SuperGradients/docstring/modules/conv_bn_relu_block.md
+    - ./SuperGradients/docstring/modules/detection_modules.md
+    - ./SuperGradients/docstring/modules/qarepvgg_block.md
+    training:
+    - ./SuperGradients/docstring/training/pre_launch_callbacks.md
+    - ./SuperGradients/docstring/training/metrics.md
+    - ./SuperGradients/docstring/training/losses.md
+    - ./SuperGradients/docstring/training/pretrained_models.md
+    - ./SuperGradients/docstring/training/params.md
+    - ./SuperGradients/docstring/training/training_hyperparams.md
+    - ./SuperGradients/docstring/training/datasets.md
+    - ./SuperGradients/docstring/training/dataloaders.md
+    - ./SuperGradients/docstring/training/legacy.md
+    - ./SuperGradients/docstring/training/utils.md
+    - ./SuperGradients/docstring/training/models.md
+    - ./SuperGradients/docstring/training/exceptions.md
+    - ./SuperGradients/docstring/training/kd_trainer.md
+    - ./SuperGradients/docstring/training/sg_trainer.md
+    - ./SuperGradients/docstring/training/transforms.md
+site_name: SuperGradients
