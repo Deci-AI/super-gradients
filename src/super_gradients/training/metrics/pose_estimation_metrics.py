@@ -20,7 +20,22 @@ __all__ = ["PoseEstimationMetrics"]
 @register_metric("PoseEstimationMetrics")
 class PoseEstimationMetrics(Metric):
     """
-    Implementation of COCO Keypoint evaluation metric
+    Implementation of COCO Keypoint evaluation metric.
+    When instantiated with default parameters, it will default to COCO params.
+    By default, only AR and AP metrics are computed:
+
+    >>> from super_gradients.training.metrics import PoseEstimationMetrics
+    >>> metric = PoseEstimationMetrics(...)
+    >>> metric.update(...)
+    >>> metrics = metric.compute() # {"AP": 0.123, "AR": 0.456 }
+
+    If you wish to get AR/AR at specific thresholds, you can specify them using `iou_thresholds_to_report` argument:
+
+    >>> from super_gradients.training.metrics import PoseEstimationMetrics
+    >>> metric = PoseEstimationMetrics(..., iou_thresholds_to_report=[0.5, 0.75])
+    >>> metric.update(...)
+    >>> metrics = metric.compute() # {"AP": 0.123, "AP_0.5": 0.222, "AP_0.75: 0.111, "AR": 0.456, "AR_0.5":0.212, "AR_0.75": 0.443 }
+
     """
 
     def __init__(
