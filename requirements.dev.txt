@@ -1,3 +1,4 @@
 flake8==5.0.4
 black==22.10.0
 pre-commit==2.20.0
+json-tricks==3.16.1
