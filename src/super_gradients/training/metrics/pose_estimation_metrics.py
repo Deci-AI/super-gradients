@@ -111,14 +111,20 @@ class PoseEstimationMetrics(Metric):
         :param preds :     Raw output of the model
         :param target:          Targets for the model training (rarely used for evaluation)
 
-        :param gt_joints:        List of ground-truth joints for each image in the batch. Each element is a numpy array of shape (num_instances, num_joints, 3)
+        :param gt_joints:        List of ground-truth joints for each image in the batch. Each element is a numpy array of shape (num_instances, num_joints, 3).
+                                 Note that augmentation/preprocessing transformations (Affine transforms specifically) must also be applied to gt_joints.
+                                 This is to ensure joint coordinates are transforms identically as image. This is differs form COCO evaluation,
+                                 where predictions rescaled back to original size of the image.
+                                 However, this makes code much more (unnecessary) complicated, so we do it differently and evaluate joints in the coordinate
+                                 system of the predicted image.
 
         :param gt_iscrowd:       Optional argument indicating which instance is annotated with `iscrowd` flog and is not used for evaluation;
                                  If not provided, all instances are considered as non-crowd targets.
+                                 For instance, in CrowdPose all instances are considered as "non-crowd".
 
         :param gt_bboxes:        Bounding boxes of the groundtruth instances (XYWH).
                                  This is COCO-specific and is used in OKS computation for instances w/o visible keypoints.
-                                 If not provided, the bounding box is computed as the minimum bounding box that contains all the keypoints.
+                                 If not provided, the bounding box is computed as the minimum bounding box that contains all visible keypoints.
 
         :param gt_areas:         Area of the groundtruth area. in COCO this is the area of the corresponding segmentation mask and not the bounding box,
                                  so it cannot be computed programmatically. It's value used in object-keypoint similarity metric (OKS) computation.
