@@ -108,7 +108,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         for device in ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]:
             self._internal_compare_method(True, False, True, device)
 
-    def test_compare_pycocotools_with_our_implementation_metric(self):
+    def test_compare_pycocotools_with_our_implementation_no_invisible(self):
         for device in ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]:
             self._internal_compare_method(True, True, False, device)
 
