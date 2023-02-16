@@ -207,7 +207,6 @@ class TestPoseEstimationMetrics(unittest.TestCase):
                 kpt = self._coco_process_keypoints(kpt)
                 kpts[image_id_int].append({"keypoints": kpt[:, 0:3], "score": float(scores[person_index]), "image": image_id_int, "area": area})
 
-        # rescoring and oks nms
         oks_nmsed_kpts = []
         # image x person x (keypoints)
         for img in kpts.keys():
@@ -274,7 +273,6 @@ class TestPoseEstimationMetrics(unittest.TestCase):
     def _coco_process_keypoints(self, keypoints):
         tmp = keypoints.copy()
         if keypoints[:, 2].max() > 0:
-            # p = keypoints[keypoints[:, 2] > 0][:, :2].mean(axis=0) ## TODO: It was unused variable
             num_keypoints = keypoints.shape[0]
             for i in range(num_keypoints):
                 tmp[i][0:3] = [float(keypoints[i][0]), float(keypoints[i][1]), float(keypoints[i][2])]
