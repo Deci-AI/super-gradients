@@ -53,7 +53,7 @@ class PoseEstimationMetrics(Metric):
         :param iou_thresholds:            List of IoU thresholds to use. If None, then COCO version of IoU will be used (0.5 ... 0.95)
 
         :param: iou_thresholds_to_report: List of IoU thresholds to return in metric. By default, only AP/AR metrics are returned, but one
-                                          may also request to return AP_0.5,AP_0.75,AR_0.5,AR_0.75 adding `iou_thresholds_to_report=[0.5, 0.75]`
+                                          may also request to return AP_0.5,AP_0.75,AR_0.5,AR_0.75 setting `iou_thresholds_to_report=[0.5, 0.75]`
 
         """
         super().__init__(dist_sync_on_step=False)
