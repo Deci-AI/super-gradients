@@ -14,11 +14,14 @@ training_hyperparams:
   initial_lr: 0.0075   # batch size 24
   resume: ${resume}
   loss:
-    seg_kd_loss:
-      weights: [ 1. , 0.4]
-      kd_loss_weights: [1., 4.]
+    _target_: super_gradients.training.losses.seg_kd_loss.SegKDLoss
+    weights: [ 1. , 0.4]
+    kd_loss_weights: [1., 4.]
+    ignore_index: 19
+    kd_loss:
+      _target_: super_gradients.training.losses.cwd_loss.CWDKlDivLoss
       temperature: 3.
-      ignore_index: 19
+      normalization_mode: channel_wise
 
   sg_logger: wandb_sg_logger
   sg_logger_params:
