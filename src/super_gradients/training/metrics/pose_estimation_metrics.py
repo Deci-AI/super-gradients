@@ -245,7 +245,6 @@ class PoseEstimationMetrics(Metric):
             torch.distributed.barrier()
             torch.distributed.all_gather_object(gathered_state_dicts, local_state_dict)
             self.predictions = list(itertools.chain(*gathered_state_dicts))
-            # matching_info = tensor_container_to_device(matching_info, device="cpu" if self.accumulate_on_cpu else self.device)
 
     def compute(self) -> Dict[str, Union[float, torch.Tensor]]:
         """Compute the metrics for all the accumulated results.
