@@ -20,6 +20,8 @@ Quantization aware training is a method that allows practitioners to apply quant
 
 In this tutorial, we’ll compare post-training quantization (PTQ) to quantization-aware training (QAT), and demonstrate how both methods can be easily performed using Deci’s SuperGradients library.
 
+For mode detailed information and theoretical background, refer to this [NVIDIA whitepaper](https://arxiv.org/pdf/2004.09602.pdf) and [this practical guide from PyTorch](https://pytorch.org/blog/quantization-in-practice/).
+
 
 ## Quantization: FP32 vs FP16 vs INT8
 Quantization is a model size reduction technique that converts model weights from high-precision floating-point representation (32-bit float) to low-precision floating-point (FP) representation, such as 16-bit or 8-bit.
@@ -143,7 +145,8 @@ from super_gradients.modules.skip_connections import (
 )
 ```
 
-Use them for all inputs of the `sum`, `mul`, `div` and `concat` operations. `SelectiveQuantizer` will take care of them and will replace them with quantized counterparts. 
+Use them for all inputs of the `sum`, `mul`, `div` and `concat` operations. `SelectiveQuantizer` will take care of them and will replace them with quantized counterparts.
+
 
 For example, take a simple resnet-like block:
 
