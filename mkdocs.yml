@@ -1,6 +1,7 @@
+site_name: super-gradients
 nav:
 - Welcome:
-  - Intro: README.md
+  - Intro: ./README.md
   - Model Zoo: ./src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md
 - Quick Start:
   - Segmentation: ./documentation/source/Segmentation.md
