@@ -60,6 +60,7 @@ import numpy as np
 
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PascalVOCUnifiedDetectionTrainDataset
 from super_gradients.training.datasets.segmentation_datasets import MapillaryDataset
+from super_gradients import init_trainer
 
 
 @register_dataset("FixedLenDataset")
@@ -71,6 +72,9 @@ class FixedLenDataset(TensorDataset):
 
 
 class DataLoaderFactoryTest(unittest.TestCase):
+    def setUp(self) -> None:
+        init_trainer()
+
     def test_coco2017_train_creation(self):
         dl_train = coco2017_train()
         self.assertTrue(isinstance(dl_train, DataLoader))
