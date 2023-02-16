@@ -34,7 +34,7 @@ class SegKDLoss(_Loss):
         # Main and auxiliaries feature maps losses
         for i in range(len(preds)):
             ce_loss = self.ce(preds[i], target)
-            cwd_loss = self.cwd_kl_div(preds[i], teacher_preds[0], target)
+            cwd_loss = self.cwd_kl_div(preds[i], teacher_preds[i], target)
 
             loss = self.kd_loss_weights[0] * ce_loss + self.kd_loss_weights[1] * cwd_loss
             total_loss += self.weights[i] * loss
