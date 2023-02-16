@@ -8,28 +8,41 @@ from typing import List, Tuple
 
 import json_tricks as json
 import numpy as np
+import torch.cuda
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
     remove_duplicate_annotations,
     make_keypoints_outside_image_invisible,
+    remove_crowd_annotations,
 )
 from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimationMetrics
 
 
 class TestPoseEstimationMetrics(unittest.TestCase):
-    def test_compare_pycocotools_with_our_implementation_metric_cls(self):
-        random.seed(0)
-        np.random.seed(0)
-
+    def _load_coco_groundtruth(self, with_crowd: bool, with_duplicates: bool, with_invisible_keypoitns: bool):
         gt_annotations_path = "../data/coco2017/annotations/person_keypoints_val2017.json"
         assert os.path.isfile(gt_annotations_path)
 
-        # Load groundtruth annotations
         gt = COCO(gt_annotations_path)
-        gt = remove_duplicate_annotations(gt)
-        gt = make_keypoints_outside_image_invisible(gt)
+        if not with_duplicates:
+            gt = remove_duplicate_annotations(gt)
+
+        if not with_invisible_keypoitns:
+            gt = make_keypoints_outside_image_invisible(gt)
+
+        if not with_crowd:
+            gt = remove_crowd_annotations(gt)
+
+        return gt
+
+    def _internal_compare_method(self, with_crowd: bool, with_duplicates: bool, with_invisible_keypoitns: bool, device: str):
+        random.seed(0)
+        np.random.seed(0)
+
+        # Load groundtruth annotations
+        gt = self._load_coco_groundtruth(with_crowd, with_duplicates, with_invisible_keypoitns)
 
         # Generate predictions by randomly dropping some instances and adding noise to remaining poses
         (
@@ -53,7 +66,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
             num_joints=17,
             max_objects_per_image=20,
             iou_thresholds_to_report=(0.5, 0.75),
-        )
+        ).to(device)
 
         sg_metrics.update(
             preds=(predicted_poses, predicted_scores),
@@ -75,10 +88,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
             with open(res_file, "w") as f:
                 json.dump(coco_pred, f, sort_keys=True, indent=4)
 
-            coco_dt = COCO(gt_annotations_path)
-            coco_dt = remove_duplicate_annotations(coco_dt)
-            coco_dt = make_keypoints_outside_image_invisible(coco_dt)
-
+            coco_dt = self._load_coco_groundtruth(with_crowd, with_duplicates, with_invisible_keypoitns)
             coco_dt = coco_dt.loadRes(res_file)
 
             coco_evaluator = COCOeval(gt, coco_dt, iouType="keypoints")
@@ -89,6 +99,13 @@ class TestPoseEstimationMetrics(unittest.TestCase):
 
         self.assertAlmostEquals(expected_metrics[0], actual_metrics["AP"], delta=0.001)
         self.assertAlmostEquals(expected_metrics[5], actual_metrics["AR"], delta=0.001)
+
+    def test_compare_pycocotools_with_our_implementation_metric(self):
+        for with_crowd in [True, False]:
+            for with_duplicates in [True, False]:
+                for with_invisible_keypoitns in [True, False]:
+                    for device in ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]:
+                        self._internal_compare_method(with_crowd, with_duplicates, with_invisible_keypoitns, device)
 
     def test_metric_works_on_empty_predictions(self):
         # Compute metrics using SG implementation
