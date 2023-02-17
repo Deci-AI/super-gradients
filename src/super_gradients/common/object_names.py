@@ -286,6 +286,8 @@ class Models:
     PP_YOLOE_L = "ppyoloe_l"
     PP_YOLOE_X = "ppyoloe_x"
 
+    DEKR_CUSTOM = "dekr_custom"
+
 
 class ConcatenatedTensorFormats:
     XYXY_LABEL = "XYXY_LABEL"

@@ -1,0 +1,46 @@
+INIT_WEIGHTS: True
+num_classes: ${dataset_params.num_joints}
+PRETRAINED:
+# PRETRAINED: './models/pretrained/hrnet_w32_coco.pth'
+
+SPEC:
+  FINAL_CONV_KERNEL: 1
+  PRETRAINED_LAYERS: ['*']
+  STAGES:
+    NUM_STAGES: 3
+    NUM_MODULES:
+    - 1
+    - 4
+    - 3
+    NUM_BRANCHES:
+    - 2
+    - 3
+    - 4
+    BLOCK:
+    - BASIC
+    - BASIC
+    - BASIC
+    NUM_BLOCKS:
+    - [4, 4]
+    - [4, 4, 4]
+    - [4, 4, 4, 4]
+    NUM_CHANNELS:
+    - [32, 64]
+    - [32, 64, 128]
+    - [32, 64, 128, 256]
+    FUSE_METHOD:
+    - SUM
+    - SUM
+    - SUM
+  HEAD_HEATMAP:
+    BLOCK: BASIC
+    NUM_BLOCKS: 1
+    NUM_CHANNELS: 32
+    DILATION_RATE: 1
+    heatmap_apply_sigmoid: True
+
+  HEAD_OFFSET:
+    BLOCK: ADAPTIVE
+    NUM_BLOCKS: 2
+    NUM_CHANNELS_PERKPT: 15
+    DILATION_RATE: 1

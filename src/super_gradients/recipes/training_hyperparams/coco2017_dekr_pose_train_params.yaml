@@ -1,0 +1,38 @@
+defaults:
+  - default_train_params
+
+ema: True
+max_epochs: 400
+lr_mode: cosine
+cosine_final_lr_ratio: 0.01
+batch_accumulate: 1
+initial_lr: 0.001
+loss: dekr_loss
+
+criterion_params:
+  heatmap_loss_factor: 1.0
+  offset_loss_factor: 0.03
+
+
+optimizer: AdamW
+optimizer_params:
+  weight_decay: 0.0005
+lr_warmup_steps: 256
+warmup_initial_lr: 1e-06
+
+valid_metrics_list:
+  - PoseEstimationMetrics:
+      num_joints: ${dataset_params.num_joints}
+      oks_sigmas: ${dataset_params.oks_sigmas}
+      max_objects_per_image: 20
+      post_prediction_callback:
+        _target_: super_gradients.training.utils.pose_estimation.DEKRPoseEstimationDecodeCallback
+        max_num_people: 20
+        keypoint_threshold: 0.05
+        nms_threshold: 0.05
+        nms_num_threshold: 8
+        output_stride: 4
+        apply_sigmoid: False
+
+metric_to_watch: 'AP'
+greater_metric_to_watch_is_better: True
