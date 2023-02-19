@@ -16,12 +16,16 @@ training_hyperparams:
   loss:
     _target_: super_gradients.training.losses.seg_kd_loss.SegKDLoss
     weights: [ 1. , 0.4]
-    kd_loss_weights: [1., 4.]
-    ignore_index: 19
+    kd_loss_weights: [1., 6.]
+
     kd_loss:
       _target_: super_gradients.training.losses.cwd_loss.CWDKlDivLoss
       temperature: 3.
       normalization_mode: channel_wise
+
+    ce_loss:
+      _target_: torch.nn.CrossEntropyLoss
+      ignore_index: 19
 
   sg_logger: wandb_sg_logger
   sg_logger_params:

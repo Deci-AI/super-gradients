@@ -19,7 +19,7 @@ class CWDKlDivLoss(_Loss):
         B, C, H, W = student_preds.size()
 
         norm_axis = -1 if self.normalization_mode == "channel_wise" else 1
-        print(norm_axis)
+        averaging_scalar = (B * C) if self.normalization_mode == "channel_wise" else (B * H * W)
         # Softmax normalization
         softmax_teacher = torch.softmax(teacher_preds.view(B, C, -1) / self.T, dim=norm_axis)
         log_softmax_student = torch.log_softmax(student_preds.view(B, C, -1) / self.T, dim=norm_axis)
@@ -30,5 +30,5 @@ class CWDKlDivLoss(_Loss):
             valid_mask = target.view(B, -1).ne(self.ignore_index).unsqueeze(1).expand_as(loss)
             loss = (loss * valid_mask).sum()
 
-        loss = loss * (self.T**2) / (B * C)
+        loss = loss * (self.T**2) / averaging_scalar
         return loss

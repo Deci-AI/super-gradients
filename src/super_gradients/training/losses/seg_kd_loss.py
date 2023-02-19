@@ -1,21 +1,19 @@
 from typing import Union
 
 import torch
-import torch.nn as nn
 from torch.nn.modules.loss import _Loss
 
 from super_gradients.training.models.kd_modules.kd_module import KDOutput
 
 
 class SegKDLoss(_Loss):
-    def __init__(self, kd_loss: _Loss, weights: Union[tuple, list] = (1,), kd_loss_weights: Union[tuple, list] = (1, 4), ignore_index: int = -100):
+    def __init__(self, kd_loss: _Loss, ce_loss: _Loss, weights: Union[tuple, list] = (1,), kd_loss_weights: Union[tuple, list] = (1, 4)):
         super().__init__()
-        self.ignore_index = ignore_index
         self.kd_loss_weights = kd_loss_weights
         self.weights = weights
 
-        self.ce = nn.CrossEntropyLoss(ignore_index=ignore_index)
         self.kd_loss = kd_loss
+        self.ce_loss = ce_loss
 
     def forward(self, preds: KDOutput, target: torch.Tensor):
         assert isinstance(preds, KDOutput)
@@ -31,7 +29,7 @@ class SegKDLoss(_Loss):
         total_loss = 0
         # Main and auxiliaries feature maps losses
         for i in range(len(preds)):
-            ce_loss = self.ce(preds[i], target)
+            ce_loss = self.ce_loss(preds[i], target)
             cwd_loss = self.kd_loss(preds[i], teacher_preds[i], target)
 
             loss = self.kd_loss_weights[0] * ce_loss + self.kd_loss_weights[1] * cwd_loss
