@@ -1,7 +1,7 @@
 # The Basic Skills of SG
 
-In this tutorial we will go over all of the basic, functionalities of SuperGradients very briefly.
-Go over the next sections to quickly learn how to train, test and predict using SuperGradients.
+In this tutorial, we will go over all of the basic functionalities of SuperGradients very briefly.
+Go over the following sections to learn how to train, test and predict using SuperGradients.
 Check out our extended tutorials on the various features you can find in SuperGradients, and task-specific guides.
 
 <details>
@@ -31,13 +31,13 @@ For example, if you want the training to be performed entirely on the CPU:
 setup_device("cpu")
 ```
 
-Assuming multiple GPUs are available, it is also possible to specify the number of GPUs is sufficient to launch multi-gpu DDP testing:
+In case multiple GPUs are available, it is also possible to specify the number of GPUs to launch multi-gpu DDP training:
 
 ```python
 setup_device(num_gpus=4)
 ```
 
-It is also possible to launch the test with whatever available hardware there is (i.e if there are 4 GPUs available, a DDP test with 4 processes will be launched) by passing `num_gpus=-1`:
+It is also possible to launch the training with whatever available hardware there is (i.e., if there are 4 GPUs available, we will launch a DDP test with four processes) by passing `num_gpus=-1`:
 ```python
 setup_device(num_gpus=-1)
 
@@ -99,19 +99,19 @@ init_trainer()
 ```
 
 2. Call [setup_device()](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/device.md) according to your available hardware and needs.
-For example, if you want the training to be performed entirely on the CPU: 
+For example, if you want the test to be performed entirely on the CPU: 
 
 ```python
 setup_device("cpu")
 ```
 
-Assuming multiple GPUs are available, it is also possible to specify the number of GPUs is sufficient to launch multi-gpu DDP training:
+In case multiple GPUs are available, it is also possible to specify the number of GPUs to launch a multi-gpu DDP test:
 
 ```python
 setup_device(num_gpus=4)
 ```
 
-It is also possible to launch the training with whatever available hardware there is (i.e if there are 4 GPUs available, a DDP training with 4 processes will be launched) by passing `num_gpus=-1`:
+It is also possible to launch the test with whatever available hardware there is (i.e., if there are 4 GPUs available, we will launch a DDP test with four processes) by passing `num_gpus=-1`:
 ```python
 setup_device(num_gpus=-1)
 
@@ -173,21 +173,22 @@ init_trainer()
 ```
 
 2. Call [setup_device()](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/device.md) according to your available hardware and needs.
-For example, if you want the training to be performed entirely on the CPU: 
+For example, if you want the finetuning/test to be performed entirely on the CPU: 
 
 ```python
 setup_device("cpu")
 ```
 
-Assuming multiple GPUs are available, it is also possible to specify the number of GPUs is sufficient to launch multi-gpu DDP training:
+In case multiple GPUs are available, it is also possible to specify the number of GPUs to launch multi-gpu DDP finetuning/test:
 
 ```python
 setup_device(num_gpus=4)
 ```
 
-It is also possible to launch the training with whatever available hardware there is (i.e if there are 4 GPUs available, a DDP training with 4 processes will be launched) by passing `num_gpus=-1`:
+It is also possible to launch the finetuning/test with whatever available hardware there is (i.e., if there are 4 GPUs available, a DDP finetuning/test with four processes will be launched) by passing `num_gpus=-1`:
 ```python
 setup_device(num_gpus=-1)
+
 ```
 3. Instantiate a pre-trained model from SGs [model zoo](http://bit.ly/3EGfKD4):
 
@@ -195,7 +196,7 @@ setup_device(num_gpus=-1)
 model = models.get(Models.RESNET18, num_classes=10, pretrained_weights="imagenet")
 ```
 
-Or use your own local weights to instantiate a pre-trained model:
+Or use your local weights to instantiate a pre-trained model:
 
 ```python
 model = models.get(Models.RESNET18, num_classes=10, checkpoint_path="/path/to/imagenet_checkpoint.pth", checkpoint_num_classes=1000)
@@ -234,7 +235,7 @@ init_trainer()
 setup_device("cpu")
 ```
 
-3. [Instantiate a model](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/models.md), load weights to it and put it in `eval` mode: 
+3. [Instantiate a model](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/models.md), load weights to it, and put it in `eval` mode: 
 
 ```python
 
@@ -288,7 +289,7 @@ plt.imshow(image)
     pip install -e .
     ```
 
-- Append super-gradients to the python path: (Replace "YOUR-LOCAL-PATH" with the path to the downloaded repo) to abvoid conflicts with any installed version of SG:
+- Append super-gradients to the python path: (Replace "YOUR-LOCAL-PATH" with the path to the downloaded repo) to avoid conflicts with any installed version of SG:
     ```shell
     export PYTHONPATH=$PYTHONPATH:<YOUR-LOCAL-PATH>/super-gradients/
     ```
