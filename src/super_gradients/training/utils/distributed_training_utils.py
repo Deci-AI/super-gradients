@@ -383,7 +383,9 @@ def restart_script_with_ddp(num_gpus: int = None):
         metrics_cfg={},
     )
 
-    elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv, *EXTRA_ARGS)
+    script_path, *args = sys.argv
+    script_path = os.path.abspath(script_path)
+    elastic_launch(config=config, entrypoint=sys.executable)(script_path, *args, *EXTRA_ARGS)
 
     # The code below should actually never be reached as the process will be in a loop inside elastic_launch until any subprocess crashes.
     sys.exit(0)
