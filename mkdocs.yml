@@ -27,5 +27,6 @@ nav:
   - Experiment Monitoring: ./documentation/source/experiment_monitoring.md
   - EMA: ./documentation/source/EMA.md
   - AMP: ./documentation/source/average_mixed_precision.md
+  - 'PTQ & QAT': ./documentation/source/ptq_qat.md
 - Contribution: ./documentation/source/CONTRIBUTING.md
 - Code: this_is_automatically_generated.md
