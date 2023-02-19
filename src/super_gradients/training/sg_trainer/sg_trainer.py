@@ -83,7 +83,7 @@ from super_gradients.training.utils.callbacks import (
 )
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
-from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
+from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 
 logger = get_logger(__name__)
