@@ -25,7 +25,7 @@ from super_gradients.training.utils.distributed_training_utils import setup_devi
 init_trainer()
 ```
 2. Call [setup_device()](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/device.md) according to your available hardware and needs.
-For example, for example, if you want the training to be performed entirely on the CPU: 
+For example, if you want the training to be performed entirely on the CPU: 
 
 ```python
 setup_device("cpu")
@@ -99,7 +99,7 @@ init_trainer()
 ```
 
 2. Call [setup_device()](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/device.md) according to your available hardware and needs.
-For example, for example, if you want the training to be performed entirely on the CPU: 
+For example, if you want the training to be performed entirely on the CPU: 
 
 ```python
 setup_device("cpu")
@@ -173,7 +173,7 @@ init_trainer()
 ```
 
 2. Call [setup_device()](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/device.md) according to your available hardware and needs.
-For example, for example, if you want the training to be performed entirely on the CPU: 
+For example, if you want the training to be performed entirely on the CPU: 
 
 ```python
 setup_device("cpu")
