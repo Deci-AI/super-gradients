@@ -1,3 +1,6 @@
+# TODO: It would be nice to create keys here as: make_pretrained_model_key(Models.RESNET18, Dataset.COCO)
+# TODO: Not only this would reduce risk of making a typo error, it would bring more clarity how the key is created
+# TODO: And allow to "query" pretrained models by dataset
 MODEL_URLS = {
     # RegNet-s
     "regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/RegnetY800/average_model.pth",
@@ -13,8 +16,9 @@ MODEL_URLS = {
     #
     "shelfnet34_lw_coco_segmentation_subclass": "https://deci-pretrained-models.s3.amazonaws.com" "/shelfnet34_coco_segmentation_subclass.pth",
     #
-    "ddrnet_23_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23/average_model.pth",
-    "ddrnet_23_slim_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23_slim/average_model.pth",
+    "ddrnet_23_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23/average_model_2023_02_06.pth",
+    "ddrnet_23_slim_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23_slim/average_model_2023_02_06.pth",
+    "ddrnet_39_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet39/average_model.pth",
     #
     "stdc1_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc1_seg50_dice_edge/ckpt_best.pth",
     "stdc1_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/stdc1_seg75_cityscapes/ckpt_best.pth",
@@ -50,6 +54,9 @@ MODEL_URLS = {
     "pp_lite_t_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_t_seg75/average_model.pth",
     "pp_lite_b_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_b_seg50/average_model.pth",
     "pp_lite_b_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_b_seg75/average_model.pth",
+    #
+    "ppyoloe_s_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/coco2017_ppyoloe_s.pth",
+    "ppyoloe_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/coco2017_ppyoloe_m.pth",
 }
 
 PRETRAINED_NUM_CLASSES = {"imagenet": 1000, "imagenet21k": 21843, "coco_segmentation_subclass": 21, "cityscapes": 19, "coco": 80, "cifar10": 10}

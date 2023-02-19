@@ -50,7 +50,7 @@ def e2e_example():
     # CALIBRATE (PTQ)
     train_loader = cifar10_train()
     calib = QuantizationCalibrator()
-    calib.calibrate_model(module, method=q_util.default_quant_modules_calib_method_inputs, calib_data_loader=train_loader)
+    calib.calibrate_model(module, method=q_util.default_quant_modules_calibrator_inputs, calib_data_loader=train_loader)
 
     module.cuda()
     # SANITY

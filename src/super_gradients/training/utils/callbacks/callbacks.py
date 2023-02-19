@@ -10,12 +10,13 @@ import numpy as np
 import onnx
 import onnxruntime
 import torch
+from deprecate import deprecated
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
-from super_gradients.common.plugins.deci_client import DeciClient
 
 logger = get_logger(__name__)
 
@@ -470,9 +471,10 @@ class FunctionLRCallback(LRCallbackBase):
     Hard coded rate scheduling for user defined lr scheduling function.
     """
 
+    @deprecated(target=None, deprecated_in="3.6.0", remove_in="4.0.0")
     def __init__(self, max_epochs, lr_schedule_function, **kwargs):
         super(FunctionLRCallback, self).__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
-        assert callable(self.lr_schedule_function), "self.lr_function must be callable"
+        assert callable(lr_schedule_function), "self.lr_function must be callable"
         self.lr_schedule_function = lr_schedule_function
         self.max_epochs = max_epochs
 

@@ -1,8 +1,8 @@
-'''
+"""
 LeNet in PyTorch.
 
 https://yann.lecun.com/exdb/lenet/
-'''
+"""
 import torch.nn as nn
 import torch.nn.functional as F
 from super_gradients.training.models.sg_module import SgModule

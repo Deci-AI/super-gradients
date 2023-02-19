@@ -34,5 +34,7 @@ def resolve_param(param_name: str, factory: AbstractFactory):
                         new_value = factory.get(args[index])
                         args = _assign_tuple(args, index, new_value)
             return func(*args, **kwargs)
+
         return wrapper
+
     return inner
