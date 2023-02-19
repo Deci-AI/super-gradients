@@ -50,8 +50,48 @@ The most apparent difference in the training flow using knowledge distillation i
 The relation between the two is also configurable - for example, we may decide that the teacher model should preprocess the inputs differently.
 For that matter, SG introduces a new `torch.nn.Module` that wraps both the student and the teacher models: `KDModule`.
 Upon calling `KDTrainer.train()`, the teacher and student models are passed along the `kd_arch_params` to initialize a `KDModule` instance.
+
 Passing a `KDModule` instance explicitly to `KDTrainer.train()` through the `model` argument instead of student and teacher models is also possible, which gives the users the option to customize KD to their needs.
 
+A high-level example of KD customization:
+
+```python
+import torch.nn
+from super_gradients.training.kd_trainer import KDTrainer
+
+...
+
+
+class MyKDModule(KDModule):
+    ...
+
+    def forward(self, x: torch.Tensor)->KDOutput:
+        intermediate_output_student = self.student.extract_intermediate_output(x, layer_ids=[1, 3, -1])
+        intermediate_output_teacher = self.teacher.extract_intermediate(x, layer_ids=[1, 3, -1])
+        return KDOutput(student_output=intermediate_output_student, teacher_output=intermediate_output_teacher)
+
+
+class MyKDLoss(torch.nn.Module):
+    ...
+    def forward(self, preds: KDOutput, target: torch.Tensor):
+        # does something with the intermediate outputs
+        ...
+
+kd_trainer = KDTrainer("my_customized_kd_experiment")
+train_dataloader = ...
+valid_dataloader = ...
+
+student_model = ...
+teacher_model = ...
+
+kd_model = MyKDModule(student=student_model, teacher=teacher_model)
+
+train_params = {'loss': MyKDLoss(),
+                ...}
+
+kd_trainer.train(model=kd_model, training_params=train_params,
+                 train_loader=train_dataloader, valid_loader=valid_dataloader)
+```
 ### [KDOutput](https://github.com/Deci-AI/super-gradients/blob/12a4e53a96e8608409100b5ef83971157518434b/src/super_gradients/training/models/kd_modules/kd_module.py#L7)
 
 `KDOutput` defines the structure of the output of `KDModule` and has two self-explanatory attributes: student_output and teacher_output.
@@ -60,7 +100,7 @@ This means that when customizing KD, it's essential for the custom `KDModule` to
 
 ### KD Losses
 
-Currently, [KDLogitsLoss](https://github.com/Deci-AI/super-gradients/blob/12a4e53a96e8608409100b5ef83971157518434b/src/super_gradients/training/losses/kd_losses.py#L15) is the only in SGs KD losses bank, but more is to come.
+Currently, [KDLogitsLoss](https://github.com/Deci-AI/super-gradients/blob/12a4e53a96e8608409100b5ef83971157518434b/src/super_gradients/training/losses/kd_losses.py#L15) is currently the only supported loss function in SGs KD losses bank, but more is to come.
 Note that during KD training, the `KDModule` outputs (which are of `KDOutput` instance) are passed to the loss's forward method as predictions.
 
 ## Knowledge Distillation Training in SG: Checkpoints
