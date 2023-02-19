@@ -47,11 +47,10 @@ class DeciClient:
         self.lab_client = DeciPlatformClient(api_host=self.api_host)
         self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
-    def _get_file(self, model_name: str, file_name: str, dest_dir_name: Optional[str] = None) -> Optional[str]:
+    def _get_file(self, model_name: str, file_name: str) -> Optional[str]:
         """Get a file from the DeciPlatform if it exists, otherwise returns None
         :param model_name:      Name of the model to download from, as saved in the platform.
         :param file_name:       Name of the file to download
-        :param dest_dir_name:   Optional. If set, the the file will be saved in a subdirectory with this name.
         :return:            Path were the downloaded file was saved to. None if not found.
         """
         try:
@@ -78,7 +77,7 @@ class DeciClient:
         """Get the model arch_params from DeciPlatform.
         :param model_name:  Name of the model as saved in the platform.
         :return:            arch_params. None if arch_params were not found for this specific model on this SG version."""
-        arch_params_file = self._get_file(model_name, AutoNACFileName.STRUCTURE_YAML, dest_dir_name="arch_params")
+        arch_params_file = self._get_file(model_name, AutoNACFileName.STRUCTURE_YAML)
         if arch_params_file is None:
             return None
 
