@@ -9,7 +9,7 @@ from omegaconf import OmegaConf, open_dict, DictConfig
 from super_gradients import Trainer, init_trainer
 from super_gradients.common.registry.registry import register_pre_launch_callback
 from super_gradients.training.pre_launch_callbacks import PreLaunchCallback
-from super_gradients.training.utils.hydra_utils import normalize_path
+from super_gradients.common.environment.cfg_utils import normalize_path
 
 
 @register_pre_launch_callback()
