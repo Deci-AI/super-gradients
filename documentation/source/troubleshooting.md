@@ -33,8 +33,7 @@ CUDA out of memory. Tried to allocate 20.00 MiB (GPU 0; 10.76 GiB total capacity
 
 To reduce memory usage, try the following:
 - Decrease the batch size (`dataset_params.train_dataloader_params.batch_size` and `dataset_params.val_dataloader_params.batch_size`)
-- Decrease the number of batch accumulation steps (`training_hyperparams.batch_accumulate`)
-
+- Adjust the number of batch accumulation steps (`training_hyperparams.batch_accumulate`) and/or number of nodes (if you are using [DDP](device.md)) to keep the effective batch size the same: `effective_batch_size = num_gpus * batch_size * batch_accumulate` 
 
 
 ## CUDA error: device-side assert triggered
@@ -53,10 +52,7 @@ When [running on CPU](device.md) you won't have this issue of CUDA hiding the ro
 
 **2. Set Environment Variable**
 
-You can add the following environment variable at the beginning of your code.
+Some environment variables can be helpful in identifying the root cause:
 
-```py
-import os
-os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
-```
-This will provide a full traceback indicating to the source of the error.
+- `CUDA_LAUNCH_BLOCKING=1` can be used to force synchronous execution of kernel launches, allowing you to pinpoint the exact location of the error in your code.
+- `CUDA_DEVICE_ASSERT=1` can be used to enable detailed error messages that provide the file name and line number where the assert was triggered.
