@@ -2,7 +2,6 @@ import torch.nn as nn
 from typing import Optional, Union, List
 
 from super_gradients.training.utils import HpmStruct, get_param
-from super_gradients.training import models
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils.module_utils import make_upsample_module, UpsampleMode, fuse_repvgg_blocks_residual_branches
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import UNetBackboneBase, Encoder
@@ -11,6 +10,7 @@ from super_gradients.training.models.segmentation_models.unet.unet_decoder impor
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
+from super_gradients.training.models.arch_params_factory import get_arch_params
 
 
 class UNetBase(SegmentationModule):
@@ -194,7 +194,6 @@ class UNetBase(SegmentationModule):
 
 class UNetCustom(UNetBase):
     def __init__(self, arch_params: HpmStruct):
-        arch_params = HpmStruct(**models.get_arch_params("unet_default_arch_params.yaml", arch_params.to_dict()))
         super().__init__(
             num_classes=get_param(arch_params, "num_classes"),
             use_aux_heads=get_param(arch_params, "use_aux_heads", False),
@@ -208,3 +207,7 @@ class UNetCustom(UNetBase):
             aux_heads_params=get_param(arch_params, "aux_heads_params"),
             dropout=get_param(arch_params, "dropout", 0.0),
         )
+
+    @classmethod
+    def default_arch_params_name(cls, overriding_params: HpmStruct) -> HpmStruct:
+        return HpmStruct(**get_arch_params("unet_default_arch_params", overriding_params.to_dict()))

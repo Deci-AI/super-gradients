@@ -62,3 +62,15 @@ class SgModule(nn.Module):
         """
 
         raise NotImplementedError
+
+    @classmethod
+    def load_default_arch_params(cls, overriding_params: HpmStruct) -> HpmStruct:
+        """Placeholder allowing to define default arch_params for every model. By default, this does nothing but can be overriden to support this functionality.
+
+        Example of implementation for Unet:
+        >>> @classmethod
+        >>> def load_default_arch_params(cls, overriding_params: HpmStruct) -> HpmStruct:
+        >>>     return HpmStruct(**get_arch_params("unet_default_arch_params", overriding_params.to_dict()))
+        """
+
+        return overriding_params

@@ -103,6 +103,10 @@ def instantiate_model(
     if not issubclass(architecture_cls, SgModule):
         net = architecture_cls(**arch_params.to_dict(include_schema=False))
     else:
+
+        # Override the default params with current arch_params
+        arch_params = architecture_cls.load_default_arch_params(overriding_params=arch_params)
+
         if core_utils.get_param(arch_params, "num_classes"):
             logger.warning(
                 "Passing num_classes through arch_params is deprecated and will be removed in the next version. " "Pass num_classes explicitly to models.get"
