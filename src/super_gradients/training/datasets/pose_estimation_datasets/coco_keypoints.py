@@ -74,7 +74,10 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         file_path = os.path.join(self.images_dir, file_name)
         ann_ids = self.coco.getAnnIds(imgIds=img_id)
         anno = self.coco.loadAnns(ann_ids)
-        anno = [obj for obj in anno if bool(obj["iscrowd"]) is False and obj["num_keypoints"] > 0]
+
+        gt_iscrowd = [ann["iscrowd"] for ann in anno]
+        gt_bboxes = np.array([ann["bbox"] for ann in anno], dtype=np.float32).reshape((-1, 4))
+        gt_areas = np.array([ann["gt_areas"] for ann in anno], dtype=np.float32)
 
         orig_image = cv2.imread(file_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
 
@@ -83,7 +86,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
 
         joints: np.ndarray = self.get_joints(anno)
         mask: np.ndarray = self.get_mask(anno, image_info)
-        extras = dict(file_name=image_info["file_name"])
+        extras = dict(gt_iscrowd=gt_iscrowd, gt_bboxes=gt_bboxes, gt_areas=gt_areas)
 
         return orig_image, mask, joints, extras
 
