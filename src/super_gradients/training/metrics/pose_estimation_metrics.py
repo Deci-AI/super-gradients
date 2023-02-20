@@ -6,8 +6,8 @@ import torch
 from torch import Tensor
 from torchmetrics import Metric
 
-import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.environment.ddp_utils import is_distributed
 from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching, compute_visible_bbox_xywh
 from super_gradients.training.utils.detection_utils import compute_detection_metrics_per_cls
 
@@ -110,7 +110,7 @@ class PoseEstimationMetrics(Metric):
         self.components = len(self.component_names)
 
         self.post_prediction_callback = post_prediction_callback
-        self.is_distributed = super_gradients.is_distributed()
+        self.is_distributed = is_distributed()
         self.world_size = None
         self.rank = None
         self.add_state("predictions", default=[], dist_reduce_fx=None)

@@ -80,7 +80,7 @@ class KeypointsImageNormalize(KeypointTransform):
 
     def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         image = F.normalize(image, mean=self.mean, std=self.std)
-        return image, mask, joints
+        return image, mask, joints, areas, bboxes
 
 
 class KeypointsRandomHorizontalFlip(KeypointTransform):
@@ -359,7 +359,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
             x_min, x_max = min(tr_points[:, 0]), max(tr_points[:, 0])
             y_min, y_max = min(tr_points[:, 1]), max(tr_points[:, 1])
 
-            return np.array(x_min, y_min, x_max, y_max)
+            return np.array([x_min, y_min, x_max, y_max])
 
         bboxes_xyxy = xywh_to_xyxy(bboxes, image_shape=None)
         bboxes_xyxy = np.array([bbox_shift_scale_rotate(box, mat) for box in bboxes_xyxy])

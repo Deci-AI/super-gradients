@@ -5,6 +5,13 @@ defaults:
   - checkpoint_params: default_checkpoint_params
   - _self_
 
+dataset_params:
+  train_dataloader_params:
+    batch_size: 8
+
+  val_dataloader_params:
+    batch_size: 16
+
 train_dataloader: coco2017_pose_train
 val_dataloader: coco2017_pose_val
 
@@ -17,7 +24,7 @@ multi_gpu: DDP
 num_gpus: 8
 
 experiment_suffix: ""
-experiment_name: coco2017_${architecture}${experiment_suffix}
+experiment_name: coco2017_pose_${architecture}${experiment_suffix}
 
 ckpt_root_dir:
 

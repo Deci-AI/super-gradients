@@ -1,5 +1,6 @@
 from typing import Union, Tuple, List
 
+import numpy as np
 import torch
 from torch import nn, Tensor
 
@@ -179,9 +180,11 @@ def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_
         heat_score, topk_inds = torch.topk(heat_score, max_num_people)
         poses = poses[topk_inds]
 
-    poses = [poses.numpy()]
-    scores = [i[:, 2].mean() for i in poses[0]]
-
+    poses = poses.numpy()
+    if len(poses):
+        scores = poses[:, :, 2].mean(axis=1)
+    else:
+        scores = []
     return poses, scores
 
 
@@ -238,7 +241,7 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
         self.apply_sigmoid = apply_sigmoid
 
     @torch.no_grad()
-    def forward(self, predictions: Union[Tensor, Tuple[Tensor, Tensor]]) -> List[Tuple[Tensor, Tensor]]:
+    def forward(self, predictions: Union[Tensor, Tuple[Tensor, Tensor]]) -> Tuple[List[np.ndarray], List[np.ndarray]]:
         """
 
         :param predictions: Either tuple (heatmap, offset):
@@ -247,14 +250,16 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
 
         :return: Tuple
         """
-        outputs = []
+        all_poses = []
+        all_scores = []
 
         heatmap, offset = predictions
         batch_size = len(heatmap)
         for i in range(batch_size):
-            outputs.append(self.decode_one_sized_batch(predictions=(heatmap[i : i + 1], offset[i : i + 1])))
-
-        return outputs
+            poses, scores = self.decode_one_sized_batch(predictions=(heatmap[i : i + 1], offset[i : i + 1]))
+            all_poses.append(poses)
+            all_scores.append(scores)
+        return all_poses, all_scores
 
     def decode_one_sized_batch(self, predictions: Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
         heatmap, offset = predictions
@@ -277,9 +282,6 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
         poses, scores = pose_nms(
             heatmap_sum, poses_sum, max_num_people=self.max_num_people, nms_threshold=self.nms_threshold, nms_num_threshold=self.nms_num_threshold
         )
-
-        if len(poses):
-            poses = poses[0]
 
         if len(poses) != len(scores):
             raise RuntimeError("Decoding error detected. Returned mismatching number of poses/scores")
