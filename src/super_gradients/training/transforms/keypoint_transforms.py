@@ -218,7 +218,7 @@ class KeypointsLongestMaxSize(KeypointTransform):
 
     @classmethod
     def apply_to_keypoints(cls, keypoints, scale):
-        keypoints = keypoints.copy()
+        keypoints = keypoints.astype(np.float32, copy=True)
         keypoints[:, :, 0:2] *= scale
         return keypoints
 
