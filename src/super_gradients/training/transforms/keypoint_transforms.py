@@ -126,7 +126,7 @@ class KeypointsRandomHorizontalFlip(KeypointTransform):
 
     def apply_to_bboxes(self, bboxes, cols):
         bboxes = bboxes.copy()
-        bboxes[:, 0] = cols - (bboxes[:, 0] + bboxes[:, 2]) - 1
+        bboxes[:, 0] = cols - (bboxes[:, 0] + bboxes[:, 2])
         return bboxes
 
 
