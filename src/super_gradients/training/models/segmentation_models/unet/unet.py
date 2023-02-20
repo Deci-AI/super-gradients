@@ -1,7 +1,7 @@
 import torch.nn as nn
 from typing import Optional, Union, List
 
-from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.common.factories.feature_map_transforms_factory import FeatureMapTransformsFactory
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training import models
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
@@ -16,8 +16,8 @@ from super_gradients.training.models.segmentation_models.common import Segmentat
 
 class UNetBase(SegmentationModule):
     @resolve_param("context_module", ContextModulesFactory())
-    @resolve_param("initial_upsample", TransformsFactory())
-    @resolve_param("final_upsample", TransformsFactory())
+    @resolve_param("initial_upsample", FeatureMapTransformsFactory())
+    @resolve_param("final_upsample", FeatureMapTransformsFactory())
     def __init__(
         self,
         num_classes: int,
