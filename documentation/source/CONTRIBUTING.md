@@ -75,14 +75,29 @@ We follow the Google docstring guidelines outlined on this [styleguide](https://
 ```
 
 
-## Documentation
+## Code Formatting
 
-We use  GitHub Pages for technical documentation hosting on https://deci-ai.github.io/super-gradients/welcome.html <br>
-To generate the docs based on the current work tree, run: <br>
-<code>./scripts/generate_docs.sh</code> <br><br>
-And the documentation will automatically update, based on <code>documentation/</code>. <br>
-The new documentation HTML will be generated to <code>docs/</code>. <br> 
-Once <code>docs/</code> is committed and pushed, GitHub Pages will use it.<br>
-The step of documentation update is currently manual.
+We enforce [black](https://github.com/psf/black) code formatting in addition to existing flake8 checks. 
+
+To ensure everyone uses same code style, a project-wise [configuration file](https://github.com/Deci-AI/super-gradients/blob/master/pyproject.toml) has been added to SG repo. It ensures all formatting will be exactly the same regardless of OS, python version or the place where code formatting check is happening. 
+
+### Installation
+
+To start, one need to install required development dependencies (actual versions of black, flake8 and git commit hooks):
+
+`pip install -r requirements.dev.txt`
 
 
+### Pre-Commit Hooks
+
+A pre-commit hook as an easy way to ensure all files in the commit are already formatted accordingly and pass linter checks. If they are not, the git will prevent commit of problematic files unless errors are fixed.
+
+To start, run the following command from SG repo root:
+
+`pre-commit install`
+
+The command should complete without errors. Once done, all your upcoming commits will be checked via black & flake8. 
+
+### Usage
+
+Just run `black .` from the SG root. It will reformat the whole repo.
