@@ -1,9 +1,10 @@
-from typing import Union
+from typing import Union, Optional
 
 from torch import nn
 
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
+from super_gradients.training.models.arch_params_factory import get_arch_params
 
 
 class SgModule(nn.Module):
@@ -65,31 +66,36 @@ class SgModule(nn.Module):
         raise NotImplementedError
 
     @classmethod
-    def load_default_arch_params(cls) -> HpmStruct:  # FIXME: maybe name load_recipe_arch_params ?
-        """Placeholder allowing to define default arch_params for every model. By default doenst provide any default arch_params.
-
-        Example of implementation for Unet:
-        >>> @classmethod
-        >>> def load_default_arch_params(cls) -> HpmStruct:
-        >>>     return HpmStruct(**get_arch_params("unet_default_arch_params"))
-        """
-        return HpmStruct()
-
-    @classmethod
     def require_unpacked_arch_params(cls):
         """Check if the class required a single params names "arch_params" of type HpmStruct, or **kwargs instead."""
         return "arch_params" not in get_callable_param_names(cls.__init__)
 
     @classmethod
-    def from_recipe(
-        cls, arch_params: HpmStruct
-    ):  # FIXME: not sure if name is good, because if 'load_default_arch_params' not override, it is not really loaded from a recipe...
+    def get_default_config_name(cls) -> Optional[str]:
+        """Return the name of the default config name - i.e. which includes the default arch_params of this architecture.
+        If None, it will be assumed that the arch_params of this architecture don't have default values."""
+        return None
+
+    @classmethod
+    def from_recipe(cls, arch_params: HpmStruct, default_config_name: Optional[str] = None, recipes_dir_path: Optional[str] = None) -> HpmStruct:
         """Instantiate the class using recipe as default arch_params, and overriding it with input arch_params.
-        :param arch_params: arch_params specified by the user.
+        :param arch_params:                 arch_params specified by the user.
+        :param default_config_name:         Name of the yaml to use to get default values (e.g. "resnet18_cifar_arch_params")
+        :param recipes_dir_path:            Optional. Main directory where every recipe are stored. (e.g. ../super_gradients/recipes)
+                                            This directory should include a "arch_params" folder,
+                                            which itself should include the config file named after config_name.
         :return: Instance of SgModule
+
+        Example:
+            Instantiate MyModel based on arch_params, and using /home/recipes/arch_params/default_mymodel.yaml as default values
+            >>> model = MyModel.from_recipe(arch_params=arch_params, default_config_name="default_mymodel", recipes_dir_path='/home/recipes')
         """
-        arch_params_with_default = cls.load_default_arch_params()
-        arch_params_with_default.override(**arch_params.to_dict())
+        default_config_name = default_config_name or cls.get_default_config_name()
+
+        if default_config_name:
+            arch_params = HpmStruct(
+                **get_arch_params(config_name=default_config_name, recipes_dir_path=recipes_dir_path, overriding_params=arch_params.to_dict())
+            )
 
         if cls.require_unpacked_arch_params():
             return cls(**arch_params.to_dict(include_schema=False))

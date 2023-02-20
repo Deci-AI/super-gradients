@@ -10,7 +10,6 @@ from super_gradients.training.models.segmentation_models.unet.unet_decoder impor
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
-from super_gradients.training.models.arch_params_factory import get_arch_params
 
 
 class UNetBase(SegmentationModule):
@@ -208,6 +207,5 @@ class UNetCustom(UNetBase):
             dropout=get_param(arch_params, "dropout", 0.0),
         )
 
-    @classmethod
-    def load_default_arch_params(cls) -> HpmStruct:
-        return HpmStruct(**get_arch_params("unet_default_arch_params"))
+    def get_default_config_name(self) -> str:
+        return "unet_default_arch_params"
