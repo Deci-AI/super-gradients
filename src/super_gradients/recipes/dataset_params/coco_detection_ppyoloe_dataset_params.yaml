@@ -91,7 +91,7 @@ val_dataloader_params:
   drop_last: False
   shuffle: False
   pin_memory: False
-  collate_fn: # collate function for trainset
+  collate_fn: # collate function for valset
     _target_: super_gradients.training.utils.detection_utils.CrowdDetectionPPYoloECollateFN
 
 _convert_: all
