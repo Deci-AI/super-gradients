@@ -13,10 +13,10 @@ import torch
 from deprecate import deprecated
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
-from super_gradients.common.plugins.deci_client import DeciClient
 
 logger = get_logger(__name__)
 
