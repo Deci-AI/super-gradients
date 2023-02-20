@@ -22,7 +22,7 @@ from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimat
 
 class TestPoseEstimationMetrics(unittest.TestCase):
     def _load_coco_groundtruth(self, with_crowd: bool, with_duplicates: bool, with_invisible_keypoitns: bool):
-        gt_annotations_path = "../data/coco2017/annotations/person_keypoints_val2017.json"
+        gt_annotations_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data/coco2017/annotations/person_keypoints_val2017.json")
         assert os.path.isfile(gt_annotations_path)
 
         gt = COCO(gt_annotations_path)
