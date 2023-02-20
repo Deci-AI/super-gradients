@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from super_gradients.training.models.segmentation_models.unet.unet_encoder import Encoder
+from super_gradients.training.models.segmentation_models.stdc.stdc_block import STDCBlock
 
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
 from super_gradients.training.models.segmentation_models.common import AbstractSegmentationBackbone, FeatureMapOutputSpec
@@ -17,7 +17,6 @@ from super_gradients.training import models
 
 from super_gradients.training.models.classification_models.regnet import XBlock
 from super_gradients.training.models.classification_models.repvgg import RepVGGBlock
-from super_gradients.training.models.segmentation_models.stdc import STDCBlock
 from super_gradients.training.models import SgModule, HpmStruct
 from super_gradients.modules import ConvBNReLU, QARepVGGBlock
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -289,7 +288,7 @@ class UnetClassification(SgModule):
         super().__init__()
         backbone = UNetBackbone(**backbone_params)
 
-        self.encoder = Encoder(backbone, context_module)
+        self.encoder = UNetEncoder(backbone, context_module)
         out_channels = self.encoder.get_output_number_of_channels()[-1]
 
         self.classifier_head = nn.Sequential(
