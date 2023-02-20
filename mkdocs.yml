@@ -2,8 +2,10 @@ site_name: super-gradients
 nav:
 - Welcome:
   - Intro: ./README.md
+  - Installation : ./documentation/source/installation.md
   - Model Zoo: ./src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md
 - Quick Start:
+  - Basic: ./documentation/source/QuickstartBasicToolkit.md
   - Classification: ./documentation/assets/Example_Classification.md
   - Segmentation: ./documentation/source/Segmentation.md
   - Training an external model: ./documentation/assets/Example_Training-an-external-model.md
@@ -27,6 +29,8 @@ nav:
   - Experiment Monitoring: ./documentation/source/experiment_monitoring.md
   - EMA: ./documentation/source/EMA.md
   - AMP: ./documentation/source/average_mixed_precision.md
+  - Knowledge Distillation: ./documentation/source/KD.md
   - 'PTQ & QAT': ./documentation/source/ptq_qat.md
+- Troubleshooting: ./documentation/source/troubleshooting.md
 - Contribution: ./documentation/source/CONTRIBUTING.md
 - Code: this_is_automatically_generated.md
