@@ -144,7 +144,7 @@ class UNetBase(SegmentationModule):
 
     @property
     def backbone(self):
-        return self.encoder.backbone
+        return self.encoder
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
