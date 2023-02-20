@@ -19,7 +19,7 @@ from super_gradients.training.utils.checkpoint_utils import (
     load_pretrained_weights_local,
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
+
 
 logger = get_logger(__name__)
 
@@ -104,9 +104,6 @@ def instantiate_model(
         net = architecture_cls(**arch_params.to_dict(include_schema=False))
     else:
 
-        # Override the default params with current arch_params
-        arch_params = architecture_cls.override_default_arch_params(overrides=arch_params)
-
         if core_utils.get_param(arch_params, "num_classes"):
             logger.warning(
                 "Passing num_classes through arch_params is deprecated and will be removed in the next version. " "Pass num_classes explicitly to models.get"
@@ -123,11 +120,7 @@ def instantiate_model(
             num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
             arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
 
-        # Most of the SG models work with a single params names "arch_params" of type HpmStruct, but a few take **kwargs instead
-        if "arch_params" not in get_callable_param_names(architecture_cls):
-            net = architecture_cls(**arch_params.to_dict(include_schema=False))
-        else:
-            net = architecture_cls(arch_params=arch_params)
+        net = architecture_cls.from_recipe(arch_params)
 
         if pretrained_weights:
             if is_remote:

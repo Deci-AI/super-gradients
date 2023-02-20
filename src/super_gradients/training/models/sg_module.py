@@ -3,6 +3,7 @@ from typing import Union
 from torch import nn
 
 from super_gradients.training.utils.utils import HpmStruct
+from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 
 
 class SgModule(nn.Module):
@@ -64,7 +65,7 @@ class SgModule(nn.Module):
         raise NotImplementedError
 
     @classmethod
-    def load_default_arch_params(cls) -> HpmStruct:
+    def load_default_arch_params(cls) -> HpmStruct:  # FIXME: maybe name load_recipe_arch_params ?
         """Placeholder allowing to define default arch_params for every model. By default doenst provide any default arch_params.
 
         Example of implementation for Unet:
@@ -75,10 +76,22 @@ class SgModule(nn.Module):
         return HpmStruct()
 
     @classmethod
-    def override_default_arch_params(cls, overrides: HpmStruct) -> HpmStruct:
-        """Override the default params.
-        :param overrides: arch_params that will override the default arch_params value.
-        :return: arch_params that includes the default overriden by the overrides."""
-        arch_params = cls.load_default_arch_params()
-        arch_params.override(**overrides.to_dict())
-        return arch_params
+    def require_unpacked_arch_params(cls):
+        """Check if the class required a single params names "arch_params" of type HpmStruct, or **kwargs instead."""
+        return "arch_params" not in get_callable_param_names(cls.__init__)
+
+    @classmethod
+    def from_recipe(
+        cls, arch_params: HpmStruct
+    ):  # FIXME: not sure if name is good, because if 'load_default_arch_params' not override, it is not really loaded from a recipe...
+        """Instantiate the class using recipe as default arch_params, and overriding it with input arch_params.
+        :param arch_params: arch_params specified by the user.
+        :return: Instance of SgModule
+        """
+        arch_params_with_default = cls.load_default_arch_params()
+        arch_params_with_default.override(**arch_params.to_dict())
+
+        if cls.require_unpacked_arch_params():
+            return cls(**arch_params.to_dict(include_schema=False))
+        else:
+            return cls(arch_params=arch_params)
