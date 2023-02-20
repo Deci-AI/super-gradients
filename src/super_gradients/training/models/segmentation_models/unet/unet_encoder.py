@@ -52,6 +52,13 @@ class AbstractUNetBackbone(nn.Module, ABC):
         """
         raise NotImplementedError()
 
+    @abstractmethod
+    def get_all_number_of_channels(self) -> List[int]:
+        """
+        :return: list of stages num channels.
+        """
+        raise NotImplementedError()
+
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
         """
         :return: list of skip features from different resolutions to be fused by the decoder.
@@ -261,6 +268,9 @@ class UNetBackboneBase(AbstractUNetBackbone):
     def get_backbone_output_number_of_channels(self) -> List[int]:
         return [ch for ch, is_out in zip(self.width_list, self.is_out_feature_list) if is_out]
 
+    def get_all_number_of_channels(self) -> List[int]:
+        return self.width_list
+
     def forward(self, x):
         outs = []
         for stage, is_out in zip(self.stages, self.is_out_feature_list):
@@ -289,6 +299,12 @@ class Encoder(nn.Module):
         channels_list = self.backbone.get_backbone_output_number_of_channels()
         if hasattr(self.context_module, "out_channels") and self.context_module.out_channels is not None:
             channels_list[-1] = self.context_module.out_channels
+        return channels_list
+
+    def get_all_number_of_channels(self) -> List[int]:
+        channels_list = self.backbone.get_all_number_of_channels()
+        if hasattr(self.context_module, "output_channels"):
+            channels_list[-1] = self.context_module.output_channels()
         return channels_list
 
 
