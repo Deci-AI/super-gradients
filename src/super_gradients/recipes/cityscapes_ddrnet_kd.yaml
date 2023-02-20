@@ -15,7 +15,7 @@ training_hyperparams:
   resume: ${resume}
   loss:
     _target_: super_gradients.training.losses.seg_kd_loss.SegKDLoss
-    weights: [ 1. , 0.4]
+    weights: [ 1. , 0.]
     kd_loss_weights: [1., 6.]
 
     kd_loss:
