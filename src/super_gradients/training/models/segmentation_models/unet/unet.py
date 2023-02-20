@@ -207,5 +207,6 @@ class UNetCustom(UNetBase):
             dropout=get_param(arch_params, "dropout", 0.0),
         )
 
-    def get_default_config_name(self) -> str:
+    @classmethod
+    def get_default_config_name(cls) -> str:
         return "unet_default_arch_params"
