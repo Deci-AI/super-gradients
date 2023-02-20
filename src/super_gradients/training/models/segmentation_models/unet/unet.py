@@ -209,5 +209,5 @@ class UNetCustom(UNetBase):
         )
 
     @classmethod
-    def default_arch_params_name(cls, overriding_params: HpmStruct) -> HpmStruct:
-        return HpmStruct(**get_arch_params("unet_default_arch_params", overriding_params.to_dict()))
+    def load_default_arch_params(cls) -> HpmStruct:
+        return HpmStruct(**get_arch_params("unet_default_arch_params"))

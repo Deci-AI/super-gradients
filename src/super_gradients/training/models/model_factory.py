@@ -105,7 +105,7 @@ def instantiate_model(
     else:
 
         # Override the default params with current arch_params
-        arch_params = architecture_cls.load_default_arch_params(overriding_params=arch_params)
+        arch_params = architecture_cls.override_default_arch_params(overrides=arch_params)
 
         if core_utils.get_param(arch_params, "num_classes"):
             logger.warning(
