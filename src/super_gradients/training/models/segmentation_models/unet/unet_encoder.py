@@ -6,11 +6,18 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from super_gradients.training.models.segmentation_models.unet.unet_encoder import Encoder
+
+from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
+from super_gradients.training.models.segmentation_models.common import AbstractSegmentationBackbone, FeatureMapOutputSpec
+from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
+from super_gradients.training.utils.utils import get_param
+
+from super_gradients.training import models
 
 from super_gradients.training.models.classification_models.regnet import XBlock
 from super_gradients.training.models.classification_models.repvgg import RepVGGBlock
-from super_gradients.training.models.segmentation_models.common import AbstractSegmentationBackbone, FeatureMapOutputSpec
-from super_gradients.training.models.segmentation_models.stdc.stdc_block import STDCBlock
+from super_gradients.training.models.segmentation_models.stdc import STDCBlock
 from super_gradients.training.models import SgModule, HpmStruct
 from super_gradients.modules import ConvBNReLU, QARepVGGBlock
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -271,19 +278,39 @@ class UNetEncoder(nn.Module):
 
 
 class UnetClassification(SgModule):
-    def __init__(self, arch_params: HpmStruct):
+    @resolve_param("context_module", ContextModulesFactory())
+    def __init__(
+        self,
+        num_classes: int,
+        backbone_params: dict,
+        context_module: AbstractContextModule,
+        dropout: float,
+    ):
         super().__init__()
-        self.backbone = UNetBackbone(**arch_params.backbone_params)
-        out_channels = self.backbone.get_backbone_output_spec()[-1]
+        backbone = UNetBackbone(**backbone_params)
+
+        self.encoder = Encoder(backbone, context_module)
+        out_channels = self.encoder.get_output_number_of_channels()[-1]
 
         self.classifier_head = nn.Sequential(
             ConvBNReLU(out_channels, 1024, kernel_size=1, bias=False),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Dropout(arch_params.dropout),
-            nn.Linear(1024, arch_params.num_classes),
+            nn.Dropout(dropout),
+            nn.Linear(1024, num_classes),
         )
 
     def forward(self, x):
-        x = self.backbone(x)[-1]
+        x = self.encoder(x)[-1]
         return self.classifier_head(x)
+
+
+class UnetClassificationCustom(UnetClassification):
+    def __init__(self, arch_params: HpmStruct):
+        arch_params = HpmStruct(**models.get_arch_params("unet_default_arch_params.yaml", arch_params.to_dict()))
+        super().__init__(
+            num_classes=get_param(arch_params, "num_classes"),
+            backbone_params=get_param(arch_params, "backbone_params"),
+            context_module=get_param(arch_params, "context_module", nn.Identity()),
+            dropout=get_param(arch_params, "dropout", 0.0),
+        )

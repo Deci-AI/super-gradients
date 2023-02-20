@@ -57,6 +57,7 @@ from tests.unit_tests.config_inspector_test import ConfigInspectTest
 from tests.unit_tests.repvgg_block_tests import TestRepVGGBlock
 from tests.unit_tests.training_utils_test import TestTrainingUtils
 from tests.unit_tests.dekr_loss_test import DEKRLossTest
+from tests.unit_tests.pose_estimation_metrics_test import TestPoseEstimationMetrics
 
 
 class CoreUnitTestSuiteRunner:
@@ -125,6 +126,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestTransforms))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPPYOLOE))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DEKRLossTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationMetrics))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
