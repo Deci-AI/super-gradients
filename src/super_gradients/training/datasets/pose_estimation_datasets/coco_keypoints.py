@@ -108,9 +108,15 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         is_crowd: np.ndarray,
     ):
         """
-        Filter instances that are either too small or do not have visible keypoints
+        Filter instances that are either too small or do not have visible keypoints.
+
+        :param image: Image if [H,W,C] shape. Used to infer image boundaries
         :param joints: Array of shape [Num Instances, Num Joints, 3]
-        :param image:
+        :param areas: Array of shape [Num Instances] with area of each instance.
+                      Instance area comes from segmentation mask from COCO annotation file.
+        :param bboxes: Array of shape [Num Instances, 4] for bounding boxes in XYWH format.
+                       Bounding boxes comes from segmentation mask from COCO annotation file.
+        :param: is_crowd: Array of shape [Num Instances] indicating whether an instance is a crowd target.
         :return: [New Num Instances, Num Joints, 3], New Num Instances <= Num Instances
         """
 
