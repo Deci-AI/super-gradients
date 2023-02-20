@@ -31,6 +31,7 @@ class Metrics:
     DICE = "Dice"
     BINARY_DICE = "BinaryDice"
     PIXEL_ACCURACY = "PixelAccuracy"
+    POSE_ESTIMATION_METRICS = "PoseEstimationMetrics"
 
 
 class Transforms:

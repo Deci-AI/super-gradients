@@ -8,7 +8,6 @@ from torchmetrics import Metric
 
 import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching, compute_visible_bbox_xywh
 from super_gradients.training.utils.detection_utils import compute_detection_metrics_per_cls
 
@@ -17,7 +16,6 @@ logger = get_logger(__name__)
 __all__ = ["PoseEstimationMetrics"]
 
 
-@register_metric("PoseEstimationMetrics")
 class PoseEstimationMetrics(Metric):
     """
     Implementation of COCO Keypoint evaluation metric.
@@ -32,7 +30,7 @@ class PoseEstimationMetrics(Metric):
     If you wish to get AR/AR at specific thresholds, you can specify them using `iou_thresholds_to_report` argument:
 
     >>> from super_gradients.training.metrics import PoseEstimationMetrics
-    >>> metric = PoseEstimationMetrics(..., iou_thresholds_to_report=[0.5, 0.75])
+    >>> metric = PoseEstimationMetrics(iou_thresholds_to_report=[0.5, 0.75], ...)
     >>> metric.update(...)
     >>> metrics = metric.compute() # {"AP": 0.123, "AP_0.5": 0.222, "AP_0.75: 0.111, "AR": 0.456, "AR_0.5":0.212, "AR_0.75": 0.443 }
 
