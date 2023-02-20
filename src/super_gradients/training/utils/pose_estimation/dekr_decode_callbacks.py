@@ -159,13 +159,17 @@ def get_heat_value(pose_coord, heatmap):
     return heatval
 
 
-def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_num_threshold: int):
+def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_num_threshold: int) -> Tuple[np.ndarray, np.ndarray]:
     """
     NMS for the regressed poses results.
 
-    Args:
-        heatmap_avg (Tensor): Avg of the heatmaps at all scales (1, 1+num_joints, w, h)
-        poses (List): Gather of the pose proposals [(num_people, num_joints, 3)]
+    :param heatmap_avg (Tensor): Avg of the heatmaps at all scales (1, 1+num_joints, w, h)
+    :param poses (List): Gather of the pose proposals [(num_people, num_joints, 3)]
+    :param max_num_people (int): Maximum number of decoded poses
+    :param nms_threshold (float) Minimum confidence threshold for joint
+    :param nms_num_threshold (int): Minimum number of joints per pose above the nms_threshold for pose to be considered a valid candidate
+
+    :return Tuple of (poses, scores)
     """
     assert len(poses) == 1
 
