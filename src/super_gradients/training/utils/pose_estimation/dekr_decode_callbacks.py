@@ -5,7 +5,15 @@ import torch
 from torch import nn, Tensor
 
 
-def get_locations(output_h, output_w, device):
+def get_locations(output_h: int, output_w: int, device):
+    """
+    Generate location map (each pixel contains its own XY coordinate)
+
+    :param output_h: Feature map height (rows)
+    :param output_w: Feature map width (cols)
+    :param device: Target device to put tensor on
+    :return: [H * W, 2]
+    """
     shifts_x = torch.arange(0, output_w, step=1, dtype=torch.float32, device=device)
     shifts_y = torch.arange(0, output_h, step=1, dtype=torch.float32, device=device)
     shift_y, shift_x = torch.meshgrid(shifts_y, shifts_x, indexing="ij")
@@ -18,9 +26,10 @@ def get_locations(output_h, output_w, device):
 
 def get_reg_poses(offset: Tensor, num_joints: int):
     """
+    Decode offset predictions into absolute locations.
 
-    :param offset: [num_joints*2,H,W]
-    :param num_joints:
+    :param offset: Tensor of [num_joints*2,H,W] shape with offset predictions for each joint
+    :param num_joints: Number of joints
     :return: [H * W, num_joints, 2]
     """
     _, h, w = offset.shape
@@ -34,10 +43,11 @@ def get_reg_poses(offset: Tensor, num_joints: int):
 
 def offset_to_pose(offset, flip=False, flip_index=None):
     """
+    Decode offset predictions into absolute locations.
 
     :param offset: [1, 2 * num_joints, H, W]
-    :param flip:
-    :param flip_index:
+    :param flip: True to decode offsets for flipped keypoints (WHen horisontal flip TTA is used)
+    :param flip_index: Indexes of keypoints that must be swapped to account for horizontal flip
     :return: [1, 2 * num_joints, H, W]
     """
     num_offset, h, w = offset.shape[1:]

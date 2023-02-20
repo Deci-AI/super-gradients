@@ -265,6 +265,14 @@ blocks_dict = {"BASIC": BasicBlock, "BOTTLENECK": Bottleneck, "ADAPTIVE": AdaptB
 
 
 class DERKPoseEstimationModel(SgModule):
+    """
+    Implementation of HRNet model from DEKR paper (https://arxiv.org/abs/2104.02300).
+
+    The model takes an image of (B,C,H,W) shape and outputs two tensors (heatmap, offset) as predictions:
+      - heatmap (B, NumJoints+1,H * upsample_factor, W * upsample_factor)
+      - offset (B, NumJoints*2, H * upsample_factor, W * upsample_factor)
+    """
+
     def __init__(self, arch_params):
         super(DERKPoseEstimationModel, self).__init__()
 
