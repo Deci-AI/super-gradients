@@ -90,7 +90,11 @@ class UNetBase(SegmentationModule):
             # backbone features are outputted and set as True in backbone is_out_feature_list.
             aux_heads_params["use_aux_list"] = [a and b for a, b in zip(aux_heads_params["use_aux_list"], backbone_params["is_out_feature_list"])]
             self.aux_heads = self.init_aux_heads(
-                in_channels_list=self.backbone.width_list, upsample_mode=head_upsample_mode, align_corners=align_corners, dropout=dropout, **aux_heads_params
+                in_channels_list=self.backbone.backbone.width_list,
+                upsample_mode=head_upsample_mode,
+                align_corners=align_corners,
+                dropout=dropout,
+                **aux_heads_params,
             )
         self.init_params()
 
