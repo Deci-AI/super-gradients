@@ -72,7 +72,8 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         img, mask, gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.load_sample(index)
         img, mask, gt_joints, gt_areas, gt_bboxes = self.transforms(img, mask, gt_joints, areas=gt_areas, bboxes=gt_bboxes)
 
-        gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.filter_joints(img, gt_joints, gt_areas, gt_bboxes, gt_iscrowd)
+        image_shape = img.size(1), img.size(2)
+        gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.filter_joints(image_shape, gt_joints, gt_areas, gt_bboxes, gt_iscrowd)
 
         targets = self.target_generator(img, gt_joints, mask)
         return img, targets, {"gt_joints": gt_joints, "gt_bboxes": gt_bboxes, "gt_iscrowd": gt_iscrowd}
@@ -101,7 +102,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
 
     def filter_joints(
         self,
-        image: np.ndarray,
+        image_shape,
         joints: np.ndarray,
         areas: np.ndarray,
         bboxes: np.ndarray,
@@ -121,7 +122,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         """
 
         # Update visibility of joints for those that are outside the image
-        outside_image_mask = (joints[:, :, 0] < 0) | (joints[:, :, 1] < 0) | (joints[:, :, 0] >= image.shape[1]) | (joints[:, :, 1] >= image.shape[0])
+        outside_image_mask = (joints[:, :, 0] < 0) | (joints[:, :, 1] < 0) | (joints[:, :, 0] >= image_shape[1]) | (joints[:, :, 1] >= image_shape[0])
         joints[outside_image_mask, 2] = 0
 
         # Filter instances with all invisible keypoints
