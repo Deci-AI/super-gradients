@@ -1,9 +1,21 @@
 defaults:
   - training_hyperparams: coco2017_dekr_pose_train_params
   - dataset_params: coco_pose_estimation_dekr_dataset_params
-  - arch_params: dekr_w32
+  - arch_params: dekr_w32_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+
+resume: False
+
+architecture: dekr_custom
+
+multi_gpu: DDP
+num_gpus: 8
+
+experiment_suffix: ""
+experiment_name: coco2017_pose_${architecture}${experiment_suffix}
+
+ckpt_root_dir:
 
 train_dataloader: coco2017_pose_train
 val_dataloader: coco2017_pose_val
@@ -16,6 +28,7 @@ dataset_params:
     batch_size: 16
 
 training_hyperparams:
+  resume: ${resume}
   phase_callbacks: []
 #   Note: You can uncomment following block to enable visualization of intermediate results during training.
 #   When enabled, these callbacks will save first batch from training & validation to Tensorboard.
@@ -43,18 +56,7 @@ training_hyperparams:
 
 
 
-load_checkpoint: False
-resume: False
 
-architecture: dekr_custom
-
-multi_gpu: DDP
-num_gpus: 8
-
-experiment_suffix: ""
-experiment_name: coco2017_pose_${architecture}${experiment_suffix}
-
-ckpt_root_dir:
 
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
