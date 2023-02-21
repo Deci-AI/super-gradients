@@ -41,7 +41,7 @@ def get_reg_poses(offset: Tensor, num_joints: int):
     return poses
 
 
-def offset_to_pose(offset, flip=False, flip_index=None):
+def _offset_to_pose(offset, flip=False, flip_index=None):
     """
     Decode offset predictions into absolute locations.
 
@@ -64,7 +64,7 @@ def offset_to_pose(offset, flip=False, flip_index=None):
     return reg_poses
 
 
-def hierarchical_pool(heatmap, pool_threshold1=300, pool_threshold2=200):
+def _hierarchical_pool(heatmap, pool_threshold1=300, pool_threshold2=200):
     pool1 = torch.nn.MaxPool2d(3, 1, 1)
     pool2 = torch.nn.MaxPool2d(5, 1, 2)
     pool3 = torch.nn.MaxPool2d(7, 1, 3)
@@ -79,7 +79,7 @@ def hierarchical_pool(heatmap, pool_threshold1=300, pool_threshold2=200):
     return maxm
 
 
-def get_maximum_from_heatmap(heatmap, max_num_people: int, keypoint_threshold: float):
+def _get_maximum_from_heatmap(heatmap, max_num_people: int, keypoint_threshold: float):
     """
 
     :param heatmap: [1, H, W] Single-channel heatmap
@@ -87,7 +87,7 @@ def get_maximum_from_heatmap(heatmap, max_num_people: int, keypoint_threshold: f
     :param keypoint_threshold: (float)
     :return:
     """
-    maxm = hierarchical_pool(heatmap)
+    maxm = _hierarchical_pool(heatmap)
     maxm = torch.eq(maxm, heatmap).float()
     heatmap = heatmap * maxm
     scores = heatmap.view(-1)
@@ -100,7 +100,7 @@ def get_maximum_from_heatmap(heatmap, max_num_people: int, keypoint_threshold: f
     return pos_ind, scores
 
 
-def up_interpolate(x, size):
+def _up_interpolate(x, size):
     H = x.size(2)
     W = x.size(3)
     scale_h = int(size[0] / H)
@@ -110,15 +110,15 @@ def up_interpolate(x, size):
     return padd(inter_x)
 
 
-def cal_area_2_torch(v):
+def _cal_area_2_torch(v):
     w = torch.max(v[:, :, 0], -1)[0] - torch.min(v[:, :, 0], -1)[0]
     h = torch.max(v[:, :, 1], -1)[0] - torch.min(v[:, :, 1], -1)[0]
     return w * w + h * h
 
 
-def nms_core(pose_coord, heat_score, nms_threshold: float, nms_num_threshold: int):
+def _nms_core(pose_coord, heat_score, nms_threshold: float, nms_num_threshold: int):
     num_people, num_joints, _ = pose_coord.shape
-    pose_area = cal_area_2_torch(pose_coord)[:, None].repeat(1, num_people * num_joints)
+    pose_area = _cal_area_2_torch(pose_coord)[:, None].repeat(1, num_people * num_joints)
     pose_area = pose_area.reshape(num_people, num_people, num_joints)
 
     pose_diff = pose_coord[:, None, :, :] - pose_coord
@@ -149,7 +149,7 @@ def nms_core(pose_coord, heat_score, nms_threshold: float, nms_num_threshold: in
     return keep_pose_inds
 
 
-def get_heat_value(pose_coord, heatmap):
+def _get_heat_value(pose_coord, heatmap):
     _, h, w = heatmap.shape
     heatmap_nocenter = heatmap[:-1].flatten(1, 2).transpose(0, 1)
 
@@ -180,13 +180,13 @@ def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_
         return [], []
 
     num_people, num_joints, _ = pose_coord.shape
-    heatval = get_heat_value(pose_coord, heatmap_avg[0])
+    heatval = _get_heat_value(pose_coord, heatmap_avg[0])
     heat_score = (torch.sum(heatval, dim=1) / num_joints)[:, 0]
 
     pose_score = pose_score * heatval
     poses = torch.cat([pose_coord.cpu(), pose_score.cpu()], dim=2)
 
-    keep_pose_inds = nms_core(pose_coord, heat_score, nms_threshold=nms_threshold, nms_num_threshold=nms_num_threshold)
+    keep_pose_inds = _nms_core(pose_coord, heat_score, nms_threshold=nms_threshold, nms_num_threshold=nms_num_threshold)
     poses = poses[keep_pose_inds]
     heat_score = heat_score[keep_pose_inds]
 
@@ -219,9 +219,9 @@ def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keyp
 
     h, w = heatmap[0].size(-1), heatmap[0].size(-2)
 
-    heatmap_sum = up_interpolate(heatmap, size=(int(output_stride * w), int(output_stride * h)))
+    heatmap_sum = _up_interpolate(heatmap, size=(int(output_stride * w), int(output_stride * h)))
     center_heatmap = heatmap[0, -1:]
-    pose_ind, ctr_score = get_maximum_from_heatmap(center_heatmap, keypoint_threshold=keypoint_threshold, max_num_people=max_num_people)
+    pose_ind, ctr_score = _get_maximum_from_heatmap(center_heatmap, keypoint_threshold=keypoint_threshold, max_num_people=max_num_people)
     posemap = posemap[0].permute(1, 2, 0).view(h * w, -1, 2)
     pose = output_stride * posemap[pose_ind]
     ctr_score = ctr_score[:, None].expand(-1, pose.shape[-2])[:, :, None]
@@ -277,7 +277,7 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
 
     def decode_one_sized_batch(self, predictions: Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
         heatmap, offset = predictions
-        posemap = offset_to_pose(offset)  # [1, 2 * num_joints, H, W]
+        posemap = _offset_to_pose(offset)  # [1, 2 * num_joints, H, W]
 
         if heatmap.size(0) != 1:
             raise RuntimeError("Batch size of 1 is required")

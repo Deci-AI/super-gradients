@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import torch
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
-from super_gradients.training.utils.pose_estimation.dekr_decode_callbacks import hierarchical_pool
+from super_gradients.training.utils.pose_estimation.dekr_decode_callbacks import _hierarchical_pool
 from torch import Tensor
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 
@@ -121,7 +121,7 @@ class DEKRVisualizationCallback(PhaseCallback):
         target_heatmap_f32 = cv2.resize(target_heatmap_f32, dsize=dsize)
         target_heatmap_f32 = np.expand_dims(target_heatmap_f32, -1)
 
-        peaks_heatmap = hierarchical_pool(predicted_heatmap)[0]
+        peaks_heatmap = _hierarchical_pool(predicted_heatmap)[0]
         peaks_heatmap = predicted_heatmap.eq(peaks_heatmap) & (predicted_heatmap > self.keypoints_threshold)
 
         peaks_heatmap = peaks_heatmap.sum(dim=0, keepdim=False) > 0
