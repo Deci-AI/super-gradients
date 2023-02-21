@@ -325,9 +325,7 @@ class DEKRPoseEstimationModel(SgModule):
         self.head_heatmap = self._make_heatmap_head(config_heatmap)
         self.offset_feature_layers, self.offset_final_layer = self._make_separete_regression_head(config_offset)
         self.heatmap_activation = nn.Sigmoid() if config_heatmap["HEATMAP_APPLY_SIGMOID"] else nn.Identity()
-
-        if arch_params.INIT_WEIGHTS:
-            self.init_weights(pretrained=arch_params.PRETRAINED)
+        self.init_weights(pretrained=arch_params.PRETRAINED)
 
     def _make_transition_for_head(self, inplanes: int, outplanes: int) -> nn.Module:
         transition_layer = [nn.Conv2d(inplanes, outplanes, 1, 1, 0, bias=False), nn.BatchNorm2d(outplanes), nn.ReLU(True)]
