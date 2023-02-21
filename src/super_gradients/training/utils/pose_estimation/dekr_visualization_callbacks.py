@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import torch
-from pytorch_toolbelt.utils import hstack_autopad, vstack_header, vstack_autopad
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
 from super_gradients.training.utils.pose_estimation.dekr_decode_callbacks import hierarchical_pool
 from torch import Tensor
@@ -145,10 +144,10 @@ class DEKRVisualizationCallback(PhaseCallback):
 
         _, target_mask_rgb = self.visualize_heatmap(target_mask, min_value=0, max_value=1, apply_sigmoid=False, dsize=half_size, colormap=cv2.COLORMAP_BONE)
 
-        return hstack_autopad(
+        return np.hstack(
             [
-                vstack_header(image_heatmap_overlay, "Image"),
-                vstack_header(vstack_autopad([target_heatmap_rgb, predicted_heatmap_rgb]), "Target / Predicted"),
-                vstack_header(vstack_autopad([target_mask_rgb, peaks_heatmap]), "Mask / Peaks"),
+                image_heatmap_overlay,
+                np.vstack([target_heatmap_rgb, predicted_heatmap_rgb]),
+                np.vstack([target_mask_rgb, peaks_heatmap]),
             ]
         )
