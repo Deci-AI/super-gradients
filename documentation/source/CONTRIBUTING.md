@@ -6,7 +6,7 @@ Here is a simple guideline to get you started with your first contribution.
 3. [Fork super-gradients](https://help.github.com/articles/fork-a-repo/) so you can make local changes and test them.
 4. Create a new branch for the issue. The branch naming convention is enforced by the CI/CD so please make sure you are using `feature/SG-***` or `hotfix/SG-***` format otherwise it will fail.
 5. Implement your changes along with relevant tests for the issue. Please make sure you are covering unit, integration and e2e tests where required.
-6. Create a pull request against <b>master</b> branch.
+6. Create a pull request against **master** branch.
 
 
 
@@ -28,7 +28,7 @@ def python_function(first_argument: int, second_argument: int) -> str:
 
 ## Code Formatting
 
-We enforce [black](https://github.com/psf/black) code formatting in addition to existing flake8 checks. 
+We enforce [black](https://github.com/psf/black) code formatting in addition to existing [flake8](https://flake8.pycqa.org/en/latest/user/index.html) checks. 
 
 To ensure everyone uses same code style, a project-wise [configuration file](https://github.com/Deci-AI/super-gradients/blob/master/pyproject.toml) has been added to SG repo. It ensures all formatting will be exactly the same regardless of OS, python version or the place where code formatting check is happening. 
 
@@ -53,8 +53,7 @@ The command should complete without errors. Once done, all your upcoming commits
 ### Usage
 
 Just run ```$ black .``` from the SG root. It will reformat the whole repo.
-
-
+For flake8: ```$ flake8 --statistics --config scripts/flake8-config setup.py .``` 
 
 
 ## Signed Commits
