@@ -65,11 +65,11 @@ training_hyperparams:
 
 student_arch_params:
   num_classes: 19
-  aux_head: False
+  use_aux_heads: False
 
 teacher_arch_params:
   num_classes: 19
-  aux_head: False
+  use_aux_heads: False
 
 # KD module arch params
 arch_params:
