@@ -26,6 +26,10 @@ logger = get_logger(__name__)
 
 
 class BasicBlock(nn.Module):
+    """
+    ResNet basic block
+    """
+
     expansion = 1
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, dilation=1):
@@ -58,6 +62,10 @@ class BasicBlock(nn.Module):
 
 
 class Bottleneck(nn.Module):
+    """
+    ResNet bottleneck block
+    """
+
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, dilation=1):
@@ -96,6 +104,10 @@ class Bottleneck(nn.Module):
 
 
 class AdaptBlock(nn.Module):
+    """
+    Residual block with deformable convolution
+    """
+
     expansion = 1
 
     def __init__(self, inplanes, outplanes, stride=1, downsample=None, dilation=1, deformable_groups=1):
