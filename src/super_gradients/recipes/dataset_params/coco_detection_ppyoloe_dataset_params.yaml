@@ -83,7 +83,7 @@ val_dataset_params:
   tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:
-  with_crowd: False
+  with_crowd: True
 
 val_dataloader_params:
   batch_size: 64
@@ -91,7 +91,7 @@ val_dataloader_params:
   drop_last: False
   shuffle: False
   pin_memory: False
-  collate_fn: # collate function for trainset
-    _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
+  collate_fn: # collate function for valset
+    _target_: super_gradients.training.utils.detection_utils.CrowdDetectionPPYoloECollateFN
 
 _convert_: all
