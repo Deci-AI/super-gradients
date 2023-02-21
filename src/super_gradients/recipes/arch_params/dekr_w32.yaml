@@ -6,6 +6,7 @@ num_classes: ${dataset_params.num_joints}
 
 # Note: You will need to download the pretrained weights from the original repo and place them in the PRETRAINED param
 # in order to leverage transfer learning (Original recipe uses pretrained weights from HRNet repo).
+# TODO: Use checkpoint_params.checkpoint_path when it supports partial checkpoint loading.
 PRETRAINED:
 
 SPEC:
