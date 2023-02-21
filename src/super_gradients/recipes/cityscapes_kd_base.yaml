@@ -75,12 +75,16 @@ teacher_arch_params:
 arch_params:
 
 teacher_checkpoint_params:
+  load_backbone:
+  checkpoint_path:
+  strict_load: no_key_matching
   pretrained_weights: cityscapes
 
 student_checkpoint_params:
   load_backbone: True
   checkpoint_path: ???    # ImageNet pretrained checkpoints
   strict_load: no_key_matching
+  pretrained_weights:
 
 run_teacher_on_eval: True
 
