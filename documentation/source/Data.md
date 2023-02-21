@@ -199,16 +199,21 @@ import torch
 class MyCustomDataset(torch.utils.data.Dataset):
     def __init__(self, train: bool, image_size: int):
         ...
-    
-    # __getitem HAS TO return 2 to 3 
+
     def __getitem__(self, item):
         ...
-        return image, target
+        return inputs, targets # Or inputs, targets, additional_batch_items
 ```
 
+#### A. `__getitem__`
+You need to make sure that the `__getitem__` method of your dataset complies with the following format:
+   - `inputs = batch_items[0]` : model input - The type might depend on the model you are using.
+   - `targets = batch_items[1]` : Target that will be used to compute loss/metrics - The type might depend on the function you are using.
+   - [OPTIONAL] `additional_batch_items = batch_items[2]` : Dict made of any additional item that you might want to use.
+
+#### B. Train with your dataset
 For coded training launch, we can instantiate it, then use it in the same way as the first code snippet to create
 the data loaders and call train():
-
 
 ```python
 
