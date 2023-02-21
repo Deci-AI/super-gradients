@@ -1,18 +1,18 @@
 # Contribution Guidelines
 
-Here is a simple guideline to get you started with your first contribution
-2. Set up your environment to follow our [formatting guidelines](#code-formatting) and to use [signed-commits](#signed-commits).
-3. Use [issues](https://github.com/Deci-AI/super-gradients/issues) to discuss the suggested changes. Create an issue describing changes if necessary and add labels to ease orientation.
-4. [Fork super-gradients](https://help.github.com/articles/fork-a-repo/) so you can make local changes and test them.
-5. Create a new branch for the issue. The branch naming convention is enforced by the CI/CD so please make sure you are using `feature/SG-***` or `hotfix/SG-***` format otherwise it will fail.
-6. Implement your changes along with relevant tests for the issue. Please make sure you are covering unit, integration and e2e tests where required.
-7. Create a pull request against <b>master</b> branch.
+Here is a simple guideline to get you started with your first contribution.
+1. Set up your environment to follow our [formatting guidelines](#code-formatting) and to use [signed-commits](#signed-commits).
+2. Use [issues](https://github.com/Deci-AI/super-gradients/issues) to discuss the suggested changes. Create an issue describing changes if necessary and add labels to ease orientation.
+3. [Fork super-gradients](https://help.github.com/articles/fork-a-repo/) so you can make local changes and test them.
+4. Create a new branch for the issue. The branch naming convention is enforced by the CI/CD so please make sure you are using `feature/SG-***` or `hotfix/SG-***` format otherwise it will fail.
+5. Implement your changes along with relevant tests for the issue. Please make sure you are covering unit, integration and e2e tests where required.
+6. Create a pull request against <b>master</b> branch.
 
 
 
 ## Code Style
 
-We are working hard to make sure all the code in this repository is readable, maintainable and testable.
+We follow the **reStructuredText** docstring format (default of PyCharm), along with typing.
 ```python
 def python_function(first_argument: int, second_argument: int) -> str:
     """Do something with the two arguments.
