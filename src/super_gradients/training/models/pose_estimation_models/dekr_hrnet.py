@@ -326,7 +326,6 @@ class DEKRPoseEstimationModel(SgModule):
         self.offset_feature_layers, self.offset_final_layer = self._make_separete_regression_head(config_offset)
         self.heatmap_activation = nn.Sigmoid() if config_heatmap["HEATMAP_APPLY_SIGMOID"] else nn.Identity()
 
-        self.pretrained_layers = self.spec.PRETRAINED_LAYERS
         if arch_params.INIT_WEIGHTS:
             self.init_weights(pretrained=arch_params.PRETRAINED)
 
@@ -530,9 +529,8 @@ class DEKRPoseEstimationModel(SgModule):
 
             need_init_state_dict = {}
             for name, m in pretrained_state_dict.items():
-                if name.split(".")[0] in self.pretrained_layers or self.pretrained_layers[0] == "*":
-                    if name in parameters_names or name in buffers_names:
-                        if verbose:
-                            logger.info("=> init {} from {}".format(name, pretrained))
-                        need_init_state_dict[name] = m
+                if name in parameters_names or name in buffers_names:
+                    if verbose:
+                        logger.info("=> init {} from {}".format(name, pretrained))
+                    need_init_state_dict[name] = m
             self.load_state_dict(need_init_state_dict, strict=False)
