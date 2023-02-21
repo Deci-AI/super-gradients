@@ -5,6 +5,7 @@ import unittest
 import pkg_resources
 from omegaconf import OmegaConf
 
+from super_gradients.common.object_names import Models
 from super_gradients.training.models import SgModule, get_arch_params
 from super_gradients.training.models.model_factory import get_architecture
 from super_gradients.training.utils import HpmStruct
@@ -56,6 +57,14 @@ class ConfigInspectTest(unittest.TestCase):
                 result = model_factory(config)
                 self.assertEqual(result, 42)
             self.assertTrue("this_is_a_test_property_that_is_set_and_used" in config.get_used_params())
+
+    def test_inspector_raise_on_unused_args_with_modification_of_the_config_hpm_struct(self):
+        def model_factory(cfg):
+            cfg.this_is_a_test_property_that_is_set_but_not_used = 42
+            cfg.this_is_a_test_property_that_is_set_and_used = 39
+            return cfg.a + cfg.b + cfg.this_is_a_test_property_that_is_set_and_used
+
+        original_config = {"unused_param": True, "a": 1, "b": 2}
 
         with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
             config = HpmStruct(**copy.deepcopy(original_config))
@@ -215,7 +224,7 @@ class ConfigInspectTest(unittest.TestCase):
 
     def test_resnet18_cifar_arch_params(self):
         arch_params = get_arch_params("resnet18_cifar_arch_params")
-        architecture_cls, arch_params, pretrained_weights_path, is_remote = get_architecture("resnet18", HpmStruct(**arch_params))
+        architecture_cls, arch_params, pretrained_weights_path, is_remote = get_architecture(Models.RESNET18, HpmStruct(**arch_params))
 
         with raise_if_unused_params(arch_params) as tracked_arch_params:
             _ = architecture_cls(arch_params=tracked_arch_params)

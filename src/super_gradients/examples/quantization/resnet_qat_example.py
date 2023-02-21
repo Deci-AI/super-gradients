@@ -4,6 +4,7 @@ from torch import nn
 
 import super_gradients
 from super_gradients import Trainer
+from super_gradients.common.object_names import Models
 from super_gradients.modules.quantization.resnet_bottleneck import QuantBottleneck as sg_QuantizedBottleneck
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import models as sg_models
@@ -20,8 +21,8 @@ from super_gradients.training.utils.quantization.selective_quantization_utils im
 
 def naive_quantize(model: nn.Module):
     q_util = SelectiveQuantizer(
-        default_quant_modules_calib_method_weights="max",
-        default_quant_modules_calib_method_inputs="percentile",
+        default_quant_modules_calibrator_weights="max",
+        default_quant_modules_calibrator_inputs="percentile",
         default_per_channel_quant_weights=True,
         default_learn_amax=False,
     )
@@ -44,8 +45,8 @@ def selective_quantize(model: nn.Module):
 
     sq_util = SelectiveQuantizer(
         custom_mappings=mappings,
-        default_quant_modules_calib_method_weights="max",
-        default_quant_modules_calib_method_inputs="percentile",
+        default_quant_modules_calibrator_weights="max",
+        default_quant_modules_calibrator_inputs="percentile",
         default_per_channel_quant_weights=True,
         default_learn_amax=False,
     )
@@ -55,7 +56,7 @@ def selective_quantize(model: nn.Module):
 
 
 def sg_vanilla_resnet50():
-    return sg_models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)
+    return sg_models.get(Models.RESNET50, pretrained_weights="imagenet", num_classes=1000)
 
 
 def sg_naive_qdq_resnet50():

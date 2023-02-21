@@ -1,0 +1,68 @@
+config_version: '1.2'
+
+config_ignore_values:
+  '1.2': 65
+  '2.0': 123
+
+mask_fill_value: ${getitem:${dataset_params.config_ignore_values},${dataset_params.config_version}}
+
+train_dataset_params:
+  root_dir: /data/mapillary-vistas-dataset_public_v2.0
+  config_file: config_v${..config_version}.json
+  samples_sub_directory: training/images
+  targets_sub_directory: training/v${..config_version}/labels
+  cache_labels: False
+  cache_images: False
+  transforms:
+    - SegRescale:
+        long_size: 2048
+
+    - SegColorJitter:
+        brightness: 0.5
+        contrast: 0.5
+        saturation: 0.5
+
+    - SegRandomFlip:
+        prob: 0.5
+
+    - SegRandomRescale:
+        scales: [ 0.5, 2.0 ]
+
+    - SegPadShortToCropSize:
+        crop_size: 1024
+        fill_mask: ${dataset_params.mask_fill_value}
+
+    - SegCropImageAndMask:
+        crop_size: 1024
+        mode: random
+
+val_dataset_params:
+  root_dir: /data/mapillary-vistas-dataset_public_v2.0
+  config_file: config_v${..config_version}.json
+  samples_sub_directory: validation/images
+  targets_sub_directory: validation/v${..config_version}/labels
+  cache_labels: False
+  cache_images: False
+  transforms:
+    - SegRescale:
+        long_size: 2048
+
+    - SegPadToDivisible:
+        divisible_value: 32
+        fill_mask: ${dataset_params.mask_fill_value}
+
+train_dataloader_params:
+  shuffle: True
+  batch_size: 4
+  num_workers: 8
+  drop_last: True
+  pin_memory: True
+
+val_dataloader_params:
+  # Mapillary validation set include various image sizes.
+  # It is recommended to Rescale the long size to 2048 then perform validation.
+  # Unless the default transformation hasn't modified, it is not possible to batch the images to a common size.
+  batch_size: 1
+  num_workers: 8
+  drop_last: False
+  pin_memory: True

@@ -4,7 +4,7 @@ from typing import Tuple, Type, Optional
 import hydra
 import torch
 
-from super_gradients.common import StrictLoad
+from super_gradients.common.data_types.enum.strict_load import StrictLoad
 from super_gradients.common.plugins.deci_client import DeciClient, client_enabled
 from super_gradients.training import utils as core_utils
 from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
@@ -49,16 +49,18 @@ def get_architecture(model_name: str, arch_params: HpmStruct, download_required_
         if client_enabled:
             logger.info(f'The required model, "{model_name}", was not found in SuperGradients. Trying to load a model from remote deci-lab')
             deci_client = DeciClient()
-            _arch_params = deci_client.get_model_arch_params(model_name)
-            if download_required_code:
-                deci_client.download_and_load_model_additional_code(model_name, Path.cwd())
 
+            _arch_params = deci_client.get_model_arch_params(model_name)
             if _arch_params is None:
                 raise ValueError(
-                    f'The required model, "{model_name}", was not found in SuperGradients and remote deci-lab. See docs or '
-                    f"all_architectures.py for supported model names."
+                    f'The required model "{model_name}", was not found in SuperGradients and remote deci-lab. '
+                    f"See docs or all_architectures.py for supported model names."
                 )
+
+            if download_required_code:  # Some extra code might be required to instantiate the arch params.
+                deci_client.download_and_load_model_additional_code(model_name, target_path=str(Path.cwd()))
             _arch_params = hydra.utils.instantiate(_arch_params)
+
             pretrained_weights_path = deci_client.get_model_weights(model_name)
             model_name = _arch_params["model_name"]
             del _arch_params["model_name"]

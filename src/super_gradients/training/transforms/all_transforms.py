@@ -6,7 +6,6 @@ import inspect
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
-
 from super_gradients.training.transforms.transforms import (
     SegRandomFlip,
     SegRescale,
@@ -15,15 +14,20 @@ from super_gradients.training.transforms.transforms import (
     SegCropImageAndMask,
     SegRandomGaussianBlur,
     SegPadShortToCropSize,
+    SegPadToDivisible,
     SegResize,
     SegColorJitter,
     DetectionMosaic,
     DetectionRandomAffine,
     DetectionMixup,
     DetectionHSV,
+    DetectionRGB2BGR,
+    DetectionRandomRotate90,
     DetectionHorizontalFlip,
+    DetectionRescale,
     DetectionPaddedRescale,
     DetectionTargetsFormatTransform,
+    DetectionNormalize,
     Standardize,
 )
 from torchvision.transforms import (
@@ -63,7 +67,16 @@ from torchvision.transforms import (
     RandomAutocontrast,
     RandomEqualize,
 )
-
+from super_gradients.training.transforms.keypoint_transforms import (
+    KeypointsRandomAffineTransform,
+    KeypointsImageNormalize,
+    KeypointsImageToTensor,
+    KeypointTransform,
+    KeypointsPadIfNeeded,
+    KeypointsLongestMaxSize,
+    KeypointsRandomVerticalFlip,
+    KeypointsRandomHorizontalFlip,
+)
 
 TRANSFORMS = {
     Transforms.SegRandomFlip: SegRandomFlip,
@@ -74,14 +87,19 @@ TRANSFORMS = {
     Transforms.SegCropImageAndMask: SegCropImageAndMask,
     Transforms.SegRandomGaussianBlur: SegRandomGaussianBlur,
     Transforms.SegPadShortToCropSize: SegPadShortToCropSize,
+    Transforms.SegPadToDivisible: SegPadToDivisible,
     Transforms.SegColorJitter: SegColorJitter,
     Transforms.DetectionMosaic: DetectionMosaic,
     Transforms.DetectionRandomAffine: DetectionRandomAffine,
     Transforms.DetectionMixup: DetectionMixup,
     Transforms.DetectionHSV: DetectionHSV,
+    Transforms.DetectionRGB2BGR: DetectionRGB2BGR,
+    Transforms.DetectionRandomRotate90: DetectionRandomRotate90,
     Transforms.DetectionHorizontalFlip: DetectionHorizontalFlip,
+    Transforms.DetectionRescale: DetectionRescale,
     Transforms.DetectionPaddedRescale: DetectionPaddedRescale,
     Transforms.DetectionTargetsFormatTransform: DetectionTargetsFormatTransform,
+    Transforms.DetectionNormalize: DetectionNormalize,
     Transforms.RandomResizedCropAndInterpolation: RandomResizedCropAndInterpolation,
     Transforms.RandAugmentTransform: rand_augment_transform,
     Transforms.Lighting: Lighting,
@@ -123,6 +141,15 @@ TRANSFORMS = {
     Transforms.RandomAutocontrast: RandomAutocontrast,
     Transforms.RandomEqualize: RandomEqualize,
     Transforms.Standardize: Standardize,
+    # Keypoints
+    Transforms.KeypointsRandomAffineTransform: KeypointsRandomAffineTransform,
+    Transforms.KeypointsImageNormalize: KeypointsImageNormalize,
+    Transforms.KeypointsImageToTensor: KeypointsImageToTensor,
+    Transforms.KeypointTransform: KeypointTransform,
+    Transforms.KeypointsPadIfNeeded: KeypointsPadIfNeeded,
+    Transforms.KeypointsLongestMaxSize: KeypointsLongestMaxSize,
+    Transforms.KeypointsRandomVerticalFlip: KeypointsRandomVerticalFlip,
+    Transforms.KeypointsRandomHorizontalFlip: KeypointsRandomHorizontalFlip,
 }
 logger = get_logger(__name__)
 

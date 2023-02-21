@@ -1,0 +1,9 @@
+defaults:
+  - ppyoloe_arch_params
+  - _self_
+
+depth_mult: 1.33
+width_mult: 1.25
+
+backbone:
+  pretrained_weights: https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/CSPResNetb_x_pretrained.pth

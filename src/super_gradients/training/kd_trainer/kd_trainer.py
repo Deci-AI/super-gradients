@@ -1,20 +1,14 @@
+from typing import Union, Dict, Mapping, Any
+
 import hydra
 import torch.nn
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 
 from super_gradients.common import MultiGPUMode
-from super_gradients.training.dataloaders import dataloaders
-from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
-from super_gradients.training.models.kd_modules.kd_module import KDModule
-from super_gradients.training.sg_trainer import Trainer
-from typing import Union
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import utils as core_utils, models
-from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import get_param, HpmStruct
-from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, load_checkpoint_to_model
+from super_gradients.training.dataloaders import dataloaders
 from super_gradients.training.exceptions.kd_trainer_exceptions import (
     ArchitectureKwargsException,
     UnsupportedKDArchitectureException,
@@ -23,9 +17,16 @@ from super_gradients.training.exceptions.kd_trainer_exceptions import (
     TeacherKnowledgeException,
     UndefinedNumClassesException,
 )
+from super_gradients.training.models import SgModule
+from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
+from super_gradients.training.models.kd_modules.kd_module import KDModule
+from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
+from super_gradients.training.sg_trainer import Trainer
+from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallback
+from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, load_checkpoint_to_model
+from super_gradients.training.utils.distributed_training_utils import setup_device
 from super_gradients.training.utils.ema import KDModelEMA
-from super_gradients.training.utils.sg_trainer_utils import parse_args
 
 logger = get_logger(__name__)
 
@@ -47,11 +48,16 @@ class KDTrainer(Trainer):
         @return: output of kd_trainer.train(...) (i.e results tuple)
         """
         # INSTANTIATE ALL OBJECTS IN CFG
+        setup_device(
+            device=core_utils.get_param(cfg, "device"),
+            multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
+            num_gpus=core_utils.get_param(cfg, "num_gpus"),
+        )
+
+        # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
-        kwargs = parse_args(cfg, cls.__init__)
-
-        trainer = KDTrainer(**kwargs)
+        trainer = KDTrainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
 
         # INSTANTIATE DATA LOADERS
         train_dataloader = dataloaders.get(
@@ -80,6 +86,8 @@ class KDTrainer(Trainer):
             load_backbone=cfg.teacher_checkpoint_params.load_backbone,
         )
 
+        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
+
         # TRAIN
         trainer.train(
             training_params=cfg.training_hyperparams,
@@ -90,6 +98,7 @@ class KDTrainer(Trainer):
             run_teacher_on_eval=cfg.run_teacher_on_eval,
             train_loader=train_dataloader,
             valid_loader=val_dataloader,
+            additional_configs_to_log=recipe_logged_cfg,
         )
 
     def _validate_args(self, arch_params, architecture, checkpoint_params, **kwargs):
@@ -247,17 +256,15 @@ class KDTrainer(Trainer):
         )
         return hyper_param_config
 
-    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> KDModelEMA:
-        """Instantiate KD ema model for KDModule.
-
-        If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.
-        :param decay:           the maximum decay value. as the training process advances, the decay will climb towards
-                                this value until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
-        :param beta:            the exponent coefficient. The higher the beta, the sooner in the training the decay will
-                                saturate to its final value. beta=15 is ~40% of the training process.
-        :param exp_activation:
+    def _instantiate_ema_model(self, ema_params: Mapping[str, Any]) -> KDModelEMA:
+        """Instantiate ema model for standard SgModule.
+        :param decay_type: (str) The decay climb schedule. See EMA_DECAY_FUNCTIONS for more details.
+        :param decay: The maximum decay value. As the training process advances, the decay will climb towards this value
+                      according to decay_type schedule. See EMA_DECAY_FUNCTIONS for more details.
+        :param kwargs: Additional parameters for the decay function. See EMA_DECAY_FUNCTIONS for more details.
         """
-        return KDModelEMA(self.net, decay, beta, exp_activation)
+        logger.info(f"Using EMA with params {ema_params}")
+        return KDModelEMA.from_params(self.net, **ema_params)
 
     def _save_best_checkpoint(self, epoch, state):
         """
@@ -275,19 +282,21 @@ class KDTrainer(Trainer):
     def train(
         self,
         model: KDModule = None,
-        training_params: dict = dict(),
+        training_params: Dict = None,
         student: SgModule = None,
         teacher: torch.nn.Module = None,
         kd_architecture: Union[KDModule.__class__, str] = "kd_module",
-        kd_arch_params: dict = dict(),
+        kd_arch_params: Dict = None,
         run_teacher_on_eval=False,
         train_loader: DataLoader = None,
         valid_loader: DataLoader = None,
+        additional_configs_to_log: Dict = None,
         *args,
         **kwargs,
     ):
         """
         Trains the student network (wrapped in KDModule network).
+
 
         :param model: KDModule, network to train. When none is given will initialize KDModule according to kd_architecture,
             student and teacher (default=None)
@@ -299,12 +308,21 @@ class KDTrainer(Trainer):
         :param run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
         :param train_loader: Dataloader for train set.
         :param valid_loader: Dataloader for validation.
+        :param additional_configs_to_log: Dict, dictionary containing configs that will be added to the training's
+                sg_logger. Format should be {"Config_title_1": {...}, "Config_title_2":{..}}, (optional, default=None)
         """
         kd_net = self.net or model
+        kd_arch_params = kd_arch_params or dict()
         if kd_net is None:
             if student is None or teacher is None:
                 raise ValueError("Must pass student and teacher models or net (KDModule).")
             kd_net = self._instantiate_kd_net(
                 arch_params=HpmStruct(**kd_arch_params), architecture=kd_architecture, run_teacher_on_eval=run_teacher_on_eval, student=student, teacher=teacher
             )
-        super(KDTrainer, self).train(model=kd_net, training_params=training_params, train_loader=train_loader, valid_loader=valid_loader)
+        super(KDTrainer, self).train(
+            model=kd_net,
+            training_params=training_params,
+            train_loader=train_loader,
+            valid_loader=valid_loader,
+            additional_configs_to_log=additional_configs_to_log,
+        )

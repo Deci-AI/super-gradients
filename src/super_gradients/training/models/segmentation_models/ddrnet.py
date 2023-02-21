@@ -13,8 +13,7 @@ code from git repo: https://github.com/ydhongHIT/DDRNet
 
 
 def ConvBN(in_channels: int, out_channels: int, kernel_size: int, bias=True, stride=1, padding=0, add_relu=False):
-    seq = [nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, bias=bias, stride=stride, padding=padding),
-           nn.BatchNorm2d(out_channels)]
+    seq = [nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, bias=bias, stride=stride, padding=padding), nn.BatchNorm2d(out_channels)]
     if add_relu:
         seq.append(nn.ReLU(inplace=True))
     return nn.Sequential(*seq)
@@ -35,8 +34,7 @@ def _make_layer(block, in_planes, planes, num_blocks, stride=1, expansion=1):
 
 
 class DAPPMBranch(nn.Module):
-
-    def __init__(self, kernel_size: int, stride: int, in_planes: int, branch_planes: int, inter_mode: str = 'bilinear'):
+    def __init__(self, kernel_size: int, stride: int, in_planes: int, branch_planes: int, inter_mode: str = "bilinear"):
         """
         A DAPPM branch
         :param kernel_size: the kernel size for the average pooling
@@ -100,15 +98,13 @@ class DAPPMBranch(nn.Module):
 
 
 class DAPPM(nn.Module):
-    def __init__(self, in_planes: int, branch_planes: int, out_planes: int,
-                 kernel_sizes: list, strides: list, inter_mode: str = 'bilinear'):
+    def __init__(self, in_planes: int, branch_planes: int, out_planes: int, kernel_sizes: list, strides: list, inter_mode: str = "bilinear"):
         super().__init__()
 
-        assert len(kernel_sizes) == len(strides), 'len of kernel_sizes and strides must be the same'
+        assert len(kernel_sizes) == len(strides), "len of kernel_sizes and strides must be the same"
         self.branches = nn.ModuleList()
         for kernel_size, stride in zip(kernel_sizes, strides):
-            self.branches.append(DAPPMBranch(kernel_size=kernel_size, stride=stride,
-                                             in_planes=in_planes, branch_planes=branch_planes, inter_mode=inter_mode))
+            self.branches.append(DAPPMBranch(kernel_size=kernel_size, stride=stride, in_planes=in_planes, branch_planes=branch_planes, inter_mode=inter_mode))
 
         self.compression = nn.Sequential(
             nn.BatchNorm2d(branch_planes * len(self.branches)),
@@ -134,8 +130,7 @@ class DAPPM(nn.Module):
 
 
 class SegmentHead(nn.Module):
-    def __init__(self, in_planes: int, inter_planes: int, out_planes: int, scale_factor: int,
-                 inter_mode: str = 'bilinear'):
+    def __init__(self, in_planes: int, inter_planes: int, out_planes: int, scale_factor: int, inter_mode: str = "bilinear"):
         """
         Last stage of the segmentation network.
         Reduces the number of output planes (usually to num_classes) while increasing the size by scale_factor
@@ -148,15 +143,15 @@ class SegmentHead(nn.Module):
         """
         super().__init__()
 
-        if inter_mode == 'pixel_shuffle':
-            assert inter_planes % (scale_factor ^ 2) == 0, 'when using pixel_shuffle, inter_planes must be a multiple of scale_factor^2'
+        if inter_mode == "pixel_shuffle":
+            assert inter_planes % (scale_factor ^ 2) == 0, "when using pixel_shuffle, inter_planes must be a multiple of scale_factor^2"
 
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.conv1 = nn.Conv2d(in_planes, inter_planes, kernel_size=3, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(inter_planes)
         self.relu = nn.ReLU(inplace=True)
 
-        if inter_mode == 'pixel_shuffle':
+        if inter_mode == "pixel_shuffle":
             self.conv2 = nn.Conv2d(inter_planes, inter_planes, kernel_size=1, padding=0, bias=True)
             self.upscale = nn.PixelShuffle(scale_factor)
         else:
@@ -178,7 +173,8 @@ class UpscaleOnline(nn.Module):
     In some cases the required scale/size for the scaling is known only when the input is received.
     This class support such cases. only the interpolation mode is set in advance.
     """
-    def __init__(self, mode='bilinear'):
+
+    def __init__(self, mode="bilinear"):
         super().__init__()
         self.mode = mode
 
@@ -187,12 +183,12 @@ class UpscaleOnline(nn.Module):
 
 
 class DDRBackBoneBase(nn.Module):
-    """A base class defining functions that must be supported by DDRBackBones """
+    """A base class defining functions that must be supported by DDRBackBones"""
 
     def validate_backbone_attributes(self):
-        expected_attributes = ['stem', 'layer1', 'layer2', 'layer3', 'layer4', 'input_channels']
+        expected_attributes = ["stem", "layer1", "layer2", "layer3", "layer4", "input_channels"]
         for attribute in expected_attributes:
-            assert hasattr(self, attribute), f'Invalid backbone - attribute \'{attribute}\' is missing'
+            assert hasattr(self, attribute), f"Invalid backbone - attribute '{attribute}' is missing"
 
     def get_backbone_output_number_of_channels(self):
         """Return a dictionary of the shapes of each output of the backbone to determine the in_channels of the
@@ -202,16 +198,17 @@ class DDRBackBoneBase(nn.Module):
         x = self.stem(x)
         x = self.layer1(x)
         x = self.layer2(x)
-        output_shapes['layer2'] = x.shape[1]
-        x = self.layer3(x)
-        output_shapes['layer3'] = x.shape[1]
+        output_shapes["layer2"] = x.shape[1]
+        for layer in self.layer3:
+            x = layer(x)
+        output_shapes["layer3"] = x.shape[1]
         x = self.layer4(x)
-        output_shapes['layer4'] = x.shape[1]
+        output_shapes["layer4"] = x.shape[1]
         return output_shapes
 
 
 class BasicDDRBackBone(DDRBackBoneBase):
-    def __init__(self, block: nn.Module.__class__, width: int, layers: list, input_channels: int):
+    def __init__(self, block: nn.Module.__class__, width: int, layers: list, input_channels: int, layer3_repeats: int):
         super().__init__()
         self.input_channels = input_channels
         self.stem = nn.Sequential(
@@ -220,7 +217,10 @@ class BasicDDRBackBone(DDRBackBoneBase):
         )
         self.layer1 = _make_layer(block=block, in_planes=width, planes=width, num_blocks=layers[0])
         self.layer2 = _make_layer(block=block, in_planes=width, planes=width * 2, num_blocks=layers[1], stride=2)
-        self.layer3 = _make_layer(block=block, in_planes=width * 2, planes=width * 4, num_blocks=layers[2], stride=2)
+        self.layer3 = nn.ModuleList(
+            [_make_layer(block=block, in_planes=width * 2, planes=width * 4, num_blocks=layers[2], stride=2)]
+            + [_make_layer(block=block, in_planes=width * 4, planes=width * 4, num_blocks=layers[2], stride=1) for _ in range(layer3_repeats - 1)]
+        )
         self.layer4 = _make_layer(block=block, in_planes=width * 4, planes=width * 8, num_blocks=layers[3], stride=2)
 
 
@@ -235,20 +235,31 @@ class RegnetDDRBackBone(DDRBackBoneBase):
         self.stem = regnet_module.net.stem
         self.layer1 = regnet_module.net.stage_0
         self.layer2 = regnet_module.net.stage_1
-        self.layer3 = regnet_module.net.stage_2
+        self.layer3 = nn.ModuleList([regnet_module.net.stage_2])
         self.layer4 = regnet_module.net.stage_3
 
 
 class DDRNet(SgModule):
-
-    def __init__(self, backbone: DDRBackBoneBase.__class__, additional_layers: list, upscale_module: nn.Module,
-                 num_classes: int,
-                 highres_planes: int, spp_width: int, head_width: int, aux_head: bool = False,
-                 ssp_inter_mode: str = 'bilinear',
-                 segmentation_inter_mode: str = 'bilinear', skip_block: nn.Module.__class__ = None,
-                 layer5_block: nn.Module.__class__ = Bottleneck, layer5_bottleneck_expansion: int = 2,
-                 classification_mode=False, spp_kernel_sizes: list = [1, 5, 9, 17, 0],
-                 spp_strides: list = [1, 2, 4, 8, 0]):
+    def __init__(
+        self,
+        backbone: DDRBackBoneBase.__class__,
+        additional_layers: list,
+        upscale_module: nn.Module,
+        num_classes: int,
+        highres_planes: int,
+        spp_width: int,
+        head_width: int,
+        aux_head: bool = False,
+        ssp_inter_mode: str = "bilinear",
+        segmentation_inter_mode: str = "bilinear",
+        skip_block: nn.Module.__class__ = None,
+        layer5_block: nn.Module.__class__ = Bottleneck,
+        layer5_bottleneck_expansion: int = 2,
+        classification_mode=False,
+        spp_kernel_sizes: list = [1, 5, 9, 17, 0],
+        spp_strides: list = [1, 2, 4, 8, 0],
+        layer3_repeats: int = 1,
+    ):
         """
 
         :param backbone: the low resolution branch of DDR, expected to have specific attributes in the class
@@ -265,6 +276,8 @@ class DDRNet(SgModule):
         :param layer5_bottleneck_expansion: determines the expansion rate for Bottleneck block
         :param spp_kernel_sizes: list of kernel sizes for the spp module pooling
         :param spp_strides: list of strides for the spp module pooling
+        :param layer3_repeats: number of times to repeat the 3rd stage of ddr model, including the paths interchange
+         modules.
         """
 
         super().__init__()
@@ -274,73 +287,92 @@ class DDRNet(SgModule):
         self.segmentation_inter_mode = segmentation_inter_mode
         self.relu = nn.ReLU(inplace=False)
         self.classification_mode = classification_mode
+        self.layer3_repeats = layer3_repeats
 
         assert not (aux_head and classification_mode), "auxiliary head cannot be used in classification mode"
 
-        assert isinstance(backbone, DDRBackBoneBase), 'The backbone must inherit from AbstractDDRBackBone'
+        assert isinstance(backbone, DDRBackBoneBase), "The backbone must inherit from AbstractDDRBackBone"
         self._backbone = backbone
         self._backbone.validate_backbone_attributes()
         out_chan_backbone = self._backbone.get_backbone_output_number_of_channels()
 
-        self.compression3 = ConvBN(in_channels=out_chan_backbone['layer3'], out_channels=highres_planes, kernel_size=1,
-                                   bias=False)
-        self.compression4 = ConvBN(in_channels=out_chan_backbone['layer4'], out_channels=highres_planes, kernel_size=1,
-                                   bias=False)
+        # Repeat r-times layer4
+        self.compression3, self.down3, self.layer3_skip = nn.ModuleList(), nn.ModuleList(), nn.ModuleList()
+        for i in range(layer3_repeats):
+            self.compression3.append(ConvBN(in_channels=out_chan_backbone["layer3"], out_channels=highres_planes, kernel_size=1, bias=False))
+            self.down3.append(ConvBN(in_channels=highres_planes, out_channels=out_chan_backbone["layer3"], kernel_size=3, stride=2, padding=1, bias=False))
+            self.layer3_skip.append(
+                _make_layer(
+                    in_planes=out_chan_backbone["layer2"] if i == 0 else highres_planes,
+                    planes=highres_planes,
+                    block=skip_block,
+                    num_blocks=additional_layers[1],
+                )
+            )
 
-        self.down3 = ConvBN(in_channels=highres_planes, out_channels=out_chan_backbone['layer3'], kernel_size=3,
-                            stride=2, padding=1,
-                            bias=False)
+        self.compression4 = ConvBN(in_channels=out_chan_backbone["layer4"], out_channels=highres_planes, kernel_size=1, bias=False)
 
         self.down4 = nn.Sequential(
-            ConvBN(in_channels=highres_planes, out_channels=highres_planes * 2, kernel_size=3, stride=2, padding=1,
-                   bias=False, add_relu=True),
-            ConvBN(in_channels=highres_planes * 2, out_channels=out_chan_backbone['layer4'], kernel_size=3, stride=2,
-                   padding=1, bias=False))
-        self.layer3_skip = _make_layer(block=skip_block, in_planes=out_chan_backbone['layer2'], planes=highres_planes,
-                                       num_blocks=additional_layers[1])
-        self.layer4_skip = _make_layer(block=skip_block, in_planes=highres_planes, planes=highres_planes,
-                                       num_blocks=additional_layers[2])
-        self.layer5_skip = _make_layer(block=layer5_block, in_planes=highres_planes, planes=highres_planes,
-                                       num_blocks=additional_layers[3], expansion=layer5_bottleneck_expansion)
+            ConvBN(in_channels=highres_planes, out_channels=highres_planes * 2, kernel_size=3, stride=2, padding=1, bias=False, add_relu=True),
+            ConvBN(in_channels=highres_planes * 2, out_channels=out_chan_backbone["layer4"], kernel_size=3, stride=2, padding=1, bias=False),
+        )
+        self.layer4_skip = _make_layer(block=skip_block, in_planes=highres_planes, planes=highres_planes, num_blocks=additional_layers[2])
+        self.layer5_skip = _make_layer(
+            block=layer5_block, in_planes=highres_planes, planes=highres_planes, num_blocks=additional_layers[3], expansion=layer5_bottleneck_expansion
+        )
 
         # when training the backbones on Imagenet:
         #  - layer 5 has stride 1
         #  - a new high_to_low_fusion is added with to 3x3 convs with stride 2 (and double the width)
         #  - a classification head is placed instead of the segmentation head
         if self.classification_mode:
-            self.layer5 = _make_layer(block=layer5_block, in_planes=out_chan_backbone['layer4'],
-                                      planes=out_chan_backbone['layer4'], num_blocks=additional_layers[0],
-                                      expansion=layer5_bottleneck_expansion)
+            self.layer5 = _make_layer(
+                block=layer5_block,
+                in_planes=out_chan_backbone["layer4"],
+                planes=out_chan_backbone["layer4"],
+                num_blocks=additional_layers[0],
+                expansion=layer5_bottleneck_expansion,
+            )
 
             highres_planes_out = highres_planes * layer5_bottleneck_expansion
-            self.high_to_low_fusion = nn.Sequential(ConvBN(in_channels=highres_planes_out,
-                                                           out_channels=highres_planes_out * 2,
-                                                           kernel_size=3, stride=2,
-                                                           padding=1, add_relu=True),
-                                                    ConvBN(in_channels=highres_planes_out * 2,
-                                                           out_channels=out_chan_backbone['layer4'] * layer5_bottleneck_expansion,
-                                                           kernel_size=3, stride=2,
-                                                           padding=1, add_relu=True))
+            self.high_to_low_fusion = nn.Sequential(
+                ConvBN(in_channels=highres_planes_out, out_channels=highres_planes_out * 2, kernel_size=3, stride=2, padding=1, add_relu=True),
+                ConvBN(
+                    in_channels=highres_planes_out * 2,
+                    out_channels=out_chan_backbone["layer4"] * layer5_bottleneck_expansion,
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
+                    add_relu=True,
+                ),
+            )
 
             self.average_pool = nn.AdaptiveAvgPool2d(1)
-            self.fc = nn.Linear(in_features=out_chan_backbone['layer4'] * layer5_bottleneck_expansion,
-                                out_features=num_classes)
+            self.fc = nn.Linear(in_features=out_chan_backbone["layer4"] * layer5_bottleneck_expansion, out_features=num_classes)
 
         else:
-            self.layer5 = _make_layer(block=layer5_block, in_planes=out_chan_backbone['layer4'],
-                                      planes=out_chan_backbone['layer4'], num_blocks=additional_layers[0],
-                                      stride=2, expansion=layer5_bottleneck_expansion)
+            self.layer5 = _make_layer(
+                block=layer5_block,
+                in_planes=out_chan_backbone["layer4"],
+                planes=out_chan_backbone["layer4"],
+                num_blocks=additional_layers[0],
+                stride=2,
+                expansion=layer5_bottleneck_expansion,
+            )
 
-            self.spp = DAPPM(in_planes=out_chan_backbone['layer4'] * layer5_bottleneck_expansion,
-                             branch_planes=spp_width, out_planes=highres_planes * layer5_bottleneck_expansion,
-                             inter_mode=self.ssp_inter_mode, kernel_sizes=spp_kernel_sizes, strides=spp_strides)
+            self.spp = DAPPM(
+                in_planes=out_chan_backbone["layer4"] * layer5_bottleneck_expansion,
+                branch_planes=spp_width,
+                out_planes=highres_planes * layer5_bottleneck_expansion,
+                inter_mode=self.ssp_inter_mode,
+                kernel_sizes=spp_kernel_sizes,
+                strides=spp_strides,
+            )
 
             if self.aux_head:
-                self.seghead_extra = SegmentHead(highres_planes, head_width, num_classes, 8,
-                                                 inter_mode=self.segmentation_inter_mode)
+                self.seghead_extra = SegmentHead(highres_planes, head_width, num_classes, 8, inter_mode=self.segmentation_inter_mode)
 
-            self.final_layer = SegmentHead(highres_planes * layer5_bottleneck_expansion,
-                                           head_width, num_classes, 8, inter_mode=self.segmentation_inter_mode)
+            self.final_layer = SegmentHead(highres_planes * layer5_bottleneck_expansion, head_width, num_classes, 8, inter_mode=self.segmentation_inter_mode)
 
         self.highres_planes = highres_planes
         self.layer5_bottleneck_expansion = layer5_bottleneck_expansion
@@ -352,22 +384,26 @@ class DDRNet(SgModule):
         """
         Create a fake backbone module to load backbone pre-trained weights.
         """
-        return nn.Sequential(OrderedDict([
-            ("_backbone", self._backbone),
-            ("compression3", self.compression3),
-            ("compression4", self.compression4),
-            ("down3", self.down3),
-            ("down4", self.down4),
-            ("layer3_skip", self.layer3_skip),
-            ("layer4_skip", self.layer4_skip),
-            ("layer4_skip", self.layer4_skip),
-            ("layer5_skip", self.layer5_skip),
-        ]))
+        return nn.Sequential(
+            OrderedDict(
+                [
+                    ("_backbone", self._backbone),
+                    ("compression3", self.compression3),
+                    ("compression4", self.compression4),
+                    ("down3", self.down3),
+                    ("down4", self.down4),
+                    ("layer3_skip", self.layer3_skip),
+                    ("layer4_skip", self.layer4_skip),
+                    ("layer4_skip", self.layer4_skip),
+                    ("layer5_skip", self.layer5_skip),
+                ]
+            )
+        )
 
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -378,12 +414,16 @@ class DDRNet(SgModule):
 
         x = self._backbone.stem(x)
         x = self._backbone.layer1(x)
-        out_layer2 = self._backbone.layer2(self.relu(x))
-        out_layer3 = self._backbone.layer3(self.relu(out_layer2))
-        out_layer3_skip = self.layer3_skip(self.relu(out_layer2))
+        x = self._backbone.layer2(self.relu(x))
 
-        x = out_layer3 + self.down3(self.relu(out_layer3_skip))
-        x_skip = out_layer3_skip + self.upscale(self.compression3(self.relu(out_layer3)), height_output, width_output)
+        # Repeat layer 3
+        x_skip = x
+        for i in range(self.layer3_repeats):
+            out_layer3 = self._backbone.layer3[i](self.relu(x))
+            out_layer3_skip = self.layer3_skip[i](self.relu(x_skip))
+
+            x = out_layer3 + self.down3[i](self.relu(out_layer3_skip))
+            x_skip = out_layer3_skip + self.upscale(self.compression3[i](self.relu(out_layer3)), height_output, width_output)
 
         # save for auxiliary head
         if self.aux_head:
@@ -422,11 +462,11 @@ class DDRNet(SgModule):
         if new_head is not None:
             self.final_layer = new_head
         else:
-            self.final_layer = SegmentHead(self.highres_planes * self.layer5_bottleneck_expansion,
-                                           self.head_width, new_num_classes, 8, inter_mode=self.segmentation_inter_mode)
+            self.final_layer = SegmentHead(
+                self.highres_planes * self.layer5_bottleneck_expansion, self.head_width, new_num_classes, 8, inter_mode=self.segmentation_inter_mode
+            )
             if self.aux_head:
-                self.seghead_extra = SegmentHead(self.highres_planes, self.head_width, new_num_classes, 8,
-                                                 inter_mode=self.segmentation_inter_mode)
+                self.seghead_extra = SegmentHead(self.highres_planes, self.head_width, new_num_classes, 8, inter_mode=self.segmentation_inter_mode)
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
@@ -435,17 +475,18 @@ class DDRNet(SgModule):
         """
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
         multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
-        param_groups = [{"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
-                        {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"}]
+        param_groups = [
+            {"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
+            {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"},
+        ]
         return param_groups
 
-    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
-                            total_batch: int) -> list:
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
         for param_group in param_groups:
-            param_group['lr'] = lr
+            param_group["lr"] = lr
             if param_group["name"] == "multiply_lr_params":
-                param_group['lr'] *= multiply_head_lr
+                param_group["lr"] *= multiply_head_lr
         return param_groups
 
     def _separate_lr_multiply_params(self):
@@ -465,23 +506,26 @@ class DDRNet(SgModule):
 
 class DDRNetCustom(DDRNet):
     def __init__(self, arch_params: HpmStruct):
-        """ Parse arch_params and translate the parameters to build the original DDRNet architecture """
-        super().__init__(backbone=arch_params.backbone,
-                         additional_layers=arch_params.additional_layers,
-                         upscale_module=arch_params.upscale_module,
-                         num_classes=arch_params.num_classes,
-                         highres_planes=arch_params.highres_planes,
-                         spp_width=arch_params.spp_planes,
-                         head_width=arch_params.head_planes,
-                         aux_head=arch_params.aux_head,
-                         ssp_inter_mode=arch_params.ssp_inter_mode,
-                         segmentation_inter_mode=arch_params.segmentation_inter_mode,
-                         skip_block=arch_params.skip_block,
-                         layer5_block=arch_params.layer5_block,
-                         layer5_bottleneck_expansion=arch_params.layer5_bottleneck_expansion,
-                         classification_mode=arch_params.classification_mode,
-                         spp_kernel_sizes=arch_params.spp_kernel_sizes,
-                         spp_strides=arch_params.spp_strides)
+        """Parse arch_params and translate the parameters to build the original DDRNet architecture"""
+        super().__init__(
+            backbone=arch_params.backbone,
+            additional_layers=arch_params.additional_layers,
+            upscale_module=arch_params.upscale_module,
+            num_classes=arch_params.num_classes,
+            highres_planes=arch_params.highres_planes,
+            spp_width=arch_params.spp_planes,
+            head_width=arch_params.head_planes,
+            aux_head=arch_params.aux_head,
+            ssp_inter_mode=arch_params.ssp_inter_mode,
+            segmentation_inter_mode=arch_params.segmentation_inter_mode,
+            skip_block=arch_params.skip_block,
+            layer5_block=arch_params.layer5_block,
+            layer5_bottleneck_expansion=arch_params.layer5_bottleneck_expansion,
+            classification_mode=arch_params.classification_mode,
+            spp_kernel_sizes=arch_params.spp_kernel_sizes,
+            spp_strides=arch_params.spp_strides,
+            layer3_repeats=arch_params.layer3_repeats,
+        )
 
 
 DEFAULT_DDRNET_23_PARAMS = {
@@ -496,12 +540,13 @@ DEFAULT_DDRNET_23_PARAMS = {
     "highres_planes": 128,
     "head_planes": 128,
     "aux_head": False,
-    "segmentation_inter_mode": 'bilinear',
+    "segmentation_inter_mode": "bilinear",
     "classification_mode": False,
     "spp_planes": 128,
-    "ssp_inter_mode": 'bilinear',
+    "ssp_inter_mode": "bilinear",
     "spp_kernel_sizes": [1, 5, 9, 17, 0],
     "spp_strides": [1, 2, 4, 8, 0],
+    "layer3_repeats": 1,
 }
 
 DEFAULT_DDRNET_23_SLIM_PARAMS = {
@@ -511,6 +556,24 @@ DEFAULT_DDRNET_23_SLIM_PARAMS = {
     "head_planes": 64,
 }
 
+DEFAULT_DDRNET_39_PARAMS = {**DEFAULT_DDRNET_23_PARAMS, "layers": [3, 4, 3, 3, 1, 3, 3, 1], "head_planes": 256, "layer3_repeats": 2}
+
+
+class DDRNet39(DDRNetCustom):
+    def __init__(self, arch_params: HpmStruct):
+        _arch_params = HpmStruct(**DEFAULT_DDRNET_39_PARAMS)
+        _arch_params.override(**arch_params.to_dict())
+        # BUILD THE BACKBONE AND INSERT TO THE _arch_params
+        backbone_layers, _arch_params.additional_layers = _arch_params.layers[:4], _arch_params.layers[4:]
+        _arch_params.backbone = BasicDDRBackBone(
+            block=_arch_params.block,
+            width=_arch_params.planes,
+            layers=backbone_layers,
+            input_channels=_arch_params.input_channels,
+            layer3_repeats=_arch_params.layer3_repeats,
+        )
+        super().__init__(_arch_params)
+
 
 class DDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
@@ -518,9 +581,13 @@ class DDRNet23(DDRNetCustom):
         _arch_params.override(**arch_params.to_dict())
         # BUILD THE BACKBONE AND INSERT TO THE _arch_params
         backbone_layers, _arch_params.additional_layers = _arch_params.layers[:4], _arch_params.layers[4:]
-        _arch_params.backbone = BasicDDRBackBone(block=_arch_params.block, width=_arch_params.planes,
-                                                 layers=backbone_layers,
-                                                 input_channels=_arch_params.input_channels)
+        _arch_params.backbone = BasicDDRBackBone(
+            block=_arch_params.block,
+            width=_arch_params.planes,
+            layers=backbone_layers,
+            input_channels=_arch_params.input_channels,
+            layer3_repeats=_arch_params.layer3_repeats,
+        )
         super().__init__(_arch_params)
 
 
@@ -530,9 +597,13 @@ class DDRNet23Slim(DDRNetCustom):
         _arch_params.override(**arch_params.to_dict())
         # BUILD THE BACKBONE AND INSERT TO THE _arch_params
         backbone_layers, _arch_params.additional_layers = _arch_params.layers[:4], _arch_params.layers[4:]
-        _arch_params.backbone = BasicDDRBackBone(block=_arch_params.block, width=_arch_params.planes,
-                                                 layers=backbone_layers,
-                                                 input_channels=_arch_params.input_channels)
+        _arch_params.backbone = BasicDDRBackBone(
+            block=_arch_params.block,
+            width=_arch_params.planes,
+            layers=backbone_layers,
+            input_channels=_arch_params.input_channels,
+            layer3_repeats=_arch_params.layer3_repeats,
+        )
         super().__init__(_arch_params)
 
 
@@ -540,12 +611,12 @@ class AnyBackBoneDDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_PARAMS)
         _arch_params.override(**arch_params.to_dict())
-        assert len(_arch_params.layers) == 4 or len(_arch_params.layers) == 8, \
-            'The length of \'arch_params.layers\' must be 4 or 8'
+        assert len(_arch_params.layers) == 4 or len(_arch_params.layers) == 8, "The length of 'arch_params.layers' must be 4 or 8"
         # TAKE THE LAST 4 NUMBERS AS THE ADDITIONAL LAYERS SPECIFICATION
         _arch_params.additional_layers = _arch_params.layers[-4:]
-        assert hasattr(_arch_params, 'backbone'), 'AnyBackBoneDDRNet_23 requires having a backbone in arch_params'
-        if hasattr(_arch_params, 'input_channels'):
-            assert _arch_params.backbone.input_channels == _arch_params.input_channels, \
-                '\'input_channels\' was given in arch_params with a different value than existing in the backbone'
+        assert hasattr(_arch_params, "backbone"), "AnyBackBoneDDRNet_23 requires having a backbone in arch_params"
+        if hasattr(_arch_params, "input_channels"):
+            assert (
+                _arch_params.backbone.input_channels == _arch_params.input_channels
+            ), "'input_channels' was given in arch_params with a different value than existing in the backbone"
         super().__init__(_arch_params)

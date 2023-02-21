@@ -1,6 +1,7 @@
 import unittest
 import torch
 from super_gradients import Trainer
+from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy
@@ -18,7 +19,7 @@ class CallTrainTwiceTest(unittest.TestCase):
         trainer = Trainer("external_criterion_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
-        model = models.get("resnet18", num_classes=5)
+        model = models.get(Models.RESNET18, num_classes=5)
         train_params = {
             "max_epochs": 2,
             "lr_updates": [1],

@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from omegaconf.listconfig import ListConfig
 
-from super_gradients.common import UpsampleMode
+from super_gradients.common.data_types.enum.upsample_mode import UpsampleMode
 
 
 class MultiOutputModule(nn.Module):
@@ -141,10 +141,12 @@ def fuse_repvgg_blocks_residual_branches(model: nn.Module):
     :type model: torch.nn.Module
     """
     assert not model.training, "To fuse RepVGG block residual branches, model must be on eval mode"
+    device = next(model.parameters()).device
     for module in model.modules():
         if hasattr(module, "fuse_block_residual_branches"):
             module.fuse_block_residual_branches()
     model.build_residual_branches = False
+    model.to(device)
 
 
 class NormalizationAdapter(torch.nn.Module):

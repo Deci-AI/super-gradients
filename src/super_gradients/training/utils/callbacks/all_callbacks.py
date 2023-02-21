@@ -1,4 +1,5 @@
 from super_gradients.common.object_names import Callbacks, LRSchedulers, LRWarmups
+from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
 from super_gradients.training.utils.callbacks.callbacks import (
     DeciLabUploadCallback,
     LRCallbackBase,
@@ -11,12 +12,12 @@ from super_gradients.training.utils.callbacks.callbacks import (
     CosineLRCallback,
     ExponentialLRCallback,
     FunctionLRCallback,
-    WarmupLRCallback,
+    EpochStepWarmupLRCallback,
+    BatchStepLinearWarmupLRCallback,
 )
-
+from super_gradients.training.utils.callbacks.ppyoloe_switch_callback import PPYoloETrainingStageSwitchCallback
+from super_gradients.training.utils.deprecated_utils import wrap_with_warning
 from super_gradients.training.utils.early_stopping import EarlyStop
-from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
-
 
 CALLBACKS = {
     Callbacks.DECI_LAB_UPLOAD: DeciLabUploadCallback,
@@ -27,6 +28,7 @@ CALLBACKS = {
     Callbacks.EARLY_STOP: EarlyStop,
     Callbacks.DETECTION_MULTISCALE_PREPREDICTION: DetectionMultiscalePrePredictionCallback,
     Callbacks.YOLOX_TRAINING_STAGE_SWITCH: YoloXTrainingStageSwitchCallback,
+    Callbacks.PPYOLOE_TRAINING_STAGE_SWITCH: PPYoloETrainingStageSwitchCallback,
 }
 
 
@@ -39,4 +41,12 @@ LR_SCHEDULERS_CLS_DICT = {
 }
 
 
-LR_WARMUP_CLS_DICT = {LRWarmups.LINEAR_STEP: WarmupLRCallback}
+LR_WARMUP_CLS_DICT = {
+    LRWarmups.LINEAR_STEP: wrap_with_warning(
+        EpochStepWarmupLRCallback,
+        message=f"Parameter {LRWarmups.LINEAR_STEP} has been made deprecated and will be removed in the next SG release. "
+        f"Please use `{LRWarmups.LINEAR_EPOCH_STEP}` instead.",
+    ),
+    LRWarmups.LINEAR_EPOCH_STEP: EpochStepWarmupLRCallback,
+    LRWarmups.LINEAR_BATCH_STEP: BatchStepLinearWarmupLRCallback,
+}

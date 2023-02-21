@@ -3,6 +3,8 @@ import torch
 import torchvision
 from torch import nn
 
+from super_gradients.common.object_names import Models
+
 try:
     import super_gradients
     from pytorch_quantization import nn as quant_nn
@@ -412,7 +414,7 @@ class QuantizationUtilityTest(unittest.TestCase):
         module = MyModel()
 
         # TEST
-        q_util = SelectiveQuantizer(default_quant_modules_calib_method_inputs="max", default_quant_modules_calib_method_weights="max")
+        q_util = SelectiveQuantizer(default_quant_modules_calibrator_inputs="max", default_quant_modules_calibrator_weights="max")
         q_util.quantize_module(module)
 
         x = torch.rand(1, 3, 32, 32)
@@ -787,7 +789,7 @@ class QuantizationUtilityTest(unittest.TestCase):
         if Bottleneck in sq.mapping_instructions:
             sq.mapping_instructions.pop(Bottleneck)
 
-        resnet_sg: nn.Module = super_gradients.training.models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)
+        resnet_sg: nn.Module = super_gradients.training.models.get(Models.RESNET50, pretrained_weights="imagenet", num_classes=1000)
         sq.quantize_module(resnet_sg, preserve_state_dict=True)
 
         # PYTORCH-QUANTIZATION
@@ -803,7 +805,7 @@ class QuantizationUtilityTest(unittest.TestCase):
         quant_nn.QuantAdaptiveAvgPool2d.set_default_quant_desc_input(QuantDescriptor(calib_method="histogram"))
 
         quant_modules.initialize()
-        resnet_pyquant: nn.Module = super_gradients.training.models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)
+        resnet_pyquant: nn.Module = super_gradients.training.models.get(Models.RESNET50, pretrained_weights="imagenet", num_classes=1000)
 
         quant_modules.deactivate()
 

@@ -34,9 +34,9 @@ ________________________________________________________________________________
 
 ### Support various computer vision tasks
 <div align="center">
-<img src="./docs/assets/SG_img/Segmentation 1500x900 .png" width="250px">
-<img src="./docs/assets/SG_img/Object detection 1500X900.png" width="250px">
-<img src="./docs/assets/SG_img/Classification 1500x900.png" width="250px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Segmentation 1500x900 .png" width="250px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Object detection 1500X900.png" width="250px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Classification 1500x900.png" width="250px">
 </div>
 
 
@@ -44,7 +44,9 @@ ________________________________________________________________________________
 ```python
 # Load model with pretrained weights
 from super_gradients.training import models
-model = models.get("yolox_s", pretrained_weights="coco")
+from super_gradients.common.object_names import Models
+
+model = models.get(Models.YOLOX_S, pretrained_weights="coco")
 ```
 #### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
 
@@ -81,7 +83,10 @@ More example on how and why to use recipes can be found in [Recipes](#recipes)
 All SuperGradients models’ are production ready in the sense that they are compatible with deployment tools such as TensorRT (Nvidia) and OpenVINO (Intel) and can be easily taken into production. With a few lines of code you can easily integrate the models into your codebase.
 ```python
 # Load model with pretrained weights
-model = models.get("yolox_s", pretrained_weights="coco")
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+
+model = models.get(Models.YOLOX_S, pretrained_weights="coco")
 
 # Prepare model for conversion
 # Input size is in format of [Batch x Channels x Width x Height] where 640 is the standart COCO dataset dimensions
@@ -146,7 +151,9 @@ ________________________________________________________________________________
 
 ### Start Training with Just 1 Command Line
 The most simple and straightforward way to start training SOTA performance models with SuperGradients reproducible recipes. Just define your dataset path and where you want your checkpoints to be saved and you are good to go from your terminal!
-    
+
+Just make sure that you [setup your dataset](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md) according to the data dir specified in the recipe.
+
 ```bash
 python -m super_gradients.examples.train_from_recipe_example.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
@@ -505,7 +512,7 @@ ________________________________________________________________________________
 <summary>General requirements</summary>
   
 - Python 3.7, 3.8 or 3.9 installed.
-- torch>=1.9.0
+- 1.9.0 <= torch < 1.14 
   - https://pytorch.org/get-started/locally/
 - The python packages that are specified in requirements.txt;
 
@@ -591,6 +598,34 @@ Detailed list can be found [here](http://bit.ly/3GnJwgZ)
 - [DarkNet-53](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/darknet53.py)
 - [SSD (Single Shot Detector)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py) 
 - [YOLOX](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolox.py)
+  
+  
+
+__________________________________________________________________________________________________________
+
+## Implemented Datasets 
+__________________________________________________________________________________________________________
+
+Deci provides implementation for various datasets. If you need to download any of the dataset, you can 
+[find instructions](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md). 
+
+### Image Classification
+  
+- [Cifar10](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/classification_datasets/cifar.py) 
+- [ImageNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/classification_datasets/imagenet_dataset.py) 
+  
+### Semantic Segmentation 
+
+- [Cityscapes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/cityscape_segmentation.py)
+- [Coco](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/coco_segmentation.py) 
+- [PascalVOC 2012 / PascalAUG 2012](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/pascal_voc_segmentation.py)
+- [SuperviselyPersons](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/supervisely_persons_segmentation.py)
+
+
+### Object Detection
+  
+- [Coco](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/detection_datasets/coco_detection.py)
+- [PascalVOC 2007 & 2012](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/detection_datasets/pascal_voc_detection.py)
   
   
 

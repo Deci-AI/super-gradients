@@ -42,7 +42,7 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
         if hasattr(model, "prep_model_for_conversion"):
             model.prep_model_for_conversion(**kwargs)
 
-    # dirty workaround when model.prep_model_for_conversion does reparametrization
+    # workaround when model.prep_model_for_conversion does reparametrization
     # and tensors get scattered to different devices
     if to_cpu:
         export_model = model.cpu()

@@ -5,9 +5,10 @@ import pkg_resources
 import torch
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
+from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
+from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
 from super_gradients.training.pretrained_models import MODEL_URLS
-from super_gradients.common.environment import environment_config
+
 
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
@@ -18,60 +19,21 @@ except (ModuleNotFoundError, ImportError, NameError):
 logger = get_logger(__name__)
 
 
-def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
-    """Creating the checkpoint directory of a given experiment.
-    :param experiment_name:     Name of the experiment.
-    :param ckpt_root_dir:       Local root directory path where all experiment logging directories will
-                                reside. When none is give, it is assumed that pkg_resources.resource_filename('checkpoints', "")
-                                exists and will be used.
-    :return:                    checkpoints_dir_path
-    """
-    if ckpt_root_dir:
-        return os.path.join(ckpt_root_dir, experiment_name)
-    elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
-        return os.path.join(environment_config.PKG_CHECKPOINTS_DIR, experiment_name)
-    else:
-        raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to resources.")
-
-
-def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, external_checkpoint_path: str):
-    """
-    Gets the local path to the checkpoint file, which will be:
-        - By default: YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name.
-        - if the checkpoint file is remotely located:
-            when overwrite_local_checkpoint=True then it will be saved in a temporary path which will be returned,
-            otherwise it will be downloaded to YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name and overwrite
-            YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name/ckpt_name if such file exists.
-        - external_checkpoint_path when external_checkpoint_path != None
-
-    @param source_ckpt_folder_name: The folder where the checkpoint is saved. When set to None- uses the experiment_name.
-    @param experiment_name: experiment name attr in trainer
-    @param ckpt_name: checkpoint filename
-    @param external_checkpoint_path: full path to checkpoint file (that might be located outside of super_gradients/checkpoints directory)
-    @return:
-    """
-    if external_checkpoint_path:
-        return external_checkpoint_path
-    else:
-        checkpoints_folder_name = source_ckpt_folder_name or experiment_name
-        checkpoints_dir_path = get_checkpoints_dir_path(checkpoints_folder_name)
-        return os.path.join(checkpoints_dir_path, ckpt_name)
-
-
-def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str):
+def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str, solver=None):
     """
     Adaptively loads state_dict to net, by adapting the state_dict to net's layer names first.
-
-    @param net: (nn.Module) to load state_dict to
-    @param state_dict: (dict) Chekpoint state_dict
-    @param strict: (str) key matching strictness
+    :param net: (nn.Module) to load state_dict to
+    :param state_dict: (dict) Chekpoint state_dict
+    :param strict: (str) key matching strictness
+    :param solver: callable with signature (ckpt_key, ckpt_val, model_key, model_val)
+                     that returns a desired weight for ckpt_val.
     @return:
     """
     try:
         net.load_state_dict(state_dict["net"] if "net" in state_dict.keys() else state_dict, strict=strict)
     except (RuntimeError, ValueError, KeyError) as ex:
         if strict == "no_key_matching":
-            adapted_state_dict = adapt_state_dict_to_fit_model_layer_names(net.state_dict(), state_dict)
+            adapted_state_dict = adapt_state_dict_to_fit_model_layer_names(net.state_dict(), state_dict, solver=solver)
             net.load_state_dict(adapted_state_dict["net"], strict=True)
         else:
             raise_informative_runtime_error(net.state_dict(), state_dict, ex)
@@ -192,7 +154,12 @@ def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
 
 
 def load_checkpoint_to_model(
-    ckpt_local_path: str, load_backbone: bool, net: torch.nn.Module, strict: str, load_weights_only: bool, load_ema_as_net: bool = False
+    net: torch.nn.Module,
+    ckpt_local_path: str,
+    load_backbone: bool = False,
+    strict: str = "no_key_matching",
+    load_weights_only: bool = False,
+    load_ema_as_net: bool = False,
 ):
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
@@ -295,10 +262,7 @@ def _load_weights(architecture, model, pretrained_state_dict):
     if "ema_net" in pretrained_state_dict.keys():
         pretrained_state_dict["net"] = pretrained_state_dict["ema_net"]
     solver = _yolox_ckpt_solver if "yolox" in architecture else None
-    adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(
-        model_state_dict=model.state_dict(), source_ckpt=pretrained_state_dict, solver=solver
-    )
-    model.load_state_dict(adapted_pretrained_state_dict["net"], strict=False)
+    adaptive_load_state_dict(net=model, state_dict=pretrained_state_dict, strict="no_key_matching", solver=solver)
 
 
 def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pretrained_weights: str):

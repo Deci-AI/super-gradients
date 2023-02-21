@@ -1,11 +1,11 @@
-import hydra
-import pkg_resources
-from hydra import compose, initialize_config_dir
-from hydra.core.global_hydra import GlobalHydra
-from super_gradients.training.utils.utils import override_default_params_without_nones
-from super_gradients.training.utils.hydra_utils import normalize_path
-from super_gradients.common.abstractions.abstract_logger import get_logger
 from typing import Dict
+
+import hydra.utils
+
+from super_gradients.training.utils.utils import override_default_params_without_nones
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.environment.cfg_utils import load_recipe
+
 
 logger = get_logger(__name__)
 
@@ -15,20 +15,19 @@ def get(config_name, overriding_params: Dict = None) -> Dict:
     Class for creating training hyper parameters dictionary, taking defaults from yaml
      files in src/super_gradients/recipes.
 
+    :param config_name: yaml config filename in recipes (for example coco2017_yolox).
     :param overriding_params: Dict, dictionary like object containing entries to override in the recipe's training
      hyper parameters dictionary.
-    :param config_name: yaml config filename in recipes (for example coco2017_yolox).
     """
     if overriding_params is None:
         overriding_params = dict()
-    GlobalHydra.instance().clear()
-    sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
-    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir), version_base="1.2"):
-        cfg = compose(config_name=normalize_path(config_name))
-        cfg = hydra.utils.instantiate(cfg)
-        training_params = cfg.training_hyperparams
-        training_params = override_default_params_without_nones(overriding_params, training_params)
-        return training_params
+
+    cfg = load_recipe(config_name=config_name)  # This loads the full recipe, not just training_hyperparams
+    cfg = hydra.utils.instantiate(cfg)
+    training_params = cfg.training_hyperparams
+
+    training_params = override_default_params_without_nones(overriding_params, training_params)
+    return training_params
 
 
 def cifar10_resnet_train_params(overriding_params: Dict = None):

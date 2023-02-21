@@ -6,6 +6,7 @@ https://github.com/NVIDIA/TensorRT/blob/51a4297753d3e12d0eed864be52400f429a6a94c
 
 (Licensed under the Apache License, Version 2.0)
 """
+import logging
 
 import torch
 from tqdm import tqdm
@@ -56,9 +57,16 @@ class QuantizationCalibrator:
                                     Discarded when other methods are used (Default=99.99).
 
         """
+
+        logging_level = logging.getLogger("absl").getEffectiveLevel()
+        if not self.verbose:  # suppress pytorch-quantization spam
+            logging.getLogger("absl").setLevel("ERROR")
+
         acceptable_methods = ["percentile", "mse", "entropy", "max"]
         if method in acceptable_methods:
             with torch.no_grad():
+                device = next(model.parameters()).device
+
                 self._collect_stats(model, calib_data_loader, num_batches=num_calib_batches)
                 # FOR PERCENTILE WE MUST PASS PERCENTILE VALUE THROUGH KWARGS,
                 # SO IT WOULD BE PASSED TO module.load_calib_amax(**kwargs), AND IN OTHER METHODS WE MUST NOT PASS IT.
@@ -66,8 +74,12 @@ class QuantizationCalibrator:
                     self._compute_amax(model, method="percentile", percentile=percentile)
                 else:
                     self._compute_amax(model, method=method)
+
+                model.to(device)
         else:
             raise ValueError(f"Unsupported quantization calibration method, " f"expected one of: {'.'.join(acceptable_methods)}, however, received: {method}")
+
+        logging.getLogger("absl").setLevel(logging_level)
 
     def _collect_stats(self, model, data_loader, num_batches):
         """Feed data to the network and collect statistics"""

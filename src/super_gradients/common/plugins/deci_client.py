@@ -1,28 +1,32 @@
+import os
 import json
 import sys
 from zipfile import ZipFile
+from typing import List, Optional, Any
+from pathlib import Path
 
 import hydra
-
 import importlib.util
-
-import os
-import pkg_resources
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
 
+import super_gradients
+from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.hydra_utils import normalize_path
+
 
 logger = get_logger(__name__)
 
 client_enabled = True
 try:
     from deci_lab_client.client import DeciPlatformClient
+    from deci_lab_client.types import S3SignedUrl
+    from deci_lab_client.models import ModelBenchmarkState
     from deci_common.data_interfaces.files_data_interface import FilesDataInterface
     from deci_lab_client.models import AutoNACFileName
     from deci_lab_client import ApiException
+
 except (ImportError, NameError):
     client_enabled = False
 
@@ -41,18 +45,19 @@ class DeciClient:
             )
             return
 
-        self.lab_client = DeciPlatformClient()
-        GlobalHydra.instance().clear()
-        self.super_gradients_version = None
-        try:
-            self.super_gradients_version = pkg_resources.get_distribution("super_gradients").version
-        except pkg_resources.DistributionNotFound:
-            self.super_gradients_version = "3.0.2"
+        self.api_host = env_variables.DECI_API_HOST
+        self.lab_client = DeciPlatformClient(api_host=self.api_host)
+        self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
 
-    def _get_file(self, model_name: str, file_name: str) -> str:
+    def _get_file(self, model_name: str, file_name: str) -> Optional[str]:
+        """Get a file from the DeciPlatform if it exists, otherwise returns None
+        :param model_name:  Name of the model to download from, as saved in the platform.
+        :param file_name:   Name of the file to download
+        :return:            Path were the downloaded file was saved to. None if not found.
+        """
         try:
             response = self.lab_client.get_autonac_model_file_link(
-                model_name=model_name, file_name=file_name, super_gradients_version=self.super_gradients_version
+                model_name=model_name, file_name=file_name, super_gradients_version=super_gradients.__version__
             )
             download_link = response.data
         except ApiException as e:
@@ -64,33 +69,32 @@ class DeciClient:
                 logger.error(f"Deci client: {json.loads(e.body)['message']}")
             else:
                 logger.debug(e.body)
-
             return None
+
         return FilesDataInterface.download_temporary_file(file_url=download_link)
 
-    def _get_model_cfg(self, model_name: str, cfg_file_name: str) -> DictConfig:
-        if not client_enabled:
+    def get_model_arch_params(self, model_name: str) -> Optional[DictConfig]:
+        """Get the model arch_params from DeciPlatform.
+        :param model_name:  Name of the model as saved in the platform.
+        :return:            arch_params. None if arch_params were not found for this specific model on this SG version."""
+        arch_params_file = self._get_file(model_name, AutoNACFileName.STRUCTURE_YAML)
+        if arch_params_file is None:
             return None
+        return _load_cfg(config_path=arch_params_file)
 
-        file = self._get_file(model_name=model_name, file_name=cfg_file_name)
-        if file is None:
+    def get_model_recipe(self, model_name: str) -> Optional[DictConfig]:
+        """Get the model recipe from DeciPlatform.
+        :param model_name:  Name of the model as saved in the platform.
+        :return:            recipe. None if recipe were not found for this specific model on this SG version."""
+        recipe_file = self._get_file(model_name, AutoNACFileName.RECIPE_YAML)
+        if recipe_file is None:
             return None
+        return _load_cfg(config_path=recipe_file)
 
-        split_file = file.split("/")
-        with hydra.initialize_config_dir(config_dir=normalize_path(f"{'/'.join(split_file[:-1])}/"), version_base=None):
-            cfg = hydra.compose(config_name=split_file[-1])
-        return cfg
-
-    def get_model_arch_params(self, model_name: str) -> DictConfig:
-        return self._get_model_cfg(model_name, AutoNACFileName.STRUCTURE_YAML)
-
-    def get_model_recipe(self, model_name: str) -> DictConfig:
-        return self._get_model_cfg(model_name, AutoNACFileName.RECIPE_YAML)
-
-    def get_model_weights(self, model_name: str) -> str:
-        if not client_enabled:
-            return None
-
+    def get_model_weights(self, model_name: str) -> Optional[str]:
+        """Get the path to model weights (downloaded locally).
+        :param model_name:  Name of the model as saved in the platform.
+        :return:            model_weights path. None if weights were not found for this specific model on this SG version."""
         return self._get_file(model_name=model_name, file_name=AutoNACFileName.WEIGHTS_PTH)
 
     def download_and_load_model_additional_code(self, model_name: str, target_path: str, package_name: str = "deci_model_code") -> None:
@@ -140,9 +144,75 @@ class DeciClient:
             model_meta_data:           Metadata to accompany the model
             optimization_request_form: The optimization parameters
         """
-        self.lab_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
         self.lab_client.add_model(
             add_model_request=model_meta_data,
             optimization_request=optimization_request_form,
             local_loaded_model=model,
         )
+
+    def is_model_benchmarking(self, name: str) -> bool:
+        """Check if a given model is still benchmarking or not.
+        :param name: The mode name.
+        """
+        benchmark_state = self.lab_client.get_model_by_name(name=name).data.benchmark_state
+        return benchmark_state in [ModelBenchmarkState.IN_PROGRESS, ModelBenchmarkState.PENDING]
+
+    def register_experiment(self, name: str, model_name: str):
+        """Registers a training experiment in Deci's backend.
+        :param name:        Name of the experiment to register
+        :param model_name:  Name of the model architecture to connect the experiment to
+        """
+        self.lab_client.register_experiment(name=name, model_name=model_name)
+
+    def save_experiment_file(self, file_path: str):
+        """
+        Uploads a training related file to Deci's location in S3. This can be a TensorBoard file or a log
+        :params file_path: The local path of the file to be uploaded
+        """
+        self.lab_client.save_experiment_file(file_path=file_path)
+
+    def upload_file_to_s3(self, tag: str, level: str, from_path: str):
+        """Upload a file to the platform S3 bucket.
+
+        :param tag:         Tag that will be associated to the file.
+        :param level:       Logging level that will be used to notify the monitoring system that the file was uploaded.
+        :param from_path:   Path of the file to upload.
+        """
+        data = self.lab_client.upload_log_url(tag=tag, level=level)
+        signed_url = S3SignedUrl(**data.data)
+        self.lab_client.upload_file_to_s3(from_path=from_path, s3_signed_url=signed_url)
+
+    def add_model(
+        self,
+        model_metadata,
+        hardware_types: List[str],
+        model_path: Optional[str] = None,
+        model: Optional[nn.Module] = None,
+        **kwargs: Any,
+    ):
+        """Adds a new model to the company's model repository.
+        :param model_metadata: The model metadata.
+        :param hardware_types: The hardware types you want to benchmark the model on.
+        :param model_path:      The path of the model on the local operating system.
+        :param model:           Pytorch loaded model object.
+                                If your model's framework is pytorch you may pass the following parameters as kwargs in order to control the conversion to onnx
+        :param kwargs: Extra arguments to be passed to the PyTorch to ONNX conversion, for example:
+            opset_version
+            do_constant_folding
+            dynamic_axes
+            input_names
+            output_names
+        """
+
+        self.lab_client.add_model_v2(model_metadata=model_metadata, hardware_types=hardware_types, model_path=model_path, model=model, **kwargs)
+
+
+def _load_cfg(config_path: str) -> DictConfig:
+    """Load a hydra config file.
+    :param config_path: Full path of the hydra config file.
+    :return:            Hydra config instance"""
+    GlobalHydra.instance().clear()
+
+    arch_params_file = Path(config_path)
+    with hydra.initialize_config_dir(config_dir=str(arch_params_file.parent), version_base=None):
+        return hydra.compose(config_name=arch_params_file.name)
