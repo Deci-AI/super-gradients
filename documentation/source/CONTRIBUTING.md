@@ -1,17 +1,18 @@
 # Contribution Guidelines
 
-We appreciate all contributions. If you are planning to contribute back bug-fixes, please do so without any further discussion. If you plan to contribute new features, utility functions or extensions, please first open an issue and discuss the feature with us.
+Here is a simple guideline to get you started with your first contribution
+2. Set up your environment to follow our [formatting guidelines](#code-formatting) and to use [signed-commits](#signed-commits).
+3. Use [issues](https://github.com/Deci-AI/super-gradients/issues) to discuss the suggested changes. Create an issue describing changes if necessary and add labels to ease orientation.
+4. [Fork super-gradients](https://help.github.com/articles/fork-a-repo/) so you can make local changes and test them.
+5. Create a new branch for the issue. The branch naming convention is enforced by the CI/CD so please make sure you are using `feature/SG-***` or `hotfix/SG-***` format otherwise it will fail.
+6. Implement your changes along with relevant tests for the issue. Please make sure you are covering unit, integration and e2e tests where required.
+7. Create a pull request against <b>master</b> branch.
 
-Here are a few more things to know:
-- [How to Contirbute](#how-to-contribute)
-- [Jupyter Notebooks Contribution](#jupyter-notebooks-contribution)
-- [Code Style Guidelines](#code-style-guidelines)
 
 
 ## Code Style
 
 We are working hard to make sure all the code in this repository is readable, maintainable and testable.
-We follow the Google docstring guidelines outlined on this [styleguide](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings) page. For example:
 ```python
 def python_function(first_argument: int, second_argument: int) -> str:
     """Do something with the two arguments.
@@ -21,6 +22,8 @@ def python_function(first_argument: int, second_argument: int) -> str:
     :return: Description of the output
     """
 ```
+
+
 
 
 ## Code Formatting
@@ -34,7 +37,6 @@ To ensure everyone uses same code style, a project-wise [configuration file](htt
 To start, one need to install required development dependencies (actual versions of black, flake8 and git commit hooks):
 
 `$ pip install -r requirements.dev.txt`
-
 
 ### Pre-Commit Hooks
 
@@ -53,38 +55,37 @@ The command should complete without errors. Once done, all your upcoming commits
 Just run ```$ black .``` from the SG root. It will reformat the whole repo.
 
 
-## How to Contribute
 
-Here is a simple guideline to get you started with your first contribution
-1. Use [issues](https://github.com/Deci-AI/super-gradients/issues) to discuss the suggested changes. Create an issue describing changes if necessary and add labels to ease orientation.
-1. [Fork super-gradients](https://help.github.com/articles/fork-a-repo/) so you can make local changes and test them.
-1. Create a new branch for the issue. The branch naming convention is enforced by the CI/CD so please make sure you are using your_username/your_branch_name convention otherwise it will fail.
-1. Create relevant tests for the issue, please make sure you are covering unit, integration and e2e tests where required.
-1. Make code changes.
-1. Ensure all the tests pass and code formatting is up to standards, and follows [PEP8](https://www.python.org/dev/peps/pep-0008/).
-<!--1. We use [pre-commit](https://pre-commit.com/) package to run our pre-commit hooks. Black formatter and flake8 linter will be ran on each commit. In order to set up pre-commit on your machine, follow the steps here, please note that you only need to run these steps the first time you use pre-commit for this project.)
 
-    * Install pre-commit from pypi
-   ```
-    $ pip install pre-commit
-   ```    
-    * Set up pre-commit inside super-gradients repo which will create .git/hooks directory.
-   ```
-   $ pre-commit install
-   ```
-   ```
-   $ git commit -m "message"
-   ```
-   
-    * Each time you commit, git will run the pre-commit hooks (black and flake8 for now) on any python files that are getting committed and are part of the git index.  If black modifies/formats the file, or if flake8 finds any linting errors, the commit will not succeed. You will need to stage the file again if black changed the file, or fix the issues identified by flake8 and and stage it again.
+## Signed Commits
 
-    * To run pre-commit on all files just run
-   ```
-   $ pre-commit run --all-files
-   ```
--->
-7. Create a pull request against <b>master</b> branch.
+### Background
 
+Signed commits provide a way to verify the authenticity and integrity of the code changes made by a particular developer, as the commit is cryptographically signed using their private GPG key. This helps ensure that the code changes were made by the intended person and have not been tampered with during transit.
+
+You can find more information [here](https://withblue.ink/2020/05/17/how-and-why-to-sign-git-commits.html).
+
+### Add GPG key to GitHub
+
+1. [Generate a new GPG key](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key) 
+2. Copy the GPG key by running the command on step 12 from the link above
+    
+    ```bash
+    $ gpg --armor --export 3AA5C34371567BD2
+    ```
+    
+3. [Add the new GPG key to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-new-gpg-key-to-your-github-account)
+
+### Use GPG key
+
+- [From Pycharm](https://www.jetbrains.com/help/pycharm/set-up-GPG-commit-signing.html#enable-commit-signing)
+- [From Terminal](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits), but first also do:
+    
+    ```bash
+    $ git config --global user.signingkey 3AA5C34371567BD2
+    $ git config --global gpg.program /usr/local/bin/gpg
+    $ git config --global commit.gpgsign true
+    ```
 
 
 ## Jupyter Notebooks Contribution
