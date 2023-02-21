@@ -16,7 +16,7 @@ from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_e import PPYoloE_M, PPYoloE_L, PPYoloE_X, PPYoloE_S
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
-from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DERKPoseEstimationModel
+from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRPoseEstimationModel
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23, DDRNet39
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, ShelfNet503343, ShelfNet101
@@ -142,7 +142,7 @@ ARCHITECTURES = {
     Models.PP_YOLOE_L: PPYoloE_L,
     Models.PP_YOLOE_X: PPYoloE_X,
     #
-    Models.DEKR_CUSTOM: DERKPoseEstimationModel,
+    Models.DEKR_CUSTOM: DEKRPoseEstimationModel,
 }
 
 KD_ARCHITECTURES = {Models.KD_MODULE: KDModule}

@@ -20,7 +20,7 @@ from super_gradients.training.models import SgModule
 from torch import nn
 from typing import Mapping, Any, Tuple
 
-__all__ = ["DERKPoseEstimationModel"]
+__all__ = ["DEKRPoseEstimationModel"]
 
 logger = get_logger(__name__)
 
@@ -265,7 +265,7 @@ class HighResolutionModule(nn.Module):
 blocks_dict = {"BASIC": BasicBlock, "BOTTLENECK": Bottleneck, "ADAPTIVE": AdaptBlock}
 
 
-class DERKPoseEstimationModel(SgModule):
+class DEKRPoseEstimationModel(SgModule):
     """
     Implementation of HRNet model from DEKR paper (https://arxiv.org/abs/2104.02300).
 
@@ -275,7 +275,7 @@ class DERKPoseEstimationModel(SgModule):
     """
 
     def __init__(self, arch_params):
-        super(DERKPoseEstimationModel, self).__init__()
+        super(DEKRPoseEstimationModel, self).__init__()
 
         # stem net
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1, bias=False)
