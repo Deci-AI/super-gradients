@@ -18,6 +18,7 @@ import torchvision
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.models import SgModule
 from torch import nn
+from typing import Mapping, Any, Tuple
 
 __all__ = ["DERKPoseEstimationModel"]
 
@@ -317,11 +318,11 @@ class DERKPoseEstimationModel(SgModule):
         if arch_params.INIT_WEIGHTS:
             self.init_weights(pretrained=arch_params.PRETRAINED)
 
-    def _make_transition_for_head(self, inplanes, outplanes):
+    def _make_transition_for_head(self, inplanes: int, outplanes: int) -> nn.Module:
         transition_layer = [nn.Conv2d(inplanes, outplanes, 1, 1, 0, bias=False), nn.BatchNorm2d(outplanes), nn.ReLU(True)]
         return nn.Sequential(*transition_layer)
 
-    def _make_heatmap_head(self, layer_config):
+    def _make_heatmap_head(self, layer_config: Mapping[str, Any]) -> nn.ModuleList:
         heatmap_head_layers = []
 
         feature_conv = self._make_layer(
@@ -344,7 +345,12 @@ class DERKPoseEstimationModel(SgModule):
 
         return nn.ModuleList(heatmap_head_layers)
 
-    def _make_separete_regression_head(self, layer_config):
+    def _make_separete_regression_head(self, layer_config) -> Tuple[nn.ModuleList, nn.ModuleList]:
+        """
+        Build offset regression head for each joint
+        :param layer_config:
+        :return:
+        """
         offset_feature_layers = []
         offset_final_layer = []
 
