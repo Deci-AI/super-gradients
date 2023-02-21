@@ -312,7 +312,7 @@ class DERKPoseEstimationModel(SgModule):
         self.transition_offset = self._make_transition_for_head(inp_channels, offset_channels)
         self.head_heatmap = self._make_heatmap_head(config_heatmap)
         self.offset_feature_layers, self.offset_final_layer = self._make_separete_regression_head(config_offset)
-        self.heatmap_activation = nn.Sigmoid() if config_heatmap["heatmap_apply_sigmoid"] else nn.Identity()
+        self.heatmap_activation = nn.Sigmoid() if config_heatmap["HEATMAP_APPLY_SIGMOID"] else nn.Identity()
 
         self.pretrained_layers = self.spec.PRETRAINED_LAYERS
         if arch_params.INIT_WEIGHTS:

@@ -1,7 +1,7 @@
 defaults:
   - training_hyperparams: coco2017_dekr_pose_train_params
   - dataset_params: coco_pose_estimation_dekr_dataset_params
-  - arch_params: dekr_w48
+  - arch_params: dekr_w32
   - checkpoint_params: default_checkpoint_params
   - _self_
 
