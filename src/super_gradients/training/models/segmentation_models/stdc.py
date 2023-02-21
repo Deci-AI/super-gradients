@@ -13,7 +13,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param, HpmStruct
-from super_gradients.modules import ConvBNReLU
+from super_gradients.modules import ConvBNReLU, Residual
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
 
 
@@ -45,7 +45,7 @@ class STDCBlock(nn.Module):
         self.conv_list.append(ConvBNReLU(in_channels, out_channels // 2, kernel_size=1, bias=False))
         # build skip connection after first convolution.
         if stride == 1:
-            self.skip_step1 = nn.Identity()
+            self.skip_step1 = Residual()
         elif stdc_downsample_mode == "avg_pool":
             self.skip_step1 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
         elif stdc_downsample_mode == "dw_conv":

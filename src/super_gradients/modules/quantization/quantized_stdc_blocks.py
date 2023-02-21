@@ -29,16 +29,16 @@ class QuantSTDCBlock(SGQuantMixin, STDCBlock):
         )
         self.quant_list = nn.ModuleList()
 
-        for i in range(len(self.conv_list)):
+        for i in range(len(self.conv_list) - 1):
             self.quant_list.append(Residual())
 
     def forward(self, x):
         out_list = []
         # run first conv
         x = self.conv_list[0](x)
-        out_list.append(self.quant_list[0](self.skip_step1(x)))
+        out_list.append(self.skip_step1(x))
 
-        for conv, quant in zip(self.conv_list[1:], self.quant_list[1:]):
+        for conv, quant in zip(self.conv_list[1:], self.quant_list):
             x = conv(x)
             out_list.append(quant(x))
 
@@ -87,6 +87,10 @@ class QuantFeatureFusionModule(SGQuantMixin, FeatureFusionModule):
 class QuantContextPath(SGQuantMixin, ContextPath):
     def __init__(self, backbone, fuse_channels: int, use_aux_heads: bool):
         super(QuantContextPath, self).__init__(backbone=backbone, fuse_channels=fuse_channels, use_aux_heads=use_aux_heads)
+        # these extra quantizers are not necessary
+        # because all the features that are inputs to them are already quantized by other modules
+        # with TensorRT 8.4.1 it does no harm because they are moved and fused with other quantizers
+        # they are here for other frameworks in the future
 
         self.q1 = Residual()
         self.q2 = Residual()
