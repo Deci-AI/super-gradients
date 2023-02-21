@@ -199,6 +199,11 @@ import torch
 class MyCustomDataset(torch.utils.data.Dataset):
     def __init__(self, train: bool, image_size: int):
         ...
+    
+    # __getitem HAS TO return 2 to 3 
+    def __getitem__(self, item):
+        ...
+        return image, target
 ```
 
 For coded training launch, we can instantiate it, then use it in the same way as the first code snippet to create
@@ -220,9 +225,9 @@ model = ...
 train_params = {...}
 
 trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
-   
 ```
 
+Please note that 
 ### Using Custom Datasets in SG- Training with Configuration Files
 
 When using configuration files, for example, training using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...)),  In your ``my_dataset.py``, register your dataset class by decorating the class with `register_dataset`:
