@@ -232,7 +232,6 @@ train_params = {...}
 trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
 ```
 
-Please note that 
 ### Using Custom Datasets in SG- Training with Configuration Files
 
 When using configuration files, for example, training using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...)),  In your ``my_dataset.py``, register your dataset class by decorating the class with `register_dataset`:
