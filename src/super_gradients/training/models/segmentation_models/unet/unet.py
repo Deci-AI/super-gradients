@@ -90,8 +90,13 @@ class UNetBase(SegmentationModule):
             # backbone features are outputted and set as True in backbone is_out_feature_list.
             aux_heads_params["use_aux_list"] = [a and b for a, b in zip(aux_heads_params["use_aux_list"], backbone_params["is_out_feature_list"])]
             self.aux_heads = self.init_aux_heads(
-                in_channels_list=self.backbone.width_list, upsample_mode=head_upsample_mode, align_corners=align_corners, dropout=dropout, **aux_heads_params
+                in_channels_list=self.encoder.get_all_number_of_channels(),
+                upsample_mode=head_upsample_mode,
+                align_corners=align_corners,
+                dropout=dropout,
+                **aux_heads_params,
             )
+            self.use_aux_feats = [a and b for a, b in zip(aux_heads_params["use_aux_list"], backbone_params["is_out_feature_list"]) if b]
         self.init_params()
 
     @staticmethod
@@ -134,6 +139,7 @@ class UNetBase(SegmentationModule):
         x = self.seg_head(x)
         if not self.use_aux_heads:
             return x
+        encoder_feats = [f for i, f in enumerate(encoder_feats) if self.use_aux_feats[i]]
         aux_feats = [aux_head(feat) for feat, aux_head in zip(encoder_feats[-len(self.aux_heads) :], self.aux_heads)]
         aux_feats.reverse()
         return tuple([x] + aux_feats)
@@ -144,7 +150,7 @@ class UNetBase(SegmentationModule):
 
     @property
     def backbone(self):
-        return self.encoder.backbone
+        return self.encoder
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """

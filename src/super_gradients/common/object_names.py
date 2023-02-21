@@ -7,12 +7,14 @@ class Losses:
     SHELFNET_OHEM_LOSS = "shelfnet_ohem_loss"
     SHELFNET_SE_LOSS = "shelfnet_se_loss"
     YOLOX_LOSS = "yolox_loss"
+    PPYOLOE_LOSS = "ppyoloe_loss"
     YOLOX_FAST_LOSS = "yolox_fast_loss"
     SSD_LOSS = "ssd_loss"
     STDC_LOSS = "stdc_loss"
     BCE_DICE_LOSS = "bce_dice_loss"
     KD_LOSS = "kd_loss"
     DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
+    DEKR_LOSS = "dekr_loss"
 
 
 class Metrics:
@@ -43,6 +45,7 @@ class Transforms:
     SegCropImageAndMask = "SegCropImageAndMask"
     SegRandomGaussianBlur = "SegRandomGaussianBlur"
     SegPadShortToCropSize = "SegPadShortToCropSize"
+    SegPadToDivisible = "SegPadToDivisible"
     SegColorJitter = "SegColorJitter"
     DetectionMosaic = "DetectionMosaic"
     DetectionRandomAffine = "DetectionRandomAffine"
@@ -54,6 +57,8 @@ class Transforms:
     DetectionRescale = "DetectionRescale"
     DetectionPaddedRescale = "DetectionPaddedRescale"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
+    DetectionNormalize = "DetectionNormalize"
+    #
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
     RandAugmentTransform = "RandAugmentTransform"
     Lighting = "Lighting"
@@ -130,6 +135,8 @@ class Callbacks:
     EARLY_STOP = "EarlyStop"
     DETECTION_MULTISCALE_PREPREDICTION = "DetectionMultiscalePrePredictionCallback"
     YOLOX_TRAINING_STAGE_SWITCH = "YoloXTrainingStageSwitchCallback"
+    PPYOLOE_TRAINING_STAGE_SWITCH = "PPYoloETrainingStageSwitchCallback"
+    DETECTION_VISUALIZATION_CALLBACK = "DetectionVisualizationCallback"
 
 
 class LRSchedulers:
@@ -156,6 +163,10 @@ class Samplers:
     INFINITE = "InfiniteSampler"
     REPEAT_AUG = "RepeatAugSampler"
     DISTRIBUTED = "DistributedSampler"
+    SEQUENTIAL = "SequentialSampler"
+    SUBSET_RANDOM = "SubsetRandomSampler"
+    RANDOM = "RandomSampler"
+    WEIGHTED_RANDOM = "WeightedRandomSampler"
 
 
 class ContextModules:
@@ -243,6 +254,7 @@ class Models:
     REPVGG_CUSTOM = "repvgg_custom"
     DDRNET_23 = "ddrnet_23"
     DDRNET_23_SLIM = "ddrnet_23_slim"
+    DDRNET_39 = "ddrnet_39"
     CUSTOM_DDRNET_23 = "custom_ddrnet_23"
     STDC1_CLASSIFICATION = "stdc1_classification"
     STDC2_CLASSIFICATION = "stdc2_classification"
@@ -252,7 +264,6 @@ class Models:
     STDC2_SEG = "stdc2_seg"
     STDC2_SEG50 = "stdc2_seg50"
     STDC2_SEG75 = "stdc2_seg75"
-    CUSTOM_STDC = "custom_stdc"
     REGSEG48 = "regseg48"
     KD_MODULE = "kd_module"
     VIT_BASE = "vit_base"
@@ -268,6 +279,12 @@ class Models:
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
     UNET_CUSTOM = "unet_custom"
     UNET_CUSTOM_CLS = "unet_custom_cls"
+    STDC_CUSTOM = "stdc_custom"
+    STDC_CUSTOM_CLS = "stdc_custom_cls"
+    PP_YOLOE_S = "ppyoloe_s"
+    PP_YOLOE_M = "ppyoloe_m"
+    PP_YOLOE_L = "ppyoloe_l"
+    PP_YOLOE_X = "ppyoloe_x"
 
 
 class ConcatenatedTensorFormats:

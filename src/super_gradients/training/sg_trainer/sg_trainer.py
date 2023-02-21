@@ -17,23 +17,21 @@ from torch.utils.data.distributed import DistributedSampler
 from torchmetrics import MetricCollection
 from tqdm import tqdm
 
+from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
-from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
-from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
     get_metrics_results_tuple,
@@ -45,26 +43,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import HpmStruct
-from super_gradients.training.utils import random_seed
 from super_gradients.training.utils import sg_trainer_utils, get_param
-from super_gradients.training.utils.callbacks import (
-    CallbackHandler,
-    Phase,
-    LR_SCHEDULERS_CLS_DICT,
-    PhaseContext,
-    MetricsUpdateCallback,
-    LR_WARMUP_CLS_DICT,
-    ContextSgMethods,
-    LRCallbackBase,
-)
-from super_gradients.training.utils.checkpoint_utils import (
-    get_ckpt_local_path,
-    read_ckpt_state_dict,
-    load_checkpoint_to_model,
-    load_pretrained_weights,
-    get_checkpoints_dir_path,
-)
 from super_gradients.training.utils.distributed_training_utils import (
     MultiGPUModeAutocastWrapper,
     reduce_results_tuple_for_ddp,
@@ -80,11 +59,32 @@ from super_gradients.training.utils.distributed_training_utils import (
     DDPNotSetupException,
 )
 from super_gradients.training.utils.ema import ModelEMA
-from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
 from super_gradients.training.utils.utils import fuzzy_idx_in_list
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
+from super_gradients.training.metrics import Accuracy, Top5
+from super_gradients.training.utils import random_seed
+from super_gradients.training.utils.checkpoint_utils import (
+    read_ckpt_state_dict,
+    load_checkpoint_to_model,
+    load_pretrained_weights,
+)
+from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
+from super_gradients.training.utils.callbacks import (
+    CallbackHandler,
+    Phase,
+    LR_SCHEDULERS_CLS_DICT,
+    PhaseContext,
+    MetricsUpdateCallback,
+    LR_WARMUP_CLS_DICT,
+    ContextSgMethods,
+    LRCallbackBase,
+)
+from super_gradients.common.environment.device_utils import device_config
+from super_gradients.training.utils import HpmStruct
+from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg
+from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 
 logger = get_logger(__name__)
 
@@ -159,8 +159,6 @@ class Trainer:
         self.strict_load = StrictLoad.ON
         self.load_ema_as_net = False
         self.ckpt_best_name = "ckpt_best.pth"
-        self.enable_qat = False
-        self.qat_params = {}
         self._infinite_train_loader = False
         self._first_backward = True
 
@@ -307,7 +305,7 @@ class Trainer:
             name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
         )
 
-        if cfg.checkpoint_params.checkpoint_path is None:
+        if cfg.checkpoint_params.pretrained_weights is None and cfg.checkpoint_params.checkpoint_path is None:
             logger.info(
                 "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
             )
@@ -533,7 +531,7 @@ class Trainer:
         :param loss: The value computed by the loss function
         :param optimizer: An object that can perform a gradient step and zeroize model gradient
         :param epoch: number of epoch the training is on
-        :param batch_idx: number of iteration inside the current epoch
+        :param batch_idx: Zero-based number of iteration inside the current epoch
         :param context: current phase context
         :return:
         """
@@ -701,12 +699,16 @@ class Trainer:
 
                 -  `lr_mode` : str
 
-                    Learning rate scheduling policy, one of ['step','poly','cosine','function']. 'step' refers to
-                    constant updates at epoch numbers passed through `lr_updates`. 'cosine' refers to Cosine Anealing
-                    policy as mentioned in https://arxiv.org/abs/1608.03983. 'poly' refers to polynomial decrease i.e
-                    in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)),
-                    0.9)` 'function' refers to user defined learning rate scheduling function, that is passed through
-                    `lr_schedule_function`.
+                    Learning rate scheduling policy, one of ['step','poly','cosine','function'].
+
+                    'step' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
+
+                    'cosine' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
+                      The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
+
+                    'poly' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
+
+                    'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
 
                 - `lr_schedule_function` : Union[callable,None]
 
@@ -975,32 +977,6 @@ class Trainer:
 
                     The best checkpoint (according to metric_to_watch) will be saved under this filename in the checkpoints directory.
 
-                -   `enable_qat`: bool (default=False)
-
-                    Adds a QATCallback to the phase callbacks, that triggers quantization aware training starting from
-                     qat_params["start_epoch"]
-
-                -   `qat_params`: dict-like object with the following key/values:
-
-                        start_epoch: int, first epoch to start QAT.
-
-                        quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
-                         computation of the quantized modules (default=percentile).
-
-                        per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).
-
-                        calibrate: bool, whether to perfrom calibration (default=False).
-
-                        calibrated_model_path: str, path to a calibrated checkpoint (default=None).
-
-                        calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset. When None,
-                         context.train_loader will be used (default=None).
-
-                        num_calib_batches: int, number of batches to collect the statistics from.
-
-                        percentile: float, percentile value to use when Trainer,quant_modules_calib_method='percentile'.
-                         Discarded when other methods are used (Default=99.99).
-
                 -   `max_train_batches`: int, for debug- when not None- will break out of inner train loop (i.e iterating over
                       train_loader) when reaching this number of batches. Usefull for debugging (default=None).
 
@@ -1137,13 +1113,6 @@ class Trainer:
 
         self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
         self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
-
-        # ADD CALLBACK FOR QAT
-        self.enable_qat = core_utils.get_param(self.training_params, "enable_qat", False)
-        if self.enable_qat:
-            raise NotImplementedError(
-                "QAT is not implemented as a plug-and-play feature yet. Please refer to examples/resnet_qat to learn how to do it manually."
-            )
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 

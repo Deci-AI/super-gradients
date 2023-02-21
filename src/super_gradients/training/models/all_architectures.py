@@ -1,3 +1,4 @@
+from super_gradients.common.object_names import Models
 from super_gradients.training.models import ResNeXt50, ResNeXt101, GoogleNetV1
 from super_gradients.training.models.classification_models import repvgg, efficientnet, densenet, resnet, regnet
 from super_gradients.training.models.classification_models.mobilenetv2 import MobileNetV2Base, MobileNetV2_135, CustomMobileNetV2
@@ -12,18 +13,25 @@ from super_gradients.training.models.classification_models.shufflenetv2 import (
 from super_gradients.training.models.classification_models.vit import ViTBase, ViTLarge, ViTHuge
 from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
+from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_e import PPYoloE_M, PPYoloE_L, PPYoloE_X, PPYoloE_S
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
-from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
+from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23, DDRNet39
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, ShelfNet503343, ShelfNet101
-from super_gradients.training.models.segmentation_models.stdc import STDC1Classification, STDC2Classification, STDC1Seg, STDC2Seg, STDCSegmentationBase
+from super_gradients.training.models.segmentation_models.stdc import (
+    STDC1Classification,
+    STDC2Classification,
+    STDC1Seg,
+    STDC2Seg,
+    CustomSTDCSegmentation,
+    STDCClassification,
+)
 
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
 from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
-from super_gradients.training.models.segmentation_models.unet import UNetCustom, UnetClassification
-from super_gradients.common.object_names import Models
+from super_gradients.training.models.segmentation_models.unet import UNetCustom, UnetClassificationCustom
 
 ARCHITECTURES = {
     Models.RESNET18: resnet.ResNet18,
@@ -100,6 +108,7 @@ ARCHITECTURES = {
     Models.REPVGG_CUSTOM: repvgg.RepVggCustom,
     Models.DDRNET_23: DDRNet23,
     Models.DDRNET_23_SLIM: DDRNet23Slim,
+    Models.DDRNET_39: DDRNet39,
     Models.CUSTOM_DDRNET_23: AnyBackBoneDDRNet23,
     Models.STDC1_CLASSIFICATION: STDC1Classification,
     Models.STDC2_CLASSIFICATION: STDC2Classification,
@@ -109,7 +118,8 @@ ARCHITECTURES = {
     Models.STDC2_SEG: STDC2Seg,
     Models.STDC2_SEG50: STDC2Seg,
     Models.STDC2_SEG75: STDC2Seg,
-    Models.CUSTOM_STDC: STDCSegmentationBase,
+    Models.STDC_CUSTOM: CustomSTDCSegmentation,
+    Models.STDC_CUSTOM_CLS: STDCClassification,
     Models.REGSEG48: RegSeg48,
     Models.KD_MODULE: KDModule,
     Models.VIT_BASE: ViTBase,
@@ -125,7 +135,11 @@ ARCHITECTURES = {
     Models.PP_LITE_B_SEG75: PPLiteSegB,
     Models.CUSTOM_ANYNET: regnet.CustomAnyNet,
     Models.UNET_CUSTOM: UNetCustom,
-    Models.UNET_CUSTOM_CLS: UnetClassification,
+    Models.UNET_CUSTOM_CLS: UnetClassificationCustom,
+    Models.PP_YOLOE_S: PPYoloE_S,
+    Models.PP_YOLOE_M: PPYoloE_M,
+    Models.PP_YOLOE_L: PPYoloE_L,
+    Models.PP_YOLOE_X: PPYoloE_X,
 }
 
 KD_ARCHITECTURES = {Models.KD_MODULE: KDModule}

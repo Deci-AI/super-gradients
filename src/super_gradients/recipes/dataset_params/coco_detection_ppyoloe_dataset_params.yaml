@@ -1,0 +1,97 @@
+train_dataset_params:
+  data_dir: /data/coco # root path to coco data
+  subdir: images/train2017 # sub directory path of data_dir containing the train data.
+  json_file: instances_train2017.json # path to coco train json file, data_dir/annotations/train_json_file.
+  input_dim: # None, do not resize dataset on load
+  cache_dir:
+  cache: False
+  transforms:
+    - DetectionRandomAffine:
+        degrees: 0                    # rotation degrees, randomly sampled from [-degrees, degrees]
+        translate: 0.25               # image translation fraction
+        scales: [ 0.5, 1.5 ]          # random rescale range (keeps size by padding/cropping) after mosaic transform.
+        shear: 0.0                    # shear degrees, randomly sampled from [-degrees, degrees]
+        target_size:
+        filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
+        wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
+        area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
+        ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
+    - DetectionRandomRotate90:
+        prob: 0.5
+    - DetectionRGB2BGR:
+        prob: 0.25
+    - DetectionHSV:
+        prob: 0.5                       # probability to apply HSV transform
+        hgain: 18                       # HSV transform hue gain (randomly sampled from [-hgain, hgain])
+        sgain: 30                       # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
+        vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
+    - DetectionHorizontalFlip:
+        prob: 0.5                       # probability to apply horizontal flip
+    - DetectionMixup:
+        input_dim:
+        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
+        prob: 0.5                       # probability to apply per-sample mixup
+        flip_prob: 0.5                  # probability to apply horizontal flip
+    - DetectionNormalize:
+        mean: [ 123.675, 116.28, 103.53 ]
+        std: [ 58.395,  57.12,  57.375 ]
+    - DetectionTargetsFormatTransform:
+        max_targets: 256
+        output_format: LABEL_CXCYWH
+
+  tight_box_rotation: False
+  class_inclusion_list:
+  max_num_samples:
+  with_crowd: False
+
+train_dataloader_params:
+  batch_size: 32
+  num_workers: 8
+  shuffle: True
+  drop_last: True
+  # Disable pin_memory due to presence of PPYoloECollateFN with uses random resize during training
+  pin_memory: False
+  worker_init_fn:
+    _target_: super_gradients.training.utils.utils.load_func
+    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
+  collate_fn: # collate function for trainset
+    _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
+    random_resize_sizes: [ 320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768 ]
+    random_resize_modes:
+      - 0 # cv::INTER_NEAREST
+      - 1 # cv::INTER_LINEAR
+      - 2 # cv::INTER_CUBIC
+      - 3 # cv::INTER_AREA
+      - 4 # cv::INTER_LANCZOS4
+
+val_dataset_params:
+  data_dir: /data/coco # root path to coco data
+  subdir: images/val2017 # sub directory path of data_dir containing the train data.
+  json_file: instances_val2017.json # path to coco train json file, data_dir/annotations/train_json_file.
+  input_dim:
+  cache_dir:
+  cache: False
+  transforms:
+    - DetectionRescale:
+        output_shape: [640, 640]
+    - DetectionNormalize:
+        mean: [ 123.675, 116.28, 103.53 ]
+        std: [ 58.395,  57.12,  57.375 ]
+    - DetectionTargetsFormatTransform:
+        max_targets: 256
+        output_format: LABEL_CXCYWH
+  tight_box_rotation: False
+  class_inclusion_list:
+  max_num_samples:
+  with_crowd: True
+
+val_dataloader_params:
+  batch_size: 64
+  num_workers: 8
+  drop_last: False
+  shuffle: False
+  pin_memory: False
+  collate_fn: # collate function for valset
+    _target_: super_gradients.training.utils.detection_utils.CrowdDetectionPPYoloECollateFN
+
+_convert_: all

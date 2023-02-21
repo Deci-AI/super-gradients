@@ -1,45 +1,40 @@
-import os.path
-import pkg_resources
 from typing import Dict
 
 import hydra
-from hydra import compose, initialize_config_dir
-from hydra.core.global_hydra import GlobalHydra
-
 import numpy as np
-import torch
-from torch.utils.data import BatchSampler, DataLoader, TensorDataset
-
 import super_gradients
-
-from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
-    PascalVOCUnifiedDetectionTrainDataset,
-    PascalVOCDetectionDataset,
-)
-from super_gradients.training.utils import get_param
-from super_gradients.common.environment.path_utils import normalize_path
+import torch
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
+from super_gradients.common.factories.datasets_factory import DatasetsFactory
+from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.datasets import ImageNetDataset
-from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
 from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar10,
     Cifar100,
 )
+from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
+from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
+    PascalVOCUnifiedDetectionTrainDataset,
+    PascalVOCDetectionDataset,
+)
+from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     CoCoSegmentationDataSet,
     PascalVOC2012SegmentationDataSet,
     PascalVOCAndAUGUnifiedDataset,
     SuperviselyPersonsDataset,
+    MapillaryDataset,
 )
-from super_gradients.common.factories.samplers_factory import SamplersFactory
+from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import (
     wait_for_the_master,
     get_local_rank,
 )
-from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import override_default_params_without_nones
-from super_gradients.common.factories.datasets_factory import DatasetsFactory
-from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
+from super_gradients.common.environment.cfg_utils import load_dataset_params
+from torch.utils.data import BatchSampler, DataLoader, TensorDataset
 
 logger = get_logger(__name__)
 
@@ -48,12 +43,12 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
     """
     Class for creating dataloaders for taking defaults from yaml files in src/super_gradients/recipes.
 
-    :param config_name: yaml config filename in recipes (for example coco2017_yolox).
+    :param config_name: yaml config filename of dataset_params in recipes (for example coco_detection_dataset_params).
     :param dataset_cls: torch dataset uninitialized class.
     :param train: controls whether to take
-        cfg.dataset_params.train_dataloader_params or cfg.dataset_params.valid_dataloader_params as defaults for the dataset constructor
+        cfg.train_dataloader_params or cfg.valid_dataloader_params as defaults for the dataset constructor
      and
-        cfg.dataset_params.train_dataset_params or cfg.dataset_params.valid_dataset_params as defaults for DataLoader contructor.
+        cfg.train_dataset_params or cfg.valid_dataset_params as defaults for DataLoader contructor.
 
     :param dataset_params: dataset params that override the yaml configured defaults, then passed to the dataset_cls.__init__.
     :param dataloader_params: DataLoader params that override the yaml configured defaults, then passed to the DataLoader.__init__
@@ -64,30 +59,25 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
     if dataset_params is None:
         dataset_params = dict()
 
-    GlobalHydra.instance().clear()
-    sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
-    dataset_config = os.path.join("dataset_params", config_name)
-    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir), version_base="1.2"):
-        # config is relative to a module
-        cfg = compose(config_name=normalize_path(dataset_config))
+    cfg = load_dataset_params(config_name=config_name)
 
-        dataset_params = _process_dataset_params(cfg, dataset_params, train)
+    dataset_params = _process_dataset_params(cfg, dataset_params, train)
 
-        local_rank = get_local_rank()
-        with wait_for_the_master(local_rank):
-            dataset = dataset_cls(**dataset_params)
-            if not hasattr(dataset, "dataset_params"):
-                dataset.dataset_params = dataset_params
+    local_rank = get_local_rank()
+    with wait_for_the_master(local_rank):
+        dataset = dataset_cls(**dataset_params)
+        if not hasattr(dataset, "dataset_params"):
+            dataset.dataset_params = dataset_params
 
-        dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
+    dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
 
-        dataloader = DataLoader(dataset=dataset, **dataloader_params)
-        dataloader.dataloader_params = dataloader_params
-        return dataloader
+    dataloader = DataLoader(dataset=dataset, **dataloader_params)
+    dataloader.dataloader_params = dataloader_params
+    return dataloader
 
 
 def _process_dataset_params(cfg, dataset_params, train):
-    default_dataset_params = cfg.dataset_params.train_dataset_params if train else cfg.dataset_params.val_dataset_params
+    default_dataset_params = cfg.train_dataset_params if train else cfg.val_dataset_params
     default_dataset_params = hydra.utils.instantiate(default_dataset_params)
     for key, val in default_dataset_params.items():
         if key not in dataset_params.keys() or dataset_params[key] is None:
@@ -97,9 +87,17 @@ def _process_dataset_params(cfg, dataset_params, train):
 
 
 def _process_dataloader_params(cfg, dataloader_params, dataset, train):
-    default_dataloader_params = cfg.dataset_params.train_dataloader_params if train else cfg.dataset_params.val_dataloader_params
+    default_dataloader_params = cfg.train_dataloader_params if train else cfg.val_dataloader_params
     default_dataloader_params = hydra.utils.instantiate(default_dataloader_params)
     dataloader_params = _process_sampler_params(dataloader_params, dataset, default_dataloader_params)
+    dataloader_params = _process_collate_fn_params(dataloader_params)
+
+    return dataloader_params
+
+
+def _process_collate_fn_params(dataloader_params):
+    if get_param(dataloader_params, "collate_fn") is not None:
+        dataloader_params["collate_fn"] = CollateFunctionsFactory().get(dataloader_params["collate_fn"])
 
     return dataloader_params
 
@@ -146,6 +144,26 @@ def coco2017_train(dataset_params: Dict = None, dataloader_params: Dict = None):
 def coco2017_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_dataset_params",
+        dataset_cls=COCODetectionDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def coco2017_train_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="coco_detection_ppyoloe_dataset_params",
+        dataset_cls=COCODetectionDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def coco2017_val_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="coco_detection_ppyoloe_dataset_params",
         dataset_cls=COCODetectionDataset,
         train=False,
         dataset_params=dataset_params,
@@ -571,6 +589,26 @@ def supervisely_persons_val(dataset_params: Dict = None, dataloader_params: Dict
     )
 
 
+def mapillary_train(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="mapillary_dataset_params",
+        dataset_cls=MapillaryDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def mapillary_val(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="mapillary_dataset_params",
+        dataset_cls=MapillaryDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
 def pascal_voc_detection_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="pascal_voc_detection_dataset_params",
@@ -616,6 +654,8 @@ ALL_DATALOADERS = {
     "coco2017_val": coco2017_val,
     "coco2017_train_yolox": coco2017_train_yolox,
     "coco2017_val_yolox": coco2017_val_yolox,
+    "coco2017_train_ppyoloe": coco2017_train_ppyoloe,
+    "coco2017_val_ppyoloe": coco2017_val_ppyoloe,
     "coco2017_train_ssd_lite_mobilenet_v2": coco2017_train_ssd_lite_mobilenet_v2,
     "coco2017_val_ssd_lite_mobilenet_v2": coco2017_val_ssd_lite_mobilenet_v2,
     "coco2017_pose_train": coco2017_pose_train,
@@ -654,6 +694,8 @@ ALL_DATALOADERS = {
     "cityscapes_ddrnet_val": cityscapes_ddrnet_val,
     "coco_segmentation_train": coco_segmentation_train,
     "coco_segmentation_val": coco_segmentation_val,
+    "mapillary_train": mapillary_train,
+    "mapillary_val": mapillary_val,
     "pascal_aug_segmentation_train": pascal_aug_segmentation_train,
     "pascal_aug_segmentation_val": pascal_aug_segmentation_val,
     "pascal_voc_segmentation_train": pascal_voc_segmentation_train,
