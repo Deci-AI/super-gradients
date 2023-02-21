@@ -1,4 +1,4 @@
-# SG Docker
+# SuperGradients Docker Container
 
 Docker is an open-source containerization platform allowing developers to package and distribute applications in a portable and efficient way. Docker is becoming increasingly important in deep learning because it provides an easy and flexible way to manage the complex dependencies and configurations required for deep learning projects. With Docker, deep learning developers can easily package their applications and libraries into container images, which can be distributed and run on any machine with Docker installed. This simplifies the development process and makes it easier to reproduce and share deep learning experiments and results.
 
