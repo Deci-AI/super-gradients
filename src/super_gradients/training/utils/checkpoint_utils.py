@@ -53,7 +53,7 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Uni
     """
     state_dict = state_dict["net"] if "net" in state_dict else state_dict
     try:
-        strict_bool = strict if isinstance(strict, bool) else strict == StrictLoad.ON
+        strict_bool = strict if isinstance(strict, bool) else strict != StrictLoad.OFF
         net.load_state_dict(state_dict, strict=strict_bool)
     except (RuntimeError, ValueError, KeyError) as ex:
         if strict == StrictLoad.NO_KEY_MATCHING:
