@@ -10,15 +10,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
+from typing import Mapping, Any, Tuple
 
 import torch
 import torch.nn.functional as F
 import torchvision
+from torch import nn
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.models import SgModule
-from torch import nn
-from typing import Mapping, Any, Tuple
 
 __all__ = ["DEKRPoseEstimationModel"]
 
@@ -325,7 +325,7 @@ class DEKRPoseEstimationModel(SgModule):
         self.head_heatmap = self._make_heatmap_head(config_heatmap)
         self.offset_feature_layers, self.offset_final_layer = self._make_separete_regression_head(config_offset)
         self.heatmap_activation = nn.Sigmoid() if config_heatmap["HEATMAP_APPLY_SIGMOID"] else nn.Identity()
-        self.init_weights(pretrained=arch_params.PRETRAINED)
+        self.init_weights()
 
     def _make_transition_for_head(self, inplanes: int, outplanes: int) -> nn.Module:
         transition_layer = [nn.Conv2d(inplanes, outplanes, 1, 1, 0, bias=False), nn.BatchNorm2d(outplanes), nn.ReLU(True)]
@@ -492,8 +492,7 @@ class DEKRPoseEstimationModel(SgModule):
         offset = torch.cat(final_offset, dim=1)
         return self.heatmap_activation(heatmap), offset
 
-    def init_weights(self, pretrained="", verbose=True):
-        logger.info("=> init weights from normal distribution")
+    def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.normal_(m.weight, std=0.001)
@@ -513,22 +512,3 @@ class DEKRPoseEstimationModel(SgModule):
                 nn.init.constant_(m.translation_conv.weight, 0)
                 if hasattr(m, "bias"):
                     nn.init.constant_(m.translation_conv.bias, 0)
-
-        parameters_names = set()
-        for name, _ in self.named_parameters():
-            parameters_names.add(name)
-
-        buffers_names = set()
-        for name, _ in self.named_buffers():
-            buffers_names.add(name)
-
-        if pretrained is not None and os.path.exists(pretrained) and os.path.isfile(pretrained):
-            pretrained_state_dict = torch.load(pretrained, map_location="cpu")
-
-            need_init_state_dict = {}
-            for name, m in pretrained_state_dict.items():
-                if name in parameters_names or name in buffers_names:
-                    if verbose:
-                        logger.info("=> init {} from {}".format(name, pretrained))
-                    need_init_state_dict[name] = m
-            self.load_state_dict(need_init_state_dict, strict=False)

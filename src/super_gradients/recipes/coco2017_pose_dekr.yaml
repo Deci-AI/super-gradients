@@ -20,6 +20,16 @@ ckpt_root_dir:
 train_dataloader: coco2017_pose_train
 val_dataloader: coco2017_pose_val
 
+checkpoint_params:
+  # Original training recipe uses pretrained weights for HRNet on ImageNet.
+  # You will need to download the pretrained weights from the original repo and place
+  # them in `external_checkpoint_path` param.
+  # Download weights from this url https://1drv.ms/u/s!Aus8VCZ_C_33dYBMemi9xOUFR0w
+  checkpoint_path: # <location of the downloaded hrnetv2_w32_imagenet_pretrained.pth>
+  strict_load:
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: key_matching
+
 dataset_params:
   train_dataloader_params:
     batch_size: 8
@@ -53,11 +63,6 @@ training_hyperparams:
 #        mean: [ 0.485, 0.456, 0.406 ]
 #        std: [ 0.229, 0.224, 0.225 ]
 #        apply_sigmoid: False
-
-
-
-
-
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
