@@ -594,7 +594,7 @@ jobs:
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
             python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32 dataset_params.train_dataloader_params.batch_size=4 dataset_params.val_dataloader_params.batch_size=8 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32 experiment_name=shortened_coco2017_pose_dekr_w32_ap_test dataset_params.train_dataloader_params.batch_size=4 dataset_params.val_dataloader_params.batch_size=8 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
 
       - run:
           name: Remove new environment when failed
