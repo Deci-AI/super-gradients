@@ -66,8 +66,9 @@ All the available models are listed in the column `Model name`.
 | PP-LiteSeg B75        | pp_lite_b_seg75   | Cityscapes | 768x1536   | 78.52 | **6.84ms**              | **33.69ms**                          |                    **49.89ms**                    |
 | PP-LiteSeg T50        | pp_lite_t_seg50   | Cityscapes | 512x1024   | 74.92 | **3.26ms**              | **30.33ms**                          |                    **26.20ms**                    |
 | PP-LiteSeg T75        | pp_lite_t_seg75   | Cityscapes | 768x1536   | 77.56 | **5.20ms**              | **32.28ms**                          |                    **38.03ms**                    |
-| DDRNet 23 slim        | ddrnet_23_slim    | Cityscapes | 1024x2048  | 78.01 | **5.74ms**              | **32.01ms**                          |                    **45.18ms**                    |
-| DDRNet 23             | ddrnet_23         | Cityscapes | 1024x2048  | 80.26 | **12.74ms**             | **39.01ms**                          |                   **106.26ms**                    |
+| DDRNet 23 slim - CWD  | ddrnet_23_slim    | Cityscapes | 1024x2048  | 79.41 | **5.74ms**              | **32.01ms**                          |                    **45.18ms**                    |
+| DDRNet 23 - CWD       | ddrnet_23         | Cityscapes | 1024x2048  | 81.48 | **12.74ms**             | **39.01ms**                          |                   **106.26ms**                    |
+| DDRNet 39             | ddrnet_39         | Cityscapes | 1024x2048  | 81.32 | **23.57ms**             | **52.41ms**                          |                   **145.79ms**                    |
 | STDC 1-Seg50          | stdc1_seg50       | Cityscapes | 512x1024   | 75.11 | **3.34ms**              | **30.12ms**                          |                    **27.54ms**                    |
 | STDC 1-Seg75          | stdc1_seg75       | Cityscapes | 768x1536   | 77.8  | **5.53ms**              | **32.490ms**                         |                     **43.88**                     |
 | STDC 2-Seg50          | stdc2_seg50       | Cityscapes | 512x1024   | 76.44 | **4.12ms**              | **30.94ms**                          |                    **32.03ms**                    |
@@ -77,3 +78,5 @@ All the available models are listed in the column `Model name`.
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency), and not including IO
 
 > **NOTE:** For resolutions below 1024x2048 we first resize the input to the inference resolution and then resize the predictions to 1024x2048. The time of resizing is included in the measurements so that the practical input-size is 1024x2048.
+ 
+> **NOTE:** CWD refer to channel wise knowledge distillation training recipe.

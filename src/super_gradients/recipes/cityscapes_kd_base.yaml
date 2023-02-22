@@ -1,0 +1,105 @@
+# Distillation for semantic segmentation on Cityscapes dataset.
+#
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#      DDRNet23:        python src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=cityscapes_kd_base student_architecture=ddrnet_23
+#      DDRNet23-Slim:   python src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=cityscapes_kd_base student_architecture=ddrnet_23_slim
+# Note: add "student_checkpoint_params.checkpoint_path=<ddrnet23-backbone-pretrained-path>" to use pretrained backbone
+#
+#  Teachers specifications:
+#      DDRNet39-AL:     mIoU: 85.17     notes: trained with Cityscapes coarse data.
+#
+#  Validation mIoU results - Cityscapes, training time:
+#      DDRNet23:        teacher: DDRNet39-AL  input-size: [1024, 2048]     mIoU: 81.48     4 X RTX A5000, 13 H
+#      DDRNet23-Slim:   teacher: DDRNet39-AL  input-size: [1024, 2048]     mIoU: 79.41     4 X RTX A5000, 11 H
+#
+#  Pretrained backbones checkpoints:
+#       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_bb_imagenet.pth
+#       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_slim_bb_imagenet.pth
+#
+#  Logs, tensorboards and network checkpoints:
+#       DDRNet23:       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23_cwd/
+#       DDRNet23-Slim:  https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23_slim_cwd/
+#
+#  Learning rate and batch size parameters, using 4 RTX A5000 with DDP:
+#      DDRNet23:        input-size: [1024, 1024]     initial_lr: 0.0075    batch-size: 6 * 4gpus = 24
+#      DDRNet23-Slim:   input-size: [1024, 1024]     initial_lr: 0.0075    batch-size: 6 * 4gpus = 24
+#
+#  Teachers checkpoints:
+#       DDRNet39-AL:    https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet39_al/average_model_2023_02_20.pth
+#
+#  Comments:
+#      * Pretrained backbones were used for the student models.
+#      * Default hyper-parameters are based on DDRNet model train recipes, for full resolution training [1024 x 2048]
+
+defaults:
+  - training_hyperparams: cityscapes_default_train_params
+  - dataset_params: cityscapes_ddrnet_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+train_dataloader: cityscapes_train
+val_dataloader: cityscapes_val
+
+resume: False
+training_hyperparams:
+  sync_bn: True
+  max_epochs: 500
+  initial_lr: 0.0075   # batch size 24
+  resume: ${resume}
+  loss:
+    _target_: super_gradients.training.losses.seg_kd_loss.SegKDLoss
+    weights: [ 1. ]
+    kd_loss_weights: [1., 6.]
+
+    kd_loss:
+      _target_: super_gradients.training.losses.cwd_loss.CWDKlDivLoss
+      temperature: 3.
+      normalization_mode: channel_wise
+
+    ce_loss:
+      _target_: torch.nn.CrossEntropyLoss
+      ignore_index: 19
+
+student_arch_params:
+  num_classes: 19
+  use_aux_heads: False
+
+teacher_arch_params:
+  num_classes: 19
+  use_aux_heads: False
+
+# KD module arch params
+arch_params:
+
+teacher_checkpoint_params:
+  load_backbone:
+  checkpoint_path:
+  strict_load: no_key_matching
+  pretrained_weights: cityscapes
+
+student_checkpoint_params:
+  load_backbone: True
+  checkpoint_path: ???    # ImageNet pretrained checkpoints
+  strict_load: no_key_matching
+  pretrained_weights:
+
+run_teacher_on_eval: True
+
+multi_gpu: DDP
+num_gpus: 4
+
+architecture: kd_module
+student_architecture: ???
+teacher_architecture: ddrnet_39
+
+experiment_name: ${student_architecture}_teacher-${teacher_architecture}
+ckpt_root_dir:
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
