@@ -4,6 +4,8 @@ import torch
 from torch.nn.modules.loss import _Loss
 
 from super_gradients.training.models.kd_modules.kd_module import KDOutput
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.losses_factory import LossesFactory
 
 
 class SegKDLoss(_Loss):
@@ -12,6 +14,8 @@ class SegKDLoss(_Loss):
     This loss includes two loss components, `ce_loss` i.e CrossEntropyLoss, and `kd_loss` i.e `CWDKlDivLoss`.
     """
 
+    @resolve_param("kd_loss", LossesFactory())
+    @resolve_param("ce_loss", LossesFactory())
     def __init__(self, kd_loss: _Loss, ce_loss: _Loss, weights: Union[tuple, list], kd_loss_weights: Union[tuple, list]):
         """
         :param kd_loss: knowledge distillation criteria, such as, CWDKlDivLoss.
