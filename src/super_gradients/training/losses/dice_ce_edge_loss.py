@@ -7,6 +7,11 @@ from typing import Union, Tuple
 from super_gradients.training.losses.mask_loss import MaskAttentionLoss
 
 
+from super_gradients.common.registry.registry import register_loss
+
+register_loss("dice_ce_edge_loss")
+
+
 class DiceCEEdgeLoss(_Loss):
     def __init__(
         self,

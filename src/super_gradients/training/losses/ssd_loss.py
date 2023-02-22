@@ -4,6 +4,7 @@ import torch
 from torch import nn
 from torch.nn.modules.loss import _Loss
 
+from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.utils.detection_utils import calculate_bbox_iou_matrix
 from super_gradients.training.utils.ssd_utils import DefaultBoxes
 
@@ -50,6 +51,7 @@ class HardMiningCrossEntropyLoss(_Loss):
         return closs
 
 
+@register_loss("ssd_loss")
 class SSDLoss(_Loss):
     """
         Implements the loss as the sum of the followings:
