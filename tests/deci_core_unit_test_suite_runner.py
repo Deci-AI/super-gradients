@@ -26,6 +26,7 @@ from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.detection_utils_test import TestDetectionUtils
 from tests.unit_tests.detection_dataset_test import DetectionDatasetTest
 from tests.unit_tests.export_onnx_test import TestModelsONNXExport
+from tests.unit_tests.load_checkpoint_test import LoadCheckpointTest
 from tests.unit_tests.local_ckpt_head_replacement_test import LocalCkptHeadReplacementTest
 from tests.unit_tests.max_batches_loop_break_test import MaxBatchesLoopBreakTest
 from tests.unit_tests.phase_delegates_test import ContextMethodsTest
@@ -57,6 +58,7 @@ from tests.unit_tests.config_inspector_test import ConfigInspectTest
 from tests.unit_tests.repvgg_block_tests import TestRepVGGBlock
 from tests.unit_tests.training_utils_test import TestTrainingUtils
 from tests.unit_tests.dekr_loss_test import DEKRLossTest
+from tests.unit_tests.pose_estimation_metrics_test import TestPoseEstimationMetrics
 
 
 class CoreUnitTestSuiteRunner:
@@ -125,6 +127,8 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestTransforms))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPPYOLOE))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DEKRLossTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationMetrics))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LoadCheckpointTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

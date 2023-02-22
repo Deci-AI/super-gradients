@@ -6,6 +6,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
+from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
+from super_gradients.training.utils.utils import get_param
+
+from super_gradients.training import models
+
 from super_gradients.training.models.classification_models.regnet import XBlock
 from super_gradients.training.models.classification_models.repvgg import RepVGGBlock
 from super_gradients.training.models.segmentation_models.stdc import STDCBlock
@@ -41,6 +47,13 @@ class AbstractUNetBackbone(nn.Module, ABC):
 
     @abstractmethod
     def get_backbone_output_number_of_channels(self) -> List[int]:
+        """
+        :return: list of stages num channels.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_all_number_of_channels(self) -> List[int]:
         """
         :return: list of stages num channels.
         """
@@ -255,6 +268,9 @@ class UNetBackboneBase(AbstractUNetBackbone):
     def get_backbone_output_number_of_channels(self) -> List[int]:
         return [ch for ch, is_out in zip(self.width_list, self.is_out_feature_list) if is_out]
 
+    def get_all_number_of_channels(self) -> List[int]:
+        return self.width_list
+
     def forward(self, x):
         outs = []
         for stage, is_out in zip(self.stages, self.is_out_feature_list):
@@ -285,21 +301,47 @@ class Encoder(nn.Module):
             channels_list[-1] = self.context_module.out_channels
         return channels_list
 
+    def get_all_number_of_channels(self) -> List[int]:
+        channels_list = self.backbone.get_all_number_of_channels()
+        if hasattr(self.context_module, "output_channels"):
+            channels_list[-1] = self.context_module.output_channels()
+        return channels_list
+
 
 class UnetClassification(SgModule):
-    def __init__(self, arch_params: HpmStruct):
+    @resolve_param("context_module", ContextModulesFactory())
+    def __init__(
+        self,
+        num_classes: int,
+        backbone_params: dict,
+        context_module: AbstractContextModule,
+        dropout: float,
+    ):
         super().__init__()
-        self.backbone = UNetBackboneBase(**arch_params.backbone_params)
-        out_channels = self.backbone.get_backbone_output_number_of_channels()[-1]
+        backbone = UNetBackboneBase(**backbone_params)
+
+        self.encoder = Encoder(backbone, context_module)
+        out_channels = self.encoder.get_output_number_of_channels()[-1]
 
         self.classifier_head = nn.Sequential(
             ConvBNReLU(out_channels, 1024, kernel_size=1, bias=False),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Dropout(arch_params.dropout),
-            nn.Linear(1024, arch_params.num_classes),
+            nn.Dropout(dropout),
+            nn.Linear(1024, num_classes),
         )
 
     def forward(self, x):
-        x = self.backbone(x)[-1]
+        x = self.encoder(x)[-1]
         return self.classifier_head(x)
+
+
+class UnetClassificationCustom(UnetClassification):
+    def __init__(self, arch_params: HpmStruct):
+        arch_params = HpmStruct(**models.get_arch_params("unet_default_arch_params.yaml", arch_params.to_dict()))
+        super().__init__(
+            num_classes=get_param(arch_params, "num_classes"),
+            backbone_params=get_param(arch_params, "backbone_params"),
+            context_module=get_param(arch_params, "context_module", nn.Identity()),
+            dropout=get_param(arch_params, "dropout", 0.0),
+        )
