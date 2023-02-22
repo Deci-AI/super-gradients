@@ -2,6 +2,8 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+from super_gradients.common.registry.register_loss import register_loss
+
 
 def onehot(indexes, N=None, ignore_index=None):
     """
@@ -80,6 +82,7 @@ def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction="mea
     return loss
 
 
+@register_loss("cross_entropy")
 class LabelSmoothingCrossEntropyLoss(nn.CrossEntropyLoss):
     """CrossEntropyLoss - with ability to recieve distrbution as targets, and optional label smoothing"""
 
