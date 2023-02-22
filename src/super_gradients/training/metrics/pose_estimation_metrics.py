@@ -279,7 +279,7 @@ class PoseEstimationMetrics(Metric):
                 preds_to_ignore=preds_to_ignore,
                 preds_scores=preds_scores,
                 n_targets=n_targets,
-                recall_thresholds=self.recall_thresholds.to(self.device),
+                recall_thresholds=self.recall_thresholds.cpu(),
                 score_threshold=0,
                 device="cpu",
             )
