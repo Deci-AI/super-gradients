@@ -3,11 +3,10 @@ from torch import nn
 from torch.autograd import Variable
 
 
-from super_gradients.common.registry.registry import register_loss
-
-register_loss("shelfnet_se_loss")
+from super_gradients.common.registry.register_loss import register_loss
 
 
+@register_loss("shelfnet_se_loss")
 class ShelfNetSemanticEncodingLoss(nn.CrossEntropyLoss):
     """2D Cross Entropy Loss with Auxilary Loss"""
 

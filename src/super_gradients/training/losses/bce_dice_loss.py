@@ -4,7 +4,7 @@ from super_gradients.training.losses.bce_loss import BCE
 from super_gradients.training.losses.dice_loss import BinaryDiceLoss
 
 
-from super_gradients.common.registry.registry import register_loss
+from super_gradients.common.registry.register_loss import register_loss
 
 
 @register_loss("bce_dice_loss")

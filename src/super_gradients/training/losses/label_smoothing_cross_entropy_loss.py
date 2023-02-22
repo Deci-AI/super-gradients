@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from super_gradients.common.registry.registry import register_loss
+from super_gradients.common.registry.register_loss import register_loss
 
 
 def onehot(indexes, N=None, ignore_index=None):

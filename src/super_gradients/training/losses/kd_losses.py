@@ -1,6 +1,6 @@
 from torch.nn.modules.loss import _Loss, KLDivLoss
 import torch
-from super_gradients.common.registry.registry import register_loss
+from super_gradients.common.registry.register_loss import register_loss
 
 
 class KDklDivLoss(KLDivLoss):

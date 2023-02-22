@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from super_gradients.common.registry.registry import register_loss
+from super_gradients.common.registry.register_loss import register_loss
 from super_gradients.training.utils.segmentation_utils import to_one_hot
 from torch.nn.modules.loss import _Loss
 from super_gradients.training.losses.ohem_ce_loss import OhemCELoss, OhemBCELoss, OhemLoss
@@ -110,9 +110,7 @@ class DetailLoss(_Loss):
         return self.weights[0] * bce_loss + self.weights[1] * dice_loss
 
 
-register_loss("stdc_loss")
-
-
+@register_loss("stdc_loss")
 class STDCLoss(_Loss):
     """
     Loss class of STDC-Seg training.

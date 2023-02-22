@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 
 import super_gradients
-from super_gradients.common.registry.registry import register_loss
+from super_gradients.common.registry.register_loss import register_loss
 from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import cxcywh_to_xyxy
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.training.utils.distributed_training_utils import (

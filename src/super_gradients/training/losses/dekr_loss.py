@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 
-from super_gradients.common.registry.registry import register_loss
+from super_gradients.common.registry.register_loss import register_loss
 
 
 @register_loss("dekr_loss")
