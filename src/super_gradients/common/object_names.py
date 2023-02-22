@@ -12,6 +12,7 @@ class Metrics:
     DICE = "Dice"
     BINARY_DICE = "BinaryDice"
     PIXEL_ACCURACY = "PixelAccuracy"
+    POSE_ESTIMATION_METRICS = "PoseEstimationMetrics"
 
 
 class Transforms:
@@ -118,6 +119,7 @@ class Callbacks:
     YOLOX_TRAINING_STAGE_SWITCH = "YoloXTrainingStageSwitchCallback"
     PPYOLOE_TRAINING_STAGE_SWITCH = "PPYoloETrainingStageSwitchCallback"
     DETECTION_VISUALIZATION_CALLBACK = "DetectionVisualizationCallback"
+    DEKR_VISUALIZATION = "DEKRVisualizationCallback"
 
 
 class LRSchedulers:
@@ -266,6 +268,8 @@ class Models:
     PP_YOLOE_M = "ppyoloe_m"
     PP_YOLOE_L = "ppyoloe_l"
     PP_YOLOE_X = "ppyoloe_x"
+
+    DEKR_CUSTOM = "dekr_custom"
 
 
 class ConcatenatedTensorFormats:

@@ -41,7 +41,7 @@ def transfer_weights(model: nn.Module, model_state_dict: Mapping[str, Tensor]) -
             pass
 
 
-def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: StrictLoad, solver=None):
+def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Union[bool, StrictLoad], solver=None):
     """
     Adaptively loads state_dict to net, by adapting the state_dict to net's layer names first.
     :param net: (nn.Module) to load state_dict to
@@ -53,7 +53,8 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Str
     """
     state_dict = state_dict["net"] if "net" in state_dict else state_dict
     try:
-        net.load_state_dict(state_dict, strict=(strict == StrictLoad.ON))
+        strict_bool = strict if isinstance(strict, bool) else strict != StrictLoad.OFF
+        net.load_state_dict(state_dict, strict=strict_bool)
     except (RuntimeError, ValueError, KeyError) as ex:
         if strict == StrictLoad.NO_KEY_MATCHING:
             adapted_state_dict = adapt_state_dict_to_fit_model_layer_names(net.state_dict(), state_dict, solver=solver)
