@@ -30,7 +30,7 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
         self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cityscapes_regseg48_iou_test", metric_value=0.263, delta=0.05))
 
     def test_shortened_coco_dekr_32_ap_test(self):
-        self.assertTrue(self._reached_goal_metric(experiment_name="shortened_coco2017_pose_dekr_w32_ap_test", metric_value=0.0031, delta=0.005))
+        self.assertTrue(self._reached_goal_metric(experiment_name="shortened_coco2017_pose_dekr_w32_ap_test", metric_value=0.000154, delta=0.0001))
 
     @classmethod
     def _reached_goal_metric(cls, experiment_name: str, metric_value: float, delta: float):
