@@ -41,7 +41,7 @@ training_hyperparams:
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
-    project_name: super-gradients
+    project_name: super_gradients
     entity: coco2017_pp_yoloe_s
     api_server: "https://wandb.research.deci.ai"
     save_checkpoints_remote: True
