@@ -5,6 +5,7 @@ from .qarepvgg_block import QARepVGGBlock
 from .se_blocks import SEBlock, EffectiveSEBlock
 from .skip_connections import Residual, SkipConnection, CrossModelSkipConnection, BackboneInternalSkipConnection, HeadInternalSkipConnection
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.modules.pose_estimation_modules import LightweightDEKRHead
 
 __all__ = [
     "ConvBNAct",
@@ -18,6 +19,7 @@ __all__ = [
     "CrossModelSkipConnection",
     "BackboneInternalSkipConnection",
     "HeadInternalSkipConnection",
+    "LightweightDEKRHead",
 ]
 
 logger = get_logger(__name__)

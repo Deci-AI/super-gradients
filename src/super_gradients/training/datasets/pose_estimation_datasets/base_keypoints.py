@@ -55,12 +55,12 @@ class BaseKeypointsDataset(Dataset):
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, Any, Mapping[str, Any]]:
         img, mask, joints, extras = self.load_sample(index)
-        img, mask, joints = self.transforms(img, mask, joints)
+        img, mask, joints, _, _ = self.transforms(img, mask, joints, areas=None, bboxes=None)
 
         joints = self.filter_joints(joints, img)
 
         targets = self.target_generator(img, joints, mask)
-        return img, targets, {"joints": joints, **extras}
+        return img, targets, {"gt_joints": joints, **extras}
 
     def compute_area(self, joints: np.ndarray) -> np.ndarray:
         """

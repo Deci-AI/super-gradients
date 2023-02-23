@@ -11,6 +11,7 @@ from super_gradients.training.metrics import (
     DetectionMetrics_050,
     DetectionMetrics_075,
     DetectionMetrics_050_095,
+    PoseEstimationMetrics,
 )
 
 
@@ -26,4 +27,5 @@ METRICS = {
     Metrics.DICE: Dice,
     Metrics.BINARY_DICE: BinaryDice,
     Metrics.PIXEL_ACCURACY: PixelAccuracy,
+    Metrics.POSE_ESTIMATION_METRICS: PoseEstimationMetrics,
 }
