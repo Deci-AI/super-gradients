@@ -5,7 +5,6 @@ from super_gradients.training.utils.callbacks import LR_SCHEDULERS_CLS_DICT
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.training.dataloaders.dataloaders import ALL_DATALOADERS
 from super_gradients.training.models.all_architectures import ARCHITECTURES
-from super_gradients.training.metrics.all_metrics import METRICS
 from super_gradients.training.losses.all_losses import LOSSES
 from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
 from super_gradients.training.utils.callbacks.all_callbacks import CALLBACKS
@@ -54,7 +53,10 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
 
 register_model = create_register_decorator(registry=ARCHITECTURES)
 register_detection_module = create_register_decorator(registry=ALL_DETECTION_MODULES)
+
+METRICS = {}
 register_metric = create_register_decorator(registry=METRICS)
+
 register_loss = create_register_decorator(registry=LOSSES)
 register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)
 register_callback = create_register_decorator(registry=CALLBACKS)

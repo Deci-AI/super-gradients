@@ -1,5 +1,5 @@
 from super_gradients.common.factories.base_factory import BaseFactory
-from super_gradients.training.metrics import METRICS
+from super_gradients.common.registry.registry import METRICS
 
 
 class MetricsFactory(BaseFactory):
