@@ -1,20 +1,18 @@
 import os
 import json
 import sys
+import shutil
 from zipfile import ZipFile
 from typing import List, Optional, Any
-from pathlib import Path
 
-import hydra
 import importlib.util
-from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 from torch import nn
 
 import super_gradients
 from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
-
+from super_gradients.common.environment.cfg_utils import load_arch_params, load_recipe
 
 logger = get_logger(__name__)
 
@@ -51,8 +49,8 @@ class DeciClient:
 
     def _get_file(self, model_name: str, file_name: str) -> Optional[str]:
         """Get a file from the DeciPlatform if it exists, otherwise returns None
-        :param model_name:  Name of the model to download from, as saved in the platform.
-        :param file_name:   Name of the file to download
+        :param model_name:      Name of the model to download from, as saved in the platform.
+        :param file_name:       Name of the file to download
         :return:            Path were the downloaded file was saved to. None if not found.
         """
         try:
@@ -71,7 +69,9 @@ class DeciClient:
                 logger.debug(e.body)
             return None
 
-        return FilesDataInterface.download_temporary_file(file_url=download_link)
+        file_path = FilesDataInterface.download_temporary_file(file_url=download_link)
+
+        return file_path
 
     def get_model_arch_params(self, model_name: str) -> Optional[DictConfig]:
         """Get the model arch_params from DeciPlatform.
@@ -80,7 +80,14 @@ class DeciClient:
         arch_params_file = self._get_file(model_name, AutoNACFileName.STRUCTURE_YAML)
         if arch_params_file is None:
             return None
-        return _load_cfg(config_path=arch_params_file)
+
+        config_name = os.path.basename(arch_params_file)
+        download_dir = os.path.dirname(arch_params_file)
+
+        # The arch_params config files need to be saved inside an "arch_params" folder
+        _move_file_to_folder(src_file_path=arch_params_file, dest_dir_name="arch_params")
+
+        return load_arch_params(config_name=config_name, recipes_dir_path=download_dir)
 
     def get_model_recipe(self, model_name: str) -> Optional[DictConfig]:
         """Get the model recipe from DeciPlatform.
@@ -89,7 +96,11 @@ class DeciClient:
         recipe_file = self._get_file(model_name, AutoNACFileName.RECIPE_YAML)
         if recipe_file is None:
             return None
-        return _load_cfg(config_path=recipe_file)
+
+        config_name = os.path.basename(recipe_file)
+        download_dir = os.path.dirname(recipe_file)
+
+        return load_recipe(config_name=config_name, recipes_dir_path=download_dir)
 
     def get_model_weights(self, model_name: str) -> Optional[str]:
         """Get the path to model weights (downloaded locally).
@@ -157,12 +168,12 @@ class DeciClient:
         benchmark_state = self.lab_client.get_model_by_name(name=name).data.benchmark_state
         return benchmark_state in [ModelBenchmarkState.IN_PROGRESS, ModelBenchmarkState.PENDING]
 
-    def register_experiment(self, name: str, model_name: str):
+    def register_experiment(self, name: str, model_name: str, resume: bool):
         """Registers a training experiment in Deci's backend.
         :param name:        Name of the experiment to register
         :param model_name:  Name of the model architecture to connect the experiment to
         """
-        self.lab_client.register_experiment(name=name, model_name=model_name)
+        self.lab_client.register_experiment(name=name, model_name=model_name, resume=resume)
 
     def save_experiment_file(self, file_path: str):
         """
@@ -207,12 +218,18 @@ class DeciClient:
         self.lab_client.add_model_v2(model_metadata=model_metadata, hardware_types=hardware_types, model_path=model_path, model=model, **kwargs)
 
 
-def _load_cfg(config_path: str) -> DictConfig:
-    """Load a hydra config file.
-    :param config_path: Full path of the hydra config file.
-    :return:            Hydra config instance"""
-    GlobalHydra.instance().clear()
+def _move_file_to_folder(src_file_path: str, dest_dir_name: str) -> str:
+    """Move a file to a newly created folder in the same directory.
 
-    arch_params_file = Path(config_path)
-    with hydra.initialize_config_dir(config_dir=str(arch_params_file.parent), version_base=None):
-        return hydra.compose(config_name=arch_params_file.name)
+    :param src_file_path:   Path of the file to be moved.
+    :param dest_dir_name:   Name of the destination folder.
+    :return:                The path of the moved file.
+    """
+    src_dir_path = os.path.dirname(src_file_path)
+
+    dest_dir_path = os.path.join(src_dir_path, dest_dir_name)
+    dest_file_path = os.path.join(dest_dir_path, os.path.basename(src_file_path))
+
+    os.makedirs(dest_dir_path, exist_ok=True)
+    shutil.copyfile(src_file_path, dest_file_path)
+    return dest_file_path
