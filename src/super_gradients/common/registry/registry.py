@@ -3,7 +3,6 @@ from typing import Callable, Dict, Optional
 
 from super_gradients.training.utils.callbacks import LR_SCHEDULERS_CLS_DICT
 from super_gradients.common.sg_loggers import SG_LOGGERS
-from super_gradients.training.dataloaders.dataloaders import ALL_DATALOADERS
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.losses.all_losses import LOSSES
 from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
@@ -58,7 +57,10 @@ METRICS = {}
 register_metric = create_register_decorator(registry=METRICS)
 
 register_loss = create_register_decorator(registry=LOSSES)
+
+ALL_DATALOADERS = {}
 register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)
+
 register_callback = create_register_decorator(registry=CALLBACKS)
 register_transform = create_register_decorator(registry=TRANSFORMS)
 register_dataset = create_register_decorator(registry=ALL_DATASETS)
