@@ -9,7 +9,7 @@ warmup_initial_lr:  1e-6
 lr_warmup_steps: 1000
 lr_warmup_epochs: 0
 
-initial_lr:  2e-3
+initial_lr:  0.0006
 lr_mode: cosine
 cosine_final_lr_ratio: 0.1
 
@@ -23,9 +23,9 @@ loss:
     num_classes: ${arch_params.num_classes}
     reg_max: ${arch_params.head.reg_max}
 
-optimizer: AdamW
+optimizer: Lion
 optimizer_params:
-  weight_decay: 0.0001
+  weight_decay: 0.00003
 
 ema: True
 ema_params:
