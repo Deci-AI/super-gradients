@@ -1,3 +1,5 @@
+from typing import Union
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -378,6 +380,10 @@ class DDRNet(SgModule):
         self.layer5_bottleneck_expansion = layer5_bottleneck_expansion
         self.head_width = head_width
         self._initialize_weights()
+
+    def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
+        self.aux_head = False
+        self.seghead_extra = None
 
     @property
     def backbone(self):
