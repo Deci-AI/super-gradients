@@ -1,11 +1,10 @@
 from typing import Optional
 
-from torch.nn.modules.loss import _Loss
 import torch.nn as nn
 import torch
 
 
-class CWDKlDivLoss(_Loss):
+class ChannelWiseKnowledgeDistillationLoss(nn.Module):
     """
     Implementation of Channel-wise Knowledge distillation loss.
 

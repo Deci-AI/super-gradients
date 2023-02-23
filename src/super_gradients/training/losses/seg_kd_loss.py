@@ -1,20 +1,21 @@
 from typing import Union
 
 import torch
-from torch.nn.modules.loss import _Loss
+import torch.nn as nn
 
 from super_gradients.training.models.kd_modules.kd_module import KDOutput
 
 
-class SegKDLoss(_Loss):
+class SegKDLoss(nn.Module):
     """
     Wrapper loss for semantic segmentation KD.
-    This loss includes two loss components, `ce_loss` i.e CrossEntropyLoss, and `kd_loss` i.e `CWDKlDivLoss`.
+    This loss includes two loss components, `ce_loss` i.e CrossEntropyLoss, and `kd_loss` i.e
+    `ChannelWiseKnowledgeDistillationLoss`.
     """
 
-    def __init__(self, kd_loss: _Loss, ce_loss: _Loss, weights: Union[tuple, list], kd_loss_weights: Union[tuple, list]):
+    def __init__(self, kd_loss: nn.Module, ce_loss: nn.Module, weights: Union[tuple, list], kd_loss_weights: Union[tuple, list]):
         """
-        :param kd_loss: knowledge distillation criteria, such as, CWDKlDivLoss.
+        :param kd_loss: knowledge distillation criteria, such as, ChannelWiseKnowledgeDistillationLoss.
          This loss should except as input a triplet of the predictions from the model with shape [B, C, H, W],
          the teacher model predictions with shape [B, C, H, W] and the target labels with shape [B, H, W].
         :param ce_loss: classification criteria, such as, CE, OHEM, MaskAttention, SL1, etc.

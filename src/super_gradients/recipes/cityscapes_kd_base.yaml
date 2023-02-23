@@ -55,7 +55,7 @@ training_hyperparams:
     kd_loss_weights: [1., 6.]
 
     kd_loss:
-      _target_: super_gradients.training.losses.cwd_loss.CWDKlDivLoss
+      _target_: super_gradients.training.losses.cwd_loss.ChannelWiseKnowledgeDistillationLoss
       temperature: 3.
       normalization_mode: channel_wise
 
