@@ -25,7 +25,7 @@ loss:
 
 optimizer: Lion
 optimizer_params:
-  weight_decay: 0.00003
+  weight_decay: 0.0003
 
 ema: True
 ema_params:
