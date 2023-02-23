@@ -33,6 +33,8 @@ class PPYoloE(SgModule):
         with convertible substitutes and remove all auxiliary or training related parts.
         :param input_size: [H,W]
         """
+        self.head.cache_anchors(input_size)
+
         for module in self.modules():
             if isinstance(module, RepVGGBlock):
                 module.fuse_block_residual_branches()
