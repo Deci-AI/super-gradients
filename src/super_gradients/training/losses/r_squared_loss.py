@@ -11,7 +11,7 @@ from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 
 
-@register_loss(Losses.MSE)
+@register_loss(Losses.R_SQUARED_LOSS)
 class RSquaredLoss(_Loss):
     def forward(self, output, target):
         # FIXME - THIS NEEDS TO BE CHANGED SUCH THAT THIS CLASS INHERETS FROM _Loss (TAKE A LOOK AT YoLoV3DetectionLoss)

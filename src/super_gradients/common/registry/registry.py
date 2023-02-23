@@ -1,6 +1,9 @@
 import inspect
 from typing import Callable, Dict, Optional
 
+from torch import nn
+
+from super_gradients.common import object_names
 from super_gradients.training.utils.callbacks import LR_SCHEDULERS_CLS_DICT
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.training.dataloaders.dataloaders import ALL_DATALOADERS
@@ -55,7 +58,7 @@ register_model = create_register_decorator(registry=ARCHITECTURES)
 register_detection_module = create_register_decorator(registry=ALL_DETECTION_MODULES)
 register_metric = create_register_decorator(registry=METRICS)
 
-LOSSES = {}
+LOSSES = {object_names.Losses.MSE: nn.MSELoss}
 register_loss = create_register_decorator(registry=LOSSES)
 
 register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)
