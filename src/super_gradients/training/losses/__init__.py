@@ -1,3 +1,6 @@
+from super_gradients.common.registry.registry import LOSSES
+from super_gradients.common.object_names import Losses
+
 from super_gradients.training.losses.focal_loss import FocalLoss
 from super_gradients.training.losses.kd_losses import KDLogitsLoss
 from super_gradients.training.losses.label_smoothing_cross_entropy_loss import LabelSmoothingCrossEntropyLoss
@@ -11,6 +14,8 @@ from super_gradients.training.losses.dice_ce_edge_loss import DiceCEEdgeLoss
 from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
 
 __all__ = [
+    "LOSSES",
+    "Losses",
     "FocalLoss",
     "LabelSmoothingCrossEntropyLoss",
     "ShelfNetOHEMLoss",
