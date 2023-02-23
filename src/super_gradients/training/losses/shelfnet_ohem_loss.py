@@ -1,11 +1,8 @@
 import torch
 
-from super_gradients.training.losses.ohem_ce_loss import OhemCELoss
-
-
-from super_gradients.common.registry.registry import register_loss
-
 from super_gradients.common.object_names import Losses
+from super_gradients.common.registry.registry import register_loss
+from super_gradients.training.losses.ohem_ce_loss import OhemCELoss
 
 
 @register_loss(Losses.SHELFNET_OHEM_LOSS)

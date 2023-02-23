@@ -3,9 +3,8 @@ from torch import nn
 from torch.autograd import Variable
 
 
-from super_gradients.common.registry.registry import register_loss
-
 from super_gradients.common.object_names import Losses
+from super_gradients.common.registry.registry import register_loss
 
 
 @register_loss(Losses.SHELFNET_SE_LOSS)

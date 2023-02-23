@@ -3,10 +3,8 @@ from typing import Tuple
 import torch
 from torch import Tensor, nn
 
-
-from super_gradients.common.registry.registry import register_loss
-
 from super_gradients.common.object_names import Losses
+from super_gradients.common.registry.registry import register_loss
 
 
 @register_loss(Losses.DEKR_LOSS)
