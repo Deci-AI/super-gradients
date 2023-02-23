@@ -7,10 +7,12 @@ from torch.nn.modules.loss import _Loss
 from super_gradients.training.utils import convert_to_tensor
 
 
-from super_gradients.common.registry.register_loss import register_loss
+from super_gradients.common.registry.registry import register_loss
+
+from super_gradients.common.object_names import Losses
 
 
-@register_loss("r_squared_loss")
+@register_loss(Losses.MSE)
 class RSquaredLoss(_Loss):
     def forward(self, output, target):
         # FIXME - THIS NEEDS TO BE CHANGED SUCH THAT THIS CLASS INHERETS FROM _Loss (TAKE A LOOK AT YoLoV3DetectionLoss)

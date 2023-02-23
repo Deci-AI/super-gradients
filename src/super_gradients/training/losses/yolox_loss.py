@@ -12,7 +12,9 @@ from torch import nn
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
 
-from super_gradients.common.registry.register_loss import register_loss
+
+from super_gradients.common.object_names import Losses
+from super_gradients.common.registry.registry import register_loss
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import calculate_bbox_iou_matrix
@@ -80,7 +82,7 @@ class IOUloss(nn.Module):
         return loss
 
 
-@register_loss("yolox_loss")
+@register_loss(Losses.YOLOX_LOSS)
 class YoloXDetectionLoss(_Loss):
     """
     Calculate YOLOX loss:
@@ -609,7 +611,7 @@ class YoloXDetectionLoss(_Loss):
         return num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds
 
 
-@register_loss("yolox_fast_loss")
+@register_loss(Losses.YOLOX_FAST_LOSS)
 class YoloXFastDetectionLoss(YoloXDetectionLoss):
     """
     A completely new implementation of YOLOX loss.

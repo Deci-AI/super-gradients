@@ -1,3 +1,22 @@
+class Losses:
+    """Static class holding all the supported loss names"""
+
+    CROSS_ENTROPY = "cross_entropy"
+    MSE = "mse"
+    R_SQUARED_LOSS = "r_squared_loss"
+    SHELFNET_OHEM_LOSS = "shelfnet_ohem_loss"
+    SHELFNET_SE_LOSS = "shelfnet_se_loss"
+    YOLOX_LOSS = "yolox_loss"
+    PPYOLOE_LOSS = "ppyoloe_loss"
+    YOLOX_FAST_LOSS = "yolox_fast_loss"
+    SSD_LOSS = "ssd_loss"
+    STDC_LOSS = "stdc_loss"
+    BCE_DICE_LOSS = "bce_dice_loss"
+    KD_LOSS = "kd_loss"
+    DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
+    DEKR_LOSS = "dekr_loss"
+
+
 class Metrics:
     """Static class holding all the supported metric names"""
 

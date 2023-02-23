@@ -6,7 +6,8 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 
 import super_gradients
-from super_gradients.common.registry.register_loss import register_loss
+from super_gradients.common.object_names import Losses
+from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import cxcywh_to_xyxy
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.training.utils.distributed_training_utils import (
@@ -641,7 +642,7 @@ class GIoULoss(object):
         return loss * self.loss_weight
 
 
-@register_loss("ppyoloe_loss")
+@register_loss(Losses.PPYOLOE_LOSS)
 class PPYoloELoss(nn.Module):
     def __init__(
         self,

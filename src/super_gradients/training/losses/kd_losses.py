@@ -1,6 +1,8 @@
 from torch.nn.modules.loss import _Loss, KLDivLoss
 import torch
-from super_gradients.common.registry.register_loss import register_loss
+
+from super_gradients.common.object_names import Losses
+from super_gradients.common.registry.registry import register_loss
 
 
 class KDklDivLoss(KLDivLoss):
@@ -13,7 +15,7 @@ class KDklDivLoss(KLDivLoss):
         return super(KDklDivLoss, self).forward(torch.log_softmax(student_output, dim=1), torch.softmax(teacher_output, dim=1))
 
 
-@register_loss("kd_loss")
+@register_loss(Losses.KD_LOSS)
 class KDLogitsLoss(_Loss):
     """Knowledge distillation loss, wraps the task loss and distillation loss"""
 

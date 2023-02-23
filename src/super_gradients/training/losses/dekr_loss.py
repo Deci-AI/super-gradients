@@ -4,10 +4,12 @@ import torch
 from torch import Tensor, nn
 
 
-from super_gradients.common.registry.register_loss import register_loss
+from super_gradients.common.registry.registry import register_loss
+
+from super_gradients.common.object_names import Losses
 
 
-@register_loss("dekr_loss")
+@register_loss(Losses.DEKR_LOSS)
 class DEKRLoss(nn.Module):
     """
     Implementation of the loss function from the "Bottom-Up Human Pose Estimation Via Disentangled Keypoint Regression"

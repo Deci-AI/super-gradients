@@ -3,10 +3,12 @@ import torch
 from super_gradients.training.losses.ohem_ce_loss import OhemCELoss
 
 
-from super_gradients.common.registry.register_loss import register_loss
+from super_gradients.common.registry.registry import register_loss
+
+from super_gradients.common.object_names import Losses
 
 
-@register_loss("shelfnet_ohem_loss")
+@register_loss(Losses.SHELFNET_OHEM_LOSS)
 class ShelfNetOHEMLoss(OhemCELoss):
     def __init__(self, threshold: float = 0.7, mining_percent: float = 1e-4, ignore_lb: int = 255):
         """

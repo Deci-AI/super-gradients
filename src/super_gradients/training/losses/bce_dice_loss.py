@@ -4,10 +4,12 @@ from super_gradients.training.losses.bce_loss import BCE
 from super_gradients.training.losses.dice_loss import BinaryDiceLoss
 
 
-from super_gradients.common.registry.register_loss import register_loss
+from super_gradients.common.registry.registry import register_loss
+
+from super_gradients.common.object_names import Losses
 
 
-@register_loss("bce_dice_loss")
+@register_loss(Losses.BCE_DICE_LOSS)
 class BCEDiceLoss(torch.nn.Module):
     """
     Binary Cross Entropy + Dice Loss
