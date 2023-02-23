@@ -306,7 +306,7 @@ class ConcatenatedTensorFormats:
     LABEL_NORMALIZED_CXCYWH = "LABEL_NORMALIZED_CXCYWH"
 
 
-class Datasets:
+class Dataloaders:
     COCO2017_TRAIN = "coco2017_train"
     COCO2017_VAL = "coco2017_val"
     COCO2017_TRAIN_YOLOX = "coco2017_train_yolox"
@@ -361,3 +361,21 @@ class Datasets:
     SUPERVISELY_PERSONS_VAL = "supervisely_persons_val"
     PASCAL_VOC_DETECTION_TRAIN = "pascal_voc_detection_train"
     PASCAL_VOC_DETECTION_VAL = "pascal_voc_detection_val"
+
+
+class Datasets:
+    CIFAR_10 = "Cifar10"
+    CIFAR_100 = "Cifar100"
+    IMAGENET_DATASET = "ImageNetDataset"
+    COCO_DETECTION_DATASET = "COCODetectionDataset"
+    DETECTION_DATASET = "DetectionDataset"
+    PASCAL_VOC_DETECTION_DATASET = "PascalVOCDetectionDataset"
+    SEGMENTATION_DATASET = "SegmentationDataSet"
+    COCO_SEGMENTATION_DATASET = "CoCoSegmentationDataSet"
+    PASCAL_AUG_2012_SEGMENTATION_DATASET = "PascalAUG2012SegmentationDataSet"
+    PASCAL_VOC_2012_SEGMENTATION_DATASET = "PascalVOC2012SegmentationDataSet"
+    CITYSCAPES_DATASET = "CityscapesDataset"
+    MAPILLARY_DATASET = "MapillaryDataset"
+    SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
+    PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
+    COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"

@@ -11,6 +11,8 @@ try:
 except ModuleNotFoundError as ex:
     print("[WARNING]" + str(ex))
 
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.datasets_conf import COCO_DEFAULT_CLASSES_TUPLES_LIST
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
@@ -19,6 +21,7 @@ class EmptyCoCoClassesSelectionException(Exception):
     pass
 
 
+@register_dataset(Datasets.COCO_SEGMENTATION_DATASET)
 class CoCoSegmentationDataSet(SegmentationDataSet):
     """
     Segmentation Data Set Class for COCO 2017 Segmentation Data Set

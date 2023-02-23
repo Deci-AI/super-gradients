@@ -1,12 +1,15 @@
 from typing import Optional, Callable, Union
 
+from torchvision.datasets import CIFAR10, CIFAR100
 from torchvision.transforms import Compose
 
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from torchvision.datasets import CIFAR10, CIFAR100
 
 
+@register_dataset(Datasets.CIFAR_10)
 class Cifar10(CIFAR10):
     """
     CIFAR10 Dataset
@@ -41,6 +44,7 @@ class Cifar10(CIFAR10):
         )
 
 
+@register_dataset(Datasets.CIFAR_100)
 class Cifar100(CIFAR100):
     @resolve_param("transforms", TransformsFactory())
     def __init__(

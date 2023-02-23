@@ -2,6 +2,9 @@ import os
 import cv2
 import numpy as np
 from PIL import Image, ImageColor
+
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
 # TODO - ADD COARSE DATA - right now cityscapes dataset includes fine annotations. It's optional to use extra coarse
@@ -11,6 +14,7 @@ from super_gradients.training.datasets.segmentation_datasets.segmentation_datase
 CITYSCAPES_IGNORE_LABEL = 19
 
 
+@register_dataset(Datasets.CITYSCAPES_DATASET)
 class CityscapesDataset(SegmentationDataSet):
     """
     CityscapesDataset - Segmentation Data Set Class for Cityscapes Segmentation Data Set,
