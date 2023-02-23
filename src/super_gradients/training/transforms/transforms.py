@@ -408,6 +408,20 @@ class DetectionTransform:
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
 
+class DetectionStandardize(DetectionTransform):
+    """
+    Standardize image pixel values with img/max_val
+    """
+
+    def __init__(self, max_value: float = 255.0):
+        super().__init__()
+        self.max_value = max_value
+
+    def __call__(self, sample: dict) -> dict:
+        sample["image"] = sample["image"] / self.max_value
+        return sample
+
+
 class DetectionMosaic(DetectionTransform):
     """
     DetectionMosaic detection transform
