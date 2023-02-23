@@ -57,4 +57,13 @@ phase_callbacks:
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True
 
+sg_logger: "wandb_sg_logger"
+sg_logger_params:
+  project_name: LionExperiments
+  entity: super-gradients
+  api_server: https://wandb.research.deci.ai
+  save_checkpoints_remote: True
+  save_tensorboard_remote: True
+  save_logs_remote: True
+
 _convert_: all
