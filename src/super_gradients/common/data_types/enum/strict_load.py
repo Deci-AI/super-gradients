@@ -9,8 +9,13 @@ class StrictLoad(Enum):
         ON               - Native torch "strict_load = on" behaviour. See nn.Module.load_state_dict() documentation for more details.
         NO_KEY_MATCHING  - Allows the usage of SuperGradient's adapt_checkpoint function, which loads a checkpoint by matching each
                            layer's shapes (and bypasses the strict matching of the names of each layer (ie: disregards the state_dict key matching)).
+                           This implementation assumes order of layers in the state_dict and model are the same since it goes layer by layer and as name
+                           suggest does not use key matching, relying only on index of each weight.
+        KEY_MATCHING     - Loose load strategy that loads the state dict from checkpoint into model only for common keys and also handling the
+                           case when shapes of the tensors in the state dict and model are different for the same key (Such layers will be skipped).
     """
 
     OFF = False
     ON = True
     NO_KEY_MATCHING = "no_key_matching"
+    KEY_MATCHING = "key_matching"

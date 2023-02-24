@@ -1150,7 +1150,7 @@ def compute_detection_metrics_per_cls(
     fps = torch.logical_and(torch.logical_not(preds_matched), torch.logical_not(preds_to_ignore))
 
     if len(tps) == 0:
-        return torch.zeros(nb_iou_thrs, device=device), 0, 0
+        return torch.zeros(nb_iou_thrs, device=device), torch.zeros(nb_iou_thrs, device=device), torch.zeros(nb_iou_thrs, device=device)
 
     # Sort by decreasing score
     dtype = torch.uint8 if preds_scores.is_cuda and preds_scores.dtype is torch.bool else preds_scores.dtype
@@ -1177,8 +1177,8 @@ def compute_detection_metrics_per_cls(
     lowest_score_above_threshold = torch.searchsorted(-preds_scores, -score_threshold, right=False)
 
     if lowest_score_above_threshold == 0:  # Here score_threshold > preds_scores[0], so no pred is above the threshold
-        recall = 0
-        precision = 0  # the precision is not really defined when no pred but we need to give it a value
+        recall = torch.zeros(nb_iou_thrs, device=device)
+        precision = torch.zeros(nb_iou_thrs, device=device)  # the precision is not really defined when no pred but we need to give it a value
     else:
         recall = rolling_recalls[lowest_score_above_threshold - 1]
         precision = rolling_precisions[lowest_score_above_threshold - 1]

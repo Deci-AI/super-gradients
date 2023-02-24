@@ -5,7 +5,7 @@ import torch.nn
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 
-from super_gradients.common import MultiGPUMode
+from super_gradients.common import MultiGPUMode, StrictLoad
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import utils as core_utils, models
 from super_gradients.training.dataloaders import dataloaders
@@ -226,7 +226,7 @@ class KDTrainer(Trainer):
                 ckpt_local_path=teacher_checkpoint_path,
                 load_backbone=False,
                 net=teacher_net,
-                strict="no_key_matching",
+                strict=StrictLoad.NO_KEY_MATCHING,
                 load_weights_only=True,
                 load_ema_as_net=load_teachers_ema,
             )
