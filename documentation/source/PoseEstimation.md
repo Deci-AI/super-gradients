@@ -33,6 +33,24 @@ from super_gradients.training import dataloaders
 
 root_dir = '/path/to/coco2017'
 
-train_loader = dataloaders.supervisely_persons_train(dataset_params={"root_dir": root_dir}, dataloader_params={})
-valid_loader = dataloaders.supervisely_persons_val(dataset_params={"root_dir": root_dir}, dataloader_params={})
+train_loader = dataloaders.coco2017_pose_train(dataset_params={"root_dir": root_dir}, dataloader_params={})
+valid_loader = dataloaders.coco2017_pose_val(dataset_params={"root_dir": root_dir}, dataloader_params={})
+```
+
+## Load the model from modelzoo
+
+Create a DEKR-W32 model, with 1 class segmentation head classifier. 
+For simplicity `use_aux_head` is set as `False` and extra Auxiliary heads aren't used for training.
+
+```py
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+
+# The model is a torch.nn.module 
+model = models.get(
+    model_name=Models.PP_LITE_T_SEG75,      # You can use any model listed in the Models.<Name>
+    arch_params={"use_aux_heads": False},
+    num_classes=1,                          # Change this if you work on another dataset with more classes
+    pretrained_weights="cityscapes"         # Drop this line to train from scratch
+)
 ```
