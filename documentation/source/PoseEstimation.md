@@ -12,7 +12,9 @@ In contrast, a **bottom-up** approach first identifies individual body parts or 
 
 In summary, top-down approach starts with detecting an object and then estimates its pose, while bottom-up approach first identifies the body parts and then forms a complete pose.
 
-SuperGradients provides a recipe for training a SOTA **bottom-up** model called `DEKR` from ["Bottom-Up Human Pose Estimation Via Disentangled Keypoint Regression"](https://arxiv.org/abs/2104.02300) paper.
+## Implemented models
+
+* [DEKR](https://arxiv.org/abs/2104.02300) - Bottom-Up Human Pose Estimation Via Disentangled Keypoint Regression
 
 ## Datasets
 
