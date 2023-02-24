@@ -1,11 +1,20 @@
+import abc
 from typing import Tuple
 
 import cv2
 import numpy as np
 from torch import Tensor
 
+__all__ = ["KeypointsTargetsGenerator", "DEKRTargetsGenerator"]
 
-class DEKRTargetsGenerator:
+
+class KeypointsTargetsGenerator:
+    @abc.abstractmethod
+    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray):
+        raise NotImplementedError()
+
+
+class DEKRTargetsGenerator(KeypointsTargetsGenerator):
     """
     Target generator for pose estimation task tailored for the DEKR paper (https://arxiv.org/abs/2104.02300)
     """
