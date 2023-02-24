@@ -104,4 +104,7 @@ sg_logger_params:
   save_logs_remote: False  # upload log files to s3
   monitor_system: True  # Monitor and write to tensorboard the system statistics, such as CPU usage, GPU, ...
 
+
+torch_compile: False
+
 _convert_: all

@@ -1018,7 +1018,13 @@ class Trainer:
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
+        if self.training_params.torch_compile:
+            logger.info("Using torch.compile feature. Compiling model. This may take a few minutes")
+            model = torch.compile(model)
+            logger.info("Model compilation complete. Continuing training")
+
         self.net = model
+
         self._prep_net_for_train()
 
         # SET RANDOM SEED
