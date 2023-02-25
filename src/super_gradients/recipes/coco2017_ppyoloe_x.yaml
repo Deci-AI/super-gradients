@@ -43,14 +43,14 @@ training_hyperparams:
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
-    project_name: coco2017_pp_yoloe_s
+    project_name: coco2017_pp_yoloe_x
     entity: super-gradients
     api_server: "https://wandb.research.deci.ai"
     save_checkpoints_remote: True
     save_tensorboard_remote: True
     save_logs_remote: True
 
-architecture: pp_yoloe_s
+architecture: pp_yoloe_x
 
 multi_gpu: DDP
 num_gpus: 8
