@@ -1,0 +1,75 @@
+# PP-Yolo-E Detection training on COCO2017 Dataset:
+# PP-Yolo-E trained in 640x640
+# Recipe runs with batch size = 32 X 8 gpus = 256.
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command you want:
+#         ppyoloe_s: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_s
+#         ppyoloe_m: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_m
+#         ppyoloe_l: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_l
+#         ppyoloe_x: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_x
+#
+# Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images):
+#         ppyoloe_s: 37h on 8 NVIDIA GeForce RTX 3090, mAP: 42.52 (val)
+#         ppyoloe_m: 58h on 8 NVIDIA GeForce RTX 3090, mAP: 47.11 (val)
+#         ppyoloe_l: COMING SOON
+#         ppyoloe_x: COMING SOON
+#
+
+defaults:
+  - training_hyperparams: coco2017_ppyoloe_train_params
+  - dataset_params: coco_detection_ppyoloe_dataset_params
+  - arch_params: ppyoloe_s_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+train_dataloader: coco2017_train_ppyoloe
+val_dataloader: coco2017_val_ppyoloe
+
+load_checkpoint: False
+resume: False
+
+dataset_params:
+  train_dataloader_params:
+    batch_size: 32
+
+training_hyperparams:
+  resume: ${resume}
+  mixed_precision: True
+
+  ema: False
+  max_epochs: 2
+  torch_compile: False
+
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: TorchCompileExperiments
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
+
+  phase_callbacks:
+    - TimerCallback
+    - PPYoloETrainingStageSwitchCallback:
+        static_assigner_end_epoch: ${training_hyperparams.static_assigner_end_epoch}
+
+architecture: pp_yoloe_s
+
+multi_gpu: DDP
+num_gpus: 8
+
+experiment_suffix: "_compile_disabled"
+experiment_name: coco2017_${architecture}${experiment_suffix}
+
+ckpt_root_dir:
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

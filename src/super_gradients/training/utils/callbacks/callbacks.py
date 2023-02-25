@@ -699,3 +699,42 @@ class TestLRCallback(PhaseCallback):
 
     def __call__(self, context: PhaseContext):
         self.lr_placeholder.append(context.optimizer.param_groups[0]["lr"])
+
+
+class TimerCallback(Callback):
+    def __init__(self):
+        self.events = {}
+
+    def on_train_batch_start(self, context: PhaseContext) -> None:
+        self.events = {"on_train_batch_start": cv2.getTickCount()}
+
+    def on_train_batch_loss_end(self, context: PhaseContext) -> None:
+        self.events["on_train_batch_loss_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="train_batch_forward_with_loss", scalar_value=self.elapsed_time_between("on_train_batch_start", "on_train_batch_loss_end")
+        )
+
+    def on_train_batch_gradient_step_start(self, context: PhaseContext) -> None:
+        self.events["on_train_batch_gradient_step_start"] = cv2.getTickCount()
+
+    def on_train_batch_gradient_step_end(self, context: PhaseContext) -> None:
+        self.events["on_train_batch_gradient_step_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="train_batch_gradient_time", scalar_value=self.elapsed_time_between("on_train_batch_gradient_step_start", "on_train_batch_gradient_step_end")
+        )
+
+    def on_train_batch_end(self, context: PhaseContext) -> None:
+        self.events["on_train_batch_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(tag="train_batch_total_time", scalar_value=self.elapsed_time_between("on_train_batch_start", "on_train_batch_end"))
+
+    def on_validation_batch_start(self, context: PhaseContext) -> None:
+        self.events["on_validation_batch_start"] = cv2.getTickCount()
+
+    def on_validation_batch_end(self, context: PhaseContext) -> None:
+        self.events["on_validation_batch_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="validation_batch_total_time", scalar_value=self.elapsed_time_between("on_validation_batch_start", "on_validation_batch_end")
+        )
+
+    def elapsed_time_between(self, start_event, end_event):
+        return 1000.0 * (self.events[end_event] - self.events[start_event]) / cv2.getTickFrequency()
