@@ -7,6 +7,9 @@ from super_gradients.training.losses.ohem_ce_loss import OhemCELoss, OhemBCELoss
 from super_gradients.training.losses.dice_loss import BinaryDiceLoss
 from typing import Union, Tuple
 
+from super_gradients.common.object_names import Losses
+from super_gradients.common.registry.registry import register_loss
+
 
 class DetailAggregateModule(nn.Module):
     """
@@ -107,6 +110,7 @@ class DetailLoss(_Loss):
         return self.weights[0] * bce_loss + self.weights[1] * dice_loss
 
 
+@register_loss(Losses.STDC_LOSS)
 class STDCLoss(_Loss):
     """
     Loss class of STDC-Seg training.

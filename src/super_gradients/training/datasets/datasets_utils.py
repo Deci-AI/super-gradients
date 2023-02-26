@@ -20,8 +20,8 @@ from torchvision.transforms import transforms, InterpolationMode, RandomResizedC
 from tqdm import tqdm
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.object_names import CollateFn, Callbacks
-from super_gradients.common.registry.registry import register_collate_function, register_callback
+from super_gradients.common.object_names import CollateFn, Callbacks, Transforms
+from super_gradients.common.registry.registry import register_collate_function, register_callback, register_transform
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from super_gradients.training.utils.detection_utils import DetectionVisualization, Anchors
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
@@ -340,6 +340,7 @@ def _pil_interp(method):
 _RANDOM_INTERPOLATION = (InterpolationMode.BILINEAR, InterpolationMode.BICUBIC)
 
 
+@register_transform(Transforms.RandomResizedCropAndInterpolation)
 class RandomResizedCropAndInterpolation(RandomResizedCrop):
     """
     Crop the given PIL Image to random size and aspect ratio with explicitly chosen or random interpolation.

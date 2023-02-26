@@ -1,10 +1,12 @@
 import inspect
 from typing import Callable, Dict, Optional
 
+from torch import nn
+import torchvision
+
+from super_gradients.common.object_names import Losses, Transforms
 from super_gradients.common.sg_loggers import SG_LOGGERS
-from super_gradients.training.losses.all_losses import LOSSES
-from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
-from super_gradients.training.transforms.all_transforms import TRANSFORMS
+
 from super_gradients.training.pre_launch_callbacks import ALL_PRE_LAUNCH_CALLBACKS
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import BACKBONE_STAGES
 from super_gradients.training.models.segmentation_models.unet.unet_decoder import UP_FUSE_BLOCKS
@@ -46,11 +48,17 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
 
 ARCHITECTURES = {}
 register_model = create_register_decorator(registry=ARCHITECTURES)
+
+KD_ARCHITECTURES = {}
+register_kd_model = create_register_decorator(registry=KD_ARCHITECTURES)
+
+ALL_DETECTION_MODULES = {}
 register_detection_module = create_register_decorator(registry=ALL_DETECTION_MODULES)
 
 METRICS = {}
 register_metric = create_register_decorator(registry=METRICS)
 
+LOSSES = {Losses.MSE: nn.MSELoss}
 register_loss = create_register_decorator(registry=LOSSES)
 
 ALL_DATALOADERS = {}
@@ -58,6 +66,44 @@ register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)
 
 CALLBACKS = {}
 register_callback = create_register_decorator(registry=CALLBACKS)
+
+TRANSFORMS = {
+    Transforms.Compose: torchvision.transforms.Compose,
+    Transforms.ToTensor: torchvision.transforms.ToTensor,
+    Transforms.PILToTensor: torchvision.transforms.PILToTensor,
+    Transforms.ConvertImageDtype: torchvision.transforms.ConvertImageDtype,
+    Transforms.ToPILImage: torchvision.transforms.ToPILImage,
+    Transforms.Normalize: torchvision.transforms.Normalize,
+    Transforms.Resize: torchvision.transforms.Resize,
+    Transforms.CenterCrop: torchvision.transforms.CenterCrop,
+    Transforms.Pad: torchvision.transforms.Pad,
+    Transforms.Lambda: torchvision.transforms.Lambda,
+    Transforms.RandomApply: torchvision.transforms.RandomApply,
+    Transforms.RandomChoice: torchvision.transforms.RandomChoice,
+    Transforms.RandomOrder: torchvision.transforms.RandomOrder,
+    Transforms.RandomCrop: torchvision.transforms.RandomCrop,
+    Transforms.RandomHorizontalFlip: torchvision.transforms.RandomHorizontalFlip,
+    Transforms.RandomVerticalFlip: torchvision.transforms.RandomVerticalFlip,
+    Transforms.RandomResizedCrop: torchvision.transforms.RandomResizedCrop,
+    Transforms.FiveCrop: torchvision.transforms.FiveCrop,
+    Transforms.TenCrop: torchvision.transforms.TenCrop,
+    Transforms.LinearTransformation: torchvision.transforms.LinearTransformation,
+    Transforms.ColorJitter: torchvision.transforms.ColorJitter,
+    Transforms.RandomRotation: torchvision.transforms.RandomRotation,
+    Transforms.RandomAffine: torchvision.transforms.RandomAffine,
+    Transforms.Grayscale: torchvision.transforms.Grayscale,
+    Transforms.RandomGrayscale: torchvision.transforms.RandomGrayscale,
+    Transforms.RandomPerspective: torchvision.transforms.RandomPerspective,
+    Transforms.RandomErasing: torchvision.transforms.RandomErasing,
+    Transforms.GaussianBlur: torchvision.transforms.GaussianBlur,
+    Transforms.InterpolationMode: torchvision.transforms.InterpolationMode,
+    Transforms.RandomInvert: torchvision.transforms.RandomInvert,
+    Transforms.RandomPosterize: torchvision.transforms.RandomPosterize,
+    Transforms.RandomSolarize: torchvision.transforms.RandomSolarize,
+    Transforms.RandomAdjustSharpness: torchvision.transforms.RandomAdjustSharpness,
+    Transforms.RandomAutocontrast: torchvision.transforms.RandomAutocontrast,
+    Transforms.RandomEqualize: torchvision.transforms.RandomEqualize,
+}
 register_transform = create_register_decorator(registry=TRANSFORMS)
 
 ALL_DATASETS = {}

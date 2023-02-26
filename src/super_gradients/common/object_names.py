@@ -392,3 +392,14 @@ class CollateFn:
     KEYPOINTS_COLLATE = "KeypointsCollate"
     DETECTION_COLLATE_FN = "DetectionCollateFN"
     CROWD_DETECTION_COLLATE_FN = "CrowdDetectionCollateFN"
+
+
+class DetectionModules:
+    MOBILENET_V1_BACKBONE = "MobileNetV1Backbone"
+    MOBILENET_V2_BACKBONE = "MobileNetV2Backbone"
+    SSD_INVERTED_RESIDUAL_NECK = "SSDInvertedResidualNeck"
+    SSD_BOTTLENECK_NECK = "SSDBottleneckNeck"
+    SSD_HEAD = "SSDHead"
+    N_STAGE_BACKBONE = "NStageBackbone"
+    PAN_NECK = "PANNeck"
+    N_HEADS = "NHeads"

@@ -2,7 +2,7 @@ from super_gradients.training.models.sg_module import SgModule
 from collections import namedtuple
 import torch
 
-from super_gradients.common.registry.registry import register_model
+from super_gradients.common.registry.registry import register_kd_model, register_model
 from super_gradients.common.object_names import Models
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils import get_param
@@ -11,6 +11,7 @@ KDOutput = namedtuple("KDOutput", "student_output teacher_output")
 
 
 @register_model(Models.KD_MODULE)
+@register_kd_model(Models.KD_MODULE)
 class KDModule(SgModule):
     """
     KDModule
