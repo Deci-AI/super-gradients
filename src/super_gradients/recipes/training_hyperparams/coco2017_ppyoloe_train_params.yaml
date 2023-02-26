@@ -5,11 +5,11 @@ max_epochs: 500
 static_assigner_end_epoch: 150
 
 warmup_mode: "linear_batch_step"
-warmup_initial_lr:  1e-6
+warmup_initial_lr:  1e-7
 lr_warmup_steps: 1000
 lr_warmup_epochs: 0
 
-initial_lr:  0.0006
+initial_lr:  2e-5
 lr_mode: cosine
 cosine_final_lr_ratio: 0.1
 
@@ -25,7 +25,7 @@ loss:
 
 optimizer: Lion
 optimizer_params:
-  weight_decay: 0.0003
+  weight_decay: 0.01
 
 ema: True
 ema_params:
