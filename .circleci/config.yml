@@ -441,6 +441,7 @@ jobs:
           command: |
             << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
             source << parameters.sg_new_env_name >>/bin/activate
+            ls /data/
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
@@ -598,7 +599,7 @@ workflows:
       - recipe_sanity_tests_classification_pt2:
           requires:
             - recipe_sanity_tests_classification_pt1
-          # <<: *release_tag_filter
+          <<: *release_tag_filter
       - recipe_sanity_tests_segmentation:
           requires:
             - recipe_sanity_tests_classification_pt2

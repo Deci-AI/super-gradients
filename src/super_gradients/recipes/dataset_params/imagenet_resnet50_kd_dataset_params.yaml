@@ -9,7 +9,7 @@ train_transform_args:
   auto_augment_config_string: rand-m7-mstd0.5
 
 train_dataset_params:
-  root: /data/imagenet/train
+  root: /data/Imagenet/train
   transforms:
     - RandomResizedCropAndInterpolation:
         size: 224

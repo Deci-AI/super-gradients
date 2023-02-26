@@ -2,7 +2,7 @@ defaults:
   - imagenet_dataset_params
 
 train_dataset_params:
-  root: /data/imagenet/train
+  root: /data/Imagenet/train
   transforms:
     - RandomResizedCropAndInterpolation:
         size: 224

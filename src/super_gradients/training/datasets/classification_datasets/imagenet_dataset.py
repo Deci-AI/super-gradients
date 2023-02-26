@@ -27,8 +27,8 @@ class ImageNetDataset(torch_datasets.ImageFolder):
             └──...
 
     - Instantiate the dataset:
-        >> train_set = ImageNetDataset(root='.../imagenet/train', ...)
-        >> valid_set = ImageNetDataset(root='.../imagenet/val', ...)
+        >> train_set = ImageNetDataset(root='.../Imagenet/train', ...)
+        >> valid_set = ImageNetDataset(root='.../Imagenet/val', ...)
     """
 
     @resolve_param("transforms", factory=TransformsFactory())

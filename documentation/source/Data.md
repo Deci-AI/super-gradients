@@ -131,8 +131,8 @@ We can then, also with a one-liner, instantiate the validation dataloader and ca
 from super_gradients.training.dataloaders import imagenet_resnet50_train, imagenet_resnet50_val
 from super_gradients.training import Trainer
 
-train_dataloader = imagenet_resnet50_train(dataloader_params={"batch_size": 4, "shuffle": True}, dataset_params={"root": "/my_data_dir/imagenet/train"})
-valid_dataloader = imagenet_resnet50_val(dataloader_params={"batch_size": 16}, dataset_params={"root": "/my_data_dir/imagenet/val"})
+train_dataloader = imagenet_resnet50_train(dataloader_params={"batch_size": 4, "shuffle": True}, dataset_params={"root": "/my_data_dir/Imagenet/train"})
+valid_dataloader = imagenet_resnet50_val(dataloader_params={"batch_size": 16}, dataset_params={"root": "/my_data_dir/Imagenet/val"})
 
 ...
 trainer = Trainer("my_imagenet_training_experiment")
@@ -179,12 +179,12 @@ train_dataloader: imagenet_resnet50_train
 val_dataloader: imagenet_resnet50_val
 dataset_params:
     train_dataset_params:
-      root: /my_data_dir/imagenet/train
+      root: /my_data_dir/Imagenet/train
     train_dataloader_params:
       batch_size: 4
       shuffle: True
     val_dataset_params:
-      root: /my_data_dir/imagenet/val
+      root: /my_data_dir/Imagenet/val
     val_dataloader_params:
       batch_size: 16
 

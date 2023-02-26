@@ -3,7 +3,7 @@ img_mean: [0.485, 0.456, 0.406] # mean for normalization
 img_std: [0.229, 0.224, 0.225]  # std  for normalization
 
 train_dataset_params:
-  root: /data/imagenet/train
+  root: /data/Imagenet/train
   transforms:
     - RandomResizedCropAndInterpolation:
         size: 224
@@ -15,7 +15,7 @@ train_dataset_params:
         std: ${dataset_params.img_std}
 
 val_dataset_params:
-  root: /data/imagenet/val
+  root: /data/Imagenet/val
   transforms:
     - Resize:
         size: 256

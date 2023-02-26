@@ -45,11 +45,11 @@ class AlbumentationsIntegrationTest(unittest.TestCase):
         self.assertTrue(np.allclose(img_no_aug_transformed, img_aug))
 
     def test_imagenet_albumentations_integration(self):
-        ds_no_aug = ImageNetDataset(root="/data/imagenet/val")
+        ds_no_aug = ImageNetDataset(root="/data/Imagenet/val")
         img_no_aug, _ = ds_no_aug.__getitem__(0)
 
         ds = ImageNetDataset(
-            root="/data/imagenet/val", transforms={"Albumentations": {"Compose": {"transforms": [{"HorizontalFlip": {"p": 1}}, {"InvertImg": {"p": 1.0}}]}}}
+            root="/data/Imagenet/val", transforms={"Albumentations": {"Compose": {"transforms": [{"HorizontalFlip": {"p": 1}}, {"InvertImg": {"p": 1.0}}]}}}
         )
         img_aug, _ = ds.__getitem__(0)
         img_no_aug_transformed = self._apply_aug(img_no_aug)
