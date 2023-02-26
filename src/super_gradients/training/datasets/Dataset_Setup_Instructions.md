@@ -42,8 +42,8 @@ dataset = Cifar10(..., download=True)
 3. Instantiate the dataset:
 ```python
 from super_gradients.training.datasets import ImageNetDataset
-train_set = ImageNetDataset(root='.../Imagenet/train', ...)
-valid_set = ImageNetDataset(root='.../Imagenet/val', ...)
+train_set = ImageNetDataset(root='.../imagenet/train', ...)
+valid_set = ImageNetDataset(root='.../imagenet/val', ...)
 ```
 </details>
 

@@ -48,7 +48,7 @@ In the following example, we define a training set and a validation set of Image
 with different configurations:
 ```yaml
 train_dataset_params:
-  root: /data/Imagenet/train
+  root: /data/imagenet/train
   transforms:
     - RandomResizedCropAndInterpolation:
         size: 224
@@ -60,7 +60,7 @@ train_dataset_params:
         std: ${dataset_params.img_std}
 
 val_dataset_params:
-  root: /data/Imagenet/val
+  root: /data/imagenet/val
   transforms:
     - Resize:
         size: 256
