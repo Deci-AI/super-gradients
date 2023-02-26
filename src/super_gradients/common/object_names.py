@@ -379,3 +379,16 @@ class Datasets:
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
+
+
+class TargetGenerators:
+    DEKR_TARGETS_GENERATOR = "DEKRTargetsGenerator"
+
+
+class CollateFn:
+    COMPOSED_COLLATE_FUNCTION = "ComposedCollateFunction"
+    MULTISCALE_COLLATE_FUNCTION = "MultiScaleCollateFunction"
+    COLLATE_MIXUP = "CollateMixup"
+    KEYPOINTS_COLLATE = "KeypointsCollate"
+    DETECTION_COLLATE_FN = "DetectionCollateFN"
+    CROWD_DETECTION_COLLATE_FN = "CrowdDetectionCollateFN"

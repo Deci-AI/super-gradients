@@ -15,6 +15,9 @@ from omegaconf import ListConfig
 from torch import nn
 from torch.utils.data._utils.collate import default_collate
 
+from super_gradients.common.object_names import CollateFn
+from super_gradients.common.registry.registry import register_collate_function
+
 
 class DetectionTargetsFormat(Enum):
     """
@@ -663,6 +666,7 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     return bbox
 
 
+@register_collate_function(CollateFn.DETECTION_COLLATE_FN)
 class DetectionCollateFN:
     """
     Collate function for Yolox training
@@ -782,6 +786,7 @@ class CrowdDetectionPPYoloECollateFN(PPYoloECollateFN):
         return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
 
 
+@register_collate_function(CollateFn.CROWD_DETECTION_COLLATE_FN)
 class CrowdDetectionCollateFN(DetectionCollateFN):
     """
     Collate function for Yolox training with additional_batch_items that includes crowd targets

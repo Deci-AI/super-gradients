@@ -15,6 +15,8 @@ from typing import List, Union
 import numpy as np
 import torch
 
+from super_gradients.common.object_names import CollateFn
+from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 
 
@@ -99,6 +101,7 @@ def cutmix_bbox_and_lam(img_shape: tuple, lam: float, ratio_minmax: Union[tuple,
     return (yl, yu, xl, xu), lam
 
 
+@register_collate_function(CollateFn.COLLATE_MIXUP)
 class CollateMixup:
     """
     Collate with Mixup/Cutmix that applies different params to each element or whole batch

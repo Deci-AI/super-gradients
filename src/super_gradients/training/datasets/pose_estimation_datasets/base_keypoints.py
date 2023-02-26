@@ -6,6 +6,8 @@ import torch
 from torch.utils.data import default_collate, Dataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.object_names import CollateFn
+from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointTransform
 
 logger = get_logger(__name__)
@@ -94,6 +96,7 @@ class BaseKeypointsDataset(Dataset):
         return joints
 
 
+@register_collate_function(CollateFn.KEYPOINTS_COLLATE)
 class KeypointsCollate:
     """
     Collate image & targets, return extras as is.
