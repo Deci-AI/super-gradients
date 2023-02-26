@@ -74,13 +74,12 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import (
     CallbackHandler,
     Phase,
-    LR_SCHEDULERS_CLS_DICT,
     PhaseContext,
     MetricsUpdateCallback,
-    LR_WARMUP_CLS_DICT,
     ContextSgMethods,
     LRCallbackBase,
 )
+from super_gradients.common.registry.registry import LR_SCHEDULERS_CLS_DICT, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg

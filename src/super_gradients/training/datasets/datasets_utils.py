@@ -20,8 +20,8 @@ from torchvision.transforms import transforms, InterpolationMode, RandomResizedC
 from tqdm import tqdm
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.object_names import CollateFn
-from super_gradients.common.registry.registry import register_collate_function
+from super_gradients.common.object_names import CollateFn, Callbacks
+from super_gradients.common.registry.registry import register_collate_function, register_callback
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from super_gradients.training.utils.detection_utils import DetectionVisualization, Anchors
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
@@ -273,6 +273,7 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
         return inputs, targets
 
 
+@register_callback(Callbacks.DETECTION_MULTISCALE_PREPREDICTION)
 class DetectionMultiscalePrePredictionCallback(MultiscalePrePredictionCallback):
     """
     Mutiscalepre-prediction callback for object detection.

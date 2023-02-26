@@ -14,6 +14,8 @@ from deprecate import deprecated
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.plugins.deci_client import DeciClient
+from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback
+from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
@@ -31,6 +33,7 @@ class ContextSgMethods:
             setattr(self, attr, attr_val)
 
 
+@register_callback(Callbacks.MODEL_CONVERSION_CHECK)
 class ModelConversionCheckCallback(PhaseCallback):
     """
     Pre-training callback that verifies model conversion to onnx given specified conversion parameters.
@@ -118,6 +121,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         logger.info("Exported model has been tested with ONNXRuntime, and the result looks good!")
 
 
+@register_callback(Callbacks.DECI_LAB_UPLOAD)
 class DeciLabUploadCallback(PhaseCallback):
     """
     Post-training callback for uploading and optimizing a model.
@@ -220,6 +224,7 @@ class DeciLabUploadCallback(PhaseCallback):
             logger.error(ex)
 
 
+@register_callback(Callbacks.LR_CALLBACK_BASE)
 class LRCallbackBase(PhaseCallback):
     """
     Base class for hard coded learning rate scheduling regimes, implemented as callbacks.
@@ -265,6 +270,7 @@ class LRCallbackBase(PhaseCallback):
                 param_group["lr"] = self.lr
 
 
+@register_lr_warmup(LRWarmups.LINEAR_EPOCH_STEP)
 class EpochStepWarmupLRCallback(LRCallbackBase):
     """
     LR scheduling callback for linear step warmup. This scheduler uses a whole epoch as single step.
@@ -288,6 +294,19 @@ class EpochStepWarmupLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
+@register_lr_warmup(LRWarmups.LINEAR_STEP)
+class LinearStepWarmupLRCallback(EpochStepWarmupLRCallback):
+    """Deprecated, use EpochStepWarmupLRCallback instead"""
+
+    def __init__(self, **kwargs):
+        logger.warning(
+            f"Parameter {LRWarmups.LINEAR_STEP} has been made deprecated and will be removed in the next SG release. "
+            f"Please use `{LRWarmups.LINEAR_EPOCH_STEP}` instead."
+        )
+        super(EpochStepWarmupLRCallback, self).__init__(**kwargs)
+
+
+@register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP)
 class BatchStepLinearWarmupLRCallback(Callback):
     """
     LR scheduling callback for linear step warmup on each batch step.
@@ -357,6 +376,7 @@ class BatchStepLinearWarmupLRCallback(Callback):
                 param_group["lr"] = self.lr
 
 
+@register_lr_scheduler(LRSchedulers.STEP)
 class StepLRCallback(LRCallbackBase):
     """
     Hard coded step learning rate scheduling (i.e at specific milestones).
@@ -387,6 +407,7 @@ class StepLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch
 
 
+@register_lr_scheduler(LRSchedulers.EXP)
 class ExponentialLRCallback(LRCallbackBase):
     """
     Exponential decay learning rate scheduling. Decays the learning rate by `lr_decay_factor` every epoch.
@@ -407,6 +428,7 @@ class ExponentialLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
+@register_lr_scheduler(LRSchedulers.POLY)
 class PolyLRCallback(LRCallbackBase):
     """
     Hard coded polynomial decay learning rate scheduling (i.e at specific milestones).
@@ -429,6 +451,7 @@ class PolyLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
+@register_lr_scheduler(LRSchedulers.COSINE)
 class CosineLRCallback(LRCallbackBase):
     """
     Hard coded step Cosine anealing learning rate scheduling.
@@ -466,6 +489,7 @@ class CosineLRCallback(LRCallbackBase):
         return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
+@register_lr_scheduler(LRSchedulers.FUNCTION)
 class FunctionLRCallback(LRCallbackBase):
     """
     Hard coded rate scheduling for user defined lr scheduling function.
@@ -507,6 +531,7 @@ class IllegalLRSchedulerMetric(Exception):
         super().__init__(self.message)
 
 
+@register_callback(Callbacks.LR_SCHEDULER)
 class LRSchedulerCallback(PhaseCallback):
     """
     Learning rate scheduler callback.
@@ -537,6 +562,7 @@ class LRSchedulerCallback(PhaseCallback):
         return "LRSchedulerCallback: " + repr(self.scheduler)
 
 
+@register_callback(Callbacks.METRICS_UPDATE)
 class MetricsUpdateCallback(PhaseCallback):
     def __init__(self, phase: Phase):
         super(MetricsUpdateCallback, self).__init__(phase)
@@ -666,6 +692,7 @@ class TrainingStageSwitchCallbackBase(PhaseCallback):
         raise NotImplementedError
 
 
+@register_callback(Callbacks.YOLOX_TRAINING_STAGE_SWITCH)
 class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
     """
     YoloXTrainingStageSwitchCallback

@@ -1,11 +1,9 @@
 import inspect
 from typing import Callable, Dict, Optional
 
-from super_gradients.training.utils.callbacks import LR_SCHEDULERS_CLS_DICT
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.training.losses.all_losses import LOSSES
 from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
-from super_gradients.training.utils.callbacks.all_callbacks import CALLBACKS
 from super_gradients.training.transforms.all_transforms import TRANSFORMS
 from super_gradients.training.pre_launch_callbacks import ALL_PRE_LAUNCH_CALLBACKS
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import BACKBONE_STAGES
@@ -58,6 +56,7 @@ register_loss = create_register_decorator(registry=LOSSES)
 ALL_DATALOADERS = {}
 register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)
 
+CALLBACKS = {}
 register_callback = create_register_decorator(registry=CALLBACKS)
 register_transform = create_register_decorator(registry=TRANSFORMS)
 
@@ -71,7 +70,11 @@ register_unet_up_block = create_register_decorator(registry=UP_FUSE_BLOCKS)
 ALL_TARGET_GENERATORS = {}
 register_target_generator = create_register_decorator(registry=ALL_TARGET_GENERATORS)
 
+LR_SCHEDULERS_CLS_DICT = {}
 register_lr_scheduler = create_register_decorator(registry=LR_SCHEDULERS_CLS_DICT)
+
+LR_WARMUP_CLS_DICT = {}
+register_lr_warmup = create_register_decorator(registry=LR_WARMUP_CLS_DICT)
 register_sg_logger = create_register_decorator(registry=SG_LOGGERS)
 
 ALL_COLLATE_FUNCTIONS = {}
