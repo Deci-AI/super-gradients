@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models import BasicBlock, Bottleneck, SgModule, HpmStruct
 from super_gradients.training.utils import get_param
 
@@ -559,6 +562,7 @@ DEFAULT_DDRNET_23_SLIM_PARAMS = {
 DEFAULT_DDRNET_39_PARAMS = {**DEFAULT_DDRNET_23_PARAMS, "layers": [3, 4, 3, 3, 1, 3, 3, 1], "head_planes": 256, "layer3_repeats": 2}
 
 
+@register_model(Models.DDRNET_39)
 class DDRNet39(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_39_PARAMS)
@@ -575,6 +579,7 @@ class DDRNet39(DDRNetCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.DDRNET_23)
 class DDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_PARAMS)
@@ -607,6 +612,7 @@ class DDRNet23Slim(DDRNetCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.CUSTOM_DDRNET_23)
 class AnyBackBoneDDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_PARAMS)

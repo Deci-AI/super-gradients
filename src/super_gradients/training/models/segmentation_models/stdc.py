@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.training.models import SgModule
@@ -236,6 +238,7 @@ class STDCClassificationBase(SgModule):
         return out
 
 
+@register_model(Models.STDC_CUSTOM_CLS)
 class STDCClassification(STDCClassificationBase):
     def __init__(self, arch_params: HpmStruct):
         super().__init__(
@@ -572,6 +575,7 @@ class STDCSegmentationBase(SgModule):
         return multiply_lr_params.items(), no_multiply_params.items()
 
 
+@register_model(Models.STDC_CUSTOM)
 class CustomSTDCSegmentation(STDCSegmentationBase):
     """
     Fully customized STDC Segmentation factory module.
@@ -614,6 +618,7 @@ class STDC2Backbone(STDCBackbone):
         )
 
 
+@register_model(Models.STDC1_CLASSIFICATION)
 class STDC1Classification(STDCClassification):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC1Backbone(in_channels=get_param(arch_params, "input_channels", 3), out_down_ratios=(32,))
@@ -621,6 +626,7 @@ class STDC1Classification(STDCClassification):
         super().__init__(arch_params)
 
 
+@register_model(Models.STDC2_CLASSIFICATION)
 class STDC2Classification(STDCClassification):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC2Backbone(in_channels=get_param(arch_params, "input_channels", 3), out_down_ratios=(32,))
@@ -628,6 +634,7 @@ class STDC2Classification(STDCClassification):
         super().__init__(arch_params)
 
 
+@register_model(Models.STDC1_SEG)
 class STDC1Seg(CustomSTDCSegmentation):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC1Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])
@@ -637,6 +644,7 @@ class STDC1Seg(CustomSTDCSegmentation):
         super().__init__(arch_params)
 
 
+@register_model(Models.STDC2_SEG)
 class STDC2Seg(CustomSTDCSegmentation):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC2Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])

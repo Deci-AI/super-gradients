@@ -3,7 +3,6 @@ from typing import Callable, Dict, Optional
 
 from super_gradients.training.utils.callbacks import LR_SCHEDULERS_CLS_DICT
 from super_gradients.common.sg_loggers import SG_LOGGERS
-from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.losses.all_losses import LOSSES
 from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
 from super_gradients.training.utils.callbacks.all_callbacks import CALLBACKS
@@ -47,6 +46,7 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
     return register
 
 
+ARCHITECTURES = {}
 register_model = create_register_decorator(registry=ARCHITECTURES)
 register_detection_module = create_register_decorator(registry=ALL_DETECTION_MODULES)
 

@@ -40,7 +40,7 @@ from super_gradients.training.metrics.metric_utils import (
     get_train_loop_description_dict,
 )
 from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import ARCHITECTURES
+from super_gradients import ARCHITECTURES
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param

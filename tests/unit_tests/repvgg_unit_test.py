@@ -1,5 +1,5 @@
 import unittest
-from super_gradients.training.models.all_architectures import ARCHITECTURES
+from super_gradients import ARCHITECTURES
 from super_gradients.training.models.classification_models.repvgg import RepVggA1
 from super_gradients.training.utils.utils import HpmStruct
 import torch

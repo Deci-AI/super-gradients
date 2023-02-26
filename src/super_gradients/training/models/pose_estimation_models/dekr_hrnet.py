@@ -17,6 +17,8 @@ import torch.nn.functional as F
 import torchvision
 from torch import nn
 
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.models import SgModule
 
@@ -277,6 +279,7 @@ class HighResolutionModule(nn.Module):
 blocks_dict = {"BASIC": BasicBlock, "BOTTLENECK": Bottleneck, "ADAPTIVE": AdaptBlock}
 
 
+@register_model(Models.DEKR_CUSTOM)
 class DEKRPoseEstimationModel(SgModule):
     """
     Implementation of HRNet model from DEKR paper (https://arxiv.org/abs/2104.02300).

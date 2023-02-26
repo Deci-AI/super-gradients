@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
 from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
 from super_gradients.training.utils.utils import get_param
@@ -336,6 +338,7 @@ class UnetClassification(SgModule):
         return self.classifier_head(x)
 
 
+@register_model(Models.UNET_CUSTOM_CLS)
 class UnetClassificationCustom(UnetClassification):
     def __init__(self, arch_params: HpmStruct):
         arch_params = HpmStruct(**models.get_arch_params("unet_default_arch_params.yaml", arch_params.to_dict()))
