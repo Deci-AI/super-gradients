@@ -18,15 +18,19 @@ coco2017_yolox:
 	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox_compile_disabled multi_gpu=Off num_gpus=1
 
 # Works
-# Training batch time improvement - 26.6% faster
-# Validation batch time - N/A (recipe crashes on last batch of training due use of Mixup & drop_last=True not handled properly)
+# Training   batch time reduction - 25% faster
+# Validation batch time improvement - 36% faster
+# Training   epoch time reduction - 25% faster
+# Validation epoch time improvement -  faster
 imagenet_resnet50:
 	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50_compile_enabled multi_gpu=Off num_gpus=1 &
 	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50_compile_disabled multi_gpu=Off num_gpus=1 &
 
 # Works
-# Training batch time improvement - 19.7% faster
+# Training   batch time reduction - 19,7% faster
 # Validation batch time improvement - 9.3% faster
+# Training   epoch time reduction - 16,5% faster
+# Validation epoch time improvement - 5.4% faster
 cityscapes_ddrnet:
 	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_enabled multi_gpu=Off num_gpus=1 &
 	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_disabled multi_gpu=Off num_gpus=1 &
