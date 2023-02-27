@@ -1,14 +1,18 @@
-# Fails at torch.compile
+# Fails at torch.compile (Investigate needed)
 coco2017_ppyoloe_s:
 	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_s_compile_enabled multi_gpu=Off num_gpus=1
 	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_s_compile_disabled multi_gpu=Off num_gpus=1
 
-# Fails at torch.compile (Complaining around multi
+# Fails at torch.compile (Probably could be fixed by rewriting our forward implementation to not using hooks)
+# RuntimeError: Failed running call_module getattr_self_backbone_multi_output_backbone__modules__0___features___14___conv_2(*(FakeTensor(FakeTensor(..., device='meta', size=(32, 576, 20, 20),
+#  File "/home/eugene.khvedchenia/super-gradients/src/super_gradients/training/utils/module_utils.py", line 61, in save_output_hook
+#    self._outputs_lists[input[0].device].append(output) <---- LOOOKS SUS!!!!!
+#KeyError: device(type='cuda', index=0)
 coco2017_ssd_lite_mobilenet_v2:
 	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2_compile_enabled multi_gpu=Off num_gpus=1
 	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2_compile_disabled multi_gpu=Off num_gpus=1
 
-# Crashes at first forward attempt with CUDA error (misaligned address)
+# Crashes at first forward attempt with CUDA error (misaligned address) (Investigate needed)
 coco2017_yolox:
 	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox_compile_enabled multi_gpu=Off num_gpus=1
 	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox_compile_disabled multi_gpu=Off num_gpus=1
