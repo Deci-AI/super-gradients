@@ -28,6 +28,14 @@ from super_gradients.training.models.segmentation_models.stdc import (
     CustomSTDCSegmentation,
     STDCClassification,
 )
+from super_gradients.training.models.segmentation_models.segformer import (
+    SegFormerB0,
+    SegFormerB1,
+    SegFormerB2,
+    SegFormerB3,
+    SegFormerB4,
+    SegFormerB5
+)
 
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
@@ -141,6 +149,12 @@ ARCHITECTURES = {
     Models.PP_YOLOE_M: PPYoloE_M,
     Models.PP_YOLOE_L: PPYoloE_L,
     Models.PP_YOLOE_X: PPYoloE_X,
+    Models.SEGFORMER_B0: SegFormerB0,
+    Models.SEGFORMER_B1: SegFormerB1,
+    Models.SEGFORMER_B2: SegFormerB2,
+    Models.SEGFORMER_B3: SegFormerB3,
+    Models.SEGFORMER_B4: SegFormerB4,
+    Models.SEGFORMER_B5: SegFormerB5,
     #
     Models.DEKR_CUSTOM: DEKRPoseEstimationModel,
 }
