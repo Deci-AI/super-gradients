@@ -486,40 +486,40 @@ class SegFormer(SegmentationModule):
         out = F.interpolate(out, size=x.shape[2:], mode='bilinear', align_corners=False)
         return out
 
-    # def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
-    #     """
-    #     Custom param groups for training:
-    #     - Different lr for backbone and the rest, if `multiply_head_lr` key is in `training_params`.
-    #     """
-    #     multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
-    #     multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
-    #     param_groups = [
-    #         {"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
-    #         {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"},
-    #     ]
-    #     return param_groups
-    #
-    # def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
-    #     multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
-    #     for param_group in param_groups:
-    #         param_group["lr"] = lr
-    #         if param_group["name"] == "multiply_lr_params":
-    #             param_group["lr"] *= multiply_head_lr
-    #     return param_groups
-    #
-    # def _separate_lr_multiply_params(self):
-    #     """
-    #     Separate backbone params from the rest.
-    #     :return: iterators of groups named_parameters.
-    #     """
-    #     backbone_names = [n for n, p in self.backbone.named_parameters()]
-    #     multiply_lr_params, no_multiply_params = {}, {}
-    #     for name, param in self.named_parameters():
-    #         if name in backbone_names:
-    #             no_multiply_params[name] = param
-    #         else:
-    #             multiply_lr_params[name] = param
-    #     return multiply_lr_params.items(), no_multiply_params.items()
+    def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
+        """
+        Custom param groups for training:
+        - Different lr for backbone and the rest, if `multiply_head_lr` key is in `training_params`.
+        """
+        multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
+        multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
+        param_groups = [
+            {"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
+            {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"},
+        ]
+        return param_groups
+
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
+        multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
+        for param_group in param_groups:
+            param_group["lr"] = lr
+            if param_group["name"] == "multiply_lr_params":
+                param_group["lr"] *= multiply_head_lr
+        return param_groups
+
+    def _separate_lr_multiply_params(self):
+        """
+        Separate backbone params from the rest.
+        :return: iterators of groups named_parameters.
+        """
+        backbone_names = [n for n, p in self.backbone.named_parameters()]
+        multiply_lr_params, no_multiply_params = {}, {}
+        for name, param in self.named_parameters():
+            if name in backbone_names:
+                no_multiply_params[name] = param
+            else:
+                multiply_lr_params[name] = param
+        return multiply_lr_params.items(), no_multiply_params.items()
 
 
 class SegFormerCustom(SegFormer):
