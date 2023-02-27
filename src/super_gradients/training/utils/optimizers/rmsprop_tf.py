@@ -1,6 +1,9 @@
 import torch
 from torch.optim import Optimizer
 
+from super_gradients.common.object_names import Optimizers
+from super_gradients.common.registry.registry import register_optimizer
+
 """
 This implementation is taken from timm's github:
 https://github.com/rwightman/pytorch-image-models/blob/master/timm/optim/rmsprop_tf.py
@@ -13,6 +16,7 @@ Modifications Copyright 2020 Ross Wightman
 """
 
 
+@register_optimizer(Optimizers.RMS_PROP_TF)
 class RMSpropTF(Optimizer):
     """Implements RMSprop algorithm (TensorFlow style epsilon)
     NOTE: This is a direct cut-and-paste of PyTorch RMSprop with eps applied before sqrt

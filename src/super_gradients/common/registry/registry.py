@@ -1,21 +1,18 @@
 import inspect
 from typing import Callable, Dict, Optional
 
-from torch import nn
+import torch
+from torch import nn, optim
 import torchvision
 
-from super_gradients.common.object_names import Losses, Transforms
-
-from super_gradients.common.sg_loggers import SG_LOGGERS
-from super_gradients.training.datasets.samplers.all_samplers import SAMPLERS
-from super_gradients.training.utils.optimizers import OPTIMIZERS
+from super_gradients.common.object_names import Losses, Transforms, Samplers, Optimizers
 
 
 def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
     """
     Create a decorator that registers object of specified type (model, metric, ...)
 
-    :param registry: The registry (maps name to object that you register)
+    :param registry: The registry (maps name to object that you register). By default, includes external objects.
     :return:         Register function
     """
 
@@ -123,10 +120,26 @@ register_lr_scheduler = create_register_decorator(registry=LR_SCHEDULERS_CLS_DIC
 
 LR_WARMUP_CLS_DICT = {}
 register_lr_warmup = create_register_decorator(registry=LR_WARMUP_CLS_DICT)
+
+SG_LOGGERS = {}
 register_sg_logger = create_register_decorator(registry=SG_LOGGERS)
 
 ALL_COLLATE_FUNCTIONS = {}
 register_collate_function = create_register_decorator(registry=ALL_COLLATE_FUNCTIONS)
 
+SAMPLERS = {
+    Samplers.DISTRIBUTED: torch.utils.data.DistributedSampler,
+    Samplers.SEQUENTIAL: torch.utils.data.SequentialSampler,
+    Samplers.SUBSET_RANDOM: torch.utils.data.SubsetRandomSampler,
+    Samplers.RANDOM: torch.utils.data.RandomSampler,
+    Samplers.WEIGHTED_RANDOM: torch.utils.data.WeightedRandomSampler,
+}
 register_sampler = create_register_decorator(registry=SAMPLERS)
+
+OPTIMIZERS = {
+    Optimizers.SGD: optim.SGD,
+    Optimizers.ADAM: optim.Adam,
+    Optimizers.ADAMW: optim.AdamW,
+    Optimizers.RMS_PROP: optim.RMSprop,
+}
 register_optimizer = create_register_decorator(registry=OPTIMIZERS)
