@@ -11,12 +11,13 @@ from super_gradients.training.transforms.transforms import (
 )
 from super_gradients.common.object_names import Transforms
 from super_gradients.common.registry.registry import TRANSFORMS
-from super_gradients.common.registry.albumentation import ALBUMENTATIONS_TRANSFORMS, ALBUMENTATIONS_COMP_TRANSFORMS
+from super_gradients.common.registry.albumentation import ALBUMENTATIONS_TRANSFORMS, ALBUMENTATIONS_COMP_TRANSFORMS, imported_albumentations_failure
 
 __all__ = [
     "TRANSFORMS",
     "ALBUMENTATIONS_TRANSFORMS",
     "ALBUMENTATIONS_COMP_TRANSFORMS",
+    "imported_albumentations_failure",
     "Transforms",
     "DetectionMosaic",
     "DetectionRandomAffine",
