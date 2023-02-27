@@ -25,6 +25,8 @@ arch_params:
 train_dataloader: imagenet_train
 val_dataloader: imagenet_val
 
+train_dataloader_params:
+  drop_last: True
 
 resume: False
 training_hyperparams:
