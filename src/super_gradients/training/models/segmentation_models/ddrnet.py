@@ -593,6 +593,7 @@ class DDRNet23(DDRNetCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.DDRNET_23_SLIM)
 class DDRNet23Slim(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_SLIM_PARAMS)
