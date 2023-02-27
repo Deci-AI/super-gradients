@@ -2,7 +2,7 @@ import json
 import os
 import signal
 import time
-from typing import Union, Any
+from typing import Union, Any, Mapping
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -154,6 +154,8 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: int = None):
+        if isinstance(global_step, Mapping):
+            global_step = global_step.get("epoch", None) or global_step.get("global_step", None)
         self.tensorboard_writer.add_scalar(tag=tag.lower().replace(" ", "_"), scalar_value=scalar_value, global_step=global_step)
 
     @multi_process_safe
