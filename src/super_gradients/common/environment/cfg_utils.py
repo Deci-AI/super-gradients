@@ -159,10 +159,10 @@ def load_dataset_params(config_name: str, recipes_dir_path: Optional[str] = None
     return load_recipe_from_subconfig(config_name=config_name, recipes_dir_path=recipes_dir_path, overrides=overrides, config_type="dataset_params")
 
 
-def override_cfg(cfg: DictConfig, overrides: Union[DictConfig, Dict[str, Any], List[Any]]) -> None:
+def override_cfg(cfg: DictConfig, overrides: Union[DictConfig, Dict[str, Any]]) -> None:
     """Override inplace a config with a list of hydra overrides
     :param cfg:         OmegaConf config
-    :param overrides:   Hydra overrides
+    :param overrides:   Dictionary like object that will be used to override cfg
     """
     with open_dict(cfg):  # This is required to add new fields to existing config
         cfg.merge_with(overrides)
