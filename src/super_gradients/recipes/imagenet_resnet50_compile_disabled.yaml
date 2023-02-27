@@ -22,8 +22,9 @@ defaults:
 arch_params:
   droppath_prob: 0.05
 
-train_dataloader_params:
-  drop_last: True
+dataset_params:
+  train_dataloader_params:
+    drop_last: True
 
 train_dataloader: imagenet_train
 val_dataloader: imagenet_val
