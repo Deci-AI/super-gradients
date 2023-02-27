@@ -594,8 +594,8 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
-      - recipe_sanity_tests_classification_pt1:
-          <<: *release_tag_filter
+      - recipe_sanity_tests_classification_pt1
+          #<<: *release_tag_filter
       - recipe_sanity_tests_classification_pt2:
           requires:
             - recipe_sanity_tests_classification_pt1
