@@ -420,6 +420,20 @@ class DetectionTransform:
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
 
+class DetectionStandardize(DetectionTransform):
+    """
+    Standardize image pixel values with img/max_val
+    """
+
+    def __init__(self, max_value: float = 255.0):
+        super().__init__()
+        self.max_value = max_value
+
+    def __call__(self, sample: dict) -> dict:
+        sample["image"] = sample["image"] / self.max_value
+        return sample
+
+
 @register_transform(Transforms.DetectionMosaic)
 class DetectionMosaic(DetectionTransform):
     """
@@ -525,13 +539,13 @@ class DetectionRandomAffine(DetectionTransform):
         from (-degrees, degrees)
 
      translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
-        are drawn uniformly from (-translate, translate)
+        are drawn uniformly from (center-translate, center+translate)
 
      scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
-        from (0.1-scales, 0.1+scales)
+        from (1-scales, 1+scales)
 
      shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
-        from (shear, shear)
+        from (-shear, shear)
 
      enable: (bool) whether to apply the below transform at all.
 
@@ -1067,6 +1081,7 @@ def get_aug_params(value: Union[tuple, float], center: float = 0):
 
 
 def get_affine_matrix(
+    input_size,
     target_size,
     degrees=10,
     translate=0.1,
@@ -1075,6 +1090,8 @@ def get_affine_matrix(
 ):
     """
     Returns a random affine transform matrix.
+
+    :param input_size: (tuple) input shape.
 
     :param target_size: (tuple) desired output shape.
 
@@ -1085,40 +1102,35 @@ def get_affine_matrix(
      are drawn uniformly from (-translate, translate)
 
     :param scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
-     from (0.1-scales, 0.1+scales)
+     from (1-scales, 1+scales)
 
     :param shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
-     from (shear, shear)
+     from (-shear, shear)
 
     :return: affine_transform_matrix, drawn_scale
     """
-    twidth, theight = target_size
 
-    # Rotation and Scale
-    angle = get_aug_params(degrees)
-    scale = get_aug_params(scales, center=1.0)
+    # Center in pixels
+    center_m = np.eye(3)
+    center = (input_size[0] // 2, input_size[1] // 2)
+    center_m[0, 2] = -center[1]
+    center_m[1, 2] = -center[0]
 
-    if scale <= 0.0:
-        raise ValueError("Argument scale should be positive")
+    # Rotation and scale
+    rotation_m = np.eye(3)
+    rotation_m[:2] = cv2.getRotationMatrix2D(angle=get_aug_params(degrees), center=(0, 0), scale=get_aug_params(scales, center=1.0))
 
-    R = cv2.getRotationMatrix2D(angle=angle, center=(0, 0), scale=scale)
+    # Shear in degrees
+    shear_m = np.eye(3)
+    shear_m[0, 1] = math.tan(get_aug_params(shear) * math.pi / 180)
+    shear_m[1, 0] = math.tan(get_aug_params(shear) * math.pi / 180)
 
-    M = np.ones([2, 3])
-    # Shear
-    shear_x = math.tan(get_aug_params(shear) * math.pi / 180)
-    shear_y = math.tan(get_aug_params(shear) * math.pi / 180)
+    # Translation in pixels
+    translation_m = np.eye(3)
+    translation_m[0, 2] = get_aug_params(translate, center=0.5) * target_size[1]
+    translation_m[1, 2] = get_aug_params(translate, center=0.5) * target_size[0]
 
-    M[0] = R[0] + shear_y * R[1]
-    M[1] = R[1] + shear_x * R[0]
-
-    # Translation
-    translation_x = get_aug_params(translate) * twidth  # x translation (pixels)
-    translation_y = get_aug_params(translate) * theight  # y translation (pixels)
-
-    M[0, 2] = translation_x
-    M[1, 2] = translation_y
-
-    return M, scale
+    return (translation_m @ shear_m @ rotation_m @ center_m)[:2]
 
 
 def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
@@ -1191,7 +1203,7 @@ def random_affine(
 ):
     """
     Performs random affine transform to img, targets
-    :param img:         Input image
+    :param img:         Input image of shape [h, w, c]
     :param targets:     Input target
     :param targets_seg: Targets derived from segmentation masks
     :param target_size: Desired output shape
@@ -1220,9 +1232,9 @@ def random_affine(
     """
 
     targets_seg = np.zeros((targets.shape[0], 0)) if targets_seg is None else targets_seg
-    M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
+    M = get_affine_matrix(img.shape[:2], target_size, degrees, translate, scales, shear)
 
-    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=border_value)
+    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(border_value, border_value, border_value))
 
     # Transform label coordinates
     if len(targets) > 0:

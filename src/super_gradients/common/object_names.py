@@ -48,6 +48,7 @@ class Transforms:
     SegPadShortToCropSize = "SegPadShortToCropSize"
     SegPadToDivisible = "SegPadToDivisible"
     SegColorJitter = "SegColorJitter"
+    DetectionStandardize = "DetectionStandardize"
     DetectionMosaic = "DetectionMosaic"
     DetectionRandomAffine = "DetectionRandomAffine"
     DetectionMixup = "DetectionMixup"

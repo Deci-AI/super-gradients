@@ -161,17 +161,17 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.cityscapes_pretrained_models = [Models.DDRNET_23, Models.DDRNET_23_SLIM, Models.STDC1_SEG50, Models.REGSEG48]
         self.cityscapes_pretrained_arch_params = {
-            Models.DDRNET_23: {"aux_head": True},
+            Models.DDRNET_23: {"use_aux_heads": True},
             Models.REGSEG48: {},
-            "stdc": {"use_aux_heads": True, "aux_head": True},
+            "stdc": {"use_aux_heads": True},
             "pplite_seg": {"use_aux_heads": True},
         }
 
         self.cityscapes_pretrained_ckpt_params = {"pretrained_weights": "cityscapes"}
         self.cityscapes_pretrained_mious = {
-            Models.DDRNET_39: 0.8132,
-            Models.DDRNET_23: 0.8026,
-            Models.DDRNET_23_SLIM: 0.7801,
+            Models.DDRNET_39: 0.8517,
+            Models.DDRNET_23: 0.8148,
+            Models.DDRNET_23_SLIM: 0.7941,
             Models.STDC1_SEG50: 0.7511,
             Models.STDC1_SEG75: 0.7687,
             Models.STDC2_SEG50: 0.7644,

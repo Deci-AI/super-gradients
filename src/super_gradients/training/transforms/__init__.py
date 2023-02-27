@@ -1,6 +1,8 @@
 # PACKAGE IMPORTS FOR EXTERNAL USAGE
 import cv2
 from super_gradients.training.transforms.transforms import (
+    DetectionTransform,
+    DetectionStandardize,
     DetectionMosaic,
     DetectionRandomAffine,
     DetectionHSV,
@@ -19,6 +21,8 @@ __all__ = [
     "ALBUMENTATIONS_COMP_TRANSFORMS",
     "imported_albumentations_failure",
     "Transforms",
+    "DetectionTransform",
+    "DetectionStandardize",
     "DetectionMosaic",
     "DetectionRandomAffine",
     "DetectionHSV",
