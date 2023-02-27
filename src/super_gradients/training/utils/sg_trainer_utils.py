@@ -399,7 +399,7 @@ def unpack_batch_items(batch_items: Union[tuple, torch.Tensor]):
         inputs, target, additional_batch_items = batch_items
 
     else:
-        raise UnsupportedBatchItemsFormat()
+        raise UnsupportedBatchItemsFormat(batch_items)
 
     return inputs, target, additional_batch_items
 
