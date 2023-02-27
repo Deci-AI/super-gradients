@@ -34,7 +34,9 @@ class STDCBlock(nn.Module):
          `dw_conv` for depthwise-convolution.
         """
         super().__init__()
-        assert steps in [2, 3, 4], f"only 2, 3, 4 steps number are supported, found: {steps}"
+        if steps not in [2, 3, 4]:
+            raise ValueError(f"only 2, 3, 4 steps number are supported, found: {steps}")
+
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.steps = steps
@@ -94,9 +96,8 @@ class AbstractSTDCBackbone(nn.Module, ABC):
     """
 
     def validate_backbone(self):
-        assert len(self.get_backbone_output_number_of_channels()) == 3, (
-            f"Backbone for STDC segmentation must output 3 feature maps," f" found: {len(self.get_backbone_output_number_of_channels())}."
-        )
+        if len(self.get_backbone_output_number_of_channels()) != 3:
+            raise ValueError(f"Backbone for STDC segmentation must output 3 feature maps," f" found: {len(self.get_backbone_output_number_of_channels())}.")
 
     @abstractmethod
     def get_backbone_output_number_of_channels(self) -> List[int]:
@@ -129,11 +130,12 @@ class STDCBackbone(AbstractSTDCBackbone):
             default (32,) for classification.
         """
         super(STDCBackbone, self).__init__()
-        assert len(block_types) == len(ch_widths) == len(num_blocks), (
-            f"STDC architecture configuration, block_types, ch_widths, num_blocks, must be defined for the same number"
-            f" of stages, found: {len(block_types)} for block_type, {len(ch_widths)} for ch_widths, "
-            f"{len(num_blocks)} for num_blocks"
-        )
+        if not (len(block_types) == len(ch_widths) == len(num_blocks)):
+            raise ValueError(
+                f"STDC architecture configuration, block_types, ch_widths, num_blocks, must be defined for the same number"
+                f" of stages, found: {len(block_types)} for block_type, {len(ch_widths)} for ch_widths, "
+                f"{len(num_blocks)} for num_blocks"
+            )
 
         self.out_widths = []
         self.stages = nn.ModuleDict()
@@ -380,6 +382,8 @@ class ContextPath(nn.Module):
         return feat8, feat16_up
 
     def prep_for_conversion(self, input_size):
+        if input_size[-2] // 32 != 0 or input_size[-1] // 32 != 0:
+            raise ValueError(f"Expected image dimensions to be divisible by 32, got {input_size[-2]}x{input_size[-1]}")
         context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
         self.context_embedding.to_fixed_size(context_embedding_up_size)
 
