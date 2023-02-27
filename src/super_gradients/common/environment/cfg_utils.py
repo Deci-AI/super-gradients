@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union, Dict, Any
 
 import hydra
 import pkg_resources
@@ -91,8 +91,7 @@ def add_params_to_cfg(cfg: DictConfig, params: List[str]):
     :param cfg:     OmegaConf config
     :param params:  List of parameters to add, in dotlist format (i.e. ["training_hyperparams.resume=True"])"""
     new_cfg = OmegaConf.from_dotlist(params)
-    with open_dict(cfg):  # This is required to add new fields to existing config
-        cfg.merge_with(new_cfg)
+    override_cfg(cfg, new_cfg)
 
 
 def load_recipe_from_subconfig(config_name: str, config_type: str, recipes_dir_path: Optional[str] = None, overrides: Optional[list] = None) -> DictConfig:
@@ -158,3 +157,12 @@ def load_dataset_params(config_name: str, recipes_dir_path: Optional[str] = None
     :param overrides:           List of hydra overrides for config file
     """
     return load_recipe_from_subconfig(config_name=config_name, recipes_dir_path=recipes_dir_path, overrides=overrides, config_type="dataset_params")
+
+
+def override_cfg(cfg: DictConfig, overrides: Union[DictConfig, Dict[str, Any], List[Any]]) -> None:
+    """Override inplace a config with a list of hydra overrides
+    :param cfg:         OmegaConf config
+    :param overrides:   Hydra overrides
+    """
+    with open_dict(cfg):  # This is required to add new fields to existing config
+        cfg.merge_with(overrides)
