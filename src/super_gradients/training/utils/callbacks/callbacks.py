@@ -716,7 +716,7 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/train_batch_forward_with_loss_ms",
             scalar_value=self.elapsed_time_between("on_train_batch_start", "on_train_batch_loss_end"),
-            global_step=self.infer_global_step(context, is_train_loader=True),
+            global_step={"global_step": self.infer_global_step(context, is_train_loader=True)},
         )
 
     def on_train_batch_gradient_step_start(self, context: PhaseContext) -> None:
@@ -727,7 +727,7 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/train_batch_gradient_time",
             scalar_value=self.elapsed_time_between("on_train_batch_gradient_step_start", "on_train_batch_gradient_step_end"),
-            global_step=self.infer_global_step(context, is_train_loader=True),
+            global_step={"global_step": self.infer_global_step(context, is_train_loader=True)},
         )
 
     def on_train_batch_end(self, context: PhaseContext) -> None:
@@ -735,7 +735,7 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/train_batch_total_time_ms",
             scalar_value=self.elapsed_time_between("on_train_batch_start", "on_train_batch_end"),
-            global_step=self.infer_global_step(context, is_train_loader=True),
+            global_step={"global_step": self.infer_global_step(context, is_train_loader=True)},
         )
 
     def on_train_loader_end(self, context: PhaseContext) -> None:
@@ -743,7 +743,7 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/train_loader_total_time_ms",
             scalar_value=self.elapsed_time_between("on_train_loader_start", "on_train_loader_end"),
-            global_step=context.epoch,
+            global_step={"epoch": context.epoch},
         )
 
     def on_validation_loader_start(self, context: PhaseContext) -> None:
@@ -757,7 +757,15 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/validation_batch_total_time_ms",
             scalar_value=self.elapsed_time_between("on_validation_batch_start", "on_validation_batch_end"),
-            global_step=self.infer_global_step(context, is_train_loader=False),
+            global_step={"global_step": self.infer_global_step(context, is_train_loader=False)},
+        )
+
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
+        self.events["on_validation_loader_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="timer/validation_loader_total_time_ms",
+            scalar_value=self.elapsed_time_between("on_validation_loader_start", "on_validation_loader_end"),
+            global_step={"epoch": context.epoch},
         )
 
     def elapsed_time_between(self, start_event, end_event):
@@ -770,11 +778,3 @@ class TimerCallback(Callback):
             return total_steps_in_done + context.batch_idx
         else:
             return total_steps_in_done + len(context.train_loader) + context.batch_idx
-
-    def on_validation_loader_end(self, context: PhaseContext) -> None:
-        self.events["on_validation_loader_end"] = cv2.getTickCount()
-        context.sg_logger.add_scalar(
-            tag="timer/validation_loader_total_time_ms",
-            scalar_value=self.elapsed_time_between("on_validation_loader_start", "on_validation_loader_end"),
-            global_step=context.epoch,
-        )
