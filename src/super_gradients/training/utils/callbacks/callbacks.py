@@ -743,7 +743,7 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/train_loader_total_time_ms",
             scalar_value=self.elapsed_time_between("on_train_loader_start", "on_train_loader_end"),
-            global_step=context.epoch,
+            global_step=self.infer_global_step(context, is_train_loader=True),
         )
 
     def on_validation_loader_start(self, context: PhaseContext) -> None:
@@ -776,5 +776,5 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/validation_loader_total_time_ms",
             scalar_value=self.elapsed_time_between("on_validation_loader_start", "on_validation_loader_end"),
-            global_step=context.epoch,
+            global_step=self.infer_global_step(context, is_train_loader=False),
         )
