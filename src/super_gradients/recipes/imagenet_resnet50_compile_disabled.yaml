@@ -1,0 +1,62 @@
+#  ResNet50 Imagenet classification training:
+#  This example trains with batch_size = 64 * 4 GPUs, total 256.
+#  Training time on 4 x GeForce RTX A5000 is 15min / epoch.
+#  Reach => 79.47 Top1 accuracy.
+#
+#  Log and tensorboard at s3://deci-pretrained-models/ResNet50_ImageNet/average_model.pth
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
+
+
+defaults:
+  - training_hyperparams: imagenet_resnet50_train_params
+  - dataset_params: imagenet_resnet50_dataset_params
+  - arch_params: resnet50_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+arch_params:
+  droppath_prob: 0.05
+
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
+
+  ema: False
+  max_epochs: 2
+  torch_compile: False
+
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: TorchCompileExperiments
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
+
+  phase_callbacks:
+    - TimerCallback
+
+experiment_name: resnet50_imagenet_compile_disabled
+
+ckpt_root_dir:
+
+multi_gpu: DDP
+num_gpus: 4
+
+architecture: resnet50
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
