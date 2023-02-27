@@ -374,7 +374,7 @@ def check_models_have_same_weights(model_1: torch.nn.Module, model_2: torch.nn.M
 def recursive_override(base: dict, extension: dict):
     for k, v in extension.items():
         if k in base:
-            if isinstance(v, Mapping) and isinstance(extension[k], Mapping):
+            if isinstance(v, Mapping) and isinstance(base[k], Mapping):
                 recursive_override(base[k], extension[k])
             else:
                 base[k] = extension[k]
