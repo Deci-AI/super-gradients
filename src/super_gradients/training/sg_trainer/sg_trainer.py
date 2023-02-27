@@ -416,6 +416,7 @@ class Trainer:
             lr_warmup_epochs=self.training_params.lr_warmup_epochs,
             sg_logger=self.sg_logger,
             train_loader=self.train_loader,
+            valid_loader=self.valid_loader,
             context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
             ddp_silent_mode=self.ddp_silent_mode,
         )
@@ -1761,6 +1762,8 @@ class Trainer:
             device=device_config.device,
             lr_warmup_epochs=lr_warmup_epochs,
             sg_logger=self.sg_logger,
+            train_loader=self.train_loader,
+            valid_loader=self.valid_loader,
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
 
