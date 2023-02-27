@@ -55,7 +55,7 @@ training_hyperparams:
 
 
   ema: False
-  max_epochs: 2
+  max_epochs: 5
   torch_compile: False
 
   sg_logger: "wandb_sg_logger"
