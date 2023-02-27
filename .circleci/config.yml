@@ -386,7 +386,7 @@ jobs:
 
   recipe_accuracy_tests:
     docker:
-      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:no-runner-manual-build
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:1.3.0b681
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -422,7 +422,7 @@ jobs:
 
   recipe_sanity_tests_classification_pt1:
     docker:
-      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:no-runner-manual-build
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:1.3.0b681
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -459,7 +459,7 @@ jobs:
           when: on_fail
   recipe_sanity_tests_classification_pt2:
     docker:
-      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:no-runner-manual-build
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:1.3.0b681
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -495,7 +495,7 @@ jobs:
 
   recipe_sanity_tests_segmentation:
     docker:
-      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:no-runner-manual-build
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:1.3.0b681
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -541,7 +541,7 @@ jobs:
 
   recipe_sanity_tests_detection:
     docker:
-      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:no-runner-manual-build
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:1.3.0b681
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
