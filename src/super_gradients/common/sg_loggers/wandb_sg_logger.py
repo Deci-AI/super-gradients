@@ -1,6 +1,6 @@
 import os
 
-from typing import Union, Optional, Any
+from typing import Union, Optional, Any, Mapping
 
 import numpy as np
 from PIL import Image
@@ -148,7 +148,10 @@ class WandBSGLogger(BaseSGLogger):
     @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: int = 0):
         super(WandBSGLogger, self).add_scalar(tag=tag, scalar_value=scalar_value, global_step=global_step)
-        wandb.log(data={tag: scalar_value}, step=global_step)
+        if isinstance(global_step, Mapping):
+            wandb.log(data={tag: scalar_value, **global_step})
+        else:
+            wandb.log(data={tag: scalar_value}, step=global_step)
 
     @multi_process_safe
     def add_scalars(self, tag_scalar_dict: dict, global_step: int = 0):
