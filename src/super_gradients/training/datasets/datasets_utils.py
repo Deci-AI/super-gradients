@@ -20,7 +20,7 @@ from torchvision.transforms import transforms, InterpolationMode, RandomResizedC
 from tqdm import tqdm
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.object_names import CollateFn, Callbacks, Transforms
+from super_gradients.common.object_names import Callbacks, Transforms
 from super_gradients.common.registry.registry import register_collate_function, register_callback, register_transform
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from super_gradients.training.utils.detection_utils import DetectionVisualization, Anchors
@@ -104,7 +104,7 @@ class AbstractCollateFunction(ABC):
         pass
 
 
-@register_collate_function(CollateFn.COMPOSED_COLLATE_FUNCTION)
+@register_collate_function()
 class ComposedCollateFunction(AbstractCollateFunction):
     """
     A function (for torch DataLoader) which executes a sequence of sub collate functions
@@ -130,7 +130,7 @@ class AtomicInteger:
         return self._value.value
 
 
-@register_collate_function(CollateFn.MULTISCALE_COLLATE_FUNCTION)
+@register_collate_function()
 class MultiScaleCollateFunction(AbstractCollateFunction):
     """
     a collate function to implement multi-scale data augmentation

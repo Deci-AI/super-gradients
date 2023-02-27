@@ -35,7 +35,7 @@ class BaseDetectionModule(nn.Module, ABC):
         raise NotImplementedError()
 
 
-@register_detection_module(DetectionModules.N_STAGE_BACKBONE)
+@register_detection_module()
 class NStageBackbone(BaseDetectionModule):
     """
     A backbone with a stem -> N stages -> context module
@@ -90,7 +90,7 @@ class NStageBackbone(BaseDetectionModule):
         return outputs
 
 
-@register_detection_module(DetectionModules.PAN_NECK)
+@register_detection_module()
 class PANNeck(BaseDetectionModule):
     """
     A PAN (path aggregation network) neck with 4 stages (2 up-sampling and 2 down-sampling stages)
@@ -135,7 +135,7 @@ class PANNeck(BaseDetectionModule):
         return p3, p4, p5
 
 
-@register_detection_module(DetectionModules.N_HEADS)
+@register_detection_module()
 class NHeads(BaseDetectionModule):
     """
     Apply N heads in parallel and combine predictions into the shape expected by SG detection losses
@@ -205,7 +205,7 @@ class MobileNetV1Backbone(MultiOutputBackbone):
         super().__init__(in_channels, backbone, out_layers)
 
 
-@register_detection_module(DetectionModules.MOBILENET_V2_BACKBONE)
+@register_detection_module()
 class MobileNetV2Backbone(MultiOutputBackbone):
     """MobileNetV2 backbone with an option to return output of any layer"""
 
@@ -255,7 +255,7 @@ class SSDNeck(BaseDetectionModule, ABC):
         return outputs
 
 
-@register_detection_module(DetectionModules.SSD_INVERTED_RESIDUAL_NECK)
+@register_detection_module()
 class SSDInvertedResidualNeck(SSDNeck):
     """
     Consecutive InvertedResidual blocks each starting with stride 2
@@ -270,7 +270,7 @@ class SSDInvertedResidualNeck(SSDNeck):
         return neck_blocks
 
 
-@register_detection_module(DetectionModules.SSD_BOTTLENECK_NECK)
+@register_detection_module()
 class SSDBottleneckNeck(SSDNeck):
     """
     Consecutive bottleneck blocks
@@ -308,7 +308,7 @@ def SeperableConv2d(in_channels: int, out_channels: int, kernel_size: int = 1, s
     )
 
 
-@register_detection_module(DetectionModules.SSD_HEAD)
+@register_detection_module()
 class SSDHead(BaseDetectionModule):
     """
     A one-layer conv head attached to each input feature map.
