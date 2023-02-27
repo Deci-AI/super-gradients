@@ -1,0 +1,79 @@
+# YoloX Detection training on CoCo2017 Dataset:
+# YoloX trained in 640x640
+# Checkpoints + tensorboards: https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/
+# Recipe runs with batch size = 16 X 8 gpus = 128.
+
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command you want:
+#         yolox_n: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n
+#         yolox_t: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t
+#         yolox_s: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s
+#         yolox_m: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m
+#         yolox_l: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l
+#         yolox_x: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_x
+#
+# Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images):
+#         yolox_n: 1d 16h 33m 9s  on 8 NVIDIA GeForce RTX 3090, mAP: 26.77
+#         yolox_t: 20h 43m 37s    on 8 NVIDIA RTX A5000, mAP: 37.18
+#         yolox_s: 1d 17h 40m 30s on 8 NVIDIA RTX A5000, mAP: 40.47
+#         yolox_m: 1d 22h 23m 43s on 8 NVIDIA GeForce RTX 3090, mAP: 46.40
+#         yolox_l: 2d 14h 11m 41s on 8 NVIDIA GeForce RTX 3090, mAP: 49.25
+#
+# Using FAST LOSS
+# Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images):
+#         yolox_n: COMING SOON
+#         yolox_t: COMING SOON
+#         yolox_s: 18h 23m 4s     on 8 NVIDIA RTX A5000, mAP: 40.55
+#         yolox_m: COMING SOON
+#         yolox_l: COMING SOON
+
+
+defaults:
+  - training_hyperparams: coco2017_yolox_train_params
+  - dataset_params: coco_detection_dataset_params
+  - arch_params: yolox_s_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+train_dataloader: coco2017_train
+val_dataloader: coco2017_val
+
+
+
+load_checkpoint: False
+resume: False
+training_hyperparams:
+  resume: ${resume}
+
+  ema: False
+  max_epochs: 2
+  torch_compile: True
+
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: TorchCompileExperiments
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
+
+architecture: yolox_s
+
+multi_gpu: DDP
+num_gpus: 8
+
+experiment_suffix:
+experiment_name: ${architecture}_coco2017_${experiment_suffix}_compile_enabled
+
+ckpt_root_dir:
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

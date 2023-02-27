@@ -1,0 +1,79 @@
+# SSD MobileNetV2 Detection training on CoCo2017 Dataset:
+# Trained in 320x320 mAP@0.5@0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 320x320 images) ~20.41
+# Checkpoint path: https://deci-pretrained-models.s3.amazonaws.com/ssd_lite_mobilenet_v2/coco2017/2022-11-28/average_model.pth
+# (trained with stride_16_plus_big)
+# Hardware: 4 NVIDIA RTX 2080Ti
+# Training time: ±35 hours
+#
+
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2
+
+
+# NOTE:
+# Anchors will be selected based on validation resolution and anchors_name
+# To switch between anchors, set anchors_name to something else defined in the anchors section
+# e.g.
+# python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2 anchors_name=stride_16_plus
+
+
+defaults:
+  - training_hyperparams: coco2017_ssd_lite_mobilenet_v2_train_params
+  - dataset_params: coco_detection_ssd_lite_mobilenet_v2_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - anchors: ssd_anchors
+
+train_dataloader: coco2017_train
+val_dataloader: coco2017_val
+
+architecture: ssd_lite_mobilenet_v2
+
+data_loader_num_workers: 8
+
+experiment_suffix: res320
+experiment_name: ${architecture}_coco_${experiment_suffix}_compile_disabled
+
+anchors_resolution: 320x320
+anchors_name: stride_16_plus_big
+dboxes: ${anchors.${anchors_resolution}.${anchors_name}}
+
+arch_params:
+  num_classes: 80
+  anchors: ${dboxes}
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
+  criterion_params:
+    alpha: 1.0
+    dboxes: ${dboxes}
+
+
+  ema: False
+  max_epochs: 2
+  torch_compile: False
+
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: TorchCompileExperiments
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
+
+multi_gpu: DDP
+num_gpus: 4
+
+ckpt_root_dir:
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
