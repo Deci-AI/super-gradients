@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from super_gradients.common.registry.registry import register_model
+from super_gradients.common.registry.registry import register_model, register_unet_backbone_stage, BACKBONE_STAGES
 from super_gradients.common.object_names import Models
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
 from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
@@ -86,6 +86,7 @@ class BackboneStage(nn.Module, ABC):
         return self.blocks(x)
 
 
+@register_unet_backbone_stage()
 class STDCStage(BackboneStage):
     """
     STDC stage with STDCBlock as building block.
@@ -124,6 +125,7 @@ class STDCStage(BackboneStage):
             )
 
 
+@register_unet_backbone_stage()
 class RepVGGStage(BackboneStage):
     """
     RepVGG stage with RepVGGBlock as building block. If `anti_alias=True`, `AntiAliasDownsample` module is used for
@@ -141,6 +143,7 @@ class RepVGGStage(BackboneStage):
         return nn.Sequential(*blocks)
 
 
+@register_unet_backbone_stage()
 class QARepVGGStage(BackboneStage):
     """
     QARepVGG stage with QARepVGGBlock as building block. If `anti_alias=True`, `AntiAliasDownsample` module is used for
@@ -163,6 +166,7 @@ class QARepVGGStage(BackboneStage):
         return nn.Sequential(*blocks)
 
 
+@register_unet_backbone_stage()
 class RegnetXStage(BackboneStage):
     """
     RegNetX stage with XBlock as building block.
@@ -202,6 +206,7 @@ class RegnetXStage(BackboneStage):
         return 1
 
 
+@register_unet_backbone_stage()
 class ConvStage(BackboneStage):
     """
     Conv stage with ConvBNReLU as building block. If `anti_alias=True`, `AntiAliasDownsample` module is used for
@@ -222,15 +227,6 @@ class ConvStage(BackboneStage):
             ]
         )
         return nn.Sequential(*blocks)
-
-
-BACKBONE_STAGES = dict(
-    RepVGGStage=RepVGGStage,
-    QARepVGGStage=QARepVGGStage,
-    STDCStage=STDCStage,
-    RegnetXStage=RegnetXStage,
-    ConvStage=ConvStage,
-)
 
 
 class UNetBackboneBase(AbstractUNetBackbone):

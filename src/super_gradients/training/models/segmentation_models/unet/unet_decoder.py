@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import torch.nn as nn
 import torch
 
+from super_gradients.common.registry.registry import register_unet_up_block, UP_FUSE_BLOCKS
 from super_gradients.modules import ConvBNReLU, CrossModelSkipConnection
 from super_gradients.training.utils.module_utils import make_upsample_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -29,6 +30,7 @@ class AbstractUpFuseBlock(nn.Module, ABC):
         raise NotImplementedError()
 
 
+@register_unet_up_block()
 class UpFactorBlock(AbstractUpFuseBlock):
     """
     Ignore Skip features, simply apply upsampling and ConvBNRelu layers.
@@ -48,6 +50,7 @@ class UpFactorBlock(AbstractUpFuseBlock):
         return self.last_convs(x)
 
 
+@register_unet_up_block()
 class UpCatBlock(AbstractUpFuseBlock):
     """
     Fuse features with concatenation and followed Convolutions.
@@ -67,6 +70,7 @@ class UpCatBlock(AbstractUpFuseBlock):
         return self.last_convs(x)
 
 
+@register_unet_up_block()
 class UpSumBlock(AbstractUpFuseBlock):
     """
     Fuse features with concatenation and followed Convolutions.
@@ -89,13 +93,6 @@ class UpSumBlock(AbstractUpFuseBlock):
         x = self.up_path(x)
         x = x + skip
         return self.last_convs(x)
-
-
-UP_FUSE_BLOCKS = dict(
-    UpCatBlock=UpCatBlock,
-    UpFactorBlock=UpFactorBlock,
-    UpSumBlock=UpSumBlock,
-)
 
 
 class Decoder(nn.Module):

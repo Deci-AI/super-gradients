@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torchmetrics
 from torch.nn.modules.loss import _Loss
 
-from super_gradients import ARCHITECTURES
+from super_gradients.common.registry.registry import ARCHITECTURES
 from super_gradients.common.registry.registry import METRICS, LOSSES
 from super_gradients.common.registry import register_model, register_metric, register_loss
 

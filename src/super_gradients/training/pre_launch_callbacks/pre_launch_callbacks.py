@@ -5,6 +5,7 @@ from typing import Union
 from omegaconf import DictConfig
 import torch
 
+from super_gradients.common.registry.registry import register_pre_launch_callback
 from super_gradients import is_distributed
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import models
@@ -26,6 +27,7 @@ class PreLaunchCallback:
         raise NotImplementedError
 
 
+@register_pre_launch_callback()
 class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
     """
     AutoTrainBatchSizeSelectionCallback
@@ -154,6 +156,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
             barrier()
 
 
+@register_pre_launch_callback()
 class QATRecipeModificationCallback(PreLaunchCallback):
     """
      QATRecipeModificationCallback(PreLaunchCallback)

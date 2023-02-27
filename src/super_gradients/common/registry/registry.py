@@ -5,11 +5,8 @@ from torch import nn
 import torchvision
 
 from super_gradients.common.object_names import Losses, Transforms
-from super_gradients.common.sg_loggers import SG_LOGGERS
 
-from super_gradients.training.pre_launch_callbacks import ALL_PRE_LAUNCH_CALLBACKS
-from super_gradients.training.models.segmentation_models.unet.unet_encoder import BACKBONE_STAGES
-from super_gradients.training.models.segmentation_models.unet.unet_decoder import UP_FUSE_BLOCKS
+from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.training.datasets.samplers.all_samplers import SAMPLERS
 from super_gradients.training.utils.optimizers import OPTIMIZERS
 
@@ -109,8 +106,13 @@ register_transform = create_register_decorator(registry=TRANSFORMS)
 ALL_DATASETS = {}
 register_dataset = create_register_decorator(registry=ALL_DATASETS)
 
+ALL_PRE_LAUNCH_CALLBACKS = {}
 register_pre_launch_callback = create_register_decorator(registry=ALL_PRE_LAUNCH_CALLBACKS)
+
+BACKBONE_STAGES = {}
 register_unet_backbone_stage = create_register_decorator(registry=BACKBONE_STAGES)
+
+UP_FUSE_BLOCKS = {}
 register_unet_up_block = create_register_decorator(registry=UP_FUSE_BLOCKS)
 
 ALL_TARGET_GENERATORS = {}
