@@ -92,7 +92,7 @@ load_checkpoint: False
 checkpoint_params:
   load_checkpoint: ${load_checkpoint}
   checkpoint_path:
-  load_backbone: True
+  load_backbone: False
   strict_load: no_key_matching
 
 experiment_name: ${architecture}_cityscapes_compile_enabled

@@ -52,6 +52,7 @@ val_dataloader: cityscapes_val
 
 architecture: ddrnet_23
 
+
 training_hyperparams:
   initial_lr: 0.0075   # batch size 24
   loss:
@@ -92,7 +93,7 @@ load_checkpoint: False
 checkpoint_params:
   load_checkpoint: ${load_checkpoint}
   checkpoint_path:
-  load_backbone: True
+  load_backbone: False
   strict_load: no_key_matching
 
 experiment_name: ${architecture}_cityscapes_compile_disabled
