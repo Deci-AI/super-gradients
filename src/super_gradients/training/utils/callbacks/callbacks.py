@@ -705,8 +705,11 @@ class TimerCallback(Callback):
     def __init__(self):
         self.events = {}
 
+    def on_train_loader_start(self, context: PhaseContext) -> None:
+        self.events["on_train_loader_start"] = cv2.getTickCount()
+
     def on_train_batch_start(self, context: PhaseContext) -> None:
-        self.events = {"on_train_batch_start": cv2.getTickCount()}
+        self.events["on_train_batch_start"] = cv2.getTickCount()
 
     def on_train_batch_loss_end(self, context: PhaseContext) -> None:
         self.events["on_train_batch_loss_end"] = cv2.getTickCount()
@@ -735,6 +738,17 @@ class TimerCallback(Callback):
             global_step=self.infer_global_step(context, is_train_loader=True),
         )
 
+    def on_train_loader_end(self, context: PhaseContext) -> None:
+        self.events["on_train_loader_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="timer/train_loader_total_time_ms",
+            scalar_value=self.elapsed_time_between("on_train_loader_start", "on_train_loader_end"),
+            global_step=context.epoch,
+        )
+
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
+        self.events["on_validation_loader_start"] = cv2.getTickCount()
+
     def on_validation_batch_start(self, context: PhaseContext) -> None:
         self.events["on_validation_batch_start"] = cv2.getTickCount()
 
@@ -756,3 +770,11 @@ class TimerCallback(Callback):
             return total_steps_in_done + context.batch_idx
         else:
             return total_steps_in_done + len(context.train_loader) + context.batch_idx
+
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
+        self.events["on_validation_loader_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="timer/validation_loader_total_time_ms",
+            scalar_value=self.elapsed_time_between("on_validation_loader_start", "on_validation_loader_end"),
+            global_step=context.epoch,
+        )
