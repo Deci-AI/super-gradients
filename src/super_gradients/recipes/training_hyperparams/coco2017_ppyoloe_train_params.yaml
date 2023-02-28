@@ -5,11 +5,11 @@ max_epochs: 500
 static_assigner_end_epoch: 150
 
 warmup_mode: "linear_batch_step"
-warmup_initial_lr:  1e-7
+warmup_initial_lr:  1e-6
 lr_warmup_steps: 1000
 lr_warmup_epochs: 0
 
-initial_lr:  2e-5
+initial_lr:  2e-3
 lr_mode: cosine
 cosine_final_lr_ratio: 0.1
 
@@ -23,9 +23,9 @@ loss:
     num_classes: ${arch_params.num_classes}
     reg_max: ${arch_params.head.reg_max}
 
-optimizer: Lion
+optimizer: AdamW
 optimizer_params:
-  weight_decay: 0.01
+  weight_decay: 0.0001
 
 ema: True
 ema_params:
@@ -56,14 +56,5 @@ phase_callbacks:
 
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True
-
-sg_logger: "wandb_sg_logger"
-sg_logger_params:
-  project_name: LionExperiments
-  entity: super-gradients
-  api_server: https://wandb.research.deci.ai
-  save_checkpoints_remote: True
-  save_tensorboard_remote: True
-  save_logs_remote: True
 
 _convert_: all
