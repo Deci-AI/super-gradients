@@ -79,7 +79,7 @@ valid_loader = dataloaders.imagenet_val()
 
 model = models.get(
     Models.DDRNET_23_SLIM if args.slim else Models.DDRNET_23,
-    arch_params={"aux_head": False, "classification_mode": True, "dropout_prob": 0.3},
+    arch_params={"use_aux_heads": False, "classification_mode": True, "dropout_prob": 0.3},
     num_classes=1000,
 )
 

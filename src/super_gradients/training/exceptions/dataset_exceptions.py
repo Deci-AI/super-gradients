@@ -39,11 +39,13 @@ class UnsupportedBatchItemsFormat(ValueError):
         message -- explanation of the error
     """
 
-    def __init__(self):
+    def __init__(self, batch_items: tuple):
         self.message = (
-            "Batch items returned by the data loader expected format: \n"
-            "1. torch.Tensor or tuple, s.t inputs = batch_items[0], targets = batch_items[1] and len("
-            "batch_items) = 2 \n"
-            "2. tuple: (inputs, targets, additional_batch_items)"
+            f"The data loader is expected to return 2 to 3 items, but got {len(batch_items)} instead.\n"
+            "Items expected:\n"
+            "   - inputs = batch_items[0] # model input - The type might depend on the model you are using.\n"
+            "   - targets = batch_items[1] # Target that will be used to compute loss/metrics - The type might depend on the function you are using.\n"
+            "   - [OPTIONAL] additional_batch_items = batch_items[2] # Dict made of any additional item that you might want to use.\n"
+            "To fix this, please change the implementation of your dataset __getitem__ method, so that it would return the items defined above.\n"
         )
         super().__init__(self.message)
