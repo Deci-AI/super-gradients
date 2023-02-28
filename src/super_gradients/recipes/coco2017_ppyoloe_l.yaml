@@ -44,7 +44,7 @@ training_hyperparams:
   max_epochs: 300
   static_assigner_end_epoch: 100
 
-  initial_lr:  5e-4
+  initial_lr:  2e-4
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
