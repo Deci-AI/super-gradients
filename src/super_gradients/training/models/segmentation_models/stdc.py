@@ -382,8 +382,9 @@ class ContextPath(nn.Module):
         return feat8, feat16_up
 
     def prep_for_conversion(self, input_size):
-        if input_size[-2] // 32 != 0 or input_size[-1] // 32 != 0:
+        if input_size[-2] % 32 != 0 or input_size[-1] % 32 != 0:
             raise ValueError(f"Expected image dimensions to be divisible by 32, got {input_size[-2]}x{input_size[-1]}")
+
         context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
         self.context_embedding.to_fixed_size(context_embedding_up_size)
 
