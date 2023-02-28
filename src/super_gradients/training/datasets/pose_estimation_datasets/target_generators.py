@@ -1,5 +1,5 @@
 import abc
-from typing import Tuple
+from typing import Tuple, Dict, Union
 
 import cv2
 import numpy as np
@@ -10,7 +10,17 @@ __all__ = ["KeypointsTargetsGenerator", "DEKRTargetsGenerator"]
 
 class KeypointsTargetsGenerator:
     @abc.abstractmethod
-    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray):
+    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray) -> Union[Tensor, Tuple[Tensor, ...], Dict[str, Tensor]]:
+        """
+        Encode input joints into target tensors
+
+        :param image: [C,H,W] Input image tensor
+        :param joints: [Num Instances, Num Joints, 3] Last channel represents (x, y, visibility)
+        :param mask: [H,W] Mask representing valid image areas. For instance, in COCO dataset crowd targets
+                           are not used during training and corresponding instances will be zero-masked.
+                           Your implementation may use this mask when generating targets.
+        :return: Encoded targets
+        """
         raise NotImplementedError()
 
 

@@ -14,69 +14,110 @@ In summary, top-down approach starts with detecting an object and then estimates
 
 ## Implemented models
 
-* [DEKR](https://arxiv.org/abs/2104.02300) - Bottom-Up Human Pose Estimation Via Disentangled Keypoint Regression
+| Model                                    | Model class                                                                                                                                                          | Target Generator                                                                                                                                                      | Loss Class                                                                                                     | Decoding Callback                                                                                                                                                                        | Visualization Callback                                                                                                                                                            |
+|------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| 
+| [DEKR](https://arxiv.org/abs/2104.02300) | [DEKRPoseEstimationModel](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.pose_estimation_models.dekr_hrnet.DEKRPoseEstimationModel) | [DEKRTargetsGenerator](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/pose_estimation_datasets/target_generators.py#L8) | [DEKRLoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.dekr_loss.DEKRLoss) | [DEKRPoseEstimationDecodeCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback) | [DEKRVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_visualization_callbacks.DEKRVisualizationCallback) |
 
-## Datasets
+## Training
+
+For the sake of being specific in this tutorial, we will consider training of `DEKR` model in further explanations.
+The easiest way to start training a pose estimation model is to use a recipe from SuperGradients. 
+
+```bash
+# Note you may need to download ImageNet pretrained weights for HRNet backbone to obtain a on-par performance with the paper
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32
+```
+
+If you're unfamiliar with config files, we recommend you to read the [Configuration Files](https://docs.deci.ai/super-gradients/documentation/source/configuration_files/) part first.
+
+The start of the config file looks like this:
+
+```yaml
+defaults:
+  - training_hyperparams: coco2017_dekr_pose_train_params
+  - dataset_params: coco_pose_estimation_dekr_dataset_params
+  - arch_params: dekr_w32_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+```
+
+Here we define the default values for the following parameters:
+* `training_hyperparams` - These are our training hyperparameters. Things learning rate, optimizer, use of mixed precision, EMA and other training parameters are defined here. 
+    You can refer to the [default_train_params.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml) for more details.
+   In our example we use  [coco2017_dekr_pose_train_params.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/coco2017_dekr_pose_train_params.yaml) that sets
+   training parameters as in [DEKR](https://arxiv.org/abs/2104.02300) paper.
+* `dataset_params` - These are the parameters for the training on COCO2017. The dataset configuration sets the dataset transformations (augmentations & preprocessing) and [target generator](https://docs.deci.ai/super-gradients/docstring/training/datasets/#training.datasets.pose_estimation_datasets.target_generators.DEKRTargetsGenerator) for training the model.
+* `arch_params` - These are the parameters for the model architecture. In our example we use [DEKRPoseEstimationModel](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.pose_estimation_models.dekr_hrnet.DEKRPoseEstimationModel) that is a HRNet-based model with DEKR decoder.
+* `checkpoint_params` - These are the default parameters for resuming of training and using pretrained checkpoints. 
+You can refer to the [default_checkpoint_params.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/checkpoint_params/default_checkpoint_params.yaml).
+ 
+### Datasets
 
 There are several well-known datasets that contain pose estimation annotations for different tasks: COCO, MPII Human Pose, Hands in the Wild, CrowdPose, etc.
 
-SuperGradients provide ready-to-use dataloaders for the COCO dataset `COCOKeypointsDataset` and more general `KeypointsDataset` implementation that you can subclass for your specific dataset format.
+SuperGradients provide ready-to-use dataloaders for the COCO dataset [COCOKeypointsDataset](https://docs.deci.ai/super-gradients/docstring/training/datasets/#training.datasets.pose_estimation_datasets.coco_keypoints.COCOKeypointsDataset) 
+and more general `KeypointsDataset` implementation that you can subclass from for your specific dataset format.
 
 ### Target generators
 
 The target generators are responsible for generating the target tensors for the model. 
-Implementation of target generator is model-specific. 
-So each model may require its own target generator implementation that is compatible with model's output. 
-The goal of this class is to transform ground-truth annotations into the format that is suitable for computing a loss and training a model.
+Implementation of target generator is model-specific and usually includes at least a multi-channel heatmap mask per each joint. 
 
-SuperGradients provide implementation of `DEKRTargetGenerator` that is compatible with `DEKR` model.
+Each model may require its own target generator implementation that is compatible with model's output. 
 
-If you need to implement your own target generator, please refer to documentation of `KeypointsTargetsGenerator` base class.
-
-```py
-from super_gradients.training import dataloaders
-from super_gradients.training.datasets.pose_estimation_datasets.target_generators import DEKRTargetsGenerator
-root_dir = '/path/to/coco2017'
-
-target_generator = DEKRTargetsGenerator(
-    ...
-)
-train_loader = dataloaders.coco2017_pose_train(dataset_params={"root_dir": root_dir, "target_generator": target_generator}, dataloader_params={})
-valid_loader = dataloaders.coco2017_pose_val(dataset_params={"root_dir": root_dir, "target_generator": target_generator}, dataloader_params={})
-```
-
-## Load the model from modelzoo
-
-Create a DEKR-W32 model, with 1 class segmentation head classifier. 
+All target generators should implement `KeypointsTargetsGenerator` interface as show below. 
+The goal of this class is to transform ground-truth annotations into the format that is suitable for computing a loss and training a model:
 
 ```py
-from super_gradients.training import models
-from super_gradients.common.object_names import Models
+# super_gradients.training.datasets.pose_estimation_datasets.target_generators.KeypointsTargetsGenerator
 
-# The model is a torch.nn.module 
-model = models.get(
-    model_name=Models.DEKR_CUSTOM,      # You can use any model listed in the Models.<Name>
-    pretrained_weights="coco"           # Drop this line to train from scratch
-)
+import abc
+import numpy as np
+from torch import Tensor
+from typing import Union, Tuple, Dict
+
+class KeypointsTargetsGenerator:
+    @abc.abstractmethod
+    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray) -> Union[Tensor, Tuple[Tensor, ...], Dict[str, Tensor]]:
+        """
+        Encode input joints into target tensors
+
+        :param image: [C,H,W] Input image tensor
+        :param joints: [Num Instances, Num Joints, 3] Last channel represents (x, y, visibility)
+        :param mask: [H,W] Mask representing valid image areas. For instance, in COCO dataset crowd targets
+                           are not used during training and corresponding instances will be zero-masked.
+                           Your implementation may use this mask when generating targets.
+        :return: Encoded targets
+        """
+        raise NotImplementedError()
 ```
 
+SuperGradients provide implementation of [DEKRTargetGenerator](https://docs.deci.ai/super-gradients/docstring/training/datasets/#training.datasets.pose_estimation_datasets.target_generators.DEKRTargetsGenerator) that is compatible with `DEKR` model.
 
-## Loss function
+If you need to implement your own target generator, please refer to documentation of `KeypointsTargetsGenerator` base class. 
 
-Implemented loss functions in SuperGradients for training pose estimation models:
- 
-* `DEKRLoss` - loss function for `DEKR` model.
-
-
-## Metrics
+### Metrics
 
 A typical metric for pose estimation is the average precision (AP) and average recall (AR). 
 SuperGradients provide implementation of `PoseEstimationMetrics` to compute AP/AR scores.
 
+The metric is implemented as a callback that is called after each validation step. Implementation of the metric is made as close as possible to official metric implementation from [COCO API](https://pypi.org/project/pycocotools/).
+However, our implementation does NOT include computation of AP/AR scores per area range. It also natively support evaluation in DDP mode. 
+
+It is worth noting that usually reported AP/AR scores in papers are obtained using TTA (test-time augmentation) and additional postprocessing on top of the main model. 
+
+A horizontal flip is a common TTA technique that is used to increase accuracy of the predictions at the cost of running forward pass twice. 
+Second common technique is a multi-scale approach when one perform inference additionally on 0.5x and 1.5x input resolution and aggregate predictions. 
+
+When training model using SuperGradients, we use neither of these techniques. If you want to measure AP/AR scores using TTA you may want to write your own evaluation loop for that.
+
+In order to use `PoseEstimationMetrics` you have to pass a so-called `post_prediction_callback` to the metric, which is responsible for postprocessing of the model's raw output into final predictions. 
+
 ### Postprocessing
 
-Postprocessing is a process of transforming model's raw output into a final predictions. Postprocessing is model-specific and depends on the model's output format. 
-For `DEKR` model, postprocessing step is implemented in `DEKRPoseEstimationDecodeCallback` class. When instantiating the metric, one have to pass postprocessing callback as an argument:
+Postprocessing refers to a process of transforming model's raw output into a final predictions. Postprocessing is also a model-specific and depends on the model's output format. 
+For `DEKR` model, postprocessing step is implemented in [DEKRPoseEstimationDecodeCallback]((https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback)) class. 
+When instantiating the metric, one have to pass postprocessing callback as an argument:
 
 ```yaml
 training_hyperparams:
@@ -95,7 +136,7 @@ training_hyperparams:
             apply_sigmoid: False
 ```
 
-## Visualization
+### Visualization
 
 Visualization of the model predictions is a very important part of the training process for pose estimation models. 
 By visualizing the predicted poses, developers and researchers can identify errors or inaccuracies in the model's output and adjust the model's architecture or training data accordingly.
