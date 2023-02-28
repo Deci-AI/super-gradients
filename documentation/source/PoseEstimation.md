@@ -6,7 +6,7 @@ Pose estimation has numerous applications, including robotics, augmented reality
 
 Top-down and bottom-up are two commonly used approaches in pose estimation. The main difference between top-down and bottom-up pose estimation approaches is the order in which the pose is estimated.
 
-In a **top-down approach**, an object detection model is used to identify the object of interest, such as a person or a car, and a separate pose estimation model is used to estimate the pose of the object.
+In a **top-down approach**, an object detection model is used to identify the object of interest, such as a person or a car, and a separate pose estimation model is used to estimate the keypoints of the object.
 
 In contrast, a **bottom-up** approach first identifies individual body parts or joints and then connects them to form a complete pose.
 
@@ -20,7 +20,7 @@ In summary, top-down approach starts with detecting an object and then estimates
 
 ## Training
 
-For the sake of being specific in this tutorial, we will consider training of `DEKR` model in further explanations.
+For the sake of being specific in this tutorial, we will consider the training of `DEKR` model in further explanations.
 The easiest way to start training a pose estimation model is to use a recipe from SuperGradients. 
 
 ```bash
@@ -53,20 +53,19 @@ You can refer to the [default_checkpoint_params.yaml](https://github.com/Deci-AI
  
 ### Datasets
 
-There are several well-known datasets that contain pose estimation annotations for different tasks: COCO, MPII Human Pose, Hands in the Wild, CrowdPose, etc.
-
+There are several well-known datasets for pose estimation: COCO, MPII Human Pose, Hands in the Wild, CrowdPose, etc. 
 SuperGradients provide ready-to-use dataloaders for the COCO dataset [COCOKeypointsDataset](https://docs.deci.ai/super-gradients/docstring/training/datasets/#training.datasets.pose_estimation_datasets.coco_keypoints.COCOKeypointsDataset) 
 and more general `KeypointsDataset` implementation that you can subclass from for your specific dataset format.
 
 ### Target generators
 
 The target generators are responsible for generating the target tensors for the model. 
-Implementation of target generator is model-specific and usually includes at least a multi-channel heatmap mask per each joint. 
+Implementation of the target generator is model-specific and usually includes at least a multi-channel heatmap mask per joint. 
 
 Each model may require its own target generator implementation that is compatible with model's output. 
 
-All target generators should implement `KeypointsTargetsGenerator` interface as show below. 
-The goal of this class is to transform ground-truth annotations into the format that is suitable for computing a loss and training a model:
+All target generators should implement `KeypointsTargetsGenerator` interface as shown below. 
+The goal of this class is to transform ground-truth annotations into a format that is suitable for computing a loss and training a model:
 
 ```py
 # super_gradients.training.datasets.pose_estimation_datasets.target_generators.KeypointsTargetsGenerator
@@ -115,9 +114,9 @@ In order to use `PoseEstimationMetrics` you have to pass a so-called `post_predi
 
 ### Postprocessing
 
-Postprocessing refers to a process of transforming model's raw output into a final predictions. Postprocessing is also a model-specific and depends on the model's output format. 
-For `DEKR` model, postprocessing step is implemented in [DEKRPoseEstimationDecodeCallback]((https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback)) class. 
-When instantiating the metric, one have to pass postprocessing callback as an argument:
+Postprocessing refers to a process of transforming the model's raw output into final predictions. Postprocessing is also model-specific and depends on the model's output format. 
+For `DEKR` model, the postprocessing step is implemented in [DEKRPoseEstimationDecodeCallback]((https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback)) class. 
+When instantiating the metric, one has to pass a postprocessing callback as an argument:
 
 ```yaml
 training_hyperparams:
@@ -143,8 +142,9 @@ By visualizing the predicted poses, developers and researchers can identify erro
 
 Overall, visualization is an important tool for improving the accuracy and usability of pose estimation models, both during development and in real-world applications.
 
-SuperGradients provide implementation of `DEKRVisualizationCallback` to visualize predictions for `DEKR` model. 
+SuperGradients provide an implementation of `DEKRVisualizationCallback` to visualize predictions for `DEKR` model. 
 You can use this callback in your training pipeline to visualize predictions during training. To enable this callback, add the following lines to your training YAML recipe:
+
 
 ```yaml
 training_hyperparams:
@@ -182,6 +182,6 @@ A custom dataset class should inherit from `KeypointsDataset` base class which p
 
 A custom target generator class should inherit from `KeypointsTargetsGenerator` base class which provides a protocol for generating target tensors for the ground-truth keypoints.
 
-A custom postprocessing callback class should inherit from `PoseEstimationDecodeCallback` base class which provides a protocol for transforming model's raw output into a final predictions.
+A custom postprocessing callback class should inherit from `PoseEstimationDecodeCallback` base class which provides a protocol for transforming the model's raw output into a final prediction.
 
-A custom visualization callback class can inherit from `PhaseCallback` or `Callback` base class to generate visualization of the model predictions.
+A custom visualization callback class can inherit from `PhaseCallback` or `Callback` base class to generate a visualization of the model predictions.
