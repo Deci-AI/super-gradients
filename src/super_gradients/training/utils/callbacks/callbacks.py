@@ -303,7 +303,7 @@ class LinearStepWarmupLRCallback(EpochStepWarmupLRCallback):
             f"Parameter {LRWarmups.LINEAR_STEP} has been made deprecated and will be removed in the next SG release. "
             f"Please use `{LRWarmups.LINEAR_EPOCH_STEP}` instead."
         )
-        super(EpochStepWarmupLRCallback, self).__init__(**kwargs)
+        super(LinearStepWarmupLRCallback, self).__init__(**kwargs)
 
 
 @register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP)
