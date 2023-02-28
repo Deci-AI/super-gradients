@@ -41,7 +41,10 @@ training_hyperparams:
   resume: ${resume}
   mixed_precision: True
 
-  initial_lr:  1e-3
+  max_epochs: 300
+  static_assigner_end_epoch: 100
+
+  initial_lr:  4e-4
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
