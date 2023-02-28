@@ -58,7 +58,7 @@ def _no_grad_trunc_normal_(tensor, mean, std, a, b):
 
 
 def trunc_normal_(tensor, mean=0.0, std=1.0, a=-2.0, b=2.0):
-    # type: (Tensor, float, float, float, float) -> Tensor
+    # type: (torch.Tensor, float, float, float, float) -> torch.Tensor
     r"""Fills the input Tensor with values drawn from a truncated
     normal distribution. The values are effectively drawn from the
     normal distribution :math:`\mathcal{N}(\text{mean}, \text{std}^2)`
@@ -91,12 +91,7 @@ class PatchEmbedding(nn.Module):
 
         super().__init__()
 
-        self.proj = nn.Conv2d(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=patch_size,
-            stride=stride,
-            padding=padding)
+        self.proj = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=patch_size, stride=stride, padding=padding)
         self.norm = nn.LayerNorm(out_channels)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, int, int]:
@@ -149,8 +144,8 @@ class EfficientSelfAttention(nn.Module):
         x = self.proj(x)
         return x
 
-class DropPath(nn.Module):
 
+class DropPath(nn.Module):
     def __init__(self, drop_p: float = None):
         """
         Drop path (stochastic depth).
@@ -163,7 +158,7 @@ class DropPath(nn.Module):
         self.drop_p = drop_p
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.drop_p == 0. or not self.training:
+        if self.drop_p == 0.0 or not self.training:
             return x
 
         kp = 1 - self.drop_p
@@ -186,13 +181,7 @@ class MixFFN(nn.Module):
         super().__init__()
 
         self.fc1 = nn.Linear(in_dim, inter_dim)
-        self.dwconv = nn.Conv2d(
-            in_channels=inter_dim,
-            out_channels=inter_dim,
-            kernel_size=3,
-            stride=1,
-            padding=1,
-            groups=inter_dim)
+        self.dwconv = nn.Conv2d(in_channels=inter_dim, out_channels=inter_dim, kernel_size=3, stride=1, padding=1, groups=inter_dim)
         self.fc2 = nn.Linear(inter_dim, in_dim)
 
     def forward(self, x: torch.Tensor, h: int, w: int) -> torch.Tensor:
@@ -206,6 +195,7 @@ class MixFFN(nn.Module):
         x = self.fc2(F.gelu(x))
 
         return x
+
 
 class EncoderBlock(nn.Module):
     def __init__(self, dim: int, head: int, sr_ratio: int, dpr: float):
@@ -221,12 +211,12 @@ class EncoderBlock(nn.Module):
 
         self.attn = EfficientSelfAttention(dim, head, sr_ratio)
 
-        self.drop_path = DropPath(dpr) if dpr > 0. else nn.Identity()
+        self.drop_path = DropPath(dpr) if dpr > 0.0 else nn.Identity()
 
         self.norm1 = nn.LayerNorm(dim)
         self.norm2 = nn.LayerNorm(dim)
 
-        self.mlp = MixFFN(in_dim=dim, inter_dim=dim*4)
+        self.mlp = MixFFN(in_dim=dim, inter_dim=dim * 4)
 
     def forward(self, x: torch.Tensor, h: int, w: int) -> torch.Tensor:
         x = x + self.drop_path(self.attn(self.norm1(x), h, w))
@@ -237,15 +227,15 @@ class EncoderBlock(nn.Module):
 
 class MiTBackBone(nn.Module):
     def __init__(
-            self,
-            embed_dims: list,
-            encoder_layers: list,
-            eff_self_att_reduction_ratio: list,
-            eff_self_att_heads: list,
-            overlap_patch_size: list,
-            overlap_patch_stride: list,
-            overlap_patch_pad: list,
-            in_channels: int
+        self,
+        embed_dims: list,
+        encoder_layers: list,
+        eff_self_att_reduction_ratio: list,
+        eff_self_att_heads: list,
+        overlap_patch_size: list,
+        overlap_patch_stride: list,
+        overlap_patch_pad: list,
+        in_channels: int,
     ):
         """
         Mixed Transformer backbone encoder (https://arxiv.org/pdf/2105.15203.pdf)
@@ -261,41 +251,50 @@ class MiTBackBone(nn.Module):
 
         super().__init__()
 
-        assert len(embed_dims)==len(encoder_layers)==len(eff_self_att_reduction_ratio)==len(eff_self_att_heads)== \
-            len(overlap_patch_size)==len(overlap_patch_stride)==len(overlap_patch_pad), \
-            f"All backbone hyper-parameters should be lists of the same length"
+        assert (
+            len(embed_dims)
+            == len(encoder_layers)
+            == len(eff_self_att_reduction_ratio)
+            == len(eff_self_att_heads)
+            == len(overlap_patch_size)
+            == len(overlap_patch_stride)
+            == len(overlap_patch_pad)
+        ), "All backbone hyper-parameters should be lists of the same length"
 
         # Patch embeddings
         self.patch_embed = []
         for stage_num in range(len(embed_dims)):
             self.patch_embed.append(
                 PatchEmbedding(
-                    in_channels=in_channels if stage_num==0 else embed_dims[stage_num-1],
+                    in_channels=in_channels if stage_num == 0 else embed_dims[stage_num - 1],
                     out_channels=embed_dims[stage_num],
                     patch_size=overlap_patch_size[stage_num],
                     stride=overlap_patch_stride[stage_num],
-                    padding=overlap_patch_pad[stage_num]
+                    padding=overlap_patch_pad[stage_num],
                 )
             )
             self.add_module(f"patch_embed{stage_num+1}", self.patch_embed[stage_num])
 
         drop_path_rate = 0.1
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(encoder_layers))]
-        
+
         self.blocks = []
         self.norms = []
-        
+
         layer_idx = 0
         for stage_num in range(len(embed_dims)):
             self.blocks.append(
-                nn.ModuleList([
-                    EncoderBlock(
-                        dim=embed_dims[stage_num],
-                        head=eff_self_att_heads[stage_num],
-                        sr_ratio=eff_self_att_reduction_ratio[stage_num],
-                        dpr=dpr[layer_idx + i])
-                    for i in range(encoder_layers[stage_num])
-                ])
+                nn.ModuleList(
+                    [
+                        EncoderBlock(
+                            dim=embed_dims[stage_num],
+                            head=eff_self_att_heads[stage_num],
+                            sr_ratio=eff_self_att_reduction_ratio[stage_num],
+                            dpr=dpr[layer_idx + i],
+                        )
+                        for i in range(encoder_layers[stage_num])
+                    ]
+                )
             )
             self.norms.append(nn.LayerNorm(embed_dims[stage_num]))
 
@@ -303,7 +302,6 @@ class MiTBackBone(nn.Module):
             self.add_module(f"norm{stage_num + 1}", self.norms[stage_num])
 
             layer_idx += encoder_layers[stage_num]
-
 
     def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
         b_size = x.shape[0]
@@ -340,6 +338,7 @@ class MLP(nn.Module):
 
         return x
 
+
 class LinearFuse(nn.Module):
     def __init__(self, in_channels: int, out_channels: int):
         """
@@ -350,12 +349,7 @@ class LinearFuse(nn.Module):
 
         super().__init__()
 
-        self.conv = nn.Conv2d(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=1,
-            bias=False
-        )
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, bias=False)
         self.bn = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
 
@@ -378,10 +372,8 @@ class SegFormerHead(nn.Module):
             self.linear_layers.append(MLP(dim, embed_dim))
             self.add_module(f"linear_c{idx + 1}", self.linear_layers[idx])
 
-        self.linear_fuse = LinearFuse(in_channels=embed_dim*len(encoder_dims), out_channels=embed_dim)
-        self.linear_pred = nn.Conv2d(in_channels=embed_dim,
-                                     out_channels=num_classes,
-                                     kernel_size=1)
+        self.linear_fuse = LinearFuse(in_channels=embed_dim * len(encoder_dims), out_channels=embed_dim)
+        self.linear_pred = nn.Conv2d(in_channels=embed_dim, out_channels=num_classes, kernel_size=1)
 
         self.dropout = nn.Dropout2d(0.1)
 
@@ -391,8 +383,8 @@ class SegFormerHead(nn.Module):
         out_lst = [self.linear_layers[0](features[0]).permute(0, 2, 1).reshape(b, -1, *features[0].shape[-2:])]
 
         for i, feature in enumerate(features[1:]):
-            out = self.linear_layers[i+1](feature).permute(0, 2, 1).reshape(b, -1, *feature.shape[-2:])
-            out = F.interpolate(out, size=(h, w), mode='bilinear', align_corners=False)
+            out = self.linear_layers[i + 1](feature).permute(0, 2, 1).reshape(b, -1, *feature.shape[-2:])
+            out = F.interpolate(out, size=(h, w), mode="bilinear", align_corners=False)
             out_lst.append(out)
 
         out = self.linear_fuse(torch.cat(out_lst[::-1], dim=1))
@@ -414,7 +406,7 @@ class SegFormer(SegmentationModule):
         overlap_patch_size: list,
         overlap_patch_stride: list,
         overlap_patch_pad: list,
-        in_channels: int = 3
+        in_channels: int = 3,
     ):
         """
         :param num_classes: number of classes
@@ -440,14 +432,10 @@ class SegFormer(SegmentationModule):
             overlap_patch_size=overlap_patch_size,
             overlap_patch_stride=overlap_patch_stride,
             overlap_patch_pad=overlap_patch_pad,
-            in_channels=in_channels
+            in_channels=in_channels,
         )
 
-        self.decode_head = SegFormerHead(
-            encoder_dims=encoder_embed_dims,
-            embed_dim=decoder_embed_dim,
-            num_classes=num_classes
-        )
+        self.decode_head = SegFormerHead(encoder_dims=encoder_embed_dims, embed_dim=decoder_embed_dim, num_classes=num_classes)
 
         self.init_params()
 
@@ -455,7 +443,7 @@ class SegFormer(SegmentationModule):
 
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                trunc_normal_(m.weight, std=.02)
+                trunc_normal_(m.weight, std=0.02)
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
             elif isinstance(m, nn.Conv2d):
@@ -474,16 +462,12 @@ class SegFormer(SegmentationModule):
         pass
 
     def replace_head(self, new_num_classes: int, new_decoder_embed_dim: int):
-        self.decode_head = SegFormerHead(
-            encoder_dims=self.encoder_embed_dims,
-            embed_dim=new_decoder_embed_dim,
-            num_classes=new_num_classes
-        )
+        self.decode_head = SegFormerHead(encoder_dims=self.encoder_embed_dims, embed_dim=new_decoder_embed_dim, num_classes=new_num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self._backbone(x)
         out = self.decode_head(features)
-        out = F.interpolate(out, size=x.shape[2:], mode='bilinear', align_corners=False)
+        out = F.interpolate(out, size=x.shape[2:], mode="bilinear", align_corners=False)
         return out
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
@@ -535,7 +519,7 @@ class SegFormerCustom(SegFormer):
             overlap_patch_size=arch_params.overlap_patch_size,
             overlap_patch_stride=arch_params.overlap_patch_stride,
             overlap_patch_pad=arch_params.overlap_patch_pad,
-            in_channels=arch_params.in_channels
+            in_channels=arch_params.in_channels,
         )
 
 
@@ -548,23 +532,14 @@ DEFAULT_SEGFORMER_PARAMS = {
     "eff_self_att_heads": [1, 2, 5, 8],
 }
 
-DEFAULT_SEGFORMER_B0_PARAMS = {
-    **DEFAULT_SEGFORMER_PARAMS,
-    "encoder_embed_dims": [32, 64, 160, 256],
-    "encoder_layers": [2, 2, 2, 2],
-    "decoder_embed_dim": 256
-}
+DEFAULT_SEGFORMER_B0_PARAMS = {**DEFAULT_SEGFORMER_PARAMS, "encoder_embed_dims": [32, 64, 160, 256], "encoder_layers": [2, 2, 2, 2], "decoder_embed_dim": 256}
 
 DEFAULT_SEGFORMER_B1_PARAMS = {
     **DEFAULT_SEGFORMER_B0_PARAMS,
     "encoder_embed_dims": [64, 128, 320, 512],
 }
 
-DEFAULT_SEGFORMER_B2_PARAMS = {
-    **DEFAULT_SEGFORMER_B1_PARAMS,
-    "encoder_layers": [3, 4, 6, 3],
-    "decoder_embed_dim": 768
-}
+DEFAULT_SEGFORMER_B2_PARAMS = {**DEFAULT_SEGFORMER_B1_PARAMS, "encoder_layers": [3, 4, 6, 3], "decoder_embed_dim": 768}
 
 DEFAULT_SEGFORMER_B3_PARAMS = {
     **DEFAULT_SEGFORMER_B2_PARAMS,
@@ -588,11 +563,13 @@ class SegFormerB0(SegFormerCustom):
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
 
+
 class SegFormerB1(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B1_PARAMS)
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
+
 
 class SegFormerB2(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
@@ -600,17 +577,20 @@ class SegFormerB2(SegFormerCustom):
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
 
+
 class SegFormerB3(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B3_PARAMS)
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
 
+
 class SegFormerB4(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B4_PARAMS)
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
+
 
 class SegFormerB5(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
