@@ -17,3 +17,4 @@ pre_process: # Preprocessing pipeline, will be resolved by TransformsFactory(), 
 post_process: # Postprocessing pipeline, will be resolved by TransformsFactory(), and will be baked into the converted model (optional).
 prep_model_for_conversion_kwargs: # For SgModules, args to be passed to model.prep_model_for_conversion prior to torch.onnx.export call.
 torch_onnx_export_kwargs: # kwargs (EXCLUDING: FIRST 3 KWARGS- MODEL, F, ARGS). to be unpacked in torch.onnx.export call
+simplify: True # whether to apply onnx simplifier method, same as `python -m onnxsim onnx_path onnx_sim_path.
