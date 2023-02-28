@@ -272,9 +272,9 @@ class PoseEstimationMetrics(Metric):
 
         predictions = self.predictions  # All gathered by this time
         if len(predictions) > 0:
-            preds_matched = torch.cat([x[0] for x in predictions], dim=0)
-            preds_to_ignore = torch.cat([x[1] for x in predictions], dim=0)
-            preds_scores = torch.cat([x[2] for x in predictions], dim=0)
+            preds_matched = torch.cat([x[0].cpu() for x in predictions], dim=0)
+            preds_to_ignore = torch.cat([x[1].cpu() for x in predictions], dim=0)
+            preds_scores = torch.cat([x[2].cpu() for x in predictions], dim=0)
             n_targets = sum([x[3] for x in predictions])
 
             cls_precision, _, cls_recall = compute_detection_metrics_per_cls(
@@ -282,9 +282,9 @@ class PoseEstimationMetrics(Metric):
                 preds_to_ignore=preds_to_ignore,
                 preds_scores=preds_scores,
                 n_targets=n_targets,
-                recall_thresholds=self.recall_thresholds.to(self.device),
+                recall_thresholds=self.recall_thresholds.cpu(),
                 score_threshold=0,
-                device=self.device,
+                device="cpu",
             )
 
             precision[:, 0] = cls_precision.cpu().numpy()
