@@ -41,6 +41,11 @@ training_hyperparams:
   resume: ${resume}
   mixed_precision: True
 
+  max_epochs: 300
+  static_assigner_end_epoch: 100
+
+  initial_lr:  5e-4
+
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
     project_name: coco2017_pp_yoloe_l
