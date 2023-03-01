@@ -142,6 +142,7 @@ By visualizing the predicted poses, developers and researchers can identify erro
 
 Overall, visualization is an important tool for improving the accuracy and usability of pose estimation models, both during development and in real-world applications.
 
+
 SuperGradients provide an implementation of `DEKRVisualizationCallback` to visualize predictions for `DEKR` model. 
 You can use this callback in your training pipeline to visualize predictions during training. To enable this callback, add the following lines to your training YAML recipe:
 
@@ -168,6 +169,13 @@ training_hyperparams:
         std: [ 0.229, 0.224, 0.225 ]
         apply_sigmoid: False
 ```
+
+During training, the callback will generate a visualization of the model predictions and save it to the TensorBoard or Weights & Biases depending on which logger you
+are using (Default is Tensorboard). And result will look like this:
+
+![](images/pose_estimation_visualization_callback.png)
+
+On the left side of the image there is input image with ground-truth keypoints overlay and on the right side there are same channel-wise sum of target and predicted heatmaps.
 
 ## Implementing your own model
 
