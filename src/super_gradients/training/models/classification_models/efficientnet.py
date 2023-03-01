@@ -408,27 +408,41 @@ class EfficientNet(SgModule):
         [1] https://arxiv.org/abs/1905.11946 (EfficientNet)
     """
 
-    def __init__(self, blocks_args=None, arch_params=None):
+    def __init__(
+        self,
+        width_coefficient,
+        depth_coefficient,
+        image_size,
+        dropout_rate,
+        num_classes,  # FIXME num_classes: arch_params.num_classes,
+        batch_norm_momentum: 0.99,
+        batch_norm_epsilon: 1e-3,
+        drop_connect_rate: 0.2,
+        depth_divisor: 8,
+        min_depth: None,
+        backbone_mode: False,
+        blocks_args=None,
+    ):
+        pass
+        # FIXME: blocks_args was moved right
         super().__init__()
         assert isinstance(blocks_args, list), "blocks_args should be a list"
         assert len(blocks_args) > 0, "block args must be greater than 0"
-        self._arch_params = arch_params
+        # ! = arch_params
         self._blocks_args = blocks_args
-        self.backbone_mode = arch_params.backbone_mode
+        self.backbone_mode = backbone_mode
+        self.drop_connect_rate = drop_connect_rate
 
         # Batch norm parameters
-        bn_mom = 1 - self._arch_params.batch_norm_momentum
-        bn_eps = self._arch_params.batch_norm_epsilon
+        bn_mom = 1 - batch_norm_momentum
+        bn_eps = batch_norm_epsilon
 
         # Get stem static or dynamic convolution depending on image size
-        image_size = arch_params.image_size
         Conv2d = get_same_padding_conv2d(image_size=image_size)
 
         # Stem
         in_channels = 3  # rgb
-        out_channels = round_filters(
-            32, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth
-        )  # number of output channels
+        out_channels = round_filters(32, width_coefficient, depth_divisor, min_depth)  # number of output channels
         self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
         self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         image_size = calculate_output_image_size(image_size, 2)
@@ -439,27 +453,23 @@ class EfficientNet(SgModule):
 
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                input_filters=round_filters(
-                    block_args.input_filters, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth
-                ),
-                output_filters=round_filters(
-                    block_args.output_filters, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth
-                ),
-                num_repeat=round_repeats(block_args.num_repeat, self._arch_params.depth_coefficient),
+                input_filters=round_filters(block_args.input_filters, width_coefficient, depth_divisor, min_depth),
+                output_filters=round_filters(block_args.output_filters, width_coefficient, depth_divisor, min_depth),
+                num_repeat=round_repeats(block_args.num_repeat, depth_coefficient),
             )
 
             # The first block needs to take care of stride and filter size increase.
-            self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum, self._arch_params.batch_norm_epsilon, image_size=image_size))
+            self._blocks.append(MBConvBlock(block_args, batch_norm_momentum, batch_norm_epsilon, image_size=image_size))
             image_size = calculate_output_image_size(image_size, block_args.stride)
             if block_args.num_repeat > 1:  # modify block_args to keep same output size
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)
             for _ in range(block_args.num_repeat - 1):
-                self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum, self._arch_params.batch_norm_epsilon, image_size=image_size))
+                self._blocks.append(MBConvBlock(block_args, batch_norm_momentum, batch_norm_epsilon, image_size=image_size))
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
         # Head
         in_channels = block_args.output_filters  # output of final block
-        out_channels = round_filters(1280, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth)
+        out_channels = round_filters(1280, width_coefficient, depth_divisor, min_depth)
         Conv2d = get_same_padding_conv2d(image_size=image_size)
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
@@ -467,8 +477,8 @@ class EfficientNet(SgModule):
         # Final linear layer
         if not self.backbone_mode:
             self._avg_pooling = nn.AdaptiveAvgPool2d(1)
-            self._dropout = nn.Dropout(self._arch_params.dropout_rate)
-            self._fc = nn.Linear(out_channels, self._arch_params.num_classes)
+            self._dropout = nn.Dropout(dropout_rate)
+            self._fc = nn.Linear(out_channels, num_classes)
         self._swish = nn.functional.silu
 
     def extract_features(self, inputs):
@@ -486,7 +496,7 @@ class EfficientNet(SgModule):
 
         # Blocks
         for idx, block in enumerate(self._blocks):
-            drop_connect_rate = self._arch_params.drop_connect_rate
+            drop_connect_rate = self.drop_connect_rate
             if drop_connect_rate:
                 drop_connect_rate *= float(idx) / len(self._blocks)  # scale drop connect_rate
             x = block(x, drop_connect_rate=drop_connect_rate)
@@ -595,61 +605,191 @@ def get_efficientnet_params(width: float, depth: float, res: float, dropout: flo
 class EfficientNetB0(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.0, depth=1.0, res=224, dropout=0.2, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
 class EfficientNetB1(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.0, depth=1.1, res=240, dropout=0.2, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
 class EfficientNetB2(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.1, depth=1.2, res=260, dropout=0.3, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
 class EfficientNetB3(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.2, depth=1.4, res=300, dropout=0.3, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
 class EfficientNetB4(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.4, depth=1.8, res=380, dropout=0.4, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
 class EfficientNetB5(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.6, depth=2.2, res=456, dropout=0.4, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
 class EfficientNetB6(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.8, depth=2.6, res=528, dropout=0.5, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
 class EfficientNetB7(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=2.0, depth=3.1, res=600, dropout=0.5, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
 class EfficientNetB8(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=2.2, depth=3.6, res=672, dropout=0.5, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
 class EfficientNetL2(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=4.3, depth=5.3, res=800, dropout=0.5, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
 class CustomizedEfficientnet(EfficientNet):
@@ -661,4 +801,17 @@ class CustomizedEfficientnet(EfficientNet):
             dropout=arch_params.dropout_rate,
             arch_params=arch_params,
         )
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
