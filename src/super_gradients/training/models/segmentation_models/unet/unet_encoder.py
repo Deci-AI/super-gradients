@@ -203,7 +203,7 @@ class RegnetXStage(BackboneStage):
 class ConvStage(BackboneStage):
     """
     Conv stage with ConvBNReLU as building block. If `anti_alias=True`, `AntiAliasDownsample` module is used for
-    downsampling, If `max_pool=True`, `nn.MaxPool2d` module is used with kernel_size=3.
+    downsampling, If `max_pool=True`, `nn.MaxPool2d` module is used.
     """
 
     def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, max_pool: bool, **kwargs):
@@ -216,7 +216,7 @@ class ConvStage(BackboneStage):
             blocks.append(AntiAliasDownsample(in_channels, stride))
             stride = 1
         elif max_pool and stride == 2:
-            blocks.append(nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+            blocks.append(nn.MaxPool2d(kernel_size=2, stride=2))
             stride = 1
         # RepVGG blocks
         blocks.extend(
