@@ -24,10 +24,11 @@ For the sake of being specific in this tutorial, we will consider the training o
 The easiest way to start training a pose estimation model is to use a recipe from SuperGradients. 
 
 ```bash
-# Note you may need to download ImageNet pretrained weights for HRNet backbone to obtain a on-par performance with the paper
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32 multi_gpu=Off num_gpus=1
 ```
 
+Note, the default configuration for recipe is to use 8 GPUs in DDP mode. This hardware configuration may not be for everyone, so we in the example above we override GPU settings to use single GPU.
+It is highly recommended to read through the recipe file https://github.com/Deci-AI/super-gradients/src/super_gradients/recipes/coco2017_pose_dekr_w32.yaml to get better understanding of the hyperparameters we use here.
 If you're unfamiliar with config files, we recommend you to read the [Configuration Files](https://docs.deci.ai/super-gradients/documentation/source/configuration_files/) part first.
 
 The start of the config file looks like this:
@@ -55,7 +56,7 @@ You can refer to the [default_checkpoint_params.yaml](https://github.com/Deci-AI
 
 There are several well-known datasets for pose estimation: COCO, MPII Human Pose, Hands in the Wild, CrowdPose, etc. 
 SuperGradients provide ready-to-use dataloaders for the COCO dataset [COCOKeypointsDataset](https://docs.deci.ai/super-gradients/docstring/training/datasets/#training.datasets.pose_estimation_datasets.coco_keypoints.COCOKeypointsDataset) 
-and more general `KeypointsDataset` implementation that you can subclass from for your specific dataset format.
+and more general `BaseKeypointsDataset` implementation that you can subclass from for your specific dataset format.
 
 ### Target generators
 
@@ -177,19 +178,222 @@ are using (Default is Tensorboard). And result will look like this:
 
 On the left side of the image there is input image with ground-truth keypoints overlay and on the right side there are same channel-wise sum of target and predicted heatmaps.
 
-## Implementing your own model
+## How to connect your own dataset
 
-To implement a new model, you may need to implement the following classes:
+To add a new dataset to SuperGradients, you need to implement a few things:
 
-* Dataset class
-* Target Generator
-* Postprocessing Callback
-* (Optional) Visualization Callback
+- Implement a new dataset class
+- Implement a new dataloader factory methods
+- Add a configuration file
 
-A custom dataset class should inherit from `KeypointsDataset` base class which provides a common interface, transforms, and other useful methods.
+Let's unwrap each of the steps
+
+### Implement a new dataset class
+
+To train an existing architecture on a new dataset one need to implement the dataset class first:
+It is generally a good idea to subclass from `BaseKeypointsDataset` that gives you a skeleton a dataset class and asks you to implement only a few methods to prepare your data for training.
+
+A minimal implementation of a dataset class should look like this:
+
+```python
+from super_gradients.training.datasets.pose_estimation_datasets import BaseKeypointsDataset
+from super_gradients.training.datasets.pose_estimation_datasets import KeypointsTargetsGenerator
+from super_gradients.training.transforms.keypoint_transforms import KeypointTransform
+from typing import Tuple, Dict, Any, List
+import numpy as np
+import cv2
+
+class MyNewPoseEstimationDataset(BaseKeypointsDataset):
+    def __init__(
+            self,
+            image_paths,
+            joint_paths,
+            target_generator: KeypointsTargetsGenerator,
+            transforms: List[KeypointTransform],
+            min_instance_area: float = 0.0,
+    ):
+        super().__init__(target_generator, transforms, min_instance_area)
+        self.image_paths = image_paths
+        self.joint_paths = joint_paths
+
+
+    def __len__(self) -> int:
+        return len(self.image_paths)
+
+    
+    def load_sample(self, index) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Dict[str, Any]]:
+        """
+        Read a sample from the disk and return (image, mask, joints, extras) tuple
+        :param index: Sample index
+        :return: Tuple of (image, mask, joints, extras)
+            image - Numpy array of [H,W,3] shape, which represents input RGB image
+            mask - Numpy array of [H,W] shape, which represents a binary mask with zero values corresponding to an
+                    ignored region which should not be used for training (contribute to loss)
+            joints - Numpy array of [Num Instances, Num Joints, 3] shape, which represents the skeletons of the instances
+            extras - Dictionary of extra information about the sample that should be included in `extras` dictionary.
+        """
+        # Read image from the disk
+        image = cv2.imread(self.image_paths[index])
+        mask = np.ones(image.shape[:2])
+        joints = np.loadtxt(self.joint_paths[index])
+        return image, mask, joints, {}
+```
+
+### Implement a new dataloader factory methods
+
+```python
+from super_gradients.training.dataloaders import get_data_loader
+
+def my_new_dataset_pose_train(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="coco_pose_estimation_dataset_params",
+        dataset_cls=MyNewPoseEstimationDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def my_new_dataset_pose_val(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="coco_pose_estimation_dataset_params",
+        dataset_cls=MyNewPoseEstimationDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+```
+
+### Add a configuration file
+
+Create new `my_new_dataset_dataset_params.yaml` file under `dataset_params` folder. For the sake of simplicity, let's assume that we're going to train a DEKR model on human joints (17 keypoints as in COCO). 
+Then, the full configuration file should look like this:
+
+```yaml
+# my_new_dataset_dataset_params.yaml
+num_joints: 17
+
+# OKs sigma values take from https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocotools/cocoeval.py#L523
+oks_sigmas: [0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 1.007, 1.007, 0.087, 0.087, 0.089, 0.089]
+
+train_dataset_params:
+  image_paths: /my_new_dataset/train/images 
+  joint_paths: /my_new_dataset/train/annotations 
+  min_instance_area: 128
+  transforms:
+    - KeypointsLongestMaxSize:
+        max_height: 640
+        max_width: 640
+    - KeypointsPadIfNeeded:
+        min_height: 640
+        min_width: 640
+        image_pad_value: [ 127, 127, 127 ]
+        mask_pad_value: 1
+    - KeypointsRandomHorizontalFlip:
+        # Note these indexes are COCO-specific. If you're using a different dataset, you'll need to change these accordingly.
+        flip_index: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15 ]
+        prob: 0.5
+    - KeypointsRandomAffineTransform:
+        max_rotation: 30
+        min_scale: 0.75
+        max_scale: 1.5
+        max_translate: 0.2
+        image_pad_value: [ 127, 127, 127 ]
+        mask_pad_value: 1
+        prob: 0.5
+    - KeypointsImageToTensor
+    - KeypointsImageNormalize:
+        mean: [ 0.485, 0.456, 0.406 ]
+        std: [ 0.229, 0.224, 0.225 ]
+  target_generator:
+    DEKRTargetsGenerator:
+      output_stride: 4
+      sigma: 2
+      center_sigma: 4
+      bg_weight: 0.1
+      offset_radius: 4
+
+
+val_dataset_params:
+  image_paths: /my_new_dataset/train/images 
+  joint_paths: /my_new_dataset/train/annotations 
+  min_instance_area: 128
+  transforms:
+    - KeypointsLongestMaxSize:
+        max_height: 640
+        max_width: 640
+    - KeypointsPadIfNeeded:
+        min_height: 640
+        min_width: 640
+        image_pad_value: [ 127, 127, 127 ]
+        mask_pad_value: 1
+    - KeypointsImageToTensor
+    - KeypointsImageNormalize:
+        mean: [0.485, 0.456, 0.406]
+        std: [0.229, 0.224, 0.225]
+  target_generator:
+    DEKRTargetsGenerator:
+      output_stride: 4
+      sigma: 2
+      center_sigma: 4
+      bg_weight: 0.1
+      offset_radius: 4
+
+
+train_dataloader_params:
+  shuffle: True
+  batch_size: 8
+  num_workers: 8
+  drop_last: True
+  worker_init_fn:
+    _target_: super_gradients.training.utils.utils.load_func
+    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
+  collate_fn:
+    _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
+
+
+val_dataloader_params:
+  batch_size: 24
+  num_workers: 8
+  drop_last: False
+  collate_fn:
+    _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
+
+_convert_: all
+```
+
+In your training recipe add/change the following lines to:
+
+```yaml
+# my_new_dataset_train_recipe.yaml
+defaults:
+  - training_hyperparams: ...
+  - dataset_params: my_new_dataset_dataset_params
+  - arch_params: ...
+  - checkpoint_params: ...
+  - _self_
+ 
+train_dataloader: my_new_dataset_pose_train
+val_dataloader: my_new_dataset_pose_val
+...
+```
+
+And you should be good to go!
+
+## How to add a new model
+
+To implement a new model, you need to add the following parts:
+
+- Model architecture itself
+- Target Generator
+- Postprocessing Callback
+- (Optional) Visualization Callback
 
 A custom target generator class should inherit from `KeypointsTargetsGenerator` base class which provides a protocol for generating target tensors for the ground-truth keypoints.
+See  [DEKRTargetsGenerator](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/pose_estimation_datasets/target_generators.py#L8) for more details.
 
-A custom postprocessing callback class should inherit from `PoseEstimationDecodeCallback` base class which provides a protocol for transforming the model's raw output into a final prediction.
+A custom postprocessing callback class should have a `forward` method which takes raw model predictions and decode them into a final pose predictions. 
+See [DEKRPoseEstimationDecodeCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback) for more details.
 
-A custom visualization callback class can inherit from `PhaseCallback` or `Callback` base class to generate a visualization of the model predictions.
+A custom visualization callback class can inherit from `PhaseCallback` or `Callback` base class to generate a visualization of the model predictions. 
+See [DEKRVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_visualization_callbacks.DEKRVisualizationCallback) for more details.
