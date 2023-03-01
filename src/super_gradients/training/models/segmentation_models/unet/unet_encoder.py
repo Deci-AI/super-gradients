@@ -122,43 +122,52 @@ class STDCStage(BackboneStage):
             )
 
 
-class RepVGGStage(BackboneStage):
+class ConvBaseStage(BackboneStage, ABC):
     """
-    RepVGG stage with RepVGGBlock as building block. If `anti_alias=True`, `AntiAliasDownsample` module is used for
-    downsampling.
+    Base single conv block implementation, such as, Conv, QARepVGG, and RepVGG stages.
+    Optionally support different downsample strategy, `anti_alias` with the `AntiAliasDownsample` and `max_pool` with
+    the `nn.MaxPool2d` module.
     """
 
-    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, **kwargs):
+    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, max_pool: bool = False, **kwargs):
         blocks = []
         # Anti alias gaussian down-sampling
         if anti_alias and stride == 2:
             blocks.append(AntiAliasDownsample(in_channels, stride))
             stride = 1
-        # RepVGG blocks
-        blocks.extend([RepVGGBlock(in_channels, out_channels, stride=stride), *[RepVGGBlock(out_channels, out_channels) for _ in range(num_blocks - 1)]])
-        return nn.Sequential(*blocks)
-
-
-class QARepVGGStage(BackboneStage):
-    """
-    QARepVGG stage with QARepVGGBlock as building block. If `anti_alias=True`, `AntiAliasDownsample` module is used for
-    downsampling.
-    """
-
-    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, **kwargs):
-        blocks = []
-        # Anti alias gaussian down-sampling
-        if anti_alias and stride == 2:
-            blocks.append(AntiAliasDownsample(in_channels, stride))
+        elif max_pool and stride == 2:
+            blocks.append(nn.MaxPool2d(kernel_size=2, stride=2))
             stride = 1
         # RepVGG blocks
         blocks.extend(
             [
-                QARepVGGBlock(in_channels, out_channels, stride=stride, use_residual_connection=False),
-                *[QARepVGGBlock(out_channels, out_channels) for _ in range(num_blocks - 1)],
+                self.build_conv_block(in_channels, out_channels, stride=stride),
+                *[self.build_conv_block(out_channels, out_channels, stride=1) for _ in range(num_blocks - 1)],
             ]
         )
         return nn.Sequential(*blocks)
+
+    @abstractmethod
+    def build_conv_block(self, in_channels: int, out_channels: int, stride: int):
+        raise NotImplementedError()
+
+
+class RepVGGStage(ConvBaseStage):
+    """
+    RepVGG stage with RepVGGBlock as building block.
+    """
+
+    def build_conv_block(self, in_channels: int, out_channels: int, stride: int):
+        return RepVGGBlock(in_channels, out_channels, stride=stride)
+
+
+class QARepVGGStage(ConvBaseStage):
+    """
+    QARepVGG stage with QARepVGGBlock as building block.
+    """
+
+    def build_conv_block(self, in_channels: int, out_channels: int, stride: int):
+        return QARepVGGBlock(in_channels, out_channels, stride=stride, use_residual_connection=(out_channels == in_channels and stride == 1))
 
 
 class RegnetXStage(BackboneStage):
@@ -200,32 +209,13 @@ class RegnetXStage(BackboneStage):
         return 1
 
 
-class ConvStage(BackboneStage):
+class ConvStage(ConvBaseStage):
     """
-    Conv stage with ConvBNReLU as building block. If `anti_alias=True`, `AntiAliasDownsample` module is used for
-    downsampling, If `max_pool=True`, `nn.MaxPool2d` module is used.
+    Conv stage with ConvBNReLU as building block.
     """
 
-    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, max_pool: bool = False, **kwargs):
-        if max_pool and anti_alias:
-            raise ValueError("Only one of [anti_alias, max_pool] should be set to True for downsampling.")
-
-        blocks = []
-        # Anti alias gaussian down-sampling
-        if anti_alias and stride == 2:
-            blocks.append(AntiAliasDownsample(in_channels, stride))
-            stride = 1
-        elif max_pool and stride == 2:
-            blocks.append(nn.MaxPool2d(kernel_size=2, stride=2))
-            stride = 1
-        # RepVGG blocks
-        blocks.extend(
-            [
-                ConvBNReLU(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False),
-                *[ConvBNReLU(out_channels, out_channels, kernel_size=3, padding=1, bias=False) for _ in range(num_blocks - 1)],
-            ]
-        )
-        return nn.Sequential(*blocks)
+    def build_conv_block(self, in_channels: int, out_channels: int, stride: int):
+        return ConvBNReLU(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
 
 
 BACKBONE_STAGES = dict(
