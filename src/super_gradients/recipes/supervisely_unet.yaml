@@ -1,3 +1,18 @@
+# Binary segmentation training example of UNet model on the Supervisely person dataset.
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#      UNet:        python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=supervisely_unet
+#
+# Validation Target (Person class) IoU and training time:
+#      UNet:        input-size: [480, 320]     mIoU: 89.18     1 X RTX A5000, 4 H
+#
+# Logs, tensorboards and network checkpoints:
+#      UNet:       https://deci-pretrained-models.s3.amazonaws.com/unet/supervisely/
+#
+
 defaults:
   - training_hyperparams: supervisely_default_train_params
   - dataset_params: supervisely_persons_dataset_params
