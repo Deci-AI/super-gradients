@@ -220,8 +220,7 @@ class UNet(UNetCustom):
     """
     implementation of:
      "U-Net: Convolutional Networks for Biomedical Image Segmentation", https://arxiv.org/pdf/1505.04597.pdf
-    By default the upsample operation used is bilinear interpolation which show better results, for upsampling with
-    conv-transpose as proposed by the original paper, set `use_conv_transpose=True`
+    The upsample operation is done by using bilinear interpolation which is reported to show better results.
     """
 
     def __init__(self, arch_params: HpmStruct):
