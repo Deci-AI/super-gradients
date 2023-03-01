@@ -23,6 +23,14 @@ In summary, top-down approach starts with detecting an object and then estimates
 For the sake of being specific in this tutorial, we will consider the training of `DEKR` model in further explanations.
 The easiest way to start training a pose estimation model is to use a recipe from SuperGradients. 
 
+### Prerequisites
+
+1. You have to install SuperGradients first. Please refer to the [Installation](https://docs.deci.ai/super-gradients/documentation/source/installation/) section for more details.
+2. Prepare the COCO dataset as described in the [Computer Vision Datasets Setup](https://docs.deci.ai/super-gradients/src/super_gradients/training/datasets/Dataset_Setup_Instructions/) under Pose Estimation Datasets
+ section. 
+
+After you met the prerequisites, you can start training the model by running from the root of the repository:
+
 ```bash
 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32 multi_gpu=Off num_gpus=1
 ```
