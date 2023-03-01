@@ -79,8 +79,10 @@ def convert_to_onnx(
     if get_param(prep_model_for_conversion_kwargs, "input_size") is None:
         prep_model_for_conversion_kwargs["input_size"] = (1, *input_shape)
 
-    if prep_model_for_conversion_kwargs["input_size"] != input_shape:
-        prep_model_input_shape = prep_model_for_conversion_kwargs["input_size"]
+    prep_model_input_shape = tuple(list(prep_model_for_conversion_kwargs["input_size"])[1:])  #
+    # prep_model_for_conversion includes batch dimension
+
+    if prep_model_input_shape != input_shape:
         raise ValueError(f"Inconsistent shapes in prep_model_for_conversion_kwargs input_size and input_shape:{prep_model_input_shape}, {input_shape}")
 
     onnx_input = torch.Tensor(np.zeros([1, *input_shape]))
