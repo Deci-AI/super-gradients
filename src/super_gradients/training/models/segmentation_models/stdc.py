@@ -13,7 +13,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param, HpmStruct
-from super_gradients.modules import ConvBNReLU
+from super_gradients.modules import ConvBNReLU, Residual
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
 
 
@@ -34,14 +34,20 @@ class STDCBlock(nn.Module):
          `dw_conv` for depthwise-convolution.
         """
         super().__init__()
-        assert steps in [2, 3, 4], f"only 2, 3, 4 steps number are supported, found: {steps}"
+        if steps not in [2, 3, 4]:
+            raise ValueError(f"only 2, 3, 4 steps number are supported, found: {steps}")
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.steps = steps
+        self.stdc_downsample_mode = stdc_downsample_mode
         self.stride = stride
         self.conv_list = nn.ModuleList()
         # build first step conv 1x1.
         self.conv_list.append(ConvBNReLU(in_channels, out_channels // 2, kernel_size=1, bias=False))
         # build skip connection after first convolution.
         if stride == 1:
-            self.skip_step1 = nn.Identity()
+            self.skip_step1 = Residual()
         elif stdc_downsample_mode == "avg_pool":
             self.skip_step1 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
         elif stdc_downsample_mode == "dw_conv":
@@ -90,9 +96,8 @@ class AbstractSTDCBackbone(nn.Module, ABC):
     """
 
     def validate_backbone(self):
-        assert len(self.get_backbone_output_number_of_channels()) == 3, (
-            f"Backbone for STDC segmentation must output 3 feature maps," f" found: {len(self.get_backbone_output_number_of_channels())}."
-        )
+        if len(self.get_backbone_output_number_of_channels()) != 3:
+            raise ValueError(f"Backbone for STDC segmentation must output 3 feature maps," f" found: {len(self.get_backbone_output_number_of_channels())}.")
 
     @abstractmethod
     def get_backbone_output_number_of_channels(self) -> List[int]:
@@ -125,11 +130,12 @@ class STDCBackbone(AbstractSTDCBackbone):
             default (32,) for classification.
         """
         super(STDCBackbone, self).__init__()
-        assert len(block_types) == len(ch_widths) == len(num_blocks), (
-            f"STDC architecture configuration, block_types, ch_widths, num_blocks, must be defined for the same number"
-            f" of stages, found: {len(block_types)} for block_type, {len(ch_widths)} for ch_widths, "
-            f"{len(num_blocks)} for num_blocks"
-        )
+        if not (len(block_types) == len(ch_widths) == len(num_blocks)):
+            raise ValueError(
+                f"STDC architecture configuration, block_types, ch_widths, num_blocks, must be defined for the same number"
+                f" of stages, found: {len(block_types)} for block_type, {len(ch_widths)} for ch_widths, "
+                f"{len(num_blocks)} for num_blocks"
+            )
 
         self.out_widths = []
         self.stages = nn.ModuleDict()
@@ -250,6 +256,8 @@ class AttentionRefinementModule(nn.Module):
 
     def __init__(self, in_channels: int, out_channels: int):
         super(AttentionRefinementModule, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.conv_first = ConvBNReLU(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
         self.attention_block = nn.Sequential(
             nn.AdaptiveAvgPool2d(1), ConvBNReLU(out_channels, out_channels, kernel_size=1, bias=False, use_activation=False), nn.Sigmoid()
@@ -272,6 +280,10 @@ class FeatureFusionModule(nn.Module):
 
     def __init__(self, spatial_channels: int, context_channels: int, out_channels: int):
         super(FeatureFusionModule, self).__init__()
+        self.spatial_channels = spatial_channels
+        self.context_channels = context_channels
+        self.out_channels = out_channels
+
         self.pw_conv = ConvBNReLU(spatial_channels + context_channels, out_channels, kernel_size=1, stride=1, bias=False)
         # TODO - used without bias in convolutions by mistake, try to reproduce with bias=True
         self.attention_block = nn.Sequential(
@@ -290,44 +302,32 @@ class FeatureFusionModule(nn.Module):
         return feat_out
 
 
-class ContextEmbeddingOnline(nn.Module):
+class ContextEmbedding(nn.Module):
     """
     ContextEmbedding module that use global average pooling to 1x1 to extract context information, and then upsample
     to original input size.
     """
 
     def __init__(self, in_channels: int, out_channels: int):
-        super(ContextEmbeddingOnline, self).__init__()
+        super(ContextEmbedding, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.context_embedding = nn.Sequential(nn.AdaptiveAvgPool2d(1), ConvBNReLU(in_channels, out_channels, kernel_size=1, stride=1, bias=False))
+        self.fixed_size = False
 
     def forward(self, x):
         out_height, out_width = x.size()[2:]
         x = self.context_embedding(x)
         return F.interpolate(x, size=(out_height, out_width), mode="nearest")
 
+    def to_fixed_size(self, upsample_size: Union[list, tuple]):
+        if self.fixed_size:
+            return
+        self.fixed_size = True
 
-class ContextEmbeddingFixedSize(ContextEmbeddingOnline):
-    """
-    ContextEmbedding module that use a fixed size interpolation, supported with onnx conversion.
-    Prevent slice/cast/shape operations in onnx conversion for applying interpolation.
-    """
-
-    def __init__(self, in_channels: int, out_channels: int, upsample_size: Union[list, tuple]):
-        super(ContextEmbeddingFixedSize, self).__init__(in_channels, out_channels)
         self.context_embedding.add_module("upsample", nn.Upsample(scale_factor=upsample_size, mode="nearest"))
 
-    @classmethod
-    def from_context_embedding_online(cls, ce_online: ContextEmbeddingOnline, upsample_size: Union[list, tuple]):
-        context = ContextEmbeddingFixedSize(in_channels=ce_online.in_channels, out_channels=ce_online.out_channels, upsample_size=upsample_size)
-        # keep training mode state as original module
-        context.train(ce_online.training)
-        context.load_state_dict(ce_online.state_dict())
-        return context
-
-    def forward(self, x):
-        return self.context_embedding(x)
+        self.forward = self.context_embedding.forward
 
 
 class ContextPath(nn.Module):
@@ -344,13 +344,15 @@ class ContextPath(nn.Module):
 
     def __init__(self, backbone: AbstractSTDCBackbone, fuse_channels: int, use_aux_heads: bool):
         super(ContextPath, self).__init__()
+
+        self.fuse_channels = fuse_channels
         self.use_aux_heads = use_aux_heads
 
         self.backbone = backbone
         # get num of channels for two last stages
         channels16, channels32 = self.backbone.get_backbone_output_number_of_channels()[-2:]
 
-        self.context_embedding = ContextEmbeddingOnline(channels32, fuse_channels)
+        self.context_embedding = ContextEmbedding(channels32, fuse_channels)
 
         self.arm32 = AttentionRefinementModule(channels32, fuse_channels)
         self.upsample32 = nn.Sequential(
@@ -378,6 +380,13 @@ class ContextPath(nn.Module):
         if self.use_aux_heads:
             return feat8, feat16_up, feat16, feat32
         return feat8, feat16_up
+
+    def prep_for_conversion(self, input_size):
+        if input_size[-2] % 32 != 0 or input_size[-1] % 32 != 0:
+            raise ValueError(f"Expected image dimensions to be divisible by 32, got {input_size[-2]}x{input_size[-1]}")
+
+        context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
+        self.context_embedding.to_fixed_size(context_embedding_up_size)
 
 
 class STDCSegmentationBase(SgModule):
@@ -446,8 +455,7 @@ class STDCSegmentationBase(SgModule):
         # set to false and delete auxiliary and detail heads modules.
         self.use_aux_heads = False
 
-        context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
-        self.cp.context_embedding = ContextEmbeddingFixedSize.from_context_embedding_online(self.cp.context_embedding, context_embedding_up_size)
+        self.cp.prep_for_conversion(input_size)
 
     def _remove_auxiliary_and_detail_heads(self):
         attributes_to_delete = ["aux_head_s16", "aux_head_s32", "detail_head8"]
