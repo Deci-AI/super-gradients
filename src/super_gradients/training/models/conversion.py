@@ -71,8 +71,7 @@ def convert_to_onnx(
      prior to torch.onnx.export call.
     :param torch_onnx_export_kwargs: kwargs (EXCLUDING: FIRST 3 KWARGS- MODEL, F, ARGS). to be unpacked in torch.onnx.export call
     :param simplify: bool,whether to apply onnx simplifier method, same as `python -m onnxsim onnx_path onnx_sim_path.
-     When true, the simplified model will be saved in out_path.replace(".onnx", "_simplified.onnx").
-        (default=True).
+     When true, the simplified model will be saved in out_path (default=True).
 
     :return: out_path
     """
@@ -87,7 +86,7 @@ def convert_to_onnx(
 
     torch.onnx.export(model=complete_model, args=onnx_input, f=out_path, **torch_onnx_export_kwargs)
     if simplify:
-        onnx_simplify(out_path, out_path.replace(".onnx", "_simplified.onnx"))
+        onnx_simplify(out_path, out_path)
     return out_path
 
 
@@ -146,6 +145,7 @@ def onnx_simplify(onnx_path: str, onnx_sim_path: str):
     :param onnx_sim_path: path for output onnx simplified model
     """
     model_sim, check = simplify(model=onnx_path)
-    assert check, "Simplified ONNX model could not be validated"
+    if not check:
+        raise RuntimeError("Simplified ONNX model could not be validated")
     onnx.save_model(model_sim, onnx_sim_path)
     return onnx_sim_path
