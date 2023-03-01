@@ -70,7 +70,10 @@ def convert_to_onnx(
     :param prep_model_for_conversion_kwargs: dict, for SgModules- args to be passed to model.prep_model_for_conversion
      prior to torch.onnx.export call.
     :param torch_onnx_export_kwargs: kwargs (EXCLUDING: FIRST 3 KWARGS- MODEL, F, ARGS). to be unpacked in torch.onnx.export call
-    :param simplify: bool, whether to call onnx simplify method, same as `python -m onnxsim onnx_path onnx_sim_path (default=True).
+    :param simplify: bool,whether to apply onnx simplifier method, same as `python -m onnxsim onnx_path onnx_sim_path.
+     When true, the simplified model will be saved in out_path.replace(".onnx", "_simplified.onnx").
+        (default=True).
+
     :return: out_path
     """
     if not os.path.isdir(pathlib.Path(out_path).parent.resolve()):
