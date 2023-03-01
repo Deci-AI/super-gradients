@@ -26,15 +26,11 @@ train_dataset_params:
 val_dataset_params:
   transforms:
     - SegRescale:
-        short_size: 1024
+        long_size: 1024
 
     - SegPadShortToCropSize:
         crop_size: [ 1024, 1024 ]
         fill_mask: 19
-
-    - SegCropImageAndMask:
-        crop_size: [ 1024, 1024 ]
-        mode: center
 
 train_dataloader_params:
   batch_size: 2
