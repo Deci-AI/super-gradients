@@ -40,10 +40,8 @@ class Bottleneck(nn.Module):
 
 
 class DPN(SgModule):
-    def __init__(self, cfg):
+    def __init__(self, in_planes, out_planes, num_blocks, dense_depth):
         super(DPN, self).__init__()
-        in_planes, out_planes = cfg["in_planes"], cfg["out_planes"]
-        num_blocks, dense_depth = cfg["num_blocks"], cfg["dense_depth"]
 
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
@@ -75,13 +73,11 @@ class DPN(SgModule):
 
 
 def DPN26():
-    cfg = {"in_planes": (96, 192, 384, 768), "out_planes": (256, 512, 1024, 2048), "num_blocks": (2, 2, 2, 2), "dense_depth": (16, 32, 24, 128)}
-    return DPN(cfg)
+    return DPN(in_planes=(96, 192, 384, 768), out_planes=(256, 512, 1024, 2048), num_blocks=(2, 2, 2, 2), dense_depth=(16, 32, 24, 128))
 
 
 def DPN92():
-    cfg = {"in_planes": (96, 192, 384, 768), "out_planes": (256, 512, 1024, 2048), "num_blocks": (3, 4, 20, 3), "dense_depth": (16, 32, 24, 128)}
-    return DPN(cfg)
+    return DPN(in_planes=(96, 192, 384, 768), out_planes=(256, 512, 1024, 2048), num_blocks=(3, 4, 20, 3), dense_depth=(16, 32, 24, 128))
 
 
 def test():
