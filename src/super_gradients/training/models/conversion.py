@@ -86,7 +86,7 @@ def convert_to_onnx(
 
     torch.onnx.export(model=complete_model, args=onnx_input, f=out_path, **torch_onnx_export_kwargs)
     if simplify:
-        onnx_simplify(out_path, out_path)
+        _ = onnx_simplify(out_path, out_path)
     return out_path
 
 
