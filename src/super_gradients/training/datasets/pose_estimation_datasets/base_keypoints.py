@@ -1,11 +1,12 @@
 import abc
-from typing import Tuple, List, Mapping, Any, Dict, Callable
+from typing import Tuple, List, Mapping, Any, Dict
 
 import numpy as np
 import torch
 from torch.utils.data import default_collate, Dataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.datasets.pose_estimation_datasets.target_generators import KeypointsTargetsGenerator
 from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointTransform
 
 logger = get_logger(__name__)
@@ -19,7 +20,7 @@ class BaseKeypointsDataset(Dataset):
 
     def __init__(
         self,
-        target_generator: Callable,
+        target_generator: KeypointsTargetsGenerator,
         transforms: List[KeypointTransform],
         min_instance_area: float,
     ):
@@ -44,12 +45,12 @@ class BaseKeypointsDataset(Dataset):
         """
         Read a sample from the disk and return (image, mask, joints, extras) tuple
         :param index: Sample index
-        :return: Tuple of (image, mask, joints)
+        :return: Tuple of (image, mask, joints, extras)
             image - Numpy array of [H,W,3] shape, which represents input RGB image
             mask - Numpy array of [H,W] shape, which represents a binary mask with zero values corresponding to an
                     ignored region which should not be used for training (contribute to loss)
             joints - Numpy array of [Num Instances, Num Joints, 3] shape, which represents the skeletons of the instances
-            extras - Dictionary of extra information about the sample that should be included in extras output
+            extras - Dictionary of extra information about the sample that should be included in `extras` dictionary.
         """
         raise NotImplementedError()
 
