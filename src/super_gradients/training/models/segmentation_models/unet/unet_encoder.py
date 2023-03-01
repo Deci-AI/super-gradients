@@ -206,7 +206,7 @@ class ConvStage(BackboneStage):
     downsampling, If `max_pool=True`, `nn.MaxPool2d` module is used.
     """
 
-    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, max_pool: bool, **kwargs):
+    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, max_pool: bool = False, **kwargs):
         if max_pool and anti_alias:
             raise ValueError("Only one of [anti_alias, max_pool] should be set to True for downsampling.")
 
