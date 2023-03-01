@@ -4,7 +4,7 @@ Docker is an open-source containerization platform allowing developers to packag
 
 ## Instructions and Recommended Practices
 
-1) Install Docker https://docs.docker.com/engine/install/ubuntu/.
+1) Follow the installation steps for the [Nvidia Docker](https://github.com/NVIDIA/nvidia-docker).
 2) Pull the Docker image with the tag according to the SG version you are working with. For example, super-gradients 3.0.7:
 ```
 docker pull deciai/super-gradients:3.0.7
