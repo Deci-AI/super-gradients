@@ -1,6 +1,7 @@
 import os
 from typing import Union, Tuple
 
+import copy
 import hydra
 import torch.cuda
 from omegaconf import DictConfig
@@ -80,24 +81,24 @@ class QATTrainer(Trainer):
         # INSTANTIATE DATA LOADERS
         train_dataloader = dataloaders.get(
             name=get_param(cfg, "train_dataloader"),
-            dataset_params=cfg.dataset_params.train_dataset_params.copy(),
-            dataloader_params=cfg.dataset_params.train_dataloader_params.copy(),
+            dataset_params=copy.deepcopy(cfg.dataset_params.train_dataset_params),
+            dataloader_params=copy.deepcopy(cfg.dataset_params.train_dataloader_params),
         )
 
         val_dataloader = dataloaders.get(
             name=get_param(cfg, "val_dataloader"),
-            dataset_params=cfg.dataset_params.val_dataset_params.copy(),
-            dataloader_params=cfg.dataset_params.val_dataloader_params.copy(),
+            dataset_params=copy.deepcopy(cfg.dataset_params.val_dataset_params),
+            dataloader_params=copy.deepcopy(cfg.dataset_params.val_dataloader_params),
         )
 
         if "calib_dataloader" in cfg:
             calib_dataloader_name = get_param(cfg, "calib_dataloader")
-            calib_dataloader_params = cfg.dataset_params.calib_dataloader_params.copy()
-            calib_dataset_params = cfg.dataset_params.calib_dataset_params.copy()
+            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.calib_dataloader_params)
+            calib_dataset_params = copy.deepcopy(cfg.dataset_params.calib_dataset_params)
         else:
             calib_dataloader_name = get_param(cfg, "train_dataloader")
-            calib_dataloader_params = cfg.dataset_params.train_dataloader_params.copy()
-            calib_dataset_params = cfg.dataset_params.train_dataset_params.copy()
+            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.train_dataloader_params)
+            calib_dataset_params = copy.deepcopy(cfg.dataset_params.train_dataset_params)
 
             # if we use whole dataloader for calibration, don't shuffle it
             # HistogramCalibrator collection routine is sensitive to order of batches and produces slightly different results
