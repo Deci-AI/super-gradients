@@ -54,7 +54,7 @@ arch_params:
 
 checkpoint_params:
   checkpoint_path:
-  load_backbone: True
+  load_backbone: False
   load_weights_only: True
   strict_load: no_key_matching
 
