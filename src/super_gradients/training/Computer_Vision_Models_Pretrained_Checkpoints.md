@@ -51,10 +51,10 @@ All the available models are listed in the column `Model name`.
 | YOLOX small           | yolox_s               | COCO    | 640x640    | 40.47                   | **3.58ms**                 | **4.94ms**                          | **18.88ms**                              | **22.48ms**                                       |              **-**              |
 | YOLOX medium          | yolox_m               | COCO    | 640x640    | 46.4                    | **6.40ms**                 | **7.65ms**                          | **39.22ms**                              | **44.5ms**                                        |              **-**              |
 | YOLOX large           | yolox_l               | COCO    | 640x640    | 49.25                   | **10.07ms**                | **11.12ms**                         | **68.73ms**                              | **77.01ms**                                       |              **-**              |
-| PP-YOLOE small        | pp_yoloe_s            | COCO    | 640x640    | TBD                     | **2.39**                   | **4.3**                             | **14.28**                                | **14.99**                                         |              **-**              |
-| PP-YOLOE medium       | pp_yoloe_m            | COCO    | 640x640    | TBD                     | **5.16**                   | **7.05**                            | TBD                                      | TBD                                               |              **-**              |
-| PP-YOLOE large        | pp_yoloe_l            | COCO    | 640x640    | TBD                     | **7.65**                   | **9.59**                            | TBD                                      | TBD                                               |              **-**              |
-| PP-YOLOE x-large      | pp_yoloe_x            | COCO    | 640x640    | TBD                     | **14.04**                  | **15.96**                           | TBD                                      | TBD                                               |              **-**              |
+| PP-YOLOE small        | pp_yoloe_s            | COCO    | 640x640    | 42.52                   | **2.39ms**                 | **4.3ms**                           | **14.28ms**                              | **14.99ms**                                         |              **-**              |
+| PP-YOLOE medium       | pp_yoloe_m            | COCO    | 640x640    | 47.11                   | **5.16ms**                 | **7.05ms**                          | **32.71ms**                              | **33.46ms**                                         |              **-**              |
+| PP-YOLOE large        | pp_yoloe_l            | COCO    | 640x640    | TODO                    | **7.65ms**                 | **9.59ms**                          | **51.13ms**                              | **50.39ms**                                         |              **-**              |
+| PP-YOLOE x-large      | pp_yoloe_x            | COCO    | 640x640    | TODO                    | **14.04ms**                | **15.96ms**                         | **94.92ms**                              | **94.22ms**                                         |              **-**              |
 
 > **NOTE:** <br/>
 > - Latency (HW)* - Hardware performance (not including IO)<br/>
@@ -64,20 +64,23 @@ All the available models are listed in the column `Model name`.
 
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
-| Model          | Model Name      | Dataset    | Resolution | mIoU  | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO | Latency (Production)**<sub>Jetson Xavier NX</sub> | 
-|----------------|-----------------|------------|------------|-------|-------------------------|--------------------------------------|:-------------------------------------------------:|
-| PP-LiteSeg B50 | pp_lite_b_seg50 | Cityscapes | 512x1024   | 76.48 | **4.18ms**              | **31.22ms**                          |                    **31.69ms**                    |
-| PP-LiteSeg B75 | pp_lite_b_seg75 | Cityscapes | 768x1536   | 78.52 | **6.84ms**              | **33.69ms**                          |                    **49.89ms**                    |
-| PP-LiteSeg T50 | pp_lite_t_seg50 | Cityscapes | 512x1024   | 74.92 | **3.26ms**              | **30.33ms**                          |                    **26.20ms**                    |
-| PP-LiteSeg T75 | pp_lite_t_seg75 | Cityscapes | 768x1536   | 77.56 | **5.20ms**              | **32.28ms**                          |                    **38.03ms**                    |
-| DDRNet 23 slim | ddrnet_23_slim  | Cityscapes | 1024x2048  | 78.01 | **5.74ms**              | **32.01ms**                          |                    **45.18ms**                    |
-| DDRNet 23      | ddrnet_23       | Cityscapes | 1024x2048  | 80.26 | **12.74ms**             | **39.01ms**                          |                   **106.26ms**                    |
-| STDC 1-Seg50   | stdc1_seg50     | Cityscapes | 512x1024   | 75.11 | **3.34ms**              | **30.12ms**                          |                    **27.54ms**                    |
-| STDC 1-Seg75   | stdc1_seg75     | Cityscapes | 768x1536   | 77.8  | **5.53ms**              | **32.490ms**                         |                     **43.88**                     |
-| STDC 2-Seg50   | stdc2_seg50     | Cityscapes | 512x1024   | 76.44 | **4.12ms**              | **30.94ms**                          |                    **32.03ms**                    |
-| STDC 2-Seg75   | stdc2_seg75     | Cityscapes | 768x1536   | 78.93 | **6.95ms**              | **33.89ms**                          |                    **54.48ms**                    |
-| RegSeg (exp48) | regseg48        | Cityscapes | 1024x2048  | 78.15 | **12.03ms**             | **38.91ms**                          |                    **78.20ms**                    |
+| Model                 | Model Name        | Dataset    | Resolution | mIoU  | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO | Latency (Production)**<sub>Jetson Xavier NX</sub> | 
+|-----------------------|-------------------|------------|------------|-------|-------------------------|--------------------------------------|:-------------------------------------------------:|
+| PP-LiteSeg B50        | pp_lite_b_seg50   | Cityscapes | 512x1024   | 76.48 | **4.18ms**              | **31.22ms**                          |                    **31.69ms**                    |
+| PP-LiteSeg B75        | pp_lite_b_seg75   | Cityscapes | 768x1536   | 78.52 | **6.84ms**              | **33.69ms**                          |                    **49.89ms**                    |
+| PP-LiteSeg T50        | pp_lite_t_seg50   | Cityscapes | 512x1024   | 74.92 | **3.26ms**              | **30.33ms**                          |                    **26.20ms**                    |
+| PP-LiteSeg T75        | pp_lite_t_seg75   | Cityscapes | 768x1536   | 77.56 | **5.20ms**              | **32.28ms**                          |                    **38.03ms**                    |
+| DDRNet 23 slim        | ddrnet_23_slim    | Cityscapes | 1024x2048  | 79.41 | **5.74ms**              | **32.01ms**                          |                    **45.18ms**                    |
+| DDRNet 23             | ddrnet_23         | Cityscapes | 1024x2048  | 81.48 | **12.74ms**             | **39.01ms**                          |                   **106.26ms**                    |
+| DDRNet 39             | ddrnet_39         | Cityscapes | 1024x2048  | 81.32 | **23.57ms**             | **52.41ms**                          |                   **145.79ms**                    |
+| STDC 1-Seg50          | stdc1_seg50       | Cityscapes | 512x1024   | 75.11 | **3.34ms**              | **30.12ms**                          |                    **27.54ms**                    |
+| STDC 1-Seg75          | stdc1_seg75       | Cityscapes | 768x1536   | 77.8  | **5.53ms**              | **32.490ms**                         |                     **43.88**                     |
+| STDC 2-Seg50          | stdc2_seg50       | Cityscapes | 512x1024   | 76.44 | **4.12ms**              | **30.94ms**                          |                    **32.03ms**                    |
+| STDC 2-Seg75          | stdc2_seg75       | Cityscapes | 768x1536   | 78.93 | **6.95ms**              | **33.89ms**                          |                   **54.48ms**                     |
+| RegSeg (exp48)        | regseg48          | Cityscapes | 1024x2048  | 78.15 | **12.03ms**             | **38.91ms**                          |                    **78.20ms**                    |
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency), and not including IO
 
 > **NOTE:** For resolutions below 1024x2048 we first resize the input to the inference resolution and then resize the predictions to 1024x2048. The time of resizing is included in the measurements so that the practical input-size is 1024x2048.
+ 
+> **NOTE:** DDRNet23 and DDRNet23_Slim results were achieved with channel wise knowledge distillation training recipe.
