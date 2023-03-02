@@ -286,6 +286,20 @@ To get a basic understanding of recipes, refer to `configuration_files.md` for m
 
 You can modify an existing recipe to suit PTQ and QAT by adding `quantization_params` to it. You can find these `default_quantization_params` in  `src/super_gradients/recipes/quantization_params/default_quantization_params.yaml`
 
+Also, you can add a sepatare calibration dataloader to your recipe , otherwise, train dataloader without augmenttations will be used for calibration:
+
+```yaml
+calib_dataloader: imagenet_train # for example
+dataset_params:
+  ...
+  calib_dataloader_params:
+    ...
+  calib_dataset_params:
+    ...
+```
+
+Initialization and parameters are identical to training and validation datasets and dataloaders. Refer to `configuration_files.md` for details.
+
 ```yaml
 ptq_only: False              # whether to launch QAT, or leave PTQ only
 selective_quantizer_params:
@@ -316,6 +330,7 @@ pre_launch_callbacks_list:
         warmup_epochs_divisor: 10
         cosine_final_lr_ratio: 0.01
         disable_phase_callbacks: True
+        disable_augmentations: False
 ```
 
 Default parameters of this callback are representing the rules of thumb to perform successful QAT from an existing training recipe. 
