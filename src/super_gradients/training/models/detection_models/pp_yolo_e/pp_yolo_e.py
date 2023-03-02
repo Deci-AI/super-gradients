@@ -33,9 +33,11 @@ class PPYoloE(SgModule):
         with convertible substitutes and remove all auxiliary or training related parts.
         :param input_size: [H,W]
         """
+        self.head.cache_anchors(input_size)
+
         for module in self.modules():
             if isinstance(module, RepVGGBlock):
-                module.prep_model_for_conversion(input_size)
+                module.fuse_block_residual_branches()
 
     def replace_head(self, new_num_classes=None, new_head=None):
         if new_num_classes is None and new_head is None:
