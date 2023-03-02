@@ -768,6 +768,12 @@ class TimerCallback(Callback):
             global_step={"epoch": context.epoch},
         )
 
+        context.sg_logger.add_scalar(
+            tag="timer/epoch_total_time_sec",
+            scalar_value=self.elapsed_time_between("on_train_loader_start", "on_validation_loader_end") / 1000.0,
+            global_step={"epoch": context.epoch},
+        )
+
     def elapsed_time_between(self, start_event, end_event):
         return 1000.0 * (self.events[end_event] - self.events[start_event]) / cv2.getTickFrequency()
 
