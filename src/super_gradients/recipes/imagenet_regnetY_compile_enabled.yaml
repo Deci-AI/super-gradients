@@ -64,8 +64,8 @@ ckpt_root_dir:
 multi_gpu: Off
 num_gpus: 1
 
-architecture: regnetY800_compile_enabled
-experiment_name: ${architecture}
+architecture: regnetY800
+experiment_name: ${architecture}_compile_enabled
 
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
