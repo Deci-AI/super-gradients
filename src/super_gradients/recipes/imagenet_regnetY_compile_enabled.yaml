@@ -1,0 +1,75 @@
+#  RegnetY Imagenet classification training:
+#  This example trains with batch_size = 256
+#  Training time on a single GeForce RTX 2080 Ti, and top1 accuracies:
+#  11 days for RegnetY200, 70.88
+#  12 days for RegnetY400, 74.74
+#  19 days for RegnetY600, 76.18
+#  20 days for RegnetY800, 77.07
+#  NOTE: Training should probably be lower as resources were shared among the above runs.
+#
+#  Logs and tensorboards at:
+# https://deci-pretrained-models.s3.amazonaws.com/RegnetY800/
+# https://deci-pretrained-models.s3.amazonaws.com/RegnetY600/
+# https://deci-pretrained-models.s3.amazonaws.com/RegnetY400/
+# https://deci-pretrained-models.s3.amazonaws.com/RegnetY200/
+#
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#         regnetY200: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY200
+#         regnetY400: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY400
+#         regnetY600: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY600
+#         regnetY800: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY800
+
+defaults:
+  - training_hyperparams: imagenet_regnetY_train_params
+  - dataset_params: imagenet_regnetY_dataset_params
+  - arch_params: regnetY_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+arch_params:   
+  num_classes: 1000
+  dropout_prob: 0.5
+  droppath_prob: 0.0
+
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
+
+
+load_checkpoint: False
+resume: False
+training_hyperparams:
+  resume: ${resume}
+
+  ema: False
+  max_epochs: 5
+  torch_compile: True
+
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: TorchCompileExperiments
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
+
+  phase_callbacks:
+    - TimerCallback
+
+ckpt_root_dir:
+
+multi_gpu: Off
+num_gpus: 1
+
+architecture: regnetY800_compile_enabled
+experiment_name: ${architecture}
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
