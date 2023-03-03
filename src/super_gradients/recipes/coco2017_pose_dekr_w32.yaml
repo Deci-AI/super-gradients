@@ -67,6 +67,17 @@ dataset_params:
 
 training_hyperparams:
   resume: ${resume}
+
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: coco2017_pose_estimation
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
+
+
   phase_callbacks: []
 #   Note: You can uncomment following block to enable visualization of intermediate results during training.
 #   When enabled, these callbacks will save first batch from training & validation to Tensorboard.
