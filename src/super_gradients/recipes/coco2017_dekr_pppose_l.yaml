@@ -29,13 +29,13 @@
 defaults:
   - training_hyperparams: coco2017_dekr_pose_train_params
   - dataset_params: coco_pose_estimation_dekr_dataset_params
-  - arch_params: dekr_pppose_m
+  - arch_params: dekr_pppose_l_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
 
 resume: False
 
-architecture: dekr_pp_pose_m
+architecture: dekr_pp_pose_l
 
 multi_gpu: DDP
 num_gpus: 8
@@ -53,11 +53,11 @@ arch_params:
 
   backbone:
     CSPResNetBackbone:
-      pretrained_weights: https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/CSPResNetb_m_pretrained.pth
+      pretrained_weights: https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/CSPResNetb_l_pretrained.pth
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 16
+    batch_size: 12
 
   val_dataloader_params:
     batch_size: 16

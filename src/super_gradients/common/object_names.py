@@ -290,7 +290,7 @@ class Models:
     PP_YOLOE_X = "ppyoloe_x"
 
     DEKR_CUSTOM = "dekr_custom"
-    DEKR_PP_Pose_M = "dekr_pp_pose_m"
+    DEKR_PP_Pose_L = "dekr_pp_pose_l"
 
 
 class ConcatenatedTensorFormats:

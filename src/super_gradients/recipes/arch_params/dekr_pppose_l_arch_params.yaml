@@ -6,8 +6,8 @@ backbone:
     return_idx: [ 0, 1, 2, 3 ]               # Indexes of feature maps to output, indiced 1,2,3 correspond to feature maps of stride 8,16,32
     use_large_stem: True                  # If True, uses 3 conv+bn+act instead of 2 in stem blocks
     use_alpha: False                      # If True, enables additional learnable weighting parameter for 1x1 branch in RepVGGBlock
-    depth_mult: 0.67
-    width_mult: 0.75
+    depth_mult: 1
+    width_mult: 1
     pretrained_weights:
 
 neck:
@@ -17,8 +17,8 @@ neck:
     stage_num: 2
     block_num: 2
     spp: True
-    depth_mult: 0.67
-    width_mult: 0.75
+    depth_mult: 1
+    width_mult: 1
 
 heads:
   LightweightDEKRHead:
