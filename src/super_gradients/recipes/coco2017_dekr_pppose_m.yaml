@@ -51,6 +51,9 @@ val_dataloader: coco2017_pose_val
 arch_params:
   num_classes: ${dataset_params.num_joints}
 
+  backbone:
+    CSPResNetBackbone:
+      pretrained_weights: https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/CSPResNetb_m_pretrained.pth
 
 dataset_params:
   train_dataloader_params:
@@ -67,6 +70,16 @@ training_hyperparams:
 #   This is helpful for debugging and doing visual checks whether predictions are reasonable and transforms are
 #   working as expected.
 #   The only downside is that it tend to bloat Tensorboard logs (Up to ten Gigs for long training regimes).
+
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: coco2017_pose_estimation
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
+
   phase_callbacks:
     - DEKRVisualizationCallback:
         phase:
