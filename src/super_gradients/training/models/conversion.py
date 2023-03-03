@@ -86,7 +86,7 @@ def convert_to_onnx(
 
     torch.onnx.export(model=complete_model, args=onnx_input, f=out_path, **torch_onnx_export_kwargs)
     if simplify:
-        _ = onnx_simplify(out_path, out_path)
+        onnx_simplify(out_path, out_path)
     return out_path
 
 
@@ -148,4 +148,3 @@ def onnx_simplify(onnx_path: str, onnx_sim_path: str):
     if not check:
         raise RuntimeError("Simplified ONNX model could not be validated")
     onnx.save_model(model_sim, onnx_sim_path)
-    return onnx_sim_path
