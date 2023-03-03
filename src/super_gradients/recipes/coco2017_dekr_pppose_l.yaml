@@ -71,6 +71,8 @@ training_hyperparams:
 #   working as expected.
 #   The only downside is that it tend to bloat Tensorboard logs (Up to ten Gigs for long training regimes).
 
+  initial_lr: 0.0001
+
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
     project_name: coco2017_pose_estimation
