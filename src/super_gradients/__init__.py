@@ -5,6 +5,9 @@ from super_gradients.examples.train_from_kd_recipe_example import train_from_kd_
 from super_gradients.sanity_check import env_sanity_check
 from super_gradients.training.utils.distributed_training_utils import setup_device
 
+# FIXME 'LD_LIBRARY_PATH'
+# TODO: Mute at begining and unmute main.
+
 __all__ = [
     "ARCHITECTURES",
     "losses",

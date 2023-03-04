@@ -39,6 +39,10 @@ from torch.utils.data import BatchSampler, DataLoader, TensorDataset
 logger = get_logger(__name__)
 
 
+def init():
+    print("ok")
+
+
 def get_data_loader(config_name, dataset_cls, train, dataset_params=None, dataloader_params=None):
     """
     Class for creating dataloaders for taking defaults from yaml files in src/super_gradients/recipes.
@@ -71,7 +75,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
 
     dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
 
-    dataloader = DataLoader(dataset=dataset, **dataloader_params)
+    dataloader = DataLoader(dataset=dataset, worker_init_fn=init, **dataloader_params)
     dataloader.dataloader_params = dataloader_params
     return dataloader
 
