@@ -1,5 +1,8 @@
+dataset_dir: /data/supervisely-persons
+batch_size: 8
+
 train_dataset_params:
-  root_dir: /data/supervisely-persons
+  root_dir: ${..dataset_dir}
   list_file: train.csv
   cache_labels: False
   cache_images: False
@@ -20,7 +23,7 @@ train_dataset_params:
         mode: random
 
 val_dataset_params:
-  root_dir: /data/supervisely-persons
+  root_dir: ${..dataset_dir}
   list_file: val.csv
   cache_labels: False
   cache_images: False
@@ -30,12 +33,14 @@ val_dataset_params:
         w: 320
 
 train_dataloader_params:
+  dataset: SuperviselyPersonsDataset
   shuffle: True
-  batch_size: 8
+  batch_size: ${..batch_size}
   drop_last: True
 
 val_dataloader_params:
-  batch_size: 8
+  dataset: SuperviselyPersonsDataset
+  batch_size: ${..batch_size}
   drop_last: False
 
 _convert_: all

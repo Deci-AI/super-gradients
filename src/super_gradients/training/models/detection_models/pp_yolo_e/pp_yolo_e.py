@@ -33,9 +33,11 @@ class PPYoloE(SgModule):
         with convertible substitutes and remove all auxiliary or training related parts.
         :param input_size: [H,W]
         """
+        self.head.cache_anchors(input_size)
+
         for module in self.modules():
             if isinstance(module, RepVGGBlock):
-                module.prep_model_for_conversion(input_size)
+                module.fuse_block_residual_branches()
 
     def replace_head(self, new_num_classes=None, new_head=None):
         if new_num_classes is None and new_head is None:
@@ -50,7 +52,7 @@ class PPYoloE_S(PPYoloE):
     def __init__(self, arch_params):
         if isinstance(arch_params, HpmStruct):
             arch_params = arch_params.to_dict()
-        arch_params = get_arch_params("ppyoloe_s_arch_params", arch_params)
+        arch_params = get_arch_params("ppyoloe_s_arch_params", overriding_params=arch_params)
         super().__init__(arch_params)
 
 
@@ -58,7 +60,7 @@ class PPYoloE_M(PPYoloE):
     def __init__(self, arch_params):
         if isinstance(arch_params, HpmStruct):
             arch_params = arch_params.to_dict()
-        arch_params = get_arch_params("ppyoloe_m_arch_params", arch_params)
+        arch_params = get_arch_params("ppyoloe_m_arch_params", overriding_params=arch_params)
         super().__init__(arch_params)
 
 
@@ -66,7 +68,7 @@ class PPYoloE_L(PPYoloE):
     def __init__(self, arch_params):
         if isinstance(arch_params, HpmStruct):
             arch_params = arch_params.to_dict()
-        arch_params = get_arch_params("ppyoloe_l_arch_params", arch_params)
+        arch_params = get_arch_params("ppyoloe_l_arch_params", overriding_params=arch_params)
         super().__init__(arch_params)
 
 
@@ -74,5 +76,5 @@ class PPYoloE_X(PPYoloE):
     def __init__(self, arch_params):
         if isinstance(arch_params, HpmStruct):
             arch_params = arch_params.to_dict()
-        arch_params = get_arch_params("ppyoloe_x_arch_params", arch_params)
+        arch_params = get_arch_params("ppyoloe_x_arch_params", overriding_params=arch_params)
         super().__init__(arch_params)
