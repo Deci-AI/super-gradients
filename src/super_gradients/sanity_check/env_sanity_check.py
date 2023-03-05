@@ -27,7 +27,7 @@ def check_os():
 
     if "linux" not in sys.platform.lower():
         error = "Deci officially supports only Linux kernels. Some features may not work as expected."
-        logger.error(msg=format_error_msg(test_name="operating system", error_msg=error))
+        logger.warning(msg=format_error_msg(test_name="operating system", error_msg=error))
 
 
 def get_requirements_path(requirements_file_name: str) -> Optional[Path]:
