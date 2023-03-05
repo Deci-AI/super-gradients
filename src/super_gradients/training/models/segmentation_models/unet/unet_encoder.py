@@ -1,17 +1,14 @@
 import math
-from typing import List, Type, Optional
+from typing import List, Type, Optional, Union
 from abc import ABC, abstractmethod
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
 from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
 from super_gradients.training.utils.utils import get_param
-
 from super_gradients.training import models
-
 from super_gradients.training.models.classification_models.regnet import XBlock
 from super_gradients.training.models.classification_models.repvgg import RepVGGBlock
 from super_gradients.training.models.segmentation_models.stdc import STDCBlock
@@ -20,24 +17,11 @@ from super_gradients.modules import ConvBNReLU, QARepVGGBlock
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.type_factory import TypeFactory
+from super_gradients.common.data_types.enum import DownSampleMode
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.module_utils import make_downsample_module
 
-
-class AntiAliasDownsample(nn.Module):
-    def __init__(self, in_channels: int, stride: int):
-        super().__init__()
-        self.kernel_size = 3
-        self.stride = stride
-        self.channels = in_channels
-
-        a = torch.tensor([1.0, 2.0, 1.0])
-
-        filt = a[:, None] * a[None, :]
-        filt = filt / torch.sum(filt)
-
-        self.register_buffer("filt", filt[None, None, :, :].repeat((self.channels, 1, 1, 1)))
-
-    def forward(self, x):
-        return F.conv2d(x, self.filt, stride=self.stride, padding=1, groups=self.channels)
+logger = get_logger(__name__)
 
 
 class AbstractUNetBackbone(nn.Module, ABC):
@@ -129,15 +113,28 @@ class ConvBaseStage(BackboneStage, ABC):
     the `nn.MaxPool2d` module.
     """
 
-    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, max_pool: bool = False, **kwargs):
+    def build_stage(
+        self,
+        in_channels: int,
+        out_channels: int,
+        stride: int,
+        num_blocks: int,
+        anti_alias: bool,
+        downsample_mode: Optional[Union[str, DownSampleMode]] = None,
+        **kwargs,
+    ):
         blocks = []
-        # Anti alias gaussian down-sampling
-        if anti_alias and stride == 2:
-            blocks.append(AntiAliasDownsample(in_channels, stride))
+        # Init down-sample module
+        if anti_alias:
+            logger.warning("`anti_alias` argument is deprecated and will be removed in future versions.")
+            if downsample_mode is not None:
+                raise ValueError(f"Only one argument should set as downsample_mode found: anti_alias: `True`," f" and downsample_mode: {downsample_mode}.")
+            downsample_mode = DownSampleMode.ANTI_ALIAS
+
+        if downsample_mode is not None and stride == 2:
+            blocks.append(make_downsample_module(in_channels, stride=stride, downsample_mode=downsample_mode))
             stride = 1
-        elif max_pool and stride == 2:
-            blocks.append(nn.MaxPool2d(kernel_size=2, stride=2))
-            stride = 1
+
         # RepVGG blocks
         blocks.extend(
             [
