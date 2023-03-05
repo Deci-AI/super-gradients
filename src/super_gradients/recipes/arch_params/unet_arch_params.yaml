@@ -9,8 +9,7 @@ backbone_params:
   block_types_list: [ConvStage, ConvStage, ConvStage, ConvStage, ConvStage]   # list of block types per stage. See unet_encoder.DownBlockType for options.
   is_out_feature_list: [ True, True, True, True, True ]   # list of flags whether stage features should be an output.
   block_params:
-    anti_alias: False
-    max_pool: True
+    downsample_mode: max_pool
 
 
 context_module:

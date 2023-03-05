@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from omegaconf.listconfig import ListConfig
 
-from super_gradients.common.data_types.enum.upsample_mode import UpsampleMode, DownSampleMode
+from super_gradients.common.data_types.enum import UpsampleMode, DownSampleMode
 from super_gradients.modules.anti_alias import AntiAliasDownsample
 
 
