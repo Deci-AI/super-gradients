@@ -8,7 +8,7 @@ parameters:
   sg_docker_version:
     type: string
     description: the version of super gradients docker image
-    default: "1.3.0b708"
+    default: "2.0.0"
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
