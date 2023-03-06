@@ -49,7 +49,7 @@ training_hyperparams:
   phase_callbacks:
     - TimerCallback
 
-experiment_name: resnet50_imagenet_compile_enabled
+experiment_name: resnet50_imagenet_compile_${training_hyperparams.torch_compile_mode}
 
 ckpt_root_dir:
 

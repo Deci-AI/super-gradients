@@ -65,7 +65,7 @@ multi_gpu: Off
 num_gpus: 1
 
 architecture: regnetY800
-experiment_name: ${architecture}_compile_enabled
+experiment_name: ${architecture}_compile_${training_hyperparams.torch_compile_mode}
 
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
