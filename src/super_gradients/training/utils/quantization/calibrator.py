@@ -116,6 +116,12 @@ class QuantizationCalibrator:
                 else:
                     module.enable()
 
+    def reset_calibrators(self, model):
+        for name, module in model.named_modules():
+            if isinstance(module, quant_nn.TensorQuantizer):
+                if module._calibrator is not None:
+                    module._calibrator.reset()  # release memory
+
     def _enable_calibrators(self, model):
         for name, module in model.named_modules():
             if isinstance(module, quant_nn.TensorQuantizer):

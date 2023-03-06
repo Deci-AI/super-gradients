@@ -6,7 +6,7 @@ backbone_params:
   block_types_list: [RepVGGStage, RepVGGStage, RepVGGStage, RepVGGStage, RepVGGStage]   # list of block types per stage. See unet_encoder.DownBlockType for options.
   is_out_feature_list: [ True, True, True, True, True ]   # list of flags whether stage features should be an output.
   block_params:
-    anti_alias: True                # RepVGG stage param
+    downsample_mode: anti_alias     # RepVGG stage param
     droppath_prob: 0.               # XBlock stage param
     bottleneck_ratio: 1.            # XBlock stage param
     group_width: 16                 # XBlock stage param
