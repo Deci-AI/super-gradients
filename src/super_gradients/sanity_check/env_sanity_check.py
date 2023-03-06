@@ -114,6 +114,7 @@ def env_sanity_check():
     if is_main_process():
         check_os()
         check_packages()
+        logger.error("ERROR")
 
 
 if __name__ == "__main__":

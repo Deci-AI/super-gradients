@@ -55,6 +55,12 @@ def mute_non_linux_dataloader_worker_process() -> None:
                 ssh(non-python) -> pycharm(non-python) -> main_process(python) -> ...
     """
 
+    if is_non_linux_dataloader_worker_process():
+        mute_current_process()
+
+
+def is_non_linux_dataloader_worker_process() -> bool:
+    """Check if current process is a dataloader worker process on a non linux device."""
     if any(os_name in platform.platform() for os_name in ["macOS", "Windows"]):
 
         # When using DDP, we expect the worker process to have 2 parents processes using python, and only 1 otherwise.
@@ -63,5 +69,5 @@ def mute_non_linux_dataloader_worker_process() -> None:
         is_worker_process = main_process and "python" in main_process.name()
 
         if is_worker_process:
-            print(f"FOR DEBUGGING ONLY: Current process is a worker process. Muting dataloader workers. platform={platform.platform()}")
-            mute_current_process()
+            return True
+    return False

@@ -36,6 +36,10 @@ def is_main_process():
         - If DDP launched using SuperGradients: main process is the launching process (rank=-1)
         - If DDP launched with torch: main process is rank 0
     """
+    from super_gradients.common.abstractions.mute_processes import is_non_linux_dataloader_worker_process
+
+    if is_non_linux_dataloader_worker_process():
+        return False
     if not is_distributed():  # If no DDP, or DDP launching process
         return True
     elif (
