@@ -5,7 +5,8 @@ import torch
 from torch import nn
 from omegaconf.listconfig import ListConfig
 
-from super_gradients.common.data_types.enum.upsample_mode import UpsampleMode
+from super_gradients.common.data_types.enum import UpsampleMode, DownSampleMode
+from super_gradients.modules.anti_alias import AntiAliasDownsample
 
 
 class MultiOutputModule(nn.Module):
@@ -191,3 +192,17 @@ def make_upsample_module(scale_factor: int, upsample_mode: Union[str, UpsampleMo
     else:
         raise NotImplementedError(f"Upsample mode: `{upsample_mode}` is not supported.")
     return module
+
+
+def make_downsample_module(in_channels: int, stride: int, downsample_mode: Union[str, DownSampleMode]):
+    """
+    Factory method for creating down-sampling modules.
+    :param downsample_mode: see DownSampleMode for supported options.
+    :return: nn.Module
+    """
+    downsample_mode = downsample_mode.value if isinstance(downsample_mode, DownSampleMode) else downsample_mode
+    if downsample_mode == DownSampleMode.ANTI_ALIAS.value:
+        return AntiAliasDownsample(in_channels, stride)
+    if downsample_mode == DownSampleMode.MAX_POOL.value:
+        return nn.MaxPool2d(kernel_size=stride, stride=stride)
+    raise NotImplementedError(f"DownSample mode: `{downsample_mode}` is not supported.")
