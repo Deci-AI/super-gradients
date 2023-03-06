@@ -63,7 +63,7 @@ def is_non_linux_dataloader_worker_process() -> bool:
     """Check if current process is a dataloader worker process on a non linux device."""
     if any(os_name in platform.platform() for os_name in ["macOS", "Windows"]):
 
-        # When using DDP, we expect the worker process to have 2 parents processes using python, and only 1 otherwise.
+        # When using DDP with SG launcher, we expect the worker process to have 2 parents processes using python, and only 1 otherwise.
         # Note that this is a "root_process" is the root process only if current process is a worker process
         if int(env_variables.LOCAL_RANK) == -1:
             # NO DDP
