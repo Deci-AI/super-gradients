@@ -65,7 +65,16 @@ def is_non_linux_dataloader_worker_process() -> bool:
 
         # When using DDP, we expect the worker process to have 2 parents processes using python, and only 1 otherwise.
         # Note that this is a "root_process" is the root process only if current process is a worker process
-        main_process = psutil.Process().parent() if int(env_variables.LOCAL_RANK) == -1 else psutil.Process().parent().parent()
+        if int(env_variables.LOCAL_RANK) == -1:
+            # NO DDP
+            main_process = psutil.Process().parent()
+        elif os.environ.get("TORCHELASTIC_RUN_ID") == "sg_initiated":
+            # DDP launched using SG logic
+            main_process = psutil.Process().parent().parent()
+        else:
+            # DDP launched using torch.distributed.launch or torchrun
+            main_process = psutil.Process().parent()
+
         is_worker_process = main_process and "python" in main_process.name()
 
         if is_worker_process:
