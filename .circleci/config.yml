@@ -5,6 +5,10 @@ parameters:
     type: string
     description: remote docker version
     default: "20.10.18"
+  sg_docker_version:
+    type: string
+    description: the version of super gradients docker image
+    default: "2.0.0"
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
@@ -386,7 +390,7 @@ jobs:
 
   recipe_accuracy_tests:
     docker:
-      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:1.3.0b689
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -422,7 +426,7 @@ jobs:
 
   recipe_sanity_tests_classification_pt1:
     docker:
-      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:1.3.0b689
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -459,7 +463,7 @@ jobs:
           when: on_fail
   recipe_sanity_tests_classification_pt2:
     docker:
-      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:1.3.0b689
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -495,7 +499,7 @@ jobs:
 
   recipe_sanity_tests_segmentation:
     docker:
-      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:1.3.0b689
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -541,7 +545,7 @@ jobs:
 
   recipe_sanity_tests_detection:
     docker:
-      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:1.3.0b689
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
