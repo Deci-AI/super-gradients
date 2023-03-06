@@ -26,8 +26,11 @@ imagenet_resnet50:
 
 
 cityscapes_ddrnet:
-	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_enabled multi_gpu=Off num_gpus=1 &
-	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_disabled multi_gpu=Off num_gpus=1 &
+	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_enabled training_hyperparams.torch_compile_mode=default          multi_gpu=Off num_gpus=1
+	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_enabled training_hyperparams.torch_compile_mode=reduce-overhead  multi_gpu=Off num_gpus=1
+	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_enabled training_hyperparams.torch_compile_mode=max-autotune     multi_gpu=Off num_gpus=1
+	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_disabled                     									   multi_gpu=Off num_gpus=1
+
 
 cityscapes_stdc_seg50:
 	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50_compile_disabled                     									   multi_gpu=Off num_gpus=1
