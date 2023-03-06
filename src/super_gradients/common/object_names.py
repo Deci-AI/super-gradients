@@ -31,6 +31,7 @@ class Metrics:
     DICE = "Dice"
     BINARY_DICE = "BinaryDice"
     PIXEL_ACCURACY = "PixelAccuracy"
+    POSE_ESTIMATION_METRICS = "PoseEstimationMetrics"
 
 
 class Transforms:
@@ -47,6 +48,7 @@ class Transforms:
     SegPadShortToCropSize = "SegPadShortToCropSize"
     SegPadToDivisible = "SegPadToDivisible"
     SegColorJitter = "SegColorJitter"
+    DetectionStandardize = "DetectionStandardize"
     DetectionMosaic = "DetectionMosaic"
     DetectionRandomAffine = "DetectionRandomAffine"
     DetectionMixup = "DetectionMixup"
@@ -137,6 +139,7 @@ class Callbacks:
     YOLOX_TRAINING_STAGE_SWITCH = "YoloXTrainingStageSwitchCallback"
     PPYOLOE_TRAINING_STAGE_SWITCH = "PPYoloETrainingStageSwitchCallback"
     DETECTION_VISUALIZATION_CALLBACK = "DetectionVisualizationCallback"
+    DEKR_VISUALIZATION = "DEKRVisualizationCallback"
 
 
 class LRSchedulers:
@@ -279,12 +282,15 @@ class Models:
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
     UNET_CUSTOM = "unet_custom"
     UNET_CUSTOM_CLS = "unet_custom_cls"
+    UNET = "unet"
     STDC_CUSTOM = "stdc_custom"
     STDC_CUSTOM_CLS = "stdc_custom_cls"
     PP_YOLOE_S = "ppyoloe_s"
     PP_YOLOE_M = "ppyoloe_m"
     PP_YOLOE_L = "ppyoloe_l"
     PP_YOLOE_X = "ppyoloe_x"
+
+    DEKR_CUSTOM = "dekr_custom"
 
 
 class ConcatenatedTensorFormats:

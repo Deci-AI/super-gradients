@@ -1,0 +1,33 @@
+defaults:
+  - default_train_params
+
+max_epochs: 100
+lr_mode: cosine
+cosine_final_lr_ratio: 0.01
+initial_lr: 0.1
+lr_warmup_epochs: 0
+multiply_head_lr: 1.
+
+optimizer: SGD
+optimizer_params:
+  momentum: 0.9
+  weight_decay: 5e-4
+
+ema: True
+ema_params:
+  decay: 0.999
+  decay_type: exp
+  beta: 15
+
+train_metrics_list:
+  - BinaryIOU
+
+valid_metrics_list:
+  - BinaryIOU
+
+zero_weight_decay_on_bias_and_bn: True
+average_best_models: True
+mixed_precision: False
+
+metric_to_watch: target_IOU
+greater_metric_to_watch_is_better: True
