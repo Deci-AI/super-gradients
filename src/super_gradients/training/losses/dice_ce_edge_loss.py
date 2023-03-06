@@ -3,10 +3,11 @@ import torch.nn as nn
 from torch.nn.modules.loss import _Loss
 from typing import Union, Tuple
 
-from super_gradients.common.object_names import Losses
-from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.losses.dice_loss import DiceLoss, BinaryDiceLoss
 from super_gradients.training.utils.segmentation_utils import target_to_binary_edge
+
+from super_gradients.common.object_names import Losses
+from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.losses.mask_loss import MaskAttentionLoss
 
 

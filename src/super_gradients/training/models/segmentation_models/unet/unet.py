@@ -203,7 +203,7 @@ class UNetBase(SegmentationModule):
 @register_model(Models.UNET_CUSTOM)
 class UNetCustom(UNetBase):
     def __init__(self, arch_params: HpmStruct):
-        arch_params = HpmStruct(**models.get_arch_params("unet_default_arch_params.yaml", arch_params.to_dict()))
+        arch_params = HpmStruct(**models.get_arch_params("unet_default_arch_params.yaml", overriding_params=arch_params.to_dict()))
         super().__init__(
             num_classes=get_param(arch_params, "num_classes"),
             use_aux_heads=get_param(arch_params, "use_aux_heads", False),
@@ -217,3 +217,15 @@ class UNetCustom(UNetBase):
             aux_heads_params=get_param(arch_params, "aux_heads_params"),
             dropout=get_param(arch_params, "dropout", 0.0),
         )
+
+
+class UNet(UNetCustom):
+    """
+    implementation of:
+     "U-Net: Convolutional Networks for Biomedical Image Segmentation", https://arxiv.org/pdf/1505.04597.pdf
+    The upsample operation is done by using bilinear interpolation which is reported to show better results.
+    """
+
+    def __init__(self, arch_params: HpmStruct):
+        arch_params = HpmStruct(**models.get_arch_params("unet_arch_params.yaml", arch_params.to_dict()))
+        super().__init__(arch_params)

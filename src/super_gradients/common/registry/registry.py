@@ -12,8 +12,8 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
     """
     Create a decorator that registers object of specified type (model, metric, ...)
 
-    :param registry: The registry (maps name to object that you register). By default, includes external objects.
-    :return:         Register function
+    :param registry:    Dict including registered objects (maps name to object that you register)
+    :return:            Register function
     """
 
     def register(name: Optional[str] = None) -> Callable:
@@ -54,6 +54,7 @@ register_metric = create_register_decorator(registry=METRICS)
 
 LOSSES = {Losses.MSE: nn.MSELoss}
 register_loss = create_register_decorator(registry=LOSSES)
+
 
 ALL_DATALOADERS = {}
 register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)
@@ -135,6 +136,7 @@ SAMPLERS = {
     Samplers.WEIGHTED_RANDOM: torch.utils.data.WeightedRandomSampler,
 }
 register_sampler = create_register_decorator(registry=SAMPLERS)
+
 
 OPTIMIZERS = {
     Optimizers.SGD: optim.SGD,

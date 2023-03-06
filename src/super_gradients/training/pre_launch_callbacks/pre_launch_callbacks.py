@@ -161,7 +161,7 @@ class QATRecipeModificationCallback(PreLaunchCallback):
     """
      QATRecipeModificationCallback(PreLaunchCallback)
 
-    This callback modifies the recipe for QAT to imlement rules of thumb based on the regular non-qat recipe.
+    This callback modifies the recipe for QAT to implement rules of thumb based on the regular non-qat recipe.
 
     :param int batch_size_divisor: Divisor used to calculate the batch size. Default value is 2.
     :param int max_epochs_divisor: Divisor used to calculate the maximum number of epochs. Default value is 10.
@@ -169,6 +169,7 @@ class QATRecipeModificationCallback(PreLaunchCallback):
     :param int warmup_epochs_divisor: Divisor used to calculate the number of warm-up epochs. Default value is 10.
     :param float cosine_final_lr_ratio: Ratio used to determine the final learning rate in a cosine annealing schedule. Default value is 0.01.
     :param bool disable_phase_callbacks: Flag to control to disable phase callbacks, which can interfere with QAT. Default value is True.
+    :param bool disable_augmentations: Flag to control to disable phase augmentations, which can interfere with QAT. Default value is False.
 
     Example usage:
 
@@ -182,6 +183,7 @@ class QATRecipeModificationCallback(PreLaunchCallback):
             warmup_epochs_divisor: 10
             cosine_final_lr_ratio: 0.01
             disable_phase_callbacks: True
+            disable_augmentations: False
 
     USE THIS CALLBACK ONLY WITH QATTrainer!
     """
@@ -194,7 +196,9 @@ class QATRecipeModificationCallback(PreLaunchCallback):
         warmup_epochs_divisor: int = 10,
         cosine_final_lr_ratio: float = 0.01,
         disable_phase_callbacks: bool = True,
+        disable_augmentations: bool = False,
     ):
+        self.disable_augmentations = disable_augmentations
         self.disable_phase_callbacks = disable_phase_callbacks
         self.cosine_final_lr_ratio = cosine_final_lr_ratio
         self.warmup_epochs_divisor = warmup_epochs_divisor
@@ -253,7 +257,8 @@ class QATRecipeModificationCallback(PreLaunchCallback):
             cfg.num_gpus = 1
 
         # no augmentations
-        if "transforms" in cfg.dataset_params.val_dataset_params:
+        if self.disable_augmentations and "transforms" in cfg.dataset_params.val_dataset_params:
+            logger.warning("Augmentations will be disabled for QAT run.")
             cfg.dataset_params.train_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
 
         return cfg

@@ -1,0 +1,30 @@
+defaults:
+  - unet_default_arch_params
+  - _self_
+
+backbone_params:
+  strides_list: [1, 2, 2, 2, 2]   #  list of stride per stage.
+  width_list: [64, 128, 256, 512, 512]   # list of num channels per stage.
+  num_blocks_list: [2, 2, 2, 2, 2]    # list of num blocks per stage.
+  block_types_list: [ConvStage, ConvStage, ConvStage, ConvStage, ConvStage]   # list of block types per stage. See unet_encoder.DownBlockType for options.
+  is_out_feature_list: [ True, True, True, True, True ]   # list of flags whether stage features should be an output.
+  block_params:
+    downsample_mode: max_pool
+
+
+context_module:
+
+decoder_params:
+  # skip expansion ratio value, before fusing the skip features from the encoder with the decoder features, a projection
+  # convolution is applied upon the encoder features to project the num_channels by skip_expansion.
+  skip_expansion: 1.
+  decoder_scale: .5   # num_channels width ratio between encoder stages and decoder stages.
+  up_block_types: [UpCatBlock, UpCatBlock, UpCatBlock, UpCatBlock]    # See unet_decoder.UpBlockType for options.
+  up_block_repeat_list: [ 2, 2, 2, 1]   # num of blocks per decoder stage, the `block` implementation depends on the up-block type.
+  mode: bilinear
+  align_corners: False
+  up_factor: 2
+
+final_upsample_factor: 1    # Final upsample scale factor after the segmentation head.
+
+_convert_: all

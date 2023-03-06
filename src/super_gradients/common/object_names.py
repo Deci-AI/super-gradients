@@ -124,6 +124,7 @@ class Optimizers:
     RMS_PROP = "RMSprop"
     RMS_PROP_TF = "RMSpropTF"
     LAMB = "Lamb"
+    LION = "Lion"
 
 
 class Callbacks:
@@ -282,6 +283,7 @@ class Models:
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
     UNET_CUSTOM = "unet_custom"
     UNET_CUSTOM_CLS = "unet_custom_cls"
+    UNET = "unet"
     STDC_CUSTOM = "stdc_custom"
     STDC_CUSTOM_CLS = "stdc_custom_cls"
     PP_YOLOE_S = "ppyoloe_s"

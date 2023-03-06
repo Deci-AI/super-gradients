@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch
 
 from super_gradients.common.registry.registry import register_unet_up_block, UP_FUSE_BLOCKS
-from super_gradients.modules import ConvBNReLU, CrossModelSkipConnection
+from super_gradients.modules import ConvBNReLU, CrossModelSkipConnection, Residual
 from super_gradients.training.utils.module_utils import make_upsample_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.list_factory import ListFactory
@@ -78,9 +78,7 @@ class UpSumBlock(AbstractUpFuseBlock):
 
     def __init__(self, in_channels: int, skip_channels: int, out_channels: int, up_factor: int, mode: str, num_repeats: int, **kwargs):
         super().__init__(in_channels=in_channels, skip_channels=skip_channels, out_channels=out_channels)
-        self.proj_conv = (
-            nn.Identity() if skip_channels == in_channels else ConvBNReLU(skip_channels, in_channels, kernel_size=1, bias=False, use_activation=False)
-        )
+        self.proj_conv = Residual() if skip_channels == in_channels else ConvBNReLU(skip_channels, in_channels, kernel_size=1, bias=False, use_activation=False)
         self.up_path = make_upsample_module(scale_factor=up_factor, upsample_mode=mode, align_corners=False)
 
         self.last_convs = nn.Sequential(
