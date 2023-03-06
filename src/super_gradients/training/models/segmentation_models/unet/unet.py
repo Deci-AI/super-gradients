@@ -219,6 +219,7 @@ class UNetCustom(UNetBase):
         )
 
 
+@register_model(Models.UNET)
 class UNet(UNetCustom):
     """
     implementation of:
