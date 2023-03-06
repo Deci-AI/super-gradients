@@ -106,5 +106,6 @@ sg_logger_params:
 
 
 torch_compile: False
+torch_compile_mode: default # reduce-overhead / max-autotune
 
 _convert_: all

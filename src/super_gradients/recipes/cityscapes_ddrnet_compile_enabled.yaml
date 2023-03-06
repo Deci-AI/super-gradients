@@ -95,7 +95,7 @@ checkpoint_params:
   load_backbone: False
   strict_load: no_key_matching
 
-experiment_name: ${architecture}_cityscapes_compile_enabled
+experiment_name: ${architecture}_cityscapes_compile_${training_hyperparams.torch_compile_mode}
 
 
 ckpt_root_dir:

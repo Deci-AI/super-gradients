@@ -88,7 +88,7 @@ training_hyperparams:
 multi_gpu: DDP
 num_gpus: 2
 
-experiment_name: ${architecture}50_cityscapes_compile_enabled
+experiment_name: ${architecture}50_cityscapes_compile_${training_hyperparams.torch_compile_mode}
 ckpt_root_dir:
 
 

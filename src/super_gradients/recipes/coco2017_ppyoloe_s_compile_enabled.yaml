@@ -62,7 +62,7 @@ architecture: pp_yoloe_s
 multi_gpu: DDP
 num_gpus: 8
 
-experiment_suffix: "_compile_enabled"
+experiment_suffix: _compile_${training_hyperparams.torch_compile_mode}
 experiment_name: coco2017_${architecture}${experiment_suffix}
 
 ckpt_root_dir:

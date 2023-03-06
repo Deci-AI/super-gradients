@@ -1021,7 +1021,7 @@ class Trainer:
 
         if self.training_params.torch_compile:
             logger.info("Using torch.compile feature. Compiling model. This may take a few minutes")
-            model = torch.compile(model)
+            model = torch.compile(model, mode=self.training_params.torch_compile_mode)
             logger.info("Model compilation complete. Continuing training")
 
         self.net = model
