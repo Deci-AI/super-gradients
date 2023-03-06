@@ -40,7 +40,7 @@ from super_gradients.training.models.segmentation_models.segformer import (
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
 from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
-from super_gradients.training.models.segmentation_models.unet import UNetCustom, UnetClassificationCustom
+from super_gradients.training.models.segmentation_models.unet import UNetCustom, UnetClassificationCustom, UNet
 
 ARCHITECTURES = {
     Models.RESNET18: resnet.ResNet18,
@@ -145,6 +145,7 @@ ARCHITECTURES = {
     Models.CUSTOM_ANYNET: regnet.CustomAnyNet,
     Models.UNET_CUSTOM: UNetCustom,
     Models.UNET_CUSTOM_CLS: UnetClassificationCustom,
+    Models.UNET: UNet,
     Models.PP_YOLOE_S: PPYoloE_S,
     Models.PP_YOLOE_M: PPYoloE_M,
     Models.PP_YOLOE_L: PPYoloE_L,
