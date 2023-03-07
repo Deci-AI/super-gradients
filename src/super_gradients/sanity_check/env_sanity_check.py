@@ -89,7 +89,7 @@ def check_packages():
 
         if package_name not in installed_packages.keys():
             error = f"{package_name} required but not found"
-            logger.error(msg=format_error_msg(test_name=test_name, error_msg=error))
+            logger.warning(msg=format_error_msg(test_name=test_name, error_msg=error))
             continue
 
         installed_version_str = installed_packages[package_name]
@@ -104,7 +104,7 @@ def check_packages():
 
                 requires_at_least = operator_str in ("==", "~=", ">=", ">")
                 if requires_at_least and installed_version < req_version:
-                    logger.error(msg=format_error_msg(test_name=test_name, error_msg=error))
+                    logger.warning(msg=format_error_msg(test_name=test_name, error_msg=error))
                 else:
                     logger.debug(msg=error)
 
@@ -114,7 +114,6 @@ def env_sanity_check():
     if is_main_process():
         check_os()
         check_packages()
-        logger.error("ERROR")
 
 
 if __name__ == "__main__":
