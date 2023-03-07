@@ -16,7 +16,7 @@ from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_e import PPYoloE_M, PPYoloE_L, PPYoloE_X, PPYoloE_S
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
-from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRPoseEstimationModel
+from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRPoseEstimationModel, DEKRW32
 from super_gradients.training.models.pose_estimation_models.pose_ddrnet39 import PoseDDRNet39
 from super_gradients.training.models.pose_estimation_models.pose_ppyolo import PosePPYoloL
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23, DDRNet39
@@ -146,6 +146,7 @@ ARCHITECTURES = {
     Models.PP_YOLOE_X: PPYoloE_X,
     #
     Models.DEKR_CUSTOM: DEKRPoseEstimationModel,
+    Models.DEKR_W32_NO_DC: DEKRW32,
     Models.POSE_PP_YOLO_L: PosePPYoloL,
     Models.POSE_DDRNET_39: PoseDDRNet39,
 }
