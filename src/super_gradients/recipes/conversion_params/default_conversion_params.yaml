@@ -12,7 +12,7 @@ strict_load: no_key_matching # One of [On, Off, no_key_matching] (case insensiti
 
 # CONVERSION RELATED PARAMS
 out_path: # str, Destination path for the .onnx file. When None- will be set to the checkpoint_path.replace(".ckpt",".onnx").
-input_shape: # input shape, not including batch_size. Always channels first (i.e (3, 224, 224)).
+input_shape: # DEPRECATED USE input_size KWARG IN prep_model_for_conversion_kwargs INSTEAD.
 pre_process: # Preprocessing pipeline, will be resolved by TransformsFactory(), and will be baked into the converted model (optional).
 post_process: # Postprocessing pipeline, will be resolved by TransformsFactory(), and will be baked into the converted model (optional).
 prep_model_for_conversion_kwargs: # For SgModules, args to be passed to model.prep_model_for_conversion prior to torch.onnx.export call.
