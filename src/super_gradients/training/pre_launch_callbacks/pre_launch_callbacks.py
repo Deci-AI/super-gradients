@@ -33,7 +33,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
     AutoTrainBatchSizeSelectionCallback
 
     Modifies cfg.dataset_params.train_dataloader_params.batch_size by searching for the maximal batch size that fits
-     gpu memory. Works out of the box for DDP.
+     gpu memory/ the one resulting in fastest time for the selected number of train datalaoder iterations. Works out of the box for DDP.
 
     The search is done by running a few forward passes for increasing batch sizes, until CUDA OUT OF MEMORY is raised:
 
