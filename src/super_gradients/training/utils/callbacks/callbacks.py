@@ -13,6 +13,7 @@ import torch
 from deprecate import deprecated
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
@@ -705,12 +706,15 @@ class TimerCallback(Callback):
     def __init__(self):
         self.events = {}
 
+    @multi_process_safe
     def on_train_loader_start(self, context: PhaseContext) -> None:
         self.events["on_train_loader_start"] = cv2.getTickCount()
 
+    @multi_process_safe
     def on_train_batch_start(self, context: PhaseContext) -> None:
         self.events["on_train_batch_start"] = cv2.getTickCount()
 
+    @multi_process_safe
     def on_train_batch_loss_end(self, context: PhaseContext) -> None:
         self.events["on_train_batch_loss_end"] = cv2.getTickCount()
         context.sg_logger.add_scalar(
@@ -719,9 +723,11 @@ class TimerCallback(Callback):
             global_step={"global_step": self.infer_global_step(context, is_train_loader=True)},
         )
 
+    @multi_process_safe
     def on_train_batch_gradient_step_start(self, context: PhaseContext) -> None:
         self.events["on_train_batch_gradient_step_start"] = cv2.getTickCount()
 
+    @multi_process_safe
     def on_train_batch_gradient_step_end(self, context: PhaseContext) -> None:
         self.events["on_train_batch_gradient_step_end"] = cv2.getTickCount()
         context.sg_logger.add_scalar(
@@ -730,6 +736,7 @@ class TimerCallback(Callback):
             global_step={"global_step": self.infer_global_step(context, is_train_loader=True)},
         )
 
+    @multi_process_safe
     def on_train_batch_end(self, context: PhaseContext) -> None:
         self.events["on_train_batch_end"] = cv2.getTickCount()
         context.sg_logger.add_scalar(
@@ -738,6 +745,7 @@ class TimerCallback(Callback):
             global_step={"global_step": self.infer_global_step(context, is_train_loader=True)},
         )
 
+    @multi_process_safe
     def on_train_loader_end(self, context: PhaseContext) -> None:
         self.events["on_train_loader_end"] = cv2.getTickCount()
         context.sg_logger.add_scalar(
@@ -746,12 +754,15 @@ class TimerCallback(Callback):
             global_step={"epoch": context.epoch},
         )
 
+    @multi_process_safe
     def on_validation_loader_start(self, context: PhaseContext) -> None:
         self.events["on_validation_loader_start"] = cv2.getTickCount()
 
+    @multi_process_safe
     def on_validation_batch_start(self, context: PhaseContext) -> None:
         self.events["on_validation_batch_start"] = cv2.getTickCount()
 
+    @multi_process_safe
     def on_validation_batch_end(self, context: PhaseContext) -> None:
         self.events["on_validation_batch_end"] = cv2.getTickCount()
         context.sg_logger.add_scalar(
@@ -760,6 +771,7 @@ class TimerCallback(Callback):
             global_step={"global_step": self.infer_global_step(context, is_train_loader=False)},
         )
 
+    @multi_process_safe
     def on_validation_loader_end(self, context: PhaseContext) -> None:
         self.events["on_validation_loader_end"] = cv2.getTickCount()
         context.sg_logger.add_scalar(
