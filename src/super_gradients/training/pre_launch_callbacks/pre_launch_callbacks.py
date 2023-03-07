@@ -9,6 +9,8 @@ from super_gradients import is_distributed
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import models
 from torch.distributed import barrier
+import cv2
+import numpy as np
 
 logger = get_logger(__name__)
 
@@ -31,7 +33,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
     AutoTrainBatchSizeSelectionCallback
 
     Modifies cfg.dataset_params.train_dataloader_params.batch_size by searching for the maximal batch size that fits
-     gpu memory. Works out of the box for DDP.
+     gpu memory/ the one resulting in fastest time for the selected number of train datalaoder iterations. Works out of the box for DDP.
 
     The search is done by running a few forward passes for increasing batch sizes, until CUDA OUT OF MEMORY is raised:
 
@@ -68,14 +70,19 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
 
     :param scale_lr: bool, whether to linearly scale cfg.training_hyperparams.initial_lr, i.e multiply by
      FOUND_BATCH_SIZE/cfg.dataset_params.train_datalaoder_params.batch_size (default=True)
+    :param mode: str, one of ["fastest","largest"], whether to select the largest batch size that fits memory or the one
+     that the resulted in overall fastest execution.
     """
 
-    def __init__(self, min_batch_size: int, size_step: int, num_forward_passes: int = 3, max_batch_size=None, scale_lr: bool = True):
+    def __init__(self, min_batch_size: int, size_step: int, num_forward_passes: int = 3, max_batch_size=None, scale_lr: bool = True, mode: str = "fastest"):
+        if mode not in ["fastest", "largest"]:
+            raise TypeError(f"Expected mode to be one of: ['fastest','largest'], got {mode}")
         self.scale_lr = scale_lr
         self.min_batch_size = min_batch_size
         self.size_step = size_step
         self.max_batch_size = max_batch_size
         self.num_forward_passes = num_forward_passes
+        self.mode = mode
 
     def __call__(self, cfg: DictConfig) -> DictConfig:
 
@@ -104,38 +111,50 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
         tmp_cfg.training_hyperparams.kill_ddp_pgroup_on_end = False
         tmp_cfg.pre_launch_callbacks_list = []
 
+        fastest_batch_time = np.inf
+        fastest_batch_size = curr_batch_size
+
         while True:
             tmp_cfg.dataset_params.train_dataloader_params.batch_size = curr_batch_size
 
             try:
+                passes_start = cv2.getTickCount()
                 Trainer.train_from_config(tmp_cfg)
-
+                curr_batch_time = (cv2.getTickCount() - passes_start) / cv2.getTickFrequency()
+                logger.info(f"Batch size = {curr_batch_size} time for {self.num_forward_passes} forward passes: {curr_batch_time} seconds.")
+                if curr_batch_time < fastest_batch_time:
+                    fastest_batch_size = curr_batch_size
+                    fastest_batch_time = curr_batch_time
             except RuntimeError as e:
                 if "out of memory" in str(e):
                     if curr_batch_size == self.min_batch_size:
                         logger.error("Ran out of memory for the smallest batch, try setting smaller min_batch_size.")
                         raise e
                     else:
-                        logger.info(f"Ran out of memory for {curr_batch_size}, setting batch size to {curr_batch_size - self.size_step}.")
-                        self._adapt_lr_if_needed(cfg, found_batch_size=curr_batch_size - self.size_step)
-                        cfg.dataset_params.train_dataloader_params.batch_size = curr_batch_size - self.size_step
-                        self._clear_model_gpu_mem(model)
+                        selected_batch_size = curr_batch_size - self.size_step if self.mode == "largest" else fastest_batch_size
+                        msg = f"Ran out of memory for {curr_batch_size}, setting batch size to {selected_batch_size}."
+                        self._inject_selected_batch_size_to_config(cfg, model, msg, selected_batch_size)
                         return cfg
                 else:
                     raise e
 
             else:
                 if self.max_batch_size is not None and curr_batch_size >= self.max_batch_size:
-                    logger.info(
-                        f"Did not run out of memory for {curr_batch_size} >= max_batch_size={self.max_batch_size}, " f"setting batch to {self.max_batch_size}."
+                    selected_batch_size = self.max_batch_size if self.mode == "largest" else fastest_batch_size
+                    msg = (
+                        f"Did not run out of memory for {curr_batch_size} >= max_batch_size={self.max_batch_size}, " f"setting batch to {selected_batch_size}."
                     )
-                    self._adapt_lr_if_needed(cfg, found_batch_size=self.max_batch_size)
-                    cfg.dataset_params.train_dataloader_params.batch_size = self.max_batch_size
-                    self._clear_model_gpu_mem(model)
+                    self._inject_selected_batch_size_to_config(cfg, model, msg, selected_batch_size)
                     return cfg
                 logger.info(f"Did not run out of memory for {curr_batch_size}, retrying batch {curr_batch_size + self.size_step}.")
                 curr_batch_size += self.size_step
                 self._clear_model_gpu_mem(model)
+
+    def _inject_selected_batch_size_to_config(self, cfg, model, msg, selected_batch_size):
+        logger.info(msg)
+        self._adapt_lr_if_needed(cfg, found_batch_size=selected_batch_size)
+        cfg.dataset_params.train_dataloader_params.batch_size = selected_batch_size
+        self._clear_model_gpu_mem(model)
 
     def _adapt_lr_if_needed(self, cfg: DictConfig, found_batch_size: int) -> DictConfig:
         if self.scale_lr:
