@@ -48,6 +48,13 @@ val_dataloader: cityscapes_val
 
 architecture: stdc1_seg
 
+dataset_params:
+  train_dataloader_params:
+    batch_size: 12
+
+  val_dataloader_params:
+    batch_size: 12
+
 arch_params:
   num_classes: 19
   use_aux_heads: True
