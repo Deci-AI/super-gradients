@@ -17,6 +17,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torchmetrics import MetricCollection
 from tqdm import tqdm
 
+from super_gradients import is_distributed
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -1023,6 +1024,8 @@ class Trainer:
             logger.info("Using torch.compile feature. Compiling model. This may take a few minutes")
             model = torch.compile(model, mode=self.training_params.torch_compile_mode)
             logger.info("Model compilation complete. Continuing training")
+            if is_distributed():
+                torch.distributed.barrier()
 
         self.net = model
 
