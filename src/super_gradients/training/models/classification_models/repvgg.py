@@ -142,11 +142,6 @@ class RepVggCustom(RepVGG):
         )
 
 
-# PB
-# 1. **
-# 2. self.
-
-
 class RepVggA0(RepVggCustom):
     def __init__(self, arch_params):
         arch_params.override(struct=[2, 4, 14, 1], width_multiplier=[0.75, 0.75, 0.75, 2.5])
