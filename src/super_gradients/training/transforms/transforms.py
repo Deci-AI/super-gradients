@@ -1016,7 +1016,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         targets = self.targets_format_converter(targets)
         targets = self.filter_small_bboxes(targets)
         targets = self.pad_targets(targets)
-        return targets
+        return torch.from_numpy(targets).float()
 
     def filter_small_bboxes(self, targets: np.ndarray) -> np.ndarray:
         """Filter bboxes smaller than specified threshold."""
