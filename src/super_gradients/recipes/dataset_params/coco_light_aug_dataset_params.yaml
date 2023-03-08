@@ -1,0 +1,101 @@
+# transforms that correspond to the default params of COCODetectionGPLDataSet used for phase-less training of many
+# detection models (e.g. yolov6 and new frontiers)
+# other differences irrelevant or good differences:
+#  * add DetectionRGB2BGR with prob=1 and make sure DetectionHSV bgr_channels are correct (depending on aug-s order)
+#  * gray padding in the new class added to the bottom of an image, and to both up and down in the old class
+#  * new DetectionRandomAffine has filter_box_candidates which improves results
+
+root_dir: /data/coco
+train_input_dim: [ 640, 640 ]
+val_input_dim: [ 640, 640 ]
+
+train_dataset_params:
+  data_dir: ${dataset_params.root_dir} # root path to coco data
+  subdir: images/train2017 # sub directory path of data_dir containing the train data.
+  json_file: instances_train2017.json # path to coco train json file, data_dir/annotations/train_json_file.
+  input_dim: ${dataset_params.train_input_dim}
+  cache_dir:
+  cache: False
+  transforms:
+    - DetectionMosaic:
+        input_dim: ${dataset_params.train_input_dim}
+        border_value: 128
+        prob: 1.
+    - DetectionRandomAffine:
+        degrees: 0.                  # rotation degrees, randomly sampled from [-degrees, degrees]
+        translate: 0.1                # image translation fraction
+        scales: [ 0.5, 1.5 ]              # random rescale range (keeps size by padding/cropping) after mosaic transform.
+        shear: 0.0                    # shear degrees, randomly sampled from [-degrees, degrees]
+        target_size: ${dataset_params.train_input_dim}
+        filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
+        wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
+        area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when filter_box_candidates = True
+        ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
+        border_value: 128
+    - DetectionHSV:
+        prob: 1.0                       # probability to apply HSV transform
+        hgain: 5                        # HSV transform hue gain (randomly sampled from [-hgain, hgain])
+        sgain: 30                       # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
+        vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
+        bgr_channels: [ 2, 1, 0 ]
+    - DetectionHorizontalFlip:
+        prob: 0.5                       # probability to apply horizontal flip
+    - DetectionPaddedRescale:
+        input_dim: ${dataset_params.train_input_dim}
+        max_targets: 120
+        pad_value: 128
+    - DetectionStandardize:
+        max_value: 255.
+    - DetectionTargetsFormatTransform:
+        input_dim: ${dataset_params.train_input_dim}
+        output_format: LABEL_CXCYWH
+  tight_box_rotation: False
+  class_inclusion_list:
+  max_num_samples:
+  with_crowd: False
+
+train_dataloader_params:
+  batch_size: 32
+  num_workers: 8
+  batch_sampler: True
+  sampler:
+    InfiniteSampler:
+      seed: 0
+  drop_last: True
+  shuffle: True
+  pin_memory: True
+  worker_init_fn:
+    _target_: super_gradients.training.utils.utils.load_func
+    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
+  collate_fn:
+    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+
+val_dataset_params:
+  data_dir: ${dataset_params.root_dir} # root path to coco data
+  subdir: images/val2017 # sub directory path of data_dir containing the train data.
+  json_file: instances_val2017.json # path to coco train json file, data_dir/annotations/train_json_file.
+  input_dim: ${dataset_params.val_input_dim}
+  cache_dir:
+  cache: False
+  transforms:
+    - DetectionPaddedRescale:
+        input_dim: ${dataset_params.val_input_dim}
+        pad_value: 128
+    - DetectionStandardize:
+        max_value: 255.
+    - DetectionTargetsFormatTransform:
+        max_targets: 50
+        input_dim: ${dataset_params.val_input_dim}
+        output_format: LABEL_CXCYWH
+  tight_box_rotation: False
+  class_inclusion_list:
+  max_num_samples:
+  with_crowd: True
+
+val_dataloader_params:
+  batch_size: 32
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+  collate_fn:
+    _target_: super_gradients.training.utils.detection_utils.CrowdDetectionCollateFN
