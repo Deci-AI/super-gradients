@@ -1296,6 +1296,7 @@ def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
 
     padded_img = padded_img.transpose(swap)
     padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
+    padded_img = torch.from_numpy(padded_img)
     return padded_img, r
 
 
