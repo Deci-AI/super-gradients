@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Mapping
 
 import hydra
 import numpy as np
@@ -39,7 +39,7 @@ from torch.utils.data import BatchSampler, DataLoader, TensorDataset
 logger = get_logger(__name__)
 
 
-def get_data_loader(config_name, dataset_cls, train, dataset_params=None, dataloader_params=None):
+def get_data_loader(config_name: str, dataset_cls: object, train: bool, dataset_params: Mapping = None, dataloader_params: Mapping = None):
     """
     Class for creating dataloaders for taking defaults from yaml files in src/super_gradients/recipes.
 

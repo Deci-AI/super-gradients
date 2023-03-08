@@ -1,3 +1,4 @@
+from typing import List
 import torch
 
 from super_gradients.common.object_names import Losses
@@ -18,7 +19,7 @@ class BCEDiceLoss(torch.nn.Module):
         respectively.
     """
 
-    def __init__(self, loss_weights=[0.5, 0.5], logits=True):
+    def __init__(self, loss_weights: List[float] = [0.5, 0.5], logits: bool = True):
         super(BCEDiceLoss, self).__init__()
         self.loss_weights = loss_weights
         self.bce = BCE()

@@ -1,11 +1,16 @@
 import torch
-from typing import Union
+from typing import Union, List
 from super_gradients.training.losses.ohem_ce_loss import OhemCELoss
 
 
 class DDRNetLoss(OhemCELoss):
     def __init__(
-        self, threshold: float = 0.7, ohem_percentage: float = 0.1, weights: list = [1.0, 0.4], ignore_label=255, num_pixels_exclude_ignored: bool = False
+        self,
+        threshold: float = 0.7,
+        ohem_percentage: float = 0.1,
+        weights: List[float] = [1.0, 0.4],
+        ignore_label: int = 255,
+        num_pixels_exclude_ignored: bool = False,
     ):
         """
         This loss is an extension of the Ohem (Online Hard Example Mining Cross Entropy) Loss.

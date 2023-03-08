@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 
 import torch
 
@@ -14,7 +14,7 @@ class IoULoss(AbstarctSegmentationStructureLoss):
     Compute average IoU loss between two tensors, It can support both multi-classes and binary tasks.
     """
 
-    def _calc_numerator_denominator(self, labels_one_hot, predict):
+    def _calc_numerator_denominator(self, labels_one_hot: torch.tensor, predict: torch.tensor) -> Tuple[torch.tensor, torch.tensor]:
         """
         Calculate iou metric's numerator and denominator.
 
@@ -57,7 +57,7 @@ class BinaryIoULoss(IoULoss):
         super().__init__(apply_softmax=False, ignore_index=None, smooth=smooth, eps=eps, reduce_over_batches=False)
         self.apply_sigmoid = apply_sigmoid
 
-    def forward(self, predict, target):
+    def forward(self, predict: torch.tensor, target: torch.tensor) -> torch.tensor:
         if self.apply_sigmoid:
             predict = torch.sigmoid(predict)
         return super().forward(predict=predict, target=target)
