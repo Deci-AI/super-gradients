@@ -13,7 +13,7 @@ import torch
 import torchvision
 from omegaconf import ListConfig
 from torch import nn
-from torch.utils.data._utils.collate import default_collate
+from super_gradients.training.utils.utils import default_collate
 
 
 class DetectionTargetsFormat(Enum):
