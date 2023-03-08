@@ -194,6 +194,8 @@ class Trainer:
         self.max_train_batches = None
         self.max_valid_batches = None
 
+        self.epoch_start_lr_dict = {}
+
     @property
     def device(self) -> str:
         return device_config.device
@@ -443,7 +445,7 @@ class Trainer:
 
             # LOG LR THAT WILL BE USED IN CURRENT EPOCH AND AFTER FIRST WARMUP/LR_SCHEDULER UPDATE BEFORE WEIGHT UPDATE
             if not self.ddp_silent_mode and batch_idx == 0:
-                self._write_lrs(epoch)
+                self.epoch_start_lr_dict = self._get_lr_dict()
 
             self._backward_step(loss, epoch, batch_idx, context)
 
@@ -1280,7 +1282,14 @@ class Trainer:
 
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch, context)
+                    self._write_to_disk_operations(
+                        train_metrics=train_metrics_tuple,
+                        validation_results=validation_results_tuple,
+                        lr_dict=self.epoch_start_lr_dict,
+                        inf_time=inf_time,
+                        epoch=epoch,
+                        context=context,
+                    )
                     self.sg_logger.upload()
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
@@ -1609,7 +1618,7 @@ class Trainer:
         }
         return hyper_param_config
 
-    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int, context: PhaseContext):
+    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, lr_dict: dict, inf_time: float, epoch: int, context: PhaseContext):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         # STORE VALUES IN A TENSORBOARD FILE
         train_results = list(train_metrics) + list(validation_results) + [inf_time]
@@ -1617,16 +1626,17 @@ class Trainer:
 
         result_dict = {all_titles[i]: train_results[i] for i in range(len(train_results))}
         self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
+        self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
         # SAVE THE CHECKPOINT
         if self.training_params.save_model:
             self._save_checkpoint(self.optimizer, epoch + 1, validation_results, context)
 
-    def _write_lrs(self, epoch):
+    def _get_lr_dict(self) -> dict:
         lrs = [self.optimizer.param_groups[i]["lr"] for i in range(len(self.optimizer.param_groups))]
         lr_titles = ["LR/Param_group_" + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ["LR"]
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
-        self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
+        return lr_dict
 
     def test(
         self,
