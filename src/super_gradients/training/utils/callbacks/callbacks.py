@@ -242,8 +242,8 @@ class LRCallbackBase(PhaseCallback):
         """
         Predicate that controls whether to perform lr scheduling based on values in context.
 
-        @param context: PhaseContext: current phase's context.
-        @return: bool, whether to apply lr scheduling or not.
+        :param context: PhaseContext: current phase's context.
+        :return: bool, whether to apply lr scheduling or not.
         """
         raise NotImplementedError
 
@@ -251,7 +251,7 @@ class LRCallbackBase(PhaseCallback):
         """
         Performs lr scheduling based on values in context.
 
-        @param context: PhaseContext: current phase's context.
+        :param context: PhaseContext: current phase's context.
         """
         raise NotImplementedError
 

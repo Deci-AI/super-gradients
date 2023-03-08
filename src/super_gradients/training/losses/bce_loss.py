@@ -10,7 +10,7 @@ class BCE(BCEWithLogitsLoss):
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
 
-        @param input: Network's raw output shaped (N,1,*)
-        @param target: Ground truth shaped (N,*)
+        :param input: Network's raw output shaped (N,1,*)
+        :param target: Ground truth shaped (N,*)
         """
         return super(BCE, self).forward(input.squeeze(1), target.float())

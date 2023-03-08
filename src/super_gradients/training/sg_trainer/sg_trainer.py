@@ -203,8 +203,8 @@ class Trainer:
         """
         Trains according to cfg recipe configuration.
 
-        @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
-        @return: the model and the output of trainer.train(...) (i.e results tuple)
+        :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
+        :return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
         setup_device(

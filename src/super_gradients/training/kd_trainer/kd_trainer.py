@@ -44,8 +44,8 @@ class KDTrainer(Trainer):
         """
         Trains according to cfg recipe configuration.
 
-        @param cfg: The parsed DictConfig from yaml recipe files
-        @return: output of kd_trainer.train(...) (i.e results tuple)
+        :param cfg: The parsed DictConfig from yaml recipe files
+        :return: output of kd_trainer.train(...) (i.e results tuple)
         """
         # INSTANTIATE ALL OBJECTS IN CFG
         setup_device(

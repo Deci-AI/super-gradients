@@ -27,8 +27,8 @@ class BCEDiceLoss(torch.nn.Module):
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
 
-        @param input: Network's raw output shaped (N,1,H,W)
-        @param target: Ground truth shaped (N,H,W)
+        :param input: Network's raw output shaped (N,1,H,W)
+        :param target: Ground truth shaped (N,H,W)
         """
 
         return self.loss_weights[0] * self.bce(input, target) + self.loss_weights[1] * self.dice(input, target)

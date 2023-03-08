@@ -242,8 +242,8 @@ class PoseEstimationMetrics(Metric):
         When in distributed mode, stats are aggregated after each forward pass to the metric state. Since these have all
         different sizes we override the synchronization function since it works only for tensors (and use
         all_gather_object)
-        @param dist_sync_fn:
-        @return:
+        :param dist_sync_fn:
+        :return:
         """
         if self.world_size is None:
             self.world_size = torch.distributed.get_world_size() if self.is_distributed else -1
