@@ -669,9 +669,9 @@ logger = get_logger(__name__)
 
 def inspect_sample(sample: Any, indent=""):
     if torch.is_tensor(sample):
-        logger.debug(f"{indent}Tensor: {sample.shape}, dtype {sample.dtype}")
+        logger.info(f"{indent}Tensor: {sample.shape}, dtype {sample.dtype}")
     elif isinstance(sample, np.ndarray):
-        logger.debug(f"{indent}Numpy Array: {sample.shape}, dtype {sample.dtype}")
+        logger.info(f"{indent}Numpy Array: {sample.shape}, dtype {sample.dtype}")
     elif isinstance(sample, (list, tuple)):
         for item in sample:
             inspect_sample(item, indent=indent + " -")
@@ -679,7 +679,7 @@ def inspect_sample(sample: Any, indent=""):
         for key, item in sample.items():
             inspect_sample(item, indent=indent + f" - {key}:")
     else:
-        logger.debug(f"{indent}Unknown type: {type(sample)} ({sample})")
+        logger.info(f"{indent}Unknown type: {type(sample)} ({sample})")
 
 
 class DetectionCollateFN:
@@ -687,7 +687,12 @@ class DetectionCollateFN:
     Collate function for Yolox training
     """
 
+    def __init__(self):
+        logger.info("Instantiated DetectionCollateFN")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
+        logger.info("Calling DetectionCollateFN")
+
         for sample in data:
             inspect_sample(sample, "-")
 
@@ -809,7 +814,16 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
     Collate function for Yolox training with additional_batch_items that includes crowd targets
     """
 
+    def __init__(self):
+        super().__init__()
+        logger.info("Instantiating CrowdDetectionCollateFN")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+        logger.info("Calling CrowdDetectionCollateFN")
+
+        for sample in data:
+            inspect_sample(sample, "-")
+
         batch = default_collate(data)
         ims, targets, crowd_targets = batch[0:3]
         return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
