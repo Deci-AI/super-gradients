@@ -1,0 +1,5 @@
+.git
+checkpoints/
+.circleci
+.github
+*.pth
