@@ -44,7 +44,7 @@ RUN python${PYTHON_VERSION}  -m venv --system-site-packages --copies ${INSTALL_P
 RUN . ${INSTALL_PATH}/${VENV_NAME}/bin/activate
 
 RUN pip install --no-cache-dir --upgrade git+https://github.com/Deci-AI/super-gradients@master
-RUN pip uninstall super-gradients
+RUN pip uninstall super-gradients -y
 ARG CACHEBUST=1
 
 RUN pip install --no-cache-dir --upgrade git+https://github.com/Deci-AI/super-gradients@eugene/debug
