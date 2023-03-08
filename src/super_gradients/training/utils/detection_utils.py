@@ -1,10 +1,11 @@
+from super_gradients.common.abstractions.abstract_logger import get_logger
 import math
 import os
 import pathlib
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, List, Union, Tuple, Optional, Dict
+from typing import Callable, List, Union, Tuple, Optional, Dict, Any
 
 import cv2
 import matplotlib.pyplot as plt
@@ -663,12 +664,33 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     return bbox
 
 
+logger = get_logger(__name__)
+
+
+def inspect_sample(sample: Any, indent=""):
+    if torch.is_tensor(sample):
+        logger.debug(f"{indent}Tensor: {sample.shape}, dtype {sample.dtype}")
+    elif isinstance(sample, np.ndarray):
+        logger.debug(f"{indent}Numpy Array: {sample.shape}, dtype {sample.dtype}")
+    elif isinstance(sample, (list, tuple)):
+        for item in sample:
+            inspect_sample(item, indent=indent + " -")
+    elif isinstance(sample, (dict)):
+        for key, item in sample.items():
+            inspect_sample(item, indent=indent + f" - {key}:")
+    else:
+        logger.debug(f"{indent}Unknown type: {type(sample)} ({sample})")
+
+
 class DetectionCollateFN:
     """
     Collate function for Yolox training
     """
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
+        for sample in data:
+            inspect_sample(sample, "-")
+
         batch = default_collate(data)
         ims, targets = batch[0:2]
         return ims, self._format_targets(targets)
