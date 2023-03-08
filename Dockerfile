@@ -43,10 +43,14 @@ WORKDIR ${INSTALL_PATH}
 RUN python${PYTHON_VERSION}  -m venv --system-site-packages --copies ${INSTALL_PATH}/${VENV_NAME}
 RUN . ${INSTALL_PATH}/${VENV_NAME}/bin/activate
 
+ARG CACHEBUST=1
 
 # installing supergradients as a standalone
 RUN pip install --no-cache-dir --upgrade git+https://github.com/Deci-AI/super-gradients@eugene/debug
 
+ENV FILE_LOG_LEVEL    DEBUG
+ENV CONSOLE_LOG_LEVEL DEBUG
+ENV LOG_LEVEL         DEBUG
 
 # we should do multistage build in the future
 
