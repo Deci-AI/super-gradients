@@ -290,7 +290,14 @@ class DetectionDataset(Dataset):
         :param index:   Image index
         :return:        Image in array format
         """
-        img_path = self.annotations[index]["img_path"]
+        try:
+            ann = self.annotations[index]
+            img_path = ann["img_path"]
+        except IndexError as e:
+            logger.info("Total annotations: %d", len(self.annotations))
+            logger.info("Image index: %d", index)
+            logger.error(e)
+            raise e
 
         img_file = os.path.join(img_path)
         img = cv2.imread(img_file)
