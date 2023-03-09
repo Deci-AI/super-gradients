@@ -58,7 +58,7 @@ train_dataloader_params:
   batch_size: 32
   num_workers: 8
   batch_sampler: False
-  sampler: {}
+  sampler:
   drop_last: True
   shuffle: True
   pin_memory: True
