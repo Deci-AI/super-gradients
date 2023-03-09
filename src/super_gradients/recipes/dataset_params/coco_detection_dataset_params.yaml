@@ -1,7 +1,7 @@
 train_dataset_params:
-  data_dir: /Users/Louis.Dupont/PycharmProjects/roboflow-100-benchmark/rf100/pests-2xlvx # root path to coco data
-  subdir: train # sub directory path of data_dir containing the train data.
-  json_file: train/_annotations.coco.json # path to coco train json file, data_dir/annotations/train_json_file.
+  data_dir: /data/coco # root path to coco data
+  subdir: images/train2017 # sub directory path of data_dir containing the train data.
+  json_file: instances_train2017.json # path to coco train json file, data_dir/annotations/train_json_file.
   input_dim: [640, 640]
   cache_dir:
   cache: False
@@ -59,9 +59,9 @@ train_dataloader_params:
     _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
 
 val_dataset_params:
-  data_dir: /Users/Louis.Dupont/PycharmProjects/roboflow-100-benchmark/rf100/pests-2xlvx # root path to coco data
-  subdir: valid # sub directory path of data_dir containing the train data.
-  json_file: valid/_annotations.coco.json # path to coco train json file, data_dir/annotations/train_json_file.
+  data_dir: /data/coco # root path to coco data
+  subdir: images/val2017 # sub directory path of data_dir containing the train data.
+  json_file: instances_val2017.json # path to coco train json file, data_dir/annotations/train_json_file.
   input_dim: [640, 640]
   cache_dir:
   cache: False
