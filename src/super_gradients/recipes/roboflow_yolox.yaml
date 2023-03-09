@@ -32,8 +32,8 @@
 
 
 defaults:
-  - training_hyperparams: coco2017_yolox_train_params
-  - dataset_params: coco_detection_dataset_params
+  - training_hyperparams: roboflow_yolox_train_params
+  - dataset_params: roboflow_detection_dataset_params
   - arch_params: yolox_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
@@ -54,7 +54,7 @@ multi_gpu: Off
 num_gpus: 0
 
 experiment_suffix: res${dataset_params.train_dataset_params.input_dim}
-experiment_name: ${architecture}_coco2017_${experiment_suffix}
+experiment_name: ${architecture}_roboflow_${experiment_suffix}
 
 ckpt_root_dir:
 

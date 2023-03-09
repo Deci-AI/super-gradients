@@ -416,7 +416,7 @@ class DatasetStatisticsTensorboardLogger:
         # FIXME: UNCOMMENT AND APPLY TO NEW DetectionDataSet ONCE ITS MERGED
         # if isinstance(data_loader.dataset, DetectionDataSet):
         #     self._analyze_detection(data_loader=data_loader, title=title,
-        #                             all_classes=all_classes, anchors=anchors)
+        #                             _all_classes=_all_classes, anchors=anchors)
         # else:
         #     DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
         DatasetStatisticsTensorboardLogger.logger.warning("only DetectionDataSet are currently supported")

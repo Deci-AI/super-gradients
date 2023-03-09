@@ -1,5 +1,11 @@
+root: /Users/Louis.Dupont/PycharmProjects/roboflow-100-benchmark/rf100
+dataset_name: pests-2xlvx
+
+#root: ??? #/Users/Louis.Dupont/PycharmProjects/roboflow-100-benchmark/rf100
+#dataset_name: ??? #pests-2xlvx
+
 train_dataset_params:
-  data_dir: /Users/Louis.Dupont/PycharmProjects/roboflow-100-benchmark/rf100/pests-2xlvx # root path to coco data
+  data_dir: ${..root}/${..dataset_name} # root path to coco data
   subdir: train # sub directory path of data_dir containing the train data.
   json_file: train/_annotations.coco.json # path to coco train json file, data_dir/annotations/train_json_file.
   input_dim: [640, 640]
@@ -45,7 +51,7 @@ train_dataset_params:
 train_dataloader_params:
   shuffle: True
   batch_size: 16
-  num_workers: 8
+  num_workers: 0
   batch_sampler: True
   sampler:
     InfiniteSampler:
@@ -59,7 +65,7 @@ train_dataloader_params:
     _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
 
 val_dataset_params:
-  data_dir: /Users/Louis.Dupont/PycharmProjects/roboflow-100-benchmark/rf100/pests-2xlvx # root path to coco data
+  data_dir: ${..root}/${..dataset_name} # root path to coco data
   subdir: valid # sub directory path of data_dir containing the train data.
   json_file: valid/_annotations.coco.json # path to coco train json file, data_dir/annotations/train_json_file.
   input_dim: [640, 640]
@@ -79,7 +85,7 @@ val_dataset_params:
 
 val_dataloader_params:
   batch_size: 64
-  num_workers: 8
+  num_workers: 0
   drop_last: False
   pin_memory: True
   collate_fn: # collate function for valset
