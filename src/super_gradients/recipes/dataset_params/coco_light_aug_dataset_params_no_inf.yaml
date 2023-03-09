@@ -57,8 +57,9 @@ train_dataset_params:
 train_dataloader_params:
   batch_size: 32
   num_workers: 8
+  # It is not enough just to disable it here, as sampler from default coco dataset params leak here
   batch_sampler: False
-  sampler:
+  sampler: {}
   drop_last: True
   shuffle: True
   pin_memory: True
