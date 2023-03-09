@@ -1016,7 +1016,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         targets = self.targets_format_converter(targets)
         targets = self.filter_small_bboxes(targets)
         targets = self.pad_targets(targets)
-        return targets
+        return torch.from_numpy(targets).float()
 
     def filter_small_bboxes(self, targets: np.ndarray) -> np.ndarray:
         """Filter bboxes smaller than specified threshold."""
@@ -1296,6 +1296,7 @@ def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
 
     padded_img = padded_img.transpose(swap)
     padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
+    padded_img = torch.from_numpy(padded_img)
     return padded_img, r
 
 
