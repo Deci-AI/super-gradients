@@ -42,11 +42,8 @@ train_dataset_params:
 train_dataloader_params:
   batch_size: 32
   num_workers: 8
-  batch_sampler: True
-  sampler:
-    InfiniteSampler:
-      seed: 0
-  drop_last: False
+  shuffle: True
+  drop_last: True
   pin_memory: True
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
