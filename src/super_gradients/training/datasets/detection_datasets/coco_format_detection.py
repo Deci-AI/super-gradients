@@ -45,6 +45,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
 
     def __init__(
         self,
+        data_dir: str,
         json_annotation_file: str,
         images_dir: str,
         tight_box_rotation: bool = False,
@@ -53,6 +54,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         **kwargs,
     ):
         """
+        :param data_dir:                Where the data is stored
         :param json_file:           Name of the coco json file, that resides in data_dir/annotations/json_file.
         :param subdir:              Sub directory of data_dir containing the data.
         :param tight_box_rotation:  bool, whether to use of segmentation maps convex hull as target_seg
@@ -72,7 +74,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         kwargs["output_fields"] = ["image", *target_fields]
         kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
         kwargs["all_classes_list"] = kwargs.get("all_classes_list", [])
-        super().__init__(*args, **kwargs)
+        super().__init__(data_dir=data_dir, *args, **kwargs)
 
         if len(self.original_classes) != len(self.all_classes_list):
             if set(self.all_classes_list).issubset(set(self.original_classes)):

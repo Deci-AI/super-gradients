@@ -20,6 +20,7 @@ from super_gradients.training.transforms.transforms import DetectionTransform, D
 from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 
 logger = get_logger(__name__)
 
@@ -421,7 +422,7 @@ class DetectionDataset(Dataset):
         """
         plot_counter = 0
         input_format = self.output_target_format if plot_transformed_data else self.original_target_format
-        target_format_transform = DetectionTargetsFormatTransform(input_format=input_format, output_format=DetectionTargetsFormat.XYXY_LABEL)
+        target_format_transform = DetectionTargetsFormatTransform(input_format=input_format, output_format=XYXY_LABEL)
 
         for plot_i in range(n_plots):
             fig = plt.figure(figsize=(10, 10))
