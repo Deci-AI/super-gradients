@@ -180,6 +180,7 @@ class DeciClient:
         :param name:        Name of the experiment to register
         :param model_name:  Name of the model architecture to connect the experiment to
         """
+        # TODO: Wrap this in a try/except block to catch e.status==422
         self.lab_client.register_user_architecture(BodyRegisterUserArchitecture(architecture_name=model_name))
         self.lab_client.register_experiment(name=name, model_name=model_name, resume=resume)
 
