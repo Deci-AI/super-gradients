@@ -693,8 +693,8 @@ class DetectionCollateFN:
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         logger.info("Calling DetectionCollateFN")
 
-        for sample in data:
-            inspect_sample(sample, "-")
+        # for sample in data:
+        #    inspect_sample(sample, "-")
 
         batch = default_collate(data)
         ims, targets = batch[0:2]

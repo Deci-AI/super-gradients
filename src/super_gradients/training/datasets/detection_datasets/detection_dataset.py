@@ -316,6 +316,7 @@ class DetectionDataset(Dataset):
         return len(self.annotations)
 
     def __getitem__(self, index: int) -> Tuple:
+        logger.info(f"Getting dataset item at index {index}/{len(self)}")
         """Get the sample post transforms at a specific index of the dataset.
         The output of this function will be collated to form batches."""
         sample = self.apply_transforms(self.get_sample(index))
