@@ -5,8 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from super_gradients.training.models import BasicBlock, Bottleneck, HpmStruct
-from super_gradients.training.utils import get_param
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
+from super_gradients.training.utils import get_param
 
 """
 paper: Deep Dual-resolution Networks for Real-time and
