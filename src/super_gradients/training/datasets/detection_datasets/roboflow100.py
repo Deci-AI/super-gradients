@@ -199,7 +199,7 @@ class Roboflow100DetectionDataset(ConcatDataset):
 
         from contextlib import redirect_stdout
 
-        with redirect_stdout(open(os.devnull, "w")):
+        with redirect_stdout(open(os.devnull, "w")):  # Fixme: remove this, but instead hide coco prints
             roboflow_datasets = [
                 RoboflowDetectionDataset(data_dir=data_dir, dataset_name=dataset_name, split=split, verbose=False, *args, **kwargs)
                 for dataset_name in tqdm(RoboflowDetectionDataset.list_roboflow_datasets()[:2], disable=not verbose)
