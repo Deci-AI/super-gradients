@@ -23,7 +23,7 @@ try:
     from deci_lab_client.models import ModelBenchmarkState
     from deci_common.data_interfaces.files_data_interface import FilesDataInterface
     from deci_lab_client.models import AutoNACFileName
-    from deci_lab_client import ApiException
+    from deci_lab_client import ApiException, BodyRegisterUserArchitecture
 
 except (ImportError, NameError):
     client_enabled = False
@@ -46,6 +46,13 @@ class DeciClient:
         self.api_host = env_variables.DECI_API_HOST
         self.lab_client = DeciPlatformClient(api_host=self.api_host)
         self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
+        # self.lab_client.register_user_architecture(BodyRegisterUserArchitecture(architecture_name="demo_architecture"))
+        # lab_client.register_experiment("demo_architecture_experiment")
+        # try:
+        #     self.lab_client.register_user_architecture(BodyRegisterUserArchitecture(architecture_name="randon_name"))
+        # except ApiException as e:
+        #     if e.status==422:
+        #         logger.error(f"already exists or validation error: {e.body}")
 
     def _get_file(self, model_name: str, file_name: str) -> Optional[str]:
         """Get a file from the DeciPlatform if it exists, otherwise returns None
@@ -173,6 +180,7 @@ class DeciClient:
         :param name:        Name of the experiment to register
         :param model_name:  Name of the model architecture to connect the experiment to
         """
+        self.lab_client.register_user_architecture(BodyRegisterUserArchitecture(architecture_name=model_name))
         self.lab_client.register_experiment(name=name, model_name=model_name, resume=resume)
 
     def save_experiment_file(self, file_path: str):
