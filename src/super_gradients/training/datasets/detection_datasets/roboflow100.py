@@ -1,5 +1,8 @@
 import os
 
+from tqdm import tqdm
+from torch.utils.data import ConcatDataset
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOFormatDetectionDataset
 
@@ -108,16 +111,15 @@ ALL_ROBOFLOW_DATASETS = [
 ]
 
 
-class Roboflow100DetectionDataset(COCOFormatDetectionDataset):
+class RoboflowDetectionDataset(COCOFormatDetectionDataset):
     """Dataset for Roboflow100 object detection. TODO: improve
 
     To use this Dataset you need to:
 
-        - Download Roboflow datasets:
-            TODO
+        - Follow the official instructions to download Roboflow100: https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog
 
-        - Unzip and organize it as below:
-            data_dir
+        - Your dataset should loook like this:
+            rf100
             ├── 4-fold-defect
             │      ├─ train
             │      │    ├─ 000000000001.jpg
@@ -134,33 +136,79 @@ class Roboflow100DetectionDataset(COCOFormatDetectionDataset):
         - Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
 
         - Instantiate the dataset:
-            >> train_set = COCODetectionDataset(data_dir='.../coco', subdir='images/train2017', json_file='instances_train2017.json', ...)
-            >> valid_set = COCODetectionDataset(data_dir='.../coco', subdir='images/val2017', json_file='instances_val2017.json', ...)
+            >> train_set = RoboflowDetectionDataset(data_dir='.../rf100', dataset_name="digits-t2eg6", split="train")
+            >> valid_set = RoboflowDetectionDataset(data_dir='.../rf100', dataset_name="digits-t2eg6", split="valid")
     """
 
     def __init__(self, data_dir: str, dataset_name: str, split: str, *args, **kwargs):
         """
         :param data_dir:        Where the data is stored.
-        :param dataset_name:    One of the 100 dataset name. (You can run Roboflow100DetectionDataset.list_roboflow_datasets() to see all available datasets)
+        :param dataset_name:    One of the 100 dataset name. (You can run RoboflowDetectionDataset.list_roboflow_datasets() to see all available datasets)
         :param split:           train, valid or test.
         """
         if split not in ("train", "valid", "test"):
             raise ValueError(f"split must be one of ('train', 'valid', 'test'). Got '{split}'.")
 
-        super().__init__(
-            data_dir=data_dir,
-            json_annotation_file=os.path.join(dataset_name, split, "_annotations.coco.json"),
-            images_dir=os.path.join(dataset_name, split),
-            input_dim=(640, 640),
-            *args,
-            **kwargs,
-        )
+        dataset_split_dir = os.path.join(dataset_name, split)
+        json_annotation_file = os.path.join(dataset_split_dir, "_annotations.coco.json")
+        super().__init__(data_dir=data_dir, json_annotation_file=json_annotation_file, images_dir=dataset_split_dir, *args, **kwargs)
 
     @staticmethod
     def list_roboflow_datasets() -> list:
         return ALL_ROBOFLOW_DATASETS
 
 
-data = Roboflow100DetectionDataset(data_dir="/Users/Louis.Dupont/PycharmProjects/roboflow-100-benchmark/rf100", dataset_name="digits-t2eg6", split="train")
-data.plot()
-print(1)
+class Roboflow100DetectionDataset(ConcatDataset):
+    """Dataset for Roboflow100 object detection. TODO: improve
+
+    To use this Dataset you need to:
+
+        - Follow the official instructions to download Roboflow100: https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog
+
+        - Your dataset should loook like this:
+            rf100
+            ├── 4-fold-defect
+            │      ├─ train
+            │      │    ├─ 000000000001.jpg
+            │      │    ├─ ...
+            │      │    └─ _annotations.coco.json
+            │      ├─ valid
+            │      │    └─ ...
+            │      └─ test
+            │           └─ ...
+            ├── abdomen-mri
+            │      └─ ...
+            └── ...
+
+        - Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
+
+        - Instantiate the dataset:
+            >> train_set = RoboflowDetectionDataset(data_dir='.../rf100', dataset_name="digits-t2eg6", split="train")
+            >> valid_set = RoboflowDetectionDataset(data_dir='.../rf100', dataset_name="digits-t2eg6", split="valid")
+    """
+
+    def __init__(self, data_dir: str, split: str, verbose: bool = True, *args, **kwargs):
+        """
+        :param data_dir:        Where the data is stored.
+        :param split:           train, valid or test.
+        """
+
+        if "max_num_samples" in kwargs:
+            logger.warning("max_num_samples will be ignored because it is not supported by Roboflow100DetectionDataset.")
+            kwargs["max_num_samples"] = None
+
+        from contextlib import redirect_stdout
+
+        with redirect_stdout(open(os.devnull, "w")):
+            roboflow_datasets = [
+                RoboflowDetectionDataset(data_dir=data_dir, dataset_name=dataset_name, split=split, verbose=False, *args, **kwargs)
+                for dataset_name in tqdm(RoboflowDetectionDataset.list_roboflow_datasets()[:2], disable=not verbose)
+            ]
+        super(Roboflow100DetectionDataset, self).__init__(roboflow_datasets)
+
+
+# data = Roboflow100DetectionDataset(data_dir="/data/rf100", split="train", input_dim=(640, 640))
+
+
+# data.plot()
+# print(1)

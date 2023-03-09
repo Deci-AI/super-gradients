@@ -1,12 +1,12 @@
 defaults:
   - training_hyperparams: roboflow_yolox_train_params
-  - dataset_params: roboflow_detection_dataset_params
+  - dataset_params: roboflow100_detection_dataset_params
   - arch_params: yolox_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
 
-train_dataloader: roboflow_train_yolox
-val_dataloader: roboflow_val_yolox
+train_dataloader: roboflow100_train_yolox
+val_dataloader: roboflow100_val_yolox
 
 
 load_checkpoint: False

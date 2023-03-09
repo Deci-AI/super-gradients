@@ -8,7 +8,7 @@ from pycocotools.coco import COCO
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
+from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 
 logger = get_logger(__name__)
 
@@ -72,7 +72,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
         kwargs["target_fields"] = target_fields
         kwargs["output_fields"] = ["image", *target_fields]
-        kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
+        kwargs["original_target_format"] = XYXY_LABEL
         kwargs["all_classes_list"] = kwargs.get("all_classes_list", [])
         super().__init__(data_dir=data_dir, *args, **kwargs)
 

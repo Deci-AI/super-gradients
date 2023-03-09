@@ -14,13 +14,14 @@ from tqdm import tqdm
 from torch.utils.data import Dataset
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.training.utils.detection_utils import get_cls_posx_in_target, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_cls_posx_in_target
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform
+from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
 from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
+from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
 
 logger = get_logger(__name__)
 
@@ -69,7 +70,7 @@ class DetectionDataset(Dataset):
         self,
         data_dir: str,
         input_dim: Optional[Tuple[int, int]],
-        original_target_format: DetectionTargetsFormat,
+        original_target_format: Union[ConcatenatedTensorFormat, DetectionTargetsFormat],
         max_num_samples: int = None,
         cache: bool = False,
         cache_dir: str = None,
@@ -79,6 +80,7 @@ class DetectionDataset(Dataset):
         ignore_empty_annotations: bool = True,
         target_fields: List[str] = None,
         output_fields: List[str] = None,
+        verbose: bool = True,
     ):
         """Detection dataset.
 
@@ -99,10 +101,18 @@ class DetectionDataset(Dataset):
         :param target_fields:                   List of the fields target fields. This has to include regular target,
                                                 but can also include crowd target, segmentation target, ...
                                                 It has to include at least "target" but can include other.
-        :paran output_fields:                   Fields that will be outputed by __getitem__.
+        :param output_fields:                   Fields that will be outputed by __getitem__.
                                                 It has to include at least "image" and "target" but can include other.
+        :param verbose:                 Whether to show additional information or not, such as loading progress.
         """
         super().__init__()
+        self.verbose = verbose
+
+        if isinstance(original_target_format, DetectionTargetsFormat):
+            logger.warning(
+                "Deprecation: original_target_format should be of type ConcatenatedTensorFormat instead of DetectionTargetsFormat."
+                "Support for DetectionTargetsFormat will be removed in 3.1"
+            )
 
         self.data_dir = data_dir
         if not Path(data_dir).exists():
@@ -174,7 +184,7 @@ class DetectionDataset(Dataset):
         :return: List of annotations
         """
         annotations = []
-        for sample_id, img_id in enumerate(tqdm(range(self.n_available_samples), desc="Caching annotations")):
+        for sample_id, img_id in enumerate(tqdm(range(self.n_available_samples), desc="Caching annotations", disable=not self.verbose)):
 
             if self.max_num_samples is not None and len(annotations) >= self.max_num_samples:
                 break
@@ -266,7 +276,7 @@ class DetectionDataset(Dataset):
             cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="w+")
 
             # Store images in the placeholder
-            loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
+            loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self), disable=not self.verbose)
             for i, image in loaded_images_pbar:
                 cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
             cached_imgs.flush()
@@ -422,6 +432,10 @@ class DetectionDataset(Dataset):
         """
         plot_counter = 0
         input_format = self.output_target_format if plot_transformed_data else self.original_target_format
+        if isinstance(input_format, DetectionTargetsFormat):
+            raise ValueError(
+                "Plot is not supported for DetectionTargetsFormat. Please set original_target_format to be an isntance of ConcatenateTransform instead."
+            )
         target_format_transform = DetectionTargetsFormatTransform(input_format=input_format, output_format=XYXY_LABEL)
 
         for plot_i in range(n_plots):
