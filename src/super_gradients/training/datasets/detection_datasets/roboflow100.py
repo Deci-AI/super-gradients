@@ -4,9 +4,11 @@ from tqdm import tqdm
 from torch.utils.data import ConcatDataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOFormatDetectionDataset
+from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOLikeDetectionDataset
 
 logger = get_logger(__name__)
+
+
 ALL_ROBOFLOW_DATASETS = [
     "4-fold-defect",
     "abdomen-mri",
@@ -111,8 +113,8 @@ ALL_ROBOFLOW_DATASETS = [
 ]
 
 
-class RoboflowDetectionDataset(COCOFormatDetectionDataset):
-    """Dataset for Roboflow100 object detection. TODO: improve
+class RoboflowDetectionDataset(COCOLikeDetectionDataset):
+    """Dataset that can be used with ANY of the Roboflow100 benchmark datasets for object detection.
 
     To use this Dataset you need to:
 
@@ -135,9 +137,9 @@ class RoboflowDetectionDataset(COCOFormatDetectionDataset):
 
         - Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
 
-        - Instantiate the dataset:
-            >> train_set = RoboflowDetectionDataset(data_dir='.../rf100', dataset_name="digits-t2eg6", split="train")
-            >> valid_set = RoboflowDetectionDataset(data_dir='.../rf100', dataset_name="digits-t2eg6", split="valid")
+        - Instantiate the dataset (in this case we load the dataset called "digits-t2eg6")"
+            >> train_set = RoboflowDetectionDataset(data_dir='<path-to>/rf100', dataset_name="digits-t2eg6", split="train")
+            >> valid_set = RoboflowDetectionDataset(data_dir='<path-to>/rf100', dataset_name="digits-t2eg6", split="valid")
     """
 
     def __init__(self, data_dir: str, dataset_name: str, split: str, *args, **kwargs):
@@ -159,7 +161,8 @@ class RoboflowDetectionDataset(COCOFormatDetectionDataset):
 
 
 class Roboflow100DetectionDataset(ConcatDataset):
-    """Dataset for Roboflow100 object detection. TODO: improve
+    """Dataset concatenating the Roboflow100 benchmark datasets for object detection.
+    This benchmark is made of 100 relatively datasets from very different context.
 
     To use this Dataset you need to:
 
@@ -183,32 +186,35 @@ class Roboflow100DetectionDataset(ConcatDataset):
         - Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
 
         - Instantiate the dataset:
-            >> train_set = RoboflowDetectionDataset(data_dir='.../rf100', dataset_name="digits-t2eg6", split="train")
-            >> valid_set = RoboflowDetectionDataset(data_dir='.../rf100', dataset_name="digits-t2eg6", split="valid")
+            >> train_set = Roboflow100DetectionDataset(data_dir='.../rf100', split="train")
+            >> valid_set = Roboflow100DetectionDataset(data_dir='.../rf100', split="valid")
     """
 
     def __init__(self, data_dir: str, split: str, verbose: bool = True, *args, **kwargs):
         """
         :param data_dir:        Where the data is stored.
         :param split:           train, valid or test.
+        :param verbose:         Whether to show additional information or not, such as loading progress.
         """
 
-        if "max_num_samples" in kwargs:
+        if kwargs.get("max_num_samples") is not None:
             logger.warning("max_num_samples will be ignored because it is not supported by Roboflow100DetectionDataset.")
             kwargs["max_num_samples"] = None
 
-        from contextlib import redirect_stdout
+        self.classes = []
+        roboflow_datasets = []
 
-        with redirect_stdout(open(os.devnull, "w")):  # Fixme: remove this, but instead hide coco prints
-            roboflow_datasets = [
-                RoboflowDetectionDataset(data_dir=data_dir, dataset_name=dataset_name, split=split, verbose=False, *args, **kwargs)
-                for dataset_name in tqdm(RoboflowDetectionDataset.list_roboflow_datasets()[:2], disable=not verbose)
-            ]
+        for dataset_name in tqdm(RoboflowDetectionDataset.list_roboflow_datasets()[:5], disable=not verbose):
+            dataset = RoboflowDetectionDataset(
+                data_dir=data_dir,
+                dataset_name=dataset_name,
+                split=split,
+                class_id_offset=len(self.classes),  # This is required to avoid using the same id twice on different dataset/labels!
+                verbose=False,
+                *args,
+                **kwargs,
+            )
+            self.classes += [cls for cls in dataset.classes]
+            roboflow_datasets.append(dataset)
+
         super(Roboflow100DetectionDataset, self).__init__(roboflow_datasets)
-
-
-# data = Roboflow100DetectionDataset(data_dir="/data/rf100", split="train", input_dim=(640, 640))
-
-
-# data.plot()
-# print(1)

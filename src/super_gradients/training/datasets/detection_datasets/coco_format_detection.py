@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from pycocotools.coco import COCO
 
+from contextlib import redirect_stdout
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
@@ -13,34 +14,10 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 logger = get_logger(__name__)
 
 
-class COCOFormatDetectionDataset(DetectionDataset):
-    """Dataset for COCO object detection.
-
-    To use this Dataset you need to:
-
-        - Download coco dataset:
-            annotations: http://images.cocodataset.org/annotations/annotations_trainval2017.zip
-            train2017: http://images.cocodataset.org/zips/train2017.zip
-            val2017: http://images.cocodataset.org/zips/val2017.zip
-
-        - Unzip and organize it as below:
-            coco
-            ├── annotations
-            │      ├─ instances_train2017.json
-            │      ├─ instances_val2017.json
-            │      └─ ...
-            └── images
-                ├── train2017
-                │   ├─ 000000000001.jpg
-                │   └─ ...
-                └── val2017
-                    └─ ...
-
-        - Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
-
-        - Instantiate the dataset:
-            >> train_set = COCODetectionDataset(data_dir='.../coco', subdir='images/train2017', json_file='instances_train2017.json', ...)
-            >> valid_set = COCODetectionDataset(data_dir='.../coco', subdir='images/val2017', json_file='instances_val2017.json', ...)
+class COCOLikeDetectionDataset(DetectionDataset):
+    """Base dataset to load ANY dataset that is with a similar structure to the CoCo dataset.
+    - Annotation file (.json). It has to respect the exact same format as CoCo, for both the json schema and the bbox format (xywh).
+    - One folder with all the images.
     """
 
     def __init__(
@@ -50,24 +27,25 @@ class COCOFormatDetectionDataset(DetectionDataset):
         images_dir: str,
         tight_box_rotation: bool = False,
         with_crowd: bool = True,
+        class_id_offset: int = 0,
         *args,
         **kwargs,
     ):
         """
-        :param data_dir:                Where the data is stored
-        :param json_file:           Name of the coco json file, that resides in data_dir/annotations/json_file.
-        :param subdir:              Sub directory of data_dir containing the data.
-        :param tight_box_rotation:  bool, whether to use of segmentation maps convex hull as target_seg
-                                    (check get_sample docs).
-        :param with_crowd: Add the crowd groundtruths to __getitem__
-
-        kwargs:
-            all_classes_list: all classes list, default is COCO_DETECTION_CLASSES_LIST.
+        :param data_dir:                Where the data is stored.
+        :param json_annotation_file:    Name of the coco json file. Path relative to data_dir.
+        :param images_dir:              Name of the directory that includes all the images. Path relative to data_dir.
+        :param tight_box_rotation:      bool, whether to use of segmentation maps convex hull as target_seg
+                                            (check get_sample docs).
+        :param with_crowd:              Add the crowd groundtruths to __getitem__
+        :param class_id_offset:         Offset used to encode the classes into index.
+                                            For instance if you have 10 classes, with offset=2, the class_ids will go from 2 to 12
         """
         self.images_dir = images_dir
         self.json_annotation_file = json_annotation_file
         self.tight_box_rotation = tight_box_rotation
         self.with_crowd = with_crowd
+        self.class_id_offset = class_id_offset
 
         target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
         kwargs["target_fields"] = target_fields
@@ -93,6 +71,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
 
         :return: List of tuples made of (img_path,target_path)
         """
+
         self.coco = self._init_coco()
         self.class_ids = sorted(self.coco.getCatIds())
         self.original_classes = list([category["name"] for category in self.coco.loadCats(self.class_ids)])
@@ -109,7 +88,12 @@ class COCOFormatDetectionDataset(DetectionDataset):
         if not os.path.exists(annotation_file_path):
             raise ValueError("Could not find annotation file under " + str(annotation_file_path))
 
-        coco = COCO(annotation_file_path)
+        if not self.verbose:
+            with redirect_stdout(open(os.devnull, "w")):
+                coco = COCO(annotation_file_path)
+        else:
+            coco = COCO(annotation_file_path)
+
         remove_useless_info(coco, self.tight_box_rotation)
         return coco
 
@@ -152,7 +136,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         target_segmentation = np.ones((len(non_crowd_annotations), num_seg_values))
         target_segmentation.fill(np.nan)
         for ix, annotation in enumerate(non_crowd_annotations):
-            cls = self.class_ids.index(annotation["category_id"])
+            cls = self.class_ids.index(annotation["category_id"]) + self.class_id_offset
             target[ix, 0:4] = annotation["clean_bbox"]
             target[ix, 4] = cls
             if self.tight_box_rotation:
@@ -168,7 +152,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
 
         crowd_target = np.zeros((len(crowd_annotations), 5))
         for ix, annotation in enumerate(crowd_annotations):
-            cls = self.class_ids.index(annotation["category_id"])
+            cls = self.class_ids.index(annotation["category_id"]) + self.class_id_offset
             crowd_target[ix, 0:4] = annotation["clean_bbox"]
             crowd_target[ix, 4] = cls
 

@@ -1,4 +1,4 @@
-data_dir: /data/rf100
+data_dir: /Users/Louis.Dupont/PycharmProjects/roboflow-100-benchmark/rf100
 
 train_dataset_params:
   data_dir: ${..data_dir} # root path to Robflow datasets

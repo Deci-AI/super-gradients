@@ -16,8 +16,8 @@ training_hyperparams:
 
 architecture: yolox_s
 
-multi_gpu: DDP
-num_gpus: 3
+multi_gpu: Off
+num_gpus: 0
 
 experiment_suffix: res${dataset_params.train_dataset_params.input_dim}
 experiment_name: ${architecture}_roboflow_${experiment_suffix}
