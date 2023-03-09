@@ -58,8 +58,11 @@ train_dataloader_params:
   batch_size: 32
   num_workers: 8
   # It is not enough just to disable it here, as sampler from default coco dataset params leak here
-  batch_sampler: False
-  sampler: {}
+  # So instead of commenting out (which does not work) they are removed in coco_detection_dataset_params
+  # batch_sampler: True
+  # sampler:
+  #  InfiniteSampler:
+  #    seed: 0
   drop_last: True
   shuffle: True
   pin_memory: True
