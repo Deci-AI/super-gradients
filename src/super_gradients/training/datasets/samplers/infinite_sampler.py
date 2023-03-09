@@ -6,7 +6,8 @@ from typing import Optional
 
 import torch
 import torch.distributed as dist
-from torch.utils.data.sampler import Sampler
+from torch.utils.data import DataLoader
+from torch.utils.data.sampler import Sampler, BatchSampler
 
 
 class InfiniteSampler(Sampler):
@@ -63,3 +64,14 @@ class InfiniteSampler(Sampler):
 
     def __len__(self):
         return self._size // self._world_size
+
+
+if __name__ == "__main__":
+    dataset = list(range(1123123))
+
+    sampler = InfiniteSampler(dataset, shuffle=True, seed=0, rank=0, world_size=1)
+    # for batch in DataLoader(dataset, batch_sampler=BatchSampler(sampler, batch_size=32, drop_last=False), num_workers=0):
+    #     print(batch)
+
+    for batch in DataLoader(dataset, batch_sampler=BatchSampler(sampler, batch_size=32, drop_last=False), num_workers=4):
+        print(batch)
