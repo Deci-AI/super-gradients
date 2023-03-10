@@ -114,7 +114,9 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
         fastest_batch_time = np.inf
         fastest_batch_size = curr_batch_size
 
-        while True:
+        bs_found = False
+
+        while not bs_found:
             tmp_cfg.dataset_params.train_dataloader_params.batch_size = curr_batch_size
 
             try:
@@ -125,6 +127,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
                 if curr_batch_time < fastest_batch_time:
                     fastest_batch_size = curr_batch_size
                     fastest_batch_time = curr_batch_time
+
             except RuntimeError as e:
                 if "out of memory" in str(e):
                     if curr_batch_size == self.min_batch_size:
@@ -133,8 +136,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
                     else:
                         selected_batch_size = curr_batch_size - self.size_step if self.mode == "largest" else fastest_batch_size
                         msg = f"Ran out of memory for {curr_batch_size}, setting batch size to {selected_batch_size}."
-                        self._inject_selected_batch_size_to_config(cfg, model, msg, selected_batch_size)
-                        return cfg
+                        bs_found = True
                 else:
                     raise e
 
@@ -144,17 +146,20 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
                     msg = (
                         f"Did not run out of memory for {curr_batch_size} >= max_batch_size={self.max_batch_size}, " f"setting batch to {selected_batch_size}."
                     )
-                    self._inject_selected_batch_size_to_config(cfg, model, msg, selected_batch_size)
-                    return cfg
-                logger.info(f"Did not run out of memory for {curr_batch_size}, retrying batch {curr_batch_size + self.size_step}.")
-                curr_batch_size += self.size_step
-                self._clear_model_gpu_mem(model)
+                    bs_found = True
+                else:
+                    logger.info(f"Did not run out of memory for {curr_batch_size}, retrying batch {curr_batch_size + self.size_step}.")
+                    curr_batch_size += self.size_step
+                    self._clear_model_gpu_mem(model)
+
+        return self._inject_selected_batch_size_to_config(cfg, model, msg, selected_batch_size)
 
     def _inject_selected_batch_size_to_config(self, cfg, model, msg, selected_batch_size):
         logger.info(msg)
         self._adapt_lr_if_needed(cfg, found_batch_size=selected_batch_size)
         cfg.dataset_params.train_dataloader_params.batch_size = selected_batch_size
         self._clear_model_gpu_mem(model)
+        return cfg
 
     def _adapt_lr_if_needed(self, cfg: DictConfig, found_batch_size: int) -> DictConfig:
         if self.scale_lr:
