@@ -7,6 +7,8 @@ from super_gradients.training.utils import get_param
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils.regularization_utils import DropPath
 
+from typing import List, Tuple
+
 """
 paper:  SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
         ( https://arxiv.org/pdf/2105.15203.pdf )
@@ -33,7 +35,7 @@ class PatchEmbedding(nn.Module):
         self.proj = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=patch_size, stride=stride, padding=padding)
         self.norm = nn.LayerNorm(out_channels)
 
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, int, int]:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, int, int]:
         x = self.proj(x)
         _, _, h, w = x.shape
 
@@ -218,7 +220,7 @@ class MiTBackBone(nn.Module):
 
             layer_idx += encoder_layers[stage_num]
 
-    def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
         b_size = x.shape[0]
 
         features = []
@@ -292,7 +294,7 @@ class SegFormerHead(nn.Module):
 
         self.dropout = nn.Dropout2d(0.1)
 
-    def forward(self, features: list[torch.Tensor]) -> torch.Tensor:
+    def forward(self, features: List[torch.Tensor]) -> torch.Tensor:
         b, _, h, w = features[0].shape
 
         out_lst = [self.linear_layers[0](features[0]).permute(0, 2, 1).reshape(b, -1, *features[0].shape[-2:])]
