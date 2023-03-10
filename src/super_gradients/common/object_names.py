@@ -297,6 +297,9 @@ class Models:
     SEGFORMER_B5 = "segformer_b5"
 
     DEKR_CUSTOM = "dekr_custom"
+    DEKR_W32_NO_DC = "dekr_w32_no_dc"
+    POSE_PP_YOLO_L = "pose_ppyolo_l"
+    POSE_DDRNET_39 = "pose_ddrnet39"
 
 
 class ConcatenatedTensorFormats:
