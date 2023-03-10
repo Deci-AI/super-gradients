@@ -36,7 +36,7 @@ from super_gradients.training.models.segmentation_models.segformer import (
     SegFormerB2,
     SegFormerB3,
     SegFormerB4,
-    SegFormerB5
+    SegFormerB5,
 )
 
 from super_gradients.training.models.kd_modules.kd_module import KDModule
@@ -158,7 +158,6 @@ ARCHITECTURES = {
     Models.SEGFORMER_B3: SegFormerB3,
     Models.SEGFORMER_B4: SegFormerB4,
     Models.SEGFORMER_B5: SegFormerB5,
-    #
     Models.DEKR_CUSTOM: DEKRPoseEstimationModel,
     Models.DEKR_W32_NO_DC: DEKRW32,
     Models.POSE_PP_YOLO_L: PosePPYoloL,
