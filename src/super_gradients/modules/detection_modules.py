@@ -6,7 +6,6 @@ from torch import nn
 from omegaconf.listconfig import ListConfig
 from omegaconf import DictConfig
 
-from super_gradients.common.object_names import DetectionModules
 from super_gradients.common.registry.registry import register_detection_module
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models import MobileNet, MobileNetV2, InvertedResidual
@@ -201,7 +200,7 @@ class MultiOutputBackbone(BaseDetectionModule):
         return self.multi_output_backbone(x)
 
 
-@register_detection_module(DetectionModules.MOBILENET_V1_BACKBONE)
+@register_detection_module()
 class MobileNetV1Backbone(MultiOutputBackbone):
     """MobileNetV1 backbone with an option to return output of any layer"""
 
