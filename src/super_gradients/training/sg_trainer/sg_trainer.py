@@ -194,6 +194,8 @@ class Trainer:
         self.max_train_batches = None
         self.max_valid_batches = None
 
+        self._epoch_start_logging_values = {}
+
     @property
     def device(self) -> str:
         return device_config.device
@@ -443,7 +445,7 @@ class Trainer:
             self.phase_callback_handler.on_train_batch_loss_end(context)
 
             if not self.ddp_silent_mode and batch_idx == 0:
-                self.epoch_start_logging_values = self._get_epoch_start_logging_values()
+                self._epoch_start_logging_values = self._get_epoch_start_logging_values()
 
             self._backward_step(loss, epoch, batch_idx, context)
 
@@ -1283,7 +1285,7 @@ class Trainer:
                     self._write_to_disk_operations(
                         train_metrics=train_metrics_tuple,
                         validation_results=validation_results_tuple,
-                        lr_dict=self.epoch_start_logging_values,
+                        lr_dict=self._epoch_start_logging_values,
                         inf_time=inf_time,
                         epoch=epoch,
                         context=context,
