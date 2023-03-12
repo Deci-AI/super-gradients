@@ -11,6 +11,7 @@ from super_gradients.training.losses.dice_ce_edge_loss import DiceCEEdgeLoss
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import LOSSES
 from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
+from super_gradients.training.losses.dekr_loss import DEKRLoss
 
 __all__ = [
     "LOSSES",
@@ -27,4 +28,5 @@ __all__ = [
     "KDLogitsLoss",
     "DiceCEEdgeLoss",
     "PPYoloELoss",
+    "DEKRLoss",
 ]

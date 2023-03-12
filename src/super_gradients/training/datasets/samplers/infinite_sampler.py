@@ -7,6 +7,7 @@ from typing import Optional
 import torch
 import torch.distributed as dist
 from torch.utils.data.sampler import Sampler
+from deprecate import deprecated
 
 from super_gradients.common.object_names import Samplers
 from super_gradients.common.registry.registry import register_sampler
@@ -24,6 +25,7 @@ class InfiniteSampler(Sampler):
     or `range(size) + range(size) + ...` (if shuffle is False)
     """
 
+    @deprecated(target=None, deprecated_in="3.0.8", remove_in="3.1.0")
     def __init__(
         self,
         dataset,

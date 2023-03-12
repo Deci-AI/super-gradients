@@ -13,7 +13,7 @@ import torch
 import torchvision
 from omegaconf import ListConfig
 from torch import nn
-from torch.utils.data._utils.collate import default_collate
+from torch.utils.data.dataloader import default_collate
 
 from super_gradients.common.registry.registry import register_collate_function
 

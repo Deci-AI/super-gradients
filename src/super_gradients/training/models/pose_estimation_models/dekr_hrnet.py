@@ -10,6 +10,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import copy
 from typing import Mapping, Any, Tuple
 
 import torch
@@ -20,9 +21,12 @@ from torch import nn
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.models import SgModule
+from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models.arch_params_factory import get_arch_params
 
-__all__ = ["DEKRPoseEstimationModel"]
+__all__ = ["DEKRPoseEstimationModel", "DEKRW32"]
+
+from super_gradients.training.utils import HpmStruct
 
 logger = get_logger(__name__)
 
@@ -515,3 +519,17 @@ class DEKRPoseEstimationModel(SgModule):
                 nn.init.constant_(m.translation_conv.weight, 0)
                 if hasattr(m, "bias"):
                     nn.init.constant_(m.translation_conv.bias, 0)
+
+
+POSE_DEKR_W32_NO_DC_ARCH_PARAMS = get_arch_params("pose_dekr_w32_no_dc_arch_params")
+
+
+class DEKRW32(DEKRPoseEstimationModel):
+    """
+    DEKR-W32 model for pose estimation without deformable convolutions.
+    """
+
+    def __init__(self, arch_params):
+        merged_arch_params = HpmStruct(**copy.deepcopy(POSE_DEKR_W32_NO_DC_ARCH_PARAMS))
+        merged_arch_params.override(**arch_params.to_dict())
+        super().__init__(merged_arch_params)
