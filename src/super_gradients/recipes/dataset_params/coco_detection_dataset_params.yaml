@@ -46,11 +46,7 @@ train_dataloader_params:
   shuffle: True
   batch_size: 16
   num_workers: 8
-  batch_sampler: True
-  sampler:
-    InfiniteSampler:
-      seed: 0
-  drop_last: False
+  drop_last: True
   pin_memory: True
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
@@ -75,15 +71,15 @@ val_dataset_params:
   tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:
-  with_crowd: False
+  with_crowd: True
 
 val_dataloader_params:
   batch_size: 64
   num_workers: 8
   drop_last: False
   pin_memory: True
-  collate_fn: # collate function for trainset
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  collate_fn: # collate function for valset
+    _target_: super_gradients.training.utils.detection_utils.CrowdDetectionCollateFN
 
 
 _convert_: all

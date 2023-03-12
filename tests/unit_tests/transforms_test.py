@@ -19,7 +19,7 @@ class TestTransforms(unittest.TestCase):
         joints[..., 2] = 2  # all visible
 
         aug = KeypointsRandomAffineTransform(min_scale=0.8, max_scale=1.2, max_rotation=30, max_translate=0.5, prob=1, image_pad_value=0, mask_pad_value=0)
-        aug_image, aug_mask, aug_joints = aug(image, mask, joints)
+        aug_image, aug_mask, aug_joints, _, _ = aug(image, mask, joints, None, None)
 
         joints_outside_image = (
             (aug_joints[:, :, 0] < 0) | (aug_joints[:, :, 1] < 0) | (aug_joints[:, :, 0] >= aug_image.shape[1]) | (aug_joints[:, :, 1] >= aug_image.shape[0])
@@ -34,7 +34,7 @@ class TestTransforms(unittest.TestCase):
         joints = np.random.randint(0, 100, size=(1, 17, 3))
 
         aug = KeypointsRandomHorizontalFlip(flip_index=[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0], prob=1)
-        aug_image, aug_mask, aug_joints = aug(image, mask, joints)
+        aug_image, aug_mask, aug_joints, _, _ = aug(image, mask, joints, None, None)
 
         np.testing.assert_array_equal(aug_image, image[:, ::-1, :])
         np.testing.assert_array_equal(aug_mask, mask[:, ::-1])
@@ -48,7 +48,7 @@ class TestTransforms(unittest.TestCase):
         joints = np.random.randint(0, 100, size=(1, 17, 3))
 
         aug = KeypointsRandomVerticalFlip(prob=1)
-        aug_image, aug_mask, aug_joints = aug(image, mask, joints)
+        aug_image, aug_mask, aug_joints, _, _ = aug(image, mask, joints, None, None)
 
         np.testing.assert_array_equal(aug_image, image[::-1, :, :])
         np.testing.assert_array_equal(aug_mask, mask[::-1, :])
@@ -62,7 +62,7 @@ class TestTransforms(unittest.TestCase):
         joints = np.random.randint(0, 100, size=(1, 17, 3))
 
         aug = KeypointsPadIfNeeded(min_width=768, min_height=768, image_pad_value=0, mask_pad_value=0)
-        aug_image, aug_mask, aug_joints = aug(image, mask, joints)
+        aug_image, aug_mask, aug_joints, _, _ = aug(image, mask, joints, None, None)
 
         self.assertEqual(aug_image.shape, (768, 768, 3))
         self.assertEqual(aug_mask.shape, (768, 768))
@@ -74,7 +74,7 @@ class TestTransforms(unittest.TestCase):
         joints = np.random.randint(0, 480, size=(1, 17, 3))
 
         aug = KeypointsLongestMaxSize(max_height=512, max_width=512)
-        aug_image, aug_mask, aug_joints = aug(image, mask, joints)
+        aug_image, aug_mask, aug_joints, _, _ = aug(image, mask, joints, None, None)
 
         self.assertEqual(aug_image.shape[:2], aug_mask.shape[:2])
         self.assertLessEqual(aug_image.shape[0], 512)

@@ -32,7 +32,7 @@ def main(architecture_name: str):
         ckpt_root_dir=checkpoint_dir,
     )
 
-    model = models.get(architecture=architecture_name, arch_params={"use_aux_heads": True, "aux_head": True})
+    model = models.get(architecture=architecture_name, arch_params={"use_aux_heads": True})
 
     # CREATE META-DATA, AND OPTIMIZATION REQUEST FORM FOR DECI PLATFORM POST TRAINING CALLBACK
     model_name = f"{architecture_name}_for_deci_lab_export_example"

@@ -1,6 +1,6 @@
 import random
 from abc import abstractmethod
-from typing import Tuple, List, Iterable, Union
+from typing import Tuple, List, Iterable, Union, Optional
 
 import cv2
 import numpy as np
@@ -19,6 +19,8 @@ __all__ = [
     "KeypointsRandomVerticalFlip",
 ]
 
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
+
 
 class KeypointTransform(object):
     """
@@ -28,13 +30,17 @@ class KeypointTransform(object):
     """
 
     @abstractmethod
-    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def __call__(
+        self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
         """
         Apply transformation to image, mask and keypoints.
 
         :param image: Input image of [H,W,3] shape
         :param mask: Numpy array of [H,W] shape, where zero values are considered as ignored mask (not contributing to the loss)
         :param joints: Numpy array of [NumInstances, NumJoints, 3] shape. Last dimension contains (x,y,visibility) for each joint.
+        :param areas: (Optional) Numpy array of [N] shape with area of each instance
+        :param bboxes: (Optional) Numpy array of [N,4] shape with bounding box of each instance (XYWH)
         :return: (image, mask, joints)
         """
         raise NotImplementedError
@@ -44,10 +50,12 @@ class KeypointsCompose(KeypointTransform):
     def __init__(self, transforms: List[KeypointTransform]):
         self.transforms = transforms
 
-    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray) -> Tuple[Union[np.ndarray, Tensor], np.ndarray, np.ndarray]:
+    def __call__(
+        self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]
+    ) -> Tuple[Union[np.ndarray, Tensor], np.ndarray, np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
         for t in self.transforms:
-            image, mask, joints = t(image, mask, joints)
-        return image, mask, joints
+            image, mask, joints, areas, bboxes = t(image, mask, joints, areas, bboxes)
+        return image, mask, joints, areas, bboxes
 
 
 class KeypointsImageToTensor(KeypointTransform):
@@ -56,8 +64,8 @@ class KeypointsImageToTensor(KeypointTransform):
     This function also divides image by 255.0 to convert it to [0,1] range.
     """
 
-    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray):
-        return F.to_tensor(image), mask, joints
+    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
+        return F.to_tensor(image), mask, joints, areas, bboxes
 
 
 class KeypointsImageNormalize(KeypointTransform):
@@ -70,9 +78,9 @@ class KeypointsImageNormalize(KeypointTransform):
         self.mean = mean
         self.std = std
 
-    def __call__(self, image: Tensor, mask: np.ndarray, joints: np.ndarray):
+    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         image = F.normalize(image, mean=self.mean, std=self.std)
-        return image, mask, joints
+        return image, mask, joints, areas, bboxes
 
 
 class KeypointsRandomHorizontalFlip(KeypointTransform):
@@ -91,20 +99,35 @@ class KeypointsRandomHorizontalFlip(KeypointTransform):
         self.flip_index = flip_index
         self.prob = prob
 
-    def __call__(self, image, mask, joints):
+    def __call__(self, image, mask, joints, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         if image.shape[:2] != mask.shape[:2]:
             raise RuntimeError(f"Image shape ({image.shape[:2]}) does not match mask shape ({mask.shape[:2]}).")
 
         if random.random() < self.prob:
-            image = np.ascontiguousarray(np.fliplr(image))
-            mask = np.ascontiguousarray(np.fliplr(mask))
+            image = self.apply_to_image(image)
+            mask = self.apply_to_image(mask)
             rows, cols = image.shape[:2]
 
-            joints = joints.copy()
-            joints = joints[:, self.flip_index]
-            joints[:, :, 0] = cols - joints[:, :, 0] - 1
+            joints = self.apply_to_keypoints(joints, cols)
 
-        return image, mask, joints
+            if bboxes is not None:
+                bboxes = self.apply_to_bboxes(bboxes, cols)
+
+        return image, mask, joints, areas, bboxes
+
+    def apply_to_image(self, image):
+        return np.ascontiguousarray(np.fliplr(image))
+
+    def apply_to_keypoints(self, keypoints, cols):
+        keypoints = keypoints.copy()
+        keypoints = keypoints[:, self.flip_index]
+        keypoints[:, :, 0] = cols - keypoints[:, :, 0] - 1
+        return keypoints
+
+    def apply_to_bboxes(self, bboxes, cols):
+        bboxes = bboxes.copy()
+        bboxes[:, 0] = cols - (bboxes[:, 0] + bboxes[:, 2])
+        return bboxes
 
 
 class KeypointsRandomVerticalFlip(KeypointTransform):
@@ -115,19 +138,34 @@ class KeypointsRandomVerticalFlip(KeypointTransform):
     def __init__(self, prob: float = 0.5):
         self.prob = prob
 
-    def __call__(self, image, mask, joints):
+    def __call__(self, image, mask, joints, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         if image.shape[:2] != mask.shape[:2]:
             raise RuntimeError(f"Image shape ({image.shape[:2]}) does not match mask shape ({mask.shape[:2]}).")
 
         if random.random() < self.prob:
-            image = np.ascontiguousarray(np.flipud(image))
-            mask = np.ascontiguousarray(np.flipud(mask))
+            image = self.apply_to_image(image)
+            mask = self.apply_to_image(mask)
 
             rows, cols = image.shape[:2]
-            joints = joints.copy()
-            joints[:, :, 1] = rows - joints[:, :, 1] - 1
+            joints = self.apply_to_keypoints(joints, rows)
 
-        return image, mask, joints
+            if bboxes is not None:
+                bboxes = self.apply_to_bboxes(bboxes, rows)
+
+        return image, mask, joints, areas, bboxes
+
+    def apply_to_image(self, image):
+        return np.ascontiguousarray(np.flipud(image))
+
+    def apply_to_keypoints(self, keypoints, rows):
+        keypoints = keypoints.copy()
+        keypoints[:, :, 1] = rows - keypoints[:, :, 1] - 1
+        return keypoints
+
+    def apply_to_bboxes(self, bboxes, rows):
+        bboxes = bboxes.copy()
+        bboxes[:, 1] = rows - (bboxes[:, 1] + bboxes[:, 3]) - 1
+        return bboxes
 
 
 class KeypointsLongestMaxSize(KeypointTransform):
@@ -147,11 +185,12 @@ class KeypointsLongestMaxSize(KeypointTransform):
         self.interpolation = interpolation
         self.prob = prob
 
-    def __call__(self, image, mask, joints: float):
+    def __call__(self, image, mask, joints, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         if random.random() < self.prob:
             height, width = image.shape[:2]
             scale = min(self.max_height / height, self.max_width / width)
-            image = self.rescale_image(image, scale, cv2.INTER_LINEAR)
+            image = self.apply_to_image(image, scale, cv2.INTER_LINEAR)
+            mask = self.apply_to_image(mask, scale, cv2.INTER_LINEAR)
 
             if image.shape[0] != self.max_height and image.shape[1] != self.max_width:
                 raise RuntimeError(f"Image shape is not as expected (scale={scale}, input_shape={height, width}, resized_shape={image.shape[:2]})")
@@ -159,21 +198,33 @@ class KeypointsLongestMaxSize(KeypointTransform):
             if image.shape[0] > self.max_height or image.shape[1] > self.max_width:
                 raise RuntimeError(f"Image shape is not as expected (scale={scale}, input_shape={height, width}, resized_shape={image.shape[:2]}")
 
-            mask = self.rescale_image(mask, scale, cv2.INTER_LINEAR)
+            joints = self.apply_to_keypoints(joints, scale)
+            if bboxes is not None:
+                bboxes = self.apply_to_bboxes(bboxes, scale)
 
-            joints = joints.copy()
-            joints[:, :, 0:2] = joints[:, :, 0:2] * scale
+            if areas is not None:
+                areas = areas * scale
 
-        return image, mask, joints
+        return image, mask, joints, areas, bboxes
 
     @classmethod
-    def rescale_image(cls, img, scale, interpolation):
+    def apply_to_image(cls, img, scale, interpolation):
         height, width = img.shape[:2]
 
         if scale != 1.0:
             new_height, new_width = tuple(int(dim * scale + 0.5) for dim in (height, width))
             img = cv2.resize(img, dsize=(new_width, new_height), interpolation=interpolation)
         return img
+
+    @classmethod
+    def apply_to_keypoints(cls, keypoints, scale):
+        keypoints = keypoints.astype(np.float32, copy=True)
+        keypoints[:, :, 0:2] *= scale
+        return keypoints
+
+    @classmethod
+    def apply_to_bboxes(cls, bboxes, scale):
+        return bboxes * scale
 
 
 class KeypointsPadIfNeeded(KeypointTransform):
@@ -194,7 +245,7 @@ class KeypointsPadIfNeeded(KeypointTransform):
         self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
         self.mask_pad_value = mask_pad_value
 
-    def __call__(self, image, mask, joints):
+    def __call__(self, image, mask, joints, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         height, width = image.shape[:2]
 
         pad_bottom = max(0, self.min_height - height)
@@ -208,7 +259,7 @@ class KeypointsPadIfNeeded(KeypointTransform):
         )
         mask = mask.astype(original_dtype)
 
-        return image, mask, joints
+        return image, mask, joints, areas, bboxes
 
 
 class KeypointsRandomAffineTransform(KeypointTransform):
@@ -256,22 +307,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
 
         return matrix
 
-    def apply_to_keypoints(self, joints: np.ndarray, mat: np.ndarray):
-        shape = joints.shape
-        joints = joints.reshape(-1, 2)
-        return np.dot(np.concatenate((joints, joints[:, 0:1] * 0 + 1), axis=1), mat.T).reshape(shape)
-
-    def apply_to_image(self, image, mat, interpolation, padding_value, padding_mode=cv2.BORDER_CONSTANT):
-        return cv2.warpAffine(
-            image,
-            mat,
-            dsize=(image.shape[1], image.shape[0]),
-            flags=interpolation,
-            borderValue=padding_value,
-            borderMode=padding_mode,
-        )
-
-    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray):
+    def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         """
 
         :param image: (np.ndarray) Image of shape [H,W,3]
@@ -293,10 +329,66 @@ class KeypointsRandomAffineTransform(KeypointTransform):
             mask = self.apply_to_image(mask, mat_output, cv2.INTER_NEAREST, self.mask_pad_value, cv2.BORDER_CONSTANT)
             image = self.apply_to_image(image, mat_output, cv2.INTER_LINEAR, self.image_pad_value, cv2.BORDER_CONSTANT)
 
-            joints = joints.copy()
-            joints[:, :, 0:2] = self.apply_to_keypoints(joints[:, :, 0:2], mat_output)
-            # Update visibility status of joints that were moved outside visible area
-            joints_outside_image = (joints[:, :, 0] < 0) | (joints[:, :, 0] >= image.shape[1]) | (joints[:, :, 1] < 0) | (joints[:, :, 1] >= image.shape[0])
-            joints[joints_outside_image, 2] = 0
+            joints = self.apply_to_keypoints(joints, mat_output, image.shape)
 
-        return image, mask, joints
+            if bboxes is not None:
+                bboxes = self.apply_to_bboxes(bboxes, mat_output)
+
+            if areas is not None:
+                areas = self.apply_to_areas(areas, mat_output)
+
+        return image, mask, joints, areas, bboxes
+
+    @classmethod
+    def apply_to_areas(cls, areas, mat):
+        det = np.linalg.det(mat[:2, :2])
+        return areas * abs(det)
+
+    @classmethod
+    def apply_to_bboxes(cls, bboxes, mat: np.ndarray):
+        def bbox_shift_scale_rotate(bbox, m):
+            x_min, y_min, x_max, y_max = bbox[:4]
+
+            x = np.array([x_min, x_max, x_max, x_min])
+            y = np.array([y_min, y_min, y_max, y_max])
+            ones = np.ones(shape=(len(x)))
+            points_ones = np.vstack([x, y, ones]).transpose()
+
+            tr_points = m.dot(points_ones.T).T
+
+            x_min, x_max = min(tr_points[:, 0]), max(tr_points[:, 0])
+            y_min, y_max = min(tr_points[:, 1]), max(tr_points[:, 1])
+
+            return np.array([x_min, y_min, x_max, y_max])
+
+        bboxes_xyxy = xywh_to_xyxy(bboxes, image_shape=None)
+        bboxes_xyxy = np.array([bbox_shift_scale_rotate(box, mat) for box in bboxes_xyxy])
+        return xyxy_to_xywh(bboxes_xyxy, image_shape=None)
+
+    @classmethod
+    def apply_to_keypoints(cls, keypoints: np.ndarray, mat: np.ndarray, image_shape):
+        keypoints_with_visibility = keypoints.copy()
+        keypoints = keypoints_with_visibility[:, :, 0:2]
+
+        shape = keypoints.shape
+        keypoints = keypoints.reshape(-1, 2)
+        keypoints = np.dot(np.concatenate((keypoints, keypoints[:, 0:1] * 0 + 1), axis=1), mat.T).reshape(shape)
+
+        # Update visibility status of joints that were moved outside visible area
+        keypoints_with_visibility[:, :, 0:2] = keypoints
+        joints_outside_image = (
+            (keypoints[:, :, 0] < 0) | (keypoints[:, :, 0] >= image_shape[1]) | (keypoints[:, :, 1] < 0) | (keypoints[:, :, 1] >= image_shape[0])
+        )
+        keypoints_with_visibility[joints_outside_image, 2] = 0
+        return keypoints_with_visibility
+
+    @classmethod
+    def apply_to_image(cls, image, mat, interpolation, padding_value, padding_mode=cv2.BORDER_CONSTANT):
+        return cv2.warpAffine(
+            image,
+            mat,
+            dsize=(image.shape[1], image.shape[0]),
+            flags=interpolation,
+            borderValue=padding_value,
+            borderMode=padding_mode,
+        )

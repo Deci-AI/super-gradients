@@ -56,11 +56,12 @@ class DeciPlatformSGLogger(BaseSGLogger):
             logger.warning(
                 "'model_name' parameter not passed. "
                 "The experiment won't be connected to an architecture in the Deci platform. "
-                "To pass a model_name, please use the 'sg_logger_params.model_name' field in the training recipe."
+                "To pass a model_name, please use the 'sg_logger_params.model_name' field in the training recipe.\n"
+                "Please also make sure that 'model_name' corresponds to the name of your model in the training platform."
             )
 
         self.platform_client = DeciClient()
-        self.platform_client.register_experiment(name=experiment_name, model_name=model_name if model_name else None)
+        self.platform_client.register_experiment(name=experiment_name, model_name=model_name if model_name else None, resume=resumed)
         self.checkpoints_dir_path = checkpoints_dir_path
 
     @multi_process_safe
