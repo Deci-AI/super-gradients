@@ -1638,7 +1638,7 @@ class Trainer:
         lrs = [self.optimizer.param_groups[i]["lr"] for i in range(len(self.optimizer.param_groups))]
         lr_titles = ["LR/Param_group_" + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ["LR"]
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
-        return deepcopy(lr_dict)
+        return lr_dict
 
     def test(
         self,
