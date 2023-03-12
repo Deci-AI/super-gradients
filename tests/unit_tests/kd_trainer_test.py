@@ -13,7 +13,7 @@ from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models.classification_models.resnet import ResNet50, ResNet18
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.utils.callbacks import PhaseCallback, PhaseContext, Phase
-from super_gradients.training.utils.module_utils import NormalizationAdapter
+from super_gradients.modules.multi_output_modules import NormalizationAdapter
 from super_gradients.training.utils.utils import check_models_have_same_weights
 
 
