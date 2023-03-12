@@ -32,7 +32,6 @@ experiment_name: resnet18_cifar
 
 multi_gpu: Off
 num_gpus: 1
-
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
   run:
