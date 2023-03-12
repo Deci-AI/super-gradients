@@ -119,6 +119,7 @@ class RoboflowDetectionDataset(COCOLikeDetectionDataset):
     To use this Dataset you need to:
 
         - Follow the official instructions to download Roboflow100: https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog
+            //!\\ To use this dataset, you have to download the "coco" format, NOT the yolov5.
 
         - Your dataset should loook like this:
             rf100
@@ -167,6 +168,7 @@ class Roboflow100DetectionDataset(ConcatDataset):
     To use this Dataset you need to:
 
         - Follow the official instructions to download Roboflow100: https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog
+            //!\\ To use this dataset, you have to download the "coco" format, NOT the yolov5.
 
         - Your dataset should loook like this:
             rf100
