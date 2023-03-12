@@ -206,7 +206,7 @@ class Roboflow100DetectionDataset(ConcatDataset):
         self.classes = []
         roboflow_datasets = []
 
-        for dataset_name in tqdm(RoboflowDetectionDataset.list_roboflow_datasets()[:5], disable=not verbose):
+        for dataset_name in tqdm(RoboflowDetectionDataset.list_roboflow_datasets(), disable=not verbose):
             dataset = RoboflowDetectionDataset(
                 data_dir=data_dir,
                 dataset_name=dataset_name,
