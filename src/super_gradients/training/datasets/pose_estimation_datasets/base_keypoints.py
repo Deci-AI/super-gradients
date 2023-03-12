@@ -3,13 +3,21 @@ from typing import Tuple, List, Mapping, Any, Dict
 
 import numpy as np
 import torch
-from torch.utils.data import default_collate, Dataset
+from torch.utils.data import Dataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.pose_estimation_datasets.target_generators import KeypointsTargetsGenerator
 from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointTransform
 
 logger = get_logger(__name__)
+
+try:
+    from torch.utils.data import default_collate
+except ImportError:
+    # loading default_collate from torch version lower than 1.11
+    from torch.utils.data.dataloader import default_collate
+
+    logger.debug(f"detected torch version {torch.__version__}. loading default_collate from torch.utils.data.dataloader.")
 
 
 class BaseKeypointsDataset(Dataset):
