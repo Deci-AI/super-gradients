@@ -26,9 +26,16 @@ Why do all the grind work, if we already did it for you? leverage tested and pro
 ### Production Readiness and Ease of Integration
     
 All SuperGradients models’ are production ready in the sense that they are compatible with deployment tools such as TensorRT (Nvidia) and OpenVINO (Intel) and can be easily taken into production. With a few lines of code you can easily integrate the models into your codebase.
-    
+   
+## Getting Started
+Check out our [Quickstart tutorial](QuickstartBasicToolkit.md) to get learn the basic of SuperGradients.
+
+You can also start from our tutorial on [Detection](.), [Segmentation](Segmentation.md) or [Pose Estimation](PoseEstimation.md).
+ 
 ## What's New
 __________________________________________________________________________________________________________
+* 【1/3/2023】 Lion optimizer was added  
+* 【27/2/2023】 Pose Estimation models and utilities were added to SuperGradients! 
 * 【20/2/2023】 PP-Yolo-E implementation 
 * 【17/1/2023】 Quantization Aware Training (QAT) and Post Training Quantization (PTQ) - including selective quantization 
 * 【17/11/2022】 Integration with ClearML
@@ -49,7 +56,37 @@ ________________________________________________________________________________
 
 ## Citation
 
-If you are using SuperGradients library or benchmarks in your research, please cite SuperGradients deep learning training library.
+If you are using SuperGradients library in your research, please cite SuperGradients deep learning training library.
+
+
+[//]: # (### BibTeX)
+
+[//]: # ()
+[//]: # (```bibtex)
+
+[//]: # (@misc{rw2019timm,)
+
+[//]: # (  title = {SuperGradients},)
+
+[//]: # (  year = {2021},)
+
+[//]: # (  publisher = {GitHub},)
+
+[//]: # (  journal = {GitHub repository},)
+
+[//]: # (  doi = {},)
+
+[//]: # (  howpublished = {\url{https://github.com/Deci-AI/super-gradients}})
+
+[//]: # (})
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (### Latest DOI)
+
+[//]: # ()
+[//]: # ([![DOI]&#40;https://zenodo.org/badge/.svg&#41;]&#40;https://zenodo.org/badge/latestdoi/&#41;)
 
 ## Community
 
@@ -72,21 +109,3 @@ This project is released under the [Apache 2.0 license](LICENSE).
     
 
     
-__________________________________________________________________________________________________________
-
-
-## Deci Platform
-
-Deci Platform is our end to end platform for building, optimizing and deploying deep learning models to production.
-
-[Request free trial](https://bit.ly/3qO3icq) to enjoy immediate improvement in throughput, latency, memory footprint and model size.
-
-Features:
-- Automatically compile and quantize your models with just a few clicks (TensorRT, OpenVINO).
-- Gain up to 10X improvement in throughput, latency, memory and model size. 
-- Easily benchmark your models’ performance on different hardware and batch sizes.
-- Invite co-workers to collaborate on models and communicate your progress.
-- Deci supports all common frameworks and Hardware, from Intel CPUs to Nvidia's GPUs and Jetsons.
-ֿ
-
-Request free trial [here](https://bit.ly/3qO3icq) 
