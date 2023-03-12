@@ -194,8 +194,6 @@ class Trainer:
         self.max_train_batches = None
         self.max_valid_batches = None
 
-        self.epoch_start_lr_dict = {}
-
     @property
     def device(self) -> str:
         return device_config.device
@@ -444,9 +442,8 @@ class Trainer:
             context.update_context(preds=outputs, loss_log_items=loss_log_items)
             self.phase_callback_handler.on_train_batch_loss_end(context)
 
-            # LOG LR THAT WILL BE USED IN CURRENT EPOCH AND AFTER FIRST WARMUP/LR_SCHEDULER UPDATE BEFORE WEIGHT UPDATE
             if not self.ddp_silent_mode and batch_idx == 0:
-                self.epoch_start_lr_dict = self._get_lr_dict()
+                self.epoch_start_logging_values = self._get_epoch_start_logging_values()
 
             self._backward_step(loss, epoch, batch_idx, context)
 
@@ -1286,7 +1283,7 @@ class Trainer:
                     self._write_to_disk_operations(
                         train_metrics=train_metrics_tuple,
                         validation_results=validation_results_tuple,
-                        lr_dict=self.epoch_start_lr_dict,
+                        lr_dict=self.epoch_start_logging_values,
                         inf_time=inf_time,
                         epoch=epoch,
                         context=context,
@@ -1633,7 +1630,9 @@ class Trainer:
         if self.training_params.save_model:
             self._save_checkpoint(self.optimizer, epoch + 1, validation_results, context)
 
-    def _get_lr_dict(self) -> dict:
+    def _get_epoch_start_logging_values(self) -> dict:
+        """Get all the values that should be logged at the start of each epoch.
+        This is useful for values like Learning Rate that can change over an epoch."""
         lrs = [self.optimizer.param_groups[i]["lr"] for i in range(len(self.optimizer.param_groups))]
         lr_titles = ["LR/Param_group_" + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ["LR"]
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
