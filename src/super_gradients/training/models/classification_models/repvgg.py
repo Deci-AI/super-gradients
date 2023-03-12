@@ -16,7 +16,7 @@ from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.modules import RepVGGBlock, SEBlock
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.modules.multi_output_modules import fuse_repvgg_blocks_residual_branches
+from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.utils.utils import get_param
 
 

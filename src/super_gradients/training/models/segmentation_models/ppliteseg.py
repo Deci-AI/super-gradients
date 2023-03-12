@@ -5,7 +5,7 @@ from super_gradients.modules import ConvBNReLU
 
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.modules.multi_output_modules import make_upsample_module
+from super_gradients.modules.sampling import make_upsample_module
 from super_gradients.common.data_types.enum.upsample_mode import UpsampleMode
 from super_gradients.training.models.segmentation_models.stdc import AbstractSTDCBackbone, STDC1Backbone, STDC2Backbone
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
