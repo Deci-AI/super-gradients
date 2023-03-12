@@ -86,6 +86,15 @@ All the available models are listed in the column `Model name`.
  
 > **NOTE:** DDRNet23 and DDRNet23_Slim results were achieved with channel wise knowledge distillation training recipe.
 
+### Pretrained Pose Estimation PyTorch Checkpoints
+
+| Model           | Model Name      | Dataset     | Resolution | AP  | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO | Latency (Production)**<sub>Jetson Xavier NX</sub> | 
+|-----------------|-----------------|-------------|------------|-----|-------------------------|--------------------------------------|:-------------------------------------------------:|
+| DEKR_W32_NO_DC  | dekr_w32_no_dc  | COCO2017 PE | 640x640    |     |                         |                                      |                                                   |
+| POSE_PP_YOLO_L  | pose_ppyolo_l   | COCO2017 PE | 640x640    |     |                         |                                      |                                                   |
+| POSE_DDRNET_39  | pose_ddrnet39   | COCO2017 PE | 640x640    |     |                         |                                      |                                                   |
+
+
 ## Implemented Model Architectures 
   
 ### Image Classification
@@ -120,11 +129,15 @@ Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
   
   
 ### Semantic Segmentation 
-  
+
+- [PP-LiteSeg](https://bit.ly/3RrtMMO) - [https://arxiv.org/pdf/2204.02681v1.pdf](https://arxiv.org/pdf/2204.02681v1.pdf) 
 - [DDRNet (Deep Dual-resolution Networks)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/ddrnet.py) - [https://arxiv.org/pdf/2101.06085.pdf](https://arxiv.org/pdf/2101.06085.pdf)
 - [LadderNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/laddernet.py) - Multi-path networks based on U-Net for medical image segmentation [https://arxiv.org/pdf/1810.07810](https://arxiv.org/pdf/1810.07810)
 - [RegSeg](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/regseg.py) - Rethink Dilated Convolution for Real-time Semantic Segmentation [https://arxiv.org/pdf/2111.09957](https://arxiv.org/pdf/2111.09957)
 - [ShelfNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/shelfnet.py) - [https://arxiv.org/pdf/1811.11254](https://arxiv.org/pdf/1811.11254)
 - [STDC](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/stdc.py) - Rethinking BiSeNet For Real-time Semantic Segmentation [https://arxiv.org/pdf/2104.13188](https://arxiv.org/pdf/2104.13188)
   
+
+### Pose Estimation
+- [HRNet DEKR](https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation) - Bottom-Up Human Pose Estimation Via Disentangled Keypoint Regression [https://arxiv.org/pdf/2104.02300.pdf](https://arxiv.org/pdf/2104.02300.pdf)
 </details>
