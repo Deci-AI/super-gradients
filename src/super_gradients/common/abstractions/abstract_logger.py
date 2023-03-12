@@ -1,10 +1,12 @@
-import os
 import logging
 import logging.config
 from typing import Union
 
-from super_gradients.common.environment.env_variables import env_variables
+from super_gradients.common.abstractions.mute_processes import mute_subprocesses
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
+
+# Mute on import to avoid the import prints/logs on sub processes
+mute_subprocesses()
 
 
 def get_logger(logger_name: str, log_level: Union[str, None] = None) -> logging.Logger:
@@ -13,8 +15,7 @@ def get_logger(logger_name: str, log_level: Union[str, None] = None) -> logging.
     if log_level is not None:
         logger.setLevel(log_level)
 
-    if int(env_variables.LOCAL_RANK) > 0:
-        mute_current_process()
+    mute_subprocesses()
     return logger
 
 
@@ -26,21 +27,3 @@ class ILogger:
     def __init__(self, logger_name: str = None):
         logger_name = logger_name if logger_name else str(self.__module__)
         self._logger: logging.Logger = get_logger(logger_name)
-
-
-def mute_current_process():
-    """Mute prints, warnings and all logs except ERRORS. This is meant when running multiple processes."""
-    # Ignore warnings
-    import warnings
-
-    warnings.filterwarnings("ignore")
-
-    # Ignore prints
-    import sys
-
-    sys.stdout = open(os.devnull, "w")
-
-    # Only show ERRORS
-    process_loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
-    for logger in process_loggers:
-        logger.setLevel(logging.ERROR)

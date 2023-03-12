@@ -5,8 +5,11 @@ from .qarepvgg_block import QARepVGGBlock
 from .se_blocks import SEBlock, EffectiveSEBlock
 from .skip_connections import Residual, SkipConnection, CrossModelSkipConnection, BackboneInternalSkipConnection, HeadInternalSkipConnection
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.modules.pose_estimation_modules import LightweightDEKRHead
+from .all_detection_modules import ALL_DETECTION_MODULES
 
 __all__ = [
+    "ALL_DETECTION_MODULES",
     "ConvBNAct",
     "ConvBNReLU",
     "RepVGGBlock",
@@ -18,17 +21,24 @@ __all__ = [
     "CrossModelSkipConnection",
     "BackboneInternalSkipConnection",
     "HeadInternalSkipConnection",
+    "LightweightDEKRHead",
 ]
 
 logger = get_logger(__name__)
 try:
     # flake8 respects only the first occurence of __all__ defined in the module's root
     from .quantization import QuantBottleneck  # noqa: F401
+
     from .quantization import QuantResidual  # noqa: F401
     from .quantization import QuantSkipConnection  # noqa: F401
     from .quantization import QuantCrossModelSkipConnection  # noqa: F401
     from .quantization import QuantBackboneInternalSkipConnection  # noqa: F401
     from .quantization import QuantHeadInternalSkipConnection  # noqa: F401
+
+    from .quantization import QuantSTDCBlock  # noqa: F401
+    from .quantization import QuantAttentionRefinementModule  # noqa: F401
+    from .quantization import QuantFeatureFusionModule  # noqa: F401
+    from .quantization import QuantContextPath  # noqa: F401
 
     quant_extensions = [
         "QuantBottleneck",
@@ -37,6 +47,10 @@ try:
         "QuantCrossModelSkipConnection",
         "QuantBackboneInternalSkipConnection",
         "QuantHeadInternalSkipConnection",
+        "QuantSTDCBlock",
+        "QuantAttentionRefinementModule",
+        "QuantFeatureFusionModule",
+        "QuantContextPath",
     ]
 
 except (ImportError, NameError, ModuleNotFoundError) as import_err:

@@ -16,6 +16,9 @@ from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_e import PPYoloE_M, PPYoloE_L, PPYoloE_X, PPYoloE_S
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
+from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRPoseEstimationModel, DEKRW32
+from super_gradients.training.models.pose_estimation_models.pose_ddrnet39 import PoseDDRNet39
+from super_gradients.training.models.pose_estimation_models.pose_ppyolo import PosePPYoloL
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23, DDRNet39
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, ShelfNet503343, ShelfNet101
@@ -31,7 +34,7 @@ from super_gradients.training.models.segmentation_models.stdc import (
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
 from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
-from super_gradients.training.models.segmentation_models.unet import UNetCustom, UnetClassification
+from super_gradients.training.models.segmentation_models.unet import UNetCustom, UnetClassificationCustom, UNet
 
 ARCHITECTURES = {
     Models.RESNET18: resnet.ResNet18,
@@ -135,11 +138,17 @@ ARCHITECTURES = {
     Models.PP_LITE_B_SEG75: PPLiteSegB,
     Models.CUSTOM_ANYNET: regnet.CustomAnyNet,
     Models.UNET_CUSTOM: UNetCustom,
-    Models.UNET_CUSTOM_CLS: UnetClassification,
+    Models.UNET_CUSTOM_CLS: UnetClassificationCustom,
+    Models.UNET: UNet,
     Models.PP_YOLOE_S: PPYoloE_S,
     Models.PP_YOLOE_M: PPYoloE_M,
     Models.PP_YOLOE_L: PPYoloE_L,
     Models.PP_YOLOE_X: PPYoloE_X,
+    #
+    Models.DEKR_CUSTOM: DEKRPoseEstimationModel,
+    Models.DEKR_W32_NO_DC: DEKRW32,
+    Models.POSE_PP_YOLO_L: PosePPYoloL,
+    Models.POSE_DDRNET_39: PoseDDRNet39,
 }
 
 KD_ARCHITECTURES = {Models.KD_MODULE: KDModule}

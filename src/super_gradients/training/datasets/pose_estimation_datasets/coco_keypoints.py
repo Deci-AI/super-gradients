@@ -1,10 +1,11 @@
 import os
-from typing import Tuple, List, Mapping, Any, Dict
+from typing import Tuple, List, Mapping, Any
 
 import cv2
 import numpy as np
 import pycocotools
 from pycocotools.coco import COCO
+from torch import Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -67,14 +68,27 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
     def __len__(self):
         return len(self.ids)
 
-    def load_sample(self, index) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Dict[str, Any]]:
+    def __getitem__(self, index: int) -> Tuple[Tensor, Any, Mapping[str, Any]]:
+        img, mask, gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.load_sample(index)
+        img, mask, gt_joints, gt_areas, gt_bboxes = self.transforms(img, mask, gt_joints, areas=gt_areas, bboxes=gt_bboxes)
+
+        image_shape = img.size(1), img.size(2)
+        gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.filter_joints(image_shape, gt_joints, gt_areas, gt_bboxes, gt_iscrowd)
+
+        targets = self.target_generator(img, gt_joints, mask)
+        return img, targets, {"gt_joints": gt_joints, "gt_bboxes": gt_bboxes, "gt_iscrowd": gt_iscrowd}
+
+    def load_sample(self, index):
         img_id = self.ids[index]
         image_info = self.coco.loadImgs(img_id)[0]
         file_name = image_info["file_name"]
         file_path = os.path.join(self.images_dir, file_name)
         ann_ids = self.coco.getAnnIds(imgIds=img_id)
         anno = self.coco.loadAnns(ann_ids)
-        anno = [obj for obj in anno if bool(obj["iscrowd"]) is False and obj["num_keypoints"] > 0]
+
+        gt_iscrowd = np.array([bool(ann["iscrowd"]) for ann in anno]).reshape((-1))
+        gt_bboxes = np.array([ann["bbox"] for ann in anno], dtype=np.float32).reshape((-1, 4))
+        gt_areas = np.array([ann["area"] for ann in anno], dtype=np.float32).reshape((-1))
 
         orig_image = cv2.imread(file_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
 
@@ -83,9 +97,46 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
 
         joints: np.ndarray = self.get_joints(anno)
         mask: np.ndarray = self.get_mask(anno, image_info)
-        extras = dict(file_name=image_info["file_name"])
 
-        return orig_image, mask, joints, extras
+        return orig_image, mask, joints, gt_areas, gt_bboxes, gt_iscrowd
+
+    def filter_joints(
+        self,
+        image_shape,
+        joints: np.ndarray,
+        areas: np.ndarray,
+        bboxes: np.ndarray,
+        is_crowd: np.ndarray,
+    ):
+        """
+        Filter instances that are either too small or do not have visible keypoints.
+
+        :param image: Image if [H,W,C] shape. Used to infer image boundaries
+        :param joints: Array of shape [Num Instances, Num Joints, 3]
+        :param areas: Array of shape [Num Instances] with area of each instance.
+                      Instance area comes from segmentation mask from COCO annotation file.
+        :param bboxes: Array of shape [Num Instances, 4] for bounding boxes in XYWH format.
+                       Bounding boxes comes from segmentation mask from COCO annotation file.
+        :param: is_crowd: Array of shape [Num Instances] indicating whether an instance is a crowd target.
+        :return: [New Num Instances, Num Joints, 3], New Num Instances <= Num Instances
+        """
+
+        # Update visibility of joints for those that are outside the image
+        outside_image_mask = (joints[:, :, 0] < 0) | (joints[:, :, 1] < 0) | (joints[:, :, 0] >= image_shape[1]) | (joints[:, :, 1] >= image_shape[0])
+        joints[outside_image_mask, 2] = 0
+
+        # Filter instances with all invisible keypoints
+        instances_with_visible_joints = np.count_nonzero(joints[:, :, 2], axis=-1) > 0
+        instances_with_good_area = areas > self.min_instance_area
+
+        keep_mask = instances_with_visible_joints & instances_with_good_area
+
+        joints = joints[keep_mask]
+        areas = areas[keep_mask]
+        bboxes = bboxes[keep_mask]
+        is_crowd = is_crowd[keep_mask]
+
+        return joints, areas, bboxes, is_crowd
 
     def get_joints(self, anno: List[Mapping[str, Any]]) -> np.ndarray:
         """
