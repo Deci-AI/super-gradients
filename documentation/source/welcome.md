@@ -53,7 +53,7 @@ ________________________________________________________________________________
 - [ ] Tools for faster training 
 - [ ] Tools for training health monitoring 
 - [ ] Integration with more professional 3rd party tools.
-
+- [ ] SegFormers
 ## Citation
 
 If you are using SuperGradients library in your research, please cite SuperGradients deep learning training library.
