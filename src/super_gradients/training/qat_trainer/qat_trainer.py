@@ -15,7 +15,7 @@ from super_gradients.training.metrics.metric_utils import get_metrics_dict
 from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import setup_device
-from super_gradients.training.utils.module_utils import fuse_repvgg_blocks_residual_branches
+from super_gradients.modules.multi_output_modules import fuse_repvgg_blocks_residual_branches
 
 logger = get_logger(__name__)
 try:
