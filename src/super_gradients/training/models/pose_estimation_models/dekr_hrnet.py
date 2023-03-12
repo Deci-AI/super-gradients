@@ -524,6 +524,7 @@ class DEKRPoseEstimationModel(SgModule):
 POSE_DEKR_W32_NO_DC_ARCH_PARAMS = get_arch_params("pose_dekr_w32_no_dc_arch_params")
 
 
+@register_model(Models.DEKR_W32_NO_DC)
 class DEKRW32(DEKRPoseEstimationModel):
     """
     DEKR-W32 model for pose estimation without deformable convolutions.
