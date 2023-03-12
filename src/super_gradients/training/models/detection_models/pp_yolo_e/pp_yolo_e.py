@@ -4,7 +4,7 @@ from torch import Tensor
 
 from super_gradients.modules import RepVGGBlock
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.models.detection_models.csp_resnet import CSPResNet
+from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
 from super_gradients.training.utils import HpmStruct
@@ -17,7 +17,7 @@ class PPYoloE(SgModule):
         if isinstance(arch_params, HpmStruct):
             arch_params = arch_params.to_dict()
 
-        self.backbone = CSPResNet(**arch_params["backbone"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
+        self.backbone = CSPResNetBackbone(**arch_params["backbone"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
         self.neck = CustomCSPPAN(**arch_params["neck"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
         self.head = PPYOLOEHead(**arch_params["head"], width_mult=arch_params["width_mult"], num_classes=arch_params["num_classes"])
 

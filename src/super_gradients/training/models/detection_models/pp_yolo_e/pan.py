@@ -82,6 +82,9 @@ class CustomCSPPAN(nn.Module):
         in_channels = [max(round(c * width_mult), 1) for c in in_channels]
         out_channels = [max(round(c * width_mult), 1) for c in out_channels]
 
+        if len(in_channels) != len(out_channels):
+            raise ValueError("in_channels and out_channels must have the same length")
+
         block_num = max(round(block_num * depth_mult), 1)
         self.num_blocks = len(in_channels)
         self._out_channels = out_channels
@@ -183,3 +186,7 @@ class CustomCSPPAN(nn.Module):
             pan_feats.append(route)
 
         return pan_feats[::-1]
+
+    @property
+    def out_channels(self) -> Tuple[int, ...]:
+        return tuple(self._out_channels)
