@@ -120,7 +120,6 @@ class DetectionDataset(Dataset):
 
         # Number of images that are available (regardless of ignored images)
         self.n_available_samples = self._setup_data_source()
-
         if not isinstance(self.n_available_samples, int) or self.n_available_samples < 1:
             raise ValueError(f"_setup_data_source() should return the number of available samples but got {self.n_available_samples}")
 
@@ -161,7 +160,8 @@ class DetectionDataset(Dataset):
 
     @property
     def _all_classes(self):
-        """Placeholder to dynamically setup the class names. This is prefered over passing all_classes_list to __init__."""
+        """Placeholder to setup the class names. This is an alternative to passing "all_classes_list" to __init__.
+        This is usefull when all_classes_list is not known in advance, only after loading the dataset."""
         raise NotImplementedError
 
     def _setup_data_source(self) -> int:

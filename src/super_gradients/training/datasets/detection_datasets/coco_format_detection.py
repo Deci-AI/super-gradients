@@ -14,7 +14,7 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 logger = get_logger(__name__)
 
 
-class COCOLikeDetectionDataset(DetectionDataset):
+class COCOFormattedDetectionDataset(DetectionDataset):
     """Base dataset to load ANY dataset that is with a similar structure to the CoCo dataset.
     - Annotation file (.json). It has to respect the exact same format as CoCo, for both the json schema and the bbox format (xywh).
     - One folder with all the images.
@@ -27,7 +27,6 @@ class COCOLikeDetectionDataset(DetectionDataset):
         images_dir: str,
         tight_box_rotation: bool = False,
         with_crowd: bool = True,
-        class_id_offset: int = 0,
         *args,
         **kwargs,
     ):
@@ -38,20 +37,16 @@ class COCOLikeDetectionDataset(DetectionDataset):
         :param tight_box_rotation:      bool, whether to use of segmentation maps convex hull as target_seg
                                             (check get_sample docs).
         :param with_crowd:              Add the crowd groundtruths to __getitem__
-        :param class_id_offset:         Offset used to encode the classes into index.
-                                            For instance if you have 10 classes, with offset=2, the class_ids will go from 2 to 12
         """
         self.images_dir = images_dir
         self.json_annotation_file = json_annotation_file
         self.tight_box_rotation = tight_box_rotation
         self.with_crowd = with_crowd
-        self.class_id_offset = class_id_offset
 
         target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
         kwargs["target_fields"] = target_fields
         kwargs["output_fields"] = ["image", *target_fields]
         kwargs["original_target_format"] = XYXY_LABEL
-        kwargs["all_classes_list"] = kwargs.get("all_classes_list", [])
         super().__init__(data_dir=data_dir, *args, **kwargs)
 
         if len(self.original_classes) != len(self.all_classes_list):
@@ -136,7 +131,7 @@ class COCOLikeDetectionDataset(DetectionDataset):
         target_segmentation = np.ones((len(non_crowd_annotations), num_seg_values))
         target_segmentation.fill(np.nan)
         for ix, annotation in enumerate(non_crowd_annotations):
-            cls = self.class_ids.index(annotation["category_id"]) + self.class_id_offset
+            cls = self.class_ids.index(annotation["category_id"])
             target[ix, 0:4] = annotation["clean_bbox"]
             target[ix, 4] = cls
             if self.tight_box_rotation:
@@ -152,7 +147,7 @@ class COCOLikeDetectionDataset(DetectionDataset):
 
         crowd_target = np.zeros((len(crowd_annotations), 5))
         for ix, annotation in enumerate(crowd_annotations):
-            cls = self.class_ids.index(annotation["category_id"]) + self.class_id_offset
+            cls = self.class_ids.index(annotation["category_id"])
             crowd_target[ix, 0:4] = annotation["clean_bbox"]
             crowd_target[ix, 4] = cls
 
