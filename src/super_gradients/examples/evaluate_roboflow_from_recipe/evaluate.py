@@ -23,12 +23,13 @@ def main(cfg: DictConfig) -> None:
     from super_gradients.training.datasets.detection_datasets.roboflow100 import ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY
 
     original_experiment_name = cfg.experiment_name
-    for dataset in list(ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY.keys())[10:]:
+    for dataset in list(ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY.keys())[12:]:
         cfg.dataset_params.dataset_name = dataset
         cfg.experiment_name = original_experiment_name + "_" + dataset
         print(f"launching: {cfg.experiment_name}")
 
         Trainer.train_from_config(cfg)
+        Trainer.evaluate_checkpoint(experiment_name=cfg.experiment_name, ckpt_name="ckpt_best.pth")
         x, y = Trainer.evaluate_from_recipe(cfg)
 
         print("--------------------------")
