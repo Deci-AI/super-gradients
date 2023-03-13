@@ -160,7 +160,8 @@ class DetectionDataset(Dataset):
 
     @property
     def _all_classes(self):
-        """Placeholder to dynamically setup the class names. This is prefered over passing all_classes_list to __init__."""
+        """Placeholder to setup the class names. This is an alternative to passing "all_classes_list" to __init__.
+        This is usefull when all_classes_list is not known in advance, only after loading the dataset."""
         raise NotImplementedError
 
     def _setup_data_source(self) -> int:

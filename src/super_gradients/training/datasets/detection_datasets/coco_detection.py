@@ -5,11 +5,11 @@ import cv2
 import numpy as np
 from pycocotools.coco import COCO
 
+from contextlib import redirect_stdout
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
+from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 
 logger = get_logger(__name__)
 
@@ -71,8 +71,7 @@ class COCODetectionDataset(DetectionDataset):
         target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
         kwargs["target_fields"] = target_fields
         kwargs["output_fields"] = ["image", *target_fields]
-        kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
-        kwargs["all_classes_list"] = kwargs.get("all_classes_list") or COCO_DETECTION_CLASSES_LIST
+        kwargs["original_target_format"] = XYXY_LABEL
         super().__init__(*args, **kwargs)
 
         if len(self.original_classes) != len(self.all_classes_list):
@@ -108,7 +107,12 @@ class COCODetectionDataset(DetectionDataset):
         if not os.path.exists(annotation_file_path):
             raise ValueError("Could not find annotation file under " + str(annotation_file_path))
 
-        coco = COCO(annotation_file_path)
+        if not self.verbose:
+            with redirect_stdout(open(os.devnull, "w")):
+                coco = COCO(annotation_file_path)
+        else:
+            coco = COCO(annotation_file_path)
+
         remove_useless_info(coco, self.tight_box_rotation)
         return coco
 
