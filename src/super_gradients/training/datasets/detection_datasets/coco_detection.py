@@ -1,12 +1,12 @@
 import os
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOLikeDetectionDataset
+from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOFormattedDetectionDataset
 
 logger = get_logger(__name__)
 
 
-class COCODetectionDataset(COCOLikeDetectionDataset):
+class COCODetectionDataset(COCOFormattedDetectionDataset):
     """Dataset for COCO object detection.
 
     To use this Dataset you need to:
