@@ -51,7 +51,6 @@ class COCOLikeDetectionDataset(DetectionDataset):
         kwargs["target_fields"] = target_fields
         kwargs["output_fields"] = ["image", *target_fields]
         kwargs["original_target_format"] = XYXY_LABEL
-        kwargs["all_classes_list"] = kwargs.get("all_classes_list", [])
         super().__init__(data_dir=data_dir, *args, **kwargs)
 
         if len(self.original_classes) != len(self.all_classes_list):
