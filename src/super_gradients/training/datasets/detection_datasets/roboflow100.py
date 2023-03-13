@@ -1,11 +1,8 @@
 import os
 from typing import List
 
-from tqdm import tqdm
-from torch.utils.data import ConcatDataset
-
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOLikeDetectionDataset
+from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOFormattedDetectionDataset
 
 logger = get_logger(__name__)
 
@@ -124,7 +121,7 @@ ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY = {
 }
 
 
-class RoboflowDetectionDataset(COCOLikeDetectionDataset):
+class RoboflowDetectionDataset(COCOFormattedDetectionDataset):
     """Dataset that can be used with ANY of the Roboflow100 benchmark datasets for object detection.
 
     To use this Dataset you need to:
@@ -181,64 +178,3 @@ class RoboflowDetectionDataset(COCOLikeDetectionDataset):
         if _category is None:
             logger.warning(f"No category found for dataset_name={self.dataset_name}. This might be due to a recent change in the dataset name.")
         return _category
-
-
-class Roboflow100DetectionDataset(ConcatDataset):
-    """Dataset concatenating the Roboflow100 benchmark datasets for object detection.
-    This benchmark is made of 100 relatively datasets from very different context.
-
-    To use this Dataset you need to:
-
-        - Follow the official instructions to download Roboflow100: https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog
-            //!\\ To use this dataset, you have to download the "coco" format, NOT the yolov5.
-
-        - Your dataset should loook like this:
-            rf100
-            ├── 4-fold-defect
-            │      ├─ train
-            │      │    ├─ 000000000001.jpg
-            │      │    ├─ ...
-            │      │    └─ _annotations.coco.json
-            │      ├─ valid
-            │      │    └─ ...
-            │      └─ test
-            │           └─ ...
-            ├── abdomen-mri
-            │      └─ ...
-            └── ...
-
-        - Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
-
-        - Instantiate the dataset:
-            >> train_set = Roboflow100DetectionDataset(data_dir='.../rf100', split="train")
-            >> valid_set = Roboflow100DetectionDataset(data_dir='.../rf100', split="valid")
-    """
-
-    def __init__(self, data_dir: str, split: str, verbose: bool = True, *args, **kwargs):
-        """
-        :param data_dir:        Where the data is stored.
-        :param split:           train, valid or test.
-        :param verbose:         Whether to show additional information or not, such as loading progress.
-        """
-
-        if kwargs.get("max_num_samples") is not None:
-            logger.warning("max_num_samples will be ignored because it is not supported by Roboflow100DetectionDataset.")
-            kwargs["max_num_samples"] = None
-
-        self.classes = []
-        roboflow_datasets = []
-
-        for dataset_name in tqdm(RoboflowDetectionDataset.list_roboflow_datasets(), disable=not verbose):
-            dataset = RoboflowDetectionDataset(
-                data_dir=data_dir,
-                dataset_name=dataset_name,
-                split=split,
-                class_id_offset=len(self.classes),  # This is required to avoid using the same id twice on different dataset/labels!
-                verbose=False,
-                *args,
-                **kwargs,
-            )
-            self.classes += [cls for cls in dataset.classes]  # This can create duplicate classes!
-            roboflow_datasets.append(dataset)
-
-        super(Roboflow100DetectionDataset, self).__init__(roboflow_datasets)
