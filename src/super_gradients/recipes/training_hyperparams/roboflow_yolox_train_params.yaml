@@ -29,14 +29,6 @@ optimizer_params:
 ema: True
 mixed_precision: False
 
-train_metrics_list:
-  - DetectionMetrics:
-      normalize_targets: True
-      post_prediction_callback:
-        _target_: super_gradients.training.models.detection_models.yolo_base.YoloPostPredictionCallback
-        iou: 0.65
-        conf: 0.01
-      num_cls: 80
 
 valid_metrics_list:
   - DetectionMetrics:

@@ -22,13 +22,18 @@ def main(cfg: DictConfig) -> None:
     cfg.num_gpus = 1
     from super_gradients.training.datasets.detection_datasets.roboflow100 import ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY
 
-    for dataset in list(ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY.keys())[6:]:
+    original_experiment_name = cfg.experiment_name
+    for dataset in list(ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY.keys())[10:]:
         cfg.dataset_params.dataset_name = dataset
-        cfg.experiment_name = cfg.experiment_name + "_" + dataset
+        cfg.experiment_name = original_experiment_name + "_" + dataset
+        print(f"launching: {cfg.experiment_name}")
 
-        _x = Trainer.train_from_config(cfg)
-        _y = Trainer.evaluate_from_recipe(cfg)
-        print(_x, _y)
+        Trainer.train_from_config(cfg)
+        x, y = Trainer.evaluate_from_recipe(cfg)
+
+        print("--------------------------")
+        print(y)
+        print("--------------------------")
 
 
 def run():

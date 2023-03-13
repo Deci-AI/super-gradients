@@ -8,10 +8,10 @@ defaults:
 train_dataloader: roboflow_train_yolox
 val_dataloader: roboflow_val_yolox
 checkpoint_params:
-  strict_load: # key matching strictness for loading checkpoint's weights
-    _target_: super_gradients.training.sg_trainer.StrictLoad
-    value: no_key_matching
-
+#  strict_load: # key matching strictness for loading checkpoint's weights
+#    _target_: super_gradients.training.sg_trainer.StrictLoad
+#    value: no_key_matching
+  pretrained_weights: coco
 
 load_checkpoint: False
 resume: False

@@ -154,6 +154,8 @@ def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckp
     for (ckpt_key, ckpt_val), (model_key, model_val) in zip(source_ckpt.items(), model_state_dict_excluded.items()):
         if solver is not None:
             ckpt_val = solver(ckpt_key, ckpt_val, model_key, model_val)
+        if ckpt_key == "module._head.anchors._anchors":
+            print()
         if ckpt_val.shape != model_val.shape:
             raise ValueError(f"ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}" f" with shape {model_val.shape} in the model")
         new_ckpt_dict[model_key] = ckpt_val
