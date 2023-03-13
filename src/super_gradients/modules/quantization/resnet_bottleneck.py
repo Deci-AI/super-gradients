@@ -1,4 +1,4 @@
-from super_gradients.training.models import Bottleneck
+from super_gradients.training.models.classification_models.resnet import Bottleneck
 
 try:
     from pytorch_quantization import nn as quant_nn
