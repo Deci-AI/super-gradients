@@ -7,20 +7,32 @@ defaults:
 
 train_dataloader: roboflow_train_yolox
 val_dataloader: roboflow_val_yolox
+checkpoint_params:
+  strict_load: # key matching strictness for loading checkpoint's weights
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: no_key_matching
 
 
 load_checkpoint: False
 resume: False
 training_hyperparams:
+  max_epochs: 20
   resume: ${resume}
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: Roboflow100Testing
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
 
 architecture: yolox_s
 
 multi_gpu: DDP
 num_gpus: 3
 
-experiment_suffix: res${dataset_params.train_dataset_params.input_dim}
-experiment_name: ${architecture}_roboflow_${experiment_suffix}
+experiment_name: ${architecture}_roboflow
 
 ckpt_root_dir:
 
