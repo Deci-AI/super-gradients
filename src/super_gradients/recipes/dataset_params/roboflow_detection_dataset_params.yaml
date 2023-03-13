@@ -49,10 +49,6 @@ train_dataloader_params:
   shuffle: True
   batch_size: 16
   num_workers: 0
-  batch_sampler: True
-  sampler:
-    InfiniteSampler:
-      seed: 0
   drop_last: False
   pin_memory: True
   worker_init_fn:
