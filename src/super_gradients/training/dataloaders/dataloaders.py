@@ -14,7 +14,6 @@ from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar100,
 )
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
-from super_gradients.training.datasets.detection_datasets.roboflow100 import RoboflowDetectionDataset, Roboflow100DetectionDataset
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
     PascalVOCUnifiedDetectionTrainDataset,
     PascalVOCDetectionDataset,
@@ -194,46 +193,6 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = None, dataloader_p
     return get_data_loader(
         config_name="coco_detection_ssd_lite_mobilenet_v2_dataset_params",
         dataset_cls=COCODetectionDataset,
-        train=False,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
-
-
-def roboflow_train_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
-    return get_data_loader(
-        config_name="roboflow_detection_dataset_params",
-        dataset_cls=RoboflowDetectionDataset,
-        train=True,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
-
-
-def roboflow_val_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
-    return get_data_loader(
-        config_name="roboflow_detection_dataset_params",
-        dataset_cls=RoboflowDetectionDataset,
-        train=False,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
-
-
-def roboflow100_train_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
-    return get_data_loader(
-        config_name="roboflow100_detection_dataset_params",
-        dataset_cls=Roboflow100DetectionDataset,
-        train=True,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
-
-
-def roboflow100_val_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
-    return get_data_loader(
-        config_name="roboflow100_detection_dataset_params",
-        dataset_cls=Roboflow100DetectionDataset,
         train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
@@ -701,10 +660,6 @@ ALL_DATALOADERS = {
     "coco2017_val_ssd_lite_mobilenet_v2": coco2017_val_ssd_lite_mobilenet_v2,
     "coco2017_pose_train": coco2017_pose_train,
     "coco2017_pose_val": coco2017_pose_val,
-    "roboflow_train_yolox": roboflow_train_yolox,
-    "roboflow_val_yolox": roboflow_val_yolox,
-    "roboflow100_train_yolox": roboflow100_train_yolox,
-    "roboflow100_val_yolox": roboflow100_val_yolox,
     "imagenet_train": imagenet_train,
     "imagenet_val": imagenet_val,
     "imagenet_efficientnet_train": imagenet_efficientnet_train,
