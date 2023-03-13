@@ -126,8 +126,8 @@ Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
 - [DarkNet-53](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/darknet53.py)
 - [SSD (Single Shot Detector)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py) - [https://arxiv.org/pdf/1512.02325](https://arxiv.org/pdf/1512.02325)
 - [YOLOX](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolox.py) - [https://arxiv.org/abs/2107.08430](https://arxiv.org/abs/2107.08430)
-  
-  
+- [PP-YoloE](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/pp_yolo_e/pp_yolo_e.py) - [https://arxiv.org/abs/2203.16250](https://arxiv.org/abs/2203.16250)
+
 ### Semantic Segmentation 
 
 - [PP-LiteSeg](https://bit.ly/3RrtMMO) - [https://arxiv.org/pdf/2204.02681v1.pdf](https://arxiv.org/pdf/2204.02681v1.pdf) 
