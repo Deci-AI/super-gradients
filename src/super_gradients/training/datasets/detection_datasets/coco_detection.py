@@ -1,7 +1,6 @@
 import os
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOLikeDetectionDataset
 
 logger = get_logger(__name__)
@@ -54,8 +53,6 @@ class COCODetectionDataset(COCOLikeDetectionDataset):
         kwargs:
             all_classes_list: all classes list, default is COCO_DETECTION_CLASSES_LIST.
         """
-        # TODO: Check if COCO_DETECTION_CLASSES_LIST <=> _all_classes()
-        kwargs["all_classes_list"] = kwargs.get("all_classes_list") or COCO_DETECTION_CLASSES_LIST
         super().__init__(
             json_annotation_file=os.path.join("annotations", json_file),
             images_dir=subdir,
