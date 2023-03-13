@@ -1,0 +1,51 @@
+defaults:
+  - default_train_params
+
+max_epochs: 20
+lr_mode: cosine
+cosine_final_lr_ratio: 0.05
+lr_warmup_epochs: 5
+lr_cooldown_epochs: 15
+initial_lr:  0.02
+zero_weight_decay_on_bias_and_bn: True
+batch_accumulate: 1
+
+save_ckpt_epoch_list: [285]
+
+loss: yolox_loss
+
+criterion_params:
+  strides: [8, 16, 32]  # output strides of all yolo outputs
+  num_classes: 80
+
+
+
+optimizer: SGD
+optimizer_params:
+  momentum: 0.9
+  weight_decay: 0.0005
+  nesterov: True
+
+ema: True
+mixed_precision: False
+
+
+valid_metrics_list:
+  - DetectionMetrics:
+      normalize_targets: True
+      post_prediction_callback:
+        _target_: super_gradients.training.models.detection_models.yolo_base.YoloPostPredictionCallback
+        iou: 0.65
+        conf: 0.01
+      num_cls: 80
+
+pre_prediction_callback:
+
+phase_callbacks:
+  - YoloXTrainingStageSwitchCallback:
+      next_stage_start_epoch: 285
+
+metric_to_watch: 'mAP@0.50:0.95'
+greater_metric_to_watch_is_better: True
+
+_convert_: all
