@@ -1,0 +1,11 @@
+backbone:
+  DDRNet39Backbone:
+    num_classes: 1 # Dummy class that is not used, but required for the DDRNet39 base class
+
+heads:
+  LightweightDEKRHead:
+    heatmap_channels: 64
+    offset_channels_per_joint: 10
+    activation: relu
+    upscale_factor: 2
+    feature_map_index: -1
