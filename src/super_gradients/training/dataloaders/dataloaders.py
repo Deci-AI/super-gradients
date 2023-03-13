@@ -679,6 +679,8 @@ ALL_DATALOADERS = {
     "coco2017_val_ppyoloe": coco2017_val_ppyoloe,
     "coco2017_train_ssd_lite_mobilenet_v2": coco2017_train_ssd_lite_mobilenet_v2,
     "coco2017_val_ssd_lite_mobilenet_v2": coco2017_val_ssd_lite_mobilenet_v2,
+    "roboflow_train_yolox": roboflow_train_yolox,
+    "roboflow_val_yolox": roboflow_val_yolox,
     "coco2017_pose_train": coco2017_pose_train,
     "coco2017_pose_val": coco2017_pose_val,
     "imagenet_train": imagenet_train,

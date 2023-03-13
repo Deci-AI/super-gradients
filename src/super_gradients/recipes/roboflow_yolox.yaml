@@ -1,39 +1,35 @@
 defaults:
   - training_hyperparams: roboflow_yolox_train_params
   - dataset_params: roboflow_detection_dataset_params
-  - arch_params: yolox_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
 
-train_dataloader: roboflow_train_yolox
-val_dataloader: roboflow_val_yolox
-checkpoint_params:
-#  strict_load: # key matching strictness for loading checkpoint's weights
-#    _target_: super_gradients.training.sg_trainer.StrictLoad
-#    value: no_key_matching
-  pretrained_weights: coco
-
-load_checkpoint: False
-resume: False
-training_hyperparams:
-  max_epochs: 20
-  resume: ${resume}
-  sg_logger: "wandb_sg_logger"
-  sg_logger_params:
-    project_name: Roboflow100Testing
-    entity: super-gradients
-    api_server: "https://wandb.research.deci.ai"
-    save_checkpoints_remote: True
-    save_tensorboard_remote: True
-    save_logs_remote: True
 
 architecture: yolox_s
+arch_params:
+  num_classes: 80  # FIXME - find a clean workaround for when we don't know num_classes in advance.
+  yolo_type: 'yoloX'
+  depth_mult_factor: 0.33
+  width_mult_factor: 0.5
+
+
+train_dataloader: roboflow_train_yolox
+val_dataloader: roboflow_val_yolox
+
+
+load_checkpoint: False
+checkpoint_params:
+  pretrained_weights: coco
+
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
+
 
 multi_gpu: DDP
 num_gpus: 3
-
 experiment_name: ${architecture}_roboflow
-
 ckpt_root_dir:
 
 
