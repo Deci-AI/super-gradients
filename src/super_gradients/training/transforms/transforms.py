@@ -418,7 +418,7 @@ class DetectionStandardize(DetectionTransform):
         self.max_value = max_value
 
     def __call__(self, sample: dict) -> dict:
-        sample["image"] = sample["image"] / self.max_value
+        sample["image"] = (sample["image"] / self.max_value).astype(np.float32)
         return sample
 
 
