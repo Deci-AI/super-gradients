@@ -6,10 +6,10 @@ from torch import nn
 from omegaconf.listconfig import ListConfig
 from omegaconf import DictConfig
 
+from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
 from super_gradients.training.utils.utils import HpmStruct
-from super_gradients.training.models import MobileNet, MobileNetV2, InvertedResidual
+from super_gradients.training.models import MobileNet, MobileNetV2
 from super_gradients.training.utils.module_utils import MultiOutputModule
-import super_gradients.common.factories.detection_modules_factory as det_factory
 
 
 class BaseDetectionModule(nn.Module, ABC):
@@ -47,6 +47,8 @@ class NStageBackbone(BaseDetectionModule):
         stages: Union[str, HpmStruct, DictConfig],
         context_module: Union[str, HpmStruct, DictConfig],
     ):
+        import super_gradients.common.factories.detection_modules_factory as det_factory
+
         """
         :param out_layers: names of layers to output from the following options: 'stem', 'stageN', 'context_module'
         """
@@ -101,6 +103,8 @@ class PANNeck(BaseDetectionModule):
         neck3: Union[str, HpmStruct, DictConfig],
         neck4: Union[str, HpmStruct, DictConfig],
     ):
+        import super_gradients.common.factories.detection_modules_factory as det_factory
+
         super().__init__(in_channels)
         c3_out_channels, c4_out_channels, c5_out_channels = in_channels
 
@@ -137,6 +141,8 @@ class NHeads(BaseDetectionModule):
     """
 
     def __init__(self, in_channels: List[int], num_classes: int, heads_list: Union[str, HpmStruct, DictConfig]):
+        import super_gradients.common.factories.detection_modules_factory as det_factory
+
         super().__init__(in_channels)
         factory = det_factory.DetectionModulesFactory()
         heads_list = self._pass_num_classes(heads_list, factory, num_classes)
@@ -376,15 +382,3 @@ class SSDHead(BaseDetectionModule):
             obj_conf = torch.max(classes_conf, dim=2)[0].unsqueeze(dim=-1)
 
             return torch.cat((xy, wh, obj_conf, classes_conf), dim=2), (locs, confs)
-
-
-ALL_DETECTION_MODULES = {
-    "MobileNetV1Backbone": MobileNetV1Backbone,
-    "MobileNetV2Backbone": MobileNetV2Backbone,
-    "SSDInvertedResidualNeck": SSDInvertedResidualNeck,
-    "SSDBottleneckNeck": SSDBottleneckNeck,
-    "SSDHead": SSDHead,
-    "NStageBackbone": NStageBackbone,
-    "PANNeck": PANNeck,
-    "NHeads": NHeads,
-}

@@ -6,8 +6,10 @@ from .se_blocks import SEBlock, EffectiveSEBlock
 from .skip_connections import Residual, SkipConnection, CrossModelSkipConnection, BackboneInternalSkipConnection, HeadInternalSkipConnection
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.modules.pose_estimation_modules import LightweightDEKRHead
+from .all_detection_modules import ALL_DETECTION_MODULES
 
 __all__ = [
+    "ALL_DETECTION_MODULES",
     "ConvBNAct",
     "ConvBNReLU",
     "RepVGGBlock",

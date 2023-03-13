@@ -38,8 +38,12 @@ class CustomizableDetector(SgModule):
 
         self.arch_params = arch_params
         self.backbone = factory.get(factory.insert_module_param(arch_params.backbone, "in_channels", in_channels))
-        self.neck = factory.get(factory.insert_module_param(arch_params.neck, "in_channels", self.backbone.out_channels))
-        self.heads = factory.get(factory.insert_module_param(arch_params.heads, "in_channels", self.neck.out_channels))
+        if hasattr(arch_params, "neck"):
+            self.neck = factory.get(factory.insert_module_param(arch_params.neck, "in_channels", self.backbone.out_channels))
+            self.heads = factory.get(factory.insert_module_param(arch_params.heads, "in_channels", self.neck.out_channels))
+        else:
+            self.neck = nn.Identity()
+            self.heads = factory.get(factory.insert_module_param(arch_params.heads, "in_channels", self.backbone.out_channels))
 
         self._initialize_weights(arch_params)
 
