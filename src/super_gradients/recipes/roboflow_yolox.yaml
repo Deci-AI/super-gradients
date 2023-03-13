@@ -25,6 +25,15 @@ checkpoint_params:
 resume: False
 training_hyperparams:
   resume: ${resume}
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: Roboflow100Testing
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
+
 
 
 multi_gpu: DDP
