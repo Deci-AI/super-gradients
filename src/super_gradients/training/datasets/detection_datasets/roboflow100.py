@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 from tqdm import tqdm
 from torch.utils.data import ConcatDataset
@@ -8,6 +9,16 @@ from super_gradients.training.datasets.detection_datasets.coco_format_detection 
 
 logger = get_logger(__name__)
 
+
+DATASET_CATEGORIES = (
+    "real world",
+    "videogames",
+    "documents",
+    "underwater",
+    "aerial",
+    "microscopic",
+    "electromagnetic",
+)
 
 ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY = {
     "hand-gestures-jps7z": "real world",
@@ -159,11 +170,13 @@ class RoboflowDetectionDataset(COCOLikeDetectionDataset):
         super().__init__(data_dir=data_dir, json_annotation_file=json_annotation_file, images_dir=dataset_split_dir, *args, **kwargs)
 
     @staticmethod
-    def list_roboflow_datasets() -> list:
-        return list(ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY.keys())
+    def list_roboflow_datasets(categories: List[str] = DATASET_CATEGORIES) -> List[str]:
+        """List all available datasets of specified categories. By default, select all the datasets."""
+        return [dataset_name for dataset_name, category in ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY.items() if category in categories]
 
     @property
-    def category(self):
+    def category(self) -> str:
+        """Category of the dataset."""
         _category = ROBOFLOW_DATASETS_NAMES_WITH_CATEGORY.get(self.dataset_name)
         if _category is None:
             logger.warning(f"No category found for dataset_name={self.dataset_name}. This might be due to a recent change in the dataset name.")
@@ -225,7 +238,7 @@ class Roboflow100DetectionDataset(ConcatDataset):
                 *args,
                 **kwargs,
             )
-            self.classes += [cls for cls in dataset.classes]
+            self.classes += [cls for cls in dataset.classes]  # This can create duplicate classes!
             roboflow_datasets.append(dataset)
 
         super(Roboflow100DetectionDataset, self).__init__(roboflow_datasets)
