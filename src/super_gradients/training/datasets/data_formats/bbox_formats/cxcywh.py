@@ -94,7 +94,7 @@ def xyxy_to_cxcywh_inplace(bboxes, image_shape: Tuple[int, int]):
                 f"Detected non floating-point ({bboxes.dtype}) input to xyxy_to_cxcywh_inplace function. This may cause rounding errors and lose of precision. "
                 "You may want to convert your array to floating-point precision first."
             )
-        if isinstance(bboxes, np.ndarray) and not isinstance(bboxes.dtype, np.floating):
+        if isinstance(bboxes, np.ndarray) and not isinstance(bboxes.dtype.type, np.floating):
             warnings.warn(
                 f"Detected non floating-point input ({bboxes.dtype}) to xyxy_to_cxcywh_inplace function. This may cause rounding errors and lose of precision. "
                 "You may want to convert your array to floating-point precision first."
