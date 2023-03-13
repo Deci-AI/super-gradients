@@ -21,6 +21,7 @@ from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetE
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
+from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
 
 logger = get_logger(__name__)
 
@@ -69,16 +70,17 @@ class DetectionDataset(Dataset):
         self,
         data_dir: str,
         input_dim: Optional[Tuple[int, int]],
-        original_target_format: DetectionTargetsFormat,
+        original_target_format: Union[ConcatenatedTensorFormat, DetectionTargetsFormat],
         max_num_samples: int = None,
         cache: bool = False,
         cache_dir: str = None,
         transforms: List[DetectionTransform] = [],
-        all_classes_list: Optional[List[str]] = None,
+        all_classes_list: Optional[List[str]] = [],
         class_inclusion_list: Optional[List[str]] = None,
         ignore_empty_annotations: bool = True,
         target_fields: List[str] = None,
         output_fields: List[str] = None,
+        verbose: bool = True,
     ):
         """Detection dataset.
 
@@ -99,10 +101,18 @@ class DetectionDataset(Dataset):
         :param target_fields:                   List of the fields target fields. This has to include regular target,
                                                 but can also include crowd target, segmentation target, ...
                                                 It has to include at least "target" but can include other.
-        :paran output_fields:                   Fields that will be outputed by __getitem__.
+        :param output_fields:                   Fields that will be outputed by __getitem__.
                                                 It has to include at least "image" and "target" but can include other.
+        :param verbose:                 Whether to show additional information or not, such as loading progress.
         """
         super().__init__()
+        self.verbose = verbose
+
+        if isinstance(original_target_format, DetectionTargetsFormat):
+            logger.warning(
+                "Deprecation: original_target_format should be of type ConcatenatedTensorFormat instead of DetectionTargetsFormat."
+                "Support for DetectionTargetsFormat will be removed in 3.1"
+            )
 
         self.data_dir = data_dir
         if not Path(data_dir).exists():
@@ -123,10 +133,10 @@ class DetectionDataset(Dataset):
         if class_inclusion_list is not None and len(class_inclusion_list) != len(set(class_inclusion_list)):
             raise DatasetValidationException(f"class_inclusion_list contains duplicate class names: {collections.Counter(class_inclusion_list)}")
 
-        self.all_classes_list = all_classes_list
+        self.all_classes_list = all_classes_list or self._all_classes
         self.class_inclusion_list = class_inclusion_list
         self.classes = self.class_inclusion_list or self.all_classes_list
-        if len(set(self.classes) - set(all_classes_list)) > 0:
+        if len(set(self.classes) - set(self.all_classes_list)) > 0:
             wrong_classes = set(self.classes) - set(all_classes_list)
             raise DatasetValidationException(f"class_inclusion_list includes classes that are not in all_classes_list: {wrong_classes}")
 
@@ -147,6 +157,11 @@ class DetectionDataset(Dataset):
         self.output_fields = output_fields or ["image", "target"]
         if len(self.output_fields) < 2 or self.output_fields[0] != "image" or self.output_fields[1] != "target":
             raise ValueError('output_fields must start with "image" and then "target", followed by any other field')
+
+    @property
+    def _all_classes(self):
+        """Placeholder to dynamically setup the class names. This is prefered over passing all_classes_list to __init__."""
+        raise NotImplementedError
 
     def _setup_data_source(self) -> int:
         """Set up the data source and store relevant objects as attributes.

@@ -99,6 +99,10 @@ class COCODetectionDataset(DetectionDataset):
         self.sample_id_to_coco_id = self.coco.getImgIds()
         return len(self.sample_id_to_coco_id)
 
+    @property
+    def _all_classes(self):
+        return self.original_classes
+
     def _init_coco(self) -> COCO:
         annotation_file_path = os.path.join(self.data_dir, "annotations", self.json_file)
         if not os.path.exists(annotation_file_path):
