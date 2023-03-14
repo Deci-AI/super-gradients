@@ -418,7 +418,7 @@ class DetectionStandardize(DetectionTransform):
         self.max_value = max_value
 
     def __call__(self, sample: dict) -> dict:
-        sample["image"] = sample["image"] / self.max_value
+        sample["image"] = (sample["image"] / self.max_value).astype(np.float32)
         return sample
 
 
@@ -695,6 +695,85 @@ class DetectionMixup(DetectionTransform):
 
             sample["image"], sample["target"] = origin_img.astype(np.uint8), origin_labels
         return sample
+
+
+class DetectionImagePermute(DetectionTransform):
+    """
+    Permute image dims. Useful for converting image from HWC to CHW format.
+    """
+
+    def __init__(self, dims=(2, 0, 1)):
+        """
+
+        :param dims: Specify new order of dims. Default value (2, 0, 1) suitable for converting from HWC to CHW format.
+        """
+        super().__init__()
+        self.dims = tuple(dims)
+
+    def __call__(self, sample: Dict[str, np.array]):
+        sample["image"] = np.ascontiguousarray(sample["image"].transpose(*self.dims))
+        return sample
+
+
+class DetectionPadToSize(DetectionTransform):
+    """
+    Preprocessing transform to pad image and bboxes to `input_dim` shape (rows, cols).
+    Transform does center padding, so that input image with bboxes located in the center of the produced image.
+
+    Note: This transformation assume that dimensions of input image is equal or less than `output_size`.
+    """
+
+    def __init__(self, output_size: Tuple[int, int], pad_value: int):
+        """
+        Constructor for DetectionPadToSize transform.
+
+        :param output_size: Output image size (rows, cols)
+        :param pad_value: Padding value for image
+        """
+        super().__init__()
+        self.output_size = output_size
+        self.pad_value = pad_value
+
+    def __call__(self, sample: Dict[str, np.array]):
+        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+        img, shift_w, shift_h = self._apply_to_image(img, final_shape=self.output_size, pad_value=self.pad_value)
+        sample["image"] = img
+        sample["target"] = self._apply_to_bboxes(targets, shift_w, shift_h)
+        if crowd_targets is not None:
+            sample["crowd_target"] = self._apply_to_bboxes(crowd_targets, shift_w, shift_h)
+        return sample
+
+    def _apply_to_bboxes(self, targets: np.array, shift_w: float, shift_h: float) -> np.array:
+        """Translate bboxes with respect to padding values.
+
+        :param targets:  Bboxes to transform of shape (N, 5).
+                         Bboxes expected to have format [x1, y1, x2, y2, class_id, ...]
+        :param shift_w:  shift width in pixels
+        :param shift_h:  shift height in pixels
+        :return:         Bboxes to transform of shape (N, 5)
+                         Bboxes will have same format [x1, y1, x2, y2, class_id, ...]
+        """
+        targets = targets.copy() if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
+        boxes, labels = targets[:, :4], targets[:, 4:]
+        boxes[:, [0, 2]] += shift_w
+        boxes[:, [1, 3]] += shift_h
+        return np.concatenate((boxes, labels), 1)
+
+    def _apply_to_image(self, image, final_shape: Tuple[int, int], pad_value: int):
+        """
+        Pad image to final_shape.
+        :param image:
+        :param final_shape: Output image size (rows, cols).
+        :param pad_value:
+        :return:
+        """
+        pad_h, pad_w = final_shape[0] - image.shape[0], final_shape[1] - image.shape[1]
+        shift_h, shift_w = pad_h // 2, pad_w // 2
+        pad_h = (shift_h, pad_h - shift_h)
+        pad_w = (shift_w, pad_w - shift_w)
+
+        image = np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+        return image, shift_w, shift_h
 
 
 class DetectionPaddedRescale(DetectionTransform):
