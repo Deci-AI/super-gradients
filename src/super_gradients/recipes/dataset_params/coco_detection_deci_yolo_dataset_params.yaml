@@ -35,6 +35,7 @@ train_dataset_params:
     - DetectionPaddedRescale:
         input_dim: [640, 640]
         max_targets: 120
+        pad_value: 114
     - DetectionTargetsFormatTransform:
         max_targets: 256
         output_format: LABEL_NORMALIZED_CXCYWH

@@ -723,7 +723,7 @@ class DetectionPadToSize(DetectionTransform):
     Note: This transformation assume that dimensions of input image is equal or less than `output_size`.
     """
 
-    def __init__(self, output_size: Tuple[int, int], pad_value=114):
+    def __init__(self, output_size: Tuple[int, int], pad_value: int):
         """
         Constructor for DetectionPadToSize transform.
 
@@ -736,20 +736,22 @@ class DetectionPadToSize(DetectionTransform):
 
     def __call__(self, sample: Dict[str, np.array]):
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        img, shift_w, shift_h = self.apply_to_image(img, final_shape=self.output_size, pad_value=self.pad_value)
+        img, shift_w, shift_h = self._apply_to_image(img, final_shape=self.output_size, pad_value=self.pad_value)
         sample["image"] = img
-        sample["target"] = self.apply_to_bboxes(targets, shift_w, shift_h)
+        sample["target"] = self._apply_to_bboxes(targets, shift_w, shift_h)
         if crowd_targets is not None:
-            sample["crowd_target"] = self.apply_to_bboxes(crowd_targets, shift_w, shift_h)
+            sample["crowd_target"] = self._apply_to_bboxes(crowd_targets, shift_w, shift_h)
         return sample
 
-    def apply_to_bboxes(self, targets: np.array, shift_w: float, shift_h: float) -> np.array:
+    def _apply_to_bboxes(self, targets: np.array, shift_w: float, shift_h: float) -> np.array:
         """Translate bboxes with respect to padding values.
 
-        :param targets:  Bboxes to transform of shape (N, 5)
-        :param shift_w:  shift width
-        :param shift_h:  shift height
+        :param targets:  Bboxes to transform of shape (N, 5).
+                         Bboxes expected to have format [x1, y1, x2, y2, class_id, ...]
+        :param shift_w:  shift width in pixels
+        :param shift_h:  shift height in pixels
         :return:         Bboxes to transform of shape (N, 5)
+                         Bboxes will have same format [x1, y1, x2, y2, class_id, ...]
         """
         targets = targets.copy() if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
         boxes, labels = targets[:, :4], targets[:, 4:]
@@ -757,7 +759,7 @@ class DetectionPadToSize(DetectionTransform):
         boxes[:, [1, 3]] += shift_h
         return np.concatenate((boxes, labels), 1)
 
-    def apply_to_image(self, image, final_shape: Tuple[int, int], pad_value: int):
+    def _apply_to_image(self, image, final_shape: Tuple[int, int], pad_value: int):
         """
         Pad image to final_shape.
         :param image:
