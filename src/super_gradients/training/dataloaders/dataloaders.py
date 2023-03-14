@@ -14,7 +14,7 @@ from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar100,
 )
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
-from super_gradients.training.datasets.detection_datasets.roboflow100 import RoboflowDetectionDataset
+from super_gradients.training.datasets.detection_datasets.roboflow import RoboflowDetectionDataset
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
     PascalVOCUnifiedDetectionTrainDataset,
     PascalVOCDetectionDataset,

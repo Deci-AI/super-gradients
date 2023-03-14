@@ -14,6 +14,7 @@ from super_gradients.training.utils.callbacks.callbacks import (
     FunctionLRCallback,
     EpochStepWarmupLRCallback,
     BatchStepLinearWarmupLRCallback,
+    RoboflowResultCallback,
 )
 from super_gradients.training.utils.callbacks.ppyoloe_switch_callback import PPYoloETrainingStageSwitchCallback
 from super_gradients.training.utils.deprecated_utils import wrap_with_warning
@@ -31,6 +32,7 @@ CALLBACKS = {
     Callbacks.YOLOX_TRAINING_STAGE_SWITCH: YoloXTrainingStageSwitchCallback,
     Callbacks.PPYOLOE_TRAINING_STAGE_SWITCH: PPYoloETrainingStageSwitchCallback,
     Callbacks.DEKR_VISUALIZATION: DEKRVisualizationCallback,
+    "RoboflowResultCallback": RoboflowResultCallback,
 }
 
 

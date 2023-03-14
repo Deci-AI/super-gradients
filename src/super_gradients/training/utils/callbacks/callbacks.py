@@ -17,6 +17,8 @@ from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
+from super_gradients.common.environment.ddp_utils import multi_process_safe
+
 
 logger = get_logger(__name__)
 
@@ -684,6 +686,29 @@ class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
                 transform.close()
         iter(context.train_loader)
         context.criterion.use_l1 = True
+
+
+class RoboflowResultCallback(Callback):
+    """
+    Phase callback that collects the learning rates in lr_placeholder at the end of each epoch (used for testing). In
+     the case of multiple parameter groups (i.e multiple learning rates) the learning rate is collected from the first
+     one. The phase is VALIDATION_EPOCH_END to ensure all lr updates have been performed before calling this callback.
+    """
+
+    def __init__(self, dataset_name: str):
+        self.dataset_name = dataset_name
+        super(RoboflowResultCallback, self).__init__()
+
+    @multi_process_safe
+    def on_training_end(self, context: PhaseContext):
+        import csv
+        from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
+
+        output_dir = get_project_checkpoints_dir_path()
+        path = os.path.join(output_dir, "results.json")
+        with open(path, mode="a", newline="") as csv_file:
+
+            csv.writer(csv_file).writerow([self.dataset_name, context.metrics_dict["mAP@0.50:0.95"].item()])
 
 
 class TestLRCallback(PhaseCallback):

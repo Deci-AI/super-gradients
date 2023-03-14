@@ -23,6 +23,7 @@ def fetch_datasets_metadata():
     df = df[["dataset"] + DATASET_METADATA_FIELDS]
 
     df["num_classes"] = df["num_classes"].astype(int)
+    df.set_index("dataset").to_csv(DATASET_METADATA_FILENAME.replace(".json", ".csv"))
     df.set_index("dataset").to_json(DATASET_METADATA_FILENAME, orient="index")
 
 
@@ -38,7 +39,8 @@ def get_categories() -> Tuple:
 
 
 def get_dataset_metadata(dataset_name: str) -> Optional[Dict[str, Union[str, int]]]:
-    dataset_metadata = get_datasets_metadata()
+    datasets_metadata = get_datasets_metadata()
+    dataset_metadata = datasets_metadata.get(dataset_name)
     if dataset_metadata is None:
         logger.warning(f"No metadata found for dataset_name={dataset_name}. This might be due to a recent change in the dataset name.")
     return dataset_metadata

@@ -370,6 +370,8 @@ class Trainer:
         """
         Manipulates self.net according to device.multi_gpu
         """
+        # TODO: Check if possible to check if already torch.nn.parallel.DistributedDataParallel!
+
         self.net.to(device_config.device)
 
         # FOR MULTI-GPU TRAINING (not distributed)
@@ -384,7 +386,6 @@ class Trainer:
 
             local_rank = int(device_config.device.split(":")[1])
             self.net = torch.nn.parallel.DistributedDataParallel(self.net, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
-
         else:
             self.net = core_utils.WrappedModel(self.net)
 

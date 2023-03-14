@@ -1,0 +1,62 @@
+defaults:
+  - training_hyperparams: coco2017_yolox_train_params
+  - dataset_params: roboflow_detection_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+dataset_name: ???
+dataset_params:
+  dataset_name: ${dataset_name}
+num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
+
+
+architecture: yolox_m
+arch_params:
+  num_classes: ${num_classes}
+  yolo_type: 'yoloX'
+  depth_mult_factor: 0.67
+  width_mult_factor: 0.75
+
+
+train_dataloader: roboflow_train_yolox
+val_dataloader: roboflow_val_yolox
+
+
+load_checkpoint: False
+checkpoint_params:
+  pretrained_weights: coco
+
+
+resume: False
+training_hyperparams:
+  max_epochs: 100
+  resume: ${resume}
+  criterion_params:
+    num_classes: ${num_classes}
+  lr_warmup_epochs: 0
+  lr_cooldown_epochs: 0
+  initial_lr: 0.001
+  phase_callbacks:
+    - RoboflowResultCallback:
+        dataset_name: ${dataset_name}
+#  sg_logger: "wandb_sg_logger"
+#  sg_logger_params:
+#    project_name: Roboflow100Yolox
+#    entity: super-gradients
+#    api_server: "https://wandb.research.deci.ai"
+#    save_checkpoints_remote: True
+#    save_tensorboard_remote: True
+#    save_logs_remote: True
+
+
+multi_gpu: DDP
+num_gpus: 3
+experiment_name: ${architecture}_roboflow_${dataset_name}
+ckpt_root_dir:
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

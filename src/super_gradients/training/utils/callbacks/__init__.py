@@ -22,6 +22,7 @@ from super_gradients.training.utils.callbacks.callbacks import (
     TrainingStageSwitchCallbackBase,
     YoloXTrainingStageSwitchCallback,
     TestLRCallback,
+    RoboflowResultCallback,
 )
 
 from super_gradients.training.utils.callbacks.all_callbacks import Callbacks, CALLBACKS, LRSchedulers, LR_SCHEDULERS_CLS_DICT, LRWarmups, LR_WARMUP_CLS_DICT
@@ -60,4 +61,5 @@ __all__ = [
     "YoloXTrainingStageSwitchCallback",
     "CallbackHandler",
     "TestLRCallback",
+    "RoboflowResultCallback",
 ]
