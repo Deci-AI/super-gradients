@@ -1,7 +1,5 @@
 # This model config is mimicing the one from the original repo:
 # https://github.com/HRNet/DEKR/blob/main/experiments/coco/w32/w32_4x_reg03_bs10_512_adam_lr1e-3_coco_x140.yaml
-num_classes: ${dataset_params.num_joints}
-
 SPEC:
   FINAL_CONV_KERNEL: 1
   STAGES:

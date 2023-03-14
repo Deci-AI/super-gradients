@@ -9,7 +9,7 @@ from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.training.dataloaders.dataloaders import ALL_DATALOADERS
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.metrics.all_metrics import METRICS
-from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
+from super_gradients.modules.all_detection_modules import ALL_DETECTION_MODULES
 from super_gradients.training.utils.callbacks.all_callbacks import CALLBACKS
 from super_gradients.training.transforms.all_transforms import TRANSFORMS
 from super_gradients.training.datasets.all_datasets import ALL_DATASETS
