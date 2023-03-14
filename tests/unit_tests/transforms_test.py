@@ -9,6 +9,7 @@ from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
 )
+from super_gradients.training.transforms.transforms import DetectionImagePermute, DetectionPadToSize
 
 
 class TestTransforms(unittest.TestCase):
@@ -82,6 +83,32 @@ class TestTransforms(unittest.TestCase):
 
         self.assertTrue((aug_joints[..., 0] < aug_image.shape[1]).all())
         self.assertTrue((aug_joints[..., 1] < aug_image.shape[0]).all())
+
+    def test_detection_image_permute(self):
+        aug = DetectionImagePermute(dims=(2, 1, 0))
+        image = np.random.rand(640, 480, 3)
+        sample = {"image": image}
+
+        output = aug(sample)
+        self.assertEqual(output["image"].shape, (3, 480, 640))
+
+    def test_detection_pad_to_size(self):
+        aug = DetectionPadToSize(output_size=(640, 640))
+        image = np.ones((512, 480, 3))
+
+        # Boxes in format (x1, y1, x2, y2, class_id)
+        boxes = np.array([[0, 0, 100, 100, 0], [100, 100, 200, 200, 1]])
+
+        sample = {"image": image, "target": boxes}
+        output = aug(sample)
+
+        shift_x = (640 - 480) // 2
+        shift_y = (640 - 512) // 2
+        expected_boxes = np.array(
+            [[0 + shift_x, 0 + shift_y, 100 + shift_x, 100 + shift_y, 0], [100 + shift_x, 100 + shift_y, 200 + shift_x, 200 + shift_y, 1]]
+        )
+        self.assertEqual(output["image"].shape, (640, 640, 3))
+        np.testing.assert_array_equal(output["target"], expected_boxes)
 
 
 if __name__ == "__main__":

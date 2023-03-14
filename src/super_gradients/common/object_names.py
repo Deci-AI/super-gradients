@@ -57,6 +57,8 @@ class Transforms:
     DetectionRandomRotate90 = "DetectionRandomRotate90"
     DetectionHorizontalFlip = "DetectionHorizontalFlip"
     DetectionRescale = "DetectionRescale"
+    DetectionPadToSize = "DetectionPadToSize"
+    DetectionImagePermute = "DetectionImagePermute"
     DetectionPaddedRescale = "DetectionPaddedRescale"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
     DetectionNormalize = "DetectionNormalize"
@@ -291,6 +293,9 @@ class Models:
     PP_YOLOE_X = "ppyoloe_x"
 
     DEKR_CUSTOM = "dekr_custom"
+    DEKR_W32_NO_DC = "dekr_w32_no_dc"
+    POSE_PP_YOLO_L = "pose_ppyolo_l"
+    POSE_DDRNET_39 = "pose_ddrnet39"
 
 
 class ConcatenatedTensorFormats:

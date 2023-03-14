@@ -151,6 +151,26 @@ def coco2017_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     )
 
 
+def coco2017_train_deci_yolo(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="coco_detection_deci_yolo_dataset_params",
+        dataset_cls=COCODetectionDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def coco2017_val_deci_yolo(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="coco_detection_deci_yolo_dataset_params",
+        dataset_cls=COCODetectionDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
 def coco2017_train_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_ppyoloe_dataset_params",
@@ -660,6 +680,8 @@ ALL_DATALOADERS = {
     "coco2017_val_ssd_lite_mobilenet_v2": coco2017_val_ssd_lite_mobilenet_v2,
     "coco2017_pose_train": coco2017_pose_train,
     "coco2017_pose_val": coco2017_pose_val,
+    "coco2017_train_deci_yolo": coco2017_train_deci_yolo,
+    "coco2017_val_deci_yolo": coco2017_val_deci_yolo,
     "imagenet_train": imagenet_train,
     "imagenet_val": imagenet_val,
     "imagenet_efficientnet_train": imagenet_efficientnet_train,
