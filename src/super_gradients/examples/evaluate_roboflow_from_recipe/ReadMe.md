@@ -1,4 +1,6 @@
 # How to evaluate on Roboflow100
+This is a quick tutorial on how to evaluate multiple roboflow100 datasets.
+If you want to evaluate a single dataset you should rather directly work with `train_from_recipe.py`.
 
 ### 0. Define a recipe
 Create a recipe similar to `roboflow_ppyoloe.yaml` or `roboflow_yolox.yaml`.
