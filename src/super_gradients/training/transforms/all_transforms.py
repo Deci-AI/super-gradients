@@ -30,6 +30,8 @@ from super_gradients.training.transforms.transforms import (
     DetectionTargetsFormatTransform,
     DetectionNormalize,
     Standardize,
+    DetectionPadToSize,
+    DetectionImagePermute,
 )
 from torchvision.transforms import (
     Compose,
@@ -99,6 +101,8 @@ TRANSFORMS = {
     Transforms.DetectionRandomRotate90: DetectionRandomRotate90,
     Transforms.DetectionHorizontalFlip: DetectionHorizontalFlip,
     Transforms.DetectionRescale: DetectionRescale,
+    Transforms.DetectionImagePermute: DetectionImagePermute,
+    Transforms.DetectionPadToSize: DetectionPadToSize,
     Transforms.DetectionPaddedRescale: DetectionPaddedRescale,
     Transforms.DetectionTargetsFormatTransform: DetectionTargetsFormatTransform,
     Transforms.DetectionNormalize: DetectionNormalize,
