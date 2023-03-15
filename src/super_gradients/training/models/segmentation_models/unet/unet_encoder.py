@@ -7,12 +7,12 @@ import torch.nn as nn
 
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
 from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
-from super_gradients.training.utils.utils import get_param
+from super_gradients.training.utils.utils import get_param, HpmStruct
 from super_gradients.training import models
 from super_gradients.training.models.classification_models.regnet import XBlock
 from super_gradients.training.models.classification_models.repvgg import RepVGGBlock
 from super_gradients.training.models.segmentation_models.stdc import STDCBlock
-from super_gradients.training.models import SgModule, HpmStruct
+from super_gradients.training.models import SgModule
 from super_gradients.modules import ConvBNReLU, QARepVGGBlock
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.list_factory import ListFactory
