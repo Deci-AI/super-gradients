@@ -28,7 +28,7 @@ checkpoint_params:
 resume: False
 training_hyperparams:
   resume: ${resume}
-  max_epochs: 100
+  max_epochs: 3
   mixed_precision: True
   criterion_params:
     num_classes: ${num_classes}

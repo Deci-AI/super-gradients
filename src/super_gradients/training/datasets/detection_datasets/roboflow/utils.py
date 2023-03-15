@@ -1,9 +1,14 @@
-from typing import Dict, Union, Optional
+from typing import Dict, Union, Optional, List
 
-from super_gradients.training.datasets.detection_datasets.roboflow.metadata import DATASETS_METADATA
+from super_gradients.training.datasets.detection_datasets.roboflow.metadata import DATASETS_METADATA, DATASETS_CATEGORIES
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def get_datasets(categories: List[str] = None):
+    categories = categories or DATASETS_CATEGORIES
+    return [dataset_name for dataset_name, metadata in DATASETS_METADATA.items() if metadata["category"] in categories]
 
 
 def get_dataset_metadata(dataset_name: str) -> Optional[Dict[str, Union[str, int]]]:

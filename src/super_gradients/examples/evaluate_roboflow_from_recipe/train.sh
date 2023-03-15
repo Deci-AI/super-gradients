@@ -2,11 +2,11 @@
 # Note: tweeter-profile seems to be lacking data so it was removed
 
 counter=0
-datasets=$(pwd)/../../training/datasets/detection_datasets/roboflow/datasets_metadata.csv
+datasets=$(pwd)/datasets.txt
+configname="$1"
 
-
-awk -F "," '{print $1}' $datasets | tail -n +2 | while read x; do
-    echo "\n\n\n> [${counter}/100] ${x}\n\n"
-    /home/louis.dupont/.conda/envs/louis-dev/bin/python3 -u /home/louis.dupont/PycharmProjects/super-gradients/src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=roboflow_yolox dataset_name=$x
+awk -F "," '{print $1}' $datasets | tail -n +2 | while read dataset_name; do
+    echo "\n\n\n> [${counter}/100] ${dataset_name}\n\n"
+    python -u ../train_from_recipe_example/train_from_recipe.py --config-name=$configname dataset_name=$dataset_name
     counter=$((counter + 1))
 done

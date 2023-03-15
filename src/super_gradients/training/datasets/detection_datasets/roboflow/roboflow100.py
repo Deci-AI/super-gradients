@@ -3,8 +3,7 @@ from typing import List, Dict, Union, Optional
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOFormattedDetectionDataset
-from super_gradients.training.datasets.detection_datasets.roboflow.utils import get_dataset_metadata
-from super_gradients.training.datasets.detection_datasets.roboflow.metadata import DATASETS_METADATA, DATASETS_CATEGORIES
+from super_gradients.training.datasets.detection_datasets.roboflow.utils import get_dataset_metadata, get_datasets
 
 logger = get_logger(__name__)
 
@@ -55,9 +54,9 @@ class RoboflowDetectionDataset(COCOFormattedDetectionDataset):
         super().__init__(data_dir=data_dir, json_annotation_file=json_annotation_file, images_dir=dataset_split_dir, *args, **kwargs)
 
     @staticmethod
-    def list_roboflow_datasets(categories: List[str] = DATASETS_CATEGORIES) -> List[str]:
+    def list_roboflow_datasets(categories: Optional[List[str]] = None) -> List[str]:
         """List all available datasets of specified categories. By default, select all the datasets."""
-        return [dataset_name for dataset_name, metadata in DATASETS_METADATA.items() if metadata["category"] in categories]
+        return get_datasets(categories=categories)
 
     @property
     def metadata(self) -> Optional[Dict[str, Union[str, int]]]:
