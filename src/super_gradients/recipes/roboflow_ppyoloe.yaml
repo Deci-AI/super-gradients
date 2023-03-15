@@ -58,7 +58,7 @@ training_hyperparams:
 
 #  sg_logger: "wandb_sg_logger"
 #  sg_logger_params:
-#    project_name: Roboflow100Yolox
+#    project_name: Roboflow100PPYoloe
 #    entity: super-gradients
 #    api_server: "https://wandb.research.deci.ai"
 #    save_checkpoints_remote: True
