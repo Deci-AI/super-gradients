@@ -48,7 +48,7 @@ from super_gradients.common.object_names import Models
 
 model = models.get(Models.YOLOX_S, pretrained_weights="coco")
 ```
-#### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
+#### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/model_zoo.md)
 
 #### Classification
 <div align="center">
