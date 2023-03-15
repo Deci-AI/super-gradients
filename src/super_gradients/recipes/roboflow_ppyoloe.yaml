@@ -28,7 +28,7 @@ checkpoint_params:
 resume: False
 training_hyperparams:
   resume: ${resume}
-  max_epochs: 5
+  max_epochs: 100
   mixed_precision: True
   criterion_params:
     num_classes: ${num_classes}
@@ -55,15 +55,14 @@ training_hyperparams:
           nms_top_k: 1000
           max_predictions: 300
           nms_threshold: 0.7
-
-#  sg_logger: "wandb_sg_logger"
-#  sg_logger_params:
-#    project_name: Roboflow100PPYoloe
-#    entity: super-gradients
-#    api_server: "https://wandb.research.deci.ai"
-#    save_checkpoints_remote: True
-#    save_tensorboard_remote: True
-#    save_logs_remote: True
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: Roboflow100FullTraining
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
 
 
 multi_gpu: DDP
