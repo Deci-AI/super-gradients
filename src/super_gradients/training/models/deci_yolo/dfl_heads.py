@@ -69,7 +69,6 @@ class CustomizableDFLHead(BaseDetectionModule):
         reg_output = self.reg_pred(reg_feat)
 
         return reg_output, cls_output
-        # return self.process_output(reg_output, cls_output)
 
     def _initialize_biases(self):
         b = self.cls_pred.bias.view(1, -1)

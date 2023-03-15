@@ -9,28 +9,28 @@ backbone:
       - DeciYOLOStage:
           out_channels: 96
           num_blocks: 2
-          activation_type: nn.ReLU
+          activation_type: ReLU
           hidden_channels: 64
           concat_intermediates: True
 
       - DeciYOLOStage:
           out_channels: 192
           num_blocks: 3
-          activation_type: nn.ReLU
+          activation_type: ReLU
           hidden_channels: 128
           concat_intermediates: True
 
       - DeciYOLOStage:
           out_channels: 384
           num_blocks: 5
-          activation_type: nn.ReLU
+          activation_type: ReLU
           hidden_channels: 256
           concat_intermediates: True
 
       - DeciYOLOStage:
           out_channels: 768
           num_blocks: 2
-          activation_type: nn.ReLU
+          activation_type: ReLU
           hidden_channels: 384
           concat_intermediates: False
 
@@ -52,7 +52,7 @@ neck:
         hidden_channels: 192
         width_mult: 1
         depth_mult: 1
-        activation_type: nn.ReLU
+        activation_type: ReLU
         reduce_channels: True
 
     neck2:
@@ -62,7 +62,7 @@ neck:
         hidden_channels: 64
         width_mult: 1
         depth_mult: 1
-        activation_type: nn.ReLU
+        activation_type: ReLU
         reduce_channels: True
 
     neck3:
@@ -70,7 +70,7 @@ neck:
         out_channels: 192
         num_blocks: 2
         hidden_channels: 192
-        activation_type: nn.ReLU
+        activation_type: ReLU
         width_mult: 1
         depth_mult: 1
 
@@ -79,7 +79,7 @@ neck:
         out_channels: 384
         num_blocks: 3
         hidden_channels: 256
-        activation_type: nn.ReLU
+        activation_type: ReLU
         width_mult: 1
         depth_mult: 1
 

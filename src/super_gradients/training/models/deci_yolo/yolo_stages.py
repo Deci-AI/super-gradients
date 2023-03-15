@@ -4,6 +4,8 @@ from typing import List, Type
 import torch
 from torch import nn
 
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.common.registry import register_detection_module
 from super_gradients.modules import QARepVGGBlock, Residual
 from super_gradients.modules.detection_modules import BaseDetectionModule
@@ -91,12 +93,12 @@ class DeciYOLOStem(BaseDetectionModule):
 
 @register_detection_module("DeciYOLOStage")
 class DeciYOLOStage(BaseDetectionModule):
+    @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self, in_channels: int, out_channels: int, num_blocks: int, activation_type: str, hidden_channels: int = None, concat_intermediates: bool = False
     ):
         super().__init__(in_channels)
         self._out_channels = out_channels
-        activation_type = eval(activation_type)  # TODO: use a factory
         self.downsample = QARepVGGBlock(in_channels, out_channels, stride=2, activation_type=activation_type, use_residual_connection=False)
         self.blocks = CustomBlockCSPLayer(
             out_channels,
@@ -119,6 +121,7 @@ class DeciYOLOStage(BaseDetectionModule):
 
 @register_detection_module("UpDeciYOLOStage")
 class UpDeciYOLOStage(BaseDetectionModule):
+    @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
         in_channels: List[int],
@@ -141,7 +144,6 @@ class UpDeciYOLOStage(BaseDetectionModule):
             skip_in_channels = skip_in_channels1 + out_channels  # skip2 downsample results in out_channels channels
         out_channels = width_multiplier(out_channels, width_mult, 8)
         num_blocks = max(round(num_blocks * depth_mult), 1) if num_blocks > 1 else num_blocks
-        activation_type = eval(activation_type)  # TODO: use a factory
         assert issubclass(activation_type, nn.Module), "Typo in activation_func_type in XHead, use 'nn.TorchName'"
 
         if num_inputs == 2:
@@ -192,6 +194,7 @@ class UpDeciYOLOStage(BaseDetectionModule):
 
 @register_detection_module("DownDeciYOLOStage")
 class DownDeciYOLOStage(BaseDetectionModule):
+    @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
         in_channels: List[int],
@@ -208,7 +211,6 @@ class DownDeciYOLOStage(BaseDetectionModule):
         in_channels, skip_in_channels = in_channels
         out_channels = width_multiplier(out_channels, width_mult, 8)
         num_blocks = max(round(num_blocks * depth_mult), 1) if num_blocks > 1 else num_blocks
-        activation_type = eval(activation_type)  # TODO: use a factory
         assert issubclass(activation_type, nn.Module), "Typo in activation_func_type in XHead, use 'nn.TorchName'"
 
         self.conv = Conv(in_channels, out_channels // 2, 3, 2, activation_type)
