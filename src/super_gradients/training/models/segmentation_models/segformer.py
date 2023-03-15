@@ -6,19 +6,22 @@ from super_gradients.training.models import HpmStruct
 from super_gradients.training.utils import get_param
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils.regularization_utils import DropPath
+from super_gradients.modules.conv_bn_relu_block import ConvBNReLU
+
 
 from typing import List, Tuple
 
 """
 paper:  SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
         ( https://arxiv.org/pdf/2105.15203.pdf )
-code adopted from git repo: https://github.com/sithu31296/semantic-segmentation
 
-Imagenet-1k pre-trained backbone weights taken and adapted from: https://github.com/sithu31296/semantic-segmentation
-
+Code and Imagenet-1k pre-trained backbone weights adopted from GitHub repo:
+https://github.com/sithu31296/semantic-segmentation
 """
 
 
+# TODO: extract this block to src/super_gradients/modules/transformer_modules and reuse the same module of Beit and
+#       other ViTs
 class PatchEmbedding(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, patch_size: int, stride: int, padding: int):
         """
@@ -45,6 +48,8 @@ class PatchEmbedding(nn.Module):
         return x, h, w
 
 
+# TODO: extract this block to src/super_gradients/modules/transformer_modules and reuse the same module of Beit and
+#       other ViTs
 class EfficientSelfAttention(nn.Module):
     def __init__(self, dim: int, head: int, sr_ratio: int):
         """
@@ -144,13 +149,13 @@ class EncoderBlock(nn.Module):
 class MiTBackBone(nn.Module):
     def __init__(
         self,
-        embed_dims: list,
-        encoder_layers: list,
-        eff_self_att_reduction_ratio: list,
-        eff_self_att_heads: list,
-        overlap_patch_size: list,
-        overlap_patch_stride: list,
-        overlap_patch_pad: list,
+        embed_dims: List[int],
+        encoder_layers: List[int],
+        eff_self_att_reduction_ratio: List[int],
+        eff_self_att_heads: List[int],
+        overlap_patch_size: List[int],
+        overlap_patch_stride: List[int],
+        overlap_patch_pad: List[int],
         in_channels: int,
     ):
         """
@@ -237,8 +242,10 @@ class MiTBackBone(nn.Module):
         return features
 
 
+# TODO: extract this block to src/super_gradients/modules/transformer_modules and reuse the same module of Beit and
+#       other ViTs
 class MLP(nn.Module):
-    def __init__(self, dim, embed_dim):
+    def __init__(self, dim: int, embed_dim: int):
         """
         A single Linear layer, with shape pre-processing
         :param dim: input dimension
@@ -256,26 +263,8 @@ class MLP(nn.Module):
         return x
 
 
-class LinearFuse(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int):
-        """
-        A linear fusion block (conv + bn + relu) (https://arxiv.org/pdf/2105.15203.pdf)
-        :param in_channels: number of input channels
-        :param out_channels: number of output channels
-        """
-
-        super().__init__()
-
-        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, bias=False)
-        self.bn = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        return self.relu(self.bn(self.conv(x)))
-
-
 class SegFormerHead(nn.Module):
-    def __init__(self, encoder_dims: list, embed_dim: int, num_classes: int):
+    def __init__(self, encoder_dims: List[int], embed_dim: int, num_classes: int):
         """
         SegFormer decoder head (https://arxiv.org/pdf/2105.15203.pdf)
         :param encoder_dims: list of encoder embedding dimensions
@@ -289,7 +278,7 @@ class SegFormerHead(nn.Module):
             self.linear_layers.append(MLP(dim, embed_dim))
             self.add_module(f"linear_c{idx + 1}", self.linear_layers[idx])
 
-        self.linear_fuse = LinearFuse(in_channels=embed_dim * len(encoder_dims), out_channels=embed_dim)
+        self.linear_fuse = ConvBNReLU(in_channels=embed_dim * len(encoder_dims), out_channels=embed_dim, kernel_size=1, bias=False, inplace=True)
         self.linear_pred = nn.Conv2d(in_channels=embed_dim, out_channels=num_classes, kernel_size=1)
 
         self.dropout = nn.Dropout2d(0.1)
@@ -315,14 +304,14 @@ class SegFormer(SegmentationModule):
     def __init__(
         self,
         num_classes: int,
-        encoder_embed_dims: list,
-        encoder_layers: list,
-        eff_self_att_reduction_ratio: list,
-        eff_self_att_heads: list,
+        encoder_embed_dims: List[int],
+        encoder_layers: List[int],
+        eff_self_att_reduction_ratio: List[int],
+        eff_self_att_heads: List[int],
         decoder_embed_dim: int,
-        overlap_patch_size: list,
-        overlap_patch_stride: list,
-        overlap_patch_pad: list,
+        overlap_patch_size: List[int],
+        overlap_patch_stride: List[int],
+        overlap_patch_pad: List[int],
         in_channels: int = 3,
     ):
         """
@@ -425,7 +414,11 @@ class SegFormer(SegmentationModule):
 
 class SegFormerCustom(SegFormer):
     def __init__(self, arch_params: HpmStruct):
-        """Parse arch_params and translate the parameters to build the SegFormer architecture"""
+        """
+        Parse arch_params and translate the parameters to build the SegFormer architecture
+        :param arch_params: architecture parameters
+        """
+
         super().__init__(
             num_classes=arch_params.num_classes,
             encoder_embed_dims=arch_params.encoder_embed_dims,
@@ -476,6 +469,11 @@ DEFAULT_SEGFORMER_B5_PARAMS = {
 
 class SegFormerB0(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
+        """
+        SegFormer B0 architecture
+        :param arch_params: architecture parameters
+        """
+
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B0_PARAMS)
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
@@ -483,6 +481,11 @@ class SegFormerB0(SegFormerCustom):
 
 class SegFormerB1(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
+        """
+        SegFormer B1 architecture
+        :param arch_params: architecture parameters
+        """
+
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B1_PARAMS)
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
@@ -490,6 +493,11 @@ class SegFormerB1(SegFormerCustom):
 
 class SegFormerB2(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
+        """
+        SegFormer B2 architecture
+        :param arch_params: architecture parameters
+        """
+
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B2_PARAMS)
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
@@ -497,6 +505,11 @@ class SegFormerB2(SegFormerCustom):
 
 class SegFormerB3(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
+        """
+        SegFormer B3 architecture
+        :param arch_params: architecture parameters
+        """
+
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B3_PARAMS)
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
@@ -504,6 +517,11 @@ class SegFormerB3(SegFormerCustom):
 
 class SegFormerB4(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
+        """
+        SegFormer B4 architecture
+        :param arch_params: architecture parameters
+        """
+
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B4_PARAMS)
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
@@ -511,6 +529,11 @@ class SegFormerB4(SegFormerCustom):
 
 class SegFormerB5(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
+        """
+        SegFormer B5 architecture
+        :param arch_params: architecture parameters
+        """
+
         _arch_params = HpmStruct(**DEFAULT_SEGFORMER_B5_PARAMS)
         _arch_params.override(**arch_params.to_dict())
         super().__init__(_arch_params)
