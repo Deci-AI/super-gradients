@@ -26,7 +26,7 @@ load_checkpoint: False
 checkpoint_params:
   pretrained_weights: coco
 
-
+result_path: # By defaults saves results in checkpoints directory
 resume: False
 training_hyperparams:
   max_epochs: 100
@@ -39,6 +39,7 @@ training_hyperparams:
   phase_callbacks:
     - RoboflowResultCallback:
         dataset_name: ${dataset_name}
+        output_path: ${result_path}
   train_metrics_list:
     - DetectionMetrics:
         normalize_targets: True

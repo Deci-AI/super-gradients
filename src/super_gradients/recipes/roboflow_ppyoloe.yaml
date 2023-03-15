@@ -25,6 +25,7 @@ checkpoint_params:
   pretrained_weights: coco
 
 
+result_path: # By defaults saves results in checkpoints directory
 resume: False
 training_hyperparams:
   resume: ${resume}
@@ -38,6 +39,7 @@ training_hyperparams:
   phase_callbacks:
     - RoboflowResultCallback:
         dataset_name: ${dataset_name}
+        output_path: ${result_path}
   loss:
     ppyoloe_loss:
       num_classes: ${num_classes}

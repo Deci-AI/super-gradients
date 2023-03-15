@@ -695,8 +695,9 @@ class RoboflowResultCallback(Callback):
      one. The phase is VALIDATION_EPOCH_END to ensure all lr updates have been performed before calling this callback.
     """
 
-    def __init__(self, dataset_name: str):
+    def __init__(self, dataset_name: str, output_path: str):
         self.dataset_name = dataset_name
+        self.output_path = output_path
         super(RoboflowResultCallback, self).__init__()
 
     @multi_process_safe
@@ -704,8 +705,12 @@ class RoboflowResultCallback(Callback):
         import csv
         from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
 
-        output_dir = get_project_checkpoints_dir_path()
-        path = os.path.join(output_dir, "results.json")
+        if self.output_path is None:
+            output_dir = get_project_checkpoints_dir_path()
+            path = os.path.join(output_dir, "results.json")
+        else:
+            path = self.output_path
+
         with open(path, mode="a", newline="") as csv_file:
 
             csv.writer(csv_file).writerow([self.dataset_name, context.metrics_dict["mAP@0.50:0.95"].item()])
