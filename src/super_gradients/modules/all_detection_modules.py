@@ -8,6 +8,10 @@ from super_gradients.modules.detection_modules import (
     PANNeck,
     NHeads,
     SSDHead,
+    DownDeciYOLOStage,
+    UpDeciYOLOStage,
+    DeciYOLOStage,
+    DeciYOLOStem,
 )
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN
@@ -26,4 +30,8 @@ ALL_DETECTION_MODULES = {
     "CustomCSPPAN": CustomCSPPAN,
     "CSPResNetBackbone": CSPResNetBackbone,
     "DDRNet39Backbone": DDRNet39Backbone,
+    "DownDeciYOLOStage": DownDeciYOLOStage,
+    "UpDeciYOLOStage": UpDeciYOLOStage,
+    "DeciYOLOStage": DeciYOLOStage,
+    "DeciYOLOStem": DeciYOLOStem,
 }

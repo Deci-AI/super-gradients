@@ -111,3 +111,5 @@ heads:
 bn_eps: 1e-3
 bn_momentum: 0.03
 inplace_act: True
+
+_convert_: all
