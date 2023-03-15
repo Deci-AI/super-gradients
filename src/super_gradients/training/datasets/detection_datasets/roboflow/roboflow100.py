@@ -3,7 +3,8 @@ from typing import List, Dict, Union, Optional
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOFormattedDetectionDataset
-from super_gradients.training.datasets.detection_datasets.roboflow.utils import DATASETS_METADATA, DATASETS_CATEGORIES, get_dataset_metadata
+from super_gradients.training.datasets.detection_datasets.roboflow.utils import get_dataset_metadata
+from super_gradients.training.datasets.detection_datasets.roboflow.metadata import DATASETS_METADATA, DATASETS_CATEGORIES
 
 logger = get_logger(__name__)
 

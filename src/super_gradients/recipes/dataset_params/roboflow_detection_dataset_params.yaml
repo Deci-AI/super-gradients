@@ -15,15 +15,16 @@ train_dataset_params:
 #        input_dim: ${dataset_params.train_dataset_params.input_dim}
 #        prob: 1.
     - DetectionRandomAffine:
-        degrees: 10.                  # rotation degrees, randomly sampled from [-degrees, degrees]
+        degrees: 0.                  # rotation degrees, randomly sampled from [-degrees, degrees]
         translate: 0.1                # image translation fraction
-        scales: [ 0.1, 2 ]              # random rescale range (keeps size by padding/cropping) after mosaic transform.
-        shear: 2.0                    # shear degrees, randomly sampled from [-degrees, degrees]
+        scales: [ 0.5, 1.5 ]              # random rescale range (keeps size by padding/cropping) after mosaic transform.
+        shear: 0.0                    # shear degrees, randomly sampled from [-degrees, degrees]
         target_size: ${dataset_params.train_dataset_params.input_dim}
         filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
         wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
-        area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
+        area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when filter_box_candidates = True
         ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
+        border_value: 128
 #    - DetectionMixup:
 #        input_dim: ${dataset_params.train_dataset_params.input_dim}
 #        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
@@ -50,7 +51,7 @@ train_dataset_params:
 
 train_dataloader_params:
   shuffle: True
-  batch_size: 8
+  batch_size: 16
   num_workers: 0
   sampler:
   drop_last: False
@@ -82,7 +83,7 @@ val_dataset_params:
   verbose: 0
 
 val_dataloader_params:
-  batch_size: 32
+  batch_size: 64
   num_workers: 0
   sampler:
   drop_last: False
