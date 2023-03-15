@@ -7,13 +7,12 @@ from omegaconf import DictConfig
 from super_gradients.common.registry import register_detection_module
 from super_gradients.modules.detection_modules import BaseDetectionModule
 from super_gradients.training.models.detection_models.csp_darknet53 import width_multiplier
-from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell, bias_init_with_prob
+from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell, PPYOLOEHead
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from torch import nn, Tensor
 
 from super_gradients.modules import ConvBNAct, ConvBNReLU, RepVGGBlock
-from super_gradients.training.utils.version_utils import torch_version_is_greater_or_equal
 import super_gradients.common.factories.detection_modules_factory as det_factory
 
 
@@ -84,7 +83,7 @@ class CustomizableDFLHead(BaseDetectionModule):
 
 
 @register_detection_module("NDFLHeads")
-class NDFLHeads(BaseDetectionModule):
+class NDFLHeads(BaseDetectionModule, PPYOLOEHead):
     def __init__(
         self,
         num_classes: int,
@@ -159,18 +158,6 @@ class NDFLHeads(BaseDetectionModule):
             self.stride_tensor = stride_tensor
 
     @torch.jit.ignore
-    def replace_num_classes(self, num_classes: int):
-        bias_cls = bias_init_with_prob(0.01)
-        self.pred_cls = nn.ModuleList()
-        self.num_classes = num_classes
-
-        for in_c in self.in_channels:
-            predict_layer = nn.Conv2d(in_c, num_classes, 3, padding=1)
-            torch.nn.init.constant_(predict_layer.weight, 0.0)
-            torch.nn.init.constant_(predict_layer.bias, bias_cls)
-            self.pred_cls.append(predict_layer)
-
-    @torch.jit.ignore
     def forward_train(self, feats: Tuple[Tensor, ...]):
         anchors, anchor_points, num_anchors_list, stride_tensor = generate_anchors_for_grid_cell(
             feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset
@@ -230,33 +217,6 @@ class NDFLHeads(BaseDetectionModule):
 
         raw_predictions = cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor
         return decoded_predictions, raw_predictions
-
-    def _generate_anchors(self, feats=None, dtype=torch.float):
-        # just use in eval time
-        anchor_points = []
-        stride_tensor = []
-        for i, stride in enumerate(self.fpn_strides):
-            if feats is not None:
-                _, _, h, w = feats[i].shape
-            else:
-                h = int(self.eval_size[0] / stride)
-                w = int(self.eval_size[1] / stride)
-            shift_x = torch.arange(end=w) + self.grid_cell_offset
-            shift_y = torch.arange(end=h) + self.grid_cell_offset
-            if torch_version_is_greater_or_equal(1, 10):
-                shift_y, shift_x = torch.meshgrid(shift_y, shift_x, indexing="ij")
-            else:
-                shift_y, shift_x = torch.meshgrid(shift_y, shift_x)
-
-            anchor_point = torch.stack([shift_x, shift_y], dim=-1).to(dtype=dtype)
-            anchor_points.append(anchor_point.reshape([-1, 2]))
-            stride_tensor.append(torch.full([h * w, 1], stride, dtype=dtype))
-        anchor_points = torch.cat(anchor_points)
-        stride_tensor = torch.cat(stride_tensor)
-        if feats is not None:
-            anchor_points = anchor_points.to(feats[0].device)
-            stride_tensor = stride_tensor.to(feats[0].device)
-        return anchor_points, stride_tensor
 
     @property
     def out_channels(self):
