@@ -14,9 +14,6 @@ num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
 architecture: ppyoloe_m
 arch_params:
   num_classes: ${num_classes}
-#  yolo_type: 'yoloX'
-#  depth_mult: 0.67
-#  width_mult: 0.75
 
 
 train_dataloader: roboflow_train_yolox
