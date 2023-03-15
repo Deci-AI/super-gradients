@@ -56,7 +56,7 @@ dataset_params:
     root_dir: ${data_root_dir}
 
 experiment_name: ${architecture}_cityscapes
-ckpt_root_dir: /home/eran.shachar/PycharmProjects/super-gradients/checkpoints
+ckpt_root_dir:
 
 train_dataloader: cityscapes_train
 val_dataloader: cityscapes_val
@@ -67,7 +67,7 @@ arch_params:
   num_classes: 19
 
 checkpoint_params:
-  checkpoint_path: /home/eran.shachar/data/segformer_pretrained_weights/mit_b0.pth
+  checkpoint_path:
   load_backbone: True
   load_weights_only: True
   strict_load: no_key_matching
@@ -107,7 +107,7 @@ training_hyperparams:
   greater_metric_to_watch_is_better: True
 
 multi_gpu: DDP
-num_gpus: 3
+num_gpus: 4
 
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
