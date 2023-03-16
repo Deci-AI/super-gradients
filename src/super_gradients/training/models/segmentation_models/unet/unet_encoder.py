@@ -19,7 +19,7 @@ from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.type_factory import TypeFactory
 from super_gradients.common.data_types.enum import DownSampleMode
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.module_utils import make_downsample_module
+from super_gradients.modules.sampling import make_downsample_module
 
 logger = get_logger(__name__)
 
