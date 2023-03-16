@@ -8,21 +8,43 @@ from super_gradients.training.utils import HpmStruct
 import hydra
 
 
-# @register_model("deciyolo_s")
-# def DeciYoloS(num_classes: int):
-#     arch_params = load_arch_params("deciyolo_m_arch_params")
-#     arch_params = hydra.utils.instantiate(arch_params)
-#     arch_params["heads"][list(arch_params["heads"].keys())[0]]["num_classes"] = num_classes
-#     return CustomizableDetector(HpmStruct(**copy.deepcopy(arch_params))).cuda()
+@register_model()
+class DeciYoloS(CustomizableDetector):
+    def __init__(self, num_classes: int):
+        arch_params = load_arch_params("deciyolo_s_arch_params")
+        arch_params = hydra.utils.instantiate(arch_params)
+        arch_params["heads"][list(arch_params["heads"].keys())[0]]["num_classes"] = num_classes
+        super(DeciYoloS, self).__init__(HpmStruct(**copy.deepcopy(arch_params)))
+
+    @property
+    def num_classes(self):
+        return self.heads.num_classes
 
 
 @register_model()
-class DeciYoloS(CustomizableDetector):
+class DeciYoloM(CustomizableDetector):
     def __init__(self, num_classes: int):
         arch_params = load_arch_params("deciyolo_m_arch_params")
         arch_params = hydra.utils.instantiate(arch_params)
         arch_params["heads"][list(arch_params["heads"].keys())[0]]["num_classes"] = num_classes
-        super(DeciYoloS, self).__init__(HpmStruct(**copy.deepcopy(arch_params)))
+        super(DeciYoloM, self).__init__(HpmStruct(**copy.deepcopy(arch_params)))
+
+    @property
+    def num_classes(self):
+        return self.heads.num_classes
+
+
+@register_model()
+class DeciYoloL(CustomizableDetector):
+    def __init__(self, num_classes: int):
+        arch_params = load_arch_params("deciyolo_l_arch_params")
+        arch_params = hydra.utils.instantiate(arch_params)
+        arch_params["heads"][list(arch_params["heads"].keys())[0]]["num_classes"] = num_classes
+        super(DeciYoloL, self).__init__(HpmStruct(**copy.deepcopy(arch_params)))
+
+    @property
+    def num_classes(self):
+        return self.heads.num_classes
 
 
 if __name__ == "__main__":
