@@ -9,6 +9,8 @@ import numpy as np
 import psutil
 import torch
 from PIL import Image
+
+from super_gradients.common.registry.registry import register_sg_logger
 from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.code_save_decorator import saved_codes
@@ -27,6 +29,7 @@ LOGGER_LOGS_PREFIX = "logs"
 CONSOLE_LOGS_PREFIX = "console"
 
 
+@register_sg_logger("base_sg_logger")
 class BaseSGLogger(AbstractSGLogger):
     def __init__(
         self,

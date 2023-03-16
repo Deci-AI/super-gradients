@@ -1,7 +1,10 @@
-from super_gradients.training.utils import convert_to_tensor
 import torch
 import torchmetrics
 from torchmetrics import Metric
+
+from super_gradients.common.object_names import Metrics
+from super_gradients.common.registry.registry import register_metric
+from super_gradients.training.utils import convert_to_tensor
 
 
 def accuracy(output, target, topk=(1,)):
@@ -34,6 +37,7 @@ def accuracy(output, target, topk=(1,)):
     return res
 
 
+@register_metric(Metrics.ACCURACY)
 class Accuracy(torchmetrics.Accuracy):
     def __init__(self, dist_sync_on_step=False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
@@ -45,6 +49,7 @@ class Accuracy(torchmetrics.Accuracy):
         super().update(preds=preds.argmax(1), target=target)
 
 
+@register_metric(Metrics.TOP5)
 class Top5(Metric):
     def __init__(self, dist_sync_on_step=False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)

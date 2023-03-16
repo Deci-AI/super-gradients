@@ -12,6 +12,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import math
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.utils import get_param
 
@@ -186,6 +189,7 @@ class MobileNetV2(MobileNetBase):
                 m.bias.data.zero_()
 
 
+@register_model(Models.MOBILENET_V2)
 class MobileNetV2Base(MobileNetV2):
     def __init__(self, arch_params):
         """
@@ -201,6 +205,7 @@ class MobileNetV2Base(MobileNetV2):
         )
 
 
+@register_model(Models.MOBILE_NET_V2_135)
 class MobileNetV2_135(MobileNetV2):
     def __init__(self, arch_params):
         """
@@ -217,6 +222,7 @@ class MobileNetV2_135(MobileNetV2):
         )
 
 
+@register_model(Models.CUSTOM_MOBILENET_V2)
 class CustomMobileNetV2(MobileNetV2):
     def __init__(self, arch_params):
         """

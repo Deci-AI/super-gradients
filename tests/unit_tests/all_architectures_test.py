@@ -1,5 +1,5 @@
 import unittest
-from super_gradients.training.models.all_architectures import ARCHITECTURES
+from super_gradients.common.registry.registry import ARCHITECTURES
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.utils import HpmStruct
 import torch
