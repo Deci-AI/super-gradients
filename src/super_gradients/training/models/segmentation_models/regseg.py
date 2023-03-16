@@ -6,6 +6,9 @@ from typing import List
 
 import torch
 import torch.nn as nn
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.modules import ConvBNReLU
@@ -291,6 +294,7 @@ class RegSeg(SgModule):
         self.head = RegSegHead(self.decoder.out_channels, new_num_classes, head_config)
 
 
+@register_model(Models.REGSEG48)
 class RegSeg48(RegSeg):
     def __init__(self, arch_params: HpmStruct):
         num_classes = get_param(arch_params, "num_classes")

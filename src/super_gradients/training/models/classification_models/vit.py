@@ -8,9 +8,12 @@ Code adapted from https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorc
 
 import torch
 from torch import nn
+from einops import repeat
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param
-from einops import repeat
 
 
 class PatchEmbed(nn.Module):
@@ -195,6 +198,7 @@ class ViT(SgModule):
             self.head = nn.Linear(self.head.in_features, new_num_classes)
 
 
+@register_model(Models.VIT_BASE)
 class ViTBase(ViT):
     def __init__(self, arch_params, num_classes=None, backbone_mode=None):
         super(ViTBase, self).__init__(
@@ -212,6 +216,7 @@ class ViTBase(ViT):
         )
 
 
+@register_model(Models.VIT_LARGE)
 class ViTLarge(ViT):
     def __init__(self, arch_params, num_classes=None, backbone_mode=None):
         super(ViTLarge, self).__init__(
@@ -229,6 +234,7 @@ class ViTLarge(ViT):
         )
 
 
+@register_model(Models.VIT_HUGE)
 class ViTHuge(ViT):
     def __init__(self, arch_params, num_classes=None, backbone_mode=None):
         super(ViTHuge, self).__init__(

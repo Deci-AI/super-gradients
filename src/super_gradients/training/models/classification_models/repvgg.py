@@ -12,6 +12,8 @@ from typing import Union
 
 import torch.nn as nn
 
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.modules import RepVGGBlock, SEBlock
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
@@ -129,6 +131,7 @@ class RepVGG(SgModule):
             self.linear = nn.Linear(int(512 * self.final_width_mult), new_num_classes)
 
 
+@register_model(Models.REPVGG_CUSTOM)
 class RepVggCustom(RepVGG):
     def __init__(self, arch_params):
         super().__init__(
@@ -142,48 +145,56 @@ class RepVggCustom(RepVGG):
         )
 
 
+@register_model(Models.REPVGG_A0)
 class RepVggA0(RepVggCustom):
     def __init__(self, arch_params):
         arch_params.override(struct=[2, 4, 14, 1], width_multiplier=[0.75, 0.75, 0.75, 2.5])
         super().__init__(arch_params=arch_params)
 
 
+@register_model(Models.REPVGG_A1)
 class RepVggA1(RepVggCustom):
     def __init__(self, arch_params):
         arch_params.override(struct=[2, 4, 14, 1], width_multiplier=[1, 1, 1, 2.5])
         super().__init__(arch_params=arch_params)
 
 
+@register_model(Models.REPVGG_A2)
 class RepVggA2(RepVggCustom):
     def __init__(self, arch_params):
         arch_params.override(struct=[2, 4, 14, 1], width_multiplier=[1.5, 1.5, 1.5, 2.75])
         super().__init__(arch_params=arch_params)
 
 
+@register_model(Models.REPVGG_B0)
 class RepVggB0(RepVggCustom):
     def __init__(self, arch_params):
         arch_params.override(struct=[4, 6, 16, 1], width_multiplier=[1, 1, 1, 2.5])
         super().__init__(arch_params=arch_params)
 
 
+@register_model(Models.REPVGG_B1)
 class RepVggB1(RepVggCustom):
     def __init__(self, arch_params):
         arch_params.override(struct=[4, 6, 16, 1], width_multiplier=[2, 2, 2, 4])
         super().__init__(arch_params=arch_params)
 
 
+@register_model(Models.REPVGG_B2)
 class RepVggB2(RepVggCustom):
     def __init__(self, arch_params):
         arch_params.override(struct=[4, 6, 16, 1], width_multiplier=[2.5, 2.5, 2.5, 5])
         super().__init__(arch_params=arch_params)
 
 
+@register_model(Models.REPVGG_B3)
 class RepVggB3(RepVggCustom):
     def __init__(self, arch_params):
         arch_params.override(struct=[4, 6, 16, 1], width_multiplier=[3, 3, 3, 5])
         super().__init__(arch_params=arch_params)
 
 
+@register_model(Models.REPVGG_D2SE)
 class RepVggD2SE(RepVggCustom):
     def __init__(self, arch_params):
         arch_params.override(struct=[8, 14, 24, 1], width_multiplier=[2.5, 2.5, 2.5, 5])

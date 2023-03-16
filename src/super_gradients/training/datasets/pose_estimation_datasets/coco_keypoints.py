@@ -8,6 +8,8 @@ from pycocotools.coco import COCO
 from torch import Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.target_generator_factory import TargetGeneratorsFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
@@ -17,6 +19,7 @@ from super_gradients.training.transforms.keypoint_transforms import KeypointTran
 logger = get_logger(__name__)
 
 
+@register_dataset(Datasets.COCO_KEY_POINTS_DATASET)
 class COCOKeypointsDataset(BaseKeypointsDataset):
     """
     Dataset class for training pose estimation models on COCO Keypoints dataset.

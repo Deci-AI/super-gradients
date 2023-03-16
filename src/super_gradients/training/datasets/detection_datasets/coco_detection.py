@@ -7,6 +7,8 @@ from pycocotools.coco import COCO
 
 from contextlib import redirect_stdout
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
@@ -14,6 +16,7 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 logger = get_logger(__name__)
 
 
+@register_dataset(Datasets.COCO_DETECTION_DATASET)
 class COCODetectionDataset(DetectionDataset):
     """Dataset for COCO object detection.
 
