@@ -1,9 +1,9 @@
 from functools import partial
-from typing import Union, List, Type
+from typing import Union, List, Type, Tuple
 from abc import abstractmethod, ABC
 
 import torch
-from torch import nn
+from torch import nn as nn
 from omegaconf.listconfig import ListConfig
 from omegaconf import DictConfig
 
@@ -400,6 +400,7 @@ class SSDHead(BaseDetectionModule):
             return torch.cat((xy, wh, obj_conf, classes_conf), dim=2), (locs, confs)
 
 
+@register_detection_module()
 class DeciYOLOStem(BaseDetectionModule):
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__(in_channels)
@@ -414,6 +415,7 @@ class DeciYOLOStem(BaseDetectionModule):
         return self.conv(x)
 
 
+@register_detection_module()
 class DeciYOLOStage(BaseDetectionModule):
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
@@ -441,6 +443,7 @@ class DeciYOLOStage(BaseDetectionModule):
         return self.blocks(self.downsample(x))
 
 
+@register_detection_module()
 class UpDeciYOLOStage(BaseDetectionModule):
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
@@ -512,6 +515,7 @@ class UpDeciYOLOStage(BaseDetectionModule):
         return x_inter, x
 
 
+@register_detection_module()
 class DownDeciYOLOStage(BaseDetectionModule):
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
@@ -555,3 +559,20 @@ class DownDeciYOLOStage(BaseDetectionModule):
         x = torch.cat([x, skip_x], 1)
         x = self.blocks(x)
         return x
+
+
+@register_detection_module()
+class SPP(nn.Module):
+    # SPATIAL PYRAMID POOLING LAYER
+    @resolve_param("activation_type", ActivationsTypeFactory())
+    def __init__(self, input_channels, output_channels, k: Tuple, activation_type: Type[nn.Module]):
+        super().__init__()
+
+        hidden_channels = input_channels // 2
+        self.cv1 = Conv(input_channels, hidden_channels, 1, 1, activation_type)
+        self.cv2 = Conv(hidden_channels * (len(k) + 1), output_channels, 1, 1, activation_type)
+        self.m = nn.ModuleList([nn.MaxPool2d(kernel_size=x, stride=1, padding=x // 2) for x in k])
+
+    def forward(self, x):
+        x = self.cv1(x)
+        return self.cv2(torch.cat([x] + [m(x) for m in self.m], 1))

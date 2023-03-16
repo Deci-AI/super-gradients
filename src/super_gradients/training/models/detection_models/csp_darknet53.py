@@ -3,7 +3,7 @@ CSP Darknet
 
 """
 import math
-from typing import Tuple, Type
+from typing import Type
 
 import torch
 import torch.nn as nn
@@ -11,6 +11,7 @@ import torch.nn as nn
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.modules import Residual
+from super_gradients.modules.detection_modules import SPP
 from super_gradients.training.utils.utils import get_param, HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
@@ -156,21 +157,6 @@ class BottleneckCSP(nn.Module):
         y1 = self.cv3(self.m(self.cv1(x)))
         y2 = self.cv2(x)
         return self.cv4(self.act(self.bn(torch.cat((y1, y2), dim=1))))
-
-
-class SPP(nn.Module):
-    # SPATIAL PYRAMID POOLING LAYER
-    def __init__(self, input_channels, output_channels, k: Tuple, activation_type: Type[nn.Module]):
-        super().__init__()
-
-        hidden_channels = input_channels // 2
-        self.cv1 = Conv(input_channels, hidden_channels, 1, 1, activation_type)
-        self.cv2 = Conv(hidden_channels * (len(k) + 1), output_channels, 1, 1, activation_type)
-        self.m = nn.ModuleList([nn.MaxPool2d(kernel_size=x, stride=1, padding=x // 2) for x in k])
-
-    def forward(self, x):
-        x = self.cv1(x)
-        return self.cv2(torch.cat([x] + [m(x) for m in self.m], 1))
 
 
 class ViewModule(nn.Module):
