@@ -14,7 +14,7 @@ import torch.nn as nn
 
 from super_gradients.modules import RepVGGBlock, SEBlock
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.utils.module_utils import fuse_repvgg_blocks_residual_branches
+from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.utils.utils import get_param
 
 
