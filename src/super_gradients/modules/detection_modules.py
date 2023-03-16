@@ -13,7 +13,7 @@ from super_gradients.modules import QARepVGGBlock
 
 from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
 from super_gradients.training.models.detection_models.csp_darknet53 import width_multiplier, Conv
-from super_gradients.training.models.detection_models.deci_yolo.yolo_stages import CustomBlockCSPLayer
+from super_gradients.training.models.detection_models.deci_yolo.yolo_stages import DeciYOLOCSPLayer
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models import MobileNet, MobileNetV2
 from super_gradients.modules.multi_output_modules import MultiOutputModule
@@ -408,12 +408,18 @@ class DeciYOLOStem(BaseDetectionModule):
 class DeciYOLOStage(BaseDetectionModule):
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
-        self, in_channels: int, out_channels: int, num_blocks: int, activation_type: str, hidden_channels: int = None, concat_intermediates: bool = False
+        self,
+        in_channels: int,
+        out_channels: int,
+        num_blocks: int,
+        activation_type: Type[nn.Module],
+        hidden_channels: int = None,
+        concat_intermediates: bool = False,
     ):
         super().__init__(in_channels)
         self._out_channels = out_channels
         self.downsample = QARepVGGBlock(in_channels, out_channels, stride=2, activation_type=activation_type, use_residual_connection=False)
-        self.blocks = CustomBlockCSPLayer(
+        self.blocks = DeciYOLOCSPLayer(
             out_channels,
             out_channels,
             num_blocks,
@@ -432,7 +438,7 @@ class DeciYOLOStage(BaseDetectionModule):
         return self.blocks(self.downsample(x))
 
 
-class UpDeciYOLOStage(BaseDetectionModule):
+class DeciYOLOUpStage(BaseDetectionModule):
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
@@ -471,7 +477,7 @@ class UpDeciYOLOStage(BaseDetectionModule):
         self.reduce_after_concat = Conv(num_inputs * out_channels, out_channels, 1, 1, activation_type) if reduce_channels else nn.Identity()
 
         after_concat_channels = out_channels if reduce_channels else out_channels + skip_in_channels
-        self.blocks = CustomBlockCSPLayer(
+        self.blocks = DeciYOLOCSPLayer(
             after_concat_channels,
             out_channels,
             num_blocks,
@@ -503,7 +509,7 @@ class UpDeciYOLOStage(BaseDetectionModule):
         return x_inter, x
 
 
-class DownDeciYOLOStage(BaseDetectionModule):
+class DeciYOLODownStage(BaseDetectionModule):
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
@@ -524,7 +530,7 @@ class DownDeciYOLOStage(BaseDetectionModule):
 
         self.conv = Conv(in_channels, out_channels // 2, 3, 2, activation_type)
         after_concat_channels = out_channels // 2 + skip_in_channels
-        self.blocks = CustomBlockCSPLayer(
+        self.blocks = DeciYOLOCSPLayer(
             after_concat_channels,
             out_channels,
             num_blocks,

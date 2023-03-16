@@ -39,7 +39,7 @@ class SequentialWithIntermediates(nn.Sequential):
         return [super(SequentialWithIntermediates, self).forward(input)]
 
 
-class CustomBlockCSPLayer(nn.Module):
+class DeciYOLOCSPLayer(nn.Module):
     # TODO: Maybe merge with CSPLayer
     def __init__(
         self,
@@ -47,20 +47,22 @@ class CustomBlockCSPLayer(nn.Module):
         out_channels: int,
         num_bottlenecks: int,
         block_type: Type[nn.Module],
-        act: Type[nn.Module],
+        activation_type: Type[nn.Module],
         shortcut: bool = True,
         use_alpha: bool = True,
         expansion: float = 0.5,
         hidden_channels: int = None,
         concat_intermediates: bool = False,
     ):
-        super(CustomBlockCSPLayer, self).__init__()
+        super(DeciYOLOCSPLayer, self).__init__()
         if hidden_channels is None:
             hidden_channels = int(out_channels * expansion)
-        self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=act)
-        self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=act)
-        self.conv3 = Conv(hidden_channels * (2 + concat_intermediates * num_bottlenecks), out_channels, 1, stride=1, activation_type=act)
-        module_list = [CustomBlockBottleneck(hidden_channels, hidden_channels, block_type, act, shortcut, use_alpha) for _ in range(num_bottlenecks)]
+        self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
+        self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
+        self.conv3 = Conv(hidden_channels * (2 + concat_intermediates * num_bottlenecks), out_channels, 1, stride=1, activation_type=activation_type)
+        module_list = [
+            CustomBlockBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha) for _ in range(num_bottlenecks)
+        ]
         self.bottlenecks = SequentialWithIntermediates(concat_intermediates, *module_list)
 
     def forward(self, x):

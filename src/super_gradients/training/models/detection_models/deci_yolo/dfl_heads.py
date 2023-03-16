@@ -15,8 +15,8 @@ from super_gradients.training.utils import HpmStruct, torch_version_is_greater_o
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 
 
-@register_detection_module("CustomizableDFLHead")
-class CustomizableDFLHead(BaseDetectionModule):
+@register_detection_module("DeciYOLODFLHead")
+class DeciYOLODFLHead(BaseDetectionModule):
     def __init__(self, in_channels: int, inter_channels: int, width_mult: float, first_conv_group_size: int, num_classes: int, stride: int, reg_max: int):
         super().__init__(in_channels)
 

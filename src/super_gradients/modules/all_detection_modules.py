@@ -8,8 +8,8 @@ from super_gradients.modules.detection_modules import (
     PANNeck,
     NHeads,
     SSDHead,
-    DownDeciYOLOStage,
-    UpDeciYOLOStage,
+    DeciYOLODownStage,
+    DeciYOLOUpStage,
     DeciYOLOStage,
     DeciYOLOStem,
 )
@@ -30,8 +30,8 @@ ALL_DETECTION_MODULES = {
     "CustomCSPPAN": CustomCSPPAN,
     "CSPResNetBackbone": CSPResNetBackbone,
     "DDRNet39Backbone": DDRNet39Backbone,
-    "DownDeciYOLOStage": DownDeciYOLOStage,
-    "UpDeciYOLOStage": UpDeciYOLOStage,
+    "DeciYOLODownStage": DeciYOLODownStage,
+    "DeciYOLOUpStage": DeciYOLOUpStage,
     "DeciYOLOStage": DeciYOLOStage,
     "DeciYOLOStem": DeciYOLOStem,
 }
