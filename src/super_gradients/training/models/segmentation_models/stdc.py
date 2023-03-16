@@ -643,6 +643,8 @@ class STDC2Classification(STDCClassification):
 
 
 @register_model(Models.STDC1_SEG)
+@register_model(Models.STDC1_SEG50)
+@register_model(Models.STDC1_SEG75)
 class STDC1Seg(CustomSTDCSegmentation):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC1Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])
@@ -653,6 +655,8 @@ class STDC1Seg(CustomSTDCSegmentation):
 
 
 @register_model(Models.STDC2_SEG)
+@register_model(Models.STDC2_SEG50)
+@register_model(Models.STDC2_SEG75)
 class STDC2Seg(CustomSTDCSegmentation):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC2Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])

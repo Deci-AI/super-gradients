@@ -8,7 +8,7 @@ from super_gradients.common.object_names import Optimizers
 from super_gradients.common.registry.registry import register_optimizer
 
 
-@register_optimizer(Optimizers.LAMB)
+@register_optimizer(Optimizers.LION)
 class Lion(Optimizer):
     r"""Implements Lion algorithm.
     Generaly, it is recommended to divide lr used by AdamW by 10 and multiply the weight decay by 10.

@@ -597,6 +597,7 @@ class PhaseContextTestCallback(PhaseCallback):
         self.context = context
 
 
+@register_callback(Callbacks.DETECTION_VISUALIZATION_CALLBACK)
 class DetectionVisualizationCallback(PhaseCallback):
     """
     A callback that adds a visualization of a batch of detection predictions to context.sg_logger

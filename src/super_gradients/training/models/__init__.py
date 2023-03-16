@@ -67,6 +67,7 @@ from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_e import
 from super_gradients.training.models.detection_models.darknet53 import Darknet53, Darknet53Base
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolo_base import YoloBase, YoloPostPredictionCallback
+from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 
 # Segmentation models
@@ -201,6 +202,13 @@ __all__ = [
     "SSDMobileNetV1",
     "SSDLiteMobileNetV2",
     "YoloBase",
+    "YoloX_N",
+    "YoloX_T",
+    "YoloX_S",
+    "YoloX_M",
+    "YoloX_L",
+    "YoloX_X",
+    "CustomYoloX",
     "YoloPostPredictionCallback",
     "CustomizableDetector",
     "ShelfNet50",

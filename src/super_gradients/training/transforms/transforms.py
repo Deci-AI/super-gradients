@@ -420,6 +420,7 @@ class DetectionTransform:
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
 
+@register_transform(Transforms.DetectionStandardize)
 class DetectionStandardize(DetectionTransform):
     """
     Standardize image pixel values with img/max_val

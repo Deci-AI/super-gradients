@@ -295,6 +295,8 @@ class PPLiteSegBase(SegmentationModule):
 
 
 @register_model(Models.PP_LITE_B_SEG)
+@register_model(Models.PP_LITE_B_SEG50)
+@register_model(Models.PP_LITE_B_SEG75)
 class PPLiteSegB(PPLiteSegBase):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC2Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])
@@ -321,6 +323,8 @@ class PPLiteSegB(PPLiteSegBase):
 
 
 @register_model(Models.PP_LITE_T_SEG)
+@register_model(Models.PP_LITE_T_SEG50)
+@register_model(Models.PP_LITE_T_SEG75)
 class PPLiteSegT(PPLiteSegBase):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC1Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])
