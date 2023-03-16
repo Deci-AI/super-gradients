@@ -1,4 +1,6 @@
-# NOT WORKING
+# DRAFT. NOT WORKING.
+# There are some issues with the subprocesses + DDP + wandb, I am not sure exactly why, but also not sure if its worth investigating.
+
 import subprocess
 
 import sys
