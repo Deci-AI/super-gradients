@@ -9,36 +9,37 @@ backbone:
       - DeciYOLOStage:
           out_channels: 96
           num_blocks: 2
-          activation_type: nn.ReLU
+          activation_type: relu
           hidden_channels: 96
           concat_intermediates: True
 
       - DeciYOLOStage:
           out_channels: 192
           num_blocks: 3
-          activation_type: nn.ReLU
+          activation_type: relu
           hidden_channels: 128
           concat_intermediates: True
 
       - DeciYOLOStage:
           out_channels: 384
           num_blocks: 5
-          activation_type: nn.ReLU
+          activation_type: relu
           hidden_channels: 256
           concat_intermediates: True
 
       - DeciYOLOStage:
           out_channels: 768
           num_blocks: 2
-          activation_type: nn.ReLU
+          activation_type: relu
           hidden_channels: 512
           concat_intermediates: True
 
 
     context_module:
-      SPPF:
-        out_channels: 768
-        activation_type: ReLU
+      SPP:
+        output_channels: 768
+        activation_type: relu
+        k: [5,9,13]
 
     out_layers: [stage1, stage2, stage3, context_module]
 
@@ -46,40 +47,40 @@ neck:
   PANNeckWithC2:
 
     neck1:
-      UpDeciYOLOStage:
+      DeciYOLOUpStage:
         out_channels: 192
         num_blocks: 4
         hidden_channels: 128
         width_mult: 1
         depth_mult: 1
-        activation_type: nn.ReLU
+        activation_type: relu
         reduce_channels: True
 
     neck2:
-      UpDeciYOLOStage:
+      DeciYOLOUpStage:
         out_channels: 96
         num_blocks: 4
         hidden_channels: 128
         width_mult: 1
         depth_mult: 1
-        activation_type: nn.ReLU
+        activation_type: relu
         reduce_channels: True
 
     neck3:
-      DownDeciYOLOStage:
+      DeciYOLODownStage:
         out_channels: 192
         num_blocks: 4
         hidden_channels: 128
-        activation_type: nn.ReLU
+        activation_type: relu
         width_mult: 1
         depth_mult: 1
 
     neck4:
-      DownDeciYOLOStage:
+      DeciYOLODownStage:
         out_channels: 384
         num_blocks: 4
         hidden_channels: 256
-        activation_type: nn.ReLU
+        activation_type: relu
         width_mult: 1
         depth_mult: 1
 
@@ -89,25 +90,24 @@ heads:
     num_classes: 80
 
     heads_list:
-      - CustomizableDFLHead:
+      - DeciYOLODFLHead:
           inter_channels: 128
           width_mult: 1
-          conv_type: convbnrelu
           first_conv_group_size: 0
           stride: 8
-      - CustomizableDFLHead:
+      - DeciYOLODFLHead:
           inter_channels: 256
           width_mult: 1
-          conv_type: convbnrelu
           first_conv_group_size: 0
           stride: 16
-      - CustomizableDFLHead:
+      - DeciYOLODFLHead:
           inter_channels: 512
           width_mult: 1
-          conv_type: convbnrelu
           first_conv_group_size: 0
           stride: 32
 
 bn_eps: 1e-3
 bn_momentum: 0.03
 inplace_act: True
+
+_convert_: all

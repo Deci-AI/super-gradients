@@ -9,36 +9,37 @@ backbone:
       - DeciYOLOStage:
           out_channels: 96
           num_blocks: 2
-          activation_type: ReLU
+          activation_type: relu
           hidden_channels: 64
           concat_intermediates: True
 
       - DeciYOLOStage:
           out_channels: 192
           num_blocks: 3
-          activation_type: ReLU
+          activation_type: relu
           hidden_channels: 128
           concat_intermediates: True
 
       - DeciYOLOStage:
           out_channels: 384
           num_blocks: 5
-          activation_type: ReLU
+          activation_type: relu
           hidden_channels: 256
           concat_intermediates: True
 
       - DeciYOLOStage:
           out_channels: 768
           num_blocks: 2
-          activation_type: ReLU
+          activation_type: relu
           hidden_channels: 384
           concat_intermediates: False
 
 
     context_module:
-      SPPF:
-        out_channels: 768
-        activation_type: ReLU
+      SPP:
+        output_channels: 768
+        activation_type: relu
+        k: [5,9,13]
 
     out_layers: [stage1, stage2, stage3, context_module]
 
@@ -52,7 +53,7 @@ neck:
         hidden_channels: 192
         width_mult: 1
         depth_mult: 1
-        activation_type: ReLU
+        activation_type: relu
         reduce_channels: True
 
     neck2:
@@ -62,7 +63,7 @@ neck:
         hidden_channels: 64
         width_mult: 1
         depth_mult: 1
-        activation_type: ReLU
+        activation_type: relu
         reduce_channels: True
 
     neck3:
@@ -70,7 +71,7 @@ neck:
         out_channels: 192
         num_blocks: 2
         hidden_channels: 192
-        activation_type: ReLU
+        activation_type: relu
         width_mult: 1
         depth_mult: 1
 
@@ -79,7 +80,7 @@ neck:
         out_channels: 384
         num_blocks: 3
         hidden_channels: 256
-        activation_type: ReLU
+        activation_type: relu
         width_mult: 1
         depth_mult: 1
 

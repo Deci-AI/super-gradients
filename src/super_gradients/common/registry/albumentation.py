@@ -5,10 +5,13 @@ import inspect
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
+
+imported_albumentations_failure = None
+
 try:
     from albumentations import BasicTransform, BaseCompose
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.debug("Failed to import pytorch_quantization")
+    logger.debug("Failed to import albumentations")
     imported_albumentations_failure = import_err
 
 if imported_albumentations_failure is None:

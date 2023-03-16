@@ -1,44 +1,29 @@
-from functools import partial
-from typing import Union, List, Type, Tuple
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
+from typing import Union, List
 
 import torch
-from torch import nn as nn
-from omegaconf.listconfig import ListConfig
 from omegaconf import DictConfig
-
-from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
-from super_gradients.modules import QARepVGGBlock
-
+from omegaconf.listconfig import ListConfig
 from super_gradients.common.registry.registry import register_detection_module
-from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
-from super_gradients.training.models.detection_models.csp_darknet53 import width_multiplier, Conv
-from super_gradients.training.models.detection_models.deci_yolo.yolo_stages import CustomBlockCSPLayer
-from super_gradients.training.utils.utils import HpmStruct
-from super_gradients.training.models import MobileNet, MobileNetV2
+from super_gradients.modules.base_modules import BaseDetectionModule
 from super_gradients.modules.multi_output_modules import MultiOutputModule
+from super_gradients.training.models import MobileNet, MobileNetV2
+from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
+from super_gradients.training.utils.utils import HpmStruct
+from torch import nn
 
-
-class BaseDetectionModule(nn.Module, ABC):
-    """
-    An interface for a module that is easy to integrate into a model with complex connections
-    """
-
-    def __init__(self, in_channels: Union[List[int], int], **kwargs):
-        """
-        :param in_channels: defines channels of tensor(s) that will be accepted by a module in forward
-        """
-        super().__init__()
-        self.in_channels = in_channels
-
-    @property
-    @abstractmethod
-    def out_channels(self) -> Union[List[int], int]:
-        """
-        :return: channels of tensor(s) that will be returned by a module  in forward
-        """
-        raise NotImplementedError()
+__all__ = [
+    "PANNeck",
+    "NHeads",
+    "MultiOutputBackbone",
+    "NStageBackbone",
+    "MobileNetV1Backbone",
+    "MobileNetV2Backbone",
+    "SSDNeck",
+    "SSDInvertedResidualNeck",
+    "SSDBottleneckNeck",
+    "SSDHead",
+]
 
 
 @register_detection_module()
@@ -398,181 +383,3 @@ class SSDHead(BaseDetectionModule):
             obj_conf = torch.max(classes_conf, dim=2)[0].unsqueeze(dim=-1)
 
             return torch.cat((xy, wh, obj_conf, classes_conf), dim=2), (locs, confs)
-
-
-@register_detection_module()
-class DeciYOLOStem(BaseDetectionModule):
-    def __init__(self, in_channels: int, out_channels: int):
-        super().__init__(in_channels)
-        self._out_channels = out_channels
-        self.conv = QARepVGGBlock(in_channels, out_channels, stride=2, use_residual_connection=False)
-
-    @property
-    def out_channels(self):
-        return self._out_channels
-
-    def forward(self, x):
-        return self.conv(x)
-
-
-@register_detection_module()
-class DeciYOLOStage(BaseDetectionModule):
-    @resolve_param("activation_type", ActivationsTypeFactory())
-    def __init__(
-        self, in_channels: int, out_channels: int, num_blocks: int, activation_type: str, hidden_channels: int = None, concat_intermediates: bool = False
-    ):
-        super().__init__(in_channels)
-        self._out_channels = out_channels
-        self.downsample = QARepVGGBlock(in_channels, out_channels, stride=2, activation_type=activation_type, use_residual_connection=False)
-        self.blocks = CustomBlockCSPLayer(
-            out_channels,
-            out_channels,
-            num_blocks,
-            QARepVGGBlock,
-            activation_type,
-            True,
-            hidden_channels=hidden_channels,
-            concat_intermediates=concat_intermediates,
-        )
-
-    @property
-    def out_channels(self):
-        return self._out_channels
-
-    def forward(self, x):
-        return self.blocks(self.downsample(x))
-
-
-@register_detection_module()
-class UpDeciYOLOStage(BaseDetectionModule):
-    @resolve_param("activation_type", ActivationsTypeFactory())
-    def __init__(
-        self,
-        in_channels: List[int],
-        out_channels: int,
-        width_mult: float,
-        num_blocks: int,
-        depth_mult: float,
-        activation_type: Type[nn.Module],
-        hidden_channels: int = None,
-        concat_intermediates: bool = False,
-        reduce_channels: bool = False,
-    ):
-        super().__init__(in_channels)
-
-        num_inputs = len(in_channels)
-        if num_inputs == 2:
-            in_channels, skip_in_channels = in_channels
-        else:
-            in_channels, skip_in_channels1, skip_in_channels2 = in_channels
-            skip_in_channels = skip_in_channels1 + out_channels  # skip2 downsample results in out_channels channels
-        out_channels = width_multiplier(out_channels, width_mult, 8)
-        num_blocks = max(round(num_blocks * depth_mult), 1) if num_blocks > 1 else num_blocks
-
-        if num_inputs == 2:
-            self.reduce_skip = Conv(skip_in_channels, out_channels, 1, 1, activation_type) if reduce_channels else nn.Identity()
-        else:
-            self.reduce_skip1 = Conv(skip_in_channels1, out_channels, 1, 1, activation_type) if reduce_channels else nn.Identity()
-            self.reduce_skip2 = Conv(skip_in_channels2, out_channels, 1, 1, activation_type) if reduce_channels else nn.Identity()
-
-        self.conv = Conv(in_channels, out_channels, 1, 1, activation_type)
-        self.upsample = nn.ConvTranspose2d(in_channels=out_channels, out_channels=out_channels, kernel_size=2, stride=2)
-        if num_inputs == 3:
-            self.downsample = Conv(out_channels if reduce_channels else skip_in_channels2, out_channels, kernel=3, stride=2, activation_type=activation_type)
-
-        self.reduce_after_concat = Conv(num_inputs * out_channels, out_channels, 1, 1, activation_type) if reduce_channels else nn.Identity()
-
-        after_concat_channels = out_channels if reduce_channels else out_channels + skip_in_channels
-        self.blocks = CustomBlockCSPLayer(
-            after_concat_channels,
-            out_channels,
-            num_blocks,
-            QARepVGGBlock,
-            activation_type,
-            hidden_channels=hidden_channels,
-            concat_intermediates=concat_intermediates,
-        )
-
-        self._out_channels = [out_channels, out_channels]
-
-    @property
-    def out_channels(self):
-        return self._out_channels
-
-    def forward(self, inputs):
-        if len(inputs) == 2:
-            x, skip_x = inputs
-            skip_x = [self.reduce_skip(skip_x)]
-        else:
-            x, skip_x1, skip_x2 = inputs
-            skip_x1, skip_x2 = self.reduce_skip1(skip_x1), self.reduce_skip2(skip_x2)
-            skip_x = [skip_x1, self.downsample(skip_x2)]
-        x_inter = self.conv(x)
-        x = self.upsample(x_inter)
-        x = torch.cat([x, *skip_x], 1)
-        x = self.reduce_after_concat(x)
-        x = self.blocks(x)
-        return x_inter, x
-
-
-@register_detection_module()
-class DownDeciYOLOStage(BaseDetectionModule):
-    @resolve_param("activation_type", ActivationsTypeFactory())
-    def __init__(
-        self,
-        in_channels: List[int],
-        out_channels: int,
-        width_mult: float,
-        num_blocks: int,
-        depth_mult: float,
-        activation_type: Type[nn.Module],
-        hidden_channels: int = None,
-        concat_intermediates: bool = False,
-    ):
-        super().__init__(in_channels)
-
-        in_channels, skip_in_channels = in_channels
-        out_channels = width_multiplier(out_channels, width_mult, 8)
-        num_blocks = max(round(num_blocks * depth_mult), 1) if num_blocks > 1 else num_blocks
-
-        self.conv = Conv(in_channels, out_channels // 2, 3, 2, activation_type)
-        after_concat_channels = out_channels // 2 + skip_in_channels
-        self.blocks = CustomBlockCSPLayer(
-            after_concat_channels,
-            out_channels,
-            num_blocks,
-            partial(Conv, kernel=3, stride=1),
-            activation_type,
-            hidden_channels=hidden_channels,
-            concat_intermediates=concat_intermediates,
-        )
-
-        self._out_channels = out_channels
-
-    @property
-    def out_channels(self):
-        return self._out_channels
-
-    def forward(self, inputs):
-        x, skip_x = inputs
-        x = self.conv(x)
-        x = torch.cat([x, skip_x], 1)
-        x = self.blocks(x)
-        return x
-
-
-@register_detection_module()
-class SPP(nn.Module):
-    # SPATIAL PYRAMID POOLING LAYER
-    @resolve_param("activation_type", ActivationsTypeFactory())
-    def __init__(self, input_channels, output_channels, k: Tuple, activation_type: Type[nn.Module]):
-        super().__init__()
-
-        hidden_channels = input_channels // 2
-        self.cv1 = Conv(input_channels, hidden_channels, 1, 1, activation_type)
-        self.cv2 = Conv(hidden_channels * (len(k) + 1), output_channels, 1, 1, activation_type)
-        self.m = nn.ModuleList([nn.MaxPool2d(kernel_size=x, stride=1, padding=x // 2) for x in k])
-
-    def forward(self, x):
-        x = self.cv1(x)
-        return self.cv2(torch.cat([x] + [m(x) for m in self.m], 1))

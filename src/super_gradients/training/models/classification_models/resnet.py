@@ -14,15 +14,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
 
+from super_gradients.modules.utils import width_multiplier
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-
-
-def width_multiplier(original, factor):
-    return int(original * factor)
 
 
 class BasicBlock(nn.Module):
