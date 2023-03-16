@@ -35,6 +35,7 @@ from super_gradients.training.datasets.data_formats.bbox_formats.normalized_xywh
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyxy_to_xywh, xywh_to_xyxy, xywh_to_xyxy_inplace, xyxy_to_xywh_inplace
 from super_gradients.training.datasets.data_formats.bbox_formats.yxyx import xyxy_to_yxyx, xyxy_to_yxyx_inplace
 from super_gradients.training.datasets.data_formats.output_adapters.detection_adapter import ConvertBoundingBoxes
+from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import is_floating_point_array
 
 
 class BBoxFormatsTest(unittest.TestCase):
@@ -257,6 +258,14 @@ class BBoxFormatsTest(unittest.TestCase):
                     adapter_fname = os.path.join(tmpdirname, "adapter.onnx")
                     # Just test that export works, we test the correctness in the detection_output_adapter_test.py
                     torch.onnx.export(module, gt_bboxes.clone(), adapter_fname, opset_version=11)
+
+    def test_floating_point(self):
+        self.assertTrue(is_floating_point_array(np.zeros((32, 32), dtype=np.float16)))
+        self.assertTrue(is_floating_point_array(np.zeros((32, 32), dtype=np.float32)))
+        self.assertTrue(is_floating_point_array(np.zeros((32, 32), dtype=np.float64)))
+        self.assertFalse(is_floating_point_array(np.zeros((32, 32), dtype=int)))
+        self.assertFalse(is_floating_point_array(np.zeros((32, 32), dtype=np.int32)))
+        self.assertFalse(is_floating_point_array(np.zeros((32, 32), dtype=bool)))
 
 
 if __name__ == "__main__":

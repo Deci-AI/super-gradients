@@ -27,6 +27,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 from torch import Tensor
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models.classification_models.vit import PatchEmbed
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -451,6 +454,7 @@ class Beit(SgModule):
             self.head = nn.Linear(self.head.in_features, new_num_classes)
 
 
+@register_model(Models.BEIT_BASE_PATCH16_224)
 class BeitBasePatch16_224(Beit):
     def __init__(self, arch_params: HpmStruct):
         model_kwargs = HpmStruct(
@@ -460,6 +464,7 @@ class BeitBasePatch16_224(Beit):
         super(BeitBasePatch16_224, self).__init__(**model_kwargs.to_dict())
 
 
+@register_model(Models.BEIT_LARGE_PATCH16_224)
 class BeitLargePatch16_224(Beit):
     def __init__(self, arch_params: HpmStruct):
         model_kwargs = HpmStruct(

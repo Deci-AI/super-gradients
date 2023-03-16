@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 from torch import Tensor
 
+from super_gradients.common.registry.registry import register_target_generator
+
 __all__ = ["KeypointsTargetsGenerator", "DEKRTargetsGenerator"]
 
 
@@ -24,6 +26,7 @@ class KeypointsTargetsGenerator:
         raise NotImplementedError()
 
 
+@register_target_generator()
 class DEKRTargetsGenerator(KeypointsTargetsGenerator):
     """
     Target generator for pose estimation task tailored for the DEKR paper (https://arxiv.org/abs/2104.02300)
