@@ -29,7 +29,7 @@ result_path: # By defaults saves results in checkpoints directory
 resume: False
 training_hyperparams:
   resume: ${resume}
-  max_epochs: 3
+  max_epochs: 100
   mixed_precision: True
   criterion_params:
     num_classes: ${num_classes}
@@ -59,7 +59,7 @@ training_hyperparams:
           nms_threshold: 0.7
 #  sg_logger: "wandb_sg_logger"
 #  sg_logger_params:
-#    project_name: Roboflow100FullTraining
+#    project_name: Roboflow100Aerial
 #    entity: super-gradients
 #    api_server: "https://wandb.research.deci.ai"
 #    save_checkpoints_remote: True

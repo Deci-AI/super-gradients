@@ -1,5 +1,5 @@
-# Example: sh train.sh roboflow_ppyoloe results.csv
-# Note: tweeter-profile seems to be lacking data so it was removed
+# Example: CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 sh train.sh roboflow_ppyoloe results.csv
+# Note: tweeter-profile seems to be lacking data
 
 if [ -z "$1" ]
 then
@@ -18,6 +18,7 @@ counter=0
 configname="$1"
 outputfile="$2"
 datasets=$(pwd)/datasets.txt
+aggregated_results_path=$(pwd)/aggregated_results.csv
 
 outputfile_fullpath=$(pwd)/$outputfile
 echo "\nResults will be saved in ${outputfile_fullpath}"
@@ -30,4 +31,9 @@ awk -F "," '{print $1}' $datasets | while read dataset_name; do
 done
 
 echo "Results saved in ${outputfile_fullpath}"
+
+python aggregate_results_per_category.py --result-file=$outputfile_fullpath --output-file=$aggregated_results_path
+
+echo "Aggregated results saved in ${aggregated_results_path}"
+
 echo ">> DONE"
