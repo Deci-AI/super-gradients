@@ -9,12 +9,12 @@ import hydra
 
 
 @register_model()
-class DeciYoloS(CustomizableDetector):
+class DeciYolo_S(CustomizableDetector):
     def __init__(self, num_classes: int):
         arch_params = load_arch_params("deciyolo_s_arch_params")
         arch_params = hydra.utils.instantiate(arch_params)
         arch_params["heads"][list(arch_params["heads"].keys())[0]]["num_classes"] = num_classes
-        super(DeciYoloS, self).__init__(HpmStruct(**copy.deepcopy(arch_params)))
+        super(DeciYolo_S, self).__init__(HpmStruct(**copy.deepcopy(arch_params)))
 
     @property
     def num_classes(self):
@@ -22,12 +22,12 @@ class DeciYoloS(CustomizableDetector):
 
 
 @register_model()
-class DeciYoloM(CustomizableDetector):
+class DeciYolo_M(CustomizableDetector):
     def __init__(self, num_classes: int):
         arch_params = load_arch_params("deciyolo_m_arch_params")
         arch_params = hydra.utils.instantiate(arch_params)
         arch_params["heads"][list(arch_params["heads"].keys())[0]]["num_classes"] = num_classes
-        super(DeciYoloM, self).__init__(HpmStruct(**copy.deepcopy(arch_params)))
+        super(DeciYolo_M, self).__init__(HpmStruct(**copy.deepcopy(arch_params)))
 
     @property
     def num_classes(self):
@@ -35,12 +35,12 @@ class DeciYoloM(CustomizableDetector):
 
 
 @register_model()
-class DeciYoloL(CustomizableDetector):
+class DeciYolo_L(CustomizableDetector):
     def __init__(self, num_classes: int):
         arch_params = load_arch_params("deciyolo_l_arch_params")
         arch_params = hydra.utils.instantiate(arch_params)
         arch_params["heads"][list(arch_params["heads"].keys())[0]]["num_classes"] = num_classes
-        super(DeciYoloL, self).__init__(HpmStruct(**copy.deepcopy(arch_params)))
+        super(DeciYolo_L, self).__init__(HpmStruct(**copy.deepcopy(arch_params)))
 
     @property
     def num_classes(self):
@@ -48,7 +48,7 @@ class DeciYoloL(CustomizableDetector):
 
 
 if __name__ == "__main__":
-    model = DeciYoloS(num_classes=80)
+    model = DeciYolo_S(num_classes=80)
     # arch_params = hydra.utils.instantiate(load_arch_params("deciyolo_m_arch_params"))
     # model = CustomizableDetector(HpmStruct(**copy.deepcopy(arch_params))).cuda()
 

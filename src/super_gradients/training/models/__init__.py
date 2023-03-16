@@ -78,9 +78,9 @@ from super_gradients.training.models.detection_models.deci_yolo import (
     DeciYOLODFLHead,
     NDFLHeads,
     PANNeckWithC2,
-    DeciYoloS,
-    DeciYoloM,
-    DeciYoloL,
+    DeciYolo_S,
+    DeciYolo_M,
+    DeciYolo_L,
 )
 
 # Segmentation models
@@ -129,9 +129,9 @@ from super_gradients.common.registry.registry import ARCHITECTURES
 
 __all__ = [
     "SPP",
-    "DeciYoloS",
-    "DeciYoloM",
-    "DeciYoloL",
+    "DeciYolo_S",
+    "DeciYolo_M",
+    "DeciYolo_L",
     "DeciYOLOStage",
     "DeciYOLOUpStage",
     "DeciYOLOStem",

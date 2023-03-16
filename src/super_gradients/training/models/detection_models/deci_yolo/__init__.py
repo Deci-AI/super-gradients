@@ -9,7 +9,7 @@ from super_gradients.training.models.detection_models.deci_yolo.yolo_stages impo
     DeciYOLOUpStage,
     DeciYOLOBottleneck,
 )
-from super_gradients.training.models.detection_models.deci_yolo.deci_yolo import DeciYoloS, DeciYoloM, DeciYoloL
+from super_gradients.training.models.detection_models.deci_yolo.deci_yolo import DeciYolo_S, DeciYolo_M, DeciYolo_L
 
 __all__ = [
     "DeciYOLOBottleneck",
@@ -20,7 +20,7 @@ __all__ = [
     "NDFLHeads",
     "DeciYOLODFLHead",
     "PANNeckWithC2",
-    "DeciYoloS",
-    "DeciYoloM",
-    "DeciYoloL",
+    "DeciYolo_S",
+    "DeciYolo_M",
+    "DeciYolo_L",
 ]
