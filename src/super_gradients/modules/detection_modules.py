@@ -16,7 +16,7 @@ from super_gradients.training.models.detection_models.csp_darknet53 import width
 from super_gradients.training.models.detection_models.deci_yolo.yolo_stages import CustomBlockCSPLayer
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models import MobileNet, MobileNetV2
-from super_gradients.training.utils.module_utils import MultiOutputModule
+from super_gradients.modules.multi_output_modules import MultiOutputModule
 
 
 class BaseDetectionModule(nn.Module, ABC):
