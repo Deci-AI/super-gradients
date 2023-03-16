@@ -9,6 +9,16 @@ from super_gradients.training.models.detection_models.deci_yolo.yolo_stages impo
     DeciYOLOUpStage,
     DeciYOLOBottleneck,
 )
+from super_gradients.training.models.detection_models.deci_yolo.deci_yolo import DeciYoloS
 
-
-__all__ = ["DeciYOLOBottleneck", "DeciYOLOUpStage", "DeciYOLODownStage", "DeciYOLOStem", "DeciYOLOStage", "NDFLHeads", "DeciYOLODFLHead", "PANNeckWithC2"]
+__all__ = [
+    "DeciYOLOBottleneck",
+    "DeciYOLOUpStage",
+    "DeciYOLODownStage",
+    "DeciYOLOStem",
+    "DeciYOLOStage",
+    "NDFLHeads",
+    "DeciYOLODFLHead",
+    "PANNeckWithC2",
+    "DeciYoloS",
+]
