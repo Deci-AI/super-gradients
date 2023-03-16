@@ -16,12 +16,14 @@ from torch.utils.data import Dataset
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.training.utils.detection_utils import get_cls_posx_in_target, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_cls_posx_in_target
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform
+from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
 from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
+from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
 
 logger = get_logger(__name__)
 
@@ -71,16 +73,17 @@ class DetectionDataset(Dataset):
         self,
         data_dir: str,
         input_dim: Optional[Tuple[int, int]],
-        original_target_format: DetectionTargetsFormat,
+        original_target_format: Union[ConcatenatedTensorFormat, DetectionTargetsFormat],
         max_num_samples: int = None,
         cache: bool = False,
         cache_dir: str = None,
         transforms: List[DetectionTransform] = [],
-        all_classes_list: Optional[List[str]] = None,
+        all_classes_list: Optional[List[str]] = [],
         class_inclusion_list: Optional[List[str]] = None,
         ignore_empty_annotations: bool = True,
         target_fields: List[str] = None,
         output_fields: List[str] = None,
+        verbose: bool = True,
     ):
         """Detection dataset.
 
@@ -101,10 +104,18 @@ class DetectionDataset(Dataset):
         :param target_fields:                   List of the fields target fields. This has to include regular target,
                                                 but can also include crowd target, segmentation target, ...
                                                 It has to include at least "target" but can include other.
-        :paran output_fields:                   Fields that will be outputed by __getitem__.
+        :param output_fields:                   Fields that will be outputed by __getitem__.
                                                 It has to include at least "image" and "target" but can include other.
+        :param verbose:                 Whether to show additional information or not, such as loading progress.
         """
         super().__init__()
+        self.verbose = verbose
+
+        if isinstance(original_target_format, DetectionTargetsFormat):
+            logger.warning(
+                "Deprecation: original_target_format should be of type ConcatenatedTensorFormat instead of DetectionTargetsFormat."
+                "Support for DetectionTargetsFormat will be removed in 3.1"
+            )
 
         self.data_dir = data_dir
         if not Path(data_dir).exists():
@@ -125,10 +136,10 @@ class DetectionDataset(Dataset):
         if class_inclusion_list is not None and len(class_inclusion_list) != len(set(class_inclusion_list)):
             raise DatasetValidationException(f"class_inclusion_list contains duplicate class names: {collections.Counter(class_inclusion_list)}")
 
-        self.all_classes_list = all_classes_list
+        self.all_classes_list = all_classes_list or self._all_classes
         self.class_inclusion_list = class_inclusion_list
         self.classes = self.class_inclusion_list or self.all_classes_list
-        if len(set(self.classes) - set(all_classes_list)) > 0:
+        if len(set(self.classes) - set(self.all_classes_list)) > 0:
             wrong_classes = set(self.classes) - set(all_classes_list)
             raise DatasetValidationException(f"class_inclusion_list includes classes that are not in all_classes_list: {wrong_classes}")
 
@@ -150,6 +161,12 @@ class DetectionDataset(Dataset):
         if len(self.output_fields) < 2 or self.output_fields[0] != "image" or self.output_fields[1] != "target":
             raise ValueError('output_fields must start with "image" and then "target", followed by any other field')
 
+    @property
+    def _all_classes(self):
+        """Placeholder to setup the class names. This is an alternative to passing "all_classes_list" to __init__.
+        This is usefull when all_classes_list is not known in advance, only after loading the dataset."""
+        raise NotImplementedError
+
     def _setup_data_source(self) -> int:
         """Set up the data source and store relevant objects as attributes.
 
@@ -170,7 +187,7 @@ class DetectionDataset(Dataset):
         :return: List of annotations
         """
         annotations = []
-        for sample_id, img_id in enumerate(tqdm(range(self.n_available_samples), desc="Caching annotations")):
+        for sample_id, img_id in enumerate(tqdm(range(self.n_available_samples), desc="Caching annotations", disable=not self.verbose)):
 
             if self.max_num_samples is not None and len(annotations) >= self.max_num_samples:
                 break
@@ -262,7 +279,7 @@ class DetectionDataset(Dataset):
             cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="w+")
 
             # Store images in the placeholder
-            loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
+            loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self), disable=not self.verbose)
             for i, image in loaded_images_pbar:
                 cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
             cached_imgs.flush()
@@ -418,7 +435,11 @@ class DetectionDataset(Dataset):
         """
         plot_counter = 0
         input_format = self.output_target_format if plot_transformed_data else self.original_target_format
-        target_format_transform = DetectionTargetsFormatTransform(input_format=input_format, output_format=DetectionTargetsFormat.XYXY_LABEL)
+        if isinstance(input_format, DetectionTargetsFormat):
+            raise ValueError(
+                "Plot is not supported for DetectionTargetsFormat. Please set original_target_format to be an isntance of ConcatenateTransform instead."
+            )
+        target_format_transform = DetectionTargetsFormatTransform(input_format=input_format, output_format=XYXY_LABEL)
 
         for plot_i in range(n_plots):
             fig = plt.figure(figsize=(10, 10))

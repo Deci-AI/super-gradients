@@ -7,8 +7,9 @@ from omegaconf.listconfig import ListConfig
 from omegaconf import DictConfig
 
 from super_gradients.common.registry.registry import register_detection_module
+from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
 from super_gradients.training.utils.utils import HpmStruct
-from super_gradients.training.models import MobileNet, MobileNetV2, InvertedResidual
+from super_gradients.training.models import MobileNet, MobileNetV2
 from super_gradients.modules.multi_output_modules import MultiOutputModule
 
 
