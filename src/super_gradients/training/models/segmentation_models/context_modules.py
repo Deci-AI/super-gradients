@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 
 from super_gradients.modules import ConvBNReLU
-from super_gradients.training.utils.module_utils import UpsampleMode
+from super_gradients.modules.sampling import UpsampleMode
 from super_gradients.common.object_names import ContextModules
 
 
