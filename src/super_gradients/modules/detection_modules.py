@@ -11,6 +11,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.modules import QARepVGGBlock
 
+from super_gradients.common.registry.registry import register_detection_module
 from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
 from super_gradients.training.models.detection_models.csp_darknet53 import width_multiplier, Conv
 from super_gradients.training.models.detection_models.deci_yolo.yolo_stages import CustomBlockCSPLayer
@@ -40,6 +41,7 @@ class BaseDetectionModule(nn.Module, ABC):
         raise NotImplementedError()
 
 
+@register_detection_module()
 class NStageBackbone(BaseDetectionModule):
     """
     A backbone with a stem -> N stages -> context module
@@ -96,6 +98,7 @@ class NStageBackbone(BaseDetectionModule):
         return outputs
 
 
+@register_detection_module()
 class PANNeck(BaseDetectionModule):
     """
     A PAN (path aggregation network) neck with 4 stages (2 up-sampling and 2 down-sampling stages)
@@ -142,6 +145,7 @@ class PANNeck(BaseDetectionModule):
         return p3, p4, p5
 
 
+@register_detection_module()
 class NHeads(BaseDetectionModule):
     """
     Apply N heads in parallel and combine predictions into the shape expected by SG detection losses
@@ -204,6 +208,7 @@ class MultiOutputBackbone(BaseDetectionModule):
         return self.multi_output_backbone(x)
 
 
+@register_detection_module()
 class MobileNetV1Backbone(MultiOutputBackbone):
     """MobileNetV1 backbone with an option to return output of any layer"""
 
@@ -212,6 +217,7 @@ class MobileNetV1Backbone(MultiOutputBackbone):
         super().__init__(in_channels, backbone, out_layers)
 
 
+@register_detection_module()
 class MobileNetV2Backbone(MultiOutputBackbone):
     """MobileNetV2 backbone with an option to return output of any layer"""
 
@@ -261,6 +267,7 @@ class SSDNeck(BaseDetectionModule, ABC):
         return outputs
 
 
+@register_detection_module()
 class SSDInvertedResidualNeck(SSDNeck):
     """
     Consecutive InvertedResidual blocks each starting with stride 2
@@ -275,6 +282,7 @@ class SSDInvertedResidualNeck(SSDNeck):
         return neck_blocks
 
 
+@register_detection_module()
 class SSDBottleneckNeck(SSDNeck):
     """
     Consecutive bottleneck blocks
@@ -312,6 +320,7 @@ def SeperableConv2d(in_channels: int, out_channels: int, kernel_size: int = 1, s
     )
 
 
+@register_detection_module()
 class SSDHead(BaseDetectionModule):
     """
     A one-layer conv head attached to each input feature map.
