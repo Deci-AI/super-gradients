@@ -7,7 +7,7 @@ from super_gradients.modules import Residual
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv
 
 
-class CustomBlockBottleneck(nn.Module):
+class DeciYOLOBottleneck(nn.Module):
     def __init__(self, input_channels, output_channels, block_type: Type[nn.Module], activation_type: Type[nn.Module], shortcut: bool, use_alpha: bool):
         super().__init__()
 
@@ -40,7 +40,6 @@ class SequentialWithIntermediates(nn.Sequential):
 
 
 class DeciYOLOCSPLayer(nn.Module):
-    # TODO: Maybe merge with CSPLayer
     def __init__(
         self,
         in_channels: int,
@@ -60,9 +59,7 @@ class DeciYOLOCSPLayer(nn.Module):
         self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
         self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
         self.conv3 = Conv(hidden_channels * (2 + concat_intermediates * num_bottlenecks), out_channels, 1, stride=1, activation_type=activation_type)
-        module_list = [
-            CustomBlockBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha) for _ in range(num_bottlenecks)
-        ]
+        module_list = [DeciYOLOBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha) for _ in range(num_bottlenecks)]
         self.bottlenecks = SequentialWithIntermediates(concat_intermediates, *module_list)
 
     def forward(self, x):
