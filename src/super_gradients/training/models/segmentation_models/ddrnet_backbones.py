@@ -2,12 +2,14 @@ from typing import Tuple
 
 import torch
 
+from super_gradients.common.registry.registry import register_detection_module
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet39
 from super_gradients.training.utils import HpmStruct
 
 __all__ = ["DDRNet39Backbone"]
 
 
+@register_detection_module()
 class DDRNet39Backbone(DDRNet39):
     """
     A somewhat frankenstein version of the DDRNet39 model that tries to be a feature extractor module.

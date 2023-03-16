@@ -5,6 +5,8 @@ import scipy.io
 from PIL import Image
 from torch.utils.data import ConcatDataset
 
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -35,6 +37,7 @@ PASCAL_VOC_2012_CLASSES = [
 ]
 
 
+@register_dataset(Datasets.PASCAL_VOC_2012_SEGMENTATION_DATASET)
 class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
     """
     Segmentation Data Set Class for Pascal VOC 2012 Data Set.
@@ -173,6 +176,7 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
         )
 
 
+@register_dataset(Datasets.PASCAL_AUG_2012_SEGMENTATION_DATASET)
 class PascalAUG2012SegmentationDataSet(PascalVOC2012SegmentationDataSet):
     """
     Segmentation Data Set Class for Pascal AUG 2012 Data Set
@@ -218,6 +222,7 @@ class PascalAUG2012SegmentationDataSet(PascalVOC2012SegmentationDataSet):
         return Image.fromarray(mask)
 
 
+@register_dataset(Datasets.PASCAL_VOC_AND_AUG_UNIFIED_DATASET)
 class PascalVOCAndAUGUnifiedDataset(ConcatDataset):
     """
     Pascal VOC + AUG train dataset, aka `SBD` dataset contributed in "Semantic contours from inverse detectors".
