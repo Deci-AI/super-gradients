@@ -1,18 +1,17 @@
 import math
 from typing import Tuple, Union
 
+import super_gradients.common.factories.detection_modules_factory as det_factory
 import torch
 from omegaconf import DictConfig
-from torch import nn, Tensor
-
-import super_gradients.common.factories.detection_modules_factory as det_factory
 from super_gradients.common.registry import register_detection_module
 from super_gradients.modules import ConvBNReLU
-from super_gradients.modules.detection_modules import BaseDetectionModule
-from super_gradients.training.models.detection_models.csp_darknet53 import width_multiplier
-from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell, PPYOLOEHead
+from super_gradients.modules.base_modules import BaseDetectionModule
+from super_gradients.modules.utils import width_multiplier
+from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell
 from super_gradients.training.utils import HpmStruct, torch_version_is_greater_or_equal
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
+from torch import nn, Tensor
 
 
 @register_detection_module("DeciYOLODFLHead")
@@ -76,7 +75,7 @@ class DeciYOLODFLHead(BaseDetectionModule):
 
 
 @register_detection_module("NDFLHeads")
-class NDFLHeads(BaseDetectionModule, PPYOLOEHead):
+class NDFLHeads(BaseDetectionModule):
     def __init__(
         self,
         num_classes: int,
@@ -220,3 +219,30 @@ class NDFLHeads(BaseDetectionModule, PPYOLOEHead):
             return self.forward_train(feats)
         else:
             return self.forward_eval(feats)
+
+    def _generate_anchors(self, feats=None, dtype=torch.float):
+        # just use in eval time
+        anchor_points = []
+        stride_tensor = []
+        for i, stride in enumerate(self.fpn_strides):
+            if feats is not None:
+                _, _, h, w = feats[i].shape
+            else:
+                h = int(self.eval_size[0] / stride)
+                w = int(self.eval_size[1] / stride)
+            shift_x = torch.arange(end=w) + self.grid_cell_offset
+            shift_y = torch.arange(end=h) + self.grid_cell_offset
+            if torch_version_is_greater_or_equal(1, 10):
+                shift_y, shift_x = torch.meshgrid(shift_y, shift_x, indexing="ij")
+            else:
+                shift_y, shift_x = torch.meshgrid(shift_y, shift_x)
+
+            anchor_point = torch.stack([shift_x, shift_y], dim=-1).to(dtype=dtype)
+            anchor_points.append(anchor_point.reshape([-1, 2]))
+            stride_tensor.append(torch.full([h * w, 1], stride, dtype=dtype))
+        anchor_points = torch.cat(anchor_points)
+        stride_tensor = torch.cat(stride_tensor)
+        if feats is not None:
+            anchor_points = anchor_points.to(feats[0].device)
+            stride_tensor = stride_tensor.to(feats[0].device)
+        return anchor_points, stride_tensor
