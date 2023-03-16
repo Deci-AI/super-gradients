@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch
 
 from super_gradients.modules import ConvBNReLU, CrossModelSkipConnection, Residual
-from super_gradients.training.utils.module_utils import make_upsample_module
+from super_gradients.modules.sampling import make_upsample_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.type_factory import TypeFactory
