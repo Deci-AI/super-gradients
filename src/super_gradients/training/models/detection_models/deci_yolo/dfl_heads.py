@@ -15,7 +15,7 @@ from torch import nn, Tensor
 
 
 @register_detection_module("CustomizableDFLHead")
-class CustomizableDFLHead(BaseDetectionModule):
+class DeciYOLODFLHead(BaseDetectionModule):
     def __init__(self, in_channels: int, inter_channels: int, width_mult: float, first_conv_group_size: int, num_classes: int, stride: int, reg_max: int):
         super().__init__(in_channels)
 

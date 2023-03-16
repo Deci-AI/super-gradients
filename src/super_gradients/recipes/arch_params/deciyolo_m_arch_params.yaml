@@ -47,7 +47,7 @@ neck:
   PANNeckWithC2:
 
     neck1:
-      UpDeciYOLOStage:
+      DeciYOLOUpStage:
         out_channels: 192
         num_blocks: 2
         hidden_channels: 192
@@ -57,7 +57,7 @@ neck:
         reduce_channels: True
 
     neck2:
-      UpDeciYOLOStage:
+      DeciYOLOUpStage:
         out_channels: 96
         num_blocks: 3
         hidden_channels: 64
