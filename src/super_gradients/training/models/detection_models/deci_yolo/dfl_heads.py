@@ -8,7 +8,7 @@ from super_gradients.common.registry import register_detection_module
 from super_gradients.modules.detection_modules import BaseDetectionModule
 from super_gradients.training.models.detection_models.csp_darknet53 import width_multiplier
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell, PPYOLOEHead
-from super_gradients.training.utils import HpmStruct
+from super_gradients.training.utils import HpmStruct, torch_version_is_greater_or_equal
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from torch import nn, Tensor
 
@@ -77,7 +77,11 @@ class CustomizableDFLHead(BaseDetectionModule):
 
     @staticmethod
     def _make_grid(nx=20, ny=20):
-        yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
+        if torch_version_is_greater_or_equal(1, 10):
+            # https://github.com/pytorch/pytorch/issues/50276
+            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)], indexing="ij")
+        else:
+            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
