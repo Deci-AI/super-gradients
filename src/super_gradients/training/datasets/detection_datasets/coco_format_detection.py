@@ -15,8 +15,8 @@ logger = get_logger(__name__)
 
 
 class COCOFormattedDetectionDataset(DetectionDataset):
-    """Base dataset to load ANY dataset that is with a similar structure to the CoCo dataset.
-    - Annotation file (.json). It has to respect the exact same format as CoCo, for both the json schema and the bbox format (xywh).
+    """Base dataset to load ANY dataset that is with a similar structure to the COCO dataset.
+    - Annotation file (.json). It has to respect the exact same format as COCO, for both the json schema and the bbox format (xywh).
     - One folder with all the images.
     """
 
