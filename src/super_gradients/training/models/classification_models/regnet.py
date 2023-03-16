@@ -5,6 +5,7 @@ Implementation of paradigm described in paper published by Facebook AI Research 
 Code taken from: https://github.com/signatrix/regnet - MIT Licence
 """
 import numpy as np
+import torch
 import torch.nn as nn
 from math import sqrt
 
@@ -23,7 +24,7 @@ class Head(nn.Module):  # From figure 3
 
     def forward(self, x):
         x = self.pool(x)
-        x = x.view(x.size(0), -1)
+        x = torch.flatten(x, start_dim=1)
         x = self.dropout(x)
         x = self.fc(x)
         return x
