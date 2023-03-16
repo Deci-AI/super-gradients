@@ -5,7 +5,7 @@ defaults:
   - arch_params: ppyoloe_m_arch_params
   - _self_
 
-dataset_name: ???
+dataset_name: ??? # Placeholder for the name of the dataset you want to use (e.g. "digits-t2eg6")
 dataset_params:
   dataset_name: ${dataset_name}
 num_classes: ${roboflow_dataset_num_classes:${dataset_name}}

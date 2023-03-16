@@ -4,7 +4,7 @@ defaults:
   - checkpoint_params: default_checkpoint_params
   - _self_
 
-dataset_name: ???
+dataset_name: ??? # Placeholder for the name of the dataset you want to use (e.g. "digits-t2eg6")
 dataset_params:
   dataset_name: ${dataset_name}
 num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
@@ -56,14 +56,14 @@ training_hyperparams:
           iou: 0.65
           conf: 0.01
         num_cls: 80
-  sg_logger: "wandb_sg_logger"
-  sg_logger_params:
-    project_name: Roboflow100FullTraining
-    entity: super-gradients
-    api_server: "https://wandb.research.deci.ai"
-    save_checkpoints_remote: True
-    save_tensorboard_remote: True
-    save_logs_remote: True
+#  sg_logger: "wandb_sg_logger"
+#  sg_logger_params:
+#    project_name: Roboflow100FullTraining
+#    entity: super-gradients
+#    api_server: "https://wandb.research.deci.ai"
+#    save_checkpoints_remote: True
+#    save_tensorboard_remote: True
+#    save_logs_remote: True
 
 
 multi_gpu: DDP
