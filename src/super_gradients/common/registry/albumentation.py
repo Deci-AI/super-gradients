@@ -5,6 +5,9 @@ import inspect
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
+
+imported_albumentations_failure = None
+
 try:
     from albumentations import BasicTransform, BaseCompose
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
