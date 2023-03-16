@@ -7,7 +7,7 @@ from super_gradients.modules import Residual
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv
 
 
-class CustomBlockBottleneck(nn.Module):
+class DeciYOLOBottleneck(nn.Module):
     def __init__(self, input_channels, output_channels, block_type: Type[nn.Module], activation_type: Type[nn.Module], shortcut: bool, use_alpha: bool):
         super().__init__()
 
@@ -39,28 +39,27 @@ class SequentialWithIntermediates(nn.Sequential):
         return [super(SequentialWithIntermediates, self).forward(input)]
 
 
-class CustomBlockCSPLayer(nn.Module):
-    # TODO: Maybe merge with CSPLayer
+class DeciYOLOCSPLayer(nn.Module):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
         num_bottlenecks: int,
         block_type: Type[nn.Module],
-        act: Type[nn.Module],
+        activation_type: Type[nn.Module],
         shortcut: bool = True,
         use_alpha: bool = True,
         expansion: float = 0.5,
         hidden_channels: int = None,
         concat_intermediates: bool = False,
     ):
-        super(CustomBlockCSPLayer, self).__init__()
+        super(DeciYOLOCSPLayer, self).__init__()
         if hidden_channels is None:
             hidden_channels = int(out_channels * expansion)
-        self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=act)
-        self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=act)
-        self.conv3 = Conv(hidden_channels * (2 + concat_intermediates * num_bottlenecks), out_channels, 1, stride=1, activation_type=act)
-        module_list = [CustomBlockBottleneck(hidden_channels, hidden_channels, block_type, act, shortcut, use_alpha) for _ in range(num_bottlenecks)]
+        self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
+        self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
+        self.conv3 = Conv(hidden_channels * (2 + concat_intermediates * num_bottlenecks), out_channels, 1, stride=1, activation_type=activation_type)
+        module_list = [DeciYOLOBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha) for _ in range(num_bottlenecks)]
         self.bottlenecks = SequentialWithIntermediates(concat_intermediates, *module_list)
 
     def forward(self, x):
