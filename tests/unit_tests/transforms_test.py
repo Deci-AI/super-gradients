@@ -103,7 +103,7 @@ class TestTransforms(unittest.TestCase):
         self.assertEqual(output["image"].shape, (3, 480, 640))
 
     def test_detection_pad_to_size(self):
-        aug = DetectionPadToSize(output_size=(640, 640))
+        aug = DetectionPadToSize(output_size=(640, 640), pad_value=123)
         image = np.ones((512, 480, 3))
 
         # Boxes in format (x1, y1, x2, y2, class_id)
