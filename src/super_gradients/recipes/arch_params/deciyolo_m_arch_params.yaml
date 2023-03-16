@@ -67,7 +67,7 @@ neck:
         reduce_channels: True
 
     neck3:
-      DownDeciYOLOStage:
+      DeciYOLODownStage:
         out_channels: 192
         num_blocks: 2
         hidden_channels: 192
@@ -76,7 +76,7 @@ neck:
         depth_mult: 1
 
     neck4:
-      DownDeciYOLOStage:
+      DeciYOLODownStage:
         out_channels: 384
         num_blocks: 3
         hidden_channels: 256
