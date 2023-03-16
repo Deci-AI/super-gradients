@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Union, List
+from typing import Union, List, Type
 from abc import abstractmethod, ABC
 
 import torch
@@ -441,7 +441,7 @@ class UpDeciYOLOStage(BaseDetectionModule):
         width_mult: float,
         num_blocks: int,
         depth_mult: float,
-        activation_type: str,
+        activation_type: Type[nn.Module],
         hidden_channels: int = None,
         concat_intermediates: bool = False,
         reduce_channels: bool = False,
@@ -456,7 +456,6 @@ class UpDeciYOLOStage(BaseDetectionModule):
             skip_in_channels = skip_in_channels1 + out_channels  # skip2 downsample results in out_channels channels
         out_channels = width_multiplier(out_channels, width_mult, 8)
         num_blocks = max(round(num_blocks * depth_mult), 1) if num_blocks > 1 else num_blocks
-        assert issubclass(activation_type, nn.Module), "Typo in activation_func_type in XHead, use 'nn.TorchName'"
 
         if num_inputs == 2:
             self.reduce_skip = Conv(skip_in_channels, out_channels, 1, 1, activation_type) if reduce_channels else nn.Identity()
@@ -513,7 +512,7 @@ class DownDeciYOLOStage(BaseDetectionModule):
         width_mult: float,
         num_blocks: int,
         depth_mult: float,
-        activation_type: str,
+        activation_type: Type[nn.Module],
         hidden_channels: int = None,
         concat_intermediates: bool = False,
     ):
@@ -522,7 +521,6 @@ class DownDeciYOLOStage(BaseDetectionModule):
         in_channels, skip_in_channels = in_channels
         out_channels = width_multiplier(out_channels, width_mult, 8)
         num_blocks = max(round(num_blocks * depth_mult), 1) if num_blocks > 1 else num_blocks
-        assert issubclass(activation_type, nn.Module), "Typo in activation_func_type in XHead, use 'nn.TorchName'"
 
         self.conv = Conv(in_channels, out_channels // 2, 3, 2, activation_type)
         after_concat_channels = out_channels // 2 + skip_in_channels
