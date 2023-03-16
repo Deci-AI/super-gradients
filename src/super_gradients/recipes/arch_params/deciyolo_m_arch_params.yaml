@@ -86,21 +86,19 @@ neck:
 
 heads:
   NDFLHeads:
-
     num_classes: 80
-
     heads_list:
-      - CustomizableDFLHead:
+      - DeciYOLODFLHead:
           inter_channels: 128
           width_mult: 0.75
           first_conv_group_size: 0
           stride: 8
-      - CustomizableDFLHead:
+      - DeciYOLODFLHead:
           inter_channels: 256
           width_mult: 0.75
           first_conv_group_size: 0
           stride: 16
-      - CustomizableDFLHead:
+      - DeciYOLODFLHead:
           inter_channels: 512
           width_mult: 0.75
           first_conv_group_size: 0

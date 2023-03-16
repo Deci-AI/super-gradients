@@ -14,7 +14,7 @@ from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from torch import nn, Tensor
 
 
-@register_detection_module("CustomizableDFLHead")
+@register_detection_module()
 class DeciYOLODFLHead(BaseDetectionModule):
     def __init__(self, in_channels: int, inter_channels: int, width_mult: float, first_conv_group_size: int, num_classes: int, stride: int, reg_max: int):
         super().__init__(in_channels)
@@ -74,7 +74,7 @@ class DeciYOLODFLHead(BaseDetectionModule):
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
-@register_detection_module("NDFLHeads")
+@register_detection_module()
 class NDFLHeads(BaseDetectionModule):
     def __init__(
         self,
