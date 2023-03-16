@@ -1,26 +1,23 @@
+import math
 from typing import Tuple, Union
 
-import math
 import torch
 from omegaconf import DictConfig
+from torch import nn, Tensor
 
+import super_gradients.common.factories.detection_modules_factory as det_factory
 from super_gradients.common.registry import register_detection_module
+from super_gradients.modules import ConvBNReLU
 from super_gradients.modules.detection_modules import BaseDetectionModule
 from super_gradients.training.models.detection_models.csp_darknet53 import width_multiplier
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell, PPYOLOEHead
 from super_gradients.training.utils import HpmStruct, torch_version_is_greater_or_equal
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
-from torch import nn, Tensor
-
-from super_gradients.modules import ConvBNAct, ConvBNReLU, RepVGGBlock
-import super_gradients.common.factories.detection_modules_factory as det_factory
 
 
 @register_detection_module("CustomizableDFLHead")
 class CustomizableDFLHead(BaseDetectionModule):
-    def __init__(
-        self, in_channels: int, inter_channels: int, width_mult: float, first_conv_group_size: int, conv_type: str, num_classes: int, stride: int, reg_max: int
-    ):
+    def __init__(self, in_channels: int, inter_channels: int, width_mult: float, first_conv_group_size: int, num_classes: int, stride: int, reg_max: int):
         super().__init__(in_channels)
 
         inter_channels = width_multiplier(inter_channels, width_mult, 8)
@@ -31,20 +28,14 @@ class CustomizableDFLHead(BaseDetectionModule):
         else:
             groups = inter_channels // first_conv_group_size
 
-        conv_type = conv_type.lower()
-        Conv = {"convbnsilu": ConvBNAct, "convbnrelu": ConvBNReLU, "repvgg": RepVGGBlock}[conv_type]
-        ConvStem = Conv if conv_type != "repvgg" else ConvBNReLU
-        kwargs = {"bias": False} if conv_type != "repvgg" else {}  # 1x1 stem cannot be repvgg
-        kwargs = {"activation_type": nn.SiLU, **kwargs} if conv_type == "convbnsilu" else kwargs
-
         self.num_classes = num_classes
-        self.stem = ConvStem(in_channels, inter_channels, kernel_size=1, stride=1, padding=0, **kwargs)
+        self.stem = ConvBNReLU(in_channels, inter_channels, kernel_size=1, stride=1, padding=0, bias=False)
 
-        first_cls_conv = [Conv(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, **kwargs)] if groups else []
-        self.cls_convs = nn.Sequential(*first_cls_conv, Conv(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, **kwargs))
+        first_cls_conv = [ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
+        self.cls_convs = nn.Sequential(*first_cls_conv, ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
 
-        first_reg_conv = [Conv(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, **kwargs)] if groups else []
-        self.reg_convs = nn.Sequential(*first_reg_conv, Conv(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, **kwargs))
+        first_reg_conv = [ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
+        self.reg_convs = nn.Sequential(*first_reg_conv, ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
 
         self.cls_pred = nn.Conv2d(inter_channels, self.num_classes, 1, 1, 0)
         self.reg_pred = nn.Conv2d(inter_channels, 4 * (reg_max + 1), 1, 1, 0)
@@ -71,9 +62,8 @@ class CustomizableDFLHead(BaseDetectionModule):
         return reg_output, cls_output
 
     def _initialize_biases(self):
-        b = self.cls_pred.bias.view(1, -1)
-        b.data.fill_(-math.log((1 - self.prior_prob) / self.prior_prob))
-        self.cls_pred.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+        prior_bias = -math.log((1 - self.prior_prob) / self.prior_prob)
+        torch.nn.init.constant_(self.cls_pred.bias, prior_bias)
 
     @staticmethod
     def _make_grid(nx=20, ny=20):
