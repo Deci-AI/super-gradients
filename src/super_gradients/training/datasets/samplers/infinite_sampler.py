@@ -9,7 +9,11 @@ import torch.distributed as dist
 from torch.utils.data.sampler import Sampler
 from deprecate import deprecated
 
+from super_gradients.common.object_names import Samplers
+from super_gradients.common.registry.registry import register_sampler
 
+
+@register_sampler(Samplers.INFINITE)
 class InfiniteSampler(Sampler):
     """
     In training, we only care about the "infinite stream" of training data.

@@ -1,5 +1,5 @@
 from super_gradients.common.factories.base_factory import BaseFactory
-from super_gradients.training.utils.callbacks import CALLBACKS
+from super_gradients.common.registry.registry import CALLBACKS
 
 
 class CallbacksFactory(BaseFactory):

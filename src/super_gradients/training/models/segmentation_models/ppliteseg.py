@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 from typing import Union, List
 from super_gradients.modules import ConvBNReLU
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.modules.sampling import make_upsample_module
 from super_gradients.common.data_types.enum.upsample_mode import UpsampleMode
 from super_gradients.training.models.segmentation_models.stdc import AbstractSTDCBackbone, STDC1Backbone, STDC2Backbone
@@ -291,6 +294,9 @@ class PPLiteSegBase(SegmentationModule):
                 module.replace_num_classes(new_num_classes)
 
 
+@register_model(Models.PP_LITE_B_SEG)
+@register_model(Models.PP_LITE_B_SEG50)
+@register_model(Models.PP_LITE_B_SEG75)
 class PPLiteSegB(PPLiteSegBase):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC2Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])
@@ -316,6 +322,9 @@ class PPLiteSegB(PPLiteSegBase):
         )
 
 
+@register_model(Models.PP_LITE_T_SEG)
+@register_model(Models.PP_LITE_T_SEG50)
+@register_model(Models.PP_LITE_T_SEG75)
 class PPLiteSegT(PPLiteSegBase):
     def __init__(self, arch_params: HpmStruct):
         backbone = STDC1Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])

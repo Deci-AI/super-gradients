@@ -6,8 +6,10 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import torch
-from super_gradients.common.abstractions.abstract_logger import get_logger
 
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.registry.registry import register_sg_logger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 
@@ -22,6 +24,7 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     _imported_clear_ml_failure = import_err
 
 
+@register_sg_logger("clearml_sg_logger")
 class ClearMLSGLogger(BaseSGLogger):
     def __init__(
         self,

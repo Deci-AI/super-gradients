@@ -6,8 +6,10 @@ from super_gradients.common.factories.activations_type_factory import Activation
 from torch import nn, Tensor
 
 from super_gradients.modules.detection_modules import BaseDetectionModule
+from super_gradients.common.registry.registry import register_detection_module
 
 
+@register_detection_module()
 class LightweightDEKRHead(BaseDetectionModule):
     """
     Prediction head for pose estimation task that mimics approach from DEKR (https://arxiv.org/abs/2104.02300) paper,

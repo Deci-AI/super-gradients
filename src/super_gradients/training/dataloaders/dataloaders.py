@@ -2,19 +2,22 @@ from typing import Dict
 
 import hydra
 import numpy as np
-import super_gradients
 import torch
+from torch.utils.data import BatchSampler, DataLoader, TensorDataset
+
+import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.registry.registry import register_dataloader, ALL_DATALOADERS
 from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
 from super_gradients.common.factories.datasets_factory import DatasetsFactory
 from super_gradients.common.factories.samplers_factory import SamplersFactory
+from super_gradients.common.object_names import Dataloaders
 from super_gradients.training.datasets import ImageNetDataset
 from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar10,
     Cifar100,
 )
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
-from super_gradients.training.datasets.detection_datasets.roboflow import RoboflowDetectionDataset
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
     PascalVOCUnifiedDetectionTrainDataset,
     PascalVOCDetectionDataset,
@@ -35,7 +38,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 from super_gradients.training.utils.utils import override_default_params_without_nones
 from super_gradients.common.environment.cfg_utils import load_dataset_params
-from torch.utils.data import BatchSampler, DataLoader, TensorDataset
+
 
 logger = get_logger(__name__)
 
@@ -132,6 +135,7 @@ def _instantiate_sampler(dataset, dataloader_params):
     return dataloader_params
 
 
+@register_dataloader(Dataloaders.COCO2017_TRAIN)
 def coco2017_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_dataset_params",
@@ -142,6 +146,7 @@ def coco2017_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     )
 
 
+@register_dataloader(Dataloaders.COCO2017_VAL)
 def coco2017_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_dataset_params",
@@ -152,6 +157,7 @@ def coco2017_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     )
 
 
+@register_dataloader(Dataloaders.COCO2017_TRAIN_DECIYOLO)
 def coco2017_train_deci_yolo(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_deci_yolo_dataset_params",
@@ -162,6 +168,7 @@ def coco2017_train_deci_yolo(dataset_params: Dict = None, dataloader_params: Dic
     )
 
 
+@register_dataloader(Dataloaders.COCO2017_VAL_DECIYOLO)
 def coco2017_val_deci_yolo(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_deci_yolo_dataset_params",
@@ -172,6 +179,7 @@ def coco2017_val_deci_yolo(dataset_params: Dict = None, dataloader_params: Dict 
     )
 
 
+@register_dataloader(Dataloaders.COCO2017_TRAIN_PPYOLOE)
 def coco2017_train_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_ppyoloe_dataset_params",
@@ -182,6 +190,7 @@ def coco2017_train_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict 
     )
 
 
+@register_dataloader(Dataloaders.COCO2017_VAL_PPYOLOE)
 def coco2017_val_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_ppyoloe_dataset_params",
@@ -192,14 +201,17 @@ def coco2017_val_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict = 
     )
 
 
+@register_dataloader(Dataloaders.COCO2017_TRAIN_YOLOX)
 def coco2017_train_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
     return coco2017_train(dataset_params, dataloader_params)
 
 
+@register_dataloader(Dataloaders.COCO2017_VAL_YOLOX)
 def coco2017_val_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
     return coco2017_val(dataset_params, dataloader_params)
 
 
+@register_dataloader(Dataloaders.COCO2017_TRAIN_SSD_LITE_MOBILENET_V2)
 def coco2017_train_ssd_lite_mobilenet_v2(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_ssd_lite_mobilenet_v2_dataset_params",
@@ -210,6 +222,7 @@ def coco2017_train_ssd_lite_mobilenet_v2(dataset_params: Dict = None, dataloader
     )
 
 
+@register_dataloader(Dataloaders.COCO2017_VAL_SSD_LITE_MOBILENET_V2)
 def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_detection_ssd_lite_mobilenet_v2_dataset_params",
@@ -220,26 +233,7 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = None, dataloader_p
     )
 
 
-def roboflow_train_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
-    return get_data_loader(
-        config_name="roboflow_detection_dataset_params",
-        dataset_cls=RoboflowDetectionDataset,
-        train=True,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
-
-
-def roboflow_val_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
-    return get_data_loader(
-        config_name="roboflow_detection_dataset_params",
-        dataset_cls=RoboflowDetectionDataset,
-        train=False,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
-
-
+@register_dataloader(Dataloaders.IMAGENET_TRAIN)
 def imagenet_train(dataset_params=None, dataloader_params=None, config_name="imagenet_dataset_params"):
     return get_data_loader(
         config_name=config_name,
@@ -250,6 +244,7 @@ def imagenet_train(dataset_params=None, dataloader_params=None, config_name="ima
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_VAL)
 def imagenet_val(dataset_params=None, dataloader_params=None, config_name="imagenet_dataset_params"):
     return get_data_loader(
         config_name=config_name,
@@ -260,6 +255,7 @@ def imagenet_val(dataset_params=None, dataloader_params=None, config_name="image
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_EFFICIENTNET_TRAIN)
 def imagenet_efficientnet_train(dataset_params=None, dataloader_params=None):
     return imagenet_train(
         dataset_params,
@@ -268,6 +264,7 @@ def imagenet_efficientnet_train(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_EFFICIENTNET_VAL)
 def imagenet_efficientnet_val(dataset_params=None, dataloader_params=None):
     return imagenet_val(
         dataset_params,
@@ -276,6 +273,7 @@ def imagenet_efficientnet_val(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_MOBILENETV2_TRAIN)
 def imagenet_mobilenetv2_train(dataset_params=None, dataloader_params=None):
     return imagenet_train(
         dataset_params,
@@ -284,6 +282,7 @@ def imagenet_mobilenetv2_train(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_MOBILENETV2_VAL)
 def imagenet_mobilenetv2_val(dataset_params=None, dataloader_params=None):
     return imagenet_val(
         dataset_params,
@@ -292,6 +291,7 @@ def imagenet_mobilenetv2_val(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_MOBILENETV3_TRAIN)
 def imagenet_mobilenetv3_train(dataset_params=None, dataloader_params=None):
     return imagenet_train(
         dataset_params,
@@ -300,6 +300,7 @@ def imagenet_mobilenetv3_train(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_MOBILENETV3_VAL)
 def imagenet_mobilenetv3_val(dataset_params=None, dataloader_params=None):
     return imagenet_val(
         dataset_params,
@@ -308,14 +309,17 @@ def imagenet_mobilenetv3_val(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_REGNETY_TRAIN)
 def imagenet_regnetY_train(dataset_params=None, dataloader_params=None):
     return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_regnetY_dataset_params")
 
 
+@register_dataloader(Dataloaders.IMAGENET_REGNETY_VAL)
 def imagenet_regnetY_val(dataset_params=None, dataloader_params=None):
     return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_regnetY_dataset_params")
 
 
+@register_dataloader(Dataloaders.IMAGENET_RESNET50_TRAIN)
 def imagenet_resnet50_train(dataset_params=None, dataloader_params=None):
     return imagenet_train(
         dataset_params,
@@ -324,6 +328,7 @@ def imagenet_resnet50_train(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_RESNET50_VAL)
 def imagenet_resnet50_val(dataset_params=None, dataloader_params=None):
     return imagenet_val(
         dataset_params,
@@ -332,6 +337,7 @@ def imagenet_resnet50_val(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_RESNET50_KD_TRAIN)
 def imagenet_resnet50_kd_train(dataset_params=None, dataloader_params=None):
     return imagenet_train(
         dataset_params,
@@ -340,6 +346,7 @@ def imagenet_resnet50_kd_train(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_RESNET50_KD_VAL)
 def imagenet_resnet50_kd_val(dataset_params=None, dataloader_params=None):
     return imagenet_val(
         dataset_params,
@@ -348,6 +355,7 @@ def imagenet_resnet50_kd_val(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_VIT_BASE_TRAIN)
 def imagenet_vit_base_train(dataset_params=None, dataloader_params=None):
     return imagenet_train(
         dataset_params,
@@ -356,6 +364,7 @@ def imagenet_vit_base_train(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.IMAGENET_VIT_BASE_VAL)
 def imagenet_vit_base_val(dataset_params=None, dataloader_params=None):
     return imagenet_val(
         dataset_params,
@@ -364,6 +373,7 @@ def imagenet_vit_base_val(dataset_params=None, dataloader_params=None):
     )
 
 
+@register_dataloader(Dataloaders.TINY_IMAGENET_TRAIN)
 def tiny_imagenet_train(
     dataset_params=None,
     dataloader_params=None,
@@ -378,6 +388,7 @@ def tiny_imagenet_train(
     )
 
 
+@register_dataloader(Dataloaders.TINY_IMAGENET_VAL)
 def tiny_imagenet_val(
     dataset_params=None,
     dataloader_params=None,
@@ -392,6 +403,7 @@ def tiny_imagenet_val(
     )
 
 
+@register_dataloader(Dataloaders.CIFAR10_TRAIN)
 def cifar10_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cifar10_dataset_params",
@@ -402,6 +414,7 @@ def cifar10_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     )
 
 
+@register_dataloader(Dataloaders.CIFAR10_VAL)
 def cifar10_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cifar10_dataset_params",
@@ -412,6 +425,7 @@ def cifar10_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     )
 
 
+@register_dataloader(Dataloaders.CIFAR100_TRAIN)
 def cifar100_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cifar100_dataset_params",
@@ -422,6 +436,7 @@ def cifar100_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     )
 
 
+@register_dataloader(Dataloaders.CIFAR100_VAL)
 def cifar100_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cifar100_dataset_params",
@@ -456,6 +471,7 @@ def segmentation_test_dataloader(batch_size: int = 5, image_size: int = 512, dat
     return DataLoader(dataset=dataset, batch_size=batch_size)
 
 
+@register_dataloader(Dataloaders.CITYSCAPES_TRAIN)
 def cityscapes_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cityscapes_dataset_params",
@@ -466,6 +482,7 @@ def cityscapes_train(dataset_params: Dict = None, dataloader_params: Dict = None
     )
 
 
+@register_dataloader(Dataloaders.CITYSCAPES_VAL)
 def cityscapes_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cityscapes_dataset_params",
@@ -476,6 +493,7 @@ def cityscapes_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     )
 
 
+@register_dataloader(Dataloaders.CITYSCAPES_STDC_SEG50_TRAIN)
 def cityscapes_stdc_seg50_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cityscapes_stdc_seg50_dataset_params",
@@ -486,6 +504,7 @@ def cityscapes_stdc_seg50_train(dataset_params: Dict = None, dataloader_params: 
     )
 
 
+@register_dataloader(Dataloaders.CITYSCAPES_STDC_SEG50_VAL)
 def cityscapes_stdc_seg50_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cityscapes_stdc_seg50_dataset_params",
@@ -496,6 +515,7 @@ def cityscapes_stdc_seg50_val(dataset_params: Dict = None, dataloader_params: Di
     )
 
 
+@register_dataloader(Dataloaders.CITYSCAPES_STDC_SEG75_TRAIN)
 def cityscapes_stdc_seg75_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cityscapes_stdc_seg75_dataset_params",
@@ -506,6 +526,7 @@ def cityscapes_stdc_seg75_train(dataset_params: Dict = None, dataloader_params: 
     )
 
 
+@register_dataloader(Dataloaders.CITYSCAPES_STDC_SEG75_VAL)
 def cityscapes_stdc_seg75_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cityscapes_stdc_seg75_dataset_params",
@@ -516,6 +537,7 @@ def cityscapes_stdc_seg75_val(dataset_params: Dict = None, dataloader_params: Di
     )
 
 
+@register_dataloader(Dataloaders.CITYSCAPES_REGSEG48_TRAIN)
 def cityscapes_regseg48_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cityscapes_regseg48_dataset_params",
@@ -526,6 +548,7 @@ def cityscapes_regseg48_train(dataset_params: Dict = None, dataloader_params: Di
     )
 
 
+@register_dataloader(Dataloaders.CITYSCAPES_REGSEG48_VAL)
 def cityscapes_regseg48_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cityscapes_regseg48_dataset_params",
@@ -536,6 +559,7 @@ def cityscapes_regseg48_val(dataset_params: Dict = None, dataloader_params: Dict
     )
 
 
+@register_dataloader(Dataloaders.CITYSCAPES_DDRNET_TRAIN)
 def cityscapes_ddrnet_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cityscapes_ddrnet_dataset_params",
@@ -546,6 +570,7 @@ def cityscapes_ddrnet_train(dataset_params: Dict = None, dataloader_params: Dict
     )
 
 
+@register_dataloader(Dataloaders.CITYSCAPES_DDRNET_VAL)
 def cityscapes_ddrnet_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="cityscapes_ddrnet_dataset_params",
@@ -556,6 +581,7 @@ def cityscapes_ddrnet_val(dataset_params: Dict = None, dataloader_params: Dict =
     )
 
 
+@register_dataloader(Dataloaders.COCO_SEGMENTATION_TRAIN)
 def coco_segmentation_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_segmentation_dataset_params",
@@ -566,6 +592,7 @@ def coco_segmentation_train(dataset_params: Dict = None, dataloader_params: Dict
     )
 
 
+@register_dataloader(Dataloaders.COCO_SEGMENTATION_VAL)
 def coco_segmentation_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_segmentation_dataset_params",
@@ -576,6 +603,7 @@ def coco_segmentation_val(dataset_params: Dict = None, dataloader_params: Dict =
     )
 
 
+@register_dataloader(Dataloaders.PASCAL_AUG_SEGMENTATION_TRAIN)
 def pascal_aug_segmentation_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="pascal_aug_segmentation_dataset_params",
@@ -586,10 +614,12 @@ def pascal_aug_segmentation_train(dataset_params: Dict = None, dataloader_params
     )
 
 
+@register_dataloader(Dataloaders.PASCAL_AUG_SEGMENTATION_VAL)
 def pascal_aug_segmentation_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return pascal_voc_segmentation_val(dataset_params=dataset_params, dataloader_params=dataloader_params)
 
 
+@register_dataloader(Dataloaders.PASCAL_VOC_SEGMENTATION_TRAIN)
 def pascal_voc_segmentation_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="pascal_voc_segmentation_dataset_params",
@@ -600,6 +630,7 @@ def pascal_voc_segmentation_train(dataset_params: Dict = None, dataloader_params
     )
 
 
+@register_dataloader(Dataloaders.PASCAL_VOC_SEGMENTATION_VAL)
 def pascal_voc_segmentation_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="pascal_voc_segmentation_dataset_params",
@@ -610,6 +641,7 @@ def pascal_voc_segmentation_val(dataset_params: Dict = None, dataloader_params: 
     )
 
 
+@register_dataloader(Dataloaders.SUPERVISELY_PERSONS_TRAIN)
 def supervisely_persons_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="supervisely_persons_dataset_params",
@@ -620,6 +652,7 @@ def supervisely_persons_train(dataset_params: Dict = None, dataloader_params: Di
     )
 
 
+@register_dataloader(Dataloaders.SUPERVISELY_PERSONS_VAL)
 def supervisely_persons_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="supervisely_persons_dataset_params",
@@ -630,6 +663,7 @@ def supervisely_persons_val(dataset_params: Dict = None, dataloader_params: Dict
     )
 
 
+@register_dataloader(Dataloaders.MAPILLARY_TRAIN)
 def mapillary_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="mapillary_dataset_params",
@@ -640,6 +674,7 @@ def mapillary_train(dataset_params: Dict = None, dataloader_params: Dict = None)
     )
 
 
+@register_dataloader(Dataloaders.MAPILLARY_VAL)
 def mapillary_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="mapillary_dataset_params",
@@ -650,6 +685,7 @@ def mapillary_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     )
 
 
+@register_dataloader(Dataloaders.PASCAL_VOC_DETECTION_TRAIN)
 def pascal_voc_detection_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="pascal_voc_detection_dataset_params",
@@ -660,6 +696,7 @@ def pascal_voc_detection_train(dataset_params: Dict = None, dataloader_params: D
     )
 
 
+@register_dataloader(Dataloaders.PASCAL_VOC_DETECTION_VAL)
 def pascal_voc_detection_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="pascal_voc_detection_dataset_params",
@@ -670,6 +707,7 @@ def pascal_voc_detection_val(dataset_params: Dict = None, dataloader_params: Dic
     )
 
 
+@register_dataloader(Dataloaders.COCO2017_POSE_TRAIN)
 def coco2017_pose_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_pose_estimation_dataset_params",
@@ -680,6 +718,7 @@ def coco2017_pose_train(dataset_params: Dict = None, dataloader_params: Dict = N
     )
 
 
+@register_dataloader(Dataloaders.COCO2017_POSE_VAL)
 def coco2017_pose_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="coco_pose_estimation_dataset_params",
@@ -688,68 +727,6 @@ def coco2017_pose_val(dataset_params: Dict = None, dataloader_params: Dict = Non
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
     )
-
-
-ALL_DATALOADERS = {
-    "coco2017_train": coco2017_train,
-    "coco2017_val": coco2017_val,
-    "coco2017_train_yolox": coco2017_train_yolox,
-    "coco2017_val_yolox": coco2017_val_yolox,
-    "coco2017_train_ppyoloe": coco2017_train_ppyoloe,
-    "coco2017_val_ppyoloe": coco2017_val_ppyoloe,
-    "coco2017_train_ssd_lite_mobilenet_v2": coco2017_train_ssd_lite_mobilenet_v2,
-    "coco2017_val_ssd_lite_mobilenet_v2": coco2017_val_ssd_lite_mobilenet_v2,
-    "roboflow_train_yolox": roboflow_train_yolox,
-    "roboflow_val_yolox": roboflow_val_yolox,
-    "coco2017_pose_train": coco2017_pose_train,
-    "coco2017_pose_val": coco2017_pose_val,
-    "coco2017_train_deci_yolo": coco2017_train_deci_yolo,
-    "coco2017_val_deci_yolo": coco2017_val_deci_yolo,
-    "imagenet_train": imagenet_train,
-    "imagenet_val": imagenet_val,
-    "imagenet_efficientnet_train": imagenet_efficientnet_train,
-    "imagenet_efficientnet_val": imagenet_efficientnet_val,
-    "imagenet_mobilenetv2_train": imagenet_mobilenetv2_train,
-    "imagenet_mobilenetv2_val": imagenet_mobilenetv2_val,
-    "imagenet_mobilenetv3_train": imagenet_mobilenetv3_train,
-    "imagenet_mobilenetv3_val": imagenet_mobilenetv3_val,
-    "imagenet_regnetY_train": imagenet_regnetY_train,
-    "imagenet_regnetY_val": imagenet_regnetY_val,
-    "imagenet_resnet50_train": imagenet_resnet50_train,
-    "imagenet_resnet50_val": imagenet_resnet50_val,
-    "imagenet_resnet50_kd_train": imagenet_resnet50_kd_train,
-    "imagenet_resnet50_kd_val": imagenet_resnet50_kd_val,
-    "imagenet_vit_base_train": imagenet_vit_base_train,
-    "imagenet_vit_base_val": imagenet_vit_base_val,
-    "tiny_imagenet_train": tiny_imagenet_train,
-    "tiny_imagenet_val": tiny_imagenet_val,
-    "cifar10_train": cifar10_train,
-    "cifar10_val": cifar10_val,
-    "cifar100_train": cifar100_train,
-    "cifar100_val": cifar100_val,
-    "cityscapes_train": cityscapes_train,
-    "cityscapes_val": cityscapes_val,
-    "cityscapes_stdc_seg50_train": cityscapes_stdc_seg50_train,
-    "cityscapes_stdc_seg50_val": cityscapes_stdc_seg50_val,
-    "cityscapes_stdc_seg75_train": cityscapes_stdc_seg75_train,
-    "cityscapes_stdc_seg75_val": cityscapes_stdc_seg75_val,
-    "cityscapes_regseg48_train": cityscapes_regseg48_train,
-    "cityscapes_regseg48_val": cityscapes_regseg48_val,
-    "cityscapes_ddrnet_train": cityscapes_ddrnet_train,
-    "cityscapes_ddrnet_val": cityscapes_ddrnet_val,
-    "coco_segmentation_train": coco_segmentation_train,
-    "coco_segmentation_val": coco_segmentation_val,
-    "mapillary_train": mapillary_train,
-    "mapillary_val": mapillary_val,
-    "pascal_aug_segmentation_train": pascal_aug_segmentation_train,
-    "pascal_aug_segmentation_val": pascal_aug_segmentation_val,
-    "pascal_voc_segmentation_train": pascal_voc_segmentation_train,
-    "pascal_voc_segmentation_val": pascal_voc_segmentation_val,
-    "supervisely_persons_train": supervisely_persons_train,
-    "supervisely_persons_val": supervisely_persons_val,
-    "pascal_voc_detection_train": pascal_voc_detection_train,
-    "pascal_voc_detection_val": pascal_voc_detection_val,
-}
 
 
 def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict = None, dataset: torch.utils.data.Dataset = None) -> DataLoader:
