@@ -15,13 +15,14 @@ cosine_final_lr_ratio: 0.1
 zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
 
-save_ckpt_epoch_list: [200, 250, 300, 350, 400, 450]
+save_ckpt_epoch_list: [100, 200, 250]
 
 loss:
-  ppyoloe_loss:
+  deciyolo_loss:
     use_static_assigner: False
     num_classes: 80
     reg_max: 16
+    image_shape: ${dataset_params.train_dataset_params.input_dim}
 
 optimizer: AdamW
 optimizer_params:
