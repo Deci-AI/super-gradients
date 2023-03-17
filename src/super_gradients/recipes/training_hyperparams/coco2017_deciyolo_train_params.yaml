@@ -20,8 +20,8 @@ save_ckpt_epoch_list: [200, 250, 300, 350, 400, 450]
 
 loss:
   ppyoloe_loss:
-    num_classes: ${arch_params.num_classes}
-    reg_max: ${arch_params.head.reg_max}
+    num_classes: 80
+    reg_max: 16
 
 optimizer: AdamW
 optimizer_params:
