@@ -57,6 +57,9 @@ MODEL_URLS = {
     #
     "ppyoloe_s_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/coco2017_ppyoloe_s.pth",
     "ppyoloe_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/coco2017_ppyoloe_m.pth",
+    "deciyolo_s_coco": "https://deci-pretrained-models.s3.amazonaws.com/deciyolo_s_coco_new.pth",
+    "deciyolo_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/deciyolo_m_coco_new.pth",
+    "deciyolo_l_coco": "https://deci-pretrained-models.s3.amazonaws.com/deciyolo_l_coco_new.pth",
 }
 
 PRETRAINED_NUM_CLASSES = {

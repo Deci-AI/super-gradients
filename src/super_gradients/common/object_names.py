@@ -8,6 +8,7 @@ class Losses:
     SHELFNET_SE_LOSS = "shelfnet_se_loss"
     YOLOX_LOSS = "yolox_loss"
     PPYOLOE_LOSS = "ppyoloe_loss"
+    DECIYOLO_LOSS = "deciyolo_loss"
     YOLOX_FAST_LOSS = "yolox_fast_loss"
     SSD_LOSS = "ssd_loss"
     STDC_LOSS = "stdc_loss"
@@ -293,11 +294,13 @@ class Models:
     PP_YOLOE_M = "ppyoloe_m"
     PP_YOLOE_L = "ppyoloe_l"
     PP_YOLOE_X = "ppyoloe_x"
-
     DEKR_CUSTOM = "dekr_custom"
     DEKR_W32_NO_DC = "dekr_w32_no_dc"
     POSE_PP_YOLO_L = "pose_ppyolo_l"
     POSE_DDRNET_39 = "pose_ddrnet39"
+    DECIYOLO_S = "deciyolo_s"
+    DECIYOLO_M = "deciyolo_m"
+    DECIYOLO_L = "deciyolo_l"
 
 
 class ConcatenatedTensorFormats:
