@@ -2,13 +2,14 @@ import copy
 
 import torch
 from super_gradients.common.environment.cfg_utils import load_arch_params
+from super_gradients.common.object_names import Models
 from super_gradients.common.registry import register_model
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 from super_gradients.training.utils import HpmStruct
 import hydra
 
 
-@register_model()
+@register_model(Models.DECIYOLO_S)
 class DeciYolo_S(CustomizableDetector):
     def __init__(self, num_classes: int):
         arch_params = load_arch_params("deciyolo_s_arch_params")
@@ -21,7 +22,7 @@ class DeciYolo_S(CustomizableDetector):
         return self.heads.num_classes
 
 
-@register_model()
+@register_model(Models.DECIYOLO_M)
 class DeciYolo_M(CustomizableDetector):
     def __init__(self, num_classes: int):
         arch_params = load_arch_params("deciyolo_m_arch_params")
@@ -34,7 +35,7 @@ class DeciYolo_M(CustomizableDetector):
         return self.heads.num_classes
 
 
-@register_model()
+@register_model(Models.DECIYOLO_L)
 class DeciYolo_L(CustomizableDetector):
     def __init__(self, num_classes: int):
         arch_params = load_arch_params("deciyolo_l_arch_params")

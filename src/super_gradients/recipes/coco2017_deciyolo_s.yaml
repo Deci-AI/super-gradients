@@ -51,7 +51,7 @@ training_hyperparams:
     save_tensorboard_remote: True
     save_logs_remote: True
 
-architecture: deci_yolo_s
+architecture: deciyolo_s
 
 multi_gpu: DDP
 num_gpus: 8
