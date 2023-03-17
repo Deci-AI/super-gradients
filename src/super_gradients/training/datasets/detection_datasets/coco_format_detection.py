@@ -68,7 +68,7 @@ class COCOFormattedDetectionDataset(DetectionDataset):
         """
 
         self.coco = self._init_coco()
-        self.class_ids = sorted(self.coco.getCatIds())  # TODO: add filter to ignore some class_ids
+        self.class_ids = sorted(self.coco.getCatIds())
         self.original_classes = list([category["name"] for category in self.coco.loadCats(self.class_ids)])
         self.classes = copy.deepcopy(self.original_classes)
         self.sample_id_to_coco_id = self.coco.getImgIds()
