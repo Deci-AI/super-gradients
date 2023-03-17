@@ -35,6 +35,9 @@ dataset_params:
   train_dataloader_params:
     batch_size: 32
 
+arch_params:
+  num_classes: ${dataset_params.num_joints}
+
 training_hyperparams:
   resume: ${resume}
   mixed_precision: True
