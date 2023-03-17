@@ -51,7 +51,7 @@ class RoboflowDetectionDataset(COCOFormattedDetectionDataset):
         dataset_split_dir = os.path.join(dataset_name, split)
         json_annotation_file = os.path.join(dataset_split_dir, "_annotations.coco.json")
 
-        super().__init__(data_dir=data_dir, json_annotation_file=json_annotation_file, images_dir=dataset_split_dir, *args, **kwargs)
+        super().__init__(data_dir=data_dir, json_annotation_file=json_annotation_file, images_dir=dataset_split_dir, class_ids_to_ignore=[0], *args, **kwargs)
 
     @staticmethod
     def list_datasets(categories: Optional[List[str]] = None) -> List[str]:
