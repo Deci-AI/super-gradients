@@ -39,6 +39,15 @@ training_hyperparams:
   resume: ${resume}
   mixed_precision: True
 
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: coco2017_deci_yolo
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
+
 architecture: deci_yolo_s
 
 multi_gpu: DDP
