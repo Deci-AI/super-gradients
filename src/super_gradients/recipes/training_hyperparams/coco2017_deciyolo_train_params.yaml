@@ -2,7 +2,6 @@ defaults:
   - default_train_params
 
 max_epochs: 300
-static_assigner_end_epoch: 100
 
 warmup_mode: "linear_batch_step"
 warmup_initial_lr:  1e-6
@@ -20,6 +19,7 @@ save_ckpt_epoch_list: [200, 250, 300, 350, 400, 450]
 
 loss:
   ppyoloe_loss:
+    use_static_assigner: False
     num_classes: 80
     reg_max: 16
 
@@ -49,10 +49,6 @@ valid_metrics_list:
         nms_threshold: 0.7
 
 pre_prediction_callback:
-
-phase_callbacks:
-  - PPYoloETrainingStageSwitchCallback:
-      static_assigner_end_epoch: ${training_hyperparams.static_assigner_end_epoch}
 
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True
