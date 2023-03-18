@@ -9,7 +9,7 @@ from omegaconf import OmegaConf, open_dict, DictConfig
 from super_gradients import Trainer, init_trainer
 from super_gradients.common.registry.registry import register_pre_launch_callback
 from super_gradients.training.pre_launch_callbacks import PreLaunchCallback
-from super_gradients.training.utils.hydra_utils import normalize_path
+from super_gradients.common.environment.cfg_utils import normalize_path
 
 
 @register_pre_launch_callback()
@@ -73,6 +73,7 @@ class TestAutoBatchSelectionSingleGPU(unittest.TestCase):
                                 "max_batch_size": 64,
                                 "num_forward_passes": 3,
                                 "scale_lr": False,
+                                "mode": "largest",
                             }
                         }
                     ),
@@ -93,7 +94,9 @@ class TestAutoBatchSelectionSingleGPU(unittest.TestCase):
             OmegaConf.set_struct(cfg, True)
             with open_dict(cfg):
                 cfg.pre_launch_callbacks_list = [
-                    OmegaConf.create({"AutoTrainBatchSizeSelectionCallback": {"min_batch_size": 64, "size_step": 10000, "num_forward_passes": 3}}),
+                    OmegaConf.create(
+                        {"AutoTrainBatchSizeSelectionCallback": {"min_batch_size": 64, "size_step": 10000, "num_forward_passes": 3, "mode": "largest"}}
+                    ),
                     OmegaConf.create({"PreLaunchTrainBatchSizeVerificationCallback": {"batch_size": 64}}),
                     OmegaConf.create(
                         {
@@ -117,7 +120,15 @@ class TestAutoBatchSelectionSingleGPU(unittest.TestCase):
             with open_dict(cfg):
                 cfg.pre_launch_callbacks_list = [
                     OmegaConf.create(
-                        {"AutoTrainBatchSizeSelectionCallback": {"min_batch_size": 32, "size_step": 32, "max_batch_size": 64, "num_forward_passes": 3}}
+                        {
+                            "AutoTrainBatchSizeSelectionCallback": {
+                                "min_batch_size": 32,
+                                "size_step": 32,
+                                "max_batch_size": 64,
+                                "num_forward_passes": 3,
+                                "mode": "largest",
+                            }
+                        }
                     ),
                     OmegaConf.create({"PreLaunchTrainBatchSizeVerificationCallback": {"batch_size": 64}}),
                     OmegaConf.create(

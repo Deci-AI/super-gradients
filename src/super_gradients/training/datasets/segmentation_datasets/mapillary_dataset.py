@@ -4,9 +4,12 @@ import os
 import numpy as np
 from PIL import Image
 
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
 
+@register_dataset(Datasets.MAPILLARY_DATASET)
 class MapillaryDataset(SegmentationDataSet):
     """
     Mapillary Vistas is a large-scale urban street-view dataset.

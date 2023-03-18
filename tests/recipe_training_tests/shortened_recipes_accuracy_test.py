@@ -1,21 +1,26 @@
 import unittest
 import shutil
-
 import os
-from super_gradients.common.environment import environment_config
 import torch
+
+from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 
 
 class ShortenedRecipesAccuracyTests(unittest.TestCase):
     @classmethod
     def setUp(cls):
-        cls.experiment_names = ["shortened_cifar10_resnet_accuracy_test", "shortened_coco2017_yolox_n_map_test", "shortened_cityscapes_regseg48_iou_test"]
+        cls.experiment_names = [
+            "shortened_cifar10_resnet_accuracy_test",
+            "shortened_coco2017_yolox_n_map_test",
+            "shortened_cityscapes_regseg48_iou_test",
+            "shortened_coco2017_pose_dekr_w32_ap_test",
+        ]
 
     def test_shortened_cifar10_resnet_accuracy(self):
         self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cifar10_resnet_accuracy_test", metric_value=0.9167, delta=0.05))
 
     def test_convert_shortened_cifar10_resnet(self):
-        ckpt_dir = os.path.join(environment_config.PKG_CHECKPOINTS_DIR, "shortened_cifar10_resnet_accuracy_test")
+        ckpt_dir = get_checkpoints_dir_path(experiment_name="shortened_cifar10_resnet_accuracy_test")
         self.assertTrue(os.path.exists(os.path.join(ckpt_dir, "ckpt_best.onnx")))
 
     def test_shortened_coco2017_yolox_n_map(self):
@@ -24,10 +29,13 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
     def test_shortened_cityscapes_regseg48_iou(self):
         self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cityscapes_regseg48_iou_test", metric_value=0.263, delta=0.05))
 
+    def test_shortened_coco_dekr_32_ap_test(self):
+        self.assertTrue(self._reached_goal_metric(experiment_name="shortened_coco2017_pose_dekr_w32_ap_test", metric_value=0.000154, delta=0.0001))
+
     @classmethod
     def _reached_goal_metric(cls, experiment_name: str, metric_value: float, delta: float):
-        ckpt_dir = os.path.join(environment_config.PKG_CHECKPOINTS_DIR, experiment_name)
-        sd = torch.load(os.path.join(ckpt_dir, "ckpt_best.pth"))
+        checkpoints_dir_path = get_checkpoints_dir_path(experiment_name=experiment_name)
+        sd = torch.load(os.path.join(checkpoints_dir_path, "ckpt_best.pth"))
         metric_val_reached = sd["acc"].cpu().item()
         diff = abs(metric_val_reached - metric_value)
         print(
@@ -38,10 +46,10 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         # ERASE ALL THE FOLDERS THAT WERE CREATED DURING THIS TEST
-        for folder in cls.experiment_names:
-            ckpt_dir = os.path.join(environment_config.PKG_CHECKPOINTS_DIR, folder)
-            if os.path.isdir(ckpt_dir):
-                shutil.rmtree(ckpt_dir)
+        for experiment_name in cls.experiment_names:
+            checkpoints_dir_path = get_checkpoints_dir_path(experiment_name=experiment_name)
+            if os.path.isdir(checkpoints_dir_path):
+                shutil.rmtree(checkpoints_dir_path)
 
 
 if __name__ == "__main__":

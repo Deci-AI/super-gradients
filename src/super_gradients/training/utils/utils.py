@@ -374,7 +374,7 @@ def check_models_have_same_weights(model_1: torch.nn.Module, model_2: torch.nn.M
 def recursive_override(base: dict, extension: dict):
     for k, v in extension.items():
         if k in base:
-            if isinstance(v, Mapping):
+            if isinstance(v, Mapping) and isinstance(base[k], Mapping):
                 recursive_override(base[k], extension[k])
             else:
                 base[k] = extension[k]
@@ -515,7 +515,7 @@ def get_image_size_from_path(img_path: str) -> Tuple[int, int]:
         return exif_size(Image.open(f))
 
 
-def override_default_params_without_nones(params: Dict, default_params: Dict) -> Dict:
+def override_default_params_without_nones(params: Dict, default_params: Mapping) -> Dict:
     """
     Helper method for overriding default dictionary's entries excluding entries with None values.
     :param params: dict, output dictionary which will take the defaults.

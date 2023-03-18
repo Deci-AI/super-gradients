@@ -8,6 +8,9 @@ arXiv preprint arXiv:1905.02244.
 
 import torch.nn as nn
 import math
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models.classification_models.mobilenetv2 import MobileNetBase
 from super_gradients.training.utils import get_param
 
@@ -171,6 +174,7 @@ class MobileNetV3(MobileNetBase):
                 m.bias.data.zero_()
 
 
+@register_model(Models.MOBILENET_V3_LARGE)
 class mobilenetv3_large(MobileNetV3):
     """
     Constructs a MobileNetV3-Large model
@@ -199,6 +203,7 @@ class mobilenetv3_large(MobileNetV3):
         super().__init__(cfgs, mode="large", num_classes=arch_params.num_classes, width_mult=width_mult, in_channels=get_param(arch_params, "in_channels", 3))
 
 
+@register_model(Models.MOBILENET_V3_SMALL)
 class mobilenetv3_small(MobileNetV3):
     """
     Constructs a MobileNetV3-Small model
@@ -223,6 +228,7 @@ class mobilenetv3_small(MobileNetV3):
         super().__init__(cfgs, mode="small", num_classes=arch_params.num_classes, width_mult=width_mult, in_channels=get_param(arch_params, "in_channels", 3))
 
 
+@register_model(Models.MOBILENET_V3_CUSTOM)
 class mobilenetv3_custom(MobileNetV3):
     """
     Constructs a MobileNetV3-Customized model

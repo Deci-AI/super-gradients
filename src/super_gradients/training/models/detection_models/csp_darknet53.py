@@ -8,6 +8,8 @@ from typing import Tuple, Type
 import torch
 import torch.nn as nn
 
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.modules import Residual
 from super_gradients.training.utils.utils import get_param, HpmStruct
 from super_gradients.training.models.sg_module import SgModule
@@ -184,6 +186,7 @@ class ViewModule(nn.Module):
         return x.view(-1, self.features)
 
 
+@register_model(Models.CSP_DARKNET53)
 class CSPDarknet53(SgModule):
     def __init__(self, arch_params: HpmStruct):
         super().__init__()

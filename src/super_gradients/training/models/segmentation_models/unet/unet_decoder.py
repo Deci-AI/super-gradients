@@ -4,12 +4,13 @@ from abc import ABC, abstractmethod
 import torch.nn as nn
 import torch
 
-from super_gradients.modules import ConvBNReLU, CrossModelSkipConnection
-from super_gradients.training.utils.module_utils import make_upsample_module
+from super_gradients.common.registry.registry import register_unet_up_block, UP_FUSE_BLOCKS
+from super_gradients.modules import ConvBNReLU, CrossModelSkipConnection, Residual
+from super_gradients.modules.sampling import make_upsample_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.type_factory import TypeFactory
-from super_gradients.training.utils.module_utils import UpsampleMode
+from super_gradients.common import UpsampleMode
 
 
 class AbstractUpFuseBlock(nn.Module, ABC):
@@ -55,6 +56,7 @@ class AbstractUpFuseBlock(nn.Module, ABC):
         return upsample_mode, out_channels
 
 
+@register_unet_up_block()
 class UpFactorBlock(AbstractUpFuseBlock):
     """
     Ignore Skip features, simply apply upsampling and ConvBNRelu layers.
@@ -86,6 +88,7 @@ class UpFactorBlock(AbstractUpFuseBlock):
         return self.last_convs(x)
 
 
+@register_unet_up_block()
 class UpCatBlock(AbstractUpFuseBlock):
     """
     Fuse features with concatenation and followed Convolutions.
@@ -119,6 +122,7 @@ class UpCatBlock(AbstractUpFuseBlock):
         return self.last_convs(x)
 
 
+@register_unet_up_block()
 class UpSumBlock(AbstractUpFuseBlock):
     """
     Fuse features with concatenation and followed Convolutions.
@@ -141,7 +145,7 @@ class UpSumBlock(AbstractUpFuseBlock):
         self.up_path = make_upsample_module(scale_factor=up_factor, upsample_mode=mode, align_corners=False)
 
         self.proj_conv = (
-            nn.Identity() if skip_channels == up_out_channels else ConvBNReLU(skip_channels, up_out_channels, kernel_size=1, bias=False, use_activation=False)
+            Residual() if skip_channels == up_out_channels else ConvBNReLU(skip_channels, up_out_channels, kernel_size=1, bias=False, use_activation=False)
         )
 
         self.last_convs = nn.Sequential(
@@ -154,13 +158,6 @@ class UpSumBlock(AbstractUpFuseBlock):
         x = self.up_path(x)
         x = x + skip
         return self.last_convs(x)
-
-
-UP_FUSE_BLOCKS = dict(
-    UpCatBlock=UpCatBlock,
-    UpFactorBlock=UpFactorBlock,
-    UpSumBlock=UpSumBlock,
-)
 
 
 class Decoder(nn.Module):

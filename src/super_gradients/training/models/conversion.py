@@ -10,11 +10,13 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training import models
-from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
-from super_gradients.training.utils.hydra_utils import load_experiment_cfg
+from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
+from super_gradients.common.environment.cfg_utils import load_experiment_cfg
 from super_gradients.training.utils.sg_trainer_utils import parse_args
 import os
 import pathlib
+from onnxsim import simplify
+import onnx
 
 logger = get_logger(__name__)
 
@@ -50,23 +52,26 @@ class ConvertableCompletePipelineModel(torch.nn.Module):
 def convert_to_onnx(
     model: torch.nn.Module,
     out_path: str,
-    input_shape: tuple,
+    input_shape: tuple = None,
     pre_process: torch.nn.Module = None,
     post_process: torch.nn.Module = None,
     prep_model_for_conversion_kwargs=None,
     torch_onnx_export_kwargs=None,
+    simplify: bool = True,
 ):
     """
     Exports model to ONNX.
 
     :param model: torch.nn.Module, model to export to ONNX.
     :param out_path: str, destination path for the .onnx file.
-    :param input_shape: tuple, input shape, excluding batch_size (i.e (3, 224, 224)).
+    :param input_shape: DEPRECATED USE input_size KWARG IN prep_model_for_conversion_kwargs INSTEAD.
     :param pre_process: torch.nn.Module, preprocessing pipeline, will be resolved by TransformsFactory()
     :param post_process: torch.nn.Module, postprocessing pipeline, will be resolved by TransformsFactory()
     :param prep_model_for_conversion_kwargs: dict, for SgModules- args to be passed to model.prep_model_for_conversion
      prior to torch.onnx.export call.
     :param torch_onnx_export_kwargs: kwargs (EXCLUDING: FIRST 3 KWARGS- MODEL, F, ARGS). to be unpacked in torch.onnx.export call
+    :param simplify: bool,whether to apply onnx simplifier method, same as `python -m onnxsim onnx_path onnx_sim_path.
+     When true, the simplified model will be saved in out_path (default=True).
 
     :return: out_path
     """
@@ -74,12 +79,22 @@ def convert_to_onnx(
         raise FileNotFoundError(f"Could not find destination directory {out_path} for the ONNX file.")
     torch_onnx_export_kwargs = torch_onnx_export_kwargs or dict()
     prep_model_for_conversion_kwargs = prep_model_for_conversion_kwargs or dict()
+
+    if input_shape is not None:
+        logger.warning(
+            "input_shape is deprecated and will be removed in the next major release." " Use the input_size kwarg in prep_model_for_conversion_kwargs instead"
+        )
+
+    prep_model_for_conversion_kwargs["input_size"] = (1, *input_shape)
+
     onnx_input = torch.Tensor(np.zeros([1, *input_shape]))
     if not out_path.endswith(".onnx"):
         out_path = out_path + ".onnx"
     complete_model = ConvertableCompletePipelineModel(model, pre_process, post_process, **prep_model_for_conversion_kwargs)
 
     torch.onnx.export(model=complete_model, args=onnx_input, f=out_path, **torch_onnx_export_kwargs)
+    if simplify:
+        onnx_simplify(out_path, out_path)
     return out_path
 
 
@@ -129,3 +144,15 @@ def convert_from_config(cfg: DictConfig) -> str:
     out_path = models.convert_to_onnx(model=model, **cfg)
     logger.info(f"Successfully exported model at {out_path}")
     return out_path
+
+
+def onnx_simplify(onnx_path: str, onnx_sim_path: str):
+    """
+    onnx simplifier method, same as `python -m onnxsim onnx_path onnx_sim_path
+    :param onnx_path: path to onnx model
+    :param onnx_sim_path: path for output onnx simplified model
+    """
+    model_sim, check = simplify(model=onnx_path)
+    if not check:
+        raise RuntimeError("Simplified ONNX model could not be validated")
+    onnx.save_model(model_sim, onnx_sim_path)

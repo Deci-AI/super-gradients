@@ -1,12 +1,25 @@
-from .conv_bn_act_block import ConvBNAct
-from .conv_bn_relu_block import ConvBNReLU
-from .repvgg_block import RepVGGBlock
-from .qarepvgg_block import QARepVGGBlock
-from .se_blocks import SEBlock, EffectiveSEBlock
-from .skip_connections import Residual, SkipConnection, CrossModelSkipConnection, BackboneInternalSkipConnection, HeadInternalSkipConnection
+from super_gradients.modules.anti_alias import AntiAliasDownsample
+from super_gradients.modules.pixel_shuffle import PixelShuffle
+from super_gradients.modules.pose_estimation_modules import LightweightDEKRHead
+from super_gradients.modules.conv_bn_act_block import ConvBNAct
+from super_gradients.modules.conv_bn_relu_block import ConvBNReLU
+from super_gradients.modules.repvgg_block import RepVGGBlock
+from super_gradients.modules.qarepvgg_block import QARepVGGBlock
+from super_gradients.modules.se_blocks import SEBlock, EffectiveSEBlock
+from super_gradients.modules.skip_connections import (
+    Residual,
+    SkipConnection,
+    CrossModelSkipConnection,
+    BackboneInternalSkipConnection,
+    HeadInternalSkipConnection,
+)
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.registry.registry import ALL_DETECTION_MODULES
 
 __all__ = [
+    "ALL_DETECTION_MODULES",
+    "PixelShuffle",
+    "AntiAliasDownsample",
     "ConvBNAct",
     "ConvBNReLU",
     "RepVGGBlock",
@@ -18,17 +31,24 @@ __all__ = [
     "CrossModelSkipConnection",
     "BackboneInternalSkipConnection",
     "HeadInternalSkipConnection",
+    "LightweightDEKRHead",
 ]
 
 logger = get_logger(__name__)
 try:
     # flake8 respects only the first occurence of __all__ defined in the module's root
     from .quantization import QuantBottleneck  # noqa: F401
+
     from .quantization import QuantResidual  # noqa: F401
     from .quantization import QuantSkipConnection  # noqa: F401
     from .quantization import QuantCrossModelSkipConnection  # noqa: F401
     from .quantization import QuantBackboneInternalSkipConnection  # noqa: F401
     from .quantization import QuantHeadInternalSkipConnection  # noqa: F401
+
+    from .quantization import QuantSTDCBlock  # noqa: F401
+    from .quantization import QuantAttentionRefinementModule  # noqa: F401
+    from .quantization import QuantFeatureFusionModule  # noqa: F401
+    from .quantization import QuantContextPath  # noqa: F401
 
     quant_extensions = [
         "QuantBottleneck",
@@ -37,6 +57,10 @@ try:
         "QuantCrossModelSkipConnection",
         "QuantBackboneInternalSkipConnection",
         "QuantHeadInternalSkipConnection",
+        "QuantSTDCBlock",
+        "QuantAttentionRefinementModule",
+        "QuantFeatureFusionModule",
+        "QuantContextPath",
     ]
 
 except (ImportError, NameError, ModuleNotFoundError) as import_err:

@@ -3,6 +3,7 @@ import io
 from contextlib import contextmanager
 from typing import Optional
 
+from super_gradients.common.registry.registry import register_sg_logger
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger, EXPERIMENT_LOGS_PREFIX, LOGGER_LOGS_PREFIX, CONSOLE_LOGS_PREFIX
 from super_gradients.common.environment.ddp_utils import multi_process_safe
@@ -15,6 +16,7 @@ logger = get_logger(__name__)
 TENSORBOARD_EVENTS_PREFIX = "events.out.tfevents"
 
 
+@register_sg_logger("deci_platform_sg_logger")
 class DeciPlatformSGLogger(BaseSGLogger):
     """Logger responsible to push logs and tensorboard artifacts to Deci platform."""
 
@@ -56,11 +58,12 @@ class DeciPlatformSGLogger(BaseSGLogger):
             logger.warning(
                 "'model_name' parameter not passed. "
                 "The experiment won't be connected to an architecture in the Deci platform. "
-                "To pass a model_name, please use the 'sg_logger_params.model_name' field in the training recipe."
+                "To pass a model_name, please use the 'sg_logger_params.model_name' field in the training recipe.\n"
+                "Please also make sure that 'model_name' corresponds to the name of your model in the training platform."
             )
 
         self.platform_client = DeciClient()
-        self.platform_client.register_experiment(name=experiment_name, model_name=model_name if model_name else None)
+        self.platform_client.register_experiment(name=experiment_name, model_name=model_name if model_name else None, resume=resumed)
         self.checkpoints_dir_path = checkpoints_dir_path
 
     @multi_process_safe

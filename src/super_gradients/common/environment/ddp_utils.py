@@ -36,6 +36,7 @@ def is_main_process():
         - If DDP launched using SuperGradients: main process is the launching process (rank=-1)
         - If DDP launched with torch: main process is rank 0
     """
+
     if not is_distributed():  # If no DDP, or DDP launching process
         return True
     elif (

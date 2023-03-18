@@ -11,6 +11,8 @@ from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.object_names import Transforms
+from super_gradients.common.registry.registry import register_transform
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
@@ -32,6 +34,7 @@ class SegmentationTransform:
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
 
+@register_transform(Transforms.SegResize)
 class SegResize(SegmentationTransform):
     def __init__(self, h, w):
         self.h = h
@@ -45,6 +48,7 @@ class SegResize(SegmentationTransform):
         return sample
 
 
+@register_transform(Transforms.SegRandomFlip)
 class SegRandomFlip(SegmentationTransform):
     """
     Randomly flips the image and mask (synchronously) with probability 'prob'.
@@ -66,6 +70,7 @@ class SegRandomFlip(SegmentationTransform):
         return sample
 
 
+@register_transform(Transforms.SegRescale)
 class SegRescale(SegmentationTransform):
     """
     Rescales the image and mask (synchronously) while preserving aspect ratio.
@@ -122,6 +127,7 @@ class SegRescale(SegmentationTransform):
             raise ValueError(f"Long size must be a positive number, found: {self.long_size}")
 
 
+@register_transform(Transforms.SegRandomRescale)
 class SegRandomRescale:
     """
     Random rescale the image and mask (synchronously) while preserving aspect ratio.
@@ -169,6 +175,7 @@ class SegRandomRescale:
         return self.scales
 
 
+@register_transform(Transforms.SegRandomRotate)
 class SegRandomRotate(SegmentationTransform):
     """
     Randomly rotates image and mask (synchronously) between 'min_deg' and 'max_deg'.
@@ -200,6 +207,7 @@ class SegRandomRotate(SegmentationTransform):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
 
+@register_transform(Transforms.SegCropImageAndMask)
 class SegCropImageAndMask(SegmentationTransform):
     """
     Crops image and mask (synchronously).
@@ -251,6 +259,7 @@ class SegCropImageAndMask(SegmentationTransform):
             raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
 
 
+@register_transform(Transforms.SegRandomGaussianBlur)
 class SegRandomGaussianBlur(SegmentationTransform):
     """
     Adds random Gaussian Blur to image with probability 'prob'.
@@ -273,6 +282,7 @@ class SegRandomGaussianBlur(SegmentationTransform):
         return sample
 
 
+@register_transform(Transforms.SegPadShortToCropSize)
 class SegPadShortToCropSize(SegmentationTransform):
     """
     Pads image to 'crop_size'.
@@ -322,6 +332,7 @@ class SegPadShortToCropSize(SegmentationTransform):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
 
+@register_transform(Transforms.SegPadToDivisible)
 class SegPadToDivisible(SegmentationTransform):
     def __init__(self, divisible_value: int, fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0) -> None:
         super().__init__()
@@ -356,6 +367,7 @@ class SegPadToDivisible(SegmentationTransform):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
 
+@register_transform(Transforms.SegColorJitter)
 class SegColorJitter(transforms.ColorJitter):
     def __call__(self, sample):
         sample["image"] = super(SegColorJitter, self).__call__(sample["image"])
@@ -408,6 +420,22 @@ class DetectionTransform:
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
 
+@register_transform(Transforms.DetectionStandardize)
+class DetectionStandardize(DetectionTransform):
+    """
+    Standardize image pixel values with img/max_val
+    """
+
+    def __init__(self, max_value: float = 255.0):
+        super().__init__()
+        self.max_value = max_value
+
+    def __call__(self, sample: dict) -> dict:
+        sample["image"] = (sample["image"] / self.max_value).astype(np.float32)
+        return sample
+
+
+@register_transform(Transforms.DetectionMosaic)
 class DetectionMosaic(DetectionTransform):
     """
     DetectionMosaic detection transform
@@ -500,6 +528,7 @@ class DetectionMosaic(DetectionTransform):
         return sample
 
 
+@register_transform(Transforms.DetectionRandomAffine)
 class DetectionRandomAffine(DetectionTransform):
     """
     DetectionRandomAffine detection transform
@@ -511,13 +540,13 @@ class DetectionRandomAffine(DetectionTransform):
         from (-degrees, degrees)
 
      translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
-        are drawn uniformly from (-translate, translate)
+        are drawn uniformly from (center-translate, center+translate)
 
      scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
-        from (0.1-scales, 0.1+scales)
+        from (1-scales, 1+scales)
 
      shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
-        from (shear, shear)
+        from (-shear, shear)
 
      enable: (bool) whether to apply the below transform at all.
 
@@ -588,6 +617,7 @@ class DetectionRandomAffine(DetectionTransform):
         return sample
 
 
+@register_transform(Transforms.DetectionMixup)
 class DetectionMixup(DetectionTransform):
     """
     Mixup detection transform
@@ -683,6 +713,88 @@ class DetectionMixup(DetectionTransform):
         return sample
 
 
+@register_transform(Transforms.DetectionImagePermute)
+class DetectionImagePermute(DetectionTransform):
+    """
+    Permute image dims. Useful for converting image from HWC to CHW format.
+    """
+
+    def __init__(self, dims=(2, 0, 1)):
+        """
+
+        :param dims: Specify new order of dims. Default value (2, 0, 1) suitable for converting from HWC to CHW format.
+        """
+        super().__init__()
+        self.dims = tuple(dims)
+
+    def __call__(self, sample: Dict[str, np.array]):
+        sample["image"] = np.ascontiguousarray(sample["image"].transpose(*self.dims))
+        return sample
+
+
+@register_transform(Transforms.DetectionPadToSize)
+class DetectionPadToSize(DetectionTransform):
+    """
+    Preprocessing transform to pad image and bboxes to `input_dim` shape (rows, cols).
+    Transform does center padding, so that input image with bboxes located in the center of the produced image.
+
+    Note: This transformation assume that dimensions of input image is equal or less than `output_size`.
+    """
+
+    def __init__(self, output_size: Tuple[int, int], pad_value: int):
+        """
+        Constructor for DetectionPadToSize transform.
+
+        :param output_size: Output image size (rows, cols)
+        :param pad_value: Padding value for image
+        """
+        super().__init__()
+        self.output_size = output_size
+        self.pad_value = pad_value
+
+    def __call__(self, sample: Dict[str, np.array]):
+        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+        img, shift_w, shift_h = self._apply_to_image(img, final_shape=self.output_size, pad_value=self.pad_value)
+        sample["image"] = img
+        sample["target"] = self._apply_to_bboxes(targets, shift_w, shift_h)
+        if crowd_targets is not None:
+            sample["crowd_target"] = self._apply_to_bboxes(crowd_targets, shift_w, shift_h)
+        return sample
+
+    def _apply_to_bboxes(self, targets: np.array, shift_w: float, shift_h: float) -> np.array:
+        """Translate bboxes with respect to padding values.
+
+        :param targets:  Bboxes to transform of shape (N, 5).
+                         Bboxes expected to have format [x1, y1, x2, y2, class_id, ...]
+        :param shift_w:  shift width in pixels
+        :param shift_h:  shift height in pixels
+        :return:         Bboxes to transform of shape (N, 5)
+                         Bboxes will have same format [x1, y1, x2, y2, class_id, ...]
+        """
+        targets = targets.copy() if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
+        boxes, labels = targets[:, :4], targets[:, 4:]
+        boxes[:, [0, 2]] += shift_w
+        boxes[:, [1, 3]] += shift_h
+        return np.concatenate((boxes, labels), 1)
+
+    def _apply_to_image(self, image, final_shape: Tuple[int, int], pad_value: int):
+        """
+        Pad image to final_shape.
+        :param image:
+        :param final_shape: Output image size (rows, cols).
+        :param pad_value:
+        :return:
+        """
+        pad_h, pad_w = final_shape[0] - image.shape[0], final_shape[1] - image.shape[1]
+        shift_h, shift_w = pad_h // 2, pad_w // 2
+        pad_h = (shift_h, pad_h - shift_h)
+        pad_w = (shift_w, pad_w - shift_w)
+
+        image = np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+        return image, shift_w, shift_h
+
+
+@register_transform(Transforms.DetectionPaddedRescale)
 class DetectionPaddedRescale(DetectionTransform):
     """
     Preprocessing transform to be applied last of all transforms for validation.
@@ -729,6 +841,7 @@ class DetectionPaddedRescale(DetectionTransform):
         return np.concatenate((boxes, labels[:, np.newaxis]), 1)
 
 
+@register_transform(Transforms.DetectionHorizontalFlip)
 class DetectionHorizontalFlip(DetectionTransform):
     """
     Horizontal Flip for Detection
@@ -756,6 +869,7 @@ class DetectionHorizontalFlip(DetectionTransform):
         return sample
 
 
+@register_transform(Transforms.DetectionRescale)
 class DetectionRescale(DetectionTransform):
     """
     Resize image and bounding boxes to given image dimensions without preserving aspect ratio
@@ -805,6 +919,7 @@ class DetectionRescale(DetectionTransform):
         return targets
 
 
+@register_transform(Transforms.DetectionRandomRotate90)
 class DetectionRandomRotate90(DetectionTransform):
     def __init__(self, prob: float = 0.5):
         super().__init__()
@@ -861,6 +976,7 @@ class DetectionRandomRotate90(DetectionTransform):
         return np.stack(bbox, axis=1)
 
 
+@register_transform(Transforms.DetectionRGB2BGR)
 class DetectionRGB2BGR(DetectionTransform):
     """
     Detection change Red & Blue channel of the image
@@ -883,6 +999,7 @@ class DetectionRGB2BGR(DetectionTransform):
         return sample
 
 
+@register_transform(Transforms.DetectionHSV)
 class DetectionHSV(DetectionTransform):
     """
     Detection HSV transform.
@@ -923,6 +1040,7 @@ class DetectionHSV(DetectionTransform):
         return sample
 
 
+@register_transform(Transforms.DetectionNormalize)
 class DetectionNormalize(DetectionTransform):
     """
     Normalize image by subtracting mean and dividing by std.
@@ -938,6 +1056,7 @@ class DetectionNormalize(DetectionTransform):
         return sample
 
 
+@register_transform(Transforms.DetectionTargetsFormatTransform)
 class DetectionTargetsFormatTransform(DetectionTransform):
     """
     Detection targets format transform
@@ -1044,6 +1163,7 @@ def get_aug_params(value: Union[tuple, float], center: float = 0):
 
 
 def get_affine_matrix(
+    input_size,
     target_size,
     degrees=10,
     translate=0.1,
@@ -1052,6 +1172,8 @@ def get_affine_matrix(
 ):
     """
     Returns a random affine transform matrix.
+
+    :param input_size: (tuple) input shape.
 
     :param target_size: (tuple) desired output shape.
 
@@ -1062,40 +1184,35 @@ def get_affine_matrix(
      are drawn uniformly from (-translate, translate)
 
     :param scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
-     from (0.1-scales, 0.1+scales)
+     from (1-scales, 1+scales)
 
     :param shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
-     from (shear, shear)
+     from (-shear, shear)
 
     :return: affine_transform_matrix, drawn_scale
     """
-    twidth, theight = target_size
 
-    # Rotation and Scale
-    angle = get_aug_params(degrees)
-    scale = get_aug_params(scales, center=1.0)
+    # Center in pixels
+    center_m = np.eye(3)
+    center = (input_size[0] // 2, input_size[1] // 2)
+    center_m[0, 2] = -center[1]
+    center_m[1, 2] = -center[0]
 
-    if scale <= 0.0:
-        raise ValueError("Argument scale should be positive")
+    # Rotation and scale
+    rotation_m = np.eye(3)
+    rotation_m[:2] = cv2.getRotationMatrix2D(angle=get_aug_params(degrees), center=(0, 0), scale=get_aug_params(scales, center=1.0))
 
-    R = cv2.getRotationMatrix2D(angle=angle, center=(0, 0), scale=scale)
+    # Shear in degrees
+    shear_m = np.eye(3)
+    shear_m[0, 1] = math.tan(get_aug_params(shear) * math.pi / 180)
+    shear_m[1, 0] = math.tan(get_aug_params(shear) * math.pi / 180)
 
-    M = np.ones([2, 3])
-    # Shear
-    shear_x = math.tan(get_aug_params(shear) * math.pi / 180)
-    shear_y = math.tan(get_aug_params(shear) * math.pi / 180)
+    # Translation in pixels
+    translation_m = np.eye(3)
+    translation_m[0, 2] = get_aug_params(translate, center=0.5) * target_size[1]
+    translation_m[1, 2] = get_aug_params(translate, center=0.5) * target_size[0]
 
-    M[0] = R[0] + shear_y * R[1]
-    M[1] = R[1] + shear_x * R[0]
-
-    # Translation
-    translation_x = get_aug_params(translate) * twidth  # x translation (pixels)
-    translation_y = get_aug_params(translate) * theight  # y translation (pixels)
-
-    M[0, 2] = translation_x
-    M[1, 2] = translation_y
-
-    return M, scale
+    return (translation_m @ shear_m @ rotation_m @ center_m)[:2]
 
 
 def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
@@ -1168,7 +1285,7 @@ def random_affine(
 ):
     """
     Performs random affine transform to img, targets
-    :param img:         Input image
+    :param img:         Input image of shape [h, w, c]
     :param targets:     Input target
     :param targets_seg: Targets derived from segmentation masks
     :param target_size: Desired output shape
@@ -1197,9 +1314,9 @@ def random_affine(
     """
 
     targets_seg = np.zeros((targets.shape[0], 0)) if targets_seg is None else targets_seg
-    M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
+    M = get_affine_matrix(img.shape[:2], target_size, degrees, translate, scales, shear)
 
-    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=border_value)
+    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(border_value, border_value, border_value))
 
     # Transform label coordinates
     if len(targets) > 0:
@@ -1287,6 +1404,7 @@ def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
     return padded_img, r
 
 
+@register_transform(Transforms.Standardize)
 class Standardize(torch.nn.Module):
     """
     Standardize image pixel values.

@@ -70,7 +70,7 @@ training_hyperparams:
 
 arch_params:
   num_classes: 19
-  aux_head: True
+  use_aux_heads: True
 
 
 

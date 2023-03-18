@@ -5,10 +5,13 @@ from typing import Union
 from omegaconf import DictConfig
 import torch
 
+from super_gradients.common.registry.registry import register_pre_launch_callback
 from super_gradients import is_distributed
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import models
 from torch.distributed import barrier
+import cv2
+import numpy as np
 
 logger = get_logger(__name__)
 
@@ -26,12 +29,13 @@ class PreLaunchCallback:
         raise NotImplementedError
 
 
+@register_pre_launch_callback()
 class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
     """
     AutoTrainBatchSizeSelectionCallback
 
     Modifies cfg.dataset_params.train_dataloader_params.batch_size by searching for the maximal batch size that fits
-     gpu memory. Works out of the box for DDP.
+     gpu memory/ the one resulting in fastest time for the selected number of train datalaoder iterations. Works out of the box for DDP.
 
     The search is done by running a few forward passes for increasing batch sizes, until CUDA OUT OF MEMORY is raised:
 
@@ -68,14 +72,19 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
 
     :param scale_lr: bool, whether to linearly scale cfg.training_hyperparams.initial_lr, i.e multiply by
      FOUND_BATCH_SIZE/cfg.dataset_params.train_datalaoder_params.batch_size (default=True)
+    :param mode: str, one of ["fastest","largest"], whether to select the largest batch size that fits memory or the one
+     that the resulted in overall fastest execution.
     """
 
-    def __init__(self, min_batch_size: int, size_step: int, num_forward_passes: int = 3, max_batch_size=None, scale_lr: bool = True):
+    def __init__(self, min_batch_size: int, size_step: int, num_forward_passes: int = 3, max_batch_size=None, scale_lr: bool = True, mode: str = "fastest"):
+        if mode not in ["fastest", "largest"]:
+            raise TypeError(f"Expected mode to be one of: ['fastest','largest'], got {mode}")
         self.scale_lr = scale_lr
         self.min_batch_size = min_batch_size
         self.size_step = size_step
         self.max_batch_size = max_batch_size
         self.num_forward_passes = num_forward_passes
+        self.mode = mode
 
     def __call__(self, cfg: DictConfig) -> DictConfig:
 
@@ -104,11 +113,22 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
         tmp_cfg.training_hyperparams.kill_ddp_pgroup_on_end = False
         tmp_cfg.pre_launch_callbacks_list = []
 
-        while True:
+        fastest_batch_time = np.inf
+        fastest_batch_size = curr_batch_size
+
+        bs_found = False
+
+        while not bs_found:
             tmp_cfg.dataset_params.train_dataloader_params.batch_size = curr_batch_size
 
             try:
+                passes_start = cv2.getTickCount()
                 Trainer.train_from_config(tmp_cfg)
+                curr_batch_time = (cv2.getTickCount() - passes_start) / cv2.getTickFrequency()
+                logger.info(f"Batch size = {curr_batch_size} time for {self.num_forward_passes} forward passes: {curr_batch_time} seconds.")
+                if curr_batch_time < fastest_batch_time:
+                    fastest_batch_size = curr_batch_size
+                    fastest_batch_time = curr_batch_time
 
             except RuntimeError as e:
                 if "out of memory" in str(e):
@@ -116,26 +136,32 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
                         logger.error("Ran out of memory for the smallest batch, try setting smaller min_batch_size.")
                         raise e
                     else:
-                        logger.info(f"Ran out of memory for {curr_batch_size}, setting batch size to {curr_batch_size - self.size_step}.")
-                        self._adapt_lr_if_needed(cfg, found_batch_size=curr_batch_size - self.size_step)
-                        cfg.dataset_params.train_dataloader_params.batch_size = curr_batch_size - self.size_step
-                        self._clear_model_gpu_mem(model)
-                        return cfg
+                        selected_batch_size = curr_batch_size - self.size_step if self.mode == "largest" else fastest_batch_size
+                        msg = f"Ran out of memory for {curr_batch_size}, setting batch size to {selected_batch_size}."
+                        bs_found = True
                 else:
                     raise e
 
             else:
                 if self.max_batch_size is not None and curr_batch_size >= self.max_batch_size:
-                    logger.info(
-                        f"Did not run out of memory for {curr_batch_size} >= max_batch_size={self.max_batch_size}, " f"setting batch to {self.max_batch_size}."
+                    selected_batch_size = self.max_batch_size if self.mode == "largest" else fastest_batch_size
+                    msg = (
+                        f"Did not run out of memory for {curr_batch_size} >= max_batch_size={self.max_batch_size}, " f"setting batch to {selected_batch_size}."
                     )
-                    self._adapt_lr_if_needed(cfg, found_batch_size=self.max_batch_size)
-                    cfg.dataset_params.train_dataloader_params.batch_size = self.max_batch_size
+                    bs_found = True
+                else:
+                    logger.info(f"Did not run out of memory for {curr_batch_size}, retrying batch {curr_batch_size + self.size_step}.")
+                    curr_batch_size += self.size_step
                     self._clear_model_gpu_mem(model)
-                    return cfg
-                logger.info(f"Did not run out of memory for {curr_batch_size}, retrying batch {curr_batch_size + self.size_step}.")
-                curr_batch_size += self.size_step
-                self._clear_model_gpu_mem(model)
+
+        return self._inject_selected_batch_size_to_config(cfg, model, msg, selected_batch_size)
+
+    def _inject_selected_batch_size_to_config(self, cfg, model, msg, selected_batch_size):
+        logger.info(msg)
+        self._adapt_lr_if_needed(cfg, found_batch_size=selected_batch_size)
+        cfg.dataset_params.train_dataloader_params.batch_size = selected_batch_size
+        self._clear_model_gpu_mem(model)
+        return cfg
 
     def _adapt_lr_if_needed(self, cfg: DictConfig, found_batch_size: int) -> DictConfig:
         if self.scale_lr:
@@ -154,11 +180,12 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
             barrier()
 
 
+@register_pre_launch_callback()
 class QATRecipeModificationCallback(PreLaunchCallback):
     """
      QATRecipeModificationCallback(PreLaunchCallback)
 
-    This callback modifies the recipe for QAT to imlement rules of thumb based on the regular non-qat recipe.
+    This callback modifies the recipe for QAT to implement rules of thumb based on the regular non-qat recipe.
 
     :param int batch_size_divisor: Divisor used to calculate the batch size. Default value is 2.
     :param int max_epochs_divisor: Divisor used to calculate the maximum number of epochs. Default value is 10.
@@ -166,6 +193,7 @@ class QATRecipeModificationCallback(PreLaunchCallback):
     :param int warmup_epochs_divisor: Divisor used to calculate the number of warm-up epochs. Default value is 10.
     :param float cosine_final_lr_ratio: Ratio used to determine the final learning rate in a cosine annealing schedule. Default value is 0.01.
     :param bool disable_phase_callbacks: Flag to control to disable phase callbacks, which can interfere with QAT. Default value is True.
+    :param bool disable_augmentations: Flag to control to disable phase augmentations, which can interfere with QAT. Default value is False.
 
     Example usage:
 
@@ -179,6 +207,7 @@ class QATRecipeModificationCallback(PreLaunchCallback):
             warmup_epochs_divisor: 10
             cosine_final_lr_ratio: 0.01
             disable_phase_callbacks: True
+            disable_augmentations: False
 
     USE THIS CALLBACK ONLY WITH QATTrainer!
     """
@@ -191,7 +220,9 @@ class QATRecipeModificationCallback(PreLaunchCallback):
         warmup_epochs_divisor: int = 10,
         cosine_final_lr_ratio: float = 0.01,
         disable_phase_callbacks: bool = True,
+        disable_augmentations: bool = False,
     ):
+        self.disable_augmentations = disable_augmentations
         self.disable_phase_callbacks = disable_phase_callbacks
         self.cosine_final_lr_ratio = cosine_final_lr_ratio
         self.warmup_epochs_divisor = warmup_epochs_divisor
@@ -250,7 +281,8 @@ class QATRecipeModificationCallback(PreLaunchCallback):
             cfg.num_gpus = 1
 
         # no augmentations
-        if "transforms" in cfg.dataset_params.val_dataset_params:
+        if self.disable_augmentations and "transforms" in cfg.dataset_params.val_dataset_params:
+            logger.warning("Augmentations will be disabled for QAT run.")
             cfg.dataset_params.train_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
 
         return cfg

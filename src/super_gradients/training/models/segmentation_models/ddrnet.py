@@ -2,8 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
-from super_gradients.training.models import BasicBlock, Bottleneck, SgModule, HpmStruct
-from super_gradients.training.utils import get_param
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
+from super_gradients.training.models.classification_models.resnet import BasicBlock, Bottleneck
+from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
+from super_gradients.training.utils import get_param, HpmStruct
 
 """
 paper: Deep Dual-resolution Networks for Real-time and
@@ -239,7 +243,7 @@ class RegnetDDRBackBone(DDRBackBoneBase):
         self.layer4 = regnet_module.net.stage_3
 
 
-class DDRNet(SgModule):
+class DDRNet(SegmentationModule):
     def __init__(
         self,
         backbone: DDRBackBoneBase.__class__,
@@ -249,7 +253,7 @@ class DDRNet(SgModule):
         highres_planes: int,
         spp_width: int,
         head_width: int,
-        aux_head: bool = False,
+        use_aux_heads: bool = False,
         ssp_inter_mode: str = "bilinear",
         segmentation_inter_mode: str = "bilinear",
         skip_block: nn.Module.__class__ = None,
@@ -267,7 +271,7 @@ class DDRNet(SgModule):
         :param upscale_module: upscale to use in the backbone (DAPPM and Segmentation head are using bilinear interpolation)
         :param num_classes: number of classes
         :param highres_planes: number of channels in the high resolution net
-        :param aux_head: add a second segmentation head (fed from after compress3 + upscale). this head can be used
+        :param use_aux_heads: add a second segmentation head (fed from after compress3 + upscale). this head can be used
         during training (see paper https://arxiv.org/pdf/2101.06085.pdf for details)
         :param ssp_inter_mode: the interpolation used in the SPP block
         :param segmentation_inter_mode: the interpolation used in the segmentation head
@@ -280,8 +284,8 @@ class DDRNet(SgModule):
          modules.
         """
 
-        super().__init__()
-        self.aux_head = aux_head
+        super().__init__(use_aux_heads=use_aux_heads)
+        self.use_aux_heads = use_aux_heads
         self.upscale = upscale_module
         self.ssp_inter_mode = ssp_inter_mode
         self.segmentation_inter_mode = segmentation_inter_mode
@@ -289,7 +293,7 @@ class DDRNet(SgModule):
         self.classification_mode = classification_mode
         self.layer3_repeats = layer3_repeats
 
-        assert not (aux_head and classification_mode), "auxiliary head cannot be used in classification mode"
+        assert not (use_aux_heads and classification_mode), "auxiliary head cannot be used in classification mode"
 
         assert isinstance(backbone, DDRBackBoneBase), "The backbone must inherit from AbstractDDRBackBone"
         self._backbone = backbone
@@ -369,15 +373,15 @@ class DDRNet(SgModule):
                 strides=spp_strides,
             )
 
-            if self.aux_head:
-                self.seghead_extra = SegmentHead(highres_planes, head_width, num_classes, 8, inter_mode=self.segmentation_inter_mode)
-
             self.final_layer = SegmentHead(highres_planes * layer5_bottleneck_expansion, head_width, num_classes, 8, inter_mode=self.segmentation_inter_mode)
+
+            if self.use_aux_heads:
+                self.seghead_extra = SegmentHead(highres_planes, head_width, num_classes, 8, inter_mode=self.segmentation_inter_mode)
 
         self.highres_planes = highres_planes
         self.layer5_bottleneck_expansion = layer5_bottleneck_expansion
         self.head_width = head_width
-        self._initialize_weights()
+        self.init_params()
 
     @property
     def backbone(self):
@@ -400,14 +404,6 @@ class DDRNet(SgModule):
             )
         )
 
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-
     def forward(self, x):
         width_output = x.shape[-1] // 8
         height_output = x.shape[-2] // 8
@@ -426,7 +422,7 @@ class DDRNet(SgModule):
             x_skip = out_layer3_skip + self.upscale(self.compression3[i](self.relu(out_layer3)), height_output, width_output)
 
         # save for auxiliary head
-        if self.aux_head:
+        if self.use_aux_heads:
             temp = x_skip
 
         out_layer4 = self._backbone.layer4(self.relu(x))
@@ -448,7 +444,7 @@ class DDRNet(SgModule):
 
             x = self.final_layer(x + out_layer5_skip)
 
-            if self.aux_head:
+            if self.use_aux_heads:
                 x_extra = self.seghead_extra(temp)
                 return x, x_extra
             else:
@@ -465,8 +461,12 @@ class DDRNet(SgModule):
             self.final_layer = SegmentHead(
                 self.highres_planes * self.layer5_bottleneck_expansion, self.head_width, new_num_classes, 8, inter_mode=self.segmentation_inter_mode
             )
-            if self.aux_head:
+            if self.use_aux_heads:
                 self.seghead_extra = SegmentHead(self.highres_planes, self.head_width, new_num_classes, 8, inter_mode=self.segmentation_inter_mode)
+
+    def _remove_auxiliary_heads(self):
+        if hasattr(self, "seghead_extra"):
+            del self.seghead_extra
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
@@ -515,7 +515,7 @@ class DDRNetCustom(DDRNet):
             highres_planes=arch_params.highres_planes,
             spp_width=arch_params.spp_planes,
             head_width=arch_params.head_planes,
-            aux_head=arch_params.aux_head,
+            use_aux_heads=arch_params.use_aux_heads,
             ssp_inter_mode=arch_params.ssp_inter_mode,
             segmentation_inter_mode=arch_params.segmentation_inter_mode,
             skip_block=arch_params.skip_block,
@@ -539,7 +539,7 @@ DEFAULT_DDRNET_23_PARAMS = {
     "planes": 64,
     "highres_planes": 128,
     "head_planes": 128,
-    "aux_head": False,
+    "use_aux_heads": False,
     "segmentation_inter_mode": "bilinear",
     "classification_mode": False,
     "spp_planes": 128,
@@ -559,6 +559,7 @@ DEFAULT_DDRNET_23_SLIM_PARAMS = {
 DEFAULT_DDRNET_39_PARAMS = {**DEFAULT_DDRNET_23_PARAMS, "layers": [3, 4, 3, 3, 1, 3, 3, 1], "head_planes": 256, "layer3_repeats": 2}
 
 
+@register_model(Models.DDRNET_39)
 class DDRNet39(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_39_PARAMS)
@@ -575,6 +576,7 @@ class DDRNet39(DDRNetCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.DDRNET_23)
 class DDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_PARAMS)
@@ -591,6 +593,7 @@ class DDRNet23(DDRNetCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.DDRNET_23_SLIM)
 class DDRNet23Slim(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_SLIM_PARAMS)
@@ -607,6 +610,7 @@ class DDRNet23Slim(DDRNetCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.CUSTOM_DDRNET_23)
 class AnyBackBoneDDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_PARAMS)

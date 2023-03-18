@@ -5,7 +5,7 @@ import torch.nn
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 
-from super_gradients.common import MultiGPUMode
+from super_gradients.common import MultiGPUMode, StrictLoad
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import utils as core_utils, models
 from super_gradients.training.dataloaders import dataloaders
@@ -18,7 +18,7 @@ from super_gradients.training.exceptions.kd_trainer_exceptions import (
     UndefinedNumClassesException,
 )
 from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
+from super_gradients.common.registry.registry import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.sg_trainer import Trainer
@@ -226,7 +226,7 @@ class KDTrainer(Trainer):
                 ckpt_local_path=teacher_checkpoint_path,
                 load_backbone=False,
                 net=teacher_net,
-                strict="no_key_matching",
+                strict=StrictLoad.NO_KEY_MATCHING,
                 load_weights_only=True,
                 load_ema_as_net=load_teachers_ema,
             )

@@ -1,11 +1,33 @@
-from typing import Tuple
+import abc
+from typing import Tuple, Dict, Union
 
 import cv2
 import numpy as np
 from torch import Tensor
 
+from super_gradients.common.registry.registry import register_target_generator
 
-class DEKRTargetsGenerator:
+__all__ = ["KeypointsTargetsGenerator", "DEKRTargetsGenerator"]
+
+
+class KeypointsTargetsGenerator:
+    @abc.abstractmethod
+    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray) -> Union[Tensor, Tuple[Tensor, ...], Dict[str, Tensor]]:
+        """
+        Encode input joints into target tensors
+
+        :param image: [C,H,W] Input image tensor
+        :param joints: [Num Instances, Num Joints, 3] Last channel represents (x, y, visibility)
+        :param mask: [H,W] Mask representing valid image areas. For instance, in COCO dataset crowd targets
+                           are not used during training and corresponding instances will be zero-masked.
+                           Your implementation may use this mask when generating targets.
+        :return: Encoded targets
+        """
+        raise NotImplementedError()
+
+
+@register_target_generator()
+class DEKRTargetsGenerator(KeypointsTargetsGenerator):
     """
     Target generator for pose estimation task tailored for the DEKR paper (https://arxiv.org/abs/2104.02300)
     """
