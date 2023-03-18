@@ -33,11 +33,24 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
                 raise Exception(f"`{cls_name}` is already registered and points to `{inspect.getmodule(ref).__name__}.{ref.__name__}")
 
             registry[cls_name] = cls
+
+            _set_registration_name(cls, cls_name)
+
             return cls
 
         return decorator
 
     return register
+
+
+def _set_registration_name(obj: Callable, registration_name: str) -> None:
+    """Add an attribute of a class/function to keep track of the name used to register it."""
+    setattr(obj, "_sg_registration_name", registration_name)
+
+
+def get_registration_name(obj: Callable) -> Optional[str]:
+    """Get the name used to register this class/function in SuperGradients."""
+    return getattr(obj, "_sg_registration_name", None)
 
 
 ARCHITECTURES = {}

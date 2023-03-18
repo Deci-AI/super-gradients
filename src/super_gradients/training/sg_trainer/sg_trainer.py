@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
 
+from super_gradients.training.utils.sg_trainer_utils import parse_args
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
@@ -40,7 +41,7 @@ from super_gradients.training.metrics.metric_utils import (
     get_train_loop_description_dict,
 )
 from super_gradients.training.models import SgModule
-from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
+from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS, get_registration_name
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.distributed_training_utils import (
@@ -1020,7 +1021,7 @@ class Trainer:
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
-        self.net = model
+        self.net: nn.Module = model
         self._prep_net_for_train()
 
         # SET RANDOM SEED
@@ -1577,7 +1578,12 @@ class Trainer:
             if sg_logger not in SG_LOGGERS:
                 raise RuntimeError("sg_logger not defined in SG_LOGGERS")
 
-            self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
+            # TODO: Find a cleaner way to do this
+            if "model_name" not in sg_logger_params.keys():
+                sg_logger_params["model_name"] = get_registration_name(self.net)
+            sg_logger_cls = SG_LOGGERS[sg_logger]
+            kwargs = parse_args(sg_logger_params, sg_logger_cls.__init__)
+            self.sg_logger = sg_logger_cls(**kwargs)
         else:
             raise RuntimeError("sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger")
 
