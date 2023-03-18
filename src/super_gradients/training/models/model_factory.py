@@ -9,7 +9,7 @@ from super_gradients.common.plugins.deci_client import DeciClient, client_enable
 from super_gradients.training import utils as core_utils
 from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
 from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import ARCHITECTURES
+from super_gradients.common.registry.registry import ARCHITECTURES
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training.utils.checkpoint_utils import (

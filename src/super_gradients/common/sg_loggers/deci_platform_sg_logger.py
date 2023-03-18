@@ -3,6 +3,7 @@ import io
 from contextlib import contextmanager
 from typing import Optional
 
+from super_gradients.common.registry.registry import register_sg_logger
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger, EXPERIMENT_LOGS_PREFIX, LOGGER_LOGS_PREFIX, CONSOLE_LOGS_PREFIX
 from super_gradients.common.environment.ddp_utils import multi_process_safe
@@ -15,6 +16,7 @@ logger = get_logger(__name__)
 TENSORBOARD_EVENTS_PREFIX = "events.out.tfevents"
 
 
+@register_sg_logger("deci_platform_sg_logger")
 class DeciPlatformSGLogger(BaseSGLogger):
     """Logger responsible to push logs and tensorboard artifacts to Deci platform."""
 

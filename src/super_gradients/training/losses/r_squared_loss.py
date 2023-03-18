@@ -4,11 +4,9 @@ import torch
 import torch.nn as nn
 from torch.nn.modules.loss import _Loss
 
-from super_gradients.training.utils import convert_to_tensor
-
-
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
+from super_gradients.training.utils import convert_to_tensor
 
 
 @register_loss(Losses.R_SQUARED_LOSS)

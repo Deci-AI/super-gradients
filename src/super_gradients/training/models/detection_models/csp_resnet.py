@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Type, Tuple, Union, Optional
 
 import torch
+from super_gradients.common.registry.registry import register_detection_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from torch import nn, Tensor
@@ -108,6 +109,7 @@ class CSPResStage(nn.Module):
         return y
 
 
+@register_detection_module()
 class CSPResNetBackbone(nn.Module):
     """
     CSPResNet backbone

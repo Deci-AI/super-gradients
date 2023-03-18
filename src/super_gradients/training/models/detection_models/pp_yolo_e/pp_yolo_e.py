@@ -2,6 +2,8 @@ from typing import Union
 
 from torch import Tensor
 
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.modules import RepVGGBlock
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
@@ -48,6 +50,7 @@ class PPYoloE(SgModule):
             self.head.replace_num_classes(new_num_classes)
 
 
+@register_model(Models.PP_YOLOE_S)
 class PPYoloE_S(PPYoloE):
     def __init__(self, arch_params):
         if isinstance(arch_params, HpmStruct):
@@ -56,6 +59,7 @@ class PPYoloE_S(PPYoloE):
         super().__init__(arch_params)
 
 
+@register_model(Models.PP_YOLOE_M)
 class PPYoloE_M(PPYoloE):
     def __init__(self, arch_params):
         if isinstance(arch_params, HpmStruct):
@@ -64,6 +68,7 @@ class PPYoloE_M(PPYoloE):
         super().__init__(arch_params)
 
 
+@register_model(Models.PP_YOLOE_L)
 class PPYoloE_L(PPYoloE):
     def __init__(self, arch_params):
         if isinstance(arch_params, HpmStruct):
@@ -72,6 +77,7 @@ class PPYoloE_L(PPYoloE):
         super().__init__(arch_params)
 
 
+@register_model(Models.PP_YOLOE_X)
 class PPYoloE_X(PPYoloE):
     def __init__(self, arch_params):
         if isinstance(arch_params, HpmStruct):
