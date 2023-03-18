@@ -20,6 +20,6 @@ training_params = {
     "metric_to_watch": "Accuracy",
     "greater_metric_to_watch_is_better": True,
     "sg_logger": "deci_platform_sg_logger",
-    "sg_logger_params": {"model_name": "demo_architecture"},
+    "sg_logger_params": {},  # "model_name": "demo_architecture"},
 }
 trainer.train(model=model, training_params=training_params, train_loader=cifar10_train(), valid_loader=cifar10_val())

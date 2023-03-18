@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
 
-from super_gradients.training.utils.sg_trainer_utils import parse_args
+from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
@@ -1580,9 +1580,10 @@ class Trainer:
 
             # TODO: Find a cleaner way to do this
             if "model_name" not in sg_logger_params.keys():
-                sg_logger_params["model_name"] = get_registration_name(self.net)
+                sg_logger_params["model_name"] = get_registration_name(self.net.module)
             sg_logger_cls = SG_LOGGERS[sg_logger]
-            kwargs = parse_args(sg_logger_params, sg_logger_cls.__init__)
+            params = get_callable_param_names(sg_logger_cls.__init__)
+            kwargs = {k: v for k, v in sg_logger_params.items() if k in params}
             self.sg_logger = sg_logger_cls(**kwargs)
         else:
             raise RuntimeError("sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger")
