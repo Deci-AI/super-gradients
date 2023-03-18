@@ -3,10 +3,13 @@ import torch
 from torch.utils.data import Sampler
 import torch.distributed as dist
 
+from super_gradients.common.object_names import Samplers
+from super_gradients.common.registry.registry import register_sampler
 
 # TODO: Add unit test for RepeatAugSampler once DDP unit tests are supported.
 
 
+@register_sampler(Samplers.REPEAT_AUG)
 class RepeatAugSampler(Sampler):
     """
     Sampler that restricts data loading to a subset of the dataset for distributed,

@@ -1,7 +1,10 @@
 from typing import Dict, Optional, Union
 import torch
 from torchmetrics import Metric
+
 import super_gradients
+from super_gradients.common.object_names import Metrics
+from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.utils import tensor_container_to_device
 from super_gradients.training.utils.detection_utils import compute_detection_matching, compute_detection_metrics
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
@@ -10,6 +13,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
+@register_metric(Metrics.DETECTION_METRICS)
 class DetectionMetrics(Metric):
     """
     DetectionMetrics
@@ -176,6 +180,7 @@ class DetectionMetrics(Metric):
         return "@%.2f" % self.iou_thresholds[0] if not len(self.iou_thresholds) > 1 else "@%.2f:%.2f" % (self.iou_thresholds[0], self.iou_thresholds[-1])
 
 
+@register_metric(Metrics.DETECTION_METRICS_050)
 class DetectionMetrics_050(DetectionMetrics):
     def __init__(
         self,
@@ -202,6 +207,7 @@ class DetectionMetrics_050(DetectionMetrics):
         )
 
 
+@register_metric(Metrics.DETECTION_METRICS_075)
 class DetectionMetrics_075(DetectionMetrics):
     def __init__(
         self,
@@ -220,6 +226,7 @@ class DetectionMetrics_075(DetectionMetrics):
         )
 
 
+@register_metric(Metrics.DETECTION_METRICS_050_095)
 class DetectionMetrics_050_095(DetectionMetrics):
     def __init__(
         self,

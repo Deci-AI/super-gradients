@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from collections import OrderedDict
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models.sg_module import SgModule
 
 """Densenet-BC model class, based on
@@ -130,6 +133,7 @@ class DenseNet(SgModule):
         return out
 
 
+@register_model(Models.CUSTOM_DENSENET)
 class CustomizedDensnet(DenseNet):
     def __init__(self, arch_params):
         super().__init__(
@@ -142,21 +146,25 @@ class CustomizedDensnet(DenseNet):
         )
 
 
+@register_model(Models.DENSENET121)
 class DenseNet121(DenseNet):
     def __init__(self, arch_params):
         super().__init__(32, [6, 12, 24, 16], 64, 4, 0, arch_params.num_classes)
 
 
+@register_model(Models.DENSENET161)
 class DenseNet161(DenseNet):
     def __init__(self, arch_params):
         super().__init__(48, [6, 12, 36, 24], 96, 4, 0, arch_params.num_classes)
 
 
+@register_model(Models.DENSENET169)
 class DenseNet169(DenseNet):
     def __init__(self, arch_params):
         super().__init__(32, [6, 12, 32, 32], 64, 4, 0, arch_params.num_classes)
 
 
+@register_model(Models.DENSENET201)
 class DenseNet201(DenseNet):
     def __init__(self, arch_params):
         super().__init__(32, [6, 12, 48, 32], 64, 4, 0, arch_params.num_classes)

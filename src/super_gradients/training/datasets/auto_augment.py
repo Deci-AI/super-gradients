@@ -15,6 +15,8 @@ from typing import List
 from PIL import Image, ImageOps, ImageEnhance
 import numpy as np
 
+from super_gradients.common.object_names import Transforms
+from super_gradients.common.registry.registry import register_transform
 
 _FILL = (128, 128, 128)
 
@@ -393,6 +395,7 @@ class RandAugment:
         return img
 
 
+@register_transform(Transforms.RandAugmentTransform)
 def rand_augment_transform(config_str, crop_size: int, img_mean: List[float]):
     """
     Create a RandAugment transform

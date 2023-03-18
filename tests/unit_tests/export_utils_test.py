@@ -4,7 +4,7 @@ import torch
 from torch import nn
 import unittest
 
-from super_gradients import ARCHITECTURES
+from super_gradients.common.registry.registry import ARCHITECTURES
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils.export_utils import fuse_conv_bn
 

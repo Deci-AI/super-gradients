@@ -2,6 +2,9 @@ import numpy as np
 import torch
 from torchvision.transforms import RandomErasing
 
+from super_gradients.common.object_names import Transforms
+from super_gradients.common.registry.registry import register_transform
+
 
 class DataAugmentation:
     @staticmethod
@@ -68,6 +71,7 @@ IMAGENET_PCA = {
 }
 
 
+@register_transform(Transforms.Lighting)
 class Lighting(object):
     """
     Lighting noise(AlexNet - style PCA - based noise)
@@ -92,6 +96,7 @@ class Lighting(object):
         return img.add(rgb.view(3, 1, 1).expand_as(img))
 
 
+@register_transform(Transforms.RandomErase)
 class RandomErase(RandomErasing):
     """
     A simple class that translates the parameters supported in SuperGradient's code base
