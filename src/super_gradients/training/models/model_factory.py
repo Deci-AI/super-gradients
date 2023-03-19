@@ -136,6 +136,7 @@ def instantiate_model(
                 arch_params.num_classes = num_classes_new_head
 
     _set_model_registration_name(net, model_name)
+
     return net
 
 

@@ -33,7 +33,6 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
                 raise Exception(f"`{cls_name}` is already registered and points to `{inspect.getmodule(ref).__name__}.{ref.__name__}")
 
             registry[cls_name] = cls
-
             return cls
 
         return decorator
