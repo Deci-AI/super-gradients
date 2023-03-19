@@ -5,7 +5,7 @@ class UnsupportedTrainingParameterFormat(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, desc):
+    def __init__(self, desc: str):
         self.message = "Unsupported training parameter format: " + desc
         super().__init__(self.message)
 

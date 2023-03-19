@@ -234,7 +234,7 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = None, dataloader_p
 
 
 @register_dataloader(Dataloaders.IMAGENET_TRAIN)
-def imagenet_train(dataset_params=None, dataloader_params=None, config_name="imagenet_dataset_params"):
+def imagenet_train(dataset_params: Dict = None, dataloader_params: Dict = None, config_name="imagenet_dataset_params"):
     return get_data_loader(
         config_name=config_name,
         dataset_cls=ImageNetDataset,
@@ -245,7 +245,7 @@ def imagenet_train(dataset_params=None, dataloader_params=None, config_name="ima
 
 
 @register_dataloader(Dataloaders.IMAGENET_VAL)
-def imagenet_val(dataset_params=None, dataloader_params=None, config_name="imagenet_dataset_params"):
+def imagenet_val(dataset_params: Dict = None, dataloader_params: Dict = None, config_name="imagenet_dataset_params"):
     return get_data_loader(
         config_name=config_name,
         dataset_cls=ImageNetDataset,
@@ -256,7 +256,7 @@ def imagenet_val(dataset_params=None, dataloader_params=None, config_name="image
 
 
 @register_dataloader(Dataloaders.IMAGENET_EFFICIENTNET_TRAIN)
-def imagenet_efficientnet_train(dataset_params=None, dataloader_params=None):
+def imagenet_efficientnet_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_train(
         dataset_params,
         dataloader_params,
@@ -265,7 +265,7 @@ def imagenet_efficientnet_train(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_EFFICIENTNET_VAL)
-def imagenet_efficientnet_val(dataset_params=None, dataloader_params=None):
+def imagenet_efficientnet_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_val(
         dataset_params,
         dataloader_params,
@@ -274,7 +274,7 @@ def imagenet_efficientnet_val(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_MOBILENETV2_TRAIN)
-def imagenet_mobilenetv2_train(dataset_params=None, dataloader_params=None):
+def imagenet_mobilenetv2_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_train(
         dataset_params,
         dataloader_params,
@@ -283,7 +283,7 @@ def imagenet_mobilenetv2_train(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_MOBILENETV2_VAL)
-def imagenet_mobilenetv2_val(dataset_params=None, dataloader_params=None):
+def imagenet_mobilenetv2_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_val(
         dataset_params,
         dataloader_params,
@@ -292,7 +292,7 @@ def imagenet_mobilenetv2_val(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_MOBILENETV3_TRAIN)
-def imagenet_mobilenetv3_train(dataset_params=None, dataloader_params=None):
+def imagenet_mobilenetv3_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_train(
         dataset_params,
         dataloader_params,
@@ -301,7 +301,7 @@ def imagenet_mobilenetv3_train(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_MOBILENETV3_VAL)
-def imagenet_mobilenetv3_val(dataset_params=None, dataloader_params=None):
+def imagenet_mobilenetv3_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_val(
         dataset_params,
         dataloader_params,
@@ -310,17 +310,17 @@ def imagenet_mobilenetv3_val(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_REGNETY_TRAIN)
-def imagenet_regnetY_train(dataset_params=None, dataloader_params=None):
+def imagenet_regnetY_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_regnetY_dataset_params")
 
 
 @register_dataloader(Dataloaders.IMAGENET_REGNETY_VAL)
-def imagenet_regnetY_val(dataset_params=None, dataloader_params=None):
+def imagenet_regnetY_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_regnetY_dataset_params")
 
 
 @register_dataloader(Dataloaders.IMAGENET_RESNET50_TRAIN)
-def imagenet_resnet50_train(dataset_params=None, dataloader_params=None):
+def imagenet_resnet50_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_train(
         dataset_params,
         dataloader_params,
@@ -329,7 +329,7 @@ def imagenet_resnet50_train(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_RESNET50_VAL)
-def imagenet_resnet50_val(dataset_params=None, dataloader_params=None):
+def imagenet_resnet50_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_val(
         dataset_params,
         dataloader_params,
@@ -338,7 +338,7 @@ def imagenet_resnet50_val(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_RESNET50_KD_TRAIN)
-def imagenet_resnet50_kd_train(dataset_params=None, dataloader_params=None):
+def imagenet_resnet50_kd_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_train(
         dataset_params,
         dataloader_params,
@@ -347,7 +347,7 @@ def imagenet_resnet50_kd_train(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_RESNET50_KD_VAL)
-def imagenet_resnet50_kd_val(dataset_params=None, dataloader_params=None):
+def imagenet_resnet50_kd_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_val(
         dataset_params,
         dataloader_params,
@@ -356,7 +356,7 @@ def imagenet_resnet50_kd_val(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_VIT_BASE_TRAIN)
-def imagenet_vit_base_train(dataset_params=None, dataloader_params=None):
+def imagenet_vit_base_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_train(
         dataset_params,
         dataloader_params,
@@ -365,7 +365,7 @@ def imagenet_vit_base_train(dataset_params=None, dataloader_params=None):
 
 
 @register_dataloader(Dataloaders.IMAGENET_VIT_BASE_VAL)
-def imagenet_vit_base_val(dataset_params=None, dataloader_params=None):
+def imagenet_vit_base_val(dataset_params: Dict = None, dataloader_params: Dict = None):
     return imagenet_val(
         dataset_params,
         dataloader_params,
@@ -375,8 +375,8 @@ def imagenet_vit_base_val(dataset_params=None, dataloader_params=None):
 
 @register_dataloader(Dataloaders.TINY_IMAGENET_TRAIN)
 def tiny_imagenet_train(
-    dataset_params=None,
-    dataloader_params=None,
+    dataset_params: Dict = None,
+    dataloader_params: Dict = None,
     config_name="tiny_imagenet_dataset_params",
 ):
     return get_data_loader(
@@ -390,8 +390,8 @@ def tiny_imagenet_train(
 
 @register_dataloader(Dataloaders.TINY_IMAGENET_VAL)
 def tiny_imagenet_val(
-    dataset_params=None,
-    dataloader_params=None,
+    dataset_params: Dict = None,
+    dataloader_params: Dict = None,
     config_name="tiny_imagenet_dataset_params",
 ):
     return get_data_loader(

@@ -6,25 +6,25 @@ class EnvironmentVariables:
 
     # Infra
     @property
-    def DECI_PLATFORM_TOKEN(self):
+    def DECI_PLATFORM_TOKEN(self) -> str:
         return os.getenv("DECI_PLATFORM_TOKEN")
 
     @property
-    def WANDB_BASE_URL(self):
+    def WANDB_BASE_URL(self) -> str:
         return os.getenv("WANDB_BASE_URL")
 
     @property
-    def AWS_PROFILE(self):
+    def AWS_PROFILE(self) -> str:
         return os.getenv("AWS_PROFILE")
 
     # DDP
     @property
-    def LOCAL_RANK(self):
+    def LOCAL_RANK(self) -> int:
         return int(os.getenv("LOCAL_RANK", -1))
 
     # Turn ON/OFF features
     @property
-    def CRASH_HANDLER(self):
+    def CRASH_HANDLER(self) -> str:
         return os.getenv("CRASH_HANDLER", "TRUE")
 
     @property
