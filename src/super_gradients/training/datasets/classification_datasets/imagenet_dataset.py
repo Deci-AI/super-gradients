@@ -3,10 +3,13 @@ from typing import Union
 import torchvision.datasets as torch_datasets
 from torchvision.transforms import Compose
 
+from super_gradients.common.registry.registry import register_dataset
+from super_gradients.common.object_names import Datasets
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 
 
+@register_dataset(Datasets.IMAGENET_DATASET)
 class ImageNetDataset(torch_datasets.ImageFolder):
     """ImageNetDataset dataset.
 

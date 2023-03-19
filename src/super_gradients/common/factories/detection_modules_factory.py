@@ -4,7 +4,7 @@ from omegaconf import DictConfig
 
 from super_gradients.training.utils import HpmStruct
 from super_gradients.common.factories.base_factory import BaseFactory
-from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
+from super_gradients.common.registry.registry import ALL_DETECTION_MODULES
 
 
 class DetectionModulesFactory(BaseFactory):

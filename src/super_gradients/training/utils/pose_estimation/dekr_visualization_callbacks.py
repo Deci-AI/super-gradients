@@ -1,14 +1,18 @@
 import cv2
 import numpy as np
 import torch
+from torch import Tensor
+
+from super_gradients.common.registry.registry import register_callback
+from super_gradients.common.object_names import Callbacks
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
 from super_gradients.training.utils.pose_estimation.dekr_decode_callbacks import _hierarchical_pool
-from torch import Tensor
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 
 __all__ = ["DEKRVisualizationCallback"]
 
 
+@register_callback(Callbacks.DEKR_VISUALIZATION)
 class DEKRVisualizationCallback(PhaseCallback):
     """
     A callback that adds a visualization of a batch of segmentation predictions to context.sg_logger

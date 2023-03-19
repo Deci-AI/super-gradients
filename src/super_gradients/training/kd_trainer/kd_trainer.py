@@ -18,7 +18,7 @@ from super_gradients.training.exceptions.kd_trainer_exceptions import (
     UndefinedNumClassesException,
 )
 from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
+from super_gradients.common.registry.registry import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.sg_trainer import Trainer

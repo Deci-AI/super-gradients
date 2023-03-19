@@ -7,6 +7,9 @@ import numpy as np
 from torch import Tensor
 from torchvision.transforms import functional as F
 
+from super_gradients.common.object_names import Transforms
+from super_gradients.common.registry.registry import register_transform
+
 __all__ = [
     "KeypointsImageNormalize",
     "KeypointsImageToTensor",
@@ -22,6 +25,7 @@ __all__ = [
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
 
 
+@register_transform(Transforms.KeypointTransform)
 class KeypointTransform(object):
     """
     Base class for all transforms for keypoints augmnetation.
@@ -58,6 +62,7 @@ class KeypointsCompose(KeypointTransform):
         return image, mask, joints, areas, bboxes
 
 
+@register_transform(Transforms.KeypointsImageToTensor)
 class KeypointsImageToTensor(KeypointTransform):
     """
     Convert image from numpy array to tensor and permute axes to [C,H,W].
@@ -68,6 +73,7 @@ class KeypointsImageToTensor(KeypointTransform):
         return F.to_tensor(image), mask, joints, areas, bboxes
 
 
+@register_transform(Transforms.KeypointsImageNormalize)
 class KeypointsImageNormalize(KeypointTransform):
     """
     Normalize image with mean and std. Note this transform should come after KeypointsImageToTensor
@@ -83,6 +89,7 @@ class KeypointsImageNormalize(KeypointTransform):
         return image, mask, joints, areas, bboxes
 
 
+@register_transform(Transforms.KeypointsRandomHorizontalFlip)
 class KeypointsRandomHorizontalFlip(KeypointTransform):
     """
     Flip image, mask and joints horizontally with a given probability.
@@ -130,6 +137,7 @@ class KeypointsRandomHorizontalFlip(KeypointTransform):
         return bboxes
 
 
+@register_transform(Transforms.KeypointsRandomVerticalFlip)
 class KeypointsRandomVerticalFlip(KeypointTransform):
     """
     Flip image, mask and joints vertically with a given probability.
@@ -168,6 +176,7 @@ class KeypointsRandomVerticalFlip(KeypointTransform):
         return bboxes
 
 
+@register_transform(Transforms.KeypointsLongestMaxSize)
 class KeypointsLongestMaxSize(KeypointTransform):
     """
     Resize image, mask and joints to ensure that resulting image does not exceed max_sizes (rows, cols).
@@ -227,6 +236,7 @@ class KeypointsLongestMaxSize(KeypointTransform):
         return bboxes * scale
 
 
+@register_transform(Transforms.KeypointsPadIfNeeded)
 class KeypointsPadIfNeeded(KeypointTransform):
     """
     Pad image and mask to ensure that resulting image size is not less than `output_size` (rows, cols).
@@ -262,6 +272,7 @@ class KeypointsPadIfNeeded(KeypointTransform):
         return image, mask, joints, areas, bboxes
 
 
+@register_transform(Transforms.KeypointsRandomAffineTransform)
 class KeypointsRandomAffineTransform(KeypointTransform):
     """
     Apply random affine transform to image, mask and joints.

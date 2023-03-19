@@ -4,13 +4,14 @@ from pathlib import Path
 from typing import List, Type, Tuple, Union, Optional
 
 import torch
+from super_gradients.common.registry.registry import register_detection_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from torch import nn, Tensor
 
 from super_gradients.modules import RepVGGBlock, EffectiveSEBlock, ConvBNAct
 
-__all__ = ["CSPResNet", "CSPResNetBasicBlock"]
+__all__ = ["CSPResNetBackbone", "CSPResNetBasicBlock"]
 
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 
@@ -108,7 +109,8 @@ class CSPResStage(nn.Module):
         return y
 
 
-class CSPResNet(nn.Module):
+@register_detection_module()
+class CSPResNetBackbone(nn.Module):
     """
     CSPResNet backbone
     """
@@ -125,6 +127,7 @@ class CSPResNet(nn.Module):
         depth_mult: float,
         use_alpha: bool,
         pretrained_weights: Optional[str] = None,
+        in_channels: int = 3,
     ):
         """
 
@@ -137,6 +140,7 @@ class CSPResNet(nn.Module):
         :param depth_mult: Scaling factor for a number of blocks in each stage
         :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch in RepVGGBlock
         :param pretrained_weights:
+        :param in_channels: Number of input channels. Default: 3
         """
         super().__init__()
         channels = [max(round(num_channels * width_mult), 1) for num_channels in channels]
@@ -148,7 +152,7 @@ class CSPResNet(nn.Module):
                     [
                         (
                             "conv1",
-                            ConvBNAct(3, channels[0] // 2, 3, stride=2, padding=1, activation_type=activation, bias=False),
+                            ConvBNAct(in_channels, channels[0] // 2, 3, stride=2, padding=1, activation_type=activation, bias=False),
                         ),
                         (
                             "conv2",
@@ -234,3 +238,7 @@ class CSPResNet(nn.Module):
         for module in self.modules():
             if isinstance(module, RepVGGBlock):
                 module.fuse_block_residual_branches()
+
+    @property
+    def out_channels(self) -> Tuple[int]:
+        return tuple(self._out_channels)

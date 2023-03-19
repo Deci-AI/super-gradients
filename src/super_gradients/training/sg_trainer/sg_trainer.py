@@ -20,15 +20,15 @@ from tqdm import tqdm
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
-from super_gradients.common.sg_loggers import SG_LOGGERS
-from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
-from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
+
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
@@ -40,8 +40,7 @@ from super_gradients.training.metrics.metric_utils import (
     get_train_loop_description_dict,
 )
 from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import ARCHITECTURES
-from super_gradients.training.params import TrainingParams
+from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.distributed_training_utils import (
@@ -74,17 +73,17 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import (
     CallbackHandler,
     Phase,
-    LR_SCHEDULERS_CLS_DICT,
     PhaseContext,
     MetricsUpdateCallback,
-    LR_WARMUP_CLS_DICT,
     ContextSgMethods,
     LRCallbackBase,
 )
+from super_gradients.common.registry.registry import LR_SCHEDULERS_CLS_DICT, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
+from super_gradients.training.params import TrainingParams
 
 logger = get_logger(__name__)
 
