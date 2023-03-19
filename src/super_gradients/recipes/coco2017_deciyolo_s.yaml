@@ -19,8 +19,8 @@
 #
 
 defaults:
-  - training_hyperparams: coco2017_deciyolo_train_params
-  - dataset_params: coco_detection_deci_yolo_dataset_params
+  - training_hyperparams: coco2017_ppyoloe_train_params
+  - dataset_params: coco_detection_ppyoloe_dataset_params
   - arch_params: deciyolo_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
