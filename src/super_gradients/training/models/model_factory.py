@@ -134,7 +134,19 @@ def instantiate_model(
             if num_classes_new_head != arch_params.num_classes:
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
+
+    _set_model_registration_name(net, model_name)
     return net
+
+
+def _set_model_registration_name(model: torch.nn.Module, registration_name: str) -> None:
+    """Add an attribute to a model, to keep track of the name used to register it."""
+    setattr(model, "_sg_model_name", registration_name)
+
+
+def get_model_registration_name(model: torch.nn.Module) -> Optional[str]:
+    """Get the name used to register a model. Return None if not registered."""
+    return getattr(model, "_sg_model_name", None)
 
 
 def get(

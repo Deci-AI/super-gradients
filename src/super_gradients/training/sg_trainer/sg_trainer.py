@@ -40,8 +40,8 @@ from super_gradients.training.metrics.metric_utils import (
     get_metrics_dict,
     get_train_loop_description_dict,
 )
-from super_gradients.training.models import SgModule
-from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS, get_registration_name
+from super_gradients.training.models import SgModule, get_model_registration_name
+from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.distributed_training_utils import (
@@ -1572,19 +1572,29 @@ class Trainer:
         if isinstance(sg_logger, AbstractSGLogger):
             self.sg_logger = sg_logger
         elif isinstance(sg_logger, str):
-            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
-            if issubclass(SG_LOGGERS[sg_logger], BaseSGLogger):
-                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
-            if sg_logger not in SG_LOGGERS:
-                raise RuntimeError("sg_logger not defined in SG_LOGGERS")
 
-            # TODO: Find a cleaner way to do this
-            if "model_name" not in sg_logger_params.keys():
-                sg_logger_params["model_name"] = get_registration_name(self.net.module)
-            sg_logger_cls = SG_LOGGERS[sg_logger]
-            params = get_callable_param_names(sg_logger_cls.__init__)
-            kwargs = {k: v for k, v in sg_logger_params.items() if k in params}
-            self.sg_logger = sg_logger_cls(**kwargs)
+            sg_logger_cls = SG_LOGGERS.get(sg_logger)
+            if sg_logger_cls is None:
+                raise RuntimeError(f"sg_logger={sg_logger} not registered in SuperGradients. Available {list(SG_LOGGERS.keys())}")
+
+            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
+            if issubclass(sg_logger_cls, BaseSGLogger):
+                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
+
+            # Some sg_logger require model_name, but not all of them.
+            if "model_name" in get_callable_param_names(sg_logger_cls.__init__):
+                if sg_logger_params.get("model_name") is None:
+                    # Use the model name used in `models.get(...)` if relevant
+                    sg_logger_params["model_name"] = get_model_registration_name(self.net.module)
+
+                if sg_logger_params["model_name"] is None:
+                    raise ValueError(
+                        f'`model_name` is required to use `training_hyperparams.sg_logger="{sg_logger}"`.\n'
+                        'Please set `training_hyperparams.sg_logger_params.model_name="<your-model-name>"`.\n'
+                        "Note that specifying `model_name` is not required when the model was loaded using `models.get(...)`."
+                    )
+
+            self.sg_logger = sg_logger_cls(**sg_logger_params)
         else:
             raise RuntimeError("sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger")
 
