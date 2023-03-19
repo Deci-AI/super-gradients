@@ -40,7 +40,7 @@ from super_gradients.training.metrics.metric_utils import (
     get_metrics_dict,
     get_train_loop_description_dict,
 )
-from super_gradients.training.models import SgModule, get_model_registration_name
+from super_gradients.training.models import SgModule, get_model_name
 from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
@@ -1576,7 +1576,7 @@ class Trainer:
             if "model_name" in get_callable_param_names(sg_logger_cls.__init__):
                 if sg_logger_params.get("model_name") is None:
                     # Use the model name used in `models.get(...)` if relevant
-                    sg_logger_params["model_name"] = get_model_registration_name(self.net.module)
+                    sg_logger_params["model_name"] = get_model_name(self.net.module)
 
                 if sg_logger_params["model_name"] is None:
                     raise ValueError(
