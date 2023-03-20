@@ -17,4 +17,12 @@ class PoseDDRNet39(CustomizableDetector):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):
         merged_arch_params = HpmStruct(**copy.deepcopy(POSE_DDRNET39_ARCH_PARAMS))
         merged_arch_params.override(**arch_params.to_dict())
-        super().__init__(merged_arch_params, in_channels=in_channels)
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            heads=merged_arch_params.heads,
+            num_classes=merged_arch_params.num_classes,
+            bn_eps=merged_arch_params.bn_eps,
+            bn_momentum=merged_arch_params.bn_momentum,
+            inplace_act=merged_arch_params.inplace_act,
+            in_channels=in_channels,
+        )

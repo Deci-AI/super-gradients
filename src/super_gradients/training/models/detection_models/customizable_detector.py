@@ -11,6 +11,7 @@ from typing import Union, Optional
 
 from torch import nn
 
+
 from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
 
