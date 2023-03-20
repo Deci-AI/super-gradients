@@ -4,6 +4,7 @@ Object detection is a core task in computer vision that allows to detect and cla
 It's been gaining popularity and ubiquity extremely fast since the first breakthroughs in Deep Learning and was able to advance a wide range of companies, including the medical domain, surveillance, smart shopping, etc.
 It comes as no surprise considering that it covers two basic needs in an end-to-end manner: to find all present objects and to assign a class to each one of them, 
 while cleverly dealing with the background and its dominance over all other classes. 
+
 Due to this, most recent research publications dedicated to object detection focus on a good train-off between accuracy and speed.
 In SuperGradients, we aim to collect such models and make them very convenient and accessible to you, so that try any one of them interchangeably.
 
@@ -26,6 +27,8 @@ The easiest way to start training any mode in SuperGradients is to use a pre-def
 2. Prepare the COCO dataset as described in the [Computer Vision Datasets Setup](https://docs.deci.ai/super-gradients/src/super_gradients/training/datasets/Dataset_Setup_Instructions/) under Detection Datasets section. 
 
 After you meet the prerequisites, you can start training the model by running from the root of the repository:
+
+### Training from recipe
 
 ```bash
 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox multi_gpu=Off num_gpus=1
