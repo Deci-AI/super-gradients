@@ -738,8 +738,8 @@ class RoboflowResultCallback(Callback):
         with open(self.output_path, mode="a", newline="") as csv_file:
             writer = csv.writer(csv_file)
 
-        mAP = context.metrics_dict["mAP@0.50:0.95"].item()
-        writer.writerow([self.dataset_name, mAP])
+            mAP = context.metrics_dict["mAP@0.50:0.95"].item()
+            writer.writerow([self.dataset_name, mAP])
 
 
 class TestLRCallback(PhaseCallback):
