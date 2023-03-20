@@ -5,7 +5,7 @@ It's been gaining popularity and ubiquity extremely fast since the first breakth
 It comes as no surprise considering that it covers two basic needs in an end-to-end manner: to find all present objects and to assign a class to each one of them, 
 while cleverly dealing with the background and its dominance over all other classes. 
 
-Due to this, most recent research publications dedicated to object detection focus on a good train-off between accuracy and speed.
+Due to this, most recent research publications dedicated to object detection focus on a good trade-off between accuracy and speed.
 In SuperGradients, we aim to collect such models and make them very convenient and accessible to you, so that you can try any one of them interchangeably.
 
 ## Implemented models
