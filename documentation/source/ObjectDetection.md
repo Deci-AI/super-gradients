@@ -1,12 +1,12 @@
 # Object Detection
 
 Object detection is a core task in computer vision that allows to detect and classify bounding boxes in images. 
-It's been gaining popularity and ubiquity extremely fast since the first breakthroughs in Deep Learning and was able to advance a wide range of companies, including the medical domain, surveillance, smart shopping, etc.
+It's been gaining popularity and ubiquity extremely fast since the first breakthroughs in Deep Learning and advanced a wide range of companies, including the medical domain, surveillance, smart shopping, etc.
 It comes as no surprise considering that it covers two basic needs in an end-to-end manner: to find all present objects and to assign a class to each one of them, 
 while cleverly dealing with the background and its dominance over all other classes. 
 
 Due to this, most recent research publications dedicated to object detection focus on a good train-off between accuracy and speed.
-In SuperGradients, we aim to collect such models and make them very convenient and accessible to you, so that try any one of them interchangeably.
+In SuperGradients, we aim to collect such models and make them very convenient and accessible to you, so that you can try any one of them interchangeably.
 
 ## Implemented models
 
@@ -125,6 +125,104 @@ This also allows you to test the correctness of your dataset implementation, sin
 The saved train image for a dataset with a mosaic transform should look something like this:
 
 ![train_24](images/train_24.jpg)
+
+### Let's train!
+
+As stated above, training can be launched with just one command. For the curious ones, let's see how all the components we've just discussed fall into place in one yaml.
+```yaml
+# coco2017_yolox
+defaults:
+  - training_hyperparams: coco2017_yolox_train_params
+  - dataset_params: coco_detection_dataset_params
+  - arch_params: yolox_s_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+```
+These are the actual components of [coco2017_yolox.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_yolox.yaml)
+The dataset parameters are defined in `dataset_params:` and are eventually passed into coco2017_train/val dataset mentioned above in the [Datasets](https://github.com/Deci-AI/super-gradients/blob/feature/ALG-1132_od-md/documentation/source/ObjectDetection.md#datasets) section 
+
+The metric is part of `training_hyperparams` and so it's stated in the [coco2017_yolox_train_params.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/coco2017_yolox_train_params.yaml) with:
+
+```yaml
+valid_metrics_list:
+  - DetectionMetrics:
+      normalize_targets: True
+      post_prediction_callback:
+        _target_: super_gradients.training.models.detection_models.yolo_base.YoloPostPredictionCallback
+        iou: 0.65
+        conf: 0.01
+      num_cls: 80
+```
+
+Notice how `YoloPostPredictionCallback` is passed as a `post_prediction_callback`.
+
+A visualization belongs to `training_hyperparams` as well, specifically to the `phase_callbacks` list, as follows:
+```yaml
+phase_callbacks:
+  - DetectionVisualizationCallback:
+      phase:
+        _target_: super_gradients.training.utils.callbacks.callbacks.Phase
+        value: VALIDATION_EPOCH_END
+      freq: 1
+      post_prediction_callback:
+        _target_: super_gradients.training.models.detection_models.yolo_base.YoloPostPredictionCallback
+        iou: 0.65
+        conf: 0.01
+      classes: [
+          "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
+          "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
+          "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee",
+          "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
+          "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+          "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch",
+          "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone",
+          "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear",
+          "hair drier", "toothbrush"
+      ]
+```
+By default, this callback is not part of the yaml, so you can add it yourself if you prefer.
+
+Using the provided yaml, SuperGradients can instantiate all the components and launch training from config:
+```python
+trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+
+# BUILD NETWORK
+model = models.get(
+    model_name=cfg.architecture,
+    num_classes=cfg.arch_params.num_classes,
+    arch_params=cfg.arch_params,
+    strict_load=cfg.checkpoint_params.strict_load,
+    pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+    checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+    load_backbone=cfg.checkpoint_params.load_backbone,
+)
+
+# INSTANTIATE DATA LOADERS
+
+train_dataloader = dataloaders.get(
+    name=get_param(cfg, "train_dataloader"),
+    dataset_params=cfg.dataset_params.train_dataset_params,
+    dataloader_params=cfg.dataset_params.train_dataloader_params,
+)
+
+val_dataloader = dataloaders.get(
+    name=get_param(cfg, "val_dataloader"),
+    dataset_params=cfg.dataset_params.val_dataset_params,
+    dataloader_params=cfg.dataset_params.val_dataloader_params,
+)
+
+recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
+# TRAIN
+res = trainer.train(
+    model=model,
+    train_loader=train_dataloader,
+    valid_loader=val_dataloader,
+    training_params=cfg.training_hyperparams,
+    additional_configs_to_log=recipe_logged_cfg,
+)
+```
+It is convenient to trigger it with [train_from_recipe.py](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py), but you can do the same in your project by constructing the desired objects directly.
+
 
 ## How to connect your own dataset
 
@@ -315,6 +413,7 @@ To implement a new model, you need to add the following parts:
 - Model architecture itself
 - Postprocessing Callback
 
-It is strongly advised to use the existing callbacks and to define your model's head such that it returns the same outputs. 
 For a custom model, a good starting point would be a [CustomizableDetector](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.customizable_detector.CustomizableDetector) class since it allows to configure a backbone, a neck and a head separately. See an example yaml of a model that uses it:
 - [ssd_lite_mobilenetv2_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ssd_lite_mobilenetv2_arch_params.yaml)
+
+It is strongly advised to use the existing callbacks and to define your model's head such that it returns the same outputs. 
