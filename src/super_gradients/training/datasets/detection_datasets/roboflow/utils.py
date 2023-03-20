@@ -33,4 +33,4 @@ def get_dataset_num_classes(dataset_name: str) -> int:
     metadata = get_dataset_metadata(dataset_name)
     if metadata is None:
         raise ValueError(f"No num_classes found for dataset_name={dataset_name}. This might be due to a recent change in the dataset name.")
-    return metadata["num_classes"]
+    return metadata["num_classes_found"]
