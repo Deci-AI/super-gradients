@@ -51,7 +51,7 @@ training_hyperparams:
   loss:
     ppyoloe_loss:
       num_classes: ${num_classes}
-      reg_max: ${arch_params.head.reg_max}
+      reg_max: 16
 
   valid_metrics_list:
     - DetectionMetrics:
