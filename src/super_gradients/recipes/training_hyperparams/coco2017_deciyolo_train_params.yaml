@@ -21,7 +21,7 @@ loss:
   ppyoloe_loss:
     use_static_assigner: False
     num_classes: ${arch_params.num_classes}
-    reg_max: ${arch_params.head.NDFLHeads.reg_max}
+    reg_max: 16
 
 optimizer: AdamW
 optimizer_params:
