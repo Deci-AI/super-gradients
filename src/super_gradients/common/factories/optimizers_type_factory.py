@@ -1,5 +1,5 @@
 from super_gradients.common.factories.type_factory import TypeFactory
-from super_gradients.training.utils.optimizers import OPTIMIZERS
+from super_gradients.common.registry.registry import OPTIMIZERS
 
 
 class OptimizersTypeFactory(TypeFactory):

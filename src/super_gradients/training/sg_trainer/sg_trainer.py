@@ -19,16 +19,17 @@ from tqdm import tqdm
 
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
 
+from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
-from super_gradients.common.sg_loggers import SG_LOGGERS
-from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
-from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
+
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
@@ -39,9 +40,8 @@ from super_gradients.training.metrics.metric_utils import (
     get_metrics_dict,
     get_train_loop_description_dict,
 )
-from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import ARCHITECTURES
-from super_gradients.training.params import TrainingParams
+from super_gradients.training.models import SgModule, get_model_name
+from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.distributed_training_utils import (
@@ -74,17 +74,17 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import (
     CallbackHandler,
     Phase,
-    LR_SCHEDULERS_CLS_DICT,
     PhaseContext,
     MetricsUpdateCallback,
-    LR_WARMUP_CLS_DICT,
     ContextSgMethods,
     LRCallbackBase,
 )
+from super_gradients.common.registry.registry import LR_SCHEDULERS_CLS_DICT, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
+from super_gradients.training.params import TrainingParams
 
 logger = get_logger(__name__)
 
@@ -319,6 +319,7 @@ class Trainer:
             model_name=cfg.architecture,
             num_classes=cfg.arch_params.num_classes,
             arch_params=cfg.arch_params,
+            strict_load=cfg.checkpoint_params.strict_load,
             pretrained_weights=cfg.checkpoint_params.pretrained_weights,
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
@@ -1562,13 +1563,29 @@ class Trainer:
         if isinstance(sg_logger, AbstractSGLogger):
             self.sg_logger = sg_logger
         elif isinstance(sg_logger, str):
-            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
-            if issubclass(SG_LOGGERS[sg_logger], BaseSGLogger):
-                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
-            if sg_logger not in SG_LOGGERS:
-                raise RuntimeError("sg_logger not defined in SG_LOGGERS")
 
-            self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
+            sg_logger_cls = SG_LOGGERS.get(sg_logger)
+            if sg_logger_cls is None:
+                raise RuntimeError(f"sg_logger={sg_logger} not registered in SuperGradients. Available {list(SG_LOGGERS.keys())}")
+
+            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
+            if issubclass(sg_logger_cls, BaseSGLogger):
+                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
+
+            # Some sg_logger require model_name, but not all of them.
+            if "model_name" in get_callable_param_names(sg_logger_cls.__init__):
+                if sg_logger_params.get("model_name") is None:
+                    # Use the model name used in `models.get(...)` if relevant
+                    sg_logger_params["model_name"] = get_model_name(self.net.module)
+
+                if sg_logger_params["model_name"] is None:
+                    raise ValueError(
+                        f'`model_name` is required to use `training_hyperparams.sg_logger="{sg_logger}"`.\n'
+                        'Please set `training_hyperparams.sg_logger_params.model_name="<your-model-name>"`.\n'
+                        "Note that specifying `model_name` is not required when the model was loaded using `models.get(...)`."
+                    )
+
+            self.sg_logger = sg_logger_cls(**sg_logger_params)
         else:
             raise RuntimeError("sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger")
 

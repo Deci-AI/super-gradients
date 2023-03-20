@@ -18,7 +18,8 @@ from super_gradients.common.environment.argparse_utils import EXTRA_ARGS
 from super_gradients.common.environment.ddp_utils import find_free_port, is_distributed, is_launched_using_sg
 
 
-from super_gradients.common.abstractions.abstract_logger import get_logger, mute_current_process
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.abstractions.mute_processes import mute_current_process
 from super_gradients.common.environment.device_utils import device_config
 
 from super_gradients.common.decorators.factory_decorator import resolve_param

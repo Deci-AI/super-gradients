@@ -1,6 +1,9 @@
+from super_gradients.common.registry.registry import register_callback
+from super_gradients.common.object_names import Callbacks
 from super_gradients.training.utils.callbacks import TrainingStageSwitchCallbackBase, PhaseContext
 
 
+@register_callback(Callbacks.PPYOLOE_TRAINING_STAGE_SWITCH)
 class PPYoloETrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
     """
     PPYoloETrainingStageSwitchCallback

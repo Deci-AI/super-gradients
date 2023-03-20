@@ -11,6 +11,8 @@ import torch.nn.functional as F
 
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import HpmStruct
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models.classification_models.resnet import BasicBlock, ResNet, Bottleneck
 
 
@@ -628,6 +630,7 @@ class ShelfNetLW(ShelfNetBase):
         return params_list
 
 
+@register_model(Models.SHELFNET18_LW)
 class ShelfNet18_LW(ShelfNetLW):
     def __init__(self, *args, **kwargs):
         super().__init__(backbone=ShelfResNetBackBone18, planes=64, layers=3, *args, **kwargs)
@@ -645,6 +648,7 @@ class ShelfNet18_LW(ShelfNetLW):
             out_planes *= 2
 
 
+@register_model(Models.SHELFNET34_LW)
 class ShelfNet34_LW(ShelfNetLW):
     def __init__(self, *args, **kwargs):
         super().__init__(backbone=ShelfResNetBackBone34, planes=128, layers=3, *args, **kwargs)
@@ -659,16 +663,19 @@ class ShelfNet34_LW(ShelfNetLW):
             net_out_planes *= 2
 
 
+@register_model(Models.SHELFNET50_3343)
 class ShelfNet503343(ShelfNetHW):
     def __init__(self, *args, **kwargs):
         super().__init__(backbone=ShelfResNetBackBone503343, planes=256, layers=4, *args, **kwargs)
 
 
+@register_model(Models.SHELFNET50)
 class ShelfNet50(ShelfNetHW):
     def __init__(self, *args, **kwargs):
         super().__init__(backbone=ShelfResNetBackBone50, planes=256, layers=4, *args, **kwargs)
 
 
+@register_model(Models.SHELFNET101)
 class ShelfNet101(ShelfNetHW):
     def __init__(self, *args, **kwargs):
         super().__init__(backbone=ShelfResNetBackBone101, planes=256, layers=4, *args, **kwargs)

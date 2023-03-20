@@ -1,10 +1,14 @@
 import torch.nn as nn
 from typing import Optional, Union, List
 
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training import models
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
-from super_gradients.training.utils.module_utils import make_upsample_module, UpsampleMode, fuse_repvgg_blocks_residual_branches
+from super_gradients.modules.sampling import UpsampleMode
+from super_gradients.modules.sampling import make_upsample_module
+from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import UNetBackboneBase, Encoder
 from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
 from super_gradients.training.models.segmentation_models.unet.unet_decoder import Decoder
@@ -198,6 +202,7 @@ class UNetBase(SegmentationModule):
                 module.replace_num_classes(new_num_classes)
 
 
+@register_model(Models.UNET_CUSTOM)
 class UNetCustom(UNetBase):
     def __init__(self, arch_params: HpmStruct):
         arch_params = HpmStruct(**models.get_arch_params("unet_default_arch_params.yaml", overriding_params=arch_params.to_dict()))
@@ -214,3 +219,16 @@ class UNetCustom(UNetBase):
             aux_heads_params=get_param(arch_params, "aux_heads_params"),
             dropout=get_param(arch_params, "dropout", 0.0),
         )
+
+
+@register_model(Models.UNET)
+class UNet(UNetCustom):
+    """
+    implementation of:
+     "U-Net: Convolutional Networks for Biomedical Image Segmentation", https://arxiv.org/pdf/1505.04597.pdf
+    The upsample operation is done by using bilinear interpolation which is reported to show better results.
+    """
+
+    def __init__(self, arch_params: HpmStruct):
+        arch_params = HpmStruct(**models.get_arch_params("unet_arch_params.yaml", arch_params.to_dict()))
+        super().__init__(arch_params)

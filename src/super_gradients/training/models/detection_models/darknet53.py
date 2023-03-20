@@ -1,4 +1,7 @@
 from torch import nn
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import get_param
 
@@ -67,6 +70,7 @@ class Darknet53Base(SgModule):
         return nn.Sequential(*layers)
 
 
+@register_model(Models.DARKNET53)
 class Darknet53(Darknet53Base):
     def __init__(self, arch_params=None, backbone_mode=True, num_classes=None):
         super(Darknet53, self).__init__()

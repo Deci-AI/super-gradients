@@ -7,6 +7,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models.sg_module import SgModule
 
 GoogLeNetOutputs = namedtuple("GoogLeNetOutputs", ["log_", "aux_logits2", "aux_logits1"])
@@ -232,6 +235,7 @@ class BasicConv2d(nn.Module):
         return x
 
 
+@register_model(Models.GOOGLENET_V1)
 class GoogleNetV1(GoogLeNet):
     def __init__(self, arch_params):
         super(GoogleNetV1, self).__init__(aux_logits=False, num_classes=arch_params.num_classes, dropout=arch_params.dropout)
