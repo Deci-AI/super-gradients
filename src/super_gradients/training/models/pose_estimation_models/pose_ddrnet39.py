@@ -20,7 +20,7 @@ class PoseDDRNet39(CustomizableDetector):
         super().__init__(
             backbone=merged_arch_params.backbone,
             heads=merged_arch_params.heads,
-            num_classes=merged_arch_params.num_classes,
+            num_classes=get_param(merged_arch_params, "num_classes", None),
             bn_eps=get_param(merged_arch_params, "bn_eps", None),
             bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
             inplace_act=get_param(merged_arch_params, "inplace_act", True),

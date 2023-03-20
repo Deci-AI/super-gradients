@@ -413,25 +413,23 @@ class EfficientNet(SgModule):
 
     def __init__(
         self,
-        width_coefficient,
-        depth_coefficient,
-        image_size,
-        dropout_rate,
-        num_classes,  # FIXME num_classes: arch_params.num_classes,
-        batch_norm_momentum: 0.99,
-        batch_norm_epsilon: 1e-3,
-        drop_connect_rate: 0.2,
-        depth_divisor: 8,
-        min_depth: None,
-        backbone_mode: False,
-        blocks_args=None,
+        width_coefficient: float,
+        depth_coefficient: float,
+        image_size: int,
+        dropout_rate: float,
+        num_classes: int,
+        batch_norm_momentum: float = 0.99,
+        batch_norm_epsilon: float = 1e-3,
+        drop_connect_rate: float = 0.2,
+        depth_divisor: int = 8,
+        min_depth: int = None,
+        backbone_mode: bool = False,
+        blocks_args: list = None,
     ):
-        pass
-        # FIXME: blocks_args was moved right
         super().__init__()
         assert isinstance(blocks_args, list), "blocks_args should be a list"
         assert len(blocks_args) > 0, "block args must be greater than 0"
-        # ! = arch_params
+
         self._blocks_args = blocks_args
         self.backbone_mode = backbone_mode
         self.drop_connect_rate = drop_connect_rate

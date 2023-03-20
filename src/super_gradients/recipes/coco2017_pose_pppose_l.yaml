@@ -11,8 +11,8 @@ resume: False
 
 architecture: pose_ppyolo_l
 
-multi_gpu: Off
-num_gpus: 1
+multi_gpu: DDP
+num_gpus: 8
 
 experiment_suffix: ""
 experiment_name: coco2017_${architecture}${experiment_suffix}
@@ -31,10 +31,10 @@ arch_params:
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 4
+    batch_size: 12
 
   val_dataloader_params:
-    batch_size: 8
+    batch_size: 16
 
 training_hyperparams:
   initial_lr: 0.0001
