@@ -62,7 +62,11 @@ import math
 import torch
 from torch.optim import Optimizer
 
+from super_gradients.common.object_names import Optimizers
+from super_gradients.common.registry.registry import register_optimizer
 
+
+@register_optimizer(Optimizers.LAMB)
 class Lamb(Optimizer):
     """Implements a pure pytorch variant of FuseLAMB (NvLamb variant) optimizer from apex.optimizers.FusedLAMB
     reference: https://github.com/NVIDIA/DeepLearningExamples/blob/master/PyTorch/LanguageModeling/Transformer-XL/pytorch/lamb.py

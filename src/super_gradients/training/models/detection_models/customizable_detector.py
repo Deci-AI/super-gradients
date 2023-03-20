@@ -25,8 +25,8 @@ class CustomizableDetector(SgModule):
     def __init__(
         self,
         backbone: dict,
-        neck: dict,
         heads: dict,
+        neck: dict = None,
         num_classes: int = None,
         bn_eps: Optional[float] = None,
         bn_momentum: Optional[float] = None,
@@ -49,8 +49,12 @@ class CustomizableDetector(SgModule):
             self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", num_classes)
 
         self.backbone = factory.get(factory.insert_module_param(backbone, "in_channels", in_channels))
-        self.neck = factory.get(factory.insert_module_param(neck, "in_channels", self.backbone.out_channels))
-        self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.neck.out_channels))
+        if neck is not None:
+            self.neck = factory.get(factory.insert_module_param(neck, "in_channels", self.backbone.out_channels))
+            self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.neck.out_channels))
+        else:
+            self.neck = nn.Identity()
+            self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.backbone.out_channels))
 
         self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)
 

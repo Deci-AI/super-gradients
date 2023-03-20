@@ -22,6 +22,9 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from collections import OrderedDict
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
@@ -602,6 +605,7 @@ def get_efficientnet_params(width: float, depth: float, res: float, dropout: flo
     return blocks_args, arch_params_new
 
 
+@register_model(Models.EFFICIENTNET_B0)
 class EfficientNetB0(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.0, depth=1.0, res=224, dropout=0.2, arch_params=arch_params)
@@ -621,6 +625,7 @@ class EfficientNetB0(EfficientNet):
         )
 
 
+@register_model(Models.EFFICIENTNET_B1)
 class EfficientNetB1(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.0, depth=1.1, res=240, dropout=0.2, arch_params=arch_params)
@@ -640,6 +645,7 @@ class EfficientNetB1(EfficientNet):
         )
 
 
+@register_model(Models.EFFICIENTNET_B2)
 class EfficientNetB2(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.1, depth=1.2, res=260, dropout=0.3, arch_params=arch_params)
@@ -659,6 +665,7 @@ class EfficientNetB2(EfficientNet):
         )
 
 
+@register_model(Models.EFFICIENTNET_B3)
 class EfficientNetB3(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.2, depth=1.4, res=300, dropout=0.3, arch_params=arch_params)
@@ -678,6 +685,7 @@ class EfficientNetB3(EfficientNet):
         )
 
 
+@register_model(Models.EFFICIENTNET_B4)
 class EfficientNetB4(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.4, depth=1.8, res=380, dropout=0.4, arch_params=arch_params)
@@ -697,6 +705,7 @@ class EfficientNetB4(EfficientNet):
         )
 
 
+@register_model(Models.EFFICIENTNET_B5)
 class EfficientNetB5(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.6, depth=2.2, res=456, dropout=0.4, arch_params=arch_params)
@@ -716,6 +725,7 @@ class EfficientNetB5(EfficientNet):
         )
 
 
+@register_model(Models.EFFICIENTNET_B6)
 class EfficientNetB6(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=1.8, depth=2.6, res=528, dropout=0.5, arch_params=arch_params)
@@ -735,6 +745,7 @@ class EfficientNetB6(EfficientNet):
         )
 
 
+@register_model(Models.EFFICIENTNET_B7)
 class EfficientNetB7(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=2.0, depth=3.1, res=600, dropout=0.5, arch_params=arch_params)
@@ -754,6 +765,7 @@ class EfficientNetB7(EfficientNet):
         )
 
 
+@register_model(Models.EFFICIENTNET_B8)
 class EfficientNetB8(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=2.2, depth=3.6, res=672, dropout=0.5, arch_params=arch_params)
@@ -773,6 +785,7 @@ class EfficientNetB8(EfficientNet):
         )
 
 
+@register_model(Models.EFFICIENTNET_L2)
 class EfficientNetL2(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(width=4.3, depth=5.3, res=800, dropout=0.5, arch_params=arch_params)
@@ -792,6 +805,7 @@ class EfficientNetL2(EfficientNet):
         )
 
 
+@register_model(Models.CUSTOMIZEDEFFICIENTNET)
 class CustomizedEfficientnet(EfficientNet):
     def __init__(self, arch_params):
         blocks_args, arch_params = get_efficientnet_params(
