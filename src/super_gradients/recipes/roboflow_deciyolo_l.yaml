@@ -5,9 +5,19 @@ defaults:
   - arch_params: deciyolo_l_arch_params
   - _self_
 
+
+train_dataloader: coco2017_train_deci_yolo
+val_dataloader: coco2017_val_deci_yolo
 dataset_name: ??? # Placeholder for the name of the dataset you want to use (e.g. "digits-t2eg6")
 dataset_params:
   dataset_name: ${dataset_name}
+
+  train_dataloader_params:
+    batch_size: 16
+
+  val_dataset_params:
+    batch_size: 16
+
 num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
 
 
@@ -16,8 +26,6 @@ arch_params:
   num_classes: ${num_classes}
 
 
-train_dataloader: coco2017_train_deci_yolo
-val_dataloader: coco2017_val_deci_yolo
 
 
 load_checkpoint: False
