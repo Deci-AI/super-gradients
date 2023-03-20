@@ -1,7 +1,6 @@
 import os
 import io
 from contextlib import contextmanager
-from typing import Optional
 
 from super_gradients.common.registry.registry import register_sg_logger
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -28,6 +27,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         resumed: bool,
         training_params: dict,
         checkpoints_dir_path: str,
+        model_name: str,
         tb_files_user_prompt: bool = False,
         launch_tensorboard: bool = False,
         tensorboard_port: int = None,
@@ -35,7 +35,6 @@ class DeciPlatformSGLogger(BaseSGLogger):
         save_tensorboard_remote: bool = True,
         save_logs_remote: bool = True,
         monitor_system: bool = True,
-        model_name: Optional[str] = None,
     ):
 
         super().__init__(
@@ -53,15 +52,6 @@ class DeciPlatformSGLogger(BaseSGLogger):
             save_logs_remote=save_logs_remote,
             monitor_system=monitor_system,
         )
-
-        if model_name is None:
-            logger.warning(
-                "'model_name' parameter not passed. "
-                "The experiment won't be connected to an architecture in the Deci platform. "
-                "To pass a model_name, please use the 'sg_logger_params.model_name' field in the training recipe.\n"
-                "Please also make sure that 'model_name' corresponds to the name of your model in the training platform."
-            )
-
         self.platform_client = DeciClient()
         self.platform_client.register_experiment(name=experiment_name, model_name=model_name if model_name else None, resume=resumed)
         self.checkpoints_dir_path = checkpoints_dir_path
