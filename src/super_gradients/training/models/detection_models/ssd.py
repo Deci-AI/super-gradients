@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.training.models.arch_params_factory import get_arch_params
-from super_gradients.training.utils.utils import HpmStruct
+from super_gradients.training.utils.utils import HpmStruct, get_param
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 
 
@@ -24,9 +24,9 @@ class SSDMobileNetV1(CustomizableDetector):
             neck=merged_arch_params.neck,
             heads=merged_arch_params.heads,
             num_classes=merged_arch_params.num_classes,
-            bn_eps=merged_arch_params.bn_eps,
-            bn_momentum=merged_arch_params.bn_momentum,
-            inplace_act=merged_arch_params.inplace_act,
+            bn_eps=get_param(merged_arch_params, "bn_eps", None),
+            bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
+            inplace_act=get_param(merged_arch_params, "inplace_act", True),
             in_channels=in_channels,
         )
 
@@ -41,8 +41,8 @@ class SSDLiteMobileNetV2(CustomizableDetector):
             neck=merged_arch_params.neck,
             heads=merged_arch_params.heads,
             num_classes=merged_arch_params.num_classes,
-            bn_eps=merged_arch_params.bn_eps,
-            bn_momentum=merged_arch_params.bn_momentum,
-            inplace_act=merged_arch_params.inplace_act,
+            bn_eps=get_param(merged_arch_params, "bn_eps", None),
+            bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
+            inplace_act=get_param(merged_arch_params, "inplace_act", True),
             in_channels=in_channels,
         )
