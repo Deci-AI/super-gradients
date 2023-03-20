@@ -3,8 +3,9 @@ import math
 import os
 import signal
 import time
-from typing import List, Union
+from typing import List, Union, Optional
 
+import csv
 import cv2
 import numpy as np
 import onnx
@@ -19,6 +20,9 @@ from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbac
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
+from super_gradients.common.environment.ddp_utils import multi_process_safe
+from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
+
 
 logger = get_logger(__name__)
 
@@ -712,6 +716,30 @@ class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
                 transform.close()
         iter(context.train_loader)
         context.criterion.use_l1 = True
+
+
+@register_callback(Callbacks.ROBOFLOW_RESULT_CALLBACK)
+class RoboflowResultCallback(Callback):
+    """Append the training results to a csv file. Be aware that this does not fully overwrite the existing file, just appends."""
+
+    def __init__(self, dataset_name: str, output_path: Optional[str] = None):
+        """
+        :param dataset_name:    Name of the dataset that was used to train the model.
+        :param output_path:     Full path to the output csv file. By default, save at 'checkpoint_dir/results.csv'
+        """
+        self.dataset_name = dataset_name
+        self.output_path = output_path or os.path.join(get_project_checkpoints_dir_path(), "results.csv")
+
+        super(RoboflowResultCallback, self).__init__()
+
+    @multi_process_safe
+    def on_training_end(self, context: PhaseContext):
+
+        with open(self.output_path, mode="a", newline="") as csv_file:
+            writer = csv.writer(csv_file)
+
+        mAP = context.metrics_dict["mAP@0.50:0.95"].item()
+        writer.writerow([self.dataset_name, mAP])
 
 
 class TestLRCallback(PhaseCallback):

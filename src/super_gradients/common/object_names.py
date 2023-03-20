@@ -143,6 +143,7 @@ class Callbacks:
     PPYOLOE_TRAINING_STAGE_SWITCH = "PPYoloETrainingStageSwitchCallback"
     DETECTION_VISUALIZATION_CALLBACK = "DetectionVisualizationCallback"
     DEKR_VISUALIZATION = "DEKRVisualizationCallback"
+    ROBOFLOW_RESULT_CALLBACK = "RoboflowResultCallback"
 
 
 class LRSchedulers:
@@ -373,6 +374,8 @@ class Dataloaders:
     SUPERVISELY_PERSONS_VAL = "supervisely_persons_val"
     PASCAL_VOC_DETECTION_TRAIN = "pascal_voc_detection_train"
     PASCAL_VOC_DETECTION_VAL = "pascal_voc_detection_val"
+    ROBOFLOW_TRAIN_BASE = "roboflow_train_yolox"
+    ROBOFLOW_VAL_BASE = "roboflow_val_yolox"
 
 
 class Datasets:
