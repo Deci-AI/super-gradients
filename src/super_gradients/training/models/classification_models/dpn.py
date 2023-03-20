@@ -3,9 +3,12 @@ Dual Path Networks in PyTorch.
 
 Credits: https://github.com/kuangliu/pytorch-cifar/blob/master/models/dpn.py
 """
+from typing import Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from super_gradients.training.models.sg_module import SgModule
 
 
@@ -40,7 +43,13 @@ class Bottleneck(nn.Module):
 
 
 class DPN(SgModule):
-    def __init__(self, in_planes, out_planes, num_blocks, dense_depth):
+    def __init__(
+        self,
+        in_planes: Tuple[int, int, int, int],
+        out_planes: Tuple[int, int, int, int],
+        num_blocks: Tuple[int, int, int, int],
+        dense_depth: Tuple[int, int, int, int],
+    ):
         super(DPN, self).__init__()
 
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)

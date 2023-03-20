@@ -18,6 +18,8 @@ import re
 import math
 import collections
 from functools import partial
+from typing import Optional
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -418,13 +420,13 @@ class EfficientNet(SgModule):
         image_size: int,
         dropout_rate: float,
         num_classes: int,
-        batch_norm_momentum: float = 0.99,
-        batch_norm_epsilon: float = 1e-3,
-        drop_connect_rate: float = 0.2,
-        depth_divisor: int = 8,
-        min_depth: int = None,
-        backbone_mode: bool = False,
-        blocks_args: list = None,
+        batch_norm_momentum: Optional[float] = 0.99,
+        batch_norm_epsilon: Optional[float] = 1e-3,
+        drop_connect_rate: Optional[float] = 0.2,
+        depth_divisor: Optional[int] = 8,
+        min_depth: Optional[int] = None,
+        backbone_mode: Optional[bool] = False,
+        blocks_args: Optional[list] = None,
     ):
         super().__init__()
         assert isinstance(blocks_args, list), "blocks_args should be a list"
@@ -529,7 +531,7 @@ class EfficientNet(SgModule):
 
         return x
 
-    def replace_head(self, new_num_classes=None, new_head=None):
+    def replace_head(self, new_num_classes: Optional[int] = None, new_head: Optional[nn.Module] = None):
         if new_num_classes is None and new_head is None:
             raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
         if new_head is not None:
@@ -537,7 +539,7 @@ class EfficientNet(SgModule):
         else:
             self._fc = nn.Linear(self._fc.in_features, new_num_classes)
 
-    def load_state_dict(self, state_dict, strict=True):
+    def load_state_dict(self, state_dict: dict, strict: bool = True):
         """
         load_state_dict - Overloads the base method and calls it to load a modified dict for usage as a backbone
         :param state_dict:  The state_dict to load

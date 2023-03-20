@@ -10,8 +10,9 @@ A base for a detection network built according to the following scheme:
 from typing import Union, Optional
 
 from torch import nn
+from omegaconf import DictConfig
 
-
+from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
 
@@ -25,9 +26,9 @@ class CustomizableDetector(SgModule):
 
     def __init__(
         self,
-        backbone: dict,
-        heads: dict,
-        neck: dict = None,
+        backbone: Union[str, dict, HpmStruct, DictConfig],
+        heads: Union[str, dict, HpmStruct, DictConfig],
+        neck: Optional[Union[str, dict, HpmStruct, DictConfig]] = None,
         num_classes: int = None,
         bn_eps: Optional[float] = None,
         bn_momentum: Optional[float] = None,
@@ -46,7 +47,7 @@ class CustomizableDetector(SgModule):
         factory = det_factory.DetectionModulesFactory()
 
         # move num_classes into heads params
-        if num_classes:
+        if num_classes is not None:
             self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", num_classes)
 
         self.backbone = factory.get(factory.insert_module_param(backbone, "in_channels", in_channels))
@@ -57,14 +58,14 @@ class CustomizableDetector(SgModule):
             self.neck = nn.Identity()
             self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.backbone.out_channels))
 
-        self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)
+        self._initialize_weights(bn_eps, bn_momentum, inplace_act)
 
     def forward(self, x):
         x = self.backbone(x)
         x = self.neck(x)
         return self.heads(x)
 
-    def _initialize_weights(self, bn_eps: float, bn_momentum: float, inplace_act: bool):
+    def _initialize_weights(self, bn_eps: Optional[float] = None, bn_momentum: Optional[float] = None, inplace_act: Optional[bool] = True):
         for m in self.modules():
             t = type(m)
             if t is nn.BatchNorm2d:
