@@ -1237,7 +1237,7 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
         corner_ys = corner_points[:, 1::2]
         new_bboxes = np.concatenate((np.min(corner_xs, 1), np.min(corner_ys, 1), np.max(corner_xs, 1), np.max(corner_ys, 1))).reshape(4, -1).T
     else:
-        new_bboxes = np.ones((0, 4), dtype=np.float)
+        new_bboxes = np.ones((0, 4), dtype=np.float32)
 
     if num_gts_masks:
         # warp segmentation points
@@ -1256,7 +1256,7 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
             .T
         )
     else:
-        new_tight_bboxes = np.ones((0, 4), dtype=np.float)
+        new_tight_bboxes = np.ones((0, 4), dtype=np.float32)
 
     targets[~seg_is_present_mask, :4] = new_bboxes
     targets[seg_is_present_mask, :4] = new_tight_bboxes
