@@ -18,11 +18,10 @@ batch_accumulate: 1
 save_ckpt_epoch_list: [100, 200, 250]
 
 loss:
-  deciyolo_loss:
+  ppyoloe_loss:
     use_static_assigner: False
-    num_classes: 80
-    reg_max: 16
-    image_shape: ${dataset_params.train_dataset_params.input_dim}
+    num_classes: ${arch_params.num_classes}
+    reg_max: ${arch_params.head.reg_max}
 
 optimizer: AdamW
 optimizer_params:
@@ -41,7 +40,7 @@ valid_metrics_list:
       score_thres: 0.1
       top_k_predictions: 300
       num_cls: ${arch_params.num_classes}
-      normalize_targets: False
+      normalize_targets: True
       post_prediction_callback:
         _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
         score_threshold: 0.01
