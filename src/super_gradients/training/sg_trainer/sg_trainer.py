@@ -525,7 +525,7 @@ class Trainer:
                 load_checkpoint=self.load_checkpoint,
             )
 
-    def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
+    def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs) -> None:
         """
         Run backprop on the loss and perform a step
         :param loss: The value computed by the loss function
@@ -563,7 +563,13 @@ class Trainer:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_train_batch_gradient_step_end(context)
 
-    def _save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None):
+    def _save_checkpoint(
+        self,
+        optimizer: torch.optim.Optimizer = None,
+        epoch: int = None,
+        validation_results_tuple: tuple = None,
+        context: PhaseContext = None,
+    ) -> None:
         """
         Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
         params)
@@ -616,7 +622,7 @@ class Trainer:
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
-    def _prep_net_for_train(self):
+    def _prep_net_for_train(self) -> None:
         if self.arch_params is None:
             self._init_arch_params()
 
@@ -638,7 +644,7 @@ class Trainer:
         self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
         self._load_checkpoint_to_model()
 
-    def _init_arch_params(self):
+    def _init_arch_params(self) -> None:
         default_arch_params = HpmStruct()
         arch_params = getattr(self.net, "arch_params", default_arch_params)
         self.arch_params = default_arch_params
