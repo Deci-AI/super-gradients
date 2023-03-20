@@ -86,9 +86,8 @@ neck:
 
 heads:
   NDFLHeads:
-
     num_classes: 80
-
+    reg_max: 16
     heads_list:
       - DeciYOLODFLHead:
           inter_channels: 128

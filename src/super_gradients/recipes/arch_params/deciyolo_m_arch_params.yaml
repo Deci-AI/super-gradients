@@ -84,10 +84,10 @@ neck:
         width_mult: 1
         depth_mult: 1
 
-
 heads:
   NDFLHeads:
     num_classes: 80
+    reg_max: 16
     heads_list:
       - DeciYOLODFLHead:
           inter_channels: 128
