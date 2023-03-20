@@ -18,6 +18,8 @@ import torch.nn.functional as F
 import torchvision
 from torch import nn
 
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.arch_params_factory import get_arch_params
@@ -281,6 +283,7 @@ class HighResolutionModule(nn.Module):
 blocks_dict = {"BASIC": BasicBlock, "BOTTLENECK": Bottleneck, "ADAPTIVE": AdaptBlock}
 
 
+@register_model(Models.DEKR_CUSTOM)
 class DEKRPoseEstimationModel(SgModule):
     """
     Implementation of HRNet model from DEKR paper (https://arxiv.org/abs/2104.02300).
@@ -521,6 +524,7 @@ class DEKRPoseEstimationModel(SgModule):
 POSE_DEKR_W32_NO_DC_ARCH_PARAMS = get_arch_params("pose_dekr_w32_no_dc_arch_params")
 
 
+@register_model(Models.DEKR_W32_NO_DC)
 class DEKRW32(DEKRPoseEstimationModel):
     """
     DEKR-W32 model for pose estimation without deformable convolutions.

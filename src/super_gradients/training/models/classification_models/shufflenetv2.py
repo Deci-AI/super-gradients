@@ -12,6 +12,8 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
@@ -199,26 +201,31 @@ class ShuffleNetV2Base(SgModule):
         return x
 
 
+@register_model(Models.SHUFFLENET_V2_X0_5)
 class ShufflenetV2_x0_5(ShuffleNetV2Base):
     def __init__(self, arch_params: HpmStruct, num_classes: int = 1000, backbone_mode: bool = False):
         super().__init__([4, 8, 4], [24, 48, 96, 192, 1024], backbone_mode=backbone_mode, num_classes=num_classes or arch_params.num_classes)
 
 
+@register_model(Models.SHUFFLENET_V2_X1_0)
 class ShufflenetV2_x1_0(ShuffleNetV2Base):
     def __init__(self, arch_params: HpmStruct, num_classes: int = 1000, backbone_mode: bool = False):
         super().__init__([4, 8, 4], [24, 116, 232, 464, 1024], backbone_mode=backbone_mode, num_classes=num_classes or arch_params.num_classes)
 
 
+@register_model(Models.SHUFFLENET_V2_X1_5)
 class ShufflenetV2_x1_5(ShuffleNetV2Base):
     def __init__(self, arch_params: HpmStruct, num_classes: int = 1000, backbone_mode: bool = False):
         super().__init__([4, 8, 4], [24, 176, 352, 704, 1024], backbone_mode=backbone_mode, num_classes=num_classes or arch_params.num_classes)
 
 
+@register_model(Models.SHUFFLENET_V2_X2_0)
 class ShufflenetV2_x2_0(ShuffleNetV2Base):
     def __init__(self, arch_params: HpmStruct, num_classes: int = 1000, backbone_mode: bool = False):
         super().__init__([4, 8, 4], [24, 244, 488, 976, 2048], backbone_mode=backbone_mode, num_classes=num_classes or arch_params.num_classes)
 
 
+@register_model(Models.SHUFFLENET_V2_CUSTOM5)
 class CustomizedShuffleNetV2(ShuffleNetV2Base):
     def __init__(self, arch_params: HpmStruct, num_classes: int = 1000, backbone_mode: bool = False):
         super().__init__(

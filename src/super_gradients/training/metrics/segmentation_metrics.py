@@ -7,6 +7,10 @@ from torchmetrics.utilities.distributed import reduce
 from abc import ABC, abstractmethod
 
 
+from super_gradients.common.object_names import Metrics
+from super_gradients.common.registry.registry import register_metric
+
+
 def batch_pix_accuracy(predict, target):
     """Batch Pixel Accuracy
     Args:
@@ -160,6 +164,7 @@ class PreprocessSegmentationMetricsArgs(AbstractMetricsArgsPrepFn):
         return preds, target
 
 
+@register_metric(Metrics.PIXEL_ACCURACY)
 class PixelAccuracy(Metric):
     def __init__(self, ignore_label=-100, dist_sync_on_step=False, metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
@@ -185,6 +190,7 @@ class PixelAccuracy(Metric):
         return pix_acc
 
 
+@register_metric(Metrics.IOU)
 class IoU(torchmetrics.JaccardIndex):
     def __init__(
         self,
@@ -208,6 +214,7 @@ class IoU(torchmetrics.JaccardIndex):
         super().update(preds=preds, target=target)
 
 
+@register_metric(Metrics.DICE)
 class Dice(torchmetrics.JaccardIndex):
     def __init__(
         self,
@@ -235,6 +242,7 @@ class Dice(torchmetrics.JaccardIndex):
         return _dice_from_confmat(self.confmat, self.num_classes, self.ignore_index, self.absent_score, self.reduction)
 
 
+@register_metric(Metrics.BINARY_IOU)
 class BinaryIOU(IoU):
     def __init__(
         self,
@@ -264,6 +272,7 @@ class BinaryIOU(IoU):
         return {"target_IOU": ious[1], "background_IOU": ious[0], "mean_IOU": ious.mean()}
 
 
+@register_metric(Metrics.BINARY_DICE)
 class BinaryDice(Dice):
     def __init__(
         self,
