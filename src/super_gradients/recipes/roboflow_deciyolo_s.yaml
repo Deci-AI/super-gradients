@@ -2,26 +2,27 @@ defaults:
   - training_hyperparams: coco2017_deciyolo_train_params
   - dataset_params: roboflow_detection_dataset_params
   - checkpoint_params: default_checkpoint_params
-  - arch_params: deciyolo_l_arch_params
+  - arch_params: deciyolo_s_arch_params
   - _self_
 
 
-train_dataloader: coco2017_train_deci_yolo
-val_dataloader: coco2017_val_deci_yolo
+train_dataloader: roboflow_train_yolox
+val_dataloader: roboflow_val_yolox
+
 dataset_name: ??? # Placeholder for the name of the dataset you want to use (e.g. "digits-t2eg6")
 dataset_params:
   dataset_name: ${dataset_name}
 
   train_dataloader_params:
-    batch_size: 16
+    batch_size: 32
 
   val_dataset_params:
-    batch_size: 16
+    batch_size: 32
 
 num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
 
 
-architecture: deciyolo_l
+architecture: deciyolo_s
 arch_params:
   num_classes: ${num_classes}
 
