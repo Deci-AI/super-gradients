@@ -16,7 +16,7 @@ dataset_params:
   train_dataloader_params:
     batch_size: 32
 
-  val_dataset_params:
+  val_dataloader_params:
     batch_size: 32
 
 num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
