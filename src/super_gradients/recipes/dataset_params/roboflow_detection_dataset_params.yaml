@@ -39,10 +39,11 @@ train_dataset_params:
         prob: 0.5                       # probability to apply horizontal flip
     - DetectionPaddedRescale:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
-        max_targets: 120
+        max_targets: 50
     - DetectionStandardize:
         max_value: 255.
     - DetectionTargetsFormatTransform:
+        max_targets: 50
         input_dim: ${dataset_params.train_dataset_params.input_dim}
         output_format: LABEL_CXCYWH
   tight_box_rotation: False
