@@ -17,7 +17,7 @@ SuperGradients allows you to train or fine-tune SOTA pre-trained models for all 
  
 ### Built-in SOTA Models
 
-Easily load and fine-tune production-ready, [pre-trained SOTA models](https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints) that incorporate best practices and validated hyper-parameters for achieving best-in-class accuracy.
+Easily load and fine-tune production-ready, [pre-trained SOTA models](model_zoo.md) that incorporate best practices and validated hyper-parameters for achieving best-in-class accuracy (Yolox, PP-YoloE, STDC, DDRNet, and PP-LiteSeg).
     
 ### Easily Reproduce our Results
        
