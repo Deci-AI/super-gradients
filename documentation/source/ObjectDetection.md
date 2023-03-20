@@ -1,6 +1,11 @@
 # Object Detection
 
 Object detection is a core task in computer vision that allows to detect and classify bounding boxes in images. 
+It's been gaining popularity and ubiquity extremely fast since the first breakthroughs in Deep Learning and was able to advance a wide range of companies, including the medical domain, surveillance, smart shopping, etc.
+It comes as no surprise considering that it covers two basic needs in an end-to-end manner: to find all present objects and to assign a class to each one of them, 
+while cleverly dealing with the background and its dominance over all other classes. 
+Due to this, most recent research publications dedicated to object detection focus on a good train-off between accuracy and speed.
+In SuperGradients, we aim to collect such models and make them very convenient and accessible to you, so that try any one of them interchangeably.
 
 ## Implemented models
 
@@ -105,7 +110,7 @@ def my_undo_image_preprocessing(im_tensor: torch.Tensor) -> np.ndarray:
 
 
 model = models.get("yolox_s", pretrained_weights="coco", num_classes=80)
-imgs, targets = iter(train_dataloader).__next__()
+imgs, targets = next(iter(train_dataloader))
 preds = YoloPostPredictionCallback(conf=0.1, iou=0.6)(model(imgs))
 DetectionVisualization.visualize_batch(imgs, preds, targets, batch_name='train', class_names=COCO_DETECTION_CLASSES_LIST,
                                        checkpoint_dir='/path/for/saved_images/', gt_alpha=0.5,
