@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 from math import sqrt
 
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.modules import Residual
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.regularization_utils import DropPath
@@ -234,6 +236,7 @@ def verify_correctness_of_parameters(ls_num_blocks, ls_block_width, ls_bottlenec
         assert int(block_width // bottleneck_ratio) % group_width == 0
 
 
+@register_model(Models.CUSTOM_REGNET)
 class CustomRegNet(RegNetX):
     def __init__(self, arch_params):
         """All parameters must be provided in arch_params other than SE"""
@@ -251,6 +254,7 @@ class CustomRegNet(RegNetX):
         )
 
 
+@register_model(Models.CUSTOM_ANYNET)
 class CustomAnyNet(AnyNetX):
     def __init__(self, arch_params):
         """All parameters must be provided in arch_params other than SE"""
@@ -269,6 +273,7 @@ class CustomAnyNet(AnyNetX):
         )
 
 
+@register_model(Models.NAS_REGNET)
 class NASRegNet(RegNetX):
     def __init__(self, arch_params):
         """All parameters are provided as a single structure list: arch_params.structure"""
@@ -286,21 +291,25 @@ class NASRegNet(RegNetX):
         )
 
 
+@register_model(Models.REGNETY200)
 class RegNetY200(RegNetY):
     def __init__(self, arch_params):
         super().__init__(24, 36, 2.5, 13, 1, 8, 2, arch_params, 4)
 
 
+@register_model(Models.REGNETY400)
 class RegNetY400(RegNetY):
     def __init__(self, arch_params):
         super().__init__(48, 28, 2.1, 16, 1, 8, 2, arch_params, 4)
 
 
+@register_model(Models.REGNETY600)
 class RegNetY600(RegNetY):
     def __init__(self, arch_params):
         super().__init__(48, 33, 2.3, 15, 1, 16, 2, arch_params, 4)
 
 
+@register_model(Models.REGNETY800)
 class RegNetY800(RegNetY):
     def __init__(self, arch_params):
         super().__init__(56, 39, 2.4, 14, 1, 16, 2, arch_params, 4)

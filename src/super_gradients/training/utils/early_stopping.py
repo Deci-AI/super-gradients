@@ -2,11 +2,16 @@ from super_gradients.training.utils.callbacks import PhaseCallback, Phase, Phase
 from typing import Optional
 import torch
 import numpy as np
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.registry.registry import register_callback
+from super_gradients.common.object_names import Callbacks
+
 
 logger = get_logger(__name__)
 
 
+@register_callback(Callbacks.EARLY_STOP)
 class EarlyStop(PhaseCallback):
     """
     Callback to monitor a metric and stop training when it stops improving.

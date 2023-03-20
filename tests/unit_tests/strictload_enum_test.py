@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from super_gradients.common.object_names import Models
-from super_gradients.common.sg_loggers import BaseSGLogger
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import Trainer
 import torch
 import torch.nn as nn

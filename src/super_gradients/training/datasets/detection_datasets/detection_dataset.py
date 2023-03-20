@@ -13,6 +13,8 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset
 
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.training.utils.detection_utils import get_cls_posx_in_target
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -26,6 +28,7 @@ from super_gradients.training.datasets.data_formats.formats import ConcatenatedT
 logger = get_logger(__name__)
 
 
+@register_dataset(Datasets.DETECTION_DATASET)
 class DetectionDataset(Dataset):
     """Detection dataset.
 

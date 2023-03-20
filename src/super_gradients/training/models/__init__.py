@@ -67,6 +67,7 @@ from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_e import
 from super_gradients.training.models.detection_models.darknet53 import Darknet53, Darknet53Base
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolo_base import YoloBase, YoloPostPredictionCallback
+from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 
 # Segmentation models
@@ -105,10 +106,13 @@ from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DE
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 
 import super_gradients.training.models.user_models as user_models
-from super_gradients.training.models.model_factory import get
+from super_gradients.training.models.model_factory import get, get_model_name
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.conversion import convert_to_onnx, convert_from_config
-from super_gradients.training.models.all_architectures import ARCHITECTURES, Models
+
+
+from super_gradients.common.object_names import Models
+from super_gradients.common.registry.registry import ARCHITECTURES
 
 __all__ = [
     "SgModule",
@@ -198,6 +202,13 @@ __all__ = [
     "SSDMobileNetV1",
     "SSDLiteMobileNetV2",
     "YoloBase",
+    "YoloX_N",
+    "YoloX_T",
+    "YoloX_S",
+    "YoloX_M",
+    "YoloX_L",
+    "YoloX_X",
+    "CustomYoloX",
     "YoloPostPredictionCallback",
     "CustomizableDetector",
     "ShelfNet50",
@@ -240,6 +251,7 @@ __all__ = [
     "DEKRW32",
     "KDModule",
     "get",
+    "get_model_name",
     "get_arch_params",
     "convert_to_onnx",
     "convert_from_config",

@@ -1,9 +1,12 @@
 import csv
 import os
 
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
 
+@register_dataset(Datasets.SUPERVISELY_PERSONS_DATASET)
 class SuperviselyPersonsDataset(SegmentationDataSet):
     """
     SuperviselyPersonsDataset - Segmentation Data Set Class for Supervisely Persons Segmentation Data Set,

@@ -9,6 +9,8 @@ from tqdm import tqdm
 
 import numpy as np
 
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.transforms.transforms import DetectionTransform
 from super_gradients.training.utils.utils import download_and_untar_from_url, get_image_size_from_path
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
@@ -19,6 +21,7 @@ from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLAS
 logger = get_logger(__name__)
 
 
+@register_dataset(Datasets.PASCAL_VOC_DETECTION_DATASET)
 class PascalVOCDetectionDataset(DetectionDataset):
     """Dataset for Pascal VOC object detection
 
