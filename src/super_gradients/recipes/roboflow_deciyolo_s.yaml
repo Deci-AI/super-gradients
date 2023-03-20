@@ -57,7 +57,7 @@ training_hyperparams:
       reg_max: 16
 
   valid_metrics_list:
-    - DetectionMetrics:
+    - DetectionMetrics_050:
         score_thres: 0.1
         top_k_predictions: 300
         num_cls: ${num_classes}
@@ -68,6 +68,8 @@ training_hyperparams:
           nms_top_k: 1000
           max_predictions: 300
           nms_threshold: 0.7
+
+  metric_to_watch: 'mAP@0.50'
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
