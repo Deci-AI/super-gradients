@@ -8,7 +8,6 @@ class Losses:
     SHELFNET_SE_LOSS = "shelfnet_se_loss"
     YOLOX_LOSS = "yolox_loss"
     PPYOLOE_LOSS = "ppyoloe_loss"
-    DECIYOLO_LOSS = "deciyolo_loss"
     YOLOX_FAST_LOSS = "yolox_fast_loss"
     SSD_LOSS = "ssd_loss"
     STDC_LOSS = "stdc_loss"
