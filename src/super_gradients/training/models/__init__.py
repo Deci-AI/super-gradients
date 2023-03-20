@@ -119,7 +119,7 @@ from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DE
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 
 import super_gradients.training.models.user_models as user_models
-from super_gradients.training.models.model_factory import get
+from super_gradients.training.models.model_factory import get, get_model_name
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.conversion import convert_to_onnx, convert_from_config
 
@@ -276,6 +276,7 @@ __all__ = [
     "DEKRW32",
     "KDModule",
     "get",
+    "get_model_name",
     "get_arch_params",
     "convert_to_onnx",
     "convert_from_config",
