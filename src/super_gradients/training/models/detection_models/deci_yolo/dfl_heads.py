@@ -1,5 +1,5 @@
 import math
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 
 import super_gradients.common.factories.detection_modules_factory as det_factory
 import torch
@@ -81,7 +81,6 @@ class NDFLHeads(BaseDetectionModule):
         num_classes: int,
         in_channels: Tuple[int, int, int],
         heads_list: Union[str, HpmStruct, DictConfig],
-        fpn_strides: Tuple[int, int, int] = (8, 16, 32),
         grid_cell_scale=5.0,
         grid_cell_offset=0.5,
         reg_max=16,
@@ -108,7 +107,6 @@ class NDFLHeads(BaseDetectionModule):
 
         self.in_channels = tuple(in_channels)
         self.num_classes = num_classes
-        self.fpn_strides = fpn_strides
         self.grid_cell_scale = grid_cell_scale
         self.grid_cell_offset = grid_cell_offset
         self.reg_max = reg_max
@@ -124,9 +122,13 @@ class NDFLHeads(BaseDetectionModule):
         heads_list = self._pass_args(heads_list, factory, num_classes, reg_max)
 
         self.num_heads = len(heads_list)
+        fpn_strides: List[int] = []
         for i in range(self.num_heads):
             new_head = factory.get(factory.insert_module_param(heads_list[i], "in_channels", in_channels[i]))
+            fpn_strides.append(new_head.stride)
             setattr(self, f"head{i + 1}", new_head)
+
+        self.fpn_strides = tuple(fpn_strides)
 
     @staticmethod
     def _pass_args(heads_list, factory, num_classes, reg_max):
