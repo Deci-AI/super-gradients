@@ -81,7 +81,6 @@ class NDFLHeads(BaseDetectionModule):
         num_classes: int,
         in_channels: Tuple[int, int, int],
         heads_list: Union[str, HpmStruct, DictConfig],
-        # fpn_strides: Tuple[int, int, int],
         grid_cell_scale=5.0,
         grid_cell_offset=0.5,
         reg_max=16,
