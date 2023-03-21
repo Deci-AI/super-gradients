@@ -43,7 +43,7 @@ training_hyperparams:
   criterion_params:
     num_classes: ${num_classes}
 
-  lr_warmup_steps: 0
+  lr_warmup_steps: 100
   lr_warmup_epochs: 0
   cosine_final_lr_ratio: 0.1
 
@@ -76,13 +76,13 @@ training_hyperparams:
     project_name: DeciYolo-RF100
     entity: super-gradients
     api_server: "https://wandb.research.deci.ai"
-    save_checkpoints_remote: True
-    save_tensorboard_remote: True
+    save_checkpoints_remote: False
+    save_tensorboard_remote: False
     save_logs_remote: True
 
 
-multi_gpu: DDP
-num_gpus: 8
+multi_gpu: Off
+num_gpus: 1
 experiment_name: ${architecture}_roboflow_${dataset_name}
 ckpt_root_dir:
 
