@@ -100,7 +100,7 @@ def drop_connect(inputs: torch.Tensor, p: float, training: bool) -> torch.Tensor
     return output
 
 
-def calculate_output_image_size(input_image_size: Union[int, Tuple, List], stride: Union[int, Tuple, List]) -> List[int, int]:
+def calculate_output_image_size(input_image_size: Union[int, Tuple, List], stride: Union[int, Tuple, List]) -> List[int]:
     """Calculates the output image size when using Conv2dSamePadding with a stride.
     Necessary for static padding. Thanks to mannatsingh for pointing this out.
 
