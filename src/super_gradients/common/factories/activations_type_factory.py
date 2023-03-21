@@ -1,5 +1,7 @@
 from typing import Union, Type, Mapping
 
+from torch import nn
+
 from super_gradients.common.factories.base_factory import AbstractFactory
 from super_gradients.training.utils.activations_utils import get_builtin_activation_type
 
@@ -19,6 +21,9 @@ class ActivationsTypeFactory(AbstractFactory):
 
            If provided value is not one of the three above, the value will be returned as is
         """
+
+        if issubclass(conf, nn.Module):
+            return conf
 
         if isinstance(conf, str):
             return get_builtin_activation_type(conf)
