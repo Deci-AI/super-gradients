@@ -18,6 +18,8 @@ import re
 import math
 import collections
 from functools import partial
+from typing import List, Tuple, Union, Optional
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -37,17 +39,15 @@ BlockArgs = collections.namedtuple(
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
 
-def round_filters(filters, width_coefficient, depth_divisor, min_depth):
+def round_filters(filters: int, width_coefficient: int, depth_divisor: int, min_depth: int):
     """Calculate and round number of filters based on width multiplier.
        Use width_coefficient, depth_divisor and min_depth.
-    Args:
-        filters (int): Filters number to be calculated.
-        Params from arch_params:
-        width_coefficient (int): model's width coefficient. Used as the multiplier.
-        depth_divisor (int): model's depth divisor. Used as the divisor.
-        and min_depth (int): model's minimal depth, if given.
-    Returns:
-        new_filters: New filters number after calculating.
+
+    :param filters: Filters number to be calculated. Params from arch_params:
+    :param width_coefficient: model's width coefficient. Used as the multiplier.
+    :param depth_divisor: model's depth divisor. Used as the divisor.
+    :param min_depth: model's minimal depth, if given.
+    :return: new_filters: New filters number after calculating.
     """
     if not width_coefficient:
         return filters
@@ -61,14 +61,13 @@ def round_filters(filters, width_coefficient, depth_divisor, min_depth):
     return int(new_filters)
 
 
-def round_repeats(repeats, depth_coefficient):
+def round_repeats(repeats: int, depth_coefficient: int):
     """Calculate module's repeat number of a block based on depth multiplier.
        Use depth_coefficient.
-    Args:
-        repeats (int): num_repeat to be calculated.
-        depth_coefficient (int): the depth coefficient of the model. this func uses it as the multiplier.
-    Returns:
-        new repeat: New repeat number after calculating.
+
+    :param repeats: num_repeat to be calculated.
+    :param depth_coefficient: the depth coefficient of the model. this func uses it as the multiplier.
+    :return: new repeat: New repeat number after calculating.
     """
     if not depth_coefficient:
         return repeats
@@ -76,15 +75,13 @@ def round_repeats(repeats, depth_coefficient):
     return int(math.ceil(depth_coefficient * repeats))
 
 
-def drop_connect(inputs, p, training):
+def drop_connect(inputs: torch.Tensor, p: float, training: bool) -> torch.Tensor:
     """Drop connect.
 
-    Args:
-        inputs (tensor: BCWH): Input of this structure.
-        p (float: 0.0~1.0): Probability of drop connection.
-        training (bool): The running mode.
-    Returns:
-        output: Output after drop connection.
+    :param inputs :     Input of this structure. (tensor: BCWH)
+    :param p :          Probability of drop connection. (float: 0.0~1.0)
+    :param training:    Running mode.
+    :return: output: Output after drop connection.
     """
     assert p >= 0 and p <= 1, "p must be in range of [0,1]"
 
@@ -103,14 +100,13 @@ def drop_connect(inputs, p, training):
     return output
 
 
-def calculate_output_image_size(input_image_size, stride):
+def calculate_output_image_size(input_image_size: Union[int, Tuple, List], stride: Union[int, Tuple, List]) -> List[int, int]:
     """Calculates the output image size when using Conv2dSamePadding with a stride.
-       Necessary for static padding. Thanks to mannatsingh for pointing this out.
-    Args:
-        input_image_size (int, tuple or list): Size of input image.
-        stride (int, tuple or list): Conv2d operation's stride.
-    Returns:
-        output_image_size: A list [H,W].
+    Necessary for static padding. Thanks to mannatsingh for pointing this out.
+
+    :param input_image_size:    Size of input image.
+    :param stride:              Conv2d operation's stride.
+    :return: output_image_size: A list [H,W].
     """
     if input_image_size is None:
         return None
@@ -130,13 +126,12 @@ def calculate_output_image_size(input_image_size, stride):
 # Don't be confused by their function names ! ! !
 
 
-def get_same_padding_conv2d(image_size=None):
+def get_same_padding_conv2d(image_size: Optional[Union[int, Tuple[int, int]]] = None):
     """Chooses static padding if you have specified an image size, and dynamic padding otherwise.
        Static padding is necessary for ONNX exporting of models.
-    Args:
-        image_size (int or tuple): Size of the image.
-    Returns:
-        Conv2dDynamicSamePadding or Conv2dStaticSamePadding.
+
+    :param image_size: Size of the image.
+    :return: Conv2dDynamicSamePadding or Conv2dStaticSamePadding.
     """
     if image_size is None:
         return Conv2dDynamicSamePadding
@@ -228,13 +223,11 @@ class BlockDecoder(object):
     """Block Decoder for readability, straight from the official TensorFlow repository."""
 
     @staticmethod
-    def _decode_block_string(block_string):
+    def _decode_block_string(block_string: str) -> BlockArgs:
         """Get a block through a string notation of arguments.
-        Args:
-            block_string (str): A string notation of arguments.
-                                Examples: 'r1_k3_s11_e1_i32_o16_se0.25_noskip'.
-        Returns:
-            BlockArgs: The namedtuple defined at the top of this file.
+
+        :param block_string: A string notation of arguments. Examples: 'r1_k3_s11_e1_i32_o16_se0.25_noskip'.
+        :return:     BlockArgs: The namedtuple defined at the top of this file.
         """
         assert isinstance(block_string, str)
 
@@ -261,12 +254,11 @@ class BlockDecoder(object):
         )
 
     @staticmethod
-    def _encode_block_string(block):
+    def _encode_block_string(block) -> str:
         """Encode a block to a string.
-        Args:
-            block (namedtuple): A BlockArgs type argument.
-        Returns:
-            block_string: A String form of BlockArgs.
+
+        :param block: A BlockArgs type argument (NamedTuple)
+        :return: block_string: A String form of BlockArgs.
         """
         args = [
             "r%d" % block.num_repeat,
@@ -283,12 +275,11 @@ class BlockDecoder(object):
         return "_".join(args)
 
     @staticmethod
-    def decode(string_list):
+    def decode(string_list: List[str]) -> List[BlockArgs]:
         """Decode a list of string notations to specify blocks inside the network.
-        Args:
-            string_list (list[str]): A list of strings, each string is a notation of block.
-        Returns:
-            blocks_args: A list of BlockArgs namedtuples of block args.
+
+        :param string_list:     List of strings, each string is a notation of block.
+        :return blocks_args:    List of BlockArgs namedtuples of block args.
         """
         assert isinstance(string_list, list)
         blocks_args = []
@@ -297,12 +288,11 @@ class BlockDecoder(object):
         return blocks_args
 
     @staticmethod
-    def encode(blocks_args):
+    def encode(blocks_args: List):
         """Encode a list of BlockArgs to a list of strings.
-        Args:
-            blocks_args (list[namedtuples]): A list of BlockArgs namedtuples of block args.
-        Returns:
-            block_strings: A list of strings, each string is a notation of block.
+
+        :param blocks_args: A list of BlockArgs namedtuples of block args. (list[namedtuples])
+        :return: block_strings: A list of strings, each string is a notation of block.
         """
         block_strings = []
         for block in blocks_args:
@@ -312,17 +302,19 @@ class BlockDecoder(object):
 
 class MBConvBlock(nn.Module):
     """Mobile Inverted Residual Bottleneck Block.
-    Args:
-        block_args (namedtuple): BlockArgs.
-        arch_params (HpmStruct): HpmStruct.
-        image_size (tuple or list): [image_height, image_width].
+
     References:
         [1] https://arxiv.org/abs/1704.04861 (MobileNet v1)
         [2] https://arxiv.org/abs/1801.04381 (MobileNet v2)
         [3] https://arxiv.org/abs/1905.02244 (MobileNet v3)
+
+    :param block_args: BlockArgs.
+    :param batch_norm_momentum: Batch norm momentum.
+    :param batch_norm_epsilon: Batch norm epsilon.
+    :param image_size: [image_height, image_width].
     """
 
-    def __init__(self, block_args, batch_norm_momentum, batch_norm_epsilon, image_size=None):
+    def __init__(self, block_args: BlockArgs, batch_norm_momentum: float, batch_norm_epsilon: float, image_size: Union[Tuple, List] = None):
         super().__init__()
         self._block_args = block_args
         self._bn_mom = 1 - batch_norm_momentum  # pytorch's difference from tensorflow
@@ -360,13 +352,12 @@ class MBConvBlock(nn.Module):
         self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
         self._swish = nn.functional.silu
 
-    def forward(self, inputs, drop_connect_rate=None):
+    def forward(self, inputs: torch.Tensor, drop_connect_rate: Optional[float] = None) -> torch.Tensor:
         """MBConvBlock's forward function.
-        Args:
-            inputs (tensor): Input tensor.
-            drop_connect_rate (bool): Drop connect rate (float, between 0 and 1).
-        Returns:
-            Output of this block after processing.
+
+        :param inputs:              Input tensor.
+        :param drop_connect_rate:   Drop connect rate (float, between 0 and 1).
+        :return:                    Output of this block after processing.
         """
 
         # Expansion and Depthwise Convolution
@@ -403,15 +394,17 @@ class MBConvBlock(nn.Module):
 
 
 class EfficientNet(SgModule):
-    """EfficientNet model.
-    Args:
-        blocks_args (list[namedtuple]): A list of BlockArgs to construct blocks.
-        arch_params (HpmStruct): A set of global params shared between blocks.
+    """
+    EfficientNet model.
+
     References:
         [1] https://arxiv.org/abs/1905.11946 (EfficientNet)
+
+    :param blocks_args: A list of BlockArgs to construct blocks. (list[namedtuple])
+    :param arch_params: A set of global params shared between blocks.
     """
 
-    def __init__(self, blocks_args=None, arch_params=None):
+    def __init__(self, blocks_args: Optional[List] = None, arch_params: Optional[HpmStruct] = None):
         super().__init__()
         assert isinstance(blocks_args, list), "blocks_args should be a list"
         assert len(blocks_args) > 0, "block args must be greater than 0"
@@ -474,14 +467,12 @@ class EfficientNet(SgModule):
             self._fc = nn.Linear(out_channels, self._arch_params.num_classes)
         self._swish = nn.functional.silu
 
-    def extract_features(self, inputs):
+    def extract_features(self, inputs: torch.Tensor) -> torch.Tensor:
         """
         Use convolution layer to extract feature.
-        Args:
-            inputs (tensor): Input tensor.
-        Returns:
-            Output of the final convolution.
-            layer in the efficientnet model.
+
+        :param inputs: Input tensor.
+        :return: Output of the final convolution layer in the efficientnet model.
         """
 
         # Stem
@@ -499,13 +490,13 @@ class EfficientNet(SgModule):
 
         return x
 
-    def forward(self, inputs):
-        """EfficientNet's forward function.
-           Calls extract_features to extract features, applies final linear layer, and returns logits.
-        Args:
-            inputs (tensor): Input tensor.
-        Returns:
-            Output of this model after processing.
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        """
+        EfficientNet's forward function.
+        Calls extract_features to extract features, applies final linear layer, and returns logits.
+
+        :param inputs: Input tensor.
+        :return: Output of this model after processing.
         """
         bs = inputs.size(0)
 

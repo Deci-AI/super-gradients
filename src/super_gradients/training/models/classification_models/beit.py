@@ -102,12 +102,12 @@ def trunc_normal_(tensor, mean=0.0, std=1.0, a=-2.0, b=2.0):
     with values outside :math:`[a, b]` redrawn until they are within
     the bounds. The method used for generating the random values works
     best when :math:`a \leq \text{mean} \leq b`.
-    Args:
-        tensor: an n-dimensional `torch.Tensor`
-        mean: the mean of the normal distribution
-        std: the standard deviation of the normal distribution
-        a: the minimum cutoff value
-        b: the maximum cutoff value
+
+    :param tensor: an n-dimensional `torch.Tensor`
+    :param mean: the mean of the normal distribution
+    :param std: the standard deviation of the normal distribution
+    :param a: the minimum cutoff value
+    :param b: the maximum cutoff value
     Examples:
         >>> w = torch.empty(3, 5)
         >>> nn.init.trunc_normal_(w)
