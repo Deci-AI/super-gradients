@@ -14,9 +14,8 @@ class BCEDiceLoss(torch.nn.Module):
 
     Weighted average of BCE and Dice loss
 
-    Attributes:
-        loss_weights: list of size 2 s.t loss_weights[0], loss_weights[1] are the weights for BCE, Dice
-        respectively.
+    :param loss_weights: List of size 2 s.t loss_weights[0], loss_weights[1] are the weights for BCE, Dice respectively.
+    :param logits:       Whether to use logits or not.
     """
 
     def __init__(self, loss_weights: List[float] = [0.5, 0.5], logits: bool = True):
