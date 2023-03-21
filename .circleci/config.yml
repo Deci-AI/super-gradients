@@ -75,6 +75,7 @@ commands:
               echo "found a .config directory, copying to repo dir"
               cp -r  ~/.config ~/project/<< parameters.docker_context >>
             fi
+      - deci-common/ecr_login_dev
       - deci-common/container_image_build:
           context: << parameters.docker_context >>
           working_directory: "."
