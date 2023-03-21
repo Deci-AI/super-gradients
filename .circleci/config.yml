@@ -3,10 +3,10 @@ version: 2.1
 parameters:
   ad_hoc_container_build:
     type: boolean
-    default: true
+    default: false
   ad_hoc_container_build_code_only:
     type: boolean
-    default: false
+    default: true
   remote_docker_version:
     type: string
     description: remote docker version
