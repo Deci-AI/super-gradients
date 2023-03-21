@@ -47,10 +47,10 @@ training_hyperparams:
   lr_warmup_epochs: 0
   cosine_final_lr_ratio: 0.1
 
-  phase_callbacks:
-    - RoboflowResultCallback:
-        dataset_name: ${dataset_name}
-        output_path: ${result_path}
+  phase_callbacks: []
+#    - RoboflowResultCallback:
+#        dataset_name: ${dataset_name}
+#        output_path: ${result_path}
   loss:
     ppyoloe_loss:
       num_classes: ${num_classes}
