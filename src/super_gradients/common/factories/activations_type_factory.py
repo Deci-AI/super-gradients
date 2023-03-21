@@ -22,9 +22,6 @@ class ActivationsTypeFactory(AbstractFactory):
            If provided value is not one of the three above, the value will be returned as is
         """
 
-        if issubclass(conf, nn.Module):
-            return conf
-
         if isinstance(conf, str):
             return get_builtin_activation_type(conf)
 
@@ -32,5 +29,8 @@ class ActivationsTypeFactory(AbstractFactory):
             (type_name,) = list(conf.keys())
             type_args = conf[type_name]
             return get_builtin_activation_type(type_name, **type_args)
+
+        if issubclass(conf, nn.Module):
+            return conf
 
         raise RuntimeError(f"Unsupported conf param type {type(conf)}")
