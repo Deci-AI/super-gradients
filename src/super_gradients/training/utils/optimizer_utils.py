@@ -79,7 +79,7 @@ def _get_no_decay_param_ids(module: nn.Module):
     return no_decay_ids
 
 
-def build_optimizer(net, lr, training_params):
+def build_optimizer(net: nn.Module, lr: float, training_params) -> optim.Optimizer:
     """
     Wrapper function for initializing the optimizer
         :param net: the nn_module to build the optimizer for

@@ -1,3 +1,4 @@
+from typing import Dict
 from enum import Enum
 import stringcase
 
@@ -18,7 +19,7 @@ class MultiGPUMode(str, Enum):
     AUTO = "AUTO"
 
     @classmethod
-    def dict(cls):
+    def dict(cls) -> Dict[str, "MultiGPUMode"]:
         """
         return dictionary mapping from the mode name (in call string cases) to the enum value
         """

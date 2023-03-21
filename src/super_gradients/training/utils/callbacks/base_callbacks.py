@@ -384,50 +384,50 @@ class PhaseCallback(Callback):
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__class__.__name__
 
-    def on_training_start(self, context):
+    def on_training_start(self, context: PhaseContext) -> None:
         if self.phase == Phase.PRE_TRAINING:
             self(context)
 
-    def on_train_loader_start(self, context):
+    def on_train_loader_start(self, context: PhaseContext) -> None:
         if self.phase == Phase.TRAIN_EPOCH_START:
             self(context)
 
-    def on_train_batch_loss_end(self, context):
+    def on_train_batch_loss_end(self, context: PhaseContext) -> None:
         if self.phase == Phase.TRAIN_BATCH_END:
             self(context)
 
-    def on_train_batch_gradient_step_end(self, context):
+    def on_train_batch_gradient_step_end(self, context: PhaseContext) -> None:
         if self.phase == Phase.TRAIN_BATCH_STEP:
             self(context)
 
-    def on_train_loader_end(self, context):
+    def on_train_loader_end(self, context: PhaseContext) -> None:
         if self.phase == Phase.TRAIN_EPOCH_END:
             self(context)
 
-    def on_validation_batch_end(self, context):
+    def on_validation_batch_end(self, context: PhaseContext) -> None:
         if self.phase == Phase.VALIDATION_BATCH_END:
             self(context)
 
-    def on_validation_loader_end(self, context):
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
         if self.phase == Phase.VALIDATION_EPOCH_END:
             self(context)
 
-    def on_validation_end_best_epoch(self, context):
+    def on_validation_end_best_epoch(self, context: PhaseContext) -> None:
         if self.phase == Phase.VALIDATION_END_BEST_EPOCH:
             self(context)
 
-    def on_test_batch_end(self, context):
+    def on_test_batch_end(self, context: PhaseContext) -> None:
         if self.phase == Phase.TEST_BATCH_END:
             self(context)
 
-    def on_test_loader_end(self, context):
+    def on_test_loader_end(self, context: PhaseContext) -> None:
         if self.phase == Phase.TEST_END:
             self(context)
 
-    def on_training_end(self, context):
+    def on_training_end(self, context: PhaseContext) -> None:
         if self.phase == Phase.POST_TRAINING:
             self(context)
 
@@ -456,78 +456,78 @@ class CallbackHandler(Callback):
         # Than backward, and only then - logging.
         self.callbacks = callbacks
 
-    def on_training_start(self, context):
+    def on_training_start(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_training_start(context)
 
-    def on_train_loader_start(self, context):
+    def on_train_loader_start(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_train_loader_start(context)
 
-    def on_train_batch_start(self, context):
+    def on_train_batch_start(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_train_batch_start(context)
 
-    def on_train_batch_loss_end(self, context):
+    def on_train_batch_loss_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_train_batch_loss_end(context)
 
-    def on_train_batch_backward_end(self, context):
+    def on_train_batch_backward_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_train_batch_backward_end(context)
 
-    def on_train_batch_gradient_step_start(self, context):
+    def on_train_batch_gradient_step_start(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_train_batch_gradient_step_start(context)
 
-    def on_train_batch_gradient_step_end(self, context):
+    def on_train_batch_gradient_step_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_train_batch_gradient_step_end(context)
 
-    def on_train_batch_end(self, context):
+    def on_train_batch_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_train_batch_end(context)
 
-    def on_validation_loader_start(self, context):
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_validation_loader_start(context)
 
-    def on_validation_batch_start(self, context):
+    def on_validation_batch_start(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_validation_batch_start(context)
 
-    def on_validation_batch_end(self, context):
+    def on_validation_batch_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_validation_batch_end(context)
 
-    def on_validation_loader_end(self, context):
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_validation_loader_end(context)
 
-    def on_train_loader_end(self, context):
+    def on_train_loader_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_train_loader_end(context)
 
-    def on_training_end(self, context):
+    def on_training_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_training_end(context)
 
-    def on_validation_end_best_epoch(self, context):
+    def on_validation_end_best_epoch(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_validation_end_best_epoch(context)
 
-    def on_test_loader_start(self, context):
+    def on_test_loader_start(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_test_loader_start(context)
 
-    def on_test_batch_start(self, context):
+    def on_test_batch_start(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_test_batch_start(context)
 
-    def on_test_batch_end(self, context):
+    def on_test_batch_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_test_batch_end(context)
 
-    def on_test_loader_end(self, context):
+    def on_test_loader_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_test_loader_end(context)

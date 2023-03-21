@@ -5,7 +5,7 @@ class KDModelException(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, desc):
+    def __init__(self, desc: str):
         self.message = "KDTrainer: " + desc
         super().__init__(self.message)
 
