@@ -490,7 +490,7 @@ class EfficientNet(SgModule):
 
         return x
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs):
         """
         EfficientNet's forward function.
         Calls extract_features to extract features, applies final linear layer, and returns logits.
