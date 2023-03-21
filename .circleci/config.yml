@@ -6,7 +6,7 @@ parameters:
     default: false
   ad_hoc_container_build_code_only:
     type: boolean
-    default: true
+    default: false
   remote_docker_version:
     type: string
     description: remote docker version
