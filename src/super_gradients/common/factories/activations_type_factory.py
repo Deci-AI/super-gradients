@@ -16,10 +16,10 @@ class ActivationsTypeFactory(AbstractFactory):
     which is the case when we're using CustomizableDetector.
     """
 
-    def get(self, conf: Union[str, Mapping, Type]) -> Type:
+    def get(self, conf: Union[str, Mapping, Type[nn.Module]]) -> Type[nn.Module]:
         """
         Get a type.
-           :param conf: a configuration or a type
+           :param conf: a configuration or a subclass of nn.Module (Type, not instance)
            if string - assumed to be a type name (not the real name, but a name defined in the Factory)
            a dictionary is not supported, since the actual instantiation takes place elsewhere
 

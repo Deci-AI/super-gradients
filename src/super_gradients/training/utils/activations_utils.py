@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 
-def get_builtin_activation_type(activation: Union[str, None], **kwargs) -> Type:
+def get_builtin_activation_type(activation: Union[str, None], **kwargs) -> Type[nn.Module]:
     """
     Returns activation class by its name from torch.nn namespace. This function support all modules available from
     torch.nn and also their lower-case aliases.
@@ -14,12 +14,10 @@ def get_builtin_activation_type(activation: Union[str, None], **kwargs) -> Type:
     >>> act_cls = get_activation_type("LeakyReLU", inplace=True, slope=0.01)
     >>> act = act_cls()
 
-    Args:
-        activation: Activation function name (E.g. ReLU). If None will return nn.Identity
-        **kwargs: Extra arguments to pass to constructor during instantiation (E.g. inplace=True)
+    :param activation: Activation function name (E.g. ReLU). If None - return nn.Identity
+    :param **kwargs  : Extra arguments to pass to constructor during instantiation (E.g. inplace=True)
 
-    Returns:
-        Type of the activation function that is ready to be instantiated
+    :returns         : Type of the activation function that is ready to be instantiated
     """
 
     if activation is None:
