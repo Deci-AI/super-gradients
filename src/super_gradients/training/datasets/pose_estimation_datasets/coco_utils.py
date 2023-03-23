@@ -62,7 +62,7 @@ def check_for_duplicate_annotations(coco: COCO, max_distance_threshold=2) -> Non
             logger.warning(f"Duplicate annotations for image {image_id}: {annotations[i]['id']} and {annotations[j]['id']}")
 
 
-def make_keypoints_outside_image_invisible(coco: COCO):
+def make_keypoints_outside_image_invisible(coco: COCO) -> COCO:
     for ann in coco.anns.values():
         keypoints = np.array(ann["keypoints"]).reshape(-1, 3)
         image_rows = coco.imgs[ann["image_id"]]["height"]
@@ -83,7 +83,7 @@ def make_keypoints_outside_image_invisible(coco: COCO):
     return coco
 
 
-def remove_duplicate_annotations(coco: COCO):
+def remove_duplicate_annotations(coco: COCO) -> COCO:
     ann_to_remove = []
 
     image_ids = list(coco.imgs.keys())
