@@ -1,10 +1,10 @@
+# A recipe to fine-tune DeciYolo on Roboflow datasets.
 defaults:
   - training_hyperparams: coco2017_deciyolo_train_params
   - dataset_params: roboflow_detection_dataset_params
   - checkpoint_params: default_checkpoint_params
   - arch_params: deciyolo_s_arch_params
   - _self_
-
 
 train_dataloader: roboflow_train_yolox
 val_dataloader: roboflow_val_yolox
@@ -27,8 +27,6 @@ arch_params:
   num_classes: ${num_classes}
 
 
-
-
 load_checkpoint: False
 checkpoint_params:
   pretrained_weights: coco
@@ -38,6 +36,16 @@ result_path: # By defaults saves results in checkpoints directory
 resume: False
 training_hyperparams:
   resume: ${resume}
+  initial_lr: 0.0001
+  zero_weight_decay_on_bias_and_bn: True
+
+  optimizer_params:
+    weight_decay: 0.0001
+
+  ema: True
+  ema_params:
+    decay: 0.9
+
   max_epochs: 100
   mixed_precision: True
   criterion_params:
@@ -48,9 +56,7 @@ training_hyperparams:
   cosine_final_lr_ratio: 0.1
 
   phase_callbacks: []
-#    - RoboflowResultCallback:
-#        dataset_name: ${dataset_name}
-#        output_path: ${result_path}
+
   loss:
     ppyoloe_loss:
       num_classes: ${num_classes}
