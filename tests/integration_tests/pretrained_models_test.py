@@ -100,7 +100,8 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_dataset = {
             "yolox": coco2017_val_yolox(dataloader_params={"collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}),
             "ppyoloe": coco2017_val_ppyoloe(
-                dataloader_params={"collate_fn": CrowdDetectionPPYoloECollateFN(), "batch_size": 1}, dataset_params={"with_crowd": True}
+                dataloader_params={"collate_fn": CrowdDetectionPPYoloECollateFN(), "batch_size": 1},
+                dataset_params={"with_crowd": True, "ignore_empty_annotations": False},
             ),
             "ssd_mobilenet": coco2017_val_ssd_lite_mobilenet_v2(
                 dataloader_params={"collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}
@@ -117,8 +118,8 @@ class PretrainedModelsTest(unittest.TestCase):
             Models.YOLOX_T: 0.3718,
             Models.PP_YOLOE_S: 0.4252,
             Models.PP_YOLOE_M: 0.4711,
-            Models.PP_YOLOE_L: 0.4829,
-            Models.PP_YOLOE_X: 0.5096,
+            Models.PP_YOLOE_L: 0.4948,
+            Models.PP_YOLOE_X: 0.5115,
         }
 
         self.transfer_detection_dataset = detection_test_dataloader()
