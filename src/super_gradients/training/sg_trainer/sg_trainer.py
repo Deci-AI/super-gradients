@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
 
+from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
@@ -39,7 +40,7 @@ from super_gradients.training.metrics.metric_utils import (
     get_metrics_dict,
     get_train_loop_description_dict,
 )
-from super_gradients.training.models import SgModule
+from super_gradients.training.models import SgModule, get_model_name
 from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
@@ -202,8 +203,8 @@ class Trainer:
         """
         Trains according to cfg recipe configuration.
 
-        @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
-        @return: the model and the output of trainer.train(...) (i.e results tuple)
+        :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
+        :return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
         setup_device(
@@ -525,7 +526,7 @@ class Trainer:
                 load_checkpoint=self.load_checkpoint,
             )
 
-    def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
+    def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs) -> None:
         """
         Run backprop on the loss and perform a step
         :param loss: The value computed by the loss function
@@ -563,7 +564,13 @@ class Trainer:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_train_batch_gradient_step_end(context)
 
-    def _save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None):
+    def _save_checkpoint(
+        self,
+        optimizer: torch.optim.Optimizer = None,
+        epoch: int = None,
+        validation_results_tuple: tuple = None,
+        context: PhaseContext = None,
+    ) -> None:
         """
         Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
         params)
@@ -616,7 +623,7 @@ class Trainer:
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
-    def _prep_net_for_train(self):
+    def _prep_net_for_train(self) -> None:
         if self.arch_params is None:
             self._init_arch_params()
 
@@ -638,7 +645,7 @@ class Trainer:
         self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
         self._load_checkpoint_to_model()
 
-    def _init_arch_params(self):
+    def _init_arch_params(self) -> None:
         default_arch_params = HpmStruct()
         arch_params = getattr(self.net, "arch_params", default_arch_params)
         self.arch_params = default_arch_params
@@ -1562,13 +1569,29 @@ class Trainer:
         if isinstance(sg_logger, AbstractSGLogger):
             self.sg_logger = sg_logger
         elif isinstance(sg_logger, str):
-            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
-            if issubclass(SG_LOGGERS[sg_logger], BaseSGLogger):
-                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
-            if sg_logger not in SG_LOGGERS:
-                raise RuntimeError("sg_logger not defined in SG_LOGGERS")
 
-            self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
+            sg_logger_cls = SG_LOGGERS.get(sg_logger)
+            if sg_logger_cls is None:
+                raise RuntimeError(f"sg_logger={sg_logger} not registered in SuperGradients. Available {list(SG_LOGGERS.keys())}")
+
+            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
+            if issubclass(sg_logger_cls, BaseSGLogger):
+                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
+
+            # Some sg_logger require model_name, but not all of them.
+            if "model_name" in get_callable_param_names(sg_logger_cls.__init__):
+                if sg_logger_params.get("model_name") is None:
+                    # Use the model name used in `models.get(...)` if relevant
+                    sg_logger_params["model_name"] = get_model_name(self.net.module)
+
+                if sg_logger_params["model_name"] is None:
+                    raise ValueError(
+                        f'`model_name` is required to use `training_hyperparams.sg_logger="{sg_logger}"`.\n'
+                        'Please set `training_hyperparams.sg_logger_params.model_name="<your-model-name>"`.\n'
+                        "Note that specifying `model_name` is not required when the model was loaded using `models.get(...)`."
+                    )
+
+            self.sg_logger = sg_logger_cls(**sg_logger_params)
         else:
             raise RuntimeError("sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger")
 

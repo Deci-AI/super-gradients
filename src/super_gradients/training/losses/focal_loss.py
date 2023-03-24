@@ -6,7 +6,7 @@ from torch.nn.modules.loss import _Loss
 class FocalLoss(_Loss):
     """Wraps focal loss around existing loss_fcn(), i.e. criteria = FocalLoss(nn.BCEWithLogitsLoss(), gamma=1.5)"""
 
-    def __init__(self, loss_fcn: nn.BCEWithLogitsLoss, gamma=1.5, alpha=0.25):
+    def __init__(self, loss_fcn: nn.BCEWithLogitsLoss, gamma: float = 1.5, alpha: float = 0.25):
         super(FocalLoss, self).__init__()
         self.loss_fcn = loss_fcn  # must be nn.BCEWithLogitsLoss()
         self.gamma = gamma
@@ -14,7 +14,7 @@ class FocalLoss(_Loss):
         self.reduction = loss_fcn.reduction
         self.loss_fcn.reduction = "none"  # required to apply FocalLoss to each element
 
-    def forward(self, pred, true):
+    def forward(self, pred: torch.tensor, true: torch.tensor) -> torch.tensor:
         loss = self.loss_fcn(pred, true)
 
         pred_prob = torch.sigmoid(pred)  # prob from logits
