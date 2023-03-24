@@ -117,8 +117,8 @@ class PretrainedModelsTest(unittest.TestCase):
             Models.YOLOX_T: 0.3718,
             Models.PP_YOLOE_S: 0.4252,
             Models.PP_YOLOE_M: 0.4711,
-            Models.PP_YOLOE_L: 0.4711,
-            Models.PP_YOLOE_X: 0.4711,
+            Models.PP_YOLOE_L: 0.4829,
+            Models.PP_YOLOE_X: 0.5096,
         }
 
         self.transfer_detection_dataset = detection_test_dataloader()
