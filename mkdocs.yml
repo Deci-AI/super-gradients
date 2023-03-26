@@ -1,9 +1,9 @@
 site_name: super-gradients
 nav:
 - Welcome:
-  - Intro: ./README.md
+  - Intro: ./documentation/source/welcome.md
   - Installation : ./documentation/source/installation.md
-  - Model Zoo: ./src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md
+  - Model Zoo: ./documentation/source/model_zoo.md
 - Quick Start:
   - Basic: ./documentation/source/QuickstartBasicToolkit.md
   - Classification: ./documentation/assets/Example_Classification.md
