@@ -39,7 +39,7 @@ train_dataset_params:
         output_format: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples:
+  max_num_samples: 1000
   with_crowd: False
 
 train_dataloader_params:
@@ -70,7 +70,7 @@ val_dataset_params:
       output_format: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples:
+  max_num_samples: 1000
   with_crowd: True
 
 val_dataloader_params:

@@ -2,7 +2,7 @@ import collections
 import math
 import random
 from numbers import Number
-from typing import Optional, Union, Tuple, List, Sequence, Dict
+from typing import Optional, Union, Tuple, List, Sequence, Dict, Any
 
 import cv2
 import numpy as np
@@ -710,8 +710,42 @@ class DetectionImagePermute(DetectionTransform):
         return sample
 
 
+class ReversableTransform(DetectionTransform):
+    def __init__(self, *args, **kwargs):
+        super(ReversableTransform).__init__(*args, **kwargs)
+        self._state: Optional[Any] = None
+
+    @property
+    def state(self) -> dict:
+        if self._state is None:
+            raise RuntimeError(
+                "The transform must be applied first before applying a reverse transform, otherwise it won't know how to reverse the previous call."
+            )
+        return self._state
+
+    @state.setter
+    def state(self, value: Any):
+        self._state = value
+
+    def apply_reverse_to_targets(self, targets: np.array) -> np.array:
+        """Reverse transform on bboxes with respect to values of the last image this transform was applied on.
+
+        :param targets:  Transformed Bboxes, of shape (N, 5), in format [x1, y1, x2, y2, class_id, ...]
+        :return:         Original Bboxes, of shape (N, 5), in format [x1, y1, x2, y2, class_id, ...]
+        """
+        raise NotImplementedError
+
+    def apply_reverse_to_image(self, image: np.ndarray) -> np.ndarray:
+        """Reverse transform on bboxes with respect to values of the last image this transform was applied on.
+
+        :param image: Transformed image
+        :return:      Original image
+        """
+        raise NotImplementedError
+
+
 @register_transform(Transforms.DetectionPadToSize)
-class DetectionPadToSize(DetectionTransform):
+class DetectionPadToSize(ReversableTransform):
     """
     Preprocessing transform to pad image and bboxes to `input_dim` shape (rows, cols).
     Transform does center padding, so that input image with bboxes located in the center of the produced image.
@@ -732,11 +766,13 @@ class DetectionPadToSize(DetectionTransform):
 
     def __call__(self, sample: dict) -> dict:
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        img, shift_w, shift_h = self._apply_to_image(img, final_shape=self.output_size, pad_value=self.pad_value)
+
+        img, self.state = self._apply_to_image(img, final_shape=self.output_size, pad_value=self.pad_value)
+
         sample["image"] = img
-        sample["target"] = self._apply_to_bboxes(targets, shift_w, shift_h)
+        sample["target"] = self._apply_to_bboxes(targets=targets, shift_w=self.state["shift_w"], shift_h=self.state["shift_h"])
         if crowd_targets is not None:
-            sample["crowd_target"] = self._apply_to_bboxes(crowd_targets, shift_w, shift_h)
+            sample["crowd_target"] = self._apply_to_bboxes(targets=crowd_targets, shift_w=self.state["shift_w"], shift_h=self.state["shift_h"])
         return sample
 
     def _apply_to_bboxes(self, targets: np.array, shift_w: float, shift_h: float) -> np.array:
@@ -755,21 +791,54 @@ class DetectionPadToSize(DetectionTransform):
         boxes[:, [1, 3]] += shift_h
         return np.concatenate((boxes, labels), 1)
 
-    def _apply_to_image(self, image, final_shape: Tuple[int, int], pad_value: int):
+    def _apply_to_image(self, image: np.ndarray, final_shape: Tuple[int, int], pad_value: int) -> Tuple[np.ndarray, Dict]:
         """
         Pad image to final_shape.
-        :param image:
+        :param image:       Original image.
         :param final_shape: Output image size (rows, cols).
-        :param pad_value:
         :return:
+            - image to which we applied the transform.
+            - a dictionary containing the state of the transform. This will is required to apply and/or reverse the transform on the targets.
         """
-        pad_h, pad_w = final_shape[0] - image.shape[0], final_shape[1] - image.shape[1]
+        original_shape = image.shape
+
+        pad_h, pad_w = final_shape[0] - original_shape[0], final_shape[1] - original_shape[1]
         shift_h, shift_w = pad_h // 2, pad_w // 2
         pad_h = (shift_h, pad_h - shift_h)
         pad_w = (shift_w, pad_w - shift_w)
 
-        image = np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
-        return image, shift_w, shift_h
+        image = np.pad(image, (pad_h, pad_w, (0, 0)), mode="constant", constant_values=pad_value)
+
+        # TODO: Should we save the state inside or outside of the transform?
+        return image, {"original_shape": original_shape, "shift_w": shift_w, "shift_h": shift_h, "pad_h": pad_h, "pad_w": pad_w}
+
+    def apply_to_targets(self, targets: np.array) -> np.array:
+        """Translate bboxes with respect to padding values of the last image this transform was applied on.
+
+        :param targets:  Bboxes to transform of shape (N, 5), in format [x1, y1, x2, y2, class_id,...]
+        :return:         Bboxes to transform of shape (N, 5), in format [x1, y1, x2, y2, class_id,...]
+        """
+        return self._apply_to_bboxes(targets=targets, shift_w=self.state["shift_w"], shift_h=self.state["shift_h"])
+
+    def apply_reverse_to_targets(self, targets: np.array) -> np.array:
+        """Reverse translate bboxes with respect to padding values of the last image this transform was applied on.
+
+        :param targets:  Bboxes to transform of shape (N, 5), in format [x1, y1, x2, y2, class_id, ...]
+        :return:         Bboxes to transform of shape (N, 5), in format [x1, y1, x2, y2, class_id, ...]
+        """
+        return self._apply_to_bboxes(targets=targets, shift_w=-self.state["shift_w"], shift_h=-self.state["shift_h"])
+
+    def apply_reverse_to_image(self, image: np.ndarray) -> np.ndarray:
+        """Reverse transform on bboxes with respect to values of the last image this transform was applied on.
+
+        :param image: Transformed image
+        :return:      Original image
+        """
+        start_h, end_h = self.state["pad_h"]
+        start_w, end_w = self.state["pad_w"]
+        original_shape = self.state["original_shape"]
+
+        return image[start_h : original_shape[0] + start_h, start_w : original_shape[1] + start_w]
 
 
 @register_transform(Transforms.DetectionPaddedRescale)
@@ -791,10 +860,14 @@ class DetectionPaddedRescale(DetectionTransform):
         self.input_dim = input_dim
         self.max_targets = max_targets
         self.pad_value = pad_value
+        # self.transform = RescalePadDetection(target_size=self.input_dim, swap=self)
+
+        self._last_r = None  # Used to reverse the transform.
 
     def __call__(self, sample: dict) -> dict:
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
         img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap, self.pad_value)
+        self.state = r
 
         sample["image"] = img
         sample["target"] = self._rescale_target(targets, r)
@@ -802,21 +875,39 @@ class DetectionPaddedRescale(DetectionTransform):
             sample["crowd_target"] = self._rescale_target(crowd_targets, r)
         return sample
 
-    def _rescale_target(self, targets: np.array, r: float) -> np.array:
+    def _rescale_target(self, target: np.array, r: float) -> np.array:
         """SegRescale the target according to a coefficient used to rescale the image.
         This is done to have images and targets at the same scale.
 
-        :param targets:  Targets to rescale, shape (batch_size, 6)
+        :param target:  Targets to rescale, shape (batch_size, 6)
         :param r:        SegRescale coefficient that was applied to the image
 
         :return:         Rescaled targets, shape (batch_size, 6)
         """
-        targets = targets.copy() if len(targets) > 0 else np.zeros((self.max_targets, 5), dtype=np.float32)
-        boxes, labels = targets[:, :4], targets[:, 4]
-        boxes = xyxy2cxcywh(boxes)
-        boxes *= r
-        boxes = cxcywh2xyxy(boxes)
-        return np.concatenate((boxes, labels[:, np.newaxis]), 1)
+        if len(target) == 0:
+            return np.zeros((self.max_targets, 5), dtype=np.float32)
+        else:
+            return _rescale_xyxy_target(target, r)
+
+    def reverse_previous_target(self, target: np.array) -> np.array:
+        return _rescale_xyxy_target(target, 1 / self.state)
+
+
+def _rescale_xyxy_target(targets: np.array, r: float) -> np.array:
+    # TODO: Answer the question: should we name targets or target ? It's a bit messy in the code...
+    """SegRescale the target according to a coefficient used to rescale the image.
+    This is done to have images and targets at the same scale.
+
+    :param targets:  Targets to rescale, shape (batch_size, 6)
+    :param r:        SegRescale coefficient that was applied to the image
+    :return:         Rescaled targets, shape (batch_size, 6)
+    """
+    targets = targets.copy()
+    boxes, labels = targets[:, :4], targets[:, 4]
+    boxes = xyxy2cxcywh(boxes)
+    boxes *= r
+    boxes = cxcywh2xyxy(boxes)
+    return np.concatenate((boxes, labels[:, np.newaxis]), 1)
 
 
 @register_transform(Transforms.DetectionHorizontalFlip)

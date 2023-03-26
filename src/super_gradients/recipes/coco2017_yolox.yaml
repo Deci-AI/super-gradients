@@ -40,7 +40,8 @@ defaults:
 
 train_dataloader: coco2017_train
 val_dataloader: coco2017_val
-
+checkpoint_params:
+  pretrained_weights: coco
 
 
 load_checkpoint: False
@@ -50,8 +51,8 @@ training_hyperparams:
 
 architecture: yolox_s
 
-multi_gpu: DDP
-num_gpus: 8
+multi_gpu: Off
+num_gpus: 1
 
 experiment_suffix: res${dataset_params.train_dataset_params.input_dim}
 experiment_name: ${architecture}_coco2017_${experiment_suffix}

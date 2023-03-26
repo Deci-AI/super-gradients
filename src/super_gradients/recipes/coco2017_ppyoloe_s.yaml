@@ -28,6 +28,9 @@ defaults:
 train_dataloader: coco2017_train_ppyoloe
 val_dataloader: coco2017_val_ppyoloe
 
+checkpoint_params:
+  pretrained_weights: coco
+
 load_checkpoint: False
 resume: False
 
@@ -39,10 +42,10 @@ training_hyperparams:
   resume: ${resume}
   mixed_precision: True
 
-architecture: pp_yoloe_s
+architecture: ppyoloe_s
 
-multi_gpu: DDP
-num_gpus: 8
+multi_gpu: Off
+num_gpus: 1
 
 experiment_suffix: ""
 experiment_name: coco2017_${architecture}${experiment_suffix}

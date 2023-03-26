@@ -120,6 +120,9 @@ class TestTransforms(unittest.TestCase):
         self.assertEqual(output["image"].shape, (640, 640, 3))
         np.testing.assert_array_equal(output["target"], expected_boxes)
 
+        self.assertEqual(aug.apply_reverse_to_image(output["image"]).shape, image.shape)
+        np.testing.assert_array_equal(aug.apply_reverse_to_targets(output["target"]), boxes)
+
 
 if __name__ == "__main__":
     unittest.main()
