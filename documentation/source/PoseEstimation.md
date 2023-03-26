@@ -31,6 +31,8 @@ The easiest way to start training a pose estimation model is to use a recipe fro
 
 After you met the prerequisites, you can start training the model by running from the root of the repository:
 
+### Training from recipe
+
 ```bash
 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32 multi_gpu=Off num_gpus=1
 ```

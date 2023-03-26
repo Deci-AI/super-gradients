@@ -1,6 +1,8 @@
 """PyTorch implementation of the Lion optimizer.
 Code adopted from: https://github.com/google/automl/blob/master/lion/lion_pytorch.py
 """
+from typing import Optional, Union, Iterable, Tuple
+
 import torch
 from torch.optim.optimizer import Optimizer
 
@@ -14,7 +16,13 @@ class Lion(Optimizer):
     Generaly, it is recommended to divide lr used by AdamW by 10 and multiply the weight decay by 10.
     """
 
-    def __init__(self, params, lr=1e-4, betas=(0.9, 0.99), weight_decay=0.0):
+    def __init__(
+        self,
+        params: Union[Iterable[torch.Tensor], Iterable[dict]],
+        lr: float = 1e-4,
+        betas: Tuple[float, float] = (0.9, 0.99),
+        weight_decay: float = 0.0,
+    ):
         """Initialize the hyperparameters.
         Args:
           params (iterable): iterable of parameters to optimize or dicts defining
@@ -35,7 +43,7 @@ class Lion(Optimizer):
         super().__init__(params, defaults)
 
     @torch.no_grad()
-    def step(self, closure=None):
+    def step(self, closure: Optional[callable] = None) -> torch.Tensor:
         """Performs a single optimization step.
         Args:
           closure (callable, optional): A closure that reevaluates the model
