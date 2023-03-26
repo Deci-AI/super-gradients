@@ -218,10 +218,9 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
      ...input_size+self.multiscale_range*self.image_size_steps)
 
 
-    Attributes:
-        multiscale_range: (int) Range of values for resize sizes as discussed above (default=5)
-        image_size_steps: (int) Image step sizes as discussed abov (default=32)
-        change_frequency: (int) The frequency to apply change in input size.
+    :param multiscale_range: Range of values for resize sizes as discussed above (default=5)
+    :param image_size_steps: Image step sizes as discussed abov (default=32)
+    :param change_frequency: The frequency to apply change in input size.
     """
 
     def __init__(self, multiscale_range: int = 5, image_size_steps: int = 32, change_frequency: int = 10):
@@ -286,11 +285,9 @@ class DetectionMultiscalePrePredictionCallback(MultiscalePrePredictionCallback):
      ...input_size+self.multiscale_range*self.image_size_steps) and apply the same rescaling to the box coordinates.
 
 
-
-    Attributes:
-        multiscale_range: (int) Range of values for resize sizes as discussed above (default=5)
-        image_size_steps: (int) Image step sizes as discussed abov (default=32)
-        change_frequency: (int) The frequency to apply change in input size.
+    :param multiscale_range: Range of values for resize sizes as discussed above (default=5)
+    :param image_size_steps: Image step sizes as discussed abov (default=32)
+    :param change_frequency: The frequency to apply change in input size.
 
     """
 

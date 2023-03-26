@@ -1,9 +1,8 @@
 class IllegalRangeForLossAttributeException(Exception):
     """
     Exception raised illegal value (i.e not in range) for _Loss attribute.
-
-    Attributes:
-        message -- explanation of the error
+    :param range_vals: Range of valid values
+    :param attr_name: Name of attribute that is not in range
     """
 
     def __init__(self, range_vals: tuple, attr_name: str):
@@ -15,8 +14,9 @@ class RequiredLossComponentReductionException(Exception):
     """
     Exception raised illegal reduction for _Loss component.
 
-    Attributes:
-        message -- explanation of the error
+    :param component_name:      Name of component
+    :param reduction:           Reduction provided
+    :param required_reduction:  Reduction required
     """
 
     def __init__(self, component_name: str, reduction: str, required_reduction: str):

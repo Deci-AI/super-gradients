@@ -42,23 +42,14 @@ class ModelConversionCheckCallback(PhaseCallback):
 
     Use this callback wit hthe same args as DeciPlatformCallback to prevent conversion fails at the end of training.
 
-    Attributes:
-
-        model_meta_data: (ModelMetadata) model's meta-data object.
-
-        The following parameters may be passed as kwargs in order to control the conversion to onnx:
-        :param opset_version (default=11)
-        :param do_constant_folding (default=True)
-        :param dynamic_axes (default=
-                                        {'input': {0: 'batch_size'},
-                                        # Variable length axes
-                                        'output': {0: 'batch_size'}}
-
-                                        )
-        :param input_names (default=["input"])
-        :param output_names (default=["output"])
-        :param rtol (default=1e-03)
-        :param atol (default=1e-05)
+    :param model_meta_data:         Model's meta-data object. Type: ModelMetadata/
+    :param opset_version:           (default=11)
+    :param do_constant_folding:     (default=True)
+    :param dynamic_axes:            (default={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}})
+    :param input_names:             (default=["input"])
+    :param output_names:            (default=["output"])
+    :param rtol:                    (default=1e-03)
+    :param atol:                    (default=1e-05)
     """
 
     def __init__(self, model_meta_data, **kwargs):
@@ -126,26 +117,15 @@ class DeciLabUploadCallback(PhaseCallback):
     """
     Post-training callback for uploading and optimizing a model.
 
-    Attributes:
-
-        model_meta_data: (ModelMetadata) model's meta-data object.
-        optimization_request_form: (dict) optimization request form object.
-        ckpt_name: (str) default="ckpt_best" refers to the filename of the checkpoint, inside the checkpoint directory.
-
-        The following parameters may be passed as kwargs in order to control the conversion to onnx:
-        :param opset_version
-        :param do_constant_folding
-        :param dynamic_axes
-        :param input_names
-        :param output_names
+    :param model_meta_data:             Model's meta-data object. Type: ModelMetadata
+    :param optimization_request_form:   Optimization request form object. Type: OptimizationRequestForm
+    :param ckpt_name:                   Checkpoint filename, inside the checkpoint directory.
     """
 
-    def __init__(self, model_meta_data, optimization_request_form, ckpt_name="ckpt_best.pth", **kwargs):
+    def __init__(self, model_meta_data, optimization_request_form, ckpt_name: str = "ckpt_best.pth", **kwargs):
         super().__init__(phase=Phase.POST_TRAINING)
-
         self.model_meta_data = model_meta_data
         self.optimization_request_form = optimization_request_form
-        self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
         self.platform_client = DeciClient()
 
@@ -519,11 +499,11 @@ class FunctionLRCallback(LRCallbackBase):
 class IllegalLRSchedulerMetric(Exception):
     """Exception raised illegal combination of training parameters.
 
-    Attributes:
-        message -- explanation of the error
+    :param metric_name: Name of the metric that is not supported.
+    :param metrics_dict: Dictionary of metrics that are supported.
     """
 
-    def __init__(self, metric_name, metrics_dict):
+    def __init__(self, metric_name: str, metrics_dict: dict):
         self.message = "Illegal metric name: " + metric_name + ". Expected one of metics_dics keys: " + str(metrics_dict.keys())
         super().__init__(self.message)
 
@@ -533,15 +513,15 @@ class LRSchedulerCallback(PhaseCallback):
     """
     Learning rate scheduler callback.
 
-    Attributes:
-        scheduler: torch.optim._LRScheduler, the learning rate scheduler to be called step() with.
-        metric_name: str, (default=None) the metric name for ReduceLROnPlateau learning rate scheduler.
-
-        When passing __call__ a metrics_dict, with a key=self.metric_name, the value of that metric will monitored
+    When passing __call__ a metrics_dict, with a key=self.metric_name, the value of that metric will monitored
          for ReduceLROnPlateau (i.e step(metrics_dict[self.metric_name]).
+
+    :param scheduler:       Learning rate scheduler to be called step() with.
+    :param metric_name:     Metric name for ReduceLROnPlateau learning rate scheduler.
+    :param phase:           Phase of when to trigger it.
     """
 
-    def __init__(self, scheduler, phase, metric_name=None):
+    def __init__(self, scheduler: torch.optim.lr_scheduler._LRScheduler, phase: Phase, metric_name: str = None):
         super(LRSchedulerCallback, self).__init__(phase)
         self.scheduler = scheduler
         self.metric_name = metric_name
@@ -598,11 +578,12 @@ class PhaseContextTestCallback(PhaseCallback):
 class DetectionVisualizationCallback(PhaseCallback):
     """
     A callback that adds a visualization of a batch of detection predictions to context.sg_logger
-    Attributes:
-        freq: frequency (in epochs) to perform this callback.
-        batch_idx: batch index to perform visualization for.
-        classes: class list of the dataset.
-        last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
+
+    :param phase:                   When to trigger the callback.
+    :param freq:                    Frequency (in epochs) to perform this callback.
+    :param batch_idx:               Batch index to perform visualization for.
+    :param classes:                 Class list of the dataset.
+    :param last_img_idx_in_batch:   Last image index to add to log. (default=-1, will take entire batch).
     """
 
     def __init__(
@@ -636,10 +617,11 @@ class DetectionVisualizationCallback(PhaseCallback):
 class BinarySegmentationVisualizationCallback(PhaseCallback):
     """
     A callback that adds a visualization of a batch of segmentation predictions to context.sg_logger
-    Attributes:
-        freq: frequency (in epochs) to perform this callback.
-        batch_idx: batch index to perform visualization for.
-        last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
+
+    :param phase:                   When to trigger the callback.
+    :param freq:                    Frequency (in epochs) to perform this callback.
+    :param batch_idx:               Batch index to perform visualization for.
+    :param last_img_idx_in_batch:   Last image index to add to log. (default=-1, will take entire batch).
     """
 
     def __init__(self, phase: Phase, freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
@@ -668,8 +650,7 @@ class TrainingStageSwitchCallbackBase(PhaseCallback):
     A phase callback that is called at a specific epoch (epoch start) to support multi-stage training.
     It does so by manipulating the objects inside the context.
 
-    Attributes:
-        next_stage_start_epoch: int, the epoch idx to apply the stage change.
+    :param next_stage_start_epoch: Epoch idx to apply the stage change.
     """
 
     def __init__(self, next_stage_start_epoch: int):

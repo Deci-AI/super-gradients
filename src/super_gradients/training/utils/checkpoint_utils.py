@@ -237,8 +237,7 @@ def load_checkpoint_to_model(
 class MissingPretrainedWeightsException(Exception):
     """Exception raised by unsupported pretrianed model.
 
-    Attributes:
-        message -- explanation of the error
+    :param desc: explanation of the error
     """
 
     def __init__(self, desc):
