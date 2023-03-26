@@ -401,12 +401,7 @@ def get_gpu_mem_utilization():
 
 
 class DDPNotSetupException(Exception):
-    """
-    Exception raised when DDP setup is required but was not done
-
-    Attributes:
-        message -- explanation of the error
-    """
+    """Exception raised when DDP setup is required but was not done"""
 
     def __init__(self):
         self.message = (

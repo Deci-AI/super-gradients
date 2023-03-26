@@ -436,8 +436,7 @@ class CallbackHandler(Callback):
     """
     Runs all callbacks
 
-    Attributes:
-        callbacks: List[PhaseCallback]. Callbacks to be run.
+    :param callbacks: Callbacks to be run.
     """
 
     def __init__(self, callbacks: List[Callback]):
