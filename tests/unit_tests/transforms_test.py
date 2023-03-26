@@ -9,7 +9,7 @@ from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
 )
-from super_gradients.training.transforms.transforms import DetectionImagePermute, DetectionPadToSize
+from super_gradients.training.transforms.transforms import DetectionImagePermute, DetectionPadToSize, DetectionRescale
 
 
 class TestTransforms(unittest.TestCase):
@@ -122,6 +122,36 @@ class TestTransforms(unittest.TestCase):
 
         self.assertEqual(aug.apply_reverse_to_image(output["image"]).shape, image.shape)
         np.testing.assert_array_equal(aug.apply_reverse_to_targets(output["target"]), boxes)
+
+    def test_detection_rescale(self):
+        # Test initialization
+        rescale = DetectionRescale((300, 300))
+
+        # Test __call__
+        img = np.random.randint(0, 256, size=(100, 200, 3), dtype=np.uint8)
+        targets = np.array([[10, 20, 30, 40, 0], [50, 60, 70, 80, 1]], dtype=np.float32)
+        sample = {"image": img, "target": targets}
+
+        ratio_x = 300 / 200
+        ratio_y = 300 / 100
+        expected_boxes = np.array([[10 * ratio_x, 20 * ratio_y, 30 * ratio_x, 40 * ratio_y, 0], [50 * ratio_x, 60 * ratio_y, 70 * ratio_x, 80 * ratio_y, 1]])
+
+        transformed_sample = rescale(sample)
+        transformed_img = transformed_sample["image"]
+        transformed_targets = transformed_sample["target"]
+
+        self.assertEqual(transformed_img.shape, (300, 300, 3))
+        self.assertEqual(transformed_targets.shape, (2, 5))
+        np.testing.assert_array_equal(transformed_targets, expected_boxes)
+
+        # Test apply_reverse_to_targets
+        reversed_targets = rescale.apply_reverse_to_targets(transformed_targets)
+        self.assertEqual(reversed_targets.shape, (2, 5))
+        np.testing.assert_array_equal(reversed_targets, targets)
+
+        # Test apply_reverse_to_image
+        reversed_img = rescale.apply_reverse_to_image(transformed_img)
+        self.assertEqual(reversed_img.shape, img.shape)
 
 
 if __name__ == "__main__":
