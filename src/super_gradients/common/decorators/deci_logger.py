@@ -11,12 +11,11 @@ def deci_func_logger(_func=None, *, name: str = "abstract_decorator"):
         If not it will return a new decorator that its logger is the wrapped function name.
         Then the return decorator will return a new function that warps the original function with the new logs.
         For further understanding advise real-python "fancy decorators documentation"
-    Args:
-        _func (): used when called without name specify. dont pass it directly
-        name (): The name of the logger to save logs by.
 
-    Returns:
-        a decorator that wraps function with logs logic.
+    :param _func:    used when called without name specify. dont pass it directly
+    :param name:     The name of the logger to save logs by.
+
+    :return: a decorator that wraps function with logs logic.
     """
     # TODO: Not Working - Breaks the code, tests does not pass (s3 connector, platform...)
     # TODO: Fix problem with ExplicitParamValidation error (arguments not passed)

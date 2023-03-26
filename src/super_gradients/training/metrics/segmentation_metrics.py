@@ -11,11 +11,11 @@ from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
 
 
-def batch_pix_accuracy(predict, target):
+def batch_pix_accuracy(predict: torch.Tensor, target: torch.Tensor) -> Tuple[float, float]:
     """Batch Pixel Accuracy
-    Args:
-        predict: input 4D tensor
-        target: label 3D tensor
+
+    :param predict: input 4D tensor
+    :param target: label 3D tensor
     """
     _, predict = torch.max(predict, 1)
     predict = predict.cpu().numpy() + 1
@@ -26,12 +26,12 @@ def batch_pix_accuracy(predict, target):
     return pixel_correct, pixel_labeled
 
 
-def batch_intersection_union(predict, target, nclass):
+def batch_intersection_union(predict: torch.Tensor, target: torch.Tensor, nclass: int) -> Tuple[float, float]:
     """Batch Intersection of Union
-    Args:
-        predict: input 4D tensor
-        target: label 3D tensor
-        nclass: number of categories (int)
+
+    :param predict: input 4D tensor
+    :param target: label 3D tensor
+    :param nclass: number of categories (int)
     """
     _, predict = torch.max(predict, 1)
     mini = 1
@@ -73,15 +73,13 @@ def _dice_from_confmat(
 ) -> torch.Tensor:
     """Computes Dice coefficient from confusion matrix.
 
-    Args:
-        confmat: Confusion matrix without normalization
-        num_classes: Number of classes for a given prediction and target tensor
-        ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
+    :param confmat:         Confusion matrix without normalization
+    :param num_classes:     Number of classes for a given prediction and target tensor
+    :param ignore_index:    Optional int specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method.
-        absent_score: score to use for an individual class, if no instances of the class index were present in `pred`
+    :param absent_score:    Score to use for an individual class, if no instances of the class index were present in `pred`
             AND no instances of the class index were present in `target`.
-        reduction: a method to reduce metric score over labels.
-
+    :param reduction:       Method to reduce metric score over labels.
             - ``'elementwise_mean'``: takes the mean (default)
             - ``'sum'``: takes the sum
             - ``'none'``: no reduction will be applied

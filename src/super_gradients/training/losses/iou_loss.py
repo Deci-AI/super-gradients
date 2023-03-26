@@ -67,10 +67,11 @@ class GeneralizedIoULoss(IoULoss):
     """
     Compute the Generalised IoU loss, contribution of each label is normalized by the inverse of its volume, in order
      to deal with class imbalance.
-    Args:
-        smooth (float): default value is 0, smooth laplacian is not recommended to be used with GeneralizedIoULoss.
+
+    # FIXME: Why duplicate some parats in class and __init__ docstring ? (+they have different description)
+    :param smooth (float): default value is 0, smooth laplacian is not recommended to be used with GeneralizedIoULoss.
          because the weighted values to be added are very small.
-        eps (float): default value is 1e-17, must be a very small value, because weighted `intersection` and
+    :param eps (float): default value is 1e-17, must be a very small value, because weighted `intersection` and
         `denominator` are very small after multiplication with `1 / counts ** 2`
     """
 

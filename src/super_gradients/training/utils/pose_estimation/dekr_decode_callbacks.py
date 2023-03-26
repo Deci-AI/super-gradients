@@ -202,17 +202,20 @@ def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_
     return poses, scores
 
 
-def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keypoint_threshold: float, max_num_people: int):
+def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keypoint_threshold: float, max_num_people: int) -> Tuple[Tensor, List[Tensor]]:
     """
     Get initial pose proposals and aggregate the results of all scale.
     Not this implementation works only for batch size of 1.
 
-    Args:
-        heatmap_sum (Tensor): Sum of the heatmaps (1, 1+num_joints, w, h)
-        poses (List): Gather of the pose proposals [B, (num_people, num_joints, 3)]
-        heatmap (Tensor): Heatmap at this scale (B, 1+num_joints, w, h)
-        posemap (Tensor): Posemap at this scale (B, 2*num_joints, w, h)
-        output_stride: Ratio of input size / predictions size
+    :param heatmap: Heatmap at this scale (B, 1+num_joints, w, h)
+    :param posemap: Posemap at this scale (B, 2*num_joints, w, h)
+    :param output_stride: Ratio of input size / predictions size
+    :param keypoint_threshold: (float)
+    :param max_num_people: (int)
+
+    :return:
+        - heatmap_sum: Sum of the heatmaps (1, 1+num_joints, w, h)
+        - poses (List): Gather of the pose proposals [B, (num_people, num_joints, 3)]
     """
 
     poses = []
