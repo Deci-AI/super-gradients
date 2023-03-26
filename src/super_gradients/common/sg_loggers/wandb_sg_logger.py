@@ -57,7 +57,7 @@ class WandBSGLogger(BaseSGLogger):
         :param checkpoints_dir_path:    Local root directory path where all experiment logging directories will reside.
         :param tb_files_user_prompt:    Asks user for Tensorboard deletion prompt.
         :param launch_tensorboard:      Whether to launch a TensorBoard process.
-        :param tensorboard_port:        Specific port number for the tensorboard to use when launched (when set to None, some free port number will be used
+        :param tensorboard_port:        Specific port number for the tensorboard to use when launched (when set to None, some free port number will be used)
         :param save_checkpoints_remote: Saves checkpoints in s3.
         :param save_tensorboard_remote: Saves tensorboard in s3.
         :param save_logs_remote:        Saves log files in s3.
