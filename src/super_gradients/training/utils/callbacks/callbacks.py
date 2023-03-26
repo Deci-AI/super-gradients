@@ -157,8 +157,7 @@ class DeciLabUploadCallback(PhaseCallback):
         """
         This function will upload the trained model to the Deci Lab
 
-        Args:
-            model: The resulting model from the training process
+        :param model: The resulting model from the training process
         """
         self.platform_client.upload_model(model=model, model_meta_data=self.model_meta_data, optimization_request_form=self.optimization_request_form)
 
@@ -167,10 +166,10 @@ class DeciLabUploadCallback(PhaseCallback):
         This function will do fetch the optimized version of the trained model and check on its benchmark status.
         The status will be checked against the server every 30 seconds and the process will timeout after 30 minutes
         or log about the successful optimization - whichever happens first.
-        Args:
-            optimized_model_name (str): Optimized model name
-        Returns:
-            bool: whether or not the optimized model has been benchmarked
+
+        :param optimized_model_name: Optimized model name
+
+        :return: Whether or not the optimized model has been benchmarked
         """
 
         def handler(_signum, _frame):
@@ -190,13 +189,11 @@ class DeciLabUploadCallback(PhaseCallback):
         signal.alarm(0)
         return True
 
-    def __call__(self, context: PhaseContext):
+    def __call__(self, context: PhaseContext) -> None:
         """
         This function will attempt to upload the trained model and schedule an optimization for it.
-        Args:
-            context (PhaseContext): Training phase context
-        Returns:
-            bool: whether or not the optimized model has been benchmarked
+
+        :param context: Training phase context
         """
         try:
             model = copy.deepcopy(context.net)

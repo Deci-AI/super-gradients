@@ -99,22 +99,21 @@ class QuantizedMetadata:
     It can be both layer-grained and module-grained, e.g.,
     `module.backbone.conv1 -> QuantConv2d`, `nn.Linear -> QuantLinear`, etc...
 
-    Args:
-        float_source:               the name of a specific layer (e.g., `module.backbone.conv1`),
-                                    or a specific type (e.g., `Conv2d`) that will be later quantized
-        quantized_target_class:     the quantized type that the source will be converted to
-        action:                     how to resolve the conversion, we either:
-                                    - SKIP: skip it,
-                                    - UNWRAP: unwrap the instance and work with the wrapped one
-                                      (i.e., we wrap with a mapper),
-                                    - REPLACE: replace source with an instance of the
-                                      quantized type
-                                    - REPLACE_AND_RECURE: replace source with an instance of the
-                                      quantized type, then try to recursively quantize the child modules of that type
-                                    - RECURE_AND_REPLACE: recursively quantize the child modules, then
-                                      replace source with an instance of the quantized type
-        input_quant_descriptor:     quantization descriptor for inputs (None will take the default one)
-        weights_quant_descriptor:   quantization descriptor for weights (None will take the default one)
+    :param float_source:          Name of a specific layer (e.g., `module.backbone.conv1`),
+                                        or a specific type (e.g., `Conv2d`) that will be later quantized
+    :param quantized_target_class: Quantized type that the source will be converted to
+    :param action:                     how to resolve the conversion, we either:
+                                - SKIP: skip it,
+                                - UNWRAP: unwrap the instance and work with the wrapped one
+                                  (i.e., we wrap with a mapper),
+                                - REPLACE: replace source with an instance of the
+                                  quantized type
+                                - REPLACE_AND_RECURE: replace source with an instance of the
+                                  quantized type, then try to recursively quantize the child modules of that type
+                                - RECURE_AND_REPLACE: recursively quantize the child modules, then
+                                  replace source with an instance of the quantized type
+    :param input_quant_descriptor:     Quantization descriptor for inputs (None will take the default one)
+    :param weights_quant_descriptor:   Quantization descriptor for weights (None will take the default one)
     """
 
     class ReplacementAction(Enum):
