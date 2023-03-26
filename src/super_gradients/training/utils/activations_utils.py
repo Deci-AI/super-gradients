@@ -14,6 +14,7 @@ def get_builtin_activation_type(activation: Union[str, None], **kwargs) -> Type[
     >>> act_cls = get_activation_type("LeakyReLU", inplace=True, slope=0.01)
     >>> act = act_cls()
 
+
     :param activation: Activation function name (E.g. ReLU). If None - return nn.Identity
     :param **kwargs  : Extra arguments to pass to constructor during instantiation (E.g. inplace=True)
 
