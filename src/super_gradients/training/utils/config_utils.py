@@ -31,13 +31,11 @@ class AccessCounterMixin:
         """
         Return an attribute value optionally wrapped as access counter adapter to trace read counts.
 
-        Args:
-            value: Attribute value
-            key: Attribute name
-            count_usage: Whether increment usage count for given attribute. Default is True.
+        :param value: Attribute value
+        :param key: Attribute name
+        :param count_usage: Whether increment usage count for given attribute. Default is True.
 
-        Returns:
-
+        :return: wrapped value
         """
         key_with_prefix = self._prefix + str(key)
         if count_usage:

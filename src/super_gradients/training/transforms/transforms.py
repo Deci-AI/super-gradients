@@ -78,11 +78,10 @@ class SegRescale(SegmentationTransform):
     If more than one argument is given, the rescaling mode is determined by this order: scale_factor, then short_size,
     then long_size.
 
-    Args:
-        scale_factor: rescaling is done by multiplying input size by scale_factor:
+    :param scale_factor: Rescaling is done by multiplying input size by scale_factor:
             out_size = (scale_factor * w, scale_factor * h)
-        short_size: rescaling is done by determining the scale factor by the ratio short_size / min(h, w).
-        long_size: rescaling is done by determining the scale factor by the ratio long_size / max(h, w).
+    :param short_size:  Rescaling is done by determining the scale factor by the ratio short_size / min(h, w).
+    :param long_size:   Rescaling is done by determining the scale factor by the ratio long_size / max(h, w).
     """
 
     def __init__(self, scale_factor: Optional[float] = None, short_size: Optional[int] = None, long_size: Optional[int] = None):
@@ -132,8 +131,8 @@ class SegRandomRescale:
     """
     Random rescale the image and mask (synchronously) while preserving aspect ratio.
     Scale factor is randomly picked between scales [min, max]
-    Args:
-        scales: scale range tuple (min, max), if scales is a float range will be defined as (1, scales) if scales > 1,
+
+    :param scales: Scale range tuple (min, max), if scales is a float range will be defined as (1, scales) if scales > 1,
             otherwise (scales, 1). must be a positive number.
     """
 
@@ -948,17 +947,16 @@ class DetectionRandomRotate90(DetectionTransform):
         return targets
 
     @classmethod
-    def xyxy_bbox_rot90(cls, bboxes, factor: int, rows: int, cols: int):
-        """Rotates a bounding box by 90 degrees CCW (see np.rot90)
+    def xyxy_bbox_rot90(cls, bboxes: np.ndarray, factor: int, rows: int, cols: int):
+        """
+        Rotates a bounding box by 90 degrees CCW (see np.rot90)
 
-        Args:
-            bbox: A bounding box tuple (x_min, y_min, x_max, y_max).
-            factor: Number of CCW rotations. Must be in set {0, 1, 2, 3} See np.rot90.
-            rows: Image rows.
-            cols: Image cols.
+        :param bboxes:  Tensor made of bounding box tuples (x_min, y_min, x_max, y_max).
+        :param factor:  Number of CCW rotations. Must be in set {0, 1, 2, 3} See np.rot90.
+        :param rows:    Image rows.
+        :param cols:    Image cols.
 
-        Returns:
-            tuple: A bounding box tuple (x_min, y_min, x_max, y_max).
+        :return: A bounding box tuple (x_min, y_min, x_max, y_max).
 
         """
         x_min, y_min, x_max, y_max = bboxes[:, 0], bboxes[:, 1], bboxes[:, 2], bboxes[:, 3]

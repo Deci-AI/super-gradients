@@ -150,10 +150,9 @@ class DeciClient:
         """
         This function will upload the trained model to the Deci Lab
 
-        Args:
-            model:                     The resulting model from the training process
-            model_meta_data:           Metadata to accompany the model
-            optimization_request_form: The optimization parameters
+        :param model:                     The resulting model from the training process
+        :param model_meta_data:           Metadata to accompany the model
+        :param optimization_request_form: The optimization parameters
         """
         self.lab_client.add_model(
             add_model_request=model_meta_data,
