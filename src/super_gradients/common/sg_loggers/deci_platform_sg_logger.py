@@ -79,13 +79,13 @@ class DeciPlatformSGLogger(BaseSGLogger):
             self._upload_checkpoints()
 
     def _upload_checkpoints(self):
+        """Upload all checkpoints in the experiment folder (ending with ".pth") to Deci platform."""
         checkpoints_path = [
             os.path.join(self.checkpoints_dir_path, file_name) for file_name in os.listdir(self.checkpoints_dir_path) if file_name.endswith(".pth")
         ]
 
         for checkpoint_path in checkpoints_path:
             self._save_experiment_file(file_path=checkpoint_path)
-            print(f"Checkpoint saved FROM {checkpoint_path}")
 
     @multi_process_safe
     def _upload_latest_file_starting_with(self, start_with: str):
