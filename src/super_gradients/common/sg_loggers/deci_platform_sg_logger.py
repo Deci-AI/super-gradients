@@ -28,6 +28,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         training_params: dict,
         checkpoints_dir_path: str,
         model_name: str,
+        upload_model: bool = True,
         tb_files_user_prompt: bool = False,
         launch_tensorboard: bool = False,
         tensorboard_port: int = None,
@@ -36,7 +37,6 @@ class DeciPlatformSGLogger(BaseSGLogger):
         save_logs_remote: bool = True,
         monitor_system: bool = True,
     ):
-
         super().__init__(
             project_name=project_name,
             experiment_name=experiment_name,
@@ -55,6 +55,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         self.platform_client = DeciClient()
         self.platform_client.register_experiment(name=experiment_name, model_name=model_name if model_name else None, resume=resumed)
         self.checkpoints_dir_path = checkpoints_dir_path
+        self.upload_model = upload_model
 
     @multi_process_safe
     def upload(self):
@@ -73,6 +74,18 @@ class DeciPlatformSGLogger(BaseSGLogger):
         self._upload_latest_file_starting_with(start_with=LOGGER_LOGS_PREFIX)
         self._upload_latest_file_starting_with(start_with=CONSOLE_LOGS_PREFIX)
         self._upload_folder_files(folder_name=".hydra")
+
+        if self.upload_model:
+            self._upload_checkpoints()
+
+    def _upload_checkpoints(self):
+        checkpoints_path = [
+            os.path.join(self.checkpoints_dir_path, file_name) for file_name in os.listdir(self.checkpoints_dir_path) if file_name.endswith(".pth")
+        ]
+
+        for checkpoint_path in checkpoints_path:
+            self._save_experiment_file(file_path=checkpoint_path)
+            print(f"Checkpoint saved FROM {checkpoint_path}")
 
     @multi_process_safe
     def _upload_latest_file_starting_with(self, start_with: str):
