@@ -101,14 +101,13 @@ class CSPLayer(nn.Module):
     """
     CSP Bottleneck with 3 convolutions
 
-    Args:
-        in_channels: int, input channels.
-        out_channels: int, output channels.
-        num_bottlenecks: int, number of bottleneck conv layers.
-        act: Type[nn.module], activation type.
-        shortcut: bool, whether to apply shortcut (i.e add input to result) in bottlenecks (default=True).
-        depthwise: bool, whether to use GroupedConvBlock in last conv in bottlenecks (default=False).
-        expansion: float, determines the number of hidden channels (default=0.5).
+    :param in_channels: int, input channels.
+    :param out_channels: int, output channels.
+    :param num_bottlenecks: int, number of bottleneck conv layers.
+    :param act: Type[nn.module], activation type.
+    :param shortcut: bool, whether to apply shortcut (i.e add input to result) in bottlenecks (default=True).
+    :param depthwise: bool, whether to use GroupedConvBlock in last conv in bottlenecks (default=False).
+    :param expansion: float, determines the number of hidden channels (default=0.5).
     """
 
     def __init__(

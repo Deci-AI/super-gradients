@@ -15,6 +15,7 @@ from super_gradients.common.environment.cfg_utils import load_experiment_cfg
 from super_gradients.training.utils.sg_trainer_utils import parse_args
 import os
 import pathlib
+
 from onnxsim import simplify
 import onnx
 
@@ -24,11 +25,11 @@ logger = get_logger(__name__)
 class ConvertableCompletePipelineModel(torch.nn.Module):
     """
     Exportable nn.Module that wraps the model, preprocessing and postprocessing.
-    Args:
-        model: torch.nn.Module, the main model. takes input from pre_process' output, and feeds pre_process.
-        pre_process: torch.nn.Module, preprocessing module, its output will be model's input. When none (default), set to Identity().
-        pre_process: torch.nn.Module, postprocessing module, its output is the final output. When none (default), set to Identity().
-        **prep_model_for_conversion_kwargs: for SgModules- args to be passed to model.prep_model_for_conversion
+
+    :param model: torch.nn.Module, the main model. takes input from pre_process' output, and feeds pre_process.
+    :param pre_process: torch.nn.Module, preprocessing module, its output will be model's input. When none (default), set to Identity().
+    :param pre_process: torch.nn.Module, postprocessing module, its output is the final output. When none (default), set to Identity().
+    :param **prep_model_for_conversion_kwargs: for SgModules- args to be passed to model.prep_model_for_conversion
             prior to torch.onnx.export call.
     """
 

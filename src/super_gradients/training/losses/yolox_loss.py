@@ -25,9 +25,8 @@ logger = get_logger(__name__)
 class IOUloss(nn.Module):
     """
     IoU loss with the following supported loss types:
-    Attributes:
-        reduction: str: One of ["mean", "sum", "none"] reduction to apply to the computed loss (Default="none")
-        loss_type: str: One of ["iou", "giou"] where:
+    :param reduction: One of ["mean", "sum", "none"] reduction to apply to the computed loss (Default="none")
+    :param loss_type: One of ["iou", "giou"] where:
             * 'iou' for
                 (1 - iou^2)
             * 'giou' according to "Generalized Intersection over Union: A Metric and A Loss for Bounding Box Regression"
@@ -108,17 +107,14 @@ class YoloXDetectionLoss(_Loss):
             for each cell add BCE with a label of 1 if there is GT assigned to the cell
             Coef: 1
 
-    Attributes:
-        strides: list: List of Yolo levels output grid sizes (i.e [8, 16, 32]).
-        num_classes: int: Number of classes.
-        use_l1: bool: Controls the L_l1 Coef as discussed above (default=False).
-        center_sampling_radius: float: Sampling radius used for center sampling when creating the fg mask (default=2.5).
-        iou_type: str: Iou loss type, one of ["iou","giou"] (deafult="iou").
-
-
+    :param strides:                 List of Yolo levels output grid sizes (i.e [8, 16, 32]).
+    :param num_classes:             Number of classes.
+    :param use_l1:                  Controls the L_l1 Coef as discussed above (default=False).
+    :param center_sampling_radius:  Sampling radius used for center sampling when creating the fg mask (default=2.5).
+    :param iou_type:                Iou loss type, one of ["iou","giou"] (deafult="iou").
     """
 
-    def __init__(self, strides: list, num_classes: int, use_l1: bool = False, center_sampling_radius: float = 2.5, iou_type="iou"):
+    def __init__(self, strides: list, num_classes: int, use_l1: bool = False, center_sampling_radius: float = 2.5, iou_type: str = "iou"):
         super().__init__()
         self.grids = [torch.zeros(1)] * len(strides)
         self.strides = strides
@@ -131,7 +127,7 @@ class YoloXDetectionLoss(_Loss):
         self.iou_loss = IOUloss(reduction="none", loss_type=iou_type)
 
     @property
-    def component_names(self):
+    def component_names(self) -> List[str]:
         """
         Component names for logging during training.
         These correspond to 2nd item in the tuple returned in self.forward(...).

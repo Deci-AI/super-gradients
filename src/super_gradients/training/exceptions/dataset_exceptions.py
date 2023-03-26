@@ -10,11 +10,10 @@ class IllegalDatasetParameterException(DatasetValidationException):
     """
     Exception raised illegal dataset param.
 
-    Attributes:
-        message -- explanation of the error
+    :param desc: Explanation of the error
     """
 
-    def __init__(self, desc):
+    def __init__(self, desc: str):
         self.message = "Unsupported dataset parameter format: " + desc
         super().__init__(self.message)
 
@@ -23,11 +22,10 @@ class EmptyDatasetException(DatasetValidationException):
     """
     Exception raised when a dataset does not have any image for a specific config
 
-    Attributes:
-        message -- explanation of the error
+    :param desc: explanation of the error
     """
 
-    def __init__(self, desc):
+    def __init__(self, desc: str):
         self.message = "Empty Dataset: " + desc
         super().__init__(self.message)
 
@@ -35,8 +33,7 @@ class EmptyDatasetException(DatasetValidationException):
 class UnsupportedBatchItemsFormat(ValueError):
     """Exception raised illegal batch items returned from data loader.
 
-    Attributes:
-        message -- explanation of the error
+    :param batch_items: batch items returned from data loader
     """
 
     def __init__(self, batch_items: tuple):
