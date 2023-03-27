@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/assets/SG_img/SG - Horizontal.png" width="600"/>
+  <img src="../assets/SG_img/SG - Horizontal Glow 2.png" width="600"/>
  <br/><br/>
   
 
