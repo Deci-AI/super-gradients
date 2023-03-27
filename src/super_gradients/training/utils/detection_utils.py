@@ -258,6 +258,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_p
             pred[:, 5:] *= pred[:, 4:5]  # multiply objectness score with class score
 
         box = convert_cxcywh_bbox_to_xyxy(pred[:, :4])  # cxcywh to xyxy
+        # TODO: Think about whether or not there is a way to NOT change format OR to return back to original
 
         # Detections matrix nx6 (xyxy, conf, cls)
         if multi_label_per_box:  # try for all good confidence classes

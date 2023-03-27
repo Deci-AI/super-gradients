@@ -76,6 +76,7 @@ class SegRandomFlip(SegmentationTransform):
         return sample
 
 
+# TODO: add this
 @register_transform(Transforms.SegRescale)
 class SegRescale(SegmentationTransform):
     """
@@ -762,13 +763,12 @@ class DetectionPaddedRescale(ReversibleDetectionTransform):
 
     :param input_dim:   Final input dimension (default=(640,640))
     :param swap:        Image axis's to be rearranged.
-    :param max_targets:
+    :param max_targets: # TODO: Understand if we need this parameter. My guess: NO
     :param pad_value:   Padding value for image.
     """
 
     def __init__(self, input_dim: Tuple, swap: Tuple[int, ...] = (2, 0, 1), max_targets: int = 50, pad_value: int = 114):
-        super(DetectionPaddedRescale).__init__(ReversibleDetectionPaddedRescale(target_size=input_dim, pad_value=pad_value))
-        self.swap = swap
+        super(DetectionPaddedRescale).__init__(ReversibleDetectionPaddedRescale(target_size=input_dim, pad_value=pad_value, swap=swap))
         self.max_targets = max_targets
 
     def __call__(self, sample: dict) -> dict:
@@ -777,13 +777,10 @@ class DetectionPaddedRescale(ReversibleDetectionTransform):
         self.reversible_transform.calibrate(image=image)
 
         sample["image"] = self.reversible_transform.apply_to_image(image=image)
-        sample["target"] = self._rescale_target(targets)
+        sample["target"] = self._rescale_target(targets) if len(targets) else np.zeros((self.max_targets, 5), dtype=np.float32)
         if crowd_targets is not None:
-            sample["crowd_target"] = self._rescale_target(crowd_targets)
+            sample["crowd_target"] = self._rescale_target(targets) if len(targets) else np.zeros((self.max_targets, 5), dtype=np.float32)
         return sample
-
-    def _rescale_target(self, targets: np.array) -> np.ndarray:
-        raise NotImplementedError
 
 
 @register_transform(Transforms.DetectionHorizontalFlip)

@@ -1,6 +1,5 @@
 import math
 from typing import Union, Type, List, Tuple
-from abc import abstractmethod
 
 import torch
 import torch.nn as nn
@@ -12,7 +11,6 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
-from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
     [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]
@@ -82,11 +80,6 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         self.with_confidence = with_confidence
 
     def forward(self, x, device: str = None):
-        """Apply NMS to the raw output of the model and keep only top `max_predictions` results.
-
-        :param x: Raw output of the model, with x[0] expected to be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
-        :return: List of Tensors of shape (x1, y1, x2, y2, conf, cls)
-        """
 
         if self.nms_type == NMS_Type.ITERATIVE:
             nms_result = non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, with_confidence=self.with_confidence)
@@ -97,6 +90,7 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
 
     def _filter_max_predictions(self, res: List) -> List:
         res[:] = [im[: self.max_pred] if (im is not None and im.shape[0] > self.max_pred) else im for im in res]
+
         return res
 
 
@@ -388,14 +382,7 @@ class YoloHead(nn.Module):
         )
 
 
-class SgDetectionModule(SgModule):
-    @staticmethod
-    @abstractmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
-        pass
-
-
-class YoloBase(SgDetectionModule):
+class YoloBase(SgModule):
     def __init__(self, backbone: Type[nn.Module], arch_params: HpmStruct, initialize_module: bool = True):
         super().__init__()
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params
@@ -442,16 +429,9 @@ class YoloBase(SgDetectionModule):
         self._initialize_biases()
         self._initialize_weights()
         if self.arch_params.add_nms:
-            self._nms = self.get_post_prediction_callback(conf=self.arch_params.nms_conf, iou=self.arch_params.nms_iou)
-
-    @staticmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
-        # TODO: Think if it wouldnt be better to pass this in the __init__
-        return YoloPostPredictionCallback(conf=conf, iou=iou)
-
-    @staticmethod
-    def prediction_format() -> ConcatenatedTensorFormat:
-        return
+            nms_conf = self.arch_params.nms_conf
+            nms_iou = self.arch_params.nms_iou
+            self._nms = YoloPostPredictionCallback(nms_conf, nms_iou)
 
     def _check_strides(self):
         m = self._head._modules_list[-1]  # DetectX()

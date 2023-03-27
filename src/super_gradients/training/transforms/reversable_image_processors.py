@@ -49,24 +49,6 @@ class ReversibleImageProcessor(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def apply_to_targets(self, targets: np.array) -> np.array:
-        """Apply the transform on bboxes.
-
-        :param targets:  Transformed Bboxes
-        :return:         Original Bboxes
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def apply_reverse_to_targets(self, targets: np.array) -> np.array:
-        """Reverse transform on bboxes.
-
-        :param targets:  Transformed Bboxes
-        :return:         Original Bboxes
-        """
-        raise NotImplementedError
-
 
 class ReversibleDetectionProcessor(ReversibleImageProcessor):
     """Abstract base class for reversible transforms. The solution we chose is to store a "state" attribute when transforming an image.
@@ -176,22 +158,24 @@ class ReversibleDetectionPadToSize(ReversibleDetectionProcessor):
 class ReversibleDetectionPaddedRescale(ReversibleDetectionProcessor):
     """Apply padding rescaling to image and bboxes to `target_size` shape (rows, cols).
 
-    :param target_size: Final input dimension.
+    :param target_size: Target input dimension.
+    :param swap:        Image axis's to be rearranged.
     :param pad_value:   Padding value for image.
     """
 
-    def __init__(self, target_size: Tuple[int, int], pad_value: int = 114):
+    def __init__(self, target_size: Tuple[int, int], swap: Tuple[int, ...] = (2, 0, 1), pad_value: int = 114):
         super().__init__()
         self.target_size = target_size
+        self.swap = swap
         self.pad_value = pad_value
 
     def calibrate(self, image: np.ndarray) -> None:
-        r = compute_input_output_size_ratio(input_size=image.shape, output_size=self.target_size)
+        r = min(self.target_size[0] / image.shape[0], self.target_size[1] / image.shape[1])
         self.state = {"original_size": image.shape, "r": r}
 
     def apply_to_image(self, image: np.ndarray) -> np.ndarray:
         r = self.state["r"]
-        return _rescale_and_pad_to_size(image=image, target_size=self.target_size, r=r, pad_val=self.pad_value)
+        return _rescale_and_pad_to_size(image=image, target_size=self.target_size, r=r, pad_val=self.pad_value, swap=self.swap)
 
     def apply_reverse_to_image(self, image: np.ndarray) -> np.ndarray:
         raise NotImplementedError
@@ -205,7 +189,7 @@ class ReversibleDetectionPaddedRescale(ReversibleDetectionProcessor):
         return _rescale_xyxy_target(targets=targets, r=r)
 
 
-def compute_input_output_size_ratio(input_size: Tuple[int, int], output_size: Tuple[int, int]) -> float:
+def _compute_input_output_size_ratio(input_size: Tuple[int, int], output_size: Tuple[int, int]) -> float:
     return min(output_size[0] / input_size[0], output_size[1] / input_size[1])
 
 
@@ -258,7 +242,7 @@ def _rescale_and_pad_to_size(image: np.ndarray, target_size: Tuple[int, int], r:
     and pads the image to the target size.
 
     :param image:       Image to be rescaled
-    :param target_size:  Target size
+    :param target_size: Target size
     :param r:           Rescale coefficient
     :param swap:        Axis's to be rearranged.
     :param pad_val:     Value to use for padding
