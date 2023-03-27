@@ -2,7 +2,7 @@ import collections
 import math
 import random
 from numbers import Number
-from typing import Optional, Union, Tuple, List, Sequence, Dict
+from typing import Optional, Union, Tuple, List, Sequence
 
 import cv2
 import numpy as np
@@ -24,6 +24,7 @@ from super_gradients.training.transforms.reversable_image_processors import (
     ReversibleDetectionRescale,
     ReversibleDetectionPaddedRescale,
     ReversibleDetectionPadToSize,
+    ReversibleDetectionImagePermute,
 )
 
 image_resample = Image.BILINEAR
@@ -297,10 +298,9 @@ class SegPadShortToCropSize(SegmentationTransform):
 
     def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
         """
-        :param crop_size: tuple of (width, height) for the final crop size, if is scalar size is a
-            square (crop_size, crop_size)
-        :param fill_mask: value to fill mask labels background.
-        :param fill_image: grey value to fill image padded background.
+        :param crop_size:   Tuple of (width, height) for the final crop size, if is scalar size is a square (crop_size, crop_size)
+        :param fill_mask:   Value to fill mask labels background.
+        :param fill_image:  Grey value to fill image padded background.
         """
         # CHECK IF CROP SIZE IS A ITERABLE OR SCALAR
         self.crop_size = crop_size
@@ -716,7 +716,7 @@ class DetectionMixup(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionImagePermute)
-class DetectionImagePermute(DetectionTransform):
+class DetectionImagePermute(ReversibleDetectionTransform):
     """
     Permute image dims. Useful for converting image from HWC to CHW format.
     """
@@ -726,12 +726,7 @@ class DetectionImagePermute(DetectionTransform):
 
         :param dims: Specify new order of dims. Default value (2, 0, 1) suitable for converting from HWC to CHW format.
         """
-        super().__init__()
-        self.dims = tuple(dims)
-
-    def __call__(self, sample: Dict[str, np.array]) -> dict:
-        sample["image"] = np.ascontiguousarray(sample["image"].transpose(*self.dims))
-        return sample
+        super().__init__(reversible_transform=ReversibleDetectionImagePermute(permutation=dims))
 
 
 @register_transform(Transforms.DetectionPadToSize)
