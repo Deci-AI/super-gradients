@@ -9,7 +9,10 @@ from super_gradients.training.utils.detection_utils import xyxy2cxcywh, cxcywh2x
 
 class ReversibleImageProcessor(ABC):
     """Abstract base class for reversible transforms.
+    This comes handy when you want to apply a transform, and then undo that transform afterwards.
+
     To use such a transform, you need to first calibrate the instance to an image.
+    This will save the useful information to later on apply the transform and/or reverse the transform.
     Then, any of its processing method will be applied according to the calibrated image.
     """
 
@@ -18,6 +21,7 @@ class ReversibleImageProcessor(ABC):
 
     @property
     def state(self) -> dict:
+        """Wrapper around the state of the transform, in order to make sure that no transformation is called before the state is set (through `calibrate`)."""
         if self._state is None:
             raise RuntimeError(f"`calibrate` must be applied first before calling other methods if {self.__name__}.")
         return self._state
