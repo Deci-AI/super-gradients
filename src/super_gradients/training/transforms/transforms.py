@@ -298,10 +298,9 @@ class SegPadShortToCropSize(SegmentationTransform):
 
     def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
         """
-        :param crop_size: tuple of (width, height) for the final crop size, if is scalar size is a
-            square (crop_size, crop_size)
-        :param fill_mask: value to fill mask labels background.
-        :param fill_image: grey value to fill image padded background.
+        :param crop_size:   Tuple of (width, height) for the final crop size, if is scalar size is a square (crop_size, crop_size)
+        :param fill_mask:   Value to fill mask labels background.
+        :param fill_image:  Grey value to fill image padded background.
         """
         # CHECK IF CROP SIZE IS A ITERABLE OR SCALAR
         self.crop_size = crop_size
