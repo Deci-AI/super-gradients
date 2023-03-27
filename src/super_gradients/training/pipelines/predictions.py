@@ -8,6 +8,7 @@ from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASS
 
 @dataclass
 class Prediction:
+    _image: np.ndarray
     _boxes: np.ndarray  # (N, 4)
     _classes: np.ndarray  # (N,)
     _scores: np.ndarray  # (N,)
@@ -42,5 +43,3 @@ class Prediction:
 
         plt.imshow(image_np, interpolation="nearest")
         plt.show()
-
-        print()

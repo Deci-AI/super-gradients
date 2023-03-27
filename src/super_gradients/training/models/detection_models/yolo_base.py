@@ -394,6 +394,12 @@ class SgDetectionModule(SgModule):
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         pass
 
+    def predict(self, image, iou: float = 0.65, conf: float = 0.01) -> DetectionPostPredictionCallback:
+        from super_gradients.training.pipelines.pipelines import DetectionPipeline
+
+        pipeline = DetectionPipeline.from_pretrained(self, iou=iou, conf=conf)
+        return pipeline(image)
+
 
 class YoloBase(SgDetectionModule):
     def __init__(self, backbone: Type[nn.Module], arch_params: HpmStruct, initialize_module: bool = True):

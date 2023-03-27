@@ -189,6 +189,58 @@ class ReversibleDetectionPaddedRescale(ReversibleDetectionProcessor):
         return _rescale_xyxy_target(targets=targets, r=r)
 
 
+class ReversibleDetectionNormalize(ReversibleDetectionProcessor):
+    def __init__(self, mean, std):
+        super().__init__()
+        self.mean = np.array(list(mean)).reshape((1, 1, -1)).astype(np.float32)
+        self.std = np.array(list(std)).reshape((1, 1, -1)).astype(np.float32)
+
+    def calibrate(self, image: np.ndarray) -> None:
+        pass
+
+    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
+        return (image - self.mean) / self.std
+
+    def apply_reverse_to_image(self, image: np.ndarray) -> np.ndarray:
+        return self.std * image + self.mean
+
+    def apply_to_targets(self, targets: np.array) -> np.array:
+        return targets
+
+    def apply_reverse_to_targets(self, targets: np.array) -> np.array:
+        return targets
+
+
+class ReversibleDetectionImagePermute(ReversibleDetectionProcessor):
+    """
+    Permute image dims. Useful for converting image from HWC to CHW format.
+    """
+
+    def __init__(self, permutation: Tuple[int, int, int] = (2, 0, 1)):
+        """
+
+        :param permutation: Specify new order of dims. Default value (2, 0, 1) suitable for converting from HWC to CHW format.
+        """
+        super().__init__()
+        self.permutation = tuple(permutation)
+
+    def calibrate(self, image: np.ndarray) -> None:
+        pass
+
+    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
+        return np.ascontiguousarray(image.transpose(*self.permutation))
+
+    def apply_reverse_to_image(self, image: np.ndarray) -> np.ndarray:
+        inverse_permutation = np.argsort(self.permutation)
+        return np.ascontiguousarray(image.transpose(*inverse_permutation))
+
+    def apply_to_targets(self, targets: np.array) -> np.array:
+        return targets
+
+    def apply_reverse_to_targets(self, targets: np.array) -> np.array:
+        return targets
+
+
 def _compute_input_output_size_ratio(input_size: Tuple[int, int], output_size: Tuple[int, int]) -> float:
     return min(output_size[0] / input_size[0], output_size[1] / input_size[1])
 
@@ -209,10 +261,10 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.n
 def _translate_targets(targets: np.array, shift_w: float, shift_h: float) -> np.array:
     """Translate bboxes with respect to padding values.
 
-    :param targets:  Bboxes to transform of shape (N, 5), in format [x1, y1, x2, y2, class_id, ...]
+    :param targets:  Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
     :param shift_w:  shift width in pixels
     :param shift_h:  shift height in pixels
-    :return:         Bboxes to transform of shape (N, 5), in format [x1, y1, x2, y2, class_id, ...]
+    :return:         Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
     """
     targets = targets.copy() if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
     boxes, labels = targets[:, :4], targets[:, 4:]
@@ -224,16 +276,16 @@ def _translate_targets(targets: np.array, shift_w: float, shift_h: float) -> np.
 def _rescale_xyxy_target(targets: np.array, r: float) -> np.array:
     """Scale targets to given scale factors.
 
-    :param targets:  Targets to rescale, shape (batch_size, 6)
-    :param r:        SegRescale coefficient that was applied to the image
-    :return:         Rescaled targets, shape (batch_size, 6)
+    :param targets:  Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
+    :param r:        Rescale coefficient that was applied to the image
+    :return:         Rescaled Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
     """
     targets = targets.copy()
-    boxes, labels = targets[:, :4], targets[:, 4]
+    boxes, targets = targets[:, :4], targets[:, 4:]
     boxes = xyxy2cxcywh(boxes)
     boxes *= r
     boxes = cxcywh2xyxy(boxes)
-    return np.concatenate((boxes, labels[:, np.newaxis]), 1)
+    return np.concatenate((boxes, targets), 1)
 
 
 def _rescale_and_pad_to_size(image: np.ndarray, target_size: Tuple[int, int], r: float, swap: Tuple[int] = (2, 0, 1), pad_val: int = 114) -> np.ndarray:
@@ -253,7 +305,7 @@ def _rescale_and_pad_to_size(image: np.ndarray, target_size: Tuple[int, int], r:
     else:
         padded_image = np.ones(target_size, dtype=np.uint8) * pad_val
 
-    target_shape = (int(image.shape[0] * r), int(image.shape[2] * r))
+    target_shape = (int(image.shape[0] * r), int(image.shape[1] * r))
     resized_image = _rescale_image(image=image, target_shape=target_shape)
     padded_image[: target_shape[0], : target_shape[1]] = resized_image
 
