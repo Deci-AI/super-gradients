@@ -10,10 +10,10 @@ from super_gradients.training.utils.detection_utils import xyxy2cxcywh, cxcywh2x
 class ReversibleImageProcessor(ABC):
     """Abstract base class for reversible transforms.
     This comes handy when you want to apply a transform, and then undo that transform afterwards.
+    This logic can be extended to not only work with images, but also bboxes, masks, etc.
 
     To use such a transform, you need to first calibrate the instance to an image.
-    This will save the useful information to later on apply the transform and/or reverse the transform.
-    Then, any of its processing method will be applied according to the calibrated image.
+    This will save the useful information that will be used when applying the transforms and/or reverse the transforms.
     """
 
     def __init__(self):
@@ -55,8 +55,11 @@ class ReversibleImageProcessor(ABC):
 
 
 class ReversibleDetectionProcessor(ReversibleImageProcessor):
-    """Abstract base class for reversible transforms. The solution we chose is to store a "state" attribute when transforming an image.
-    This attribute can be used to apply the same transform on targets
+    """Abstract base class for reversible transforms.
+    This comes handy when you want to apply a transform on image/bboxes, and then undo that transform afterwards on image/bboxes.
+
+    To use such a transform, you need to first calibrate the instance to an image.
+    This will save the useful information that will be used when applying the transforms and/or reverse the transforms.
     """
 
     @abstractmethod
