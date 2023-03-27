@@ -17,7 +17,7 @@ val_dataset_params:
   transforms:
     - Resize:
         size: 64
-    - CenterCrop: # TODO: Understand why this and pascal_voc_segmentation have centercrop in val set
+    - CenterCrop:
         size: 56
     - ToTensor
     - Normalize:
