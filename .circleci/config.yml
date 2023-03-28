@@ -581,7 +581,8 @@ jobs:
           when: on_fail
 
   recipe_sanity_tests_pose_estimation:
-    machine: true
+    docker:
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
