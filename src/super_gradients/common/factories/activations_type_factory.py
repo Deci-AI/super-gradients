@@ -1,5 +1,7 @@
 from typing import Union, Type, Mapping
 
+from torch import nn
+
 from super_gradients.common.factories.base_factory import AbstractFactory
 from super_gradients.training.utils.activations_utils import get_builtin_activation_type
 
@@ -27,5 +29,8 @@ class ActivationsTypeFactory(AbstractFactory):
             (type_name,) = list(conf.keys())
             type_args = conf[type_name]
             return get_builtin_activation_type(type_name, **type_args)
+
+        if issubclass(conf, nn.Module):
+            return conf
 
         raise RuntimeError(f"Unsupported conf param type {type(conf)}")

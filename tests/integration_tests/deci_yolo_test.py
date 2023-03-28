@@ -13,6 +13,7 @@ class DeciYoloTest(unittest.TestCase):
         dl = coco2017_val_deci_yolo()
         metrics = [
             DetectionMetrics(
+                normalize_targets=True,
                 post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.03, nms_top_k=1000, max_predictions=300, nms_threshold=0.65),
                 num_cls=80,
             )
@@ -26,6 +27,7 @@ class DeciYoloTest(unittest.TestCase):
         dl = coco2017_val_deci_yolo()
         metrics = [
             DetectionMetrics(
+                normalize_targets=True,
                 post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.03, nms_top_k=1000, max_predictions=300, nms_threshold=0.65),
                 num_cls=80,
             )
@@ -39,6 +41,7 @@ class DeciYoloTest(unittest.TestCase):
         dl = coco2017_val_deci_yolo()
         metrics = [
             DetectionMetrics(
+                normalize_targets=True,
                 post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.03, nms_top_k=1000, max_predictions=300, nms_threshold=0.65),
                 num_cls=80,
             )

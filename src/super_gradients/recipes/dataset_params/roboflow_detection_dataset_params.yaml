@@ -39,8 +39,11 @@ train_dataset_params:
         prob: 0.5                       # probability to apply horizontal flip
     - DetectionPaddedRescale:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
-        max_targets: 120
+        max_targets: 50
+    - DetectionStandardize:
+        max_value: 255.
     - DetectionTargetsFormatTransform:
+        max_targets: 50
         input_dim: ${dataset_params.train_dataset_params.input_dim}
         output_format: LABEL_CXCYWH
   tight_box_rotation: False
@@ -72,6 +75,10 @@ val_dataset_params:
   transforms:
   - DetectionPaddedRescale:
       input_dim: ${dataset_params.val_dataset_params.input_dim}
+      max_targets: 50
+      pad_value: 114
+  - DetectionStandardize:
+      max_value: 255.
   - DetectionTargetsFormatTransform:
       max_targets: 50
       input_dim: ${dataset_params.val_dataset_params.input_dim}
@@ -83,10 +90,10 @@ val_dataset_params:
   verbose: 0
 
 val_dataloader_params:
-  batch_size: 64
+  batch_size: 32
   num_workers: 0
-  sampler:
   drop_last: False
+  shuffle: False
   pin_memory: True
   collate_fn: # collate function for valset
     _target_: super_gradients.training.utils.detection_utils.CrowdDetectionCollateFN
