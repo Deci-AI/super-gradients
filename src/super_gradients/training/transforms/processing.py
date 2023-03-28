@@ -1,4 +1,4 @@
-from typing import Union, Tuple, List
+from typing import Tuple, List
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -48,12 +48,14 @@ class Processing(ABC):
         pass
 
     @abstractmethod
-    def postprocess_predictions(self, predictions: Union[int, np.ndarray], metadata: ProcessingMetadata) -> np.ndarray:
+    def postprocess_predictions(self, predictions: np.ndarray, metadata: ProcessingMetadata) -> np.ndarray:
         """Postprocess the model output predictions."""
         pass
 
 
 class ComposeProcessing(Processing):
+    """Compose a list of Processing objects into a single Processing object."""
+
     def __init__(self, processings: List[Processing]):
         self.processings = processings
 
@@ -74,7 +76,7 @@ class ComposeProcessing(Processing):
 
 
 class ImagePermute(Processing):
-    """Permute the image dimensions, usually to go from HWC to CHW.
+    """Permute the image dimensions.
 
     :param permutation: Specify new order of dims. Default value (2, 0, 1) suitable for converting from HWC to CHW format.
     """
@@ -90,7 +92,7 @@ class ImagePermute(Processing):
         return predictions
 
 
-class NormalizeImage(Processing, ABC):
+class NormalizeImage(Processing):
     """Normalize an image based on means and standard deviation.
 
     :param mean:    Mean values for each channel.
@@ -131,12 +133,12 @@ class DetectionPaddedRescale(Processing):
 
 class DetectionPadToSize(Processing):
     """Preprocessing transform to pad image and bboxes to `output_size` shape (rows, cols).
-    Transform does center padding, so that input image with bboxes located in the center of the produced image.
+    Center padding, so that input image with bboxes located in the center of the produced image.
 
     Note: This transformation assume that dimensions of input image is equal or less than `output_size`.
 
     :param output_size: Output image size (rows, cols)
-    :param pad_value: Padding value for image
+    :param pad_value:   Padding value for image
     """
 
     def __init__(self, output_size: Tuple[int, int], pad_value: int):
@@ -160,7 +162,7 @@ class DetectionPadToSize(Processing):
 
 
 class _Rescale(Processing, ABC):
-    """Resize image and bounding boxes to given image dimensions without preserving aspect ratio
+    """Resize image to given image dimensions without preserving aspect ratio.
 
     :param output_shape: (rows, cols)
     """
