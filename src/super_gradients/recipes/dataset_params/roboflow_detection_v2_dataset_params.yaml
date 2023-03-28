@@ -10,7 +10,7 @@ train_dataset_params:
   input_dim: [640, 640]
   cache_dir:
   cache: False
-  include_empty_samples: True
+  ignore_empty_annotations: False
   transforms:
     - DetectionMosaic:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
@@ -73,7 +73,7 @@ val_dataset_params:
   input_dim: [640, 640]
   cache_dir:
   cache: False
-  include_empty_samples: True
+  ignore_empty_annotations: False
   transforms:
   - DetectionPaddedRescale:
       input_dim: ${dataset_params.val_dataset_params.input_dim}
