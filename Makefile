@@ -1,5 +1,5 @@
 cells-uyemf:
-	CUDA_VISIBLE_DEVICES=0 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=cells-uyemf +training_hyperparams.ema_params.beta=15 training_hyperparams.ema_params.decay_type=exp
+	CUDA_VISIBLE_DEVICES=1 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=cells-uyemf +training_hyperparams.ema_params.beta=15 training_hyperparams.ema_params.decay_type=exp
 
 bacteria-ptywi:
 	CUDA_VISIBLE_DEVICES=0 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=bacteria-ptywi +training_hyperparams.ema_params.beta=15 training_hyperparams.ema_params.decay_type=exp
