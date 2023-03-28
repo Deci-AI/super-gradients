@@ -21,8 +21,20 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.n
     return cv2.resize(image, dsize=(int(target_shape[1]), int(target_shape[0])), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
 
 
-def _translate_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
-    """Translate bboxes with respect to padding values.
+def _get_shift_params(original_size: Tuple[int, int], output_size: Tuple[int, int]) -> Tuple[int, int, Tuple[int, int], Tuple[int, int]]:
+    pad_h, pad_w = output_size[0] - original_size[0], output_size[1] - original_size[1]
+    shift_h, shift_w = pad_h // 2, pad_w // 2
+    pad_h = (shift_h, pad_h - shift_h)
+    pad_w = (shift_w, pad_w - shift_w)
+    return shift_h, shift_w, pad_h, pad_w
+
+
+def _shift_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int], pad_value: int) -> np.ndarray:
+    return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+
+
+def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
+    """Shift bboxes with respect to padding values.
 
     :param targets:  Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
     :param shift_w:  shift width in pixels

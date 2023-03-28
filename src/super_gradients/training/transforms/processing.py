@@ -6,9 +6,11 @@ import numpy as np
 from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
-    _rescale_xyxy_bboxes,
-    _translate_bboxes,
+    _shift_image,
+    _shift_bboxes,
     _rescale_and_pad_to_size,
+    _rescale_xyxy_bboxes,
+    _get_shift_params,
 )
 
 from pydantic import BaseModel
@@ -142,19 +144,13 @@ class DetectionPadToSize(Processing):
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        original_size = image.shape
-
-        pad_h, pad_w = self.output_size[0] - original_size[0], self.output_size[1] - original_size[1]
-        shift_h, shift_w = pad_h // 2, pad_w // 2
-        pad_h = (shift_h, pad_h - shift_h)
-        pad_w = (shift_w, pad_w - shift_w)
-
-        processed_image = np.pad(image, (pad_h, pad_w, (0, 0)), mode="constant", constant_values=self.pad_value)
+        shift_h, shift_w, pad_h, pad_w = _get_shift_params(original_size=image.shape, output_size=self.output_size)
+        processed_image = _shift_image(image, pad_h, pad_w, self.pad_value)
 
         return processed_image, DetectionPadToSizeMetadata(shift_h=shift_h, shift_w=shift_w)
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: DetectionPadToSizeMetadata) -> np.ndarray:
-        return _translate_bboxes(targets=predictions, shift_w=-metadata.shift_w, shift_h=-metadata.shift_h)
+        return _shift_bboxes(targets=predictions, shift_w=-metadata.shift_w, shift_h=-metadata.shift_h)
 
 
 class _Rescale(Processing, ABC):

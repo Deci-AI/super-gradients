@@ -21,9 +21,10 @@ from super_gradients.training.datasets.data_formats.formats import filter_on_bbo
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.transforms.utils import (
     _rescale_and_pad_to_size,
-    _rescale_bboxes,
     _rescale_image,
-    _translate_bboxes,
+    _rescale_bboxes,
+    _shift_image,
+    _shift_bboxes,
     _rescale_xyxy_bboxes,
 )
 
@@ -740,9 +741,9 @@ class DetectionPadToSize(DetectionTransform):
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
         img, shift_w, shift_h = self._apply_to_image(img, final_shape=self.output_size, pad_value=self.pad_value)
         sample["image"] = img
-        sample["target"] = _translate_bboxes(targets=targets, shift_w=shift_w, shift_h=shift_h)
+        sample["target"] = _shift_bboxes(targets=targets, shift_w=shift_w, shift_h=shift_h)
         if crowd_targets is not None:
-            sample["crowd_target"] = _translate_bboxes(targets=crowd_targets, shift_w=shift_w, shift_h=shift_h)
+            sample["crowd_target"] = _shift_bboxes(targets=crowd_targets, shift_w=shift_w, shift_h=shift_h)
         return sample
 
     def _apply_to_image(self, image, final_shape: Tuple[int, int], pad_value: int):
@@ -758,7 +759,7 @@ class DetectionPadToSize(DetectionTransform):
         pad_h = (shift_h, pad_h - shift_h)
         pad_w = (shift_w, pad_w - shift_w)
 
-        image = np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+        _shift_image(image, pad_h, pad_w, pad_value)
         return image, shift_w, shift_h
 
 
