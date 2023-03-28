@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Union
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -18,12 +18,8 @@ class ProcessingMetadata(BaseModel, ABC):
     """Metadata including information to postprocess a prediction."""
 
 
-class EmptyProcessingMetadata(ProcessingMetadata):
-    pass
-
-
 class ComposeProcessingMetadata(ProcessingMetadata):
-    metadata_lst: List[ProcessingMetadata]
+    metadata_lst: List[Union[ProcessingMetadata]]
 
 
 class DetectionPadToSizeMetadata(ProcessingMetadata):
@@ -43,12 +39,12 @@ class DetectionPaddedRescaleMetadata(ProcessingMetadata):
 
 class Processing(ABC):
     @abstractmethod
-    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, ProcessingMetadata]:
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, Union[ProcessingMetadata, None]]:
         """Processing an image, before feeding it to the network."""
         pass
 
     @abstractmethod
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: ProcessingMetadata) -> np.ndarray:
+    def postprocess_predictions(self, predictions: np.ndarray, metadata: Union[ProcessingMetadata, None]) -> np.ndarray:
         """Postprocess the model output predictions."""
         pass
 
@@ -84,11 +80,11 @@ class ImagePermute(Processing):
     def __init__(self, permutation: Tuple[int, int, int] = (2, 0, 1)):
         self.permutation = permutation
 
-    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, EmptyProcessingMetadata]:
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         processed_image = np.ascontiguousarray(image.transpose(*self.permutation))
-        return processed_image, EmptyProcessingMetadata()
+        return processed_image, None
 
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: EmptyProcessingMetadata) -> np.ndarray:
+    def postprocess_predictions(self, predictions: np.ndarray, metadata: None) -> np.ndarray:
         return predictions
 
 
@@ -103,10 +99,10 @@ class NormalizeImage(Processing):
         self.mean = np.array(mean).reshape((1, 1, -1)).astype(np.float32)
         self.std = np.array(std).reshape((1, 1, -1)).astype(np.float32)
 
-    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, EmptyProcessingMetadata]:
-        return (image - self.mean) / self.std, EmptyProcessingMetadata()
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
+        return (image - self.mean) / self.std, None
 
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: EmptyProcessingMetadata) -> np.ndarray:
+    def postprocess_predictions(self, predictions: np.ndarray, metadata: None) -> np.ndarray:
         return predictions
 
 
