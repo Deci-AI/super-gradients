@@ -2,7 +2,7 @@ import collections
 import math
 import random
 from numbers import Number
-from typing import Optional, Union, Tuple, List, Sequence
+from typing import Optional, Union, Tuple, List, Sequence, Dict
 
 import cv2
 import numpy as np
@@ -15,20 +15,12 @@ from super_gradients.common.object_names import Transforms
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
-from super_gradients.training.transforms.reversable_image_processors import (
-    ReversibleDetectionProcessor,
-    ReversibleDetectionRescale,
-    ReversibleDetectionPaddedRescale,
-    ReversibleDetectionPadToSize,
-    ReversibleDetectionImagePermute,
-)
+from super_gradients.training.transforms.utils import _rescale_and_pad_to_size, segmentation_rescale, image_resample, mask_resample
 
-image_resample = Image.BILINEAR
-mask_resample = Image.NEAREST
 
 logger = get_logger(__name__)
 
@@ -77,7 +69,6 @@ class SegRandomFlip(SegmentationTransform):
         return sample
 
 
-# TODO: add this
 @register_transform(Transforms.SegRescale)
 class SegRescale(SegmentationTransform):
     """
@@ -100,26 +91,13 @@ class SegRescale(SegmentationTransform):
         self.check_valid_arguments()
 
     def __call__(self, sample: dict) -> dict:
-        image = sample["image"]
-        mask = sample["mask"]
-        w, h = image.size
-        if self.scale_factor is not None:
-            scale = self.scale_factor
-        elif self.short_size is not None:
-            short_size = min(w, h)
-            scale = self.short_size / short_size
-        else:
-            long_size = max(w, h)
-            scale = self.long_size / long_size
-
-        out_size = int(scale * w), int(scale * h)
-
-        image = image.resize(out_size, image_resample)
-        mask = mask.resize(out_size, mask_resample)
-
-        sample["image"] = image
-        sample["mask"] = mask
-
+        sample["image"], sample["mask"] = segmentation_rescale(
+            image=sample["image"],
+            mask=sample["mask"],
+            scale_factor=self.scale_factor,
+            short_size=self.short_size,
+            long_size=self.long_size,
+        )
         return sample
 
     def check_valid_arguments(self):
@@ -424,23 +402,6 @@ class DetectionTransform:
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
 
-class ReversibleDetectionTransform(DetectionTransform):
-    def __init__(self, reversible_transform: ReversibleDetectionProcessor):
-        self.reversible_transform = reversible_transform
-        super().__init__()
-
-    def __call__(self, sample: dict) -> dict:
-        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-
-        self.reversible_transform.calibrate(image=img)
-
-        sample["image"] = self.reversible_transform.apply_to_image(image=img)
-        sample["target"] = self.reversible_transform.apply_to_targets(targets)
-        if crowd_targets is not None:
-            sample["crowd_target"] = self.reversible_transform.apply_to_targets(crowd_targets)
-        return sample
-
-
 @register_transform(Transforms.DetectionStandardize)
 class DetectionStandardize(DetectionTransform):
     """
@@ -716,7 +677,7 @@ class DetectionMixup(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionImagePermute)
-class DetectionImagePermute(ReversibleDetectionTransform):
+class DetectionImagePermute(DetectionTransform):
     """
     Permute image dims. Useful for converting image from HWC to CHW format.
     """
@@ -726,11 +687,16 @@ class DetectionImagePermute(ReversibleDetectionTransform):
 
         :param dims: Specify new order of dims. Default value (2, 0, 1) suitable for converting from HWC to CHW format.
         """
-        super().__init__(reversible_transform=ReversibleDetectionImagePermute(permutation=dims))
+        super().__init__()
+        self.dims = tuple(dims)
+
+    def __call__(self, sample: Dict[str, np.array]) -> dict:
+        sample["image"] = np.ascontiguousarray(sample["image"].transpose(*self.dims))
+        return sample
 
 
 @register_transform(Transforms.DetectionPadToSize)
-class DetectionPadToSize(ReversibleDetectionTransform):
+class DetectionPadToSize(DetectionTransform):
     """
     Preprocessing transform to pad image and bboxes to `input_dim` shape (rows, cols).
     Transform does center padding, so that input image with bboxes located in the center of the produced image.
@@ -745,11 +711,54 @@ class DetectionPadToSize(ReversibleDetectionTransform):
         :param output_size: Output image size (rows, cols)
         :param pad_value: Padding value for image
         """
-        super(DetectionPadToSize).__init__(reversible_transform=ReversibleDetectionPadToSize(output_size=output_size, pad_value=pad_value))
+        super().__init__()
+        self.output_size = output_size
+        self.pad_value = pad_value
+
+    def __call__(self, sample: dict) -> dict:
+        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+        img, shift_w, shift_h = self._apply_to_image(img, final_shape=self.output_size, pad_value=self.pad_value)
+        sample["image"] = img
+        sample["target"] = self._apply_to_bboxes(targets, shift_w, shift_h)
+        if crowd_targets is not None:
+            sample["crowd_target"] = self._apply_to_bboxes(crowd_targets, shift_w, shift_h)
+        return sample
+
+    def _apply_to_bboxes(self, targets: np.array, shift_w: float, shift_h: float) -> np.array:
+        """Translate bboxes with respect to padding values.
+
+        :param targets:  Bboxes to transform of shape (N, 5).
+                         Bboxes expected to have format [x1, y1, x2, y2, class_id, ...]
+        :param shift_w:  shift width in pixels
+        :param shift_h:  shift height in pixels
+        :return:         Bboxes to transform of shape (N, 5)
+                         Bboxes will have same format [x1, y1, x2, y2, class_id, ...]
+        """
+        targets = targets.copy() if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
+        boxes, labels = targets[:, :4], targets[:, 4:]
+        boxes[:, [0, 2]] += shift_w
+        boxes[:, [1, 3]] += shift_h
+        return np.concatenate((boxes, labels), 1)
+
+    def _apply_to_image(self, image, final_shape: Tuple[int, int], pad_value: int):
+        """
+        Pad image to final_shape.
+        :param image:
+        :param final_shape: Output image size (rows, cols).
+        :param pad_value:
+        :return:
+        """
+        pad_h, pad_w = final_shape[0] - image.shape[0], final_shape[1] - image.shape[1]
+        shift_h, shift_w = pad_h // 2, pad_w // 2
+        pad_h = (shift_h, pad_h - shift_h)
+        pad_w = (shift_w, pad_w - shift_w)
+
+        image = np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+        return image, shift_w, shift_h
 
 
 @register_transform(Transforms.DetectionPaddedRescale)
-class DetectionPaddedRescale(ReversibleDetectionTransform):
+class DetectionPaddedRescale(DetectionTransform):
     """
     Preprocessing transform to be applied last of all transforms for validation.
 
@@ -758,24 +767,41 @@ class DetectionPaddedRescale(ReversibleDetectionTransform):
 
     :param input_dim:   Final input dimension (default=(640,640))
     :param swap:        Image axis's to be rearranged.
-    :param max_targets: # TODO: Understand if we need this parameter. My guess: NO
+    :param max_targets:
     :param pad_value:   Padding value for image.
     """
 
     def __init__(self, input_dim: Tuple, swap: Tuple[int, ...] = (2, 0, 1), max_targets: int = 50, pad_value: int = 114):
-        super(DetectionPaddedRescale).__init__(ReversibleDetectionPaddedRescale(target_size=input_dim, pad_value=pad_value, swap=swap))
+        self.swap = swap
+        self.input_dim = input_dim
         self.max_targets = max_targets
+        self.pad_value = pad_value
 
     def __call__(self, sample: dict) -> dict:
-        image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+        img, r = _rescale_and_pad_to_size(img, self.input_dim, self.swap, self.pad_value)
 
-        self.reversible_transform.calibrate(image=image)
-
-        sample["image"] = self.reversible_transform.apply_to_image(image=image)
-        sample["target"] = self._rescale_target(targets) if len(targets) else np.zeros((self.max_targets, 5), dtype=np.float32)
+        sample["image"] = img
+        sample["target"] = self._rescale_target(targets, r)
         if crowd_targets is not None:
-            sample["crowd_target"] = self._rescale_target(targets) if len(targets) else np.zeros((self.max_targets, 5), dtype=np.float32)
+            sample["crowd_target"] = self._rescale_target(crowd_targets, r)
         return sample
+
+    def _rescale_target(self, targets: np.array, r: float) -> np.array:
+        """SegRescale the target according to a coefficient used to rescale the image.
+        This is done to have images and targets at the same scale.
+
+        :param targets:  Targets to rescale, shape (batch_size, 6)
+        :param r:        SegRescale coefficient that was applied to the image
+
+        :return:         Rescaled targets, shape (batch_size, 6)
+        """
+        targets = targets.copy() if len(targets) > 0 else np.zeros((self.max_targets, 5), dtype=np.float32)
+        boxes, labels = targets[:, :4], targets[:, 4]
+        boxes = xyxy2cxcywh(boxes)
+        boxes *= r
+        boxes = cxcywh2xyxy(boxes)
+        return np.concatenate((boxes, labels[:, np.newaxis]), 1)
 
 
 @register_transform(Transforms.DetectionHorizontalFlip)
@@ -806,7 +832,7 @@ class DetectionHorizontalFlip(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionRescale)
-class DetectionRescale(ReversibleDetectionTransform):
+class DetectionRescale(DetectionTransform):
     """
     Resize image and bounding boxes to given image dimensions without preserving aspect ratio
 
@@ -814,7 +840,43 @@ class DetectionRescale(ReversibleDetectionTransform):
     """
 
     def __init__(self, output_shape: Tuple[int, int]):
-        super().__init__(reversible_transform=ReversibleDetectionRescale(output_shape))
+        super().__init__()
+        self.output_shape = output_shape
+
+    def __call__(self, sample: dict) -> dict:
+        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+
+        img_resized, scale_factors = self._rescale_image(img)
+
+        sample["image"] = img_resized
+        sample["target"] = self._rescale_target(targets, scale_factors)
+        if crowd_targets is not None:
+            sample["crowd_target"] = self._rescale_target(crowd_targets, scale_factors)
+        return sample
+
+    def _rescale_image(self, image):
+        sy, sx = self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1]
+        resized_img = cv2.resize(
+            image,
+            dsize=(int(self.output_shape[1]), int(self.output_shape[0])),
+            interpolation=cv2.INTER_LINEAR,
+        )
+        scale_factors = sy, sx
+        return resized_img, scale_factors
+
+    def _rescale_target(self, targets: np.array, scale_factors: Tuple[float, float]) -> np.array:
+        """SegRescale the target according to a coefficient used to rescale the image.
+        This is done to have images and targets at the same scale.
+
+        :param targets:  Target XYXY bboxes to rescale, shape (num_boxes, 5)
+        :param r:        SegRescale coefficient that was applied to the image
+
+        :return:         Rescaled targets, shape (num_boxes, 5)
+        """
+        sy, sx = scale_factors
+        targets = targets.astype(np.float32, copy=True) if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
+        targets[:, 0:4] *= np.array([[sx, sy, sx, sy]], dtype=targets.dtype)
+        return targets
 
 
 @register_transform(Transforms.DetectionRandomRotate90)
@@ -1256,34 +1318,6 @@ def augment_hsv(img: np.array, hgain: float, sgain: float, vgain: float, bgr_cha
     img_hsv[..., 2] = np.clip(img_hsv[..., 2] + hsv_augs[2], 0, 255)
 
     img[..., bgr_channels] = cv2.cvtColor(img_hsv.astype(img.dtype), cv2.COLOR_HSV2BGR)  # no return needed
-
-
-# def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
-#     """
-#     Rescales image according to minimum ratio between the target height /image height, target width / image width,
-#     and pads the image to the target size.
-#
-#     :param img: Image to be rescaled
-#     :param input_size: Target size
-#     :param swap: Axis's to be rearranged.
-#     :return: rescaled image, ratio
-#     """
-#     if len(img.shape) == 3:
-#         padded_img = np.ones((input_size[0], input_size[1], img.shape[-1]), dtype=np.uint8) * pad_val
-#     else:
-#         padded_img = np.ones(input_size, dtype=np.uint8) * pad_val
-#
-#     r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
-#     resized_img = cv2.resize(
-#         img,
-#         (int(img.shape[1] * r), int(img.shape[0] * r)),
-#         interpolation=cv2.INTER_LINEAR,
-#     ).astype(np.uint8)
-#     padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
-#
-#     padded_img = padded_img.transpose(swap)
-#     padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
-#     return padded_img, r
 
 
 @register_transform(Transforms.Standardize)

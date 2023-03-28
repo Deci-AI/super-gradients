@@ -10,3 +10,9 @@ yolo_type: 'yoloX'
 
 depth_mult_factor: 0.33
 width_mult_factor: 0.5
+
+# If present, we use this
+preprocessing:
+  - ResizePreprocessing:
+      output_size: 640
+  - ...

@@ -1,6 +1,5 @@
 import math
 from typing import Union, Type, List, Tuple
-from abc import abstractmethod
 
 import torch
 import torch.nn as nn
@@ -12,7 +11,10 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
-from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
+from super_gradients.training.models.predictions import DetectionPrediction
+from super_gradients.training.pipelines.pipelines import DetectionPipeline
+from super_gradients.training.transforms.processing import DetectionPaddedRescale
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
     [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]
@@ -388,20 +390,7 @@ class YoloHead(nn.Module):
         )
 
 
-class SgDetectionModule(SgModule):
-    @staticmethod
-    @abstractmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
-        pass
-
-    def predict(self, image, iou: float = 0.65, conf: float = 0.01) -> DetectionPostPredictionCallback:
-        from super_gradients.training.pipelines.pipelines import DetectionPipeline
-
-        pipeline = DetectionPipeline.from_pretrained(self, iou=iou, conf=conf)
-        return pipeline(image)
-
-
-class YoloBase(SgDetectionModule):
+class YoloBase(SgModule):
     def __init__(self, backbone: Type[nn.Module], arch_params: HpmStruct, initialize_module: bool = True):
         super().__init__()
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params
@@ -427,6 +416,23 @@ class YoloBase(SgDetectionModule):
             self._head = YoloHead(self.arch_params)
             self._initialize_module()
 
+        self._image_processor = DetectionPaddedRescale(output_size=(640, 640), swap=(2, 0, 1))
+        self._class_names = COCO_DETECTION_CLASSES_LIST
+
+    @staticmethod
+    def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
+        return YoloPostPredictionCallback(conf=conf, iou=iou)
+
+    def predict(self, image, iou: float, conf: float = 0.5) -> DetectionPrediction:
+
+        pipeline = DetectionPipeline(
+            model=self,
+            image_processor=self._image_processor,
+            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            class_names=self._class_names,
+        )
+        return pipeline(image)
+
     def forward(self, x):
         out = self._backbone(x)
         out = self._head(out)
@@ -449,15 +455,6 @@ class YoloBase(SgDetectionModule):
         self._initialize_weights()
         if self.arch_params.add_nms:
             self._nms = self.get_post_prediction_callback(conf=self.arch_params.nms_conf, iou=self.arch_params.nms_iou)
-
-    @staticmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
-        # TODO: Think if it wouldnt be better to pass this in the __init__
-        return YoloPostPredictionCallback(conf=conf, iou=iou)
-
-    @staticmethod
-    def prediction_format() -> ConcatenatedTensorFormat:
-        return
 
     def _check_strides(self):
         m = self._head._modules_list[-1]  # DetectX()
