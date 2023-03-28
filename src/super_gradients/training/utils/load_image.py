@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 import PIL
 
 import numpy as np
@@ -6,21 +6,36 @@ import torch
 import requests
 
 
-def load_image(image: Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]) -> np.ndarray:
+ImageType = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
+
+
+def load_images(images: Union[List[ImageType], ImageType]) -> List[np.ndarray]:
+    if isinstance(images, list):
+        return [load_image(image=image) for image in images]
+    else:
+        return [load_image(image=images)]
+
+
+def load_image(image: ImageType) -> np.ndarray:
     if isinstance(image, np.ndarray):
         return image
     elif isinstance(image, torch.Tensor):
         return image.numpy()
     elif isinstance(image, PIL.Image.Image):
-        return np.array(image.convert("RGB"))[:, :, ::-1].copy()
+        return load_np_image_from_pil(image)
     elif isinstance(image, str):
-        image = load_pil_image_from_str(image)
-        return np.asarray(image.convert("RGB"))[:, :, ::-1].copy()
+        image = load_pil_image_from_str(image_str=image)
+        return load_np_image_from_pil(image)
     else:
         raise ValueError(f"Unsupported image type: {type(image)}")
 
 
+def load_np_image_from_pil(image: PIL.Image.Image) -> np.ndarray:
+    return np.asarray(image.convert("RGB"))[:, :, ::-1].copy()  # TODO: Check RGB/BGR
+
+
 def load_pil_image_from_str(image_str: str) -> PIL.Image.Image:
+    """Load an image based on a string"""
     if image_str.startswith("http://") or image_str.startswith("https://"):
         image = requests.get(image_str, stream=True).raw
         return PIL.Image.open(image)
@@ -30,14 +45,3 @@ def load_pil_image_from_str(image_str: str) -> PIL.Image.Image:
 
 def show_image(image: np.ndarray):
     PIL.Image.fromarray(image).show()
-
-
-# images = [
-#     np.array([[[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[255, 0, 0], [255, 255, 0], [0, 0, 255]]]).astype(np.uint8),
-#     torch.Tensor([[[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[255, 0, 0], [255, 255, 0], [0, 0, 255]]]).to(dtype=torch.uint8),
-#     "/Users/Louis.Dupont/Downloads/cat.jpeg",
-#     "https://s.hs-data.com/bilder/spieler/gross/128069.jpg",
-# ]
-#
-# for image in images:
-#     show_image(load_image(image))

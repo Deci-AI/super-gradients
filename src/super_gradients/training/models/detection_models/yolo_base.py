@@ -11,7 +11,7 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
-from super_gradients.training.models.predictions import DetectionPrediction
+from super_gradients.training.models.predictions import DetectionPredictions
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import DetectionPaddedRescale
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
@@ -423,7 +423,7 @@ class YoloBase(SgModule):
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return YoloPostPredictionCallback(conf=conf, iou=iou)
 
-    def predict(self, image, iou: float, conf: float = 0.5) -> DetectionPrediction:
+    def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionPredictions:
 
         pipeline = DetectionPipeline(
             model=self,
@@ -431,7 +431,7 @@ class YoloBase(SgModule):
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
         )
-        return pipeline(image)
+        return pipeline(images)
 
     def forward(self, x):
         out = self._backbone(x)

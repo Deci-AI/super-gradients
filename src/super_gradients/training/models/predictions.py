@@ -1,9 +1,8 @@
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from typing import List
+from dataclasses import dataclass
 
 import numpy as np
-import torch
 
 from super_gradients.training.utils.detection_utils import DetectionVisualization
 
@@ -14,60 +13,42 @@ class Prediction(ABC):
     class_names: List[str]
 
     @abstractmethod
-    def show(self, class_colors=None):
+    def show(self):
         pass
 
 
 @dataclass
-class ClassificationPrediction(Prediction):
-    image: np.ndarray
-    _class: int
-    class_names: List[str]
+class Predictions(ABC):
+    predictions: List[Prediction]
 
-    def show(self, class_colors=None):
-        raise NotImplementedError()
-
-
-@dataclass
-class SegmentationPrediction(Prediction):
-    image: np.ndarray
-    _mask: np.ndarray
-    class_names: List[str]
-
-    def show(self, class_colors=None):
-
-        from torchvision.utils import draw_segmentation_masks
-
-        bool_mask = np.zeros((self._mask.max(), *self._mask.shape), dtype=np.bool)
-        for i in range(bool_mask.shape[0]):
-            bool_mask[i, :, :] = self._mask == i
-
-        image_np = self.image.copy()
-        image_np = np.ascontiguousarray(image_np.transpose(2, 0, 1))
-        image = draw_segmentation_masks(
-            image=torch.from_numpy(image_np.astype(np.uint8)),
-            masks=torch.from_numpy(bool_mask),
-        )
-        image = image.detach().cpu().numpy().astype(np.uint8)
-
-        inverse_permutation = np.argsort(np.array((2, 0, 1)))
-        image = np.ascontiguousarray(image.transpose(inverse_permutation))
-
-        from matplotlib import pyplot as plt
-
-        plt.imshow(image, interpolation="nearest")
-        plt.show()
+    @abstractmethod
+    def show(self):
+        pass
 
 
 @dataclass
 class DetectionPrediction(Prediction):
     image: np.ndarray
-    _boxes: np.ndarray  # (N, 4)
-    _classes: np.ndarray  # (N,)
-    _scores: np.ndarray  # (N,)
+    _predictions: np.ndarray  # (N, 6) [X1, Y1, X2, Y2, score, class_id]
     class_names: List[str]
 
-    def show(self, class_colors=None):
+    @property
+    def bboxes_xyxy(self) -> np.ndarray:
+        return self._predictions[:, :4]
+
+    @bboxes_xyxy.setter
+    def bboxes_xyxy(self, value):
+        self._predictions[:, :4] = value
+
+    @property
+    def confidence(self) -> np.ndarray:
+        return self._predictions[:, 4]
+
+    @property
+    def class_ids(self) -> np.ndarray:
+        return self._predictions[:, 5]
+
+    def show(self):
 
         box_thickness: int = 2
         image_scale: float = 1.0
@@ -76,21 +57,33 @@ class DetectionPrediction(Prediction):
         color_mapping = DetectionVisualization._generate_color_mapping(len(self.class_names))
 
         # Draw predictions
-        self._boxes *= image_scale
-        for box in self._boxes:
+        self.bboxes_xyxy *= image_scale
+        for i in range(len(self._predictions)):
             image_np = DetectionVisualization._draw_box_title(
                 color_mapping=color_mapping,
                 class_names=self.class_names,
                 box_thickness=box_thickness,
                 image_np=image_np,
-                x1=int(box[0]),
-                y1=int(box[1]),
-                x2=int(box[2]),
-                y2=int(box[3]),
-                class_id=int(box[5]),
-                pred_conf=box[4],
+                x1=int(self.bboxes_xyxy[i, 0]),
+                y1=int(self.bboxes_xyxy[i, 1]),
+                x2=int(self.bboxes_xyxy[i, 2]),
+                y2=int(self.bboxes_xyxy[i, 3]),
+                class_id=int(self.class_ids[i]),
+                pred_conf=self.confidence[i],
             )
         from matplotlib import pyplot as plt
 
         plt.imshow(image_np, interpolation="nearest")
         plt.show()
+
+
+@dataclass
+class DetectionPredictions(Predictions):
+    def __init__(self, images: List[np.ndarray], predictions: List[np.ndarray], class_names: List[str]):
+        self.predictions = []
+        for image, prediction in zip(images, predictions):
+            self.predictions.append(DetectionPrediction(image=image, _predictions=prediction, class_names=class_names))
+
+    def show(self):
+        for prediction in self.predictions:
+            prediction.show()

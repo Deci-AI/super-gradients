@@ -64,5 +64,5 @@ class SgModule(nn.Module):
 
         raise NotImplementedError
 
-    def predict(self, image, *args, **kwargs) -> Prediction:
+    def predict(self, images, *args, **kwargs) -> Prediction:
         raise NotImplementedError(f"`predict` is not implemented for {self.__class__.__name__}.")
