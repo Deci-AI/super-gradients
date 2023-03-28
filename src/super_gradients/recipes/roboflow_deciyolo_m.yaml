@@ -4,6 +4,7 @@ defaults:
   - dataset_params: roboflow_detection_dataset_params
   - checkpoint_params: default_checkpoint_params
   - arch_params: deciyolo_m_arch_params
+  - quantization_params: default_quantization_params
   - _self_
 
 train_dataloader: roboflow_train_yolox
@@ -26,10 +27,19 @@ architecture: deciyolo_m
 arch_params:
   num_classes: ${num_classes}
 
+pre_launch_callbacks_list:
+    - QATRecipeModificationCallback:
+        batch_size_divisor: 2
+        max_epochs_divisor: 10
+        lr_decay_factor: 0.01
+        warmup_epochs_divisor: 10
+        cosine_final_lr_ratio: 0.01
+        disable_phase_callbacks: True
+        disable_augmentations: False
 
-load_checkpoint: False
 checkpoint_params:
-  pretrained_weights: coco
+  checkpoint_path: /home/shay.aharon/PycharmProjects/super_gradients/checkpoints/deciyolo_m_roboflow_hand-gestures-jps7z_sanity_check_tzag8/ckpt_best.pth
+  strict_load: no_key_matching
 
 
 result_path: # By defaults saves results in checkpoints directory
@@ -89,7 +99,7 @@ training_hyperparams:
 
 multi_gpu: Off
 num_gpus: 1
-experiment_name: ${architecture}_roboflow_${dataset_name}
+experiment_name: ${architecture}_roboflow_${dataset_name}_sanity_check_tzag8
 ckpt_root_dir:
 
 
