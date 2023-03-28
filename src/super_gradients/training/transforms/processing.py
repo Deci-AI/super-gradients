@@ -1,29 +1,26 @@
-from typing import Union, Tuple, List
+from typing import Tuple, List, Union
 from abc import ABC, abstractmethod
+from pydantic import BaseModel
 
 import numpy as np
 
 from super_gradients.training.transforms.utils import (
     _rescale_image,
-    _rescale_target,
-    _rescale_xyxy_target,
-    _translate_targets,
+    _rescale_bboxes,
+    _shift_image,
+    _shift_bboxes,
     _rescale_and_pad_to_size,
+    _rescale_xyxy_bboxes,
+    _get_shift_params,
 )
-
-from pydantic import BaseModel
 
 
 class ProcessingMetadata(BaseModel, ABC):
     """Metadata including information to postprocess a prediction."""
 
 
-class EmptyProcessingMetadata(ProcessingMetadata):
-    pass
-
-
 class ComposeProcessingMetadata(ProcessingMetadata):
-    metadata_lst: List[ProcessingMetadata]
+    metadata_lst: List[Union[ProcessingMetadata]]
 
 
 class DetectionPadToSizeMetadata(ProcessingMetadata):
@@ -43,17 +40,19 @@ class DetectionPaddedRescaleMetadata(ProcessingMetadata):
 
 class Processing(ABC):
     @abstractmethod
-    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, ProcessingMetadata]:
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, Union[ProcessingMetadata, None]]:
         """Processing an image, before feeding it to the network."""
         pass
 
     @abstractmethod
-    def postprocess_predictions(self, predictions: Union[int, np.ndarray], metadata: ProcessingMetadata) -> np.ndarray:
+    def postprocess_predictions(self, predictions: np.ndarray, metadata: Union[ProcessingMetadata, None]) -> np.ndarray:
         """Postprocess the model output predictions."""
         pass
 
 
 class ComposeProcessing(Processing):
+    """Compose a list of Processing objects into a single Processing object."""
+
     def __init__(self, processings: List[Processing]):
         self.processings = processings
 
@@ -74,7 +73,7 @@ class ComposeProcessing(Processing):
 
 
 class ImagePermute(Processing):
-    """Permute the image dimensions, usually to go from HWC to CHW.
+    """Permute the image dimensions.
 
     :param permutation: Specify new order of dims. Default value (2, 0, 1) suitable for converting from HWC to CHW format.
     """
@@ -82,15 +81,15 @@ class ImagePermute(Processing):
     def __init__(self, permutation: Tuple[int, int, int] = (2, 0, 1)):
         self.permutation = permutation
 
-    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, EmptyProcessingMetadata]:
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         processed_image = np.ascontiguousarray(image.transpose(*self.permutation))
-        return processed_image, EmptyProcessingMetadata()
+        return processed_image, None
 
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: EmptyProcessingMetadata) -> np.ndarray:
+    def postprocess_predictions(self, predictions: np.ndarray, metadata: None) -> np.ndarray:
         return predictions
 
 
-class NormalizeImage(Processing, ABC):
+class NormalizeImage(Processing):
     """Normalize an image based on means and standard deviation.
 
     :param mean:    Mean values for each channel.
@@ -101,10 +100,10 @@ class NormalizeImage(Processing, ABC):
         self.mean = np.array(mean).reshape((1, 1, -1)).astype(np.float32)
         self.std = np.array(std).reshape((1, 1, -1)).astype(np.float32)
 
-    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, EmptyProcessingMetadata]:
-        return (image - self.mean) / self.std, EmptyProcessingMetadata()
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
+        return (image - self.mean) / self.std, None
 
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: EmptyProcessingMetadata) -> np.ndarray:
+    def postprocess_predictions(self, predictions: np.ndarray, metadata: None) -> np.ndarray:
         return predictions
 
 
@@ -126,17 +125,17 @@ class DetectionPaddedRescale(Processing):
         return rescaled_image, DetectionPaddedRescaleMetadata(r=r)
 
     def postprocess_predictions(self, predictions: np.array, metadata=DetectionPaddedRescaleMetadata) -> np.array:
-        return _rescale_xyxy_target(targets=predictions, r=1 / metadata.r)
+        return _rescale_xyxy_bboxes(targets=predictions, r=1 / metadata.r)
 
 
 class DetectionPadToSize(Processing):
     """Preprocessing transform to pad image and bboxes to `output_size` shape (rows, cols).
-    Transform does center padding, so that input image with bboxes located in the center of the produced image.
+    Center padding, so that input image with bboxes located in the center of the produced image.
 
     Note: This transformation assume that dimensions of input image is equal or less than `output_size`.
 
     :param output_size: Output image size (rows, cols)
-    :param pad_value: Padding value for image
+    :param pad_value:   Padding value for image
     """
 
     def __init__(self, output_size: Tuple[int, int], pad_value: int):
@@ -144,23 +143,17 @@ class DetectionPadToSize(Processing):
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        original_size = image.shape
-
-        pad_h, pad_w = self.output_size[0] - original_size[0], self.output_size[1] - original_size[1]
-        shift_h, shift_w = pad_h // 2, pad_w // 2
-        pad_h = (shift_h, pad_h - shift_h)
-        pad_w = (shift_w, pad_w - shift_w)
-
-        processed_image = np.pad(image, (pad_h, pad_w, (0, 0)), mode="constant", constant_values=self.pad_value)
+        shift_h, shift_w, pad_h, pad_w = _get_shift_params(original_size=image.shape, output_size=self.output_size)
+        processed_image = _shift_image(image, pad_h, pad_w, self.pad_value)
 
         return processed_image, DetectionPadToSizeMetadata(shift_h=shift_h, shift_w=shift_w)
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: DetectionPadToSizeMetadata) -> np.ndarray:
-        return _translate_targets(targets=predictions, shift_w=-metadata.shift_w, shift_h=-metadata.shift_h)
+        return _shift_bboxes(targets=predictions, shift_w=-metadata.shift_w, shift_h=-metadata.shift_h)
 
 
 class _Rescale(Processing, ABC):
-    """Resize image and bounding boxes to given image dimensions without preserving aspect ratio
+    """Resize image to given image dimensions without preserving aspect ratio.
 
     :param output_shape: (rows, cols)
     """
@@ -169,17 +162,15 @@ class _Rescale(Processing, ABC):
         self.output_shape = output_shape
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
-        original_size = image.shape
-        sy, sx = self.output_shape[0] / original_size[0], self.output_shape[1] / original_size[1]
-
+        sy, sx = self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1]
         rescaled_image = _rescale_image(image, target_shape=self.output_shape)
 
-        return rescaled_image, RescaleMetadata(original_size=(original_size[0], original_size[1]), sy=sy, sx=sx)
+        return rescaled_image, RescaleMetadata(original_size=image.shape[:2], sy=sy, sx=sx)
 
 
 class DetectionRescale(_Rescale):
     def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
-        return _rescale_target(targets=predictions, scale_factors=(1 / metadata.sy, 1 / metadata.sx))
+        return _rescale_bboxes(targets=predictions, scale_factors=(1 / metadata.sy, 1 / metadata.sx))
 
 
 class SegmentationRescale(_Rescale):

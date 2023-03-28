@@ -6,7 +6,7 @@ import torch
 
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.load_image import load_image
-from super_gradients.training.models.predictions import Prediction, ClassificationPrediction, SegmentationPrediction, DetectionPrediction
+from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 from super_gradients.training.transforms.processing import Processing
 
 
@@ -42,32 +42,6 @@ class Pipeline(ABC):
     def decode_model_raw_prediction(self, raw_predictions: torch.Tensor) -> torch.Tensor:
         """Decode the raw predictions from the model into a normal format."""
         pass
-
-
-class ClassificationPipeline(Pipeline):
-    def __init__(self, model: SgModule, image_processor: Optional[Processing] = None):
-        super().__init__(model=model, image_processor=image_processor)
-
-    def __call__(self, image: torch.Tensor) -> ClassificationPrediction:
-        image, predictions = self._run(image)
-        # TODO: Find a way to handle different datasets...
-        return ClassificationPrediction(image=image, _class=predictions, class_names=[])
-
-    def decode_model_raw_prediction(self, raw_predictions: torch.Tensor) -> torch.Tensor:
-        return raw_predictions
-
-
-class SegmentationPipeline(Pipeline):
-    def __init__(self, model: SgModule, image_processor: Optional[Processing] = None):
-        super().__init__(model=model, image_processor=image_processor)
-
-    def __call__(self, image: torch.Tensor) -> SegmentationPrediction:
-        image, predictions = self._run(image)
-        # TODO: Find a way to handle different datasets...
-        return SegmentationPrediction(image=image, _mask=predictions, class_names=[])
-
-    def decode_model_raw_prediction(self, raw_predictions: torch.Tensor) -> torch.Tensor:
-        return raw_predictions.argmax(dim=1).astype(np.uint8)
 
 
 class DetectionPipeline(Pipeline):

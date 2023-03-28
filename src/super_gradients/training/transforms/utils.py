@@ -1,20 +1,17 @@
-from typing import Union, Tuple, Optional
+from typing import Tuple
 
 import cv2
 import numpy as np
 
-from PIL import Image
 from super_gradients.training.utils.detection_utils import xyxy2cxcywh, cxcywh2xyxy
 
 
-image_resample = Image.BILINEAR
-mask_resample = Image.NEAREST
-
-
-def _rescale_target(targets: np.array, scale_factors: Tuple[float, float]) -> np.array:
+def _rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np.array:
     """DetectionRescale targets to given scale factors."""
-    sy, sx = scale_factors
+
     targets = targets.astype(np.float32, copy=True) if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
+
+    sy, sx = scale_factors
     targets[:, 0:4] *= np.array([[sx, sy, sx, sy]], dtype=targets.dtype)
     return targets
 
@@ -24,8 +21,20 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.n
     return cv2.resize(image, dsize=(int(target_shape[1]), int(target_shape[0])), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
 
 
-def _translate_targets(targets: np.array, shift_w: float, shift_h: float) -> np.array:
-    """Translate bboxes with respect to padding values.
+def _get_shift_params(original_size: Tuple[int, int], output_size: Tuple[int, int]) -> Tuple[int, int, Tuple[int, int], Tuple[int, int]]:
+    pad_h, pad_w = output_size[0] - original_size[0], output_size[1] - original_size[1]
+    shift_h, shift_w = pad_h // 2, pad_w // 2
+    pad_h = (shift_h, pad_h - shift_h)
+    pad_w = (shift_w, pad_w - shift_w)
+    return shift_h, shift_w, pad_h, pad_w
+
+
+def _shift_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int], pad_value: int) -> np.ndarray:
+    return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+
+
+def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
+    """Shift bboxes with respect to padding values.
 
     :param targets:  Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
     :param shift_w:  shift width in pixels
@@ -39,7 +48,7 @@ def _translate_targets(targets: np.array, shift_w: float, shift_h: float) -> np.
     return np.concatenate((boxes, labels), 1)
 
 
-def _rescale_xyxy_target(targets: np.array, r: float) -> np.array:
+def _rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
     """Scale targets to given scale factors.
 
     :param targets:  Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
@@ -56,14 +65,16 @@ def _rescale_xyxy_target(targets: np.array, r: float) -> np.array:
 
 def _rescale_and_pad_to_size(image: np.ndarray, output_size: Tuple[int, int], swap: Tuple[int] = (2, 0, 1), pad_val: int = 114) -> Tuple[np.ndarray, float]:
     """
-    Rescales image according to minimum ratio between the target height /image height, target width / image width,
+    Rescales image according to minimum ratio input height/width and output height/width.
     and pads the image to the target size.
 
     :param image:       Image to be rescaled
     :param output_size: Target size
     :param swap:        Axis's to be rearranged.
     :param pad_val:     Value to use for padding
-    :return:            Rescaled image according to ratio r and padded to fit output_size.
+    :return:
+        - Rescaled image according to ratio r and padded to fit output_size.
+        - Minimum ratio between the input height/width and output height/width.
     """
     if len(image.shape) == 3:
         padded_image = np.ones((output_size[0], output_size[1], image.shape[-1]), dtype=np.uint8) * pad_val
@@ -79,27 +90,3 @@ def _rescale_and_pad_to_size(image: np.ndarray, output_size: Tuple[int, int], sw
     padded_image = padded_image.transpose(swap)
     padded_image = np.ascontiguousarray(padded_image, dtype=np.float32)
     return padded_image, r
-
-
-def segmentation_rescale(
-    image: np.ndarray,
-    mask: Optional[np.ndarray] = None,
-    scale_factor: Optional[float] = None,
-    short_size: Optional[int] = None,
-    long_size: Optional[int] = None,
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
-    w, h = image.size
-    if scale_factor is not None:
-        scale = scale_factor
-    elif short_size is not None:
-        scale = short_size / min(w, h)
-    else:
-        scale = long_size / max(w, h)
-
-    out_size = int(scale * w), int(scale * h)
-
-    image = image.resize(out_size, image_resample)
-    if mask is None:
-        return image
-    mask = mask.resize(out_size, mask_resample)
-    return image, mask
