@@ -1,5 +1,6 @@
 from typing import Tuple, List, Union
 from abc import ABC, abstractmethod
+from pydantic import BaseModel
 
 import numpy as np
 
@@ -12,8 +13,6 @@ from super_gradients.training.transforms.utils import (
     _rescale_xyxy_bboxes,
     _get_shift_params,
 )
-
-from pydantic import BaseModel
 
 
 class ProcessingMetadata(BaseModel, ABC):
@@ -163,12 +162,10 @@ class _Rescale(Processing, ABC):
         self.output_shape = output_shape
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
-        original_size = image.shape
-        sy, sx = self.output_shape[0] / original_size[0], self.output_shape[1] / original_size[1]
-
+        sy, sx = self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1]
         rescaled_image = _rescale_image(image, target_shape=self.output_shape)
 
-        return rescaled_image, RescaleMetadata(original_size=(original_size[0], original_size[1]), sy=sy, sx=sx)
+        return rescaled_image, RescaleMetadata(original_size=image.shape[:2], sy=sy, sx=sx)
 
 
 class DetectionRescale(_Rescale):
