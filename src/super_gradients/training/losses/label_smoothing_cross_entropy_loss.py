@@ -6,14 +6,12 @@ from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 
 
-def onehot(indexes, N: int = None, ignore_index=None):
+def onehot(indexes, N=None, ignore_index=None):
     """
     Creates a one-hot representation of indexes with N possible entries
     if N is not specified, it will suit the maximum index appearing.
     indexes is a long-tensor of indexes
     ignore_index will be zero in onehot representation
-
-    :param N: Number of classes
     """
     if N is None:
         N = indexes.max() + 1

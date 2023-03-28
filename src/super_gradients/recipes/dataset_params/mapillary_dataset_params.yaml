@@ -60,7 +60,7 @@ train_dataloader_params:
 
 val_dataloader_params:
   # Mapillary validation set include various image sizes.
-  # It is recommended to DetectionRescale the long size to 2048 then perform validation.
+  # It is recommended to Rescale the long size to 2048 then perform validation.
   # Unless the default transformation hasn't modified, it is not possible to batch the images to a common size.
   batch_size: 1
   num_workers: 8

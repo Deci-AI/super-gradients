@@ -83,16 +83,6 @@ LABEL_NORMALIZED_CXCYWH = ConcatenatedTensorFormat(
 )
 
 
-ConcatenatedTensorFormat(
-    layout=(
-        BoundingBoxesTensorSliceItem(name="bboxes", format=CXCYWHCoordinateFormat()),
-        TensorSliceItem(name="label", length=1),
-        TensorSliceItem(name="distance", length=1),
-        TensorSliceItem(name="attributes", length=4),
-    )
-)
-
-
 def get_default_data_format(format_name: str) -> ConcatenatedTensorFormat:
     return DEFAULT_CONCATENATED_TENSOR_FORMATS[format_name]
 

@@ -5,9 +5,9 @@ import numpy as np
 
 from super_gradients.training.transforms.utils import (
     _rescale_image,
-    _rescale_target,
-    _rescale_xyxy_target,
-    _translate_targets,
+    _rescale_bboxes,
+    _rescale_xyxy_bboxes,
+    _translate_bboxes,
     _rescale_and_pad_to_size,
 )
 
@@ -126,7 +126,7 @@ class DetectionPaddedRescale(Processing):
         return rescaled_image, DetectionPaddedRescaleMetadata(r=r)
 
     def postprocess_predictions(self, predictions: np.array, metadata=DetectionPaddedRescaleMetadata) -> np.array:
-        return _rescale_xyxy_target(targets=predictions, r=1 / metadata.r)
+        return _rescale_xyxy_bboxes(targets=predictions, r=1 / metadata.r)
 
 
 class DetectionPadToSize(Processing):
@@ -156,7 +156,7 @@ class DetectionPadToSize(Processing):
         return processed_image, DetectionPadToSizeMetadata(shift_h=shift_h, shift_w=shift_w)
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: DetectionPadToSizeMetadata) -> np.ndarray:
-        return _translate_targets(targets=predictions, shift_w=-metadata.shift_w, shift_h=-metadata.shift_h)
+        return _translate_bboxes(targets=predictions, shift_w=-metadata.shift_w, shift_h=-metadata.shift_h)
 
 
 class _Rescale(Processing, ABC):
@@ -179,7 +179,7 @@ class _Rescale(Processing, ABC):
 
 class DetectionRescale(_Rescale):
     def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
-        return _rescale_target(targets=predictions, scale_factors=(1 / metadata.sy, 1 / metadata.sx))
+        return _rescale_bboxes(targets=predictions, scale_factors=(1 / metadata.sy, 1 / metadata.sx))
 
 
 class SegmentationRescale(_Rescale):

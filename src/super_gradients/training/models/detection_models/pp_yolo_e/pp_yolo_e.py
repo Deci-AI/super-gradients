@@ -11,7 +11,6 @@ from super_gradients.training.models.detection_models.pp_yolo_e.pan import Custo
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.arch_params_factory import get_arch_params
-from super_gradients.training.models.detection_models.pp_yolo_e.post_prediction_callback import PPYoloEPostPredictionCallback, DetectionPostPredictionCallback
 
 
 class PPYoloE(SgModule):
@@ -49,11 +48,6 @@ class PPYoloE(SgModule):
             self.head = new_head
         else:
             self.head.replace_num_classes(new_num_classes)
-
-    @staticmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
-        # TODO: Think if it wouldnt be better to pass this in the __init__
-        return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
 
 
 @register_model(Models.PP_YOLOE_S)
