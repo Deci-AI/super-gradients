@@ -89,7 +89,8 @@ training_hyperparams:
 
 multi_gpu: Off
 num_gpus: 1
-experiment_name: ${architecture}_roboflow_${dataset_name}
+experiment_suffix: ""
+experiment_name: ${architecture}_roboflow_${dataset_name}_${experiment_suffix}
 ckpt_root_dir:
 
 
