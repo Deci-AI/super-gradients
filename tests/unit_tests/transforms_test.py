@@ -9,7 +9,17 @@ from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
 )
-from super_gradients.training.transforms.transforms import DetectionImagePermute, DetectionPadToSize, DetectionRescale
+from super_gradients.training.transforms.transforms import DetectionImagePermute, DetectionPadToSize
+
+from super_gradients.training.transforms.utils import (
+    rescale_image,
+    rescale_bboxes,
+    shift_image,
+    shift_bboxes,
+    rescale_and_pad_to_size,
+    rescale_xyxy_bboxes,
+    get_center_padding_params,
+)
 
 
 class TestTransforms(unittest.TestCase):
@@ -120,38 +130,80 @@ class TestTransforms(unittest.TestCase):
         self.assertEqual(output["image"].shape, (640, 640, 3))
         np.testing.assert_array_equal(output["target"], expected_boxes)
 
-        self.assertEqual(aug.apply_reverse_to_image(output["image"]).shape, image.shape)
-        np.testing.assert_array_equal(aug.apply_reverse_to_targets(output["target"]), boxes)
+    def test_rescale_image(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        target_shape = (320, 240)
+        rescaled_image = rescale_image(image, target_shape)
 
-    def test_detection_rescale(self):
-        # Test initialization
-        rescale = DetectionRescale((300, 300))
+        # Check if the rescaled image has the correct target shape
+        self.assertEqual(rescaled_image.shape[:2], target_shape)
 
-        # Test __call__
-        img = np.random.randint(0, 256, size=(100, 200, 3), dtype=np.uint8)
-        targets = np.array([[10, 20, 30, 40, 0], [50, 60, 70, 80, 1]], dtype=np.float32)
-        sample = {"image": img, "target": targets}
+    def test_rescale_bboxes(self):
+        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
+        sy, sx = (2.0, 0.5)
+        expected_bboxes = np.array([[5.0, 40.0, 25.0, 120.0, 1.0], [15.0, 80.0, 40.0, 180.0, 2.0]], dtype=np.float32)
 
-        ratio_x = 300 / 200
-        ratio_y = 300 / 100
-        expected_boxes = np.array([[10 * ratio_x, 20 * ratio_y, 30 * ratio_x, 40 * ratio_y, 0], [50 * ratio_x, 60 * ratio_y, 70 * ratio_x, 80 * ratio_y, 1]])
+        rescaled_bboxes = rescale_bboxes(targets=bboxes, scale_factors=(sy, sx))
+        np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
 
-        transformed_sample = rescale(sample)
-        transformed_img = transformed_sample["image"]
-        transformed_targets = transformed_sample["target"]
+    def test_get_shift_params(self):
+        input_size = (640, 480)
+        output_size = (800, 600)
+        shift_h, shift_w, pad_h, pad_w = get_center_padding_params(input_size, output_size)
 
-        self.assertEqual(transformed_img.shape, (300, 300, 3))
-        self.assertEqual(transformed_targets.shape, (2, 5))
-        np.testing.assert_array_equal(transformed_targets, expected_boxes)
+        # Check if the shift and padding values are correct
+        self.assertEqual((shift_h, shift_w, pad_h, pad_w), (80, 60, (80, 80), (60, 60)))
 
-        # Test apply_reverse_to_targets
-        reversed_targets = rescale.apply_reverse_to_targets(transformed_targets)
-        self.assertEqual(reversed_targets.shape, (2, 5))
-        np.testing.assert_array_equal(reversed_targets, targets)
+    def test_shift_image(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        pad_h = (80, 80)
+        pad_w = (60, 60)
+        pad_value = 0
+        shifted_image = shift_image(image, pad_h, pad_w, pad_value)
 
-        # Test apply_reverse_to_image
-        reversed_img = rescale.apply_reverse_to_image(transformed_img)
-        self.assertEqual(reversed_img.shape, img.shape)
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600, 3))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: pad_h[0], :, :] == pad_value).all())
+        self.assertTrue((shifted_image[-pad_h[1] :, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : pad_w[0], :] == pad_value).all())
+        self.assertTrue((shifted_image[:, -pad_w[1] :, :] == pad_value).all())
+
+    def test_shift_bboxes(self):
+        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
+        shift_w, shift_h = 60, 80
+        shifted_bboxes = shift_bboxes(bboxes, shift_w, shift_h)
+
+        # Check if the shifted bboxes have the correct values
+        expected_bboxes = np.array([[70, 100, 110, 140, 1], [90, 120, 140, 170, 2]], dtype=np.float32)
+        np.testing.assert_array_equal(shifted_bboxes, expected_bboxes)
+
+    def test_rescale_xyxy_bboxes(self):
+        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
+        r = 0.5
+        rescaled_bboxes = rescale_xyxy_bboxes(bboxes, r)
+
+        # Check if the rescaled bboxes have the correct values
+        expected_bboxes = np.array([[5.0, 10.0, 25.0, 30.0, 1.0], [15.0, 20.0, 40.0, 45.0, 2.0]], dtype=np.float32)
+        np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
+
+    def test_rescale_and_pad_to_size(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        output_size = (800, 500)
+        pad_val = 114
+        rescaled_padded_image, r = rescale_and_pad_to_size(image, output_size, pad_val=pad_val)
+
+        # Check if the rescaled and padded image has the correct shape
+        self.assertEqual(rescaled_padded_image.shape, (3, *output_size))
+
+        # Check if the image is rescaled with the correct ratio
+        resized_image_shape = (int(image.shape[0] * r), int(image.shape[1] * r))
+
+        # Check if the padding is correctly applied
+        padded_area = rescaled_padded_image[:, resized_image_shape[0] :, :]  # Right padding area
+        self.assertTrue((padded_area == pad_val).all())
+        padded_area = rescaled_padded_image[:, :, resized_image_shape[1] :]  # Bottom padding area
+        self.assertTrue((padded_area == pad_val).all())
 
 
 if __name__ == "__main__":

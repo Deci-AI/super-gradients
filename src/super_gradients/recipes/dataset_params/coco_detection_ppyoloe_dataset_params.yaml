@@ -41,11 +41,11 @@ train_dataset_params:
 
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples: 40
+  max_num_samples:
   with_crowd: False
 
 train_dataloader_params:
-  batch_size: 4
+  batch_size: 32
   num_workers: 8
   shuffle: True
   drop_last: True
@@ -82,11 +82,11 @@ val_dataset_params:
         output_format: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples: 500
+  max_num_samples:
   with_crowd: True
 
 val_dataloader_params:
-  batch_size: 8
+  batch_size: 64
   num_workers: 8
   drop_last: False
   shuffle: False
