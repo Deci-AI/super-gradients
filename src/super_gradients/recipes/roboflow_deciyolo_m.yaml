@@ -1,7 +1,7 @@
 # A recipe to fine-tune DeciYolo on Roboflow datasets.
 defaults:
   - training_hyperparams: coco2017_deciyolo_train_params
-  - dataset_params: roboflow_detection_dataset_params
+  - dataset_params: roboflow_detection_v2_dataset_params
   - checkpoint_params: default_checkpoint_params
   - arch_params: deciyolo_m_arch_params
   - _self_
@@ -25,7 +25,6 @@ num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
 architecture: deciyolo_m
 arch_params:
   num_classes: ${num_classes}
-
 
 load_checkpoint: False
 checkpoint_params:
@@ -79,7 +78,7 @@ training_hyperparams:
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
-    project_name: DeciYolo-M-RF100
+    project_name: DeciYolo_M_RF100_QAT
     entity: super-gradients
     api_server: "https://wandb.research.deci.ai"
     save_checkpoints_remote: False

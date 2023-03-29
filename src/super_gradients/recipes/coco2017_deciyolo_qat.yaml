@@ -1,0 +1,32 @@
+defaults:
+  - coco2017_deciyolo_s
+  - quantization_params: default_quantization_params
+  - _self_
+
+multi_gpu: Off
+num_gpus: 1
+
+checkpoint_params:
+  pretrained_weights: coco
+
+pre_launch_callbacks_list:
+    - QATRecipeModificationCallback:
+        batch_size_divisor: 2
+        max_epochs_divisor: 10
+        lr_decay_factor: 0.01
+        warmup_epochs_divisor: 10
+        cosine_final_lr_ratio: 0.01
+        disable_phase_callbacks: True
+        disable_augmentations: False
+
+training_hyperparams:
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: DeciYolo_S_COCO_QAT
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: False
+    save_tensorboard_remote: False
+    save_logs_remote: True
+
+experiment_name: deciyolo_s_qat_coco
