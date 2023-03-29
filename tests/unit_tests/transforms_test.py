@@ -19,6 +19,7 @@ from super_gradients.training.transforms.utils import (
     rescale_and_pad_to_size,
     rescale_xyxy_bboxes,
     get_center_padding_params,
+    pad_image_on_side,
 )
 
 
@@ -186,6 +187,21 @@ class TestTransforms(unittest.TestCase):
         # Check if the rescaled bboxes have the correct values
         expected_bboxes = np.array([[5.0, 10.0, 25.0, 30.0, 1.0], [15.0, 20.0, 40.0, 45.0, 2.0]], dtype=np.float32)
         np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
+
+    def test_pad_image_on_side(self):
+
+        image = np.array([[1, 2], [3, 4]])
+        output_size = (3, 4)
+        expected_result = np.array([[1, 2, 114, 114], [3, 4, 114, 114], [114, 114, 114, 114]])
+        result = pad_image_on_side(image, output_size)
+        assert np.array_equal(result, expected_result)
+
+        # Test Case 2: No padding needed
+        image = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        output_size = (3, 3)
+        expected_result = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        result = pad_image_on_side(image, output_size)
+        assert np.array_equal(result, expected_result)
 
     def test_rescale_and_pad_to_size(self):
         image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)

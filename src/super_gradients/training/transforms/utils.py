@@ -104,17 +104,29 @@ def rescale_and_pad_to_size(image: np.ndarray, output_size: Tuple[int, int], swa
         - Rescaled image while preserving aspect ratio, padded to fit output_size and with axis swapped. By default, (C, H, W).
         - Minimum ratio between the input height/width and output height/width.
     """
+    r = min(output_size[0] / image.shape[0], output_size[1] / image.shape[1])
+    rescale_shape = (int(image.shape[0] * r), int(image.shape[1] * r))
+
+    resized_image = rescale_image(image=image, target_shape=rescale_shape)
+    padded_image = pad_image_on_side(image=resized_image, output_size=output_size, pad_val=pad_val)
+
+    padded_image = padded_image.transpose(swap)
+    padded_image = np.ascontiguousarray(padded_image, dtype=np.float32)
+    return padded_image, r
+
+
+def pad_image_on_side(image: np.ndarray, output_size: Tuple[int, int], pad_val: int = 114) -> np.ndarray:
+    """Pads an image to the specified output size by adding padding only on the sides.
+
+    :param image:       Input image to pad. (H, W, C) or (H, W).
+    :param output_size: Expected size of the output image (height, width).
+    :param pad_val:     Value to use for padding.
+    :return:            Padded image of size output_size.
+    """
     if len(image.shape) == 3:
         padded_image = np.ones((output_size[0], output_size[1], image.shape[-1]), dtype=np.uint8) * pad_val
     else:
         padded_image = np.ones(output_size, dtype=np.uint8) * pad_val
 
-    r = min(output_size[0] / image.shape[0], output_size[1] / image.shape[1])
-
-    target_shape = (int(image.shape[0] * r), int(image.shape[1] * r))
-    resized_image = rescale_image(image=image, target_shape=target_shape)
-    padded_image[: target_shape[0], : target_shape[1]] = resized_image
-
-    padded_image = padded_image.transpose(swap)
-    padded_image = np.ascontiguousarray(padded_image, dtype=np.float32)
-    return padded_image, r
+    padded_image[: image.shape[0], : image.shape[1]] = image
+    return padded_image
