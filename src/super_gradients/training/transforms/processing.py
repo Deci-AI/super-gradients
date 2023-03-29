@@ -38,6 +38,13 @@ class RescaleMetadata(ProcessingMetadata):
 
 
 class Processing(ABC):
+    """Interface for preprocessing and postprocessing methods that are
+    used to prepare images for a model and process the model's output.
+
+    Subclasses should implement the `preprocess_image` and `postprocess_predictions`
+    methods according to the specific requirements of the model and task.
+    """
+
     @abstractmethod
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, Union[None, ProcessingMetadata]]:
         """Processing an image, before feeding it to the network. Expected to be in (H, W, C) or (H, W)."""
