@@ -1,6 +1,6 @@
 from typing import Tuple, List, Union
 from abc import ABC, abstractmethod
-from pydantic import BaseModel
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -15,37 +15,42 @@ from super_gradients.training.transforms.utils import (
 )
 
 
-class ProcessingMetadata(BaseModel, ABC):
+@dataclass
+class ProcessingMetadata(ABC):
     """Metadata including information to postprocess a prediction."""
 
 
+@dataclass
 class ComposeProcessingMetadata(ProcessingMetadata):
-    metadata_lst: List[Union[ProcessingMetadata]]
+    metadata_lst: List[Union[None, ProcessingMetadata]]
 
 
+@dataclass
 class DetectionPadToSizeMetadata(ProcessingMetadata):
     shift_w: float
     shift_h: float
 
 
+@dataclass
 class RescaleMetadata(ProcessingMetadata):
     original_size: Tuple[int, int]
     sy: float
     sx: float
 
 
+@dataclass
 class DetectionPaddedRescaleMetadata(ProcessingMetadata):
     r: float
 
 
 class Processing(ABC):
     @abstractmethod
-    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, Union[ProcessingMetadata, None]]:
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, Union[None, ProcessingMetadata]]:
         """Processing an image, before feeding it to the network."""
         pass
 
     @abstractmethod
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: Union[ProcessingMetadata, None]) -> np.ndarray:
+    def postprocess_predictions(self, predictions: np.ndarray, metadata: Union[None, ProcessingMetadata]) -> np.ndarray:
         """Postprocess the model output predictions."""
         pass
 
