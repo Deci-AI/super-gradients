@@ -23,6 +23,7 @@ from super_gradients.training.transforms.utils import (
     rescale_and_pad_to_size,
     rescale_image,
     rescale_bboxes,
+    get_shift_params,
     shift_image,
     shift_bboxes,
     rescale_xyxy_bboxes,
@@ -738,29 +739,14 @@ class DetectionPadToSize(DetectionTransform):
         self.pad_value = pad_value
 
     def __call__(self, sample: dict) -> dict:
-        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        img, shift_w, shift_h = self._apply_to_image(img, final_shape=self.output_size, pad_value=self.pad_value)
-        sample["image"] = img
+        image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+        shift_h, shift_w, pad_h, pad_w = get_shift_params(input_size=image.shape, output_size=self.output_size)
+
+        sample["image"] = shift_image(image=image, pad_h=pad_h, pad_w=pad_w, pad_value=self.pad_value)
         sample["target"] = shift_bboxes(targets=targets, shift_w=shift_w, shift_h=shift_h)
         if crowd_targets is not None:
             sample["crowd_target"] = shift_bboxes(targets=crowd_targets, shift_w=shift_w, shift_h=shift_h)
         return sample
-
-    def _apply_to_image(self, image, final_shape: Tuple[int, int], pad_value: int):
-        """
-        Pad image to final_shape.
-        :param image:
-        :param final_shape: Output image size (rows, cols).
-        :param pad_value:
-        :return:
-        """
-        pad_h, pad_w = final_shape[0] - image.shape[0], final_shape[1] - image.shape[1]
-        shift_h, shift_w = pad_h // 2, pad_w // 2
-        pad_h = (shift_h, pad_h - shift_h)
-        pad_w = (shift_w, pad_w - shift_w)
-
-        shift_image(image, pad_h, pad_w, pad_value)
-        return image, shift_w, shift_h
 
 
 @register_transform(Transforms.DetectionPaddedRescale)

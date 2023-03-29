@@ -64,12 +64,11 @@ def shift_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int
 def shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
     """Shift bboxes with respect to padding values.
 
-    :param targets:  Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
-    :param shift_w:  shift width in pixels
-    :param shift_h:  shift height in pixels
-    :return:         Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
+    :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ..., ...]
+    :param shift_w:  shift width.
+    :param shift_h:  shift height.
+    :return:         Bboxes transformed of shape (N, 4+), in format [x1, y1, x2, y2, ..., ...]
     """
-    targets = targets.copy() if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
     boxes, labels = targets[:, :4], targets[:, 4:]
     boxes[:, [0, 2]] += shift_w
     boxes[:, [1, 3]] += shift_h
@@ -79,9 +78,9 @@ def shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
 def rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
     """Scale targets to given scale factors.
 
-    :param targets:  Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
+    :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
     :param r:        DetectionRescale coefficient that was applied to the image
-    :return:         Rescaled Bboxes to transform of shape (N, 5+), in format [x1, y1, x2, y2, class_id, ...]
+    :return:         Rescaled Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
     """
     targets = targets.copy()
     boxes, targets = targets[:, :4], targets[:, 4:]
