@@ -20,13 +20,13 @@ from super_gradients.training.datasets.data_formats import ConcatenatedTensorFor
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.transforms.utils import (
-    rescale_and_pad_to_size,
-    rescale_image,
-    rescale_bboxes,
-    get_center_padding_params,
-    shift_image,
-    shift_bboxes,
-    rescale_xyxy_bboxes,
+    _rescale_and_pad_to_size,
+    _rescale_image,
+    _rescale_bboxes,
+    _get_center_padding_params,
+    _shift_image,
+    _shift_bboxes,
+    _rescale_xyxy_bboxes,
 )
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
@@ -740,12 +740,12 @@ class DetectionPadToSize(DetectionTransform):
 
     def __call__(self, sample: dict) -> dict:
         image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        shift_h, shift_w, pad_h, pad_w = get_center_padding_params(input_size=image.shape, output_size=self.output_size)
+        shift_h, shift_w, pad_h, pad_w = _get_center_padding_params(input_size=image.shape, output_size=self.output_size)
 
-        sample["image"] = shift_image(image=image, pad_h=pad_h, pad_w=pad_w, pad_value=self.pad_value)
-        sample["target"] = shift_bboxes(targets=targets, shift_w=shift_w, shift_h=shift_h)
+        sample["image"] = _shift_image(image=image, pad_h=pad_h, pad_w=pad_w, pad_value=self.pad_value)
+        sample["target"] = _shift_bboxes(targets=targets, shift_w=shift_w, shift_h=shift_h)
         if crowd_targets is not None:
-            sample["crowd_target"] = shift_bboxes(targets=crowd_targets, shift_w=shift_w, shift_h=shift_h)
+            sample["crowd_target"] = _shift_bboxes(targets=crowd_targets, shift_w=shift_w, shift_h=shift_h)
         return sample
 
 
@@ -771,12 +771,12 @@ class DetectionPaddedRescale(DetectionTransform):
 
     def __call__(self, sample: dict) -> dict:
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap, self.pad_value)
+        img, r = _rescale_and_pad_to_size(img, self.input_dim, self.swap, self.pad_value)
 
         sample["image"] = img
-        sample["target"] = rescale_xyxy_bboxes(targets, r)
+        sample["target"] = _rescale_xyxy_bboxes(targets, r)
         if crowd_targets is not None:
-            sample["crowd_target"] = rescale_xyxy_bboxes(crowd_targets, r)
+            sample["crowd_target"] = _rescale_xyxy_bboxes(crowd_targets, r)
         return sample
 
 
@@ -824,10 +824,10 @@ class DetectionRescale(DetectionTransform):
 
         sy, sx = (self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1])
 
-        sample["image"] = rescale_image(image=image, target_shape=self.output_shape)
-        sample["target"] = rescale_bboxes(targets, scale_factors=(sy, sx))
+        sample["image"] = _rescale_image(image=image, target_shape=self.output_shape)
+        sample["target"] = _rescale_bboxes(targets, scale_factors=(sy, sx))
         if crowd_targets is not None:
-            sample["crowd_target"] = rescale_bboxes(crowd_targets, scale_factors=(sy, sx))
+            sample["crowd_target"] = _rescale_bboxes(crowd_targets, scale_factors=(sy, sx))
         return sample
 
 

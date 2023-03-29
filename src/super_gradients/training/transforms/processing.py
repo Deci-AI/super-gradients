@@ -5,14 +5,14 @@ from dataclasses import dataclass
 import numpy as np
 
 from super_gradients.training.transforms.utils import (
-    rescale_image,
-    rescale_bboxes,
-    pad_image_on_side,
-    get_center_padding_params,
-    shift_image,
-    shift_bboxes,
-    rescale_and_pad_to_size,
-    rescale_xyxy_bboxes,
+    _rescale_image,
+    _rescale_bboxes,
+    _pad_image_on_side,
+    _get_center_padding_params,
+    _shift_image,
+    _shift_bboxes,
+    _rescale_and_pad_to_size,
+    _rescale_xyxy_bboxes,
 )
 
 
@@ -127,11 +127,11 @@ class DetectionPaddedRescale(Processing):
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPaddedRescaleMetadata]:
-        rescaled_image, r = rescale_and_pad_to_size(image=image, output_size=self.output_size, swap=self.swap, pad_val=self.pad_value)
+        rescaled_image, r = _rescale_and_pad_to_size(image=image, output_size=self.output_size, swap=self.swap, pad_val=self.pad_value)
         return rescaled_image, DetectionPaddedRescaleMetadata(r=r)
 
     def postprocess_predictions(self, predictions: np.array, metadata=DetectionPaddedRescaleMetadata) -> np.array:
-        return rescale_xyxy_bboxes(targets=predictions, r=1 / metadata.r)
+        return _rescale_xyxy_bboxes(targets=predictions, r=1 / metadata.r)
 
 
 class DetectionCenterPadding(Processing):
@@ -149,13 +149,13 @@ class DetectionCenterPadding(Processing):
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        shift_h, shift_w, pad_h, pad_w = get_center_padding_params(input_size=image.shape, output_size=self.output_size)
-        processed_image = shift_image(image, pad_h, pad_w, self.pad_value)
+        shift_h, shift_w, pad_h, pad_w = _get_center_padding_params(input_size=image.shape, output_size=self.output_size)
+        processed_image = _shift_image(image, pad_h, pad_w, self.pad_value)
 
         return processed_image, DetectionPadToSizeMetadata(shift_h=shift_h, shift_w=shift_w)
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: DetectionPadToSizeMetadata) -> np.ndarray:
-        return shift_bboxes(targets=predictions, shift_w=-metadata.shift_w, shift_h=-metadata.shift_h)
+        return _shift_bboxes(targets=predictions, shift_w=-metadata.shift_w, shift_h=-metadata.shift_h)
 
 
 class DetectionSidePadding(Processing):
@@ -173,7 +173,7 @@ class DetectionSidePadding(Processing):
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
-        processed_image = pad_image_on_side(image, output_size=self.output_size, pad_val=self.pad_value)
+        processed_image = _pad_image_on_side(image, output_size=self.output_size, pad_val=self.pad_value)
         return processed_image, None
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: None) -> np.ndarray:
@@ -199,16 +199,16 @@ class _Rescale(Processing, ABC):
             sy, sx = (scale_factor, scale_factor)
             rescale_shape = (int(image.shape[0] * sx), int(image.shape[1] * sy))
 
-        rescaled_image = rescale_image(image, target_shape=rescale_shape)
+        rescaled_image = _rescale_image(image, target_shape=rescale_shape)
 
         return rescaled_image, RescaleMetadata(original_size=image.shape[:2], sy=sy, sx=sx)
 
 
 class DetectionRescale(_Rescale):
     def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
-        return rescale_bboxes(targets=predictions, scale_factors=(1 / metadata.sy, 1 / metadata.sx))
+        return _rescale_bboxes(targets=predictions, scale_factors=(1 / metadata.sy, 1 / metadata.sx))
 
 
 class SegmentationRescale(_Rescale):
     def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
-        return rescale_image(predictions, target_shape=metadata.original_size)
+        return _rescale_image(predictions, target_shape=metadata.original_size)
