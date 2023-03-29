@@ -53,7 +53,7 @@ class PoseEstimationMetrics(Metric):
         Compute the AP & AR metrics for pose estimation. By default, this class returns only AP and AR values.
         If you need to get additional metrics (AP at specific threshold), pass these thresholds via `iou_thresholds_to_report` argument.
 
-        :param post_prediction_callback:  A callback to decode model predictions to poses. This should be callable that takes input (model predictions)
+        :param post_prediction_callback:  A callback to decode model results to poses. This should be callable that takes input (model results)
                                           and returns a tuple of (poses, scores)
 
         :param num_joints:                Number of joints per pose
@@ -116,7 +116,7 @@ class PoseEstimationMetrics(Metric):
         self.is_distributed = is_distributed()
         self.world_size = None
         self.rank = None
-        self.add_state("predictions", default=[], dist_reduce_fx=None)
+        self.add_state("results", default=[], dist_reduce_fx=None)
 
     def reset(self) -> None:
         self.predictions = []
@@ -131,7 +131,7 @@ class PoseEstimationMetrics(Metric):
         gt_areas: List[np.ndarray] = None,
     ):
         """
-        Decode the predictions and update the metric
+        Decode the results and update the metric
 
         :param preds :           Raw output of the model
 
@@ -140,7 +140,7 @@ class PoseEstimationMetrics(Metric):
         :param gt_joints:        List of ground-truth joints for each image in the batch. Each element is a numpy array of shape (num_instances, num_joints, 3).
                                  Note that augmentation/preprocessing transformations (Affine transforms specifically) must also be applied to gt_joints.
                                  This is to ensure joint coordinates are transforms identically as image. This is differs form COCO evaluation,
-                                 where predictions rescaled back to original size of the image.
+                                 where results rescaled back to original size of the image.
                                  However, this makes code much more (unnecessary) complicated, so we do it differently and evaluate joints in the coordinate
                                  system of the predicted image.
 
@@ -158,7 +158,7 @@ class PoseEstimationMetrics(Metric):
                                  (For instance this is used in CrowdPose dataset)
 
         """
-        predicted_poses, predicted_scores = self.post_prediction_callback(preds)  # Decode raw predictions into poses
+        predicted_poses, predicted_scores = self.post_prediction_callback(preds)  # Decode raw results into poses
 
         if gt_bboxes is None:
             gt_bboxes = [compute_visible_bbox_xywh(torch.tensor(joints[:, :, 0:2]), torch.tensor(joints[:, :, 2])) for joints in gt_joints]

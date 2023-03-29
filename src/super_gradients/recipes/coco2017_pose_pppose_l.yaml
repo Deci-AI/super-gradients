@@ -42,7 +42,7 @@ training_hyperparams:
   phase_callbacks: []
 #   Note: You can uncomment following block to enable visualization of intermediate results during training.
 #   When enabled, these callbacks will save first batch from training & validation to Tensorboard.
-#   This is helpful for debugging and doing visual checks whether predictions are reasonable and transforms are
+#   This is helpful for debugging and doing visual checks whether results are reasonable and transforms are
 #   working as expected.
 #   The only downside is that it tend to bloat Tensorboard logs (Up to ten Gigs for long training regimes).
 #  phase_callbacks:

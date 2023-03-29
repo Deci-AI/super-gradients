@@ -12,7 +12,7 @@ from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head imp
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.pp_yolo_e.post_prediction_callback import PPYoloEPostPredictionCallback, DetectionPostPredictionCallback
-from super_gradients.training.models.predictions import DetectionPredictions
+from super_gradients.training.models.results import DetectionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import ComposeProcessing, DetectionRescale, NormalizeImage, ImagePermute
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
@@ -41,7 +41,7 @@ class PPYoloE(SgModule):
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
 
-    def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionPredictions:
+    def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
         pipeline = DetectionPipeline(
             model=self,
             image_processor=self._image_processor,

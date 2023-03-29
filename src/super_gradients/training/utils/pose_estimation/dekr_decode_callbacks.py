@@ -26,9 +26,9 @@ def get_locations(output_h: int, output_w: int, device):
 
 def get_reg_poses(offset: Tensor, num_joints: int):
     """
-    Decode offset predictions into absolute locations.
+    Decode offset results into absolute locations.
 
-    :param offset: Tensor of [num_joints*2,H,W] shape with offset predictions for each joint
+    :param offset: Tensor of [num_joints*2,H,W] shape with offset results for each joint
     :param num_joints: Number of joints
     :return: [H * W, num_joints, 2]
     """
@@ -43,7 +43,7 @@ def get_reg_poses(offset: Tensor, num_joints: int):
 
 def _offset_to_pose(offset, flip=False, flip_index=None):
     """
-    Decode offset predictions into absolute locations.
+    Decode offset results into absolute locations.
 
     :param offset: [1, 2 * num_joints, H, W]
     :param flip: True to decode offsets for flipped keypoints (WHen horisontal flip TTA is used)
@@ -209,7 +209,7 @@ def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keyp
 
     :param heatmap: Heatmap at this scale (B, 1+num_joints, w, h)
     :param posemap: Posemap at this scale (B, 2*num_joints, w, h)
-    :param output_stride: Ratio of input size / predictions size
+    :param output_stride: Ratio of input size / results size
     :param keypoint_threshold: (float)
     :param max_num_people: (int)
 
@@ -235,7 +235,7 @@ def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keyp
 
 class DEKRPoseEstimationDecodeCallback(nn.Module):
     """
-    Class that implements decoding logic of DEKR's model predictions into poses.
+    Class that implements decoding logic of DEKR's model results into poses.
     """
 
     def __init__(self, output_stride: int, max_num_people: int, keypoint_threshold: float, nms_threshold: float, nms_num_threshold: int, apply_sigmoid: bool):

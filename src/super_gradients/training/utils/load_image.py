@@ -4,12 +4,23 @@ import PIL
 import numpy as np
 import torch
 import requests
-
+from urllib.parse import urlparse
 
 ImageType = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
 
 
 def load_images(images: Union[List[ImageType], ImageType]) -> List[np.ndarray]:
+    """Load a single image or a list of images and return them as a list of numpy arrays.
+
+    Supported image types include:
+        - numpy.ndarray:    A numpy array representing the image
+        - torch.Tensor:     A PyTorch tensor representing the image
+        - PIL.Image.Image:  A PIL Image object
+        - str:              A string representing either a local file path or a URL to an image
+
+    :param images:  Single image or a list of images of supported types.
+    :return:        List of images as numpy arrays. If loaded from string, the image will be returned as RBG.
+    """
     if isinstance(images, list):
         return [load_image(image=image) for image in images]
     else:
@@ -17,6 +28,17 @@ def load_images(images: Union[List[ImageType], ImageType]) -> List[np.ndarray]:
 
 
 def load_image(image: ImageType) -> np.ndarray:
+    """Load a single image and return it as a numpy arrays.
+
+    Supported image types include:
+        - numpy.ndarray:    A numpy array representing the image
+        - torch.Tensor:     A PyTorch tensor representing the image
+        - PIL.Image.Image:  A PIL Image object
+        - str:              A string representing either a local file path or a URL to an image
+
+    :param image: Single image of supported types.
+    :return:      Image as numpy arrays. If loaded from string, the image will be returned as RBG.
+    """
     if isinstance(image, np.ndarray):
         return image
     elif isinstance(image, torch.Tensor):
@@ -31,17 +53,25 @@ def load_image(image: ImageType) -> np.ndarray:
 
 
 def load_np_image_from_pil(image: PIL.Image.Image) -> np.ndarray:
-    return np.asarray(image.convert("RGB"))  # TODO: Check RGB/BGR
+    """Convert a PIL image to numpy array in RGB format."""
+    return np.asarray(image.convert("RGB"))
 
 
 def load_pil_image_from_str(image_str: str) -> PIL.Image.Image:
-    """Load an image based on a string"""
-    if image_str.startswith("http://") or image_str.startswith("https://"):
-        image = requests.get(image_str, stream=True).raw
-        return PIL.Image.open(image)
+    """Load an image based on a string (local file path or URL)."""
+
+    if is_url(image_str):
+        response = requests.get(image_str, stream=True)
+        response.raise_for_status()
+        return PIL.Image.open(response.raw)
     else:
         return PIL.Image.open(image_str)
 
 
-def show_image(image: np.ndarray):
-    PIL.Image.fromarray(image).show()
+def is_url(url: str) -> bool:
+    """Check if the given string is a URL."""
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc, result.path])
+    except Exception:
+        return False

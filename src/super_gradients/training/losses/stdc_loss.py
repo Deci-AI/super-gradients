@@ -179,12 +179,12 @@ class STDCLoss(_Loss):
 
     def forward(self, preds: Tuple[torch.Tensor], target: torch.Tensor):
         """
-        :param preds: Model output predictions, must be in the followed format:
+        :param preds: Model output results, must be in the followed format:
          [Main-feats, Aux-feats[0], ..., Aux-feats[num_auxs-1], Detail-feats[0], ..., Detail-feats[num_details-1]
         """
         assert (
             len(preds) == self.num_aux_heads + self.num_detail_heads + 1
-        ), f"Wrong num of predictions tensors for STDC loss, expected {self.num_aux_heads + self.num_detail_heads + 1} found {len(preds)}"
+        ), f"Wrong num of results tensors for STDC loss, expected {self.num_aux_heads + self.num_detail_heads + 1} found {len(preds)}"
         losses = []
         total_loss = 0
 

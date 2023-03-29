@@ -69,7 +69,7 @@ class ConvertBoundingBoxes(nn.Module):
 
 class DetectionOutputAdapter(nn.Module):
     """
-    Adapter class for converting model's predictions for object detection to a desired format.
+    Adapter class for converting model's results for object detection to a desired format.
     This adapter supports torch.jit tracing & scripting & onnx conversion.
 
     >>> from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
@@ -84,7 +84,7 @@ class DetectionOutputAdapter(nn.Module):
     >>>        Describe the semantics of the model's output. In this example model's output consists of
     >>>         - Bounding boxes in XYXY format [4]
     >>>         - Predicted probas of N classes [N]
-    >>>         - A distance predictions [1]
+    >>>         - A distance results [1]
     >>>         - K additional labels [K]
     >>>        '''
     >>>        return ConcatenatedTensorFormat(
@@ -98,7 +98,7 @@ class DetectionOutputAdapter(nn.Module):
     >>>
     >>> yolox = YoloX(head=CustomDetectionHead)
     >>>
-    >>> # Suppose we want to return predictions in another format.
+    >>> # Suppose we want to return results in another format.
     >>> # Let it be:
     >>> # - Bounding boxes in normalized XYWH [4]
     >>> # - Predicted attributes [4]

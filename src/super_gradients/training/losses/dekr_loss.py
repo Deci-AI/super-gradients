@@ -38,7 +38,7 @@ class DEKRLoss(nn.Module):
     def forward(self, predictions: Tuple[Tensor, Tensor], targets: Tuple[Tensor, Tensor, Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
         """
 
-        :param predictions: Tuple of (heatmap, offset) predictions.
+        :param predictions: Tuple of (heatmap, offset) results.
             heatmap is of shape (B, NumJoints + 1, H, W)
             offset is of shape (B, NumJoints * 2, H, W)
 

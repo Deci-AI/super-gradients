@@ -9,7 +9,7 @@ from super_gradients.training.utils.detection_utils import DetectionVisualizatio
 
 
 @dataclass
-class Prediction(ABC):
+class Result(ABC):
     image: np.ndarray
     class_names: List[str]
 
@@ -19,8 +19,8 @@ class Prediction(ABC):
 
 
 @dataclass
-class Predictions(ABC):
-    predictions: List[Prediction]
+class Results(ABC):
+    results: List[Result]
 
     @abstractmethod
     def show(self):
@@ -28,7 +28,7 @@ class Predictions(ABC):
 
 
 @dataclass
-class DetectionPrediction(Prediction):
+class DetectionResult(Result):
     image: np.ndarray
     _predictions: np.ndarray  # (N, 6) [X1, Y1, X2, Y2, score, class_id]
     class_names: List[str]
@@ -49,7 +49,7 @@ class DetectionPrediction(Prediction):
     def class_ids(self) -> np.ndarray:
         return self._predictions[:, 5]
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = False, color_mapping: Optional[List[Tuple[int]]] = None):
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None):
         color_mapping = color_mapping or DetectionVisualization._generate_color_mapping(len(self.class_names))
 
         image_np = self.image.copy()
@@ -74,12 +74,12 @@ class DetectionPrediction(Prediction):
 
 
 @dataclass
-class DetectionPredictions(Predictions):
+class DetectionResults(Results):
     def __init__(self, images: List[np.ndarray], predictions: List[np.ndarray], class_names: List[str]):
-        self.predictions: List[DetectionPrediction] = []
+        self.results: List[DetectionResult] = []
         for image, prediction in zip(images, predictions):
-            self.predictions.append(DetectionPrediction(image=image, _predictions=prediction, class_names=class_names))
+            self.results.append(DetectionResult(image=image, _predictions=prediction, class_names=class_names))
 
-    def show(self, box_thickness: int = 2, color_mapping: Optional[List[Tuple[int]]] = None):
-        for prediction in self.predictions:
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None):
+        for prediction in self.results:
             prediction.show(box_thickness=box_thickness, color_mapping=color_mapping)

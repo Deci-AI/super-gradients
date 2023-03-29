@@ -101,7 +101,7 @@ class YoloXDetectionLoss(_Loss):
             Coef: 5.
         L_l1:
             for cells that have suitable ground truths in their grid locations
-            l1 distance between the logits and GTs in “logits” format (the inverse of “logits to predictions” ops)
+            l1 distance between the logits and GTs in “logits” format (the inverse of “logits to results” ops)
             Coef: 1[use_l1]
         L_objectness:
             for each cell add BCE with a label of 1 if there is GT assigned to the cell
@@ -147,7 +147,7 @@ class YoloXDetectionLoss(_Loss):
         :return: loss, all losses separately in a detached tensor
         """
         if isinstance(model_output, tuple) and len(model_output) == 2:
-            # in test/eval mode the Yolo model outputs a tuple where the second item is the raw predictions
+            # in test/eval mode the Yolo model outputs a tuple where the second item is the raw results
             _, predictions = model_output
         else:
             predictions = model_output
@@ -312,7 +312,7 @@ class YoloXDetectionLoss(_Loss):
         Convert raw outputs of the network into a format that merges outputs from all levels
         :param predictions:     output from all Yolo levels, each of shape
                                 [Batch x 1 x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]
-        :return:    5 tensors representing predictions:
+        :return:    5 tensors representing results:
                         * x_shifts: shape [1 x * num_cells x 1],
                           where num_cells = grid1X * grid1Y + grid2X * grid2Y + grid3X * grid3Y,
                           x coordinate on the grid cell the prediction is coming from
@@ -321,9 +321,9 @@ class YoloXDetectionLoss(_Loss):
                         * expanded_strides: shape [1 x num_cells x 1],
                           stride of the output grid the prediction is coming from
                         * transformed_outputs: shape [batch_size x num_cells x (num_classes + 5)],
-                          predictions with boxes in real coordinates and logprobabilities
+                          results with boxes in real coordinates and logprobabilities
                         * raw_outputs: shape [batch_size x num_cells x (num_classes + 5)],
-                          raw predictions with boxes and confidences as logits
+                          raw results with boxes and confidences as logits
 
         """
         raw_outputs = []
@@ -354,9 +354,9 @@ class YoloXDetectionLoss(_Loss):
 
             # outputs with boxes in real coordinates, probs as logits
             transformed_outputs.append(output_raveled)
-            # x cell coordinates of all 784 predictions, 0, 0, 0, ..., 1, 1, 1, ...
+            # x cell coordinates of all 784 results, 0, 0, 0, ..., 1, 1, 1, ...
             x_shifts.append(grid_raveled[:, :, 0])
-            # y cell coordinates of all 784 predictions, 0, 1, 2, ..., 0, 1, 2, ...
+            # y cell coordinates of all 784 results, 0, 1, 2, ..., 0, 1, 2, ...
             y_shifts.append(grid_raveled[:, :, 1])
             # e.g. [1, 784, stride of this level (one of [8, 16, 32])]
             expanded_strides.append(torch.zeros(1, grid_raveled.shape[1]).fill_(self.strides[k]).type_as(output))
@@ -421,8 +421,8 @@ class YoloXDetectionLoss(_Loss):
             shape (1 x num_cells x 1).
         :param x_shifts: torch.Tensor: X's in cell coordinates, shape (1,num_cells,1).
         :param y_shifts: torch.Tensor: Y's in cell coordinates, shape (1,num_cells,1).
-        :param cls_preds: torch.Tensor: Class predictions in all cells, shape (batch_size, num_cells).
-        :param obj_preds: torch.Tensor: Objectness predictions in all cells, shape (batch_size, num_cells).
+        :param cls_preds: torch.Tensor: Class results in all cells, shape (batch_size, num_cells).
+        :param obj_preds: torch.Tensor: Objectness results in all cells, shape (batch_size, num_cells).
         :param mode: str: One of ["gpu","cpu"], Controls the device the assignment operation should be taken place on (deafult="gpu")
 
         """
@@ -619,7 +619,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         Tensors contain image ids, ground truth ids and anchor ids as values to support variable length data.
     * There are differences in terms of the algorithm itself:
     1. When computing a dynamic k for a ground truth,
-        in the original implementation they consider the sum of top 10 predictions sorted by ious among the initial
+        in the original implementation they consider the sum of top 10 results sorted by ious among the initial
         foregrounds of any ground truth in the image,
         while in our implementation we consider only the initial foreground of that particular ground truth.
         To compensate for that difference we introduce the dynamic_ks_bias hyperparamter which makes the dynamic ks larger.
@@ -661,7 +661,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
             Coef: 1.
         L_l1:
             for cells that have suitable ground truths in their grid locations
-            l1 distance between the logits and GTs in “logits” format (the inverse of “logits to predictions” ops)
+            l1 distance between the logits and GTs in “logits” format (the inverse of “logits to results” ops)
             Coef: 1[no_aug_epoch]
         L_objectness:
             for each cell add BCE with a label of 1 if there is GT assigned to the cell
@@ -795,9 +795,9 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
             * at most 1 GT per cell
             * dynamic number of cells per GT
 
-        :param bbox_preds: predictions of bounding boxes. shape [batch, n_anchors_all, 4]
-        :param cls_preds:  predictions of class.          shape [batch, n_anchors_all, n_cls]
-        :param obj_preds:  predictions for objectness.    shape [batch, n_anchors_all, 1]
+        :param bbox_preds: results of bounding boxes. shape [batch, n_anchors_all, 4]
+        :param cls_preds:  results of class.          shape [batch, n_anchors_all, n_cls]
+        :param obj_preds:  results for objectness.    shape [batch, n_anchors_all, 1]
         :param expanded_strides:  stride of the output grid the prediction is coming from. shape [1, n_anchors_all]
         :param x_shifts: x coordinate on the grid cell the prediction is coming from.      shape [1, n_anchors_all]
         :param y_shifts: y coordinate on the grid cell the prediction is coming from.      shape [1, n_anchors_all]

@@ -16,10 +16,10 @@ class SegKDLoss(nn.Module):
     def __init__(self, kd_loss: nn.Module, ce_loss: nn.Module, weights: Union[tuple, list], kd_loss_weights: Union[tuple, list]):
         """
         :param kd_loss: knowledge distillation criteria, such as, ChannelWiseKnowledgeDistillationLoss.
-         This loss should except as input a triplet of the predictions from the model with shape [B, C, H, W],
-         the teacher model predictions with shape [B, C, H, W] and the target labels with shape [B, H, W].
+         This loss should except as input a triplet of the results from the model with shape [B, C, H, W],
+         the teacher model results with shape [B, C, H, W] and the target labels with shape [B, H, W].
         :param ce_loss: classification criteria, such as, CE, OHEM, MaskAttention, SL1, etc.
-         This loss should except as input the predictions from the model with shape [B, C, H, W], and the target labels
+         This loss should except as input the results from the model with shape [B, C, H, W], and the target labels
          with shape [B, H, W].
         :param weights: lambda weights to apply upon each prediction map heads.
         :param kd_loss_weights: lambda weights to apply upon each criterion. 2 values are excepted as follows,
@@ -42,8 +42,8 @@ class SegKDLoss(nn.Module):
     def forward(self, preds: KDOutput, target: torch.Tensor):
         if not isinstance(preds, KDOutput):
             raise RuntimeError(
-                "Predictions argument for `SegKDLoss` forward method is expected to be a `KDOutput` to"
-                " include the predictions from both the student and the teacher models."
+                "Results argument for `SegKDLoss` forward method is expected to be a `KDOutput` to"
+                " include the results from both the student and the teacher models."
             )
         teacher_preds = preds.teacher_output
         student_preds = preds.student_output

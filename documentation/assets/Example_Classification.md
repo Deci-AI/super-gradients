@@ -590,7 +590,7 @@ As we can see, the validation accuracy improved by 1.7% compared to the randomly
 To achieve a greater improvement with pre-trained weights, sometimes careful tuning of the training hyperparameters
 is required. 
 
-## 6. Predictions with the trained model
+## 6. Results with the trained model
 
 Now that we have a trained model with reasonable performance, we can use it to make predictions on new data.
 First, let's import some packages:

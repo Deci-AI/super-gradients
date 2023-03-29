@@ -130,7 +130,7 @@ class AbstractMetricsArgsPrepFn(ABC):
     @abstractmethod
     def __call__(self, preds, target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        All base classes must implement this function and return a tuple of torch tensors (predictions, target).
+        All base classes must implement this function and return a tuple of torch tensors (results, target).
         """
         raise NotImplementedError()
 
@@ -143,8 +143,8 @@ class PreprocessSegmentationMetricsArgs(AbstractMetricsArgsPrepFn):
 
     def __init__(self, apply_arg_max: bool = False, apply_sigmoid: bool = False):
         """
-        :param apply_arg_max: Whether to apply argmax on predictions tensor.
-        :param apply_sigmoid:  Whether to apply sigmoid on predictions tensor.
+        :param apply_arg_max: Whether to apply argmax on results tensor.
+        :param apply_sigmoid:  Whether to apply sigmoid on results tensor.
         """
         self.apply_arg_max = apply_arg_max
         self.apply_sigmoid = apply_sigmoid

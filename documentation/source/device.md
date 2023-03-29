@@ -155,11 +155,11 @@ class Top5Accuracy(Metric):
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         batch_size = target.size(0)
 
-        # Get the top k predictions
+        # Get the top k results
         _, pred = preds.topk(5, 1, True, True)
         pred = pred.t()
 
-        # Count the number of correct predictions only for the highest 5
+        # Count the number of correct results only for the highest 5
         correct = pred.eq(target.view(1, -1).expand_as(pred))
         correct5 = correct[:5].reshape(-1).float().sum(0)
 
@@ -185,11 +185,11 @@ class DDPTop1Accuracy(torchmetrics.Metric):
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         batch_size = target.size(0)
 
-        # Get the top k predictions
+        # Get the top k results
         _, pred = preds.topk(5, 1, True, True)
         pred = pred.t()
 
-        # Count the number of correct predictions only for the highest 5
+        # Count the number of correct results only for the highest 5
         correct = pred.eq(target.view(1, -1).expand_as(pred))
         correct5 = correct[:5].reshape(-1).float().sum(0)
 

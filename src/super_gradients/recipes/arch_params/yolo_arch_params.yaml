@@ -17,7 +17,7 @@ scaled_backbone_width: True  # True if width_mult_factor is applied to the backb
 # False if backbone_connection_channels should be used as is
 fuse_conv_and_bn: False  # Fuse sequential Conv + B.N layers into a single one
 add_nms: False  # Add the NMS module to the computational graph
-nms_conf: 0.25  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
+nms_conf: 0.25  # When add_nms is True during NMS results with confidence lower than this will be discarded
 nms_iou: 0.45  # When add_nms is True IoU threshold for NMS algorithm
                # (with smaller value more boxed will be considered "the same" and removed)
 yolo_type: 'yolox'   # Type of yolo to build: 'yoloX' is th only type currently supported.

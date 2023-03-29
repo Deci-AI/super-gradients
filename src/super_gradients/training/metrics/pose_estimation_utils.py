@@ -113,7 +113,7 @@ def compute_img_keypoint_matching(
     top_k: int,
 ) -> Tuple[Tensor, Tensor, Tensor, int]:
     """
-    Match predictions and the targets (ground truth) with respect to IoU and confidence score for a given image.
+    Match results and the targets (ground truth) with respect to IoU and confidence score for a given image.
 
     :param preds:            Tensor of shape (K, NumJoints, 3) - Array of predicted skeletons.
                              Last dimension encode X,Y and confidence score of each joint
@@ -148,7 +148,7 @@ def compute_img_keypoint_matching(
     :param sigmas:          Tensor of shape (NumJoints) with sigmas for each joint. Sigma value represent how 'hard'
                             it is to locate the exact groundtruth position of the joint.
 
-    :param top_k:           Number of predictions to keep, ordered by confidence score
+    :param top_k:           Number of results to keep, ordered by confidence score
 
     :return:
         :preds_matched:     Tensor of shape (min(top_k, len(preds)), n_iou_thresholds)
@@ -157,7 +157,7 @@ def compute_img_keypoint_matching(
         :preds_to_ignore:   Tensor of shape (min(top_k, len(preds)), n_iou_thresholds)
                                 True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
 
-        :preds_scores:      Tensor of shape (min(top_k, len(preds))) with scores of top-k predictions
+        :preds_scores:      Tensor of shape (min(top_k, len(preds))) with scores of top-k results
 
         :num_targets:       Number of groundtruth targets (total num targets minus number of ignored)
 
@@ -176,7 +176,7 @@ def compute_img_keypoint_matching(
     targets_matched = torch.zeros(len(targets), num_iou_thresholds, dtype=torch.bool, device=device)
     preds_to_ignore = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
 
-    # Ignore all but the predictions that were top_k
+    # Ignore all but the results that were top_k
     k = min(top_k, len(pred_scores))
     preds_idx_to_use = torch.topk(pred_scores, k=k, sorted=True, largest=True).indices
     preds_to_ignore[:, :] = True
@@ -221,7 +221,7 @@ def compute_img_keypoint_matching(
             if targets_matched.all():
                 break
 
-    # Crowd targets can be matched with many predictions.
+    # Crowd targets can be matched with many results.
     # Therefore, for every prediction we just need to check if it has IoA large enough with any crowd target.
     if len(crowd_targets) > 0:
         # shape = (n_preds_to_use x n_crowd_targets)

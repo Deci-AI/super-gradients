@@ -11,9 +11,14 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
-from super_gradients.training.models.predictions import DetectionPredictions
+from super_gradients.training.models.results import DetectionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
-from super_gradients.training.transforms.processing import DetectionPaddedRescale
+from super_gradients.training.transforms.processing import (
+    ComposeProcessing,
+    DetectionRescale,
+    DetectionSidePadding,
+    ImagePermute,
+)
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
@@ -38,7 +43,7 @@ DEFAULT_YOLO_ARCH_PARAMS = {
     "scaled_backbone_width": True,
     "fuse_conv_and_bn": False,  # Fuse sequential Conv + B.N layers into a single one
     "add_nms": False,  # Add the NMS module to the computational graph
-    "nms_conf": 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
+    "nms_conf": 0.25,  # When add_nms is True during NMS results with confidence lower than this will be discarded
     "nms_iou": 0.45,  # When add_nms is True IoU threshold for NMS algorithm
     # (with smaller value more boxed will be considered "the same" and removed)
     "yolo_type": "yoloX",  # Type of yolo to build: 'yoloX' is only supported currently
@@ -416,14 +421,20 @@ class YoloBase(SgModule):
             self._head = YoloHead(self.arch_params)
             self._initialize_module()
 
-        self._image_processor = DetectionPaddedRescale(output_size=(640, 640), swap=(2, 0, 1))
+        self._image_processor = ComposeProcessing(
+            [
+                DetectionRescale((640, 640), keep_aspect_ratio=True),
+                DetectionSidePadding((640, 640), 114),
+                ImagePermute((2, 0, 1)),
+            ]
+        )
         self._class_names = COCO_DETECTION_CLASSES_LIST
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return YoloPostPredictionCallback(conf=conf, iou=iou)
 
-    def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionPredictions:
+    def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
 
         pipeline = DetectionPipeline(
             model=self,
