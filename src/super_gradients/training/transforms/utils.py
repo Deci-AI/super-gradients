@@ -31,8 +31,8 @@ def rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np.
     return targets
 
 
-def get_shift_params(input_size: Tuple[int, int], output_size: Tuple[int, int]) -> Tuple[int, int, Tuple[int, int], Tuple[int, int]]:
-    """Get shift parameters for resizing an image to given output size, while preserving aspect ratio using padding.
+def get_center_padding_params(input_size: Tuple[int, int], output_size: Tuple[int, int]) -> Tuple[int, int, Tuple[int, int], Tuple[int, int]]:
+    """Get parameters for padding an image to given output size, in center mode.
 
     :param input_size:  Size of the input image.
     :param output_size: Size to resize to.

@@ -11,7 +11,7 @@ from super_gradients.training.transforms.utils import (
     shift_bboxes,
     rescale_and_pad_to_size,
     rescale_xyxy_bboxes,
-    get_shift_params,
+    get_center_padding_params,
 )
 
 
@@ -148,7 +148,7 @@ class DetectionPadToSize(Processing):
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        shift_h, shift_w, pad_h, pad_w = get_shift_params(input_size=image.shape, output_size=self.output_size)
+        shift_h, shift_w, pad_h, pad_w = get_center_padding_params(input_size=image.shape, output_size=self.output_size)
         processed_image = shift_image(image, pad_h, pad_w, self.pad_value)
 
         return processed_image, DetectionPadToSizeMetadata(shift_h=shift_h, shift_w=shift_w)

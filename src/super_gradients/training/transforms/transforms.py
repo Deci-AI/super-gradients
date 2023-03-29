@@ -23,7 +23,7 @@ from super_gradients.training.transforms.utils import (
     rescale_and_pad_to_size,
     rescale_image,
     rescale_bboxes,
-    get_shift_params,
+    get_center_padding_params,
     shift_image,
     shift_bboxes,
     rescale_xyxy_bboxes,
@@ -740,7 +740,7 @@ class DetectionPadToSize(DetectionTransform):
 
     def __call__(self, sample: dict) -> dict:
         image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        shift_h, shift_w, pad_h, pad_w = get_shift_params(input_size=image.shape, output_size=self.output_size)
+        shift_h, shift_w, pad_h, pad_w = get_center_padding_params(input_size=image.shape, output_size=self.output_size)
 
         sample["image"] = shift_image(image=image, pad_h=pad_h, pad_w=pad_w, pad_value=self.pad_value)
         sample["target"] = shift_bboxes(targets=targets, shift_w=shift_w, shift_h=shift_h)

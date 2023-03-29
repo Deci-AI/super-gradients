@@ -18,7 +18,7 @@ from super_gradients.training.transforms.utils import (
     shift_bboxes,
     rescale_and_pad_to_size,
     rescale_xyxy_bboxes,
-    get_shift_params,
+    get_center_padding_params,
 )
 
 
@@ -149,7 +149,7 @@ class TestTransforms(unittest.TestCase):
     def test_get_shift_params(self):
         input_size = (640, 480)
         output_size = (800, 600)
-        shift_h, shift_w, pad_h, pad_w = get_shift_params(input_size, output_size)
+        shift_h, shift_w, pad_h, pad_w = get_center_padding_params(input_size, output_size)
 
         # Check if the shift and padding values are correct
         self.assertEqual((shift_h, shift_w, pad_h, pad_w), (80, 60, (80, 80), (60, 60)))
