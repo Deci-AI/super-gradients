@@ -20,7 +20,7 @@ class ProcessingMetadata(BaseModel, ABC):
 
 
 class ComposeProcessingMetadata(ProcessingMetadata):
-    metadata_lst: List[Union[ProcessingMetadata]]
+    metadata_lst: List[Union[ProcessingMetadata, None]]
 
 
 class DetectionPadToSizeMetadata(ProcessingMetadata):

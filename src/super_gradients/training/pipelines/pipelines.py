@@ -108,13 +108,7 @@ class DetectionPipeline(Pipeline):
 
 # MODELS_PROCESSORS: Dict[type, Processing] = {
 #     YoloBase: DetectionPaddedRescale(output_size=(640, 640), swap=(2, 0, 1)),
-#     PPYoloE: ComposeProcessing(
-#         [
-#             DetectionPadToSize(output_size=(640, 640), pad_value=0),
-#             NormalizeImage(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375]),
-#             ImagePermute(permutation=(2, 0, 1)),
-#         ]
-#     ),
+#     PPYoloE: ,
 #     DDRNetCustom: ComposeProcessing(
 #         [
 #             SegmentationRescale(output_shape=(480, 320)),
