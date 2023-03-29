@@ -115,7 +115,7 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
         dataloader_params["sampler"] = {"DistributedSampler": {}}
         dataloader_params = _instantiate_sampler(dataset, dataloader_params)
     elif get_param(dataloader_params, "min_samples") is not None:
-        min_samples = dataloader_params.pop("shuffle")
+        min_samples = dataloader_params.pop("min_samples")
         if len(dataset) < min_samples:
             dataloader_params["sampler"] = RandomSampler(dataset, replacement=True, num_samples=min_samples)
             if "shuffle" in dataloader_params.keys():
