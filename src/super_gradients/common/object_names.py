@@ -57,7 +57,7 @@ class Transforms:
     DetectionRandomRotate90 = "DetectionRandomRotate90"
     DetectionHorizontalFlip = "DetectionHorizontalFlip"
     DetectionRescale = "DetectionRescale"
-    DetectionPadToSize = "DetectionCenterPadding"
+    DetectionPadToSize = "DetectionPadToSize"
     DetectionImagePermute = "DetectionImagePermute"
     DetectionPaddedRescale = "DetectionPaddedRescale"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"

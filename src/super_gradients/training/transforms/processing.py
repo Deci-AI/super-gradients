@@ -11,8 +11,6 @@ from super_gradients.training.transforms.utils import (
     _get_center_padding_params,
     _shift_image,
     _shift_bboxes,
-    _rescale_and_pad_to_size,
-    _rescale_xyxy_bboxes,
 )
 
 
@@ -37,11 +35,6 @@ class RescaleMetadata(ProcessingMetadata):
     original_size: Tuple[int, int]
     sy: float
     sx: float
-
-
-@dataclass
-class DetectionPaddedRescaleMetadata(ProcessingMetadata):
-    r: float
 
 
 class Processing(ABC):
@@ -111,27 +104,6 @@ class NormalizeImage(Processing):
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: None) -> np.ndarray:
         return predictions
-
-
-class DetectionPaddedRescale(Processing):
-    """Apply padding rescaling to image and bboxes to `output_size` shape (rows, cols).
-
-    :param output_size: Target input dimension.
-    :param swap:        Image axis's to be rearranged.
-    :param pad_value:   Padding value for image.
-    """
-
-    def __init__(self, output_size: Tuple[int, int], swap: Tuple[int, ...] = (2, 0, 1), pad_value: int = 114):
-        self.output_size = output_size
-        self.swap = swap
-        self.pad_value = pad_value
-
-    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPaddedRescaleMetadata]:
-        rescaled_image, r = _rescale_and_pad_to_size(image=image, output_size=self.output_size, swap=self.swap, pad_val=self.pad_value)
-        return rescaled_image, DetectionPaddedRescaleMetadata(r=r)
-
-    def postprocess_predictions(self, predictions: np.array, metadata=DetectionPaddedRescaleMetadata) -> np.array:
-        return _rescale_xyxy_bboxes(targets=predictions, r=1 / metadata.r)
 
 
 class DetectionCenterPadding(Processing):
