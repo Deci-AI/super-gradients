@@ -9,7 +9,7 @@ from super_gradients.training.utils.detection_utils import xyxy2cxcywh, cxcywh2x
 def rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.ndarray:
     """Rescale image to target_shape, without preserving aspect ratio.
 
-    :param image:           Image to rescale.
+    :param image:           Image to rescale. (H, W, C) or (H, W).
     :param target_shape:    Target shape to rescale to.
     :return:                Rescaled image.
     """
@@ -52,7 +52,7 @@ def get_shift_params(input_size: Tuple[int, int], output_size: Tuple[int, int]) 
 def shift_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int], pad_value: int) -> np.ndarray:
     """Shift bboxes with respect to padding coordinates.
 
-    :param image:       Image to shift
+    :param image:       Image to shift. (H, W, C) or (H, W).
     :param pad_h:       Padding to add to height
     :param pad_w:       Padding to add to width
     :param pad_value:   Padding value
@@ -92,10 +92,10 @@ def rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
 
 def rescale_and_pad_to_size(image: np.ndarray, output_size: Tuple[int, int], swap: Tuple[int] = (2, 0, 1), pad_val: int = 114) -> Tuple[np.ndarray, float]:
     """
-    Rescales image according to minimum ratio input height/width and output height/width.
-    and pads the image to the target size.
+    Rescales image according to minimum ratio input height/width and output height/width rescaled_padded_image and pads the image to the target size.
+    Note: Pads the image to corner, padding is not centered.
 
-    :param image:       Image to be rescaled
+    :param image:       Image to be rescaled. (H, W, C) or (H, W).
     :param output_size: Target size
     :param swap:        Axis's to be rearranged.
     :param pad_val:     Value to use for padding

@@ -46,7 +46,7 @@ class DetectionPaddedRescaleMetadata(ProcessingMetadata):
 class Processing(ABC):
     @abstractmethod
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, Union[None, ProcessingMetadata]]:
-        """Processing an image, before feeding it to the network."""
+        """Processing an image, before feeding it to the network. Expected to be in (H, W, C) or (H, W)."""
         pass
 
     @abstractmethod
