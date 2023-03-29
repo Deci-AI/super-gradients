@@ -14,7 +14,7 @@ dataset_params:
   dataset_name: ${dataset_name}
 
   train_dataloader_params:
-    batch_size: 16
+    batch_size: 12
 
   val_dataloader_params:
     batch_size: 16
@@ -41,7 +41,7 @@ training_hyperparams:
   lr_warmup_epochs: 3
   warmup_mode: linear_epoch_step
 
-  initial_lr: 5e-4
+  initial_lr: 4e-4
   cosine_final_lr_ratio: 0.1
 
   optimizer_params:
