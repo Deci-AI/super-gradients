@@ -252,7 +252,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ### How to Predict Using Pre-trained Model
 
-#### Segmentation, Detection and Classification Result 
+#### Segmentation, Detection and Classification Prediction 
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">    
 <a target="_blank" href="https://bit.ly/3f4mssd"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Predict Using Pre-trained Model</a>

@@ -45,7 +45,7 @@ class Processing(ABC):
 
     @abstractmethod
     def postprocess_predictions(self, predictions: np.ndarray, metadata: Union[None, ProcessingMetadata]) -> np.ndarray:
-        """Postprocess the model output results."""
+        """Postprocess the model output predictions."""
         pass
 
 
@@ -64,7 +64,7 @@ class ComposeProcessing(Processing):
         return processed_image, ComposeProcessingMetadata(metadata_lst=metadata_lst)
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: ComposeProcessingMetadata) -> np.ndarray:
-        """Postprocess the model output results."""
+        """Postprocess the model output predictions."""
         postprocessed_predictions = predictions
         for processing, metadata in zip(self.processings[::-1], metadata.metadata_lst[::-1]):
             postprocessed_predictions = processing.postprocess_predictions(postprocessed_predictions, metadata)

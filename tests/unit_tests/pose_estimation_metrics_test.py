@@ -44,7 +44,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         # Load groundtruth annotations
         gt = self._load_coco_groundtruth(with_crowd, with_duplicates, with_invisible_keypoitns)
 
-        # Generate results by randomly dropping some instances and adding noise to remaining poses
+        # Generate predictions by randomly dropping some instances and adding noise to remaining poses
         (
             predicted_poses,
             predicted_scores,
@@ -57,7 +57,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
 
         # Compute metrics using SG implementation
         def convert_predictions_to_target_format(preds):
-            # This is out results decode function. Here it's no-op since we pass decoded results as the input
+            # This is out predictions decode function. Here it's no-op since we pass decoded predictions as the input
             # but in real life this post-processing callback should be doing actual pose decoding & NMS
             return preds
 
@@ -115,7 +115,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
     def test_metric_works_on_empty_predictions(self):
         # Compute metrics using SG implementation
         def convert_predictions_to_target_format(preds):
-            # This is out results decode function. Here it's no-op since we pass decoded results as the input
+            # This is out predictions decode function. Here it's no-op since we pass decoded predictions as the input
             # but in real life this post-processing callback should be doing actual pose decoding & NMS
             return preds
 

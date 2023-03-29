@@ -163,7 +163,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
 
     def get_mask(self, anno, img_info) -> np.ndarray:
         """
-        This method computes ignore mask, which describes crowd objects / objects w/o keypoints to exclude these results from contributing to the loss
+        This method computes ignore mask, which describes crowd objects / objects w/o keypoints to exclude these predictions from contributing to the loss
         :param anno:
         :param img_info:
         :return: Float mask of [H,W] shape (same as image dimensions),

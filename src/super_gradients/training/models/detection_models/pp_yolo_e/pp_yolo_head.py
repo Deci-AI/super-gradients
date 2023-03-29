@@ -196,7 +196,7 @@ class PPYOLOEHead(nn.Module):
             cls_logit = self.pred_cls[i](self.stem_cls[i](feat, avg_feat) + feat)
             reg_distri = self.pred_reg[i](self.stem_reg[i](feat, avg_feat))
             # cls and reg
-            # Note we don't apply sigmoid on class results to ensure good numerical stability at loss computation
+            # Note we don't apply sigmoid on class predictions to ensure good numerical stability at loss computation
             cls_score_list.append(torch.permute(cls_logit.flatten(2), [0, 2, 1]))
             reg_distri_list.append(torch.permute(reg_distri.flatten(2), [0, 2, 1]))
         cls_score_list = torch.cat(cls_score_list, dim=1)

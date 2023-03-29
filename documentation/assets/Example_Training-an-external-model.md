@@ -716,7 +716,7 @@ We can also check the validation set's IoU metric's value:
 
 
 
-## 6. Results with the trained model
+## 6. Predictions with the trained model
 
 Now that we have a trained model we can use it to make predictions on the test set. First, let's instantiate a test
 dataset:

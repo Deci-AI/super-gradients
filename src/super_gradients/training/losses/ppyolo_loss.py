@@ -734,9 +734,9 @@ class PPYoloELoss(nn.Module):
          - pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
         :return:
         """
-        # in test/eval mode the model outputs a tuple where the second item is the raw results
+        # in test/eval mode the model outputs a tuple where the second item is the raw predictions
         if isinstance(outputs, tuple) and len(outputs) == 2:
-            # in test/eval mode the Yolo model outputs a tuple where the second item is the raw results
+            # in test/eval mode the Yolo model outputs a tuple where the second item is the raw predictions
             _, predictions = outputs
         else:
             predictions = outputs

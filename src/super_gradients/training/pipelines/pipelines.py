@@ -49,11 +49,11 @@ class Pipeline(ABC):
         pass
 
     def _run(self, images: Union[ImageType, List[ImageType]]) -> Tuple[List[np.ndarray], List[Any]]:
-        """Run the pipeline and return (image, results). The pipeline is made of 4 steps:
+        """Run the pipeline and return (image, predictions). The pipeline is made of 4 steps:
         1. Load images - Loading the images into a list of numpy arrays.
         2. Preprocess - Encode the image in the shape/format expected by the model
         3. Predict - Run the model on the preprocessed image
-        4. Postprocess - Decode the output of the model so that the results are in the shape/format of original image.
+        4. Postprocess - Decode the output of the model so that the predictions are in the shape/format of original image.
         """
         self.model = self.model.to(self.device)  # Make sure the model is on the correct device
 
@@ -116,7 +116,7 @@ class DetectionPipeline(Pipeline):
         return DetectionResults(images=images, predictions=predictions, class_names=self.class_names)
 
     def _decode_model_raw_prediction(self, raw_predictions) -> List[torch.Tensor]:
-        """Decode the raw results from the model into a normal format."""
+        """Decode the raw predictions from the model into a normal format."""
         decoded_predictions = self.post_prediction_callback(raw_predictions, device=self.device)
         decoded_predictions = [
             decoded_prediction if decoded_prediction is not None else torch.zeros((0, 6), dtype=torch.float32) for decoded_prediction in decoded_predictions

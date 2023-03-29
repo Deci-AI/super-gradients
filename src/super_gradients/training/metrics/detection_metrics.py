@@ -26,7 +26,7 @@ class DetectionMetrics(Metric):
     :param iou_thres:                       IoU threshold to compute the mAP.
     :param recall_thres:                    Recall threshold to compute the mAP.
     :param score_thres:                     Score threshold to compute Recall, Precision and F1.
-    :param top_k_predictions:               Number of results per class used to compute metrics, ordered by confidence score
+    :param top_k_predictions:               Number of predictions per class used to compute metrics, ordered by confidence score
     :param dist_sync_on_step:               Synchronize metric state across processes at each ``forward()`` before returning the value at the step.
     :param accumulate_on_cpu:               Run on CPU regardless of device used in other parts.
                                             This is to avoid "CUDA out of memory" that might happen on GPU.
@@ -78,7 +78,7 @@ class DetectionMetrics(Metric):
 
     def update(self, preds, target: torch.Tensor, device: str, inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None) -> None:
         """
-        Apply NMS and match all the results and targets of a given batch, and update the metric state accordingly.
+        Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
 
         :param preds:           Raw output of the model, the format might change from one model to another,
                                 but has to fit the input format of the post_prediction_callback (cx,cy,wh)

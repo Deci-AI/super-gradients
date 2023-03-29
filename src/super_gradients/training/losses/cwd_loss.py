@@ -8,7 +8,7 @@ class ChannelWiseKnowledgeDistillationLoss(nn.Module):
     """
     Implementation of Channel-wise Knowledge distillation loss.
 
-    paper: "Channel-wise Knowledge Distillation for Dense Result", https://arxiv.org/abs/2011.13256
+    paper: "Channel-wise Knowledge Distillation for Dense Prediction", https://arxiv.org/abs/2011.13256
     Official implementation: https://github.com/irfanICMLL/TorchDistiller/tree/main/SemSeg-distill
     """
 

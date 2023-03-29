@@ -153,9 +153,9 @@ class SSDLoss(_Loss):
     def forward(self, predictions: Tuple, targets):
         """
         Compute the loss
-            :param predictions - results tensor coming from the network,
+            :param predictions - predictions tensor coming from the network,
             tuple with shapes ([Batch Size, 4, num_dboxes], [Batch Size, num_classes + 1, num_dboxes])
-            were results have logprobs for background and other classes
+            were predictions have logprobs for background and other classes
             :param targets - targets for the batch. [num targets, 6] (index in batch, label, x,y,w,h)
         """
         if isinstance(predictions, tuple) and isinstance(predictions[1], tuple):

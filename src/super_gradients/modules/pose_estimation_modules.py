@@ -12,7 +12,7 @@ from super_gradients.common.registry.registry import register_detection_module
 @register_detection_module()
 class LightweightDEKRHead(BaseDetectionModule):
     """
-    Result head for pose estimation task that mimics approach from DEKR (https://arxiv.org/abs/2104.02300) paper,
+    Prediction head for pose estimation task that mimics approach from DEKR (https://arxiv.org/abs/2104.02300) paper,
     but does not use deformable convolutions.
 
     This head takes single feature map of [B,C,H,W] shape as input and outputs a tuple of (heatmap, offset):

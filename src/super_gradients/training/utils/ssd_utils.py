@@ -31,14 +31,14 @@ class DefaultBoxes(object):
         Because of division by image resolution, the anchors will be in image coordinates normalized to [0, 1]
 
         :param fig_size:        input image resolution
-        :param feat_size:       resolution of all feature maps with results (grids)
+        :param feat_size:       resolution of all feature maps with predictions (grids)
         :param scales:          anchor sizes in pixels for each feature level;
                                 one value per level will be used to generate anchors based on the formula above
         :param aspect_ratios:   lists of alpha values for each feature map
         :param scale_xy:        predicted boxes will be with a factor scale_xy
                                 so will be multiplied by scale_xy during post-prediction processing;
                                 e.g. scale 0.1 means that prediction will be 10 times bigger
-                                (improves results quality)
+                                (improves predictions quality)
         :param scale_wh:        same logic as in scale_xy, but for width and height.
         """
         self.feat_size = feat_size
@@ -100,7 +100,7 @@ class DefaultBoxes(object):
 
 class SSDPostPredictCallback(DetectionPostPredictionCallback):
     """
-    post prediction callback module to convert and filter results coming from the SSD net to a format
+    post prediction callback module to convert and filter predictions coming from the SSD net to a format
     used by all other detection models
     """
 
@@ -114,7 +114,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         multi_label_per_box=True,
     ):
         """
-        Results of SSD contain unnormalized probabilities for a background class,
+        Predictions of SSD contain unnormalized probabilities for a background class,
         together with confidences for all the dataset classes. Background will be utilized and discarded,
         so this callback will return 0-based classes without background
         :param conf: confidence threshold

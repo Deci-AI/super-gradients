@@ -141,7 +141,7 @@ class PANNeck(BaseDetectionModule):
 @register_detection_module()
 class NHeads(BaseDetectionModule):
     """
-    Apply N heads in parallel and combine results into the shape expected by SG detection losses
+    Apply N heads in parallel and combine predictions into the shape expected by SG detection losses
     """
 
     def __init__(self, in_channels: List[int], num_classes: int, heads_list: Union[str, HpmStruct, DictConfig]):

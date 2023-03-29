@@ -28,7 +28,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
         reduction: Union[LossReduction, str] = "mean",
     ):
         """
-        :param apply_softmax: Whether to apply softmax to the results.
+        :param apply_softmax: Whether to apply softmax to the predictions.
         :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the metric
             coefficient is to 1, which can be used as a regularization effect.
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895

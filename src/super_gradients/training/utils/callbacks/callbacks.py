@@ -577,7 +577,7 @@ class PhaseContextTestCallback(PhaseCallback):
 @register_callback(Callbacks.DETECTION_VISUALIZATION_CALLBACK)
 class DetectionVisualizationCallback(PhaseCallback):
     """
-    A callback that adds a visualization of a batch of detection results to context.sg_logger
+    A callback that adds a visualization of a batch of detection predictions to context.sg_logger
 
     :param phase:                   When to trigger the callback.
     :param freq:                    Frequency (in epochs) to perform this callback.
@@ -616,7 +616,7 @@ class DetectionVisualizationCallback(PhaseCallback):
 
 class BinarySegmentationVisualizationCallback(PhaseCallback):
     """
-    A callback that adds a visualization of a batch of segmentation results to context.sg_logger
+    A callback that adds a visualization of a batch of segmentation predictions to context.sg_logger
 
     :param phase:                   When to trigger the callback.
     :param freq:                    Frequency (in epochs) to perform this callback.

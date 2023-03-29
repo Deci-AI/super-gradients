@@ -17,7 +17,7 @@ __all__ = ["DEKRVisualizationCallback"]
 @register_callback(Callbacks.DEKR_VISUALIZATION)
 class DEKRVisualizationCallback(PhaseCallback):
     """
-    A callback that adds a visualization of a batch of segmentation results to context.sg_logger
+    A callback that adds a visualization of a batch of segmentation predictions to context.sg_logger
 
     :param phase:                   When to trigger the callback.
     :param prefix:                  Prefix to add to the log.
@@ -120,7 +120,7 @@ class DEKRVisualizationCallback(PhaseCallback):
 
         gt_heatmap, mask, _, _ = targets
 
-        # Check whether model also produce supervised output results
+        # Check whether model also produce supervised output predictions
         if isinstance(predictions, tuple) and len(predictions) == 2 and torch.is_tensor(predictions[0]) and torch.is_tensor(predictions[1]):
             heatmap, _ = predictions
         else:
@@ -145,7 +145,7 @@ class DEKRVisualizationCallback(PhaseCallback):
 
         peaks_heatmap = peaks_heatmap.sum(dim=0, keepdim=False) > 0
 
-        # Apply masking with GT mask to suppress results on ignored areas of the image (where target_mask==0)
+        # Apply masking with GT mask to suppress predictions on ignored areas of the image (where target_mask==0)
         flat_target_mask = target_mask.sum(dim=0, keepdim=False) > 0
         peaks_heatmap &= flat_target_mask
         peaks_heatmap = peaks_heatmap.detach().cpu().numpy().astype(np.uint8) * 255
