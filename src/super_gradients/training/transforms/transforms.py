@@ -729,7 +729,7 @@ class DetectionPadToSize(DetectionTransform):
 
     def __init__(self, output_size: Tuple[int, int], pad_value: int):
         """
-        Constructor for DetectionCenterPadding transform.
+        Constructor for DetectionPadToSize transform.
 
         :param output_size: Output image size (rows, cols)
         :param pad_value: Padding value for image

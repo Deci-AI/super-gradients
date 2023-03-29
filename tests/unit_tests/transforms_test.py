@@ -189,7 +189,7 @@ class TestTransforms(unittest.TestCase):
         np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
 
     def test_pad_image_on_side(self):
-
+        # Test Case 1: Padding needed
         image = np.array([[1, 2], [3, 4]])
         output_size = (3, 4)
         expected_result = np.array([[1, 2, 114, 114], [3, 4, 114, 114], [114, 114, 114, 114]])
