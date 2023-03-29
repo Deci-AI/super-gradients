@@ -92,15 +92,16 @@ def rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
 
 def rescale_and_pad_to_size(image: np.ndarray, output_size: Tuple[int, int], swap: Tuple[int] = (2, 0, 1), pad_val: int = 114) -> Tuple[np.ndarray, float]:
     """
-    Rescales image according to minimum ratio input height/width and output height/width rescaled_padded_image and pads the image to the target size.
+    Rescales image according to minimum ratio input height/width and output height/width rescaled_padded_image,
+    pads the image to the target size and finally swap axis.
     Note: Pads the image to corner, padding is not centered.
 
     :param image:       Image to be rescaled. (H, W, C) or (H, W).
-    :param output_size: Target size
+    :param output_size: Target size.
     :param swap:        Axis's to be rearranged.
-    :param pad_val:     Value to use for padding
+    :param pad_val:     Value to use for padding.
     :return:
-        - Rescaled image according to ratio r and padded to fit output_size.
+        - Rescaled image while preserving aspect ratio, padded to fit output_size and with axis swapped. By default, (C, H, W).
         - Minimum ratio between the input height/width and output height/width.
     """
     if len(image.shape) == 3:
