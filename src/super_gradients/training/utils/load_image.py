@@ -19,7 +19,7 @@ def load_images(images: Union[List[ImageType], ImageType]) -> List[np.ndarray]:
         - str:              A string representing either a local file path or a URL to an image
 
     :param images:  Single image or a list of images of supported types.
-    :return:        List of images as numpy arrays. If loaded from string, the image will be returned as RBG.
+    :return:        List of images as numpy arrays. If loaded from string, the image will be returned as RGB.
     """
     if isinstance(images, list):
         return [load_image(image=image) for image in images]
@@ -37,7 +37,7 @@ def load_image(image: ImageType) -> np.ndarray:
         - str:              A string representing either a local file path or a URL to an image
 
     :param image: Single image of supported types.
-    :return:      Image as numpy arrays. If loaded from string, the image will be returned as RBG.
+    :return:      Image as numpy arrays. If loaded from string, the image will be returned as RGB.
     """
     if isinstance(image, np.ndarray):
         return image
