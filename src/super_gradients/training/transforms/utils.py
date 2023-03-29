@@ -6,7 +6,7 @@ import numpy as np
 from super_gradients.training.utils.detection_utils import xyxy2cxcywh, cxcywh2xyxy
 
 
-def rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.ndarray:
+def _rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.ndarray:
     """Rescale image to target_shape, without preserving aspect ratio.
 
     :param image:           Image to rescale. (H, W, C) or (H, W).
@@ -16,7 +16,7 @@ def rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.nd
     return cv2.resize(image, dsize=(int(target_shape[1]), int(target_shape[0])), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
 
 
-def rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np.array:
+def _rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np.array:
     """Rescale bboxes to given scale factors, without preserving aspect ratio.
 
     :param targets:         Targets to rescale (N, 4+), where target[:, :4] is the bounding box coordinates.
@@ -31,7 +31,7 @@ def rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np.
     return targets
 
 
-def get_center_padding_params(input_size: Tuple[int, int], output_size: Tuple[int, int]) -> Tuple[int, int, Tuple[int, int], Tuple[int, int]]:
+def _get_center_padding_params(input_size: Tuple[int, int], output_size: Tuple[int, int]) -> Tuple[int, int, Tuple[int, int], Tuple[int, int]]:
     """Get parameters for padding an image to given output size, in center mode.
 
     :param input_size:  Size of the input image.
@@ -49,7 +49,7 @@ def get_center_padding_params(input_size: Tuple[int, int], output_size: Tuple[in
     return shift_h, shift_w, pad_h, pad_w
 
 
-def shift_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int], pad_value: int) -> np.ndarray:
+def _shift_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int], pad_value: int) -> np.ndarray:
     """Shift bboxes with respect to padding coordinates.
 
     :param image:       Image to shift. (H, W, C) or (H, W).
@@ -61,7 +61,7 @@ def shift_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int
     return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
 
 
-def shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
+def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
     """Shift bboxes with respect to padding values.
 
     :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ..., ...]
@@ -75,7 +75,7 @@ def shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
     return np.concatenate((boxes, labels), 1)
 
 
-def rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
+def _rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
     """Scale targets to given scale factors.
 
     :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
@@ -90,7 +90,7 @@ def rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
     return np.concatenate((boxes, targets), 1)
 
 
-def rescale_and_pad_to_size(image: np.ndarray, output_size: Tuple[int, int], swap: Tuple[int] = (2, 0, 1), pad_val: int = 114) -> Tuple[np.ndarray, float]:
+def _rescale_and_pad_to_size(image: np.ndarray, output_size: Tuple[int, int], swap: Tuple[int] = (2, 0, 1), pad_val: int = 114) -> Tuple[np.ndarray, float]:
     """
     Rescales image according to minimum ratio input height/width and output height/width rescaled_padded_image,
     pads the image to the target size and finally swap axis.
@@ -104,17 +104,29 @@ def rescale_and_pad_to_size(image: np.ndarray, output_size: Tuple[int, int], swa
         - Rescaled image while preserving aspect ratio, padded to fit output_size and with axis swapped. By default, (C, H, W).
         - Minimum ratio between the input height/width and output height/width.
     """
+    r = min(output_size[0] / image.shape[0], output_size[1] / image.shape[1])
+    rescale_shape = (int(image.shape[0] * r), int(image.shape[1] * r))
+
+    resized_image = _rescale_image(image=image, target_shape=rescale_shape)
+    padded_image = _pad_image_on_side(image=resized_image, output_size=output_size, pad_val=pad_val)
+
+    padded_image = padded_image.transpose(swap)
+    padded_image = np.ascontiguousarray(padded_image, dtype=np.float32)
+    return padded_image, r
+
+
+def _pad_image_on_side(image: np.ndarray, output_size: Tuple[int, int], pad_val: int = 114) -> np.ndarray:
+    """Pads an image to the specified output size by adding padding only on the sides.
+
+    :param image:       Input image to pad. (H, W, C) or (H, W).
+    :param output_size: Expected size of the output image (height, width).
+    :param pad_val:     Value to use for padding.
+    :return:            Padded image of size output_size.
+    """
     if len(image.shape) == 3:
         padded_image = np.ones((output_size[0], output_size[1], image.shape[-1]), dtype=np.uint8) * pad_val
     else:
         padded_image = np.ones(output_size, dtype=np.uint8) * pad_val
 
-    r = min(output_size[0] / image.shape[0], output_size[1] / image.shape[1])
-
-    target_shape = (int(image.shape[0] * r), int(image.shape[1] * r))
-    resized_image = rescale_image(image=image, target_shape=target_shape)
-    padded_image[: target_shape[0], : target_shape[1]] = resized_image
-
-    padded_image = padded_image.transpose(swap)
-    padded_image = np.ascontiguousarray(padded_image, dtype=np.float32)
-    return padded_image, r
+    padded_image[: image.shape[0], : image.shape[1]] = image
+    return padded_image
