@@ -105,6 +105,11 @@ class DetectionResult(Result):
 
 @dataclass
 class DetectionResults(Results):
+    """Results of a detection task.
+
+    :attr results:  List of the predictions results
+    """
+
     def __init__(self, images: List[np.ndarray], predictions: List[np.ndarray], class_names: List[str]):
         self.results: List[DetectionResult] = []
         for image, prediction in zip(images, predictions):
