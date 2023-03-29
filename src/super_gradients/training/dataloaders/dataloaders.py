@@ -118,6 +118,7 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
         dataloader_params["sampler"] = RandomSampler(dataset, replacement=True, num_samples=get_param(dataloader_params, "min_samples"))
         if "shuffle" in dataloader_params.keys():
             dataloader_params.pop("shuffle")
+        dataloader_params.pop("min_samples")
         logger.info(f"Using min_samples={get_param(dataloader_params, 'min_samples')}")
     if get_param(dataloader_params, "batch_sampler"):
         sampler = dataloader_params.pop("sampler")
