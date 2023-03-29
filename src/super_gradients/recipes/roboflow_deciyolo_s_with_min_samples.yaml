@@ -3,7 +3,7 @@ defaults:
   - training_hyperparams: coco2017_deciyolo_train_params
   - dataset_params: roboflow_detection_v2_dataset_params
   - checkpoint_params: default_checkpoint_params
-  - arch_params: deciyolo_m_arch_params
+  - arch_params: deciyolo_s_arch_params
   - _self_
 
 train_dataloader: roboflow_train_yolox
@@ -22,7 +22,7 @@ dataset_params:
 num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
 
 
-architecture: deciyolo_m
+architecture: deciyolo_s
 arch_params:
   num_classes: ${num_classes}
 
@@ -81,7 +81,7 @@ training_hyperparams:
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
-    project_name: DeciYolo-M-RF100
+    project_name: DeciYolo-S-RF100
     entity: super-gradients
     api_server: "https://wandb.research.deci.ai"
     save_checkpoints_remote: False
