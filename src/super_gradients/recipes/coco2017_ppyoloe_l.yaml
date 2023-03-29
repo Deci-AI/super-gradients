@@ -14,10 +14,10 @@
 #         ppyoloe_x: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_x
 #
 # Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images):
-#         ppyoloe_s: 37h on 8 NVIDIA GeForce RTX 3090, mAP: 42.52 (val)
-#         ppyoloe_m: 58h on 8 NVIDIA GeForce RTX 3090, mAP: 47.11 (val)
-#         ppyoloe_l: COMING SOON
-#         ppyoloe_x: COMING SOON
+#         ppyoloe_s: 37h  on 8 NVIDIA GeForce RTX 3090, mAP: 42.52 (val)
+#         ppyoloe_m: 58h  on 8 NVIDIA GeForce RTX 3090, mAP: 47.11 (val)
+#         ppyoloe_l: 115h on 8 NVIDIA GeForce RTX 3090, mAP: 49.48 (val)
+#         ppyoloe_x: 240h on 8 NVIDIA GeForce RTX 3090, mAP: 51.15 (val)
 #
 
 defaults:

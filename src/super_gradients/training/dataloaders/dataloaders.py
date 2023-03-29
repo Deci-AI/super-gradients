@@ -3,7 +3,7 @@ from typing import Dict, Mapping
 import hydra
 import numpy as np
 import torch
-from torch.utils.data import BatchSampler, DataLoader, TensorDataset
+from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSampler
 
 import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -114,6 +114,13 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     elif is_dist:
         dataloader_params["sampler"] = {"DistributedSampler": {}}
         dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+    elif get_param(dataloader_params, "min_samples") is not None:
+        min_samples = dataloader_params.pop("shuffle")
+        if len(dataset) < min_samples:
+            dataloader_params["sampler"] = RandomSampler(dataset, replacement=True, num_samples=min_samples)
+            if "shuffle" in dataloader_params.keys():
+                dataloader_params.pop("shuffle")
+            logger.info(f"Using min_samples={get_param(dataloader_params, 'min_samples')}")
     if get_param(dataloader_params, "batch_sampler"):
         sampler = dataloader_params.pop("sampler")
         batch_size = dataloader_params.pop("batch_size")

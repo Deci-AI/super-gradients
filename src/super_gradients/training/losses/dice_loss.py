@@ -70,10 +70,10 @@ class GeneralizedDiceLoss(DiceLoss):
      to deal with class imbalance.
     Defined in the paper: "Generalised Dice overlap as a deep learning loss function for highly unbalanced
      segmentations"
-    Args:
-        smooth (float): default value is 0, smooth laplacian is not recommended to be used with GeneralizedDiceLoss.
+
+    :param smooth:  default value is 0, smooth laplacian is not recommended to be used with GeneralizedDiceLoss.
          because the weighted values to be added are very small.
-        eps (float): default value is 1e-17, must be a very small value, because weighted `intersection` and
+    :param eps:     default value is 1e-17, must be a very small value, because weighted `intersection` and
         `denominator` are very small after multiplication with `1 / counts ** 2`
     """
 

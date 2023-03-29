@@ -23,14 +23,13 @@ class Lion(Optimizer):
         betas: Tuple[float, float] = (0.9, 0.99),
         weight_decay: float = 0.0,
     ):
-        """Initialize the hyperparameters.
-        Args:
-          params (iterable): iterable of parameters to optimize or dicts defining
-            parameter groups
-          lr (float, optional): learning rate (default: 1e-4)
-          betas (Tuple[float, float], optional): coefficients used for computing
-            running averages of gradient and its square (default: (0.9, 0.99))
-          weight_decay (float, optional): weight decay coefficient (default: 0)
+        """
+        Initialize the hyperparameters.
+
+        :param params:          Iterable of parameters to optimize or dicts defining parameter groups
+        :param lr:              Learning rate (default: 1e-4)
+        :param betas:           Coefficients used for computing running averages of gradient and its square (default: (0.9, 0.99))
+        :param weight_decay:    Weight decay coefficient (default: 0)
         """
 
         if not 0.0 <= lr:
@@ -44,12 +43,11 @@ class Lion(Optimizer):
 
     @torch.no_grad()
     def step(self, closure: Optional[callable] = None) -> torch.Tensor:
-        """Performs a single optimization step.
-        Args:
-          closure (callable, optional): A closure that reevaluates the model
-            and returns the loss.
-        Returns:
-          the loss.
+        """
+        Perform a single optimization step.
+
+        :param closure: A closure that reevaluates the model and returns the loss.
+        :return: Loss.
         """
         loss = None
         if closure is not None:

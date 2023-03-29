@@ -449,18 +449,22 @@ def get_callable_param_names(obj: callable) -> Tuple[str]:
     return tuple(inspect.signature(obj).parameters)
 
 
-def log_main_training_params(multi_gpu: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, len_train_set: int):
+def log_main_training_params(
+    multi_gpu: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, train_dataset_length: int, train_dataloader_len: int
+):
     """Log training parameters"""
     msg = (
         "TRAINING PARAMETERS:\n"
         f"    - Mode:                         {multi_gpu.name if multi_gpu else 'Single GPU'}\n"
         f"    - Number of GPUs:               {num_gpus if 'cuda' in device_config.device  else 0:<10} ({torch.cuda.device_count()} available on the machine)\n"
-        f"    - Dataset size:                 {len_train_set:<10} (len(train_set))\n"
+        f"    - Dataset size:                 {train_dataset_length:<10} [Samples]\n"
+        f"    - Dataloader size:              {train_dataloader_len:<10} [Batches]\n"
         f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n"
         f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n"
         f"    - Total batch size:             {num_gpus * batch_size:<10} (num_gpus * batch_size)\n"
         f"    - Effective Batch size:         {num_gpus * batch_size * batch_accumulate:<10} (num_gpus * batch_size * batch_accumulate)\n"
-        f"    - Iterations per epoch:         {int(len_train_set / (num_gpus * batch_size)):<10} (len(train_set) / total_batch_size)\n"
-        f"    - Gradient updates per epoch:   {int(len_train_set / (num_gpus * batch_size * batch_accumulate)):<10} (len(train_set) / effective_batch_size)\n"
+        f"    - Iterations per epoch:         {int(train_dataset_length / (num_gpus * batch_size)):<10} (len(train_set) / total_batch_size)\n"
+        f"    - Gradient updates per epoch:   {int(train_dataset_length / (num_gpus * batch_size * batch_accumulate)):<10} "
+        f"(len(train_set) / effective_batch_size)\n"
     )
     logger.info(msg)

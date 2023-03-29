@@ -144,10 +144,9 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
         # GENERATE SAMPLES AND TARGETS OF THE SEGMENTATION DATA SET CLASS
         super()._generate_samples_and_targets()
 
-    def _get_pascal_labels(self):
+    def _get_pascal_labels(self) -> np.ndarray:
         """Load the mapping that associates pascal classes with label colors
-        Returns:
-            np.ndarray with dimensions (21, 3)
+        :return: np.ndarray with dimensions (21, 3)
         """
         return np.asarray(
             [
