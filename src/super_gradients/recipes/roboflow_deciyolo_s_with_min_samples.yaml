@@ -91,8 +91,8 @@ training_hyperparams:
 
 multi_gpu: Off
 num_gpus: 1
-experiment_suffix: ""
-experiment_name: ${architecture}_roboflow_${dataset_name}_min_samples_${dataset_params.train_dataloader_params.min_samples}_${experiment_suffix}
+experiment_suffix: "v2"
+experiment_name: ${architecture}_roboflow_${dataset_name}_min_samples_${experiment_suffix}
 ckpt_root_dir:
 
 
