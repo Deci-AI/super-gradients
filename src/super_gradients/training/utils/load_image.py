@@ -31,7 +31,7 @@ def load_image(image: ImageType) -> np.ndarray:
 
 
 def load_np_image_from_pil(image: PIL.Image.Image) -> np.ndarray:
-    return np.asarray(image.convert("RGB"))[:, :, ::-1].copy()  # TODO: Check RGB/BGR
+    return np.asarray(image.convert("RGB"))  # TODO: Check RGB/BGR
 
 
 def load_pil_image_from_str(image_str: str) -> PIL.Image.Image:

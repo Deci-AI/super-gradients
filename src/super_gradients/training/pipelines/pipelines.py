@@ -104,8 +104,6 @@ class DetectionPipeline(Pipeline):
         return decoded_predictions
 
 
-# TODO: Add PPYOLE
-
 # MODELS_PROCESSORS: Dict[type, Processing] = {
 #     YoloBase: DetectionPaddedRescale(output_size=(640, 640), swap=(2, 0, 1)),
 #     PPYoloE: ,
