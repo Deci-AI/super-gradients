@@ -44,8 +44,12 @@ class Pipeline(ABC):
         self.image_processor = image_processor
 
     @abstractmethod
-    def __call__(self, image: Union[ImageType, List[ImageType]]) -> Results:
-        """Apply the pipeline on images and return the result."""
+    def __call__(self, images: Union[ImageType, List[ImageType]]) -> Results:
+        """Apply the pipeline on images and return the result.
+
+        :param images:  Single image or a list of images of supported types.
+        :return         Results object containing the results of the prediction and the image.
+        """
         pass
 
     def _run(self, images: Union[ImageType, List[ImageType]]) -> Tuple[List[np.ndarray], List[Any]]:
@@ -54,6 +58,11 @@ class Pipeline(ABC):
         2. Preprocess - Encode the image in the shape/format expected by the model
         3. Predict - Run the model on the preprocessed image
         4. Postprocess - Decode the output of the model so that the predictions are in the shape/format of original image.
+
+        :param images:  Single image or a list of images of supported types.
+        :return:
+            - List of numpy arrays representing images.
+            - List of model predictions.
         """
         self.model = self.model.to(self.device)  # Make sure the model is on the correct device
 
@@ -69,8 +78,8 @@ class Pipeline(ABC):
         # Predict
         with eval_mode(self.model):
             torch_inputs = torch.Tensor(np.array(preprocessed_images)).to(self.device)
-            raw_model_output = self.model(torch_inputs)
-            torch_predictions = self._decode_model_raw_prediction(raw_model_output)
+            model_output = self.model(torch_inputs)
+            torch_predictions = self._decode_model_output(model_output)
 
         # Postprocess
         predictions = []
@@ -82,8 +91,12 @@ class Pipeline(ABC):
         return images, predictions
 
     @abstractmethod
-    def _decode_model_raw_prediction(self, raw_model_output: Any) -> torch.Tensor:
-        """Decode the raw results from the model into a normal format."""
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor]) -> List[torch.Tensor]:
+        """Decode the model output, which in some case is in a different format to the prediction.
+
+        :param model_output:    Direct output of the model, without any post-processing.
+        :return:                Model predictions. This might
+        """
         pass
 
 
@@ -111,13 +124,21 @@ class DetectionPipeline(Pipeline):
         self.class_names = class_names
 
     def __call__(self, images: Union[List[ImageType], ImageType]) -> DetectionResults:
-        """Apply the pipeline on images and return the detection result."""
+        """Apply the pipeline on images and return the detection result.
+
+        :param images:  Single image or a list of images of supported types.
+        :return         Results object containing the results of the prediction and the image.
+        """
         images, predictions = self._run(images=images)
         return DetectionResults(images=images, predictions=predictions, class_names=self.class_names)
 
-    def _decode_model_raw_prediction(self, raw_predictions) -> List[torch.Tensor]:
-        """Decode the raw predictions from the model into a normal format."""
-        decoded_predictions = self.post_prediction_callback(raw_predictions, device=self.device)
+    def _decode_model_output(self, model_output) -> List[torch.Tensor]:
+        """Decode the model output, by applying post prediction callback. This includes NMS.
+
+        :param model_output:    Direct output of the model, without any post-processing.
+        :return:                Predicted Bboxes.
+        """
+        decoded_predictions = self.post_prediction_callback(model_output, device=self.device)
         decoded_predictions = [
             decoded_prediction if decoded_prediction is not None else torch.zeros((0, 6), dtype=torch.float32) for decoded_prediction in decoded_predictions
         ]
