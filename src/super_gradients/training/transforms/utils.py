@@ -135,25 +135,10 @@ def _rescale_and_pad_to_size(image: np.ndarray, output_shape: Tuple[int, int], s
     rescale_shape = (int(image.shape[0] * r), int(image.shape[1] * r))
 
     resized_image = _rescale_image(image=image, target_shape=rescale_shape)
-    padded_image = _pad_image_on_side(image=resized_image, output_shape=output_shape, pad_val=pad_val)
+
+    padding_coordinates = _get_bottom_right_padding_coordinates(input_shape=rescale_shape, output_shape=output_shape)
+    padded_image = _pad_image(image=resized_image, padding_coordinates=padding_coordinates, pad_value=pad_val)
 
     padded_image = padded_image.transpose(swap)
     padded_image = np.ascontiguousarray(padded_image, dtype=np.float32)
     return padded_image, r
-
-
-def _pad_image_on_side(image: np.ndarray, output_shape: Tuple[int, int], pad_val: int = 114) -> np.ndarray:
-    """Pads an image to the specified output shape by adding padding only on the sides.
-
-    :param image:           Input image to pad. (H, W, C) or (H, W).
-    :param output_shape:    Expected shape of the output image (H, W).
-    :param pad_val:         Value to use for padding.
-    :return:                Padded image of shape output_shape.
-    """
-    if len(image.shape) == 3:
-        padded_image = np.ones((output_shape[0], output_shape[1], image.shape[-1]), dtype=np.uint8) * pad_val
-    else:
-        padded_image = np.ones(output_shape, dtype=np.uint8) * pad_val
-
-    padded_image[: image.shape[0], : image.shape[1]] = image
-    return padded_image
