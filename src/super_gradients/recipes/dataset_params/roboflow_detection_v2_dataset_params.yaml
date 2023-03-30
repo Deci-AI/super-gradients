@@ -57,10 +57,10 @@ train_dataloader_params:
   shuffle: True
   batch_size: 16
   min_samples: 512
-  num_workers: 0
-  sampler:
+  num_workers: 4
   drop_last: False
   pin_memory: True
+  persistent_workers: True
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
@@ -94,10 +94,11 @@ val_dataset_params:
 
 val_dataloader_params:
   batch_size: 32
-  num_workers: 0
+  num_workers: 4
   drop_last: False
   shuffle: False
   pin_memory: True
+  persistent_workers: True
   collate_fn: # collate function for valset
     _target_: super_gradients.training.utils.detection_utils.CrowdDetectionCollateFN
 
