@@ -7,10 +7,11 @@ import numpy as np
 from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
-    _pad_image_on_side,
-    _get_center_padding_params,
+    _get_center_padding_coordinates,
+    _get_bottom_right_padding_coordinates,
     _pad_image,
     _shift_bboxes,
+    PaddingCoordinates,
 )
 
 
@@ -26,8 +27,7 @@ class ComposeProcessingMetadata(ProcessingMetadata):
 
 @dataclass
 class DetectionPadToSizeMetadata(ProcessingMetadata):
-    pad_top: float
-    pad_left: float
+    padding_coordinates: PaddingCoordinates
 
 
 @dataclass
@@ -113,9 +113,8 @@ class NormalizeImage(Processing):
         return predictions
 
 
-class DetectionCenterPadding(Processing):
-    """Preprocessing transform to pad image and bboxes to `output_shape` shape (H, W).
-    Center padding, so that input image with bboxes located in the center of the produced image.
+class _DetectionPadding(Processing, ABC):
+    """Base class for detection padding methods. One should implement the `_get_padding_params` method to work with a custom padding method.
 
     Note: This transformation assume that dimensions of input image is equal or less than `output_shape`.
 
@@ -128,35 +127,26 @@ class DetectionCenterPadding(Processing):
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        pad_top, pad_bot, pad_left, pad_right = _get_center_padding_params(input_shape=image.shape, output_shape=self.output_shape)
-        processed_image = _pad_image(image, (pad_top, pad_bot), (pad_left, pad_right), self.pad_value)
-
-        return processed_image, DetectionPadToSizeMetadata(pad_top=pad_top, pad_left=pad_left)
+        padding_coordinates = self._get_padding_params(input_shape=image.shape)
+        processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
+        return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: DetectionPadToSizeMetadata) -> np.ndarray:
-        return _shift_bboxes(targets=predictions, shift_h=-metadata.pad_top, shift_w=-metadata.pad_left)
+        return _shift_bboxes(targets=predictions, shift_h=-metadata.padding_coordinates.top, shift_w=-metadata.padding_coordinates.left)
+
+    @abstractmethod
+    def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
+        pass
 
 
-class DetectionSidePadding(Processing):
-    """Preprocessing transform to pad image and bboxes to `output_shape` shape (H, W).
-    Side padding, so that input image with bboxes will located on the side. Bboxes won't be affected.
+class DetectionCenterPadding(_DetectionPadding):
+    def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
+        return _get_center_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
 
-    Note: This transformation assume that dimensions of input image is equal or less than `output_shape`.
 
-    :param output_shape: Output image shape (H, W)
-    :param pad_value:   Padding value for image
-    """
-
-    def __init__(self, output_shape: Tuple[int, int], pad_value: int):
-        self.output_shape = output_shape
-        self.pad_value = pad_value
-
-    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
-        processed_image = _pad_image_on_side(image, output_shape=self.output_shape, pad_val=self.pad_value)
-        return processed_image, None
-
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: None) -> np.ndarray:
-        return predictions
+class DetectionBottomRightPadding(_DetectionPadding):
+    def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
+        return _get_bottom_right_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
 
 
 class _Rescale(Processing, ABC):

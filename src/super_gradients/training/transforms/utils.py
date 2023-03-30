@@ -1,9 +1,18 @@
 from typing import Tuple
-
+from dataclasses import dataclass
 import cv2
+
 import numpy as np
 
 from super_gradients.training.utils.detection_utils import xyxy2cxcywh, cxcywh2xyxy
+
+
+@dataclass
+class PaddingCoordinates:
+    top: int
+    bottom: int
+    left: int
+    right: int
 
 
 def _rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.ndarray:
@@ -32,29 +41,37 @@ def _rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np
     return targets
 
 
-def _get_center_padding_params(input_shape: Tuple[int, int], output_shape: Tuple[int, int]) -> Tuple[int, int, int, int]:
+def _get_center_padding_coordinates(input_shape: Tuple[int, int], output_shape: Tuple[int, int]) -> PaddingCoordinates:
     """Get parameters for padding an image to given output shape, in center mode.
 
     :param input_shape:  Shape of the input image.
     :param output_shape: Shape to resize to.
-    :return:
-        - pad_top
-        - pad_bot
-        - pad_left
-        - pad_right
+    :return:             Padding parameters.
     """
     pad_height, pad_width = output_shape[0] - input_shape[0], output_shape[1] - input_shape[1]
 
     pad_top = pad_height // 2
-    pad_bot = pad_height - pad_top
+    pad_bottom = pad_height - pad_top
 
     pad_left = pad_width // 2
     pad_right = pad_width - pad_left
 
-    return pad_top, pad_bot, pad_left, pad_right
+    return PaddingCoordinates(top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right)
 
 
-def _pad_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int], pad_value: int) -> np.ndarray:
+def _get_bottom_right_padding_coordinates(input_shape: Tuple[int, int], output_shape: Tuple[int, int]) -> PaddingCoordinates:
+    """Get parameters for padding an image to given output shape, in bottom right mode
+    (i.e. image will be at top-left while bottom-right corner will be padded).
+
+    :param input_shape:  Shape of the input image.
+    :param output_shape: Shape to resize to.
+    :return:             Padding parameters.
+    """
+    pad_height, pad_width = output_shape[0] - input_shape[0], output_shape[1] - input_shape[1]
+    return PaddingCoordinates(top=0, bottom=pad_height, left=0, right=pad_width)
+
+
+def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_value: int) -> np.ndarray:
     """Pad an image.
 
     :param image:       Image to shift. (H, W, C) or (H, W).
@@ -63,7 +80,12 @@ def _pad_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int]
     :param pad_value:   Padding value
     :return:            Image shifted according to padding coordinates.
     """
-    return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+    pad_h = (padding_coordinates.top, padding_coordinates.bottom)
+    pad_w = (padding_coordinates.left, padding_coordinates.right)
+    if len(image.shape) == 3:
+        return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+    else:
+        return np.pad(image, (pad_h, pad_w), "constant", constant_values=pad_value)
 
 
 def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
