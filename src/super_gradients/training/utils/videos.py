@@ -89,6 +89,7 @@ def _get_video_shape(frames: List[np.ndarray]) -> Tuple[float, float]:
     min_width = min(frame.shape[1] for frame in frames)
     max_width = max(frame.shape[1] for frame in frames)
 
+    # TODO: Check if required
     if (min_height, min_width) != (max_height, max_width):
         raise RuntimeError(
             f"Your video is made of frames that have (height, width) going from ({min_height}, {min_width}) to ({max_height}, {max_width}).\n"
@@ -111,8 +112,8 @@ Problematics:
 """
 
 
-# VIDEO_FILE_NAME = "test_video.mp4"
-# video_frames = load_video(VIDEO_FILE_NAME)
+VIDEO_FILE_NAME = "test_video.mp4"
+video_frames = load_video(VIDEO_FILE_NAME)
 
 
 #
