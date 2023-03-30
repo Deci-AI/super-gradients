@@ -32,7 +32,7 @@ class DetectionPadToSizeMetadata(ProcessingMetadata):
 
 @dataclass
 class RescaleMetadata(ProcessingMetadata):
-    original_size: Tuple[int, int]
+    original_shape: Tuple[int, int]
     scale_factor_h: float
     scale_factor_w: float
 
@@ -119,7 +119,7 @@ class DetectionCenterPadding(Processing):
 
     Note: This transformation assume that dimensions of input image is equal or less than `output_shape`.
 
-    :param output_shape: Output image size (H, W)
+    :param output_shape: Output image shape (H, W)
     :param pad_value:   Padding value for image
     """
 
@@ -143,7 +143,7 @@ class DetectionSidePadding(Processing):
 
     Note: This transformation assume that dimensions of input image is equal or less than `output_shape`.
 
-    :param output_shape: Output image size (H, W)
+    :param output_shape: Output image shape (H, W)
     :param pad_value:   Padding value for image
     """
 
@@ -180,7 +180,7 @@ class _Rescale(Processing, ABC):
 
         rescaled_image = _rescale_image(image, target_shape=rescale_shape)
 
-        return rescaled_image, RescaleMetadata(original_size=image.shape[:2], scale_factor_h=scale_factor_h, scale_factor_w=scale_factor_w)
+        return rescaled_image, RescaleMetadata(original_shape=image.shape[:2], scale_factor_h=scale_factor_h, scale_factor_w=scale_factor_w)
 
 
 class DetectionRescale(_Rescale):
@@ -190,4 +190,4 @@ class DetectionRescale(_Rescale):
 
 class SegmentationRescale(_Rescale):
     def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
-        return _rescale_image(predictions, target_shape=metadata.original_size)
+        return _rescale_image(predictions, target_shape=metadata.original_shape)
