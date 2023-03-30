@@ -149,7 +149,7 @@ class DetectionBottomRightPadding(_DetectionPadding):
         return _get_bottom_right_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
 
 
-class _Rescale(Processing):
+class _Rescale(Processing, ABC):
     """Resize image to given image dimensions WITHOUT preserving aspect ratio.
 
     :param output_shape: (H, W)
@@ -195,5 +195,10 @@ class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
 
 
 class SegmentationRescale(_Rescale):
+    def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
+        return _rescale_image(predictions, target_shape=metadata.original_shape)
+
+
+class SegmentationLongestMaxSizeRescale(_LongestMaxSizeRescale):
     def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
         return _rescale_image(predictions, target_shape=metadata.original_shape)
