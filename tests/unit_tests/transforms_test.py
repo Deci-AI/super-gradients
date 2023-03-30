@@ -140,10 +140,17 @@ class TestTransforms(unittest.TestCase):
         self.assertEqual(rescaled_image.shape[:2], target_shape)
 
     def test_rescale_bboxes(self):
-        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
         sy, sx = (2.0, 0.5)
-        expected_bboxes = np.array([[5.0, 40.0, 25.0, 120.0, 1.0], [15.0, 80.0, 40.0, 180.0, 2.0]], dtype=np.float32)
 
+        # Empty bboxes
+        bboxes = np.zeros((0, 4))
+        expected_bboxes = np.zeros((0, 4))
+        rescaled_bboxes = _rescale_bboxes(targets=bboxes, scale_factors=(sy, sx))
+        np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
+
+        # Not empty bboxes
+        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
+        expected_bboxes = np.array([[5.0, 40.0, 25.0, 120.0, 1.0], [15.0, 80.0, 40.0, 180.0, 2.0]], dtype=np.float32)
         rescaled_bboxes = _rescale_bboxes(targets=bboxes, scale_factors=(sy, sx))
         np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
 
