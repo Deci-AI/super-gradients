@@ -9,7 +9,7 @@ from super_gradients.training.transforms.utils import (
     _rescale_bboxes,
     _pad_image_on_side,
     _get_center_padding_params,
-    _shift_image,
+    _pad_image,
     _shift_bboxes,
 )
 
@@ -26,8 +26,8 @@ class ComposeProcessingMetadata(ProcessingMetadata):
 
 @dataclass
 class DetectionPadToSizeMetadata(ProcessingMetadata):
-    shift_h: float
-    shift_w: float
+    pad_top: float
+    pad_left: float
 
 
 @dataclass
@@ -128,13 +128,13 @@ class DetectionCenterPadding(Processing):
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        shift_h, shift_w, pad_h, pad_w = _get_center_padding_params(input_size=image.shape, output_shape=self.output_shape)
-        processed_image = _shift_image(image, pad_h, pad_w, self.pad_value)
+        pad_top, pad_bot, pad_left, pad_right = _get_center_padding_params(input_shape=image.shape, output_shape=self.output_shape)
+        processed_image = _pad_image(image, (pad_top, pad_bot), (pad_left, pad_right), self.pad_value)
 
-        return processed_image, DetectionPadToSizeMetadata(shift_h=shift_h, shift_w=shift_w)
+        return processed_image, DetectionPadToSizeMetadata(pad_top=pad_top, pad_left=pad_left)
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: DetectionPadToSizeMetadata) -> np.ndarray:
-        return _shift_bboxes(targets=predictions, shift_h=-metadata.shift_h, shift_w=-metadata.shift_w)
+        return _shift_bboxes(targets=predictions, shift_h=-metadata.pad_top, shift_w=-metadata.pad_left)
 
 
 class DetectionSidePadding(Processing):

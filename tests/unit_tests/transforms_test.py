@@ -14,7 +14,7 @@ from super_gradients.training.transforms.transforms import DetectionImagePermute
 from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
-    _shift_image,
+    _pad_image,
     _shift_bboxes,
     _rescale_and_pad_to_size,
     _rescale_xyxy_bboxes,
@@ -150,17 +150,17 @@ class TestTransforms(unittest.TestCase):
     def test_get_shift_params(self):
         input_size = (640, 480)
         output_size = (800, 600)
-        shift_h, shift_w, pad_h, pad_w = _get_center_padding_params(input_size, output_size)
+        pad_top, pad_bot, pad_left, pad_right = _get_center_padding_params(input_size, output_size)
 
         # Check if the shift and padding values are correct
-        self.assertEqual((shift_h, shift_w, pad_h, pad_w), (80, 60, (80, 80), (60, 60)))
+        self.assertEqual((pad_top, pad_bot, pad_left, pad_right), (80, 80, 60, 60))
 
     def test_shift_image(self):
         image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
         pad_h = (80, 80)
         pad_w = (60, 60)
         pad_value = 0
-        shifted_image = _shift_image(image, pad_h, pad_w, pad_value)
+        shifted_image = _pad_image(image, pad_h, pad_w, pad_value)
 
         # Check if the shifted image has the correct shape
         self.assertEqual(shifted_image.shape, (800, 600, 3))

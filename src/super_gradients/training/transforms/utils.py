@@ -32,26 +32,30 @@ def _rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np
     return targets
 
 
-def _get_center_padding_params(input_shape: Tuple[int, int], output_shape: Tuple[int, int]) -> Tuple[int, int, Tuple[int, int], Tuple[int, int]]:
+def _get_center_padding_params(input_shape: Tuple[int, int], output_shape: Tuple[int, int]) -> Tuple[int, int, int, int]:
     """Get parameters for padding an image to given output shape, in center mode.
 
     :param input_shape:  Shape of the input image.
     :param output_shape: Shape to resize to.
     :return:
-        - shift_h:  Horizontal shift.
-        - shift_w:  Vertical shift.
-        - pad_h:    Tuple of (padding_top, padding_bottom).
-        - pad_w:    Tuple of (padding_left, padding_right).
+        - pad_top
+        - pad_bot
+        - pad_left
+        - pad_right
     """
-    pad_h, pad_w = output_shape[0] - input_shape[0], output_shape[1] - input_shape[1]
-    shift_h, shift_w = pad_h // 2, pad_w // 2
-    pad_h = (shift_h, pad_h - shift_h)
-    pad_w = (shift_w, pad_w - shift_w)
-    return shift_h, shift_w, pad_h, pad_w
+    pad_height, pad_width = output_shape[0] - input_shape[0], output_shape[1] - input_shape[1]
+
+    pad_top = pad_height // 2
+    pad_bot = pad_height - pad_top
+
+    pad_left = pad_width // 2
+    pad_right = pad_width - pad_left
+
+    return pad_top, pad_bot, pad_left, pad_right
 
 
-def _shift_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int], pad_value: int) -> np.ndarray:
-    """Shift bboxes with respect to padding coordinates.
+def _pad_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int], pad_value: int) -> np.ndarray:
+    """Pad an image.
 
     :param image:       Image to shift. (H, W, C) or (H, W).
     :param pad_h:       Tuple of (padding_top, padding_bottom).
