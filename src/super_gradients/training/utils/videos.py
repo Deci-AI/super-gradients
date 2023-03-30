@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import cv2
 import os
 
@@ -7,16 +7,16 @@ import numpy as np
 SUPPORTED_FORMATS = (".avi", ".mp4", ".mov", ".wmv", ".mkv")
 
 
-def load_video_frames(file_path: str, max_frames: Optional[int] = None) -> List[np.ndarray]:
+def load_video(file_path: str, max_frames: Optional[int] = None) -> List[np.ndarray]:
     """Open a video file and extract each frame into numpy array.
 
     :param file_path:   Path to the video file.
     :param max_frames:  Optional, maximum number of frames to extract.
-    :return:            Frames, each as numpy arrays.
+    :return:            Frames representing the video, each in (H, W, C) or (H, W) format.
     """
     cap = _open_video(file_path)
     frames = _extract_frames(cap, max_frames)
-    cap.release()  # Release the video capture object
+    cap.release()
     return frames
 
 
@@ -41,7 +41,7 @@ def _extract_frames(cap: cv2.VideoCapture, max_frames: Optional[int] = None) -> 
 
     :param cap:         Opened video capture object.
     :param max_frames:  Optional maximum number of frames to extract.
-    :return:            Frames, each as numpy arrays.
+    :return:            Frames representing the video, each in (H, W, C) or (H, W) format.
     """
     frames = []
 
@@ -54,9 +54,71 @@ def _extract_frames(cap: cv2.VideoCapture, max_frames: Optional[int] = None) -> 
     return frames
 
 
-# VIDEO_FILE_NAME = "test_video.mp4"
-# video_frames = load_video_frames(VIDEO_FILE_NAME)
+def save_video(output_path: str, frames: List[np.ndarray], fps: int, video_format: str = "mp4v") -> None:
+    """Save a video locally.
 
+    :param output_path: Where the video will be saved
+    :param frames:      Frames representing the video, each in (H, W, C) or (H, W) format. # TODO: ccheck if (H, W) works
+    :param fps:         Frames per second
+    :param video_format: # TODO
+    """
+    video_height, video_width = _get_video_shape(frames)
+
+    video_writer = cv2.VideoWriter(
+        output_path,
+        cv2.VideoWriter_fourcc(*video_format),  # TODO: check this. Is it affected by the path extensin?
+        fps,
+        (video_width, video_height),  # TODO: This order?
+    )
+
+    for frame in frames:
+        video_writer.write(frame)
+
+    video_writer.release()
+
+
+def _get_video_shape(frames: List[np.ndarray]) -> Tuple[float, float]:
+    """Get the shape (width, height) of a video, assuming that every frame has the same shape.
+
+    :param frames:  Frames representing the video, each in (H, W, C) or (H, W) format. Note that all the frames are expected to have the same shape.
+    :return:        (Height, Weight) of the video.
+    """
+    min_height = min(frame.shape[0] for frame in frames)
+    max_height = max(frame.shape[0] for frame in frames)
+
+    min_width = min(frame.shape[1] for frame in frames)
+    max_width = max(frame.shape[1] for frame in frames)
+
+    if (min_height, min_width) != (max_height, max_width):
+        raise RuntimeError(
+            f"Your video is made of frames that have (height, width) going from ({min_height}, {min_width}) to ({max_height}, {max_width}).\n"
+            f"Please make sure that all the frames have the same shape."
+        )
+    return max_height, max_width
+
+
+def predict(path="path"):
+    frames = load_video(path)
+    save_video(path, frames=frames, fps=30)
+
+
+"""
+Problematics:
+- How to keep relevant information ?
+    - Return some metadata object ?
+    - Return tuple
+
+"""
+
+
+# VIDEO_FILE_NAME = "test_video.mp4"
+# video_frames = load_video(VIDEO_FILE_NAME)
+
+
+#
+# VIDEO_FILE_NAME = "test_video.mp4"
+# video_frames = load_video(VIDEO_FILE_NAME)
+#
 # print("Done")
 # import cv2s
 # import numpy as np
