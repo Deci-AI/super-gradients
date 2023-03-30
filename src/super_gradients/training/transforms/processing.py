@@ -26,18 +26,25 @@ class ComposeProcessingMetadata(ProcessingMetadata):
 
 @dataclass
 class DetectionPadToSizeMetadata(ProcessingMetadata):
-    shift_w: float
     shift_h: float
+    shift_w: float
 
 
 @dataclass
 class RescaleMetadata(ProcessingMetadata):
     original_size: Tuple[int, int]
-    sy: float
-    sx: float
+    scale_factor_h: float
+    scale_factor_w: float
 
 
 class Processing(ABC):
+    """Interface for preprocessing and postprocessing methods that are
+    used to prepare images for a model and process the model's output.
+
+    Subclasses should implement the `preprocess_image` and `postprocess_predictions`
+    methods according to the specific requirements of the model and task.
+    """
+
     @abstractmethod
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, Union[None, ProcessingMetadata]]:
         """Processing an image, before feeding it to the network. Expected to be in (H, W, C) or (H, W)."""
@@ -107,45 +114,45 @@ class NormalizeImage(Processing):
 
 
 class DetectionCenterPadding(Processing):
-    """Preprocessing transform to pad image and bboxes to `output_size` shape (rows, cols).
+    """Preprocessing transform to pad image and bboxes to `output_shape` shape (H, W).
     Center padding, so that input image with bboxes located in the center of the produced image.
 
-    Note: This transformation assume that dimensions of input image is equal or less than `output_size`.
+    Note: This transformation assume that dimensions of input image is equal or less than `output_shape`.
 
-    :param output_size: Output image size (rows, cols)
+    :param output_shape: Output image size (H, W)
     :param pad_value:   Padding value for image
     """
 
-    def __init__(self, output_size: Tuple[int, int], pad_value: int):
-        self.output_size = output_size
+    def __init__(self, output_shape: Tuple[int, int], pad_value: int):
+        self.output_shape = output_shape
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        shift_h, shift_w, pad_h, pad_w = _get_center_padding_params(input_size=image.shape, output_size=self.output_size)
+        shift_h, shift_w, pad_h, pad_w = _get_center_padding_params(input_size=image.shape, output_shape=self.output_shape)
         processed_image = _shift_image(image, pad_h, pad_w, self.pad_value)
 
         return processed_image, DetectionPadToSizeMetadata(shift_h=shift_h, shift_w=shift_w)
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: DetectionPadToSizeMetadata) -> np.ndarray:
-        return _shift_bboxes(targets=predictions, shift_w=-metadata.shift_w, shift_h=-metadata.shift_h)
+        return _shift_bboxes(targets=predictions, shift_h=-metadata.shift_h, shift_w=-metadata.shift_w)
 
 
 class DetectionSidePadding(Processing):
-    """Preprocessing transform to pad image and bboxes to `output_size` shape (rows, cols).
+    """Preprocessing transform to pad image and bboxes to `output_shape` shape (H, W).
     Side padding, so that input image with bboxes will located on the side. Bboxes won't be affected.
 
-    Note: This transformation assume that dimensions of input image is equal or less than `output_size`.
+    Note: This transformation assume that dimensions of input image is equal or less than `output_shape`.
 
-    :param output_size: Output image size (rows, cols)
+    :param output_shape: Output image size (H, W)
     :param pad_value:   Padding value for image
     """
 
-    def __init__(self, output_size: Tuple[int, int], pad_value: int):
-        self.output_size = output_size
+    def __init__(self, output_shape: Tuple[int, int], pad_value: int):
+        self.output_shape = output_shape
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
-        processed_image = _pad_image_on_side(image, output_size=self.output_size, pad_val=self.pad_value)
+        processed_image = _pad_image_on_side(image, output_shape=self.output_shape, pad_val=self.pad_value)
         return processed_image, None
 
     def postprocess_predictions(self, predictions: np.ndarray, metadata: None) -> np.ndarray:
@@ -155,7 +162,7 @@ class DetectionSidePadding(Processing):
 class _Rescale(Processing, ABC):
     """Resize image to given image dimensions WITHOUT preserving aspect ratio.
 
-    :param output_shape: (rows, cols)
+    :param output_shape: (H, W)
     """
 
     def __init__(self, output_shape: Tuple[int, int], keep_aspect_ratio: bool):
@@ -164,21 +171,21 @@ class _Rescale(Processing, ABC):
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
         rescale_shape = self.output_shape
-        sy, sx = rescale_shape[0] / image.shape[0], rescale_shape[1] / image.shape[1]
+        scale_factor_h, scale_factor_w = rescale_shape[0] / image.shape[0], rescale_shape[1] / image.shape[1]
 
         if self.keep_aspect_ratio:
-            scale_factor = min(sy, sx)
-            sy, sx = (scale_factor, scale_factor)
-            rescale_shape = (int(image.shape[0] * sx), int(image.shape[1] * sy))
+            scale_factor = min(scale_factor_h, scale_factor_w)
+            scale_factor_h, scale_factor_w = (scale_factor, scale_factor)
+            rescale_shape = (int(image.shape[0] * scale_factor_w), int(image.shape[1] * scale_factor_h))
 
         rescaled_image = _rescale_image(image, target_shape=rescale_shape)
 
-        return rescaled_image, RescaleMetadata(original_size=image.shape[:2], sy=sy, sx=sx)
+        return rescaled_image, RescaleMetadata(original_size=image.shape[:2], scale_factor_h=scale_factor_h, scale_factor_w=scale_factor_w)
 
 
 class DetectionRescale(_Rescale):
     def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
-        return _rescale_bboxes(targets=predictions, scale_factors=(1 / metadata.sy, 1 / metadata.sx))
+        return _rescale_bboxes(targets=predictions, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
 
 
 class SegmentationRescale(_Rescale):
