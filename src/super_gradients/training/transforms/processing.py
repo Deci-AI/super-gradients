@@ -149,31 +149,47 @@ class DetectionBottomRightPadding(_DetectionPadding):
         return _get_bottom_right_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
 
 
-class _Rescale(Processing, ABC):
+class _Rescale(Processing):
     """Resize image to given image dimensions WITHOUT preserving aspect ratio.
 
     :param output_shape: (H, W)
     """
 
-    def __init__(self, output_shape: Tuple[int, int], keep_aspect_ratio: bool):
+    def __init__(self, output_shape: Tuple[int, int]):
         self.output_shape = output_shape
-        self.keep_aspect_ratio = keep_aspect_ratio
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
-        rescale_shape = self.output_shape
-        scale_factor_h, scale_factor_w = rescale_shape[0] / image.shape[0], rescale_shape[1] / image.shape[1]
 
-        if self.keep_aspect_ratio:
-            scale_factor = min(scale_factor_h, scale_factor_w)
-            scale_factor_h, scale_factor_w = (scale_factor, scale_factor)
-            rescale_shape = (int(image.shape[0] * scale_factor_w), int(image.shape[1] * scale_factor_h))
-
-        rescaled_image = _rescale_image(image, target_shape=rescale_shape)
+        scale_factor_h, scale_factor_w = self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1]
+        rescaled_image = _rescale_image(image, target_shape=self.output_shape)
 
         return rescaled_image, RescaleMetadata(original_shape=image.shape[:2], scale_factor_h=scale_factor_h, scale_factor_w=scale_factor_w)
 
 
+class _LongestMaxSizeRescale(Processing, ABC):
+    """Resize image to given image dimensions WITH preserving aspect ratio.
+
+    :param output_shape: (H, W)
+    """
+
+    def __init__(self, output_shape: Tuple[int, int]):
+        self.output_shape = output_shape
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
+
+        scale_factor = min(self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1])
+        rescale_shape = (int(image.shape[0] * scale_factor), int(image.shape[1] * scale_factor))
+        rescaled_image = _rescale_image(image, target_shape=rescale_shape)
+
+        return rescaled_image, RescaleMetadata(original_shape=image.shape[:2], scale_factor_h=scale_factor, scale_factor_w=scale_factor)
+
+
 class DetectionRescale(_Rescale):
+    def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
+        return _rescale_bboxes(targets=predictions, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+
+
+class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
     def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
         return _rescale_bboxes(targets=predictions, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
 
