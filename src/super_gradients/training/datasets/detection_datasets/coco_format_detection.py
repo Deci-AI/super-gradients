@@ -1,5 +1,6 @@
 import copy
 import os
+from typing import List
 
 import cv2
 import numpy as np
@@ -79,7 +80,7 @@ class COCOFormattedDetectionDataset(DetectionDataset):
         return len(self.sample_id_to_coco_id)
 
     @property
-    def _all_classes(self):
+    def _all_classes(self) -> List[str]:
         return self.original_classes
 
     def _init_coco(self) -> COCO:
@@ -181,7 +182,7 @@ class COCOFormattedDetectionDataset(DetectionDataset):
         return annotation
 
 
-def remove_useless_info(coco, use_seg_info=False):
+def remove_useless_info(coco: COCO, use_seg_info: bool = False) -> None:
     """
     Remove useless info in coco dataset. COCO object is modified inplace.
     This function is mainly used for saving memory (save about 30% mem).

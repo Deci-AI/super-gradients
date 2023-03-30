@@ -134,7 +134,22 @@ def instantiate_model(
             if num_classes_new_head != arch_params.num_classes:
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
+
+    _add_model_name_attribute(net, model_name)
+
     return net
+
+
+def _add_model_name_attribute(model: torch.nn.Module, model_name: str) -> None:
+    """Add an attribute to a model.
+    This is useful to keep track of the exact name used to instantiate the model using `models.get()`,
+    which differs to the class name because the same class can be used to build different architectures."""
+    setattr(model, "_sg_model_name", model_name)
+
+
+def get_model_name(model: torch.nn.Module) -> Optional[str]:
+    """Get the name of a model loaded by SuperGradients' `models.get()`. If the model was not loaded using `models.get()`, return None."""
+    return getattr(model, "_sg_model_name", None)
 
 
 def get(

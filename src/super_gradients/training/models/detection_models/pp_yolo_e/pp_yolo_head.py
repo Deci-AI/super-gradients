@@ -1,4 +1,4 @@
-from typing import Tuple, Type
+from typing import Tuple, Type, List
 
 import numpy as np
 import torch
@@ -18,19 +18,27 @@ def bias_init_with_prob(prior_prob=0.01):
 
 
 @torch.no_grad()
-def generate_anchors_for_grid_cell(feats: Tuple[Tensor, ...], fpn_strides: Tuple[int, ...], grid_cell_size=5.0, grid_cell_offset=0.5, dtype=torch.float):
-    r"""
+def generate_anchors_for_grid_cell(
+    feats: Tuple[Tensor, ...],
+    fpn_strides: Tuple[int, ...],
+    grid_cell_size: float = 5.0,
+    grid_cell_offset: float = 0.5,
+    dtype: torch.dtype = torch.float,
+) -> Tuple[Tensor, Tensor, List[int], Tensor]:
+    """
     Like ATSS, generate anchors based on grid size.
-    Args:
-        feats (List[Tensor]): shape[s, (b, c, h, w)]
-        fpn_strides (tuple|list): shape[s], stride for each scale feature
-        grid_cell_size (float): anchor size
-        grid_cell_offset (float): The range is between 0 and 1.
-    Returns:
-        anchors (Tensor): shape[l, 4], "xmin, ymin, xmax, ymax" format.
-        anchor_points (Tensor): shape[l, 2], "x, y" format.
-        num_anchors_list (List[int]): shape[s], contains [s_1, s_2, ...].
-        stride_tensor (Tensor): shape[l, 1], contains the stride for each scale.
+
+    :param feats: shape[s, (b, c, h, w)]
+    :param fpn_strides: shape[s], stride for each scale feature
+    :param grid_cell_size: anchor size
+    :param grid_cell_offset: The range is between 0 and 1.
+    :param dtype: Type of the anchors.
+
+    :return:
+        - anchors: shape[l, 4], "xmin, ymin, xmax, ymax" format.
+        - anchor_points: shape[l, 2], "x, y" format.
+        - num_anchors_list: shape[s], contains [s_1, s_2, ...].
+        - stride_tensor: shape[l, 1], contains the stride for each scale.
     """
     assert len(feats) == len(fpn_strides)
     device = feats[0].device

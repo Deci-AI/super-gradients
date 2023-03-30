@@ -35,12 +35,10 @@ class InfiniteSampler(Sampler):
         world_size=1,
     ):
         """
-        Args:
-            size (int): the total number of data of the underlying dataset to sample from
-            shuffle (bool): whether to shuffle the indices or not
-            seed (int): the initial seed of the shuffle. Must be the same
-                across all workers. If None, will use a random seed shared
-                among workers (require synchronization among all workers).
+        :param size:    Total number of data of the underlying dataset to sample from
+        :param shuffle: Whether to shuffle the indices or not
+        :param seed:    Initial seed of the shuffle. Must be the same across all workers.
+                If None, will use a random seed shared among workers (require synchronization among all workers).
         """
         self._size = len(dataset)
         assert len(dataset) > 0

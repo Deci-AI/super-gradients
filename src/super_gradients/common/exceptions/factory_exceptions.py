@@ -6,8 +6,9 @@ class UnknownTypeException(Exception):
     """Type error with message, followed by type suggestion, chosen by fuzzy matching
      (out of 'choices' arg passed in __init__).
 
-    Attributes:
-        message -- explanation of the error
+    :param unknown_type:    The type that was not found.
+    :param choices:         List of valid types
+    :param message:         Explanation of the error
     """
 
     def __init__(self, unknown_type: str, choices: List, message: str = None):

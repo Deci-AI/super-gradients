@@ -20,23 +20,16 @@ class DetectionMetrics(Metric):
 
     Metric class for computing F1, Precision, Recall and Mean Average Precision.
 
-    Attributes:
-
-         num_cls:                  Number of classes.
-         post_prediction_callback: DetectionPostPredictionCallback to be applied on net's output prior
-                                   to the metric computation (NMS).
-         normalize_targets:        Whether to normalize bbox coordinates by image size (default=False).
-
-         iou_thresholds:    IoU threshold to compute the mAP (default=torch.linspace(0.5, 0.95, 10)).
-         recall_thresholds: Recall threshold to compute the mAP (default=torch.linspace(0, 1, 101)).
-         score_threshold:   Score threshold to compute Recall, Precision and F1 (default=0.1)
-         top_k_predictions: Number of predictions per class used to compute metrics, ordered by confidence score
-                            (default=100)
-
-         dist_sync_on_step: Synchronize metric state across processes at each ``forward()``
-                            before returning the value at the step. (default=False)
-        accumulate_on_cpu:     Run on CPU regardless of device used in other parts.
-                            This is to avoid "CUDA out of memory" that might happen on GPU (default False)
+    :param num_cls:                         Number of classes.
+    :param post_prediction_callback:        DetectionPostPredictionCallback to be applied on net's output prior to the metric computation (NMS).
+    :param normalize_targets:               Whether to normalize bbox coordinates by image size.
+    :param iou_thres:                       IoU threshold to compute the mAP.
+    :param recall_thres:                    Recall threshold to compute the mAP.
+    :param score_thres:                     Score threshold to compute Recall, Precision and F1.
+    :param top_k_predictions:               Number of predictions per class used to compute metrics, ordered by confidence score
+    :param dist_sync_on_step:               Synchronize metric state across processes at each ``forward()`` before returning the value at the step.
+    :param accumulate_on_cpu:               Run on CPU regardless of device used in other parts.
+                                            This is to avoid "CUDA out of memory" that might happen on GPU.
     """
 
     def __init__(
@@ -83,17 +76,16 @@ class DetectionMetrics(Metric):
 
         self.accumulate_on_cpu = accumulate_on_cpu
 
-    def update(self, preds, target: torch.Tensor, device: str, inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None):
+    def update(self, preds, target: torch.Tensor, device: str, inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None) -> None:
         """
         Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
 
-        :param preds :        Raw output of the model, the format might change from one model to another, but has to fit
-                                the input format of the post_prediction_callback (cx,cy,wh)
-        :param target:        Targets for all images of shape (total_num_targets, 6) LABEL_CXCYWH
-                                format:  (index, label, cx, cy, w, h)
-        :param device:        Device to run on
-        :param inputs:        Input image tensor of shape (batch_size, n_img, height, width)
-        :param crowd_targets: Crowd targets for all images of shape (total_num_targets, 6), LABEL_CXCYWH
+        :param preds:           Raw output of the model, the format might change from one model to another,
+                                but has to fit the input format of the post_prediction_callback (cx,cy,wh)
+        :param target:          Targets for all images of shape (total_num_targets, 6) LABEL_CXCYWH. format:  (index, label, cx, cy, w, h)
+        :param device:          Device to run on
+        :param inputs:          Input image tensor of shape (batch_size, n_img, height, width)
+        :param crowd_targets:   Crowd targets for all images of shape (total_num_targets, 6), LABEL_CXCYWH
         """
         self.iou_thresholds = self.iou_thresholds.to(device)
         _, _, height, width = inputs.shape
@@ -156,8 +148,8 @@ class DetectionMetrics(Metric):
         When in distributed mode, stats are aggregated after each forward pass to the metric state. Since these have all
         different sizes we override the synchronization function since it works only for tensors (and use
         all_gather_object)
-        @param dist_sync_fn:
-        @return:
+        :param dist_sync_fn:
+        :return:
         """
         if self.world_size is None:
             self.world_size = torch.distributed.get_world_size() if self.is_distributed else -1

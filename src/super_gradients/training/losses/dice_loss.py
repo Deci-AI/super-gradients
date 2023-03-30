@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 
 import torch
 
@@ -15,7 +15,7 @@ class DiceLoss(AbstarctSegmentationStructureLoss):
     Defined in the paper: "V-Net: Fully Convolutional Neural Networks for Volumetric Medical Image Segmentation"
     """
 
-    def _calc_numerator_denominator(self, labels_one_hot, predict):
+    def _calc_numerator_denominator(self, labels_one_hot: torch.tensor, predict: torch.tensor) -> Tuple[torch.tensor, torch.tensor]:
         """
         Calculate dice metric's numerator and denominator.
 
@@ -29,7 +29,7 @@ class DiceLoss(AbstarctSegmentationStructureLoss):
         denominator = labels_one_hot + predict
         return numerator, denominator
 
-    def _calc_loss(self, numerator, denominator):
+    def _calc_loss(self, numerator: torch.tensor, denominator: torch.tensor) -> torch.tensor:
         """
         Calculate dice loss.
         All tensors are of shape [BS] if self.reduce_over_batches else [num_classes].
@@ -58,7 +58,7 @@ class BinaryDiceLoss(DiceLoss):
         super().__init__(apply_softmax=False, ignore_index=None, smooth=smooth, eps=eps, reduce_over_batches=False)
         self.apply_sigmoid = apply_sigmoid
 
-    def forward(self, predict, target):
+    def forward(self, predict: torch.tensor, target: torch.tensor) -> torch.tensor:
         if self.apply_sigmoid:
             predict = torch.sigmoid(predict)
         return super().forward(predict=predict, target=target)
@@ -70,10 +70,10 @@ class GeneralizedDiceLoss(DiceLoss):
      to deal with class imbalance.
     Defined in the paper: "Generalised Dice overlap as a deep learning loss function for highly unbalanced
      segmentations"
-    Args:
-        smooth (float): default value is 0, smooth laplacian is not recommended to be used with GeneralizedDiceLoss.
+
+    :param smooth:  default value is 0, smooth laplacian is not recommended to be used with GeneralizedDiceLoss.
          because the weighted values to be added are very small.
-        eps (float): default value is 1e-17, must be a very small value, because weighted `intersection` and
+    :param eps:     default value is 1e-17, must be a very small value, because weighted `intersection` and
         `denominator` are very small after multiplication with `1 / counts ** 2`
     """
 
