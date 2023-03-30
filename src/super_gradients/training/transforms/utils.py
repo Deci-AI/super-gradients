@@ -13,7 +13,8 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.n
     :param target_shape:    Target shape to rescale to.
     :return:                Rescaled image.
     """
-    return cv2.resize(image, dsize=(int(target_shape[1]), int(target_shape[0])), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
+    height, width = target_shape[:2]
+    return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
 
 
 def _rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np.array:
