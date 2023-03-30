@@ -30,7 +30,7 @@ class PPYoloE(SgModule):
 
         self._image_processor = ComposeProcessing(
             [
-                DetectionRescale(output_shape=(640, 640)),
+                DetectionRescale(output_shape=(640, 640), keep_aspect_ratio=False),
                 NormalizeImage(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375]),
                 ImagePermute(permutation=(2, 0, 1)),
             ]
