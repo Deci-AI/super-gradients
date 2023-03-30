@@ -14,7 +14,7 @@ dataset_params:
   dataset_name: ${dataset_name}
 
   train_dataloader_params:
-    batch_size: 16
+    batch_size: 12
 
   val_dataloader_params:
     batch_size: 16
@@ -35,8 +35,13 @@ result_path: # By defaults saves results in checkpoints directory
 resume: False
 training_hyperparams:
   resume: ${resume}
-  initial_lr: 0.0001
   zero_weight_decay_on_bias_and_bn: True
+
+  lr_warmup_epochs: 3
+  warmup_mode: linear_epoch_step
+
+  initial_lr: 4e-4
+  cosine_final_lr_ratio: 0.1
 
   optimizer_params:
     weight_decay: 0.0001
@@ -50,9 +55,6 @@ training_hyperparams:
   criterion_params:
     num_classes: ${num_classes}
 
-  lr_warmup_steps: 100
-  lr_warmup_epochs: 0
-  cosine_final_lr_ratio: 0.1
 
   phase_callbacks: []
 
@@ -88,7 +90,7 @@ training_hyperparams:
 
 multi_gpu: Off
 num_gpus: 1
-experiment_suffix: ""
+experiment_suffix: "v2"
 experiment_name: ${architecture}_roboflow_${dataset_name}_${experiment_suffix}
 ckpt_root_dir:
 
