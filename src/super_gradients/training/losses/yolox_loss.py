@@ -684,7 +684,8 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
             bbox_preds, cls_preds, obj_preds, expanded_strides, x_shifts, y_shifts, targets
         )
 
-        num_gts = max(flattened_gts.shape[0], 1)
+        num_gts = flattened_gts.shape[0]
+        num_gts_clamped = max(flattened_gts.shape[0], 1)
         num_fg = max(matched_gt_ids.shape[0], 1)
         total_num_anchors = max(transformed_outputs.shape[0] * transformed_outputs.shape[1], 1)
 
@@ -692,7 +693,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         obj_targets = transformed_outputs.new_zeros((transformed_outputs.shape[0], transformed_outputs.shape[1]))
         obj_targets[matched_img_ids, matched_fg_ids] = 1
         reg_targets = flattened_gts[matched_gt_ids][:, 1:]
-        if self.use_l1:
+        if self.use_l1 and num_gts > 0:
             l1_targets = self.get_l1_target(
                 transformed_outputs.new_zeros((num_fg, 4)),
                 flattened_gts[matched_gt_ids][:, 1:],
@@ -707,7 +708,8 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         loss_iou = self.iou_loss(bbox_preds[matched_img_ids, matched_fg_ids], reg_targets).sum() / num_fg
         loss_obj = self.bcewithlog_loss(obj_preds.squeeze(-1), obj_targets).sum() / (total_num_anchors if self.obj_loss_fix else num_fg)
         loss_cls = self.bcewithlog_loss(cls_preds[matched_img_ids, matched_fg_ids], cls_targets).sum() / num_fg
-        if self.use_l1:
+
+        if self.use_l1 and num_gts > 0:
             loss_l1 = self.l1_loss(raw_outputs[matched_img_ids, matched_fg_ids], l1_targets).sum() / num_fg
         else:
             loss_l1 = 0.0
@@ -723,7 +725,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
                     loss_obj.unsqueeze(0),
                     loss_cls.unsqueeze(0),
                     torch.tensor(loss_l1).unsqueeze(0).to(transformed_outputs.device),
-                    torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).to(transformed_outputs.device),
+                    torch.tensor(num_fg / num_gts_clamped).unsqueeze(0).to(transformed_outputs.device),
                     loss.unsqueeze(0),
                 )
             ).detach(),
