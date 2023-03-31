@@ -1,5 +1,5 @@
 defaults:
-  - roboflow_deciyolo_m
+  - roboflow_deciyolo_s
   - quantization_params: default_quantization_params
   - _self_
 
