@@ -80,6 +80,20 @@ class DetectionResult(Result):
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
+
+        self.draw()
+        # plt.imshow(image_np, interpolation="nearest")
+        # plt.axis("off")
+        # plt.show()
+
+    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None):
+        """Draw bboxes on the images.
+
+        :param box_thickness:   Thickness of bounding boxes.
+        :param show_confidence: Whether to show confidence scores on the image.
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
         color_mapping = color_mapping or DetectionVisualization._generate_color_mapping(len(self.class_names))
 
         image_np = self.image.copy()
@@ -98,9 +112,10 @@ class DetectionResult(Result):
                 pred_conf=self.confidence[i] if show_confidence else None,
             )
 
-        plt.imshow(image_np, interpolation="nearest")
+        plt.imshow(image_np)  # , interpolation="nearest")
         plt.axis("off")
         plt.show()
+        # return image_np
 
 
 @dataclass

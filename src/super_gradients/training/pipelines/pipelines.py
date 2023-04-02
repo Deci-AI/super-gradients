@@ -99,6 +99,15 @@ class Pipeline(ABC):
         """
         pass
 
+    def save_video(self, source_video_path: str, output_video_path: str) -> None:
+        from super_gradients.training.utils.videos import load_video, save_video
+
+        video, fps = load_video(file_path=source_video_path)
+        results = self.model.predict(video)
+        frames = results.draw(video)
+        save_video(output_path=output_video_path, frames=frames, fps=fps)
+        print(f"Saved video to {output_video_path}")
+
 
 class DetectionPipeline(Pipeline):
     """Pipeline specifically designed for object detection tasks.
