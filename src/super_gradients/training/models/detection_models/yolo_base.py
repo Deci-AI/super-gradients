@@ -80,11 +80,14 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         self.with_confidence = with_confidence
 
     def forward(self, x, device: str = None):
+        # Use the main output features in case of multiple outputs.
+        if isinstance(x, (tuple, list)):
+            x = x[0]
 
         if self.nms_type == NMS_Type.ITERATIVE:
-            nms_result = non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, with_confidence=self.with_confidence)
+            nms_result = non_max_suppression(x, conf_thres=self.conf, iou_thres=self.iou, with_confidence=self.with_confidence)
         else:
-            nms_result = matrix_non_max_suppression(x[0], conf_thres=self.conf, max_num_of_detections=self.max_pred)
+            nms_result = matrix_non_max_suppression(x, conf_thres=self.conf, max_num_of_detections=self.max_pred)
 
         return self._filter_max_predictions(nms_result)
 
