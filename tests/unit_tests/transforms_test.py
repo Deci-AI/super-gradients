@@ -11,6 +11,17 @@ from super_gradients.training.transforms.keypoint_transforms import (
 )
 from super_gradients.training.transforms.transforms import DetectionImagePermute, DetectionPadToSize
 
+from super_gradients.training.transforms.utils import (
+    _rescale_image,
+    _rescale_bboxes,
+    _shift_image,
+    _shift_bboxes,
+    _rescale_and_pad_to_size,
+    _rescale_xyxy_bboxes,
+    _get_center_padding_params,
+    _pad_image_on_side,
+)
+
 
 class TestTransforms(unittest.TestCase):
     def test_keypoints_random_affine(self):
@@ -119,6 +130,96 @@ class TestTransforms(unittest.TestCase):
         )
         self.assertEqual(output["image"].shape, (640, 640, 3))
         np.testing.assert_array_equal(output["target"], expected_boxes)
+
+    def test_rescale_image(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        target_shape = (320, 240)
+        rescaled_image = _rescale_image(image, target_shape)
+
+        # Check if the rescaled image has the correct target shape
+        self.assertEqual(rescaled_image.shape[:2], target_shape)
+
+    def test_rescale_bboxes(self):
+        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
+        sy, sx = (2.0, 0.5)
+        expected_bboxes = np.array([[5.0, 40.0, 25.0, 120.0, 1.0], [15.0, 80.0, 40.0, 180.0, 2.0]], dtype=np.float32)
+
+        rescaled_bboxes = _rescale_bboxes(targets=bboxes, scale_factors=(sy, sx))
+        np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
+
+    def test_get_shift_params(self):
+        input_size = (640, 480)
+        output_size = (800, 600)
+        shift_h, shift_w, pad_h, pad_w = _get_center_padding_params(input_size, output_size)
+
+        # Check if the shift and padding values are correct
+        self.assertEqual((shift_h, shift_w, pad_h, pad_w), (80, 60, (80, 80), (60, 60)))
+
+    def test_shift_image(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        pad_h = (80, 80)
+        pad_w = (60, 60)
+        pad_value = 0
+        shifted_image = _shift_image(image, pad_h, pad_w, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600, 3))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: pad_h[0], :, :] == pad_value).all())
+        self.assertTrue((shifted_image[-pad_h[1] :, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : pad_w[0], :] == pad_value).all())
+        self.assertTrue((shifted_image[:, -pad_w[1] :, :] == pad_value).all())
+
+    def test_shift_bboxes(self):
+        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
+        shift_w, shift_h = 60, 80
+        shifted_bboxes = _shift_bboxes(bboxes, shift_w, shift_h)
+
+        # Check if the shifted bboxes have the correct values
+        expected_bboxes = np.array([[70, 100, 110, 140, 1], [90, 120, 140, 170, 2]], dtype=np.float32)
+        np.testing.assert_array_equal(shifted_bboxes, expected_bboxes)
+
+    def test_rescale_xyxy_bboxes(self):
+        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
+        r = 0.5
+        rescaled_bboxes = _rescale_xyxy_bboxes(bboxes, r)
+
+        # Check if the rescaled bboxes have the correct values
+        expected_bboxes = np.array([[5.0, 10.0, 25.0, 30.0, 1.0], [15.0, 20.0, 40.0, 45.0, 2.0]], dtype=np.float32)
+        np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
+
+    def test_pad_image_on_side(self):
+        # Test Case 1: Padding needed
+        image = np.array([[1, 2], [3, 4]])
+        output_size = (3, 4)
+        expected_result = np.array([[1, 2, 114, 114], [3, 4, 114, 114], [114, 114, 114, 114]])
+        result = _pad_image_on_side(image, output_size)
+        assert np.array_equal(result, expected_result)
+
+        # Test Case 2: No padding needed
+        image = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        output_size = (3, 3)
+        expected_result = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        result = _pad_image_on_side(image, output_size)
+        assert np.array_equal(result, expected_result)
+
+    def test_rescale_and_pad_to_size(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        output_size = (800, 500)
+        pad_val = 114
+        rescaled_padded_image, r = _rescale_and_pad_to_size(image, output_size, pad_val=pad_val)
+
+        # Check if the rescaled and padded image has the correct shape
+        self.assertEqual(rescaled_padded_image.shape, (3, *output_size))
+
+        # Check if the image is rescaled with the correct ratio
+        resized_image_shape = (int(image.shape[0] * r), int(image.shape[1] * r))
+
+        # Check if the padding is correctly applied
+        padded_area = rescaled_padded_image[:, resized_image_shape[0] :, :]  # Right padding area
+        self.assertTrue((padded_area == pad_val).all())
+        padded_area = rescaled_padded_image[:, :, resized_image_shape[1] :]  # Bottom padding area
+        self.assertTrue((padded_area == pad_val).all())
 
 
 if __name__ == "__main__":
