@@ -1,5 +1,5 @@
-
 # Model Zoo
+
 ## Computer Vision Models - Pretrained Checkpoints
 
 You can load any of our pretrained model in 2 lines of code:
@@ -140,4 +140,3 @@ Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
 
 ### Pose Estimation
 - [HRNet DEKR](https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation) - Bottom-Up Human Pose Estimation Via Disentangled Keypoint Regression [https://arxiv.org/pdf/2104.02300.pdf](https://arxiv.org/pdf/2104.02300.pdf)
-</details>

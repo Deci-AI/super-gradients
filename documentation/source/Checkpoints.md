@@ -1,4 +1,4 @@
-# Model Checkpoints in SG
+# Model Checkpoints
 
 The first question that arises is: what is a checkpoint?
 

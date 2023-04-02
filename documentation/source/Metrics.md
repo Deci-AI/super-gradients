@@ -1,4 +1,4 @@
-# Metrics in SG
+# Metrics
 
 The purpose of metrics is to allow you to monitor and quantify the training process. Therefore, metrics are an essential component in every deep learning training process.
 For this purpose, we leverage the [torchmetrics](https://torchmetrics.rtfd.io/en/latest/) library.
@@ -33,7 +33,7 @@ Apart from the native `torchmetrics` implementations, SG implements some metrics
     DetectionMetrics_075
     DetectionMetrics_050_095
 
-## Basic Usage of Implemented Metrics in SG:
+## Basic Usage of Implemented Metrics
 
 For coded training scripts (i.e., not [using configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)), the most basic usage is simply passing the metric objects through
 `train_metrics_list` and `valid_metrics_list`:
@@ -81,7 +81,7 @@ valid_metrics_list:                               # metrics for evaluation
   - Top5
 ```
 
-## Using Custom Metrics in SG
+## Using Custom Metrics
 
 Suppose you implemented your own `MyAccuracy` (more information on how to do so [here](https://torchmetrics.readthedocs.io/en/latest/pages/implement.html)), for coded training, you can pass an instance of it as done in the previous sub-section.
 For [training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md), first decorate your metric class with SG's `@register_metric` decorator:

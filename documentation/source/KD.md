@@ -1,4 +1,4 @@
-# Knowledge Distillation Training in SG
+# Knowledge Distillation Training
 
 Pre-requisites: [Training in SG](https://github.com/Deci-AI/super-gradients/blob/master/documentation/assets/Example_Classification.md), [Training with Configuration Files]()
 
@@ -41,7 +41,7 @@ kd_trainer.train(student=student_model, teacher=teacher_model, training_params=t
 Check out our [knowledge distillation tutorial notebook](https://bit.ly/3BLA5oR) to see a practical example.
 
 
-## Knowledge Distillation Training in SG: Key Components
+## Knowledge Distillation Training: Key Components
 
 
 ### [KDModule](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/kd_modules/kd_module.py)
@@ -103,7 +103,7 @@ This means that when customizing KD, it's essential for the custom `KDModule` to
 Currently, [KDLogitsLoss](https://github.com/Deci-AI/super-gradients/blob/12a4e53a96e8608409100b5ef83971157518434b/src/super_gradients/training/losses/kd_losses.py#L15) is currently the only supported loss function in SGs KD losses bank, but more is to come.
 Note that during KD training, the `KDModule` outputs (which are of `KDOutput` instance) are passed to the loss's forward method as predictions.
 
-## Knowledge Distillation Training in SG: Checkpoints
+## Knowledge Distillation Training: Checkpoints
 
 Checkpointing during KD training is generally the [same as checkpointing without KD](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/Checkpoints.md).
 Nevertheless, there are a few differences worth mentioning:

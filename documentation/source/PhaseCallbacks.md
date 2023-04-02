@@ -1,4 +1,4 @@
-# Phase Callbacks in SG
+# Phase Callbacks
 
 Integrating your own code into an already existing training pipeline can draw much effort on the user's end.
 To tackle this challenge, a list of callables triggered at specific points of the training code can be passed through `phase_calbacks_list` inside `training_params` when calling `Trainer.train(...)`.
@@ -277,3 +277,4 @@ Last, in your ``my_train_from_recipe_script.py`` file, import the newly register
   
   if __name__ == "__main__":
       run()
+```

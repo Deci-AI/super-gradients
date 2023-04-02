@@ -1,4 +1,4 @@
-# Learning Rate Scheduling in SG
+# Learning Rate Scheduling
 
 When training deep neural networks, it is often useful to reduce learning rate as the training progresses. This can be done by using pre-defined learning rate schedules or adaptive learning rate methods.
 Learning rate scheduling type is controlled by the training parameter `lr_mode`. From `Trainer.train(...)` docs:

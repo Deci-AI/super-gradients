@@ -1,10 +1,10 @@
-# Data in SG
+# Data
 
 To handle data, SuperGradients takes use of two Pytorch primitives: `torch.utils.data.Dataset` - which is in charge of generating the samples and their corresponding labels,
 and `torch.utils.data.DataLoader` - that wraps an iterable around the Dataset to enable easy access to the samples. In other words, `torch.utils.data.Dataset` defines how to load a single sample,
 while `torch.utils.data.DataLoader` defines how to load batches of samples. For more information, see [PyTorch documentation](https://pytorch.org/docs/stable/data.html).
 
-## SG Datasets
+## Datasets
 
 SuperGradients holds common public `torch.utils.data.Dataset` implementations for various tasks:
 
@@ -65,7 +65,7 @@ trainer.test(model=trainer.net, test_loader=test_dataloader, test_metrics_list=[
 
 Note that `dataloader_params` will be unpacked in the `torch.utils.data.DataLoader` constructor after setting a proper sampler if one is not explicitly set.
 
-## SG DataLoaders
+## DataLoaders
 
 As mentioned above, once instantiated, the `torch.utils.data.DataLoader` objects form batches.
 Therefore- these are the objects being passed to Trainer.train(...):
@@ -143,7 +143,7 @@ trainer.train(model=model, training_params=train_params, train_loader=train_data
    
    ```
 
-### SG DataLoaders - Training with Configuration Files
+### DataLoaders - Training with Configuration Files
 
 If you are still getting familiar with training with configuration files, follow [this link](https://github.com/Deci-AI/super-gradients/tree/master/documentation/source).
 
@@ -190,7 +190,7 @@ dataset_params:
 
 ```
 
-## Using Custom Datasets in SG
+## Using Custom Datasets
 
 Suppose we already have our own `torch.utils.data.Dataset` class:
 ```python
@@ -232,7 +232,7 @@ train_params = {...}
 trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
 ```
 
-### Using Custom Datasets in SG- Training with Configuration Files
+### Using Custom Datasets - Training with Configuration Files
 
 When using configuration files, for example, training using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...)),  In your ``my_dataset.py``, register your dataset class by decorating the class with `register_dataset`:
 ```python
