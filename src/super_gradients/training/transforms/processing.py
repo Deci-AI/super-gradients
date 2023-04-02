@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
@@ -51,7 +52,7 @@ class Processing(ABC):
         pass
 
     @abstractmethod
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: Union[None, ProcessingMetadata]) -> np.ndarray:
+    def postprocess_predictions(self, predictions: Prediction, metadata: Union[None, ProcessingMetadata]) -> Prediction:
         """Postprocess the model output predictions."""
         pass
 
@@ -70,7 +71,7 @@ class ComposeProcessing(Processing):
             metadata_lst.append(metadata)
         return processed_image, ComposeProcessingMetadata(metadata_lst=metadata_lst)
 
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: ComposeProcessingMetadata) -> np.ndarray:
+    def postprocess_predictions(self, predictions: Prediction, metadata: ComposeProcessingMetadata) -> Prediction:
         """Postprocess the model output predictions."""
         postprocessed_predictions = predictions
         for processing, metadata in zip(self.processings[::-1], metadata.metadata_lst[::-1]):
@@ -91,7 +92,7 @@ class ImagePermute(Processing):
         processed_image = np.ascontiguousarray(image.transpose(*self.permutation))
         return processed_image, None
 
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: None) -> np.ndarray:
+    def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
         return predictions
 
 
@@ -109,7 +110,7 @@ class NormalizeImage(Processing):
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         return (image - self.mean) / self.std, None
 
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: None) -> np.ndarray:
+    def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
         return predictions
 
 
@@ -131,8 +132,13 @@ class _DetectionPadding(Processing, ABC):
         processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
         return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
 
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: DetectionPadToSizeMetadata) -> np.ndarray:
-        return _shift_bboxes(targets=predictions, shift_h=-metadata.padding_coordinates.top, shift_w=-metadata.padding_coordinates.left)
+    def postprocess_predictions(self, predictions: DetectionPrediction, metadata: DetectionPadToSizeMetadata) -> DetectionPrediction:
+        predictions.bboxes_xyxy = _shift_bboxes(
+            targets=predictions.bboxes_xyxy,
+            shift_h=-metadata.padding_coordinates.top,
+            shift_w=-metadata.padding_coordinates.left,
+        )
+        return predictions
 
     @abstractmethod
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
@@ -185,20 +191,12 @@ class _LongestMaxSizeRescale(Processing, ABC):
 
 
 class DetectionRescale(_Rescale):
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
-        return _rescale_bboxes(targets=predictions, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+    def postprocess_predictions(self, predictions: DetectionPrediction, metadata: RescaleMetadata) -> DetectionPrediction:
+        predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+        return predictions
 
 
 class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
-        return _rescale_bboxes(targets=predictions, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
-
-
-class SegmentationRescale(_Rescale):
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
-        return _rescale_image(predictions, target_shape=metadata.original_shape)
-
-
-class SegmentationLongestMaxSizeRescale(_LongestMaxSizeRescale):
-    def postprocess_predictions(self, predictions: np.ndarray, metadata: RescaleMetadata) -> np.ndarray:
-        return _rescale_image(predictions, target_shape=metadata.original_shape)
+    def postprocess_predictions(self, predictions: DetectionPrediction, metadata: RescaleMetadata) -> DetectionPrediction:
+        predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+        return predictions
