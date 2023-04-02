@@ -675,6 +675,26 @@ If you want to be a part of SuperGradients growing community, hear about all the
 
 This project is released under the [Apache 2.0 license](LICENSE).
     
+## Citing
+
+### BibTeX
+
+```bibtex
+
+@misc{supergradients,
+  doi = {10.5281/ZENODO.7789328},
+  url = {https://zenodo.org/record/7789328},
+  author = {Aharon,  Shay and {Louis-Dupont} and {Ofri Masad} and Yurkova,  Kate and {Lotem Fridman} and {Lkdci} and Khvedchenya,  Eugene and Rubin,  Ran and Bagrov,  Natan and Tymchenko,  Borys and Keren,  Tomer and Zhilko,  Alexander and {Eran-Deci}},
+  title = {Super-Gradients},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  year = {2021},
+}
+```
+
+### Latest DOI
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7789328.svg)](https://doi.org/10.5281/zenodo.7789328)
 
     
 __________________________________________________________________________________________________________
