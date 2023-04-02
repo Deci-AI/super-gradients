@@ -400,8 +400,19 @@ class EfficientNet(SgModule):
     References:
         [1] https://arxiv.org/abs/1905.11946 (EfficientNet)
 
-    :param blocks_args: A list of BlockArgs to construct blocks. (list[namedtuple])
-    :param arch_params: A set of global params shared between blocks.
+
+    :param width_coefficient:   model's width coefficient. Used as the multiplier.
+    :param depth_coefficient:   model's depth coefficient. Used as the multiplier.
+    :param image_size:          Size of input image.
+    :param dropout_rate:        Dropout probability in final layer
+    :param num_classes:         Number of classes.
+    :param batch_norm_momentum: Value used for the running_mean and running_var computation
+    :param batch_norm_epsilon:  Value added to the denominator for numerical stability
+    :param drop_connect_rate:   Connection dropout probability
+    :param depth_divisor:       Model's depth divisor. Used as the divisor.
+    :param min_depth:           Model's minimal depth, if given.
+    :param backbone_mode:       If true, dropping the final linear layer
+    :param blocks_args:         List of BlockArgs to construct blocks. (list[namedtuple])
     """
 
     def __init__(

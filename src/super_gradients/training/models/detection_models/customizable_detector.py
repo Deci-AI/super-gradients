@@ -36,7 +36,14 @@ class CustomizableDetector(SgModule):
         in_channels: int = 3,
     ):
         """
-        :param type_mapping: can be passed to resolve string type names in arch_params to actual types
+        :param backbone:    Backbone configuration.
+        :param heads:       Head configuration.
+        :param neck:        Neck configuration.
+        :param num_classes: num classes to predict.
+        :param bn_eps:      Epsilon for batch norm.
+        :param bn_momentum: Momentum for batch norm.
+        :param inplace_act: If True, do the operations operation in-place when possible.
+        :param in_channels: number of input channels
         """
         super().__init__()
 
