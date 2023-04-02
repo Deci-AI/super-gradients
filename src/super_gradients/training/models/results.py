@@ -24,6 +24,10 @@ class Result(ABC):
         """Display images along with the run results."""
         pass
 
+    def draw(self) -> np.ndarray:
+        """Draw results on the images."""
+        pass
+
 
 @dataclass
 class Results(ABC):
@@ -37,6 +41,10 @@ class Results(ABC):
     @abstractmethod
     def show(self):
         """Display images along with the run results."""
+        pass
+
+    def draw(self) -> List[np.ndarray]:
+        """Draw results on the images."""
         pass
 
 
@@ -81,12 +89,12 @@ class DetectionResult(Result):
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
 
-        self.draw()
-        # plt.imshow(image_np, interpolation="nearest")
-        # plt.axis("off")
-        # plt.show()
+        image_np = self.draw()
+        plt.imshow(image_np, interpolation="nearest")
+        plt.axis("off")
+        plt.show()
 
-    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None):
+    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> np.ndarray:
         """Draw bboxes on the images.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -112,10 +120,7 @@ class DetectionResult(Result):
                 pred_conf=self.confidence[i] if show_confidence else None,
             )
 
-        plt.imshow(image_np)  # , interpolation="nearest")
-        plt.axis("off")
-        plt.show()
-        # return image_np
+        return image_np
 
 
 @dataclass
@@ -139,4 +144,14 @@ class DetectionResults(Results):
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
         for prediction in self.results:
-            prediction.show(box_thickness=box_thickness, color_mapping=color_mapping)
+            prediction.show(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
+
+    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> List[np.ndarray]:
+        """Draw bboxes on the images.
+
+        :param box_thickness:   Thickness of bounding boxes.
+        :param show_confidence: Whether to show confidence scores on the image.
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
+        return [prediction.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping) for prediction in self.results]

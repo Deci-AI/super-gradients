@@ -99,14 +99,16 @@ class Pipeline(ABC):
         """
         pass
 
-    def save_video(self, source_video_path: str, output_video_path: str) -> None:
+    def predict_video(self, source_video_path: str, output_video_path: str, batch_size: str = None) -> None:
         from super_gradients.training.utils.videos import load_video, save_video
 
         video, fps = load_video(file_path=source_video_path)
-        results = self.model.predict(video)
-        frames = results.draw(video)
+
+        # TODO: Answer question: set batchsize or other solution?
+        n_batches = len(video) // batch_size
+        results = [self.model.predict(video[i * batch_size : (i + 1) * batch_size]) for i in range(n_batches)]
+        frames = results.draw()
         save_video(output_path=output_video_path, frames=frames, fps=fps)
-        print(f"Saved video to {output_video_path}")
 
 
 class DetectionPipeline(Pipeline):

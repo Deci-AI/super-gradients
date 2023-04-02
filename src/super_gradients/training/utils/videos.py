@@ -97,3 +97,43 @@ def _validate_frames(frames: List[np.ndarray]) -> Tuple[float, float]:
         raise RuntimeError("Your frames must include 3 channels.")
 
     return max_height, max_width
+
+
+# print("")
+# print("Done")
+# import cv2
+# import numpy as np
+#
+# # Define video settings
+# VIDEO_FILE_NAME = "/home/louis.dupont/PycharmProjects/test_video.mp4"
+# VIDEO_CODEC = cv2.VideoWriter_fourcc(*"mp4v")
+# VIDEO_FPS = 30
+# VIDEO_WIDTH = 640
+# VIDEO_HEIGHT = 480
+#
+# # Create a VideoWriter object to write the frames to a video file
+# video_writer = cv2.VideoWriter(VIDEO_FILE_NAME, VIDEO_CODEC, VIDEO_FPS, (VIDEO_WIDTH, VIDEO_HEIGHT))
+#
+# # Define a color gradient to animate across the video frames
+# gradient = np.linspace(0, 255, VIDEO_WIDTH, dtype=np.uint8)
+#
+# # Loop over the frames and draw a color gradient that moves across the screen
+# for i in range(VIDEO_FPS * 5):
+#     # Create a blank image with the background color
+#     background_color = i % 255
+#     frame = np.full((VIDEO_HEIGHT, VIDEO_WIDTH, 3), background_color, dtype=np.uint8)
+#
+#     # Calculate the current position of the gradient
+#     gradient_pos = int((i / VIDEO_FPS) * VIDEO_WIDTH) % VIDEO_WIDTH
+#
+#     # Draw the color gradient on the frame
+#     for x in range(VIDEO_WIDTH):
+#         frame[:, x, :] = gradient[(gradient_pos + x) % VIDEO_WIDTH]
+#         frame[:, :, 0] = 200
+#     # Write the frame to the video file
+#     video_writer.write(frame)
+#
+# # Release the VideoWriter object
+# video_writer.release()
+#
+# print(f"Video saved to {VIDEO_FILE_NAME}")

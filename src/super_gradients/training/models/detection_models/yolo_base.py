@@ -444,6 +444,16 @@ class YoloBase(SgModule):
         )
         return pipeline(images)
 
+    def predict_video(self, source_path: str, output_path: str, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
+        pipeline = DetectionPipeline(
+            model=self,
+            image_processor=self._image_processor,
+            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            class_names=self._class_names,
+        )
+        pipeline.predict_video(source_video_path=source_path, output_video_path=output_path)
+        return
+
     def forward(self, x):
         out = self._backbone(x)
         out = self._head(out)
