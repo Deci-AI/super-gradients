@@ -96,6 +96,11 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
     dataloader_params = _process_sampler_params(dataloader_params, dataset, default_dataloader_params)
     dataloader_params = _process_collate_fn_params(dataloader_params)
 
+    num_workers = get_param(dataloader_params, "num_workers")
+    if num_workers is not None and num_workers > 0:
+        num_workers = min(num_workers, len(dataset))
+        dataloader_params["num_workers"] = num_workers
+
     return dataloader_params
 
 
