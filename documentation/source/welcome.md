@@ -110,7 +110,6 @@ This project is released under the [Apache 2.0 license](LICENSE).
 ### BibTeX
 
 ```bibtex
-
 @misc{supergradients,
   doi = {10.5281/ZENODO.7789328},
   url = {https://zenodo.org/record/7789328},
