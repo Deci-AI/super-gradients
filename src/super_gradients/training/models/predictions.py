@@ -53,6 +53,3 @@ class DetectionPrediction(Prediction):
 
     def __len__(self):
         return len(self.bboxes_xyxy)
-
-    def __iter__(self):
-        return iter(zip(self.bboxes_xyxy, self.confidence, self.labels))
