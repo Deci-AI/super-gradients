@@ -225,7 +225,7 @@ Let's break it down:
     
 Now we can launch PTQ and QAT from the command line:
 ```commandline
-python -m qat_from_recipe --config-name=roboflow_deciyolo_s_qat experiment_name=soccer_players_qat_deciyolo_s dataset_name=soccer-players-5fuqs checkpoint_params.checkpoint_path=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>/deciyolo_s_soccer_players/ckpt_best.pth ckpt_ckpt_root_dir=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>
+python -m qat_from_recipe --config-name=roboflow_deciyolo_s_qat experiment_name=soccer_players_qat_deciyolo_s dataset_name=soccer-players-5fuqs dataset_params.data_dir=<PATH_TO_RF100_ROOT> checkpoint_params.checkpoint_path=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>/deciyolo_s_soccer_players/ckpt_best.pth ckpt_ckpt_root_dir=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>
 ...
 
 [2023-04-02 11:37:56,848][super_gradients.training.pre_launch_callbacks.pre_launch_callbacks][INFO] - Modifying recipe to suit QAT rules of thumb. Remove QATRecipeModificationCallback to disable.
