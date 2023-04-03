@@ -182,12 +182,14 @@ class _LongestMaxSizeRescale(Processing, ABC):
         self.output_shape = output_shape
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
+        height, width = image.shape[:2]
+        scale_factor = min(self.output_shape[0] / height, self.output_shape[1] / width)
 
-        scale_factor = min(self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1])
-        rescale_shape = (int(image.shape[0] * scale_factor), int(image.shape[1] * scale_factor))
-        rescaled_image = _rescale_image(image, target_shape=rescale_shape)
+        if scale_factor != 1.0:
+            new_height, new_width = round(height * scale_factor), round(width * scale_factor)
+            image = _rescale_image(image, target_shape=(new_height, new_width))
 
-        return rescaled_image, RescaleMetadata(original_shape=image.shape[:2], scale_factor_h=scale_factor, scale_factor_w=scale_factor)
+        return image, RescaleMetadata(original_shape=(height, width), scale_factor_h=scale_factor, scale_factor_w=scale_factor)
 
 
 class DetectionRescale(_Rescale):

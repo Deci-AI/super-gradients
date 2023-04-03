@@ -15,7 +15,7 @@ class PaddingCoordinates:
     right: int
 
 
-def _rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.ndarray:
+def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarray:
     """Rescale image to target_shape, without preserving aspect ratio.
 
     :param image:           Image to rescale. (H, W, C) or (H, W).
