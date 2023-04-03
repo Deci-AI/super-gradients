@@ -1,6 +1,7 @@
-#PTQ and QAT with DeciYolo
-
+# PTQ and QAT with DeciYolo
+<div align="center">
 <img src="images/soccer.png" width="750">
+</div>
 
 In this tutorial we will guide you step by step on how to prepare  our DeciYolo to production!
 We will leverage DeciYolos architecture which includes quantization friendly blocks, and train a deci yolo model on Roboflow's [Soccer Player Detection Dataset](https://universe.roboflow.com/roboflow-100/soccer-players-5fuqs)
@@ -174,4 +175,35 @@ Lets visualize some results:
 
 ## QAT and PTQ
 
-Now, we will take our checkpoint from our previous section and 
+Now, we will take our checkpoint from our previous section and perfrom post training quantization, then quantization aware training.
+In order to do so, we will need to launch training with our `qat_from_recipe` example script, which simplifies taking any existing training recipe and making it a quantization-aware one with the help of some of our recommended practices.
+So this time we navigate to the `qat_from_recipe` example directory:
+```commandline
+cd <YOUR-LOCAL-PATH>/super_gradients/src/super_gradients/examples/qat_from_recipe_example
+```
+
+Now, before we launch lets see how we can easily create a configuration from our `roboflow_deciyolo_s` config to get the most out of QAT and PTQ.
+Wev'e added a new config that inherits from our previous one, called `roboflow_deciyolo_s_qat.yaml`, lets peek at it:
+```yaml
+
+defaults:
+  - roboflow_deciyolo_s
+  - quantization_params: default_quantization_params
+  - _self_
+
+checkpoint_params:
+  checkpoint_path: /home/shay.aharon/PycharmProjects/super_gradients/checkpoints/deciyolo_s_roboflow_soccer-players-5fuqs/ckpt_best.pth
+  strict_load: no_key_matching
+
+experiment_name: soccer_players_qat_deciyolo_s
+
+pre_launch_callbacks_list:
+    - QATRecipeModificationCallback:
+        batch_size_divisor: 2
+        max_epochs_divisor: 10
+        lr_decay_factor: 0.01
+        warmup_epochs_divisor: 10
+        cosine_final_lr_ratio: 0.01
+        disable_phase_callbacks: True
+        disable_augmentations: False
+```
