@@ -4,10 +4,8 @@ defaults:
   - _self_
 
 checkpoint_params:
-  checkpoint_path: /home/shay.aharon/PycharmProjects/super_gradients/checkpoints/deciyolo_s_roboflow_soccer-players-5fuqs/ckpt_best.pth
+  checkpoint_path: ???
   strict_load: no_key_matching
-
-experiment_name: soccer_players_qat_deciyolo_s
 
 pre_launch_callbacks_list:
     - QATRecipeModificationCallback:

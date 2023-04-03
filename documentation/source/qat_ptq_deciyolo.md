@@ -1,5 +1,5 @@
 # PTQ and QAT with DeciYolo
-<div align="center">
+<div>
 <img src="images/soccer.png" width="750">
 </div>
 
@@ -192,7 +192,7 @@ defaults:
   - _self_
 
 checkpoint_params:
-  checkpoint_path: /home/shay.aharon/PycharmProjects/super_gradients/checkpoints/deciyolo_s_roboflow_soccer-players-5fuqs/ckpt_best.pth
+  checkpoint_path: ???
   strict_load: no_key_matching
 
 experiment_name: soccer_players_qat_deciyolo_s
@@ -207,3 +207,164 @@ pre_launch_callbacks_list:
         disable_phase_callbacks: True
         disable_augmentations: False
 ```
+
+Lets break it down:
+- We inherit from our original non-QA recipe
+
+- We set `quantization_params` to the default ones. Reminder - this is where QAT and PTQ hyper-parameters are defined. 
+
+- We set our checkpoint_params.checkpoint_path to ??? so that passing a checkpoint is required. We will override this value when launching from the command line.
+
+- We add a `QATRecipeModificationCallback` to our `pre_launch_callbacks_list`: This callback accepts the entire `cfg: DictConfig` and manipulates it right before we start the training. This allows to easily adapt any non-QA recipe to a QA one.
+  Here we will:
+  - Use half the batch size of the original recipe.
+  - Use 10 percent of the number of the epochs (and warmup epochs).
+  - Use 1 percent of the original learning rate.
+  - Set the final learning rate ratio of the cosine scheduling to 0.01
+  - Disable augmentations and the phase_callbacks.
+    
+Now we can just launch PTQ and QAT from the command line:
+```commandline
+python -m qat_from_recipe --config-name=roboflow_deciyolo_s_qat experiment_name=soccer_players_qat_deciyolo_s dataset_name=soccer-players-5fuqs checkpoint_params.checkpoint_path=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>/deciyolo_s_soccer_players/ckpt_best.pth ckpt_ckpt_root_dir=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>
+...
+
+[2023-04-02 11:37:56,848][super_gradients.training.pre_launch_callbacks.pre_launch_callbacks][INFO] - Modifying recipe to suit QAT rules of thumb. Remove QATRecipeModificationCallback to disable.
+[2023-04-02 11:37:56,858][super_gradients.training.pre_launch_callbacks.pre_launch_callbacks][WARNING] - New number of epochs: 10
+[2023-04-02 11:37:56,858][super_gradients.training.pre_launch_callbacks.pre_launch_callbacks][WARNING] - New learning rate: 5e-06
+[2023-04-02 11:37:56,858][super_gradients.training.pre_launch_callbacks.pre_launch_callbacks][WARNING] - New weight decay: 1.0000000000000002e-06
+[2023-04-02 11:37:56,858][super_gradients.training.pre_launch_callbacks.pre_launch_callbacks][WARNING] - EMA will be disabled for QAT run.
+[2023-04-02 11:37:56,859][super_gradients.training.pre_launch_callbacks.pre_launch_callbacks][WARNING] - SyncBatchNorm will be disabled for QAT run.
+[2023-04-02 11:37:56,859][super_gradients.training.pre_launch_callbacks.pre_launch_callbacks][WARNING] - Recipe requests multi_gpu=False and num_gpus=1. Changing to multi_gpu=OFF and num_gpus=1
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:32<00:00,  1.01s/it]
+[2023-04-02 11:38:34,316][super_gradients.training.qat_trainer.qat_trainer][INFO] - Validating PTQ model...
+
+  0%|          | 0/3 [00:00<?, ?it/s]
+Test:   0%|          | 0/3 [00:00<?, ?it/s]
+Test:  33%|███▎      | 1/3 [00:00<00:00,  2.87it/s]
+Test:  67%|██████▋   | 2/3 [00:00<00:00,  2.90it/s]
+Test: 100%|██████████| 3/3 [00:00<00:00,  3.86it/s]
+[2023-04-02 11:38:35,106][super_gradients.training.qat_trainer.qat_trainer][INFO] - PTQ Model Validation Results
+   - Precision@0.50: 0.6727069020271301
+   - Recall@0.50: 0.95766681432724
+   - mAP@0.50  : 0.9465919137001038
+   - F1@0.50   : 0.7861716747283936
+```
+
+Observe that for PTQ our model's mAP decreased from 0.967 to 0.9466. After PTQ, QAT is performed automatically:
+
+```commandline
+
+[2023-04-02 11:38:47] INFO - sg_trainer.py - Started training for 10 epochs (0/9)
+
+Train epoch 0: 100%|██████████| 32/32 [00:26<00:00,  1.21it/s, PPYoloELoss/loss=0.909, PPYoloELoss/loss_cls=0.444, PPYoloELoss/loss_dfl=0.57, PPYoloELoss/loss_iou=0.0721, gpu_mem=10.1]
+Validation epoch 0: 100%|██████████| 3/3 [00:00<00:00,  3.75it/s]
+===========================================================
+SUMMARY OF EPOCH 0
+├── Training
+│   ├── Ppyoloeloss/loss = 0.9088
+│   ├── Ppyoloeloss/loss_cls = 0.4436
+│   ├── Ppyoloeloss/loss_dfl = 0.5696
+│   └── Ppyoloeloss/loss_iou = 0.0721
+└── Validation
+    ├── F1@0.50 = 0.7885
+    ├── Map@0.50 = 0.9556
+    ├── Ppyoloeloss/loss = 1.4303
+    ├── Ppyoloeloss/loss_cls = 0.5847
+    ├── Ppyoloeloss/loss_dfl = 0.8186
+    ├── Ppyoloeloss/loss_iou = 0.1745
+    ├── Precision@0.50 = 0.671
+    └── Recall@0.50 = 0.9734
+
+===========================================================
+[2023-04-02 11:39:14] INFO - sg_trainer.py - Best checkpoint overriden: validation mAP@0.50: 0.9556358456611633
+Train epoch 1: 100%|██████████| 32/32 [00:26<00:00,  1.22it/s, PPYoloELoss/loss=0.91, PPYoloELoss/loss_cls=0.445, PPYoloELoss/loss_dfl=0.574, PPYoloELoss/loss_iou=0.0712, gpu_mem=10.1]
+Validation epoch 1: 100%|██████████| 3/3 [00:00<00:00,  3.88it/s]
+===========================================================
+SUMMARY OF EPOCH 1
+├── Training
+│   ├── Ppyoloeloss/loss = 0.9097
+│   │   ├── Best until now = 0.9088 (↗ 0.001)
+│   │   └── Epoch N-1      = 0.9088 (↗ 0.001)
+│   ├── Ppyoloeloss/loss_cls = 0.4448
+│   │   ├── Best until now = 0.4436 (↗ 0.0011)
+│   │   └── Epoch N-1      = 0.4436 (↗ 0.0011)
+│   ├── Ppyoloeloss/loss_dfl = 0.5739
+│   │   ├── Best until now = 0.5696 (↗ 0.0044)
+│   │   └── Epoch N-1      = 0.5696 (↗ 0.0044)
+│   └── Ppyoloeloss/loss_iou = 0.0712
+│       ├── Best until now = 0.0721 (↘ -0.0009)
+│       └── Epoch N-1      = 0.0721 (↘ -0.0009)
+└── Validation
+    ├── F1@0.50 = 0.7537
+    │   ├── Best until now = 0.7885 (↘ -0.0348)
+    │   └── Epoch N-1      = 0.7885 (↘ -0.0348)
+    ├── Map@0.50 = 0.9581
+    │   ├── Best until now = 0.9556 (↗ 0.0025)
+    │   └── Epoch N-1      = 0.9556 (↗ 0.0025)
+    ├── Ppyoloeloss/loss = 1.4312
+    │   ├── Best until now = 1.4303 (↗ 0.0009)
+    │   └── Epoch N-1      = 1.4303 (↗ 0.0009)
+    ├── Ppyoloeloss/loss_cls = 0.5881
+    │   ├── Best until now = 0.5847 (↗ 0.0034)
+    │   └── Epoch N-1      = 0.5847 (↗ 0.0034)
+    ├── Ppyoloeloss/loss_dfl = 0.8166
+    │   ├── Best until now = 0.8186 (↘ -0.002)
+    │   └── Epoch N-1      = 0.8186 (↘ -0.002)
+    ├── Ppyoloeloss/loss_iou = 0.1739
+    │   ├── Best until now = 0.1745 (↘ -0.0006)
+    │   └── Epoch N-1      = 0.1745 (↘ -0.0006)
+    ├── Precision@0.50 = 0.6262
+    │   ├── Best until now = 0.671  (↘ -0.0448)
+    │   └── Epoch N-1      = 0.671  (↘ -0.0448)
+    └── Recall@0.50 = 0.9734
+        ├── Best until now = 0.9734 (= 0.0)
+        └── Epoch N-1      = 0.9734 (= 0.0)
+
+===========================================================
+...
+...
+Validation epoch 10: 100%|██████████| 3/3 [00:00<00:00,  4.07it/s]
+===========================================================
+SUMMARY OF EPOCH 10
+├── Training
+│   ├── Ppyoloeloss/loss = 0.8901
+│   │   ├── Best until now = 0.889  (↗ 0.0011)
+│   │   └── Epoch N-1      = 0.8957 (↘ -0.0056)
+│   ├── Ppyoloeloss/loss_cls = 0.4365
+│   │   ├── Best until now = 0.4359 (↗ 0.0005)
+│   │   └── Epoch N-1      = 0.4384 (↘ -0.002)
+│   ├── Ppyoloeloss/loss_dfl = 0.5677
+│   │   ├── Best until now = 0.5665 (↗ 0.0012)
+│   │   └── Epoch N-1      = 0.5702 (↘ -0.0025)
+│   └── Ppyoloeloss/loss_iou = 0.0679
+│       ├── Best until now = 0.0672 (↗ 0.0007)
+│       └── Epoch N-1      = 0.0689 (↘ -0.001)
+└── Validation
+    ├── F1@0.50 = 0.7373
+    │   ├── Best until now = 0.7885 (↘ -0.0512)
+    │   └── Epoch N-1      = 0.721  (↗ 0.0164)
+    ├── Map@0.50 = 0.968
+    │   ├── Best until now = 0.9672 (↗ 0.0007)
+    │   └── Epoch N-1      = 0.9517 (↗ 0.0163)
+    ├── Ppyoloeloss/loss = 1.4326
+    │   ├── Best until now = 1.4303 (↗ 0.0023)
+    │   └── Epoch N-1      = 1.4322 (↗ 0.0004)
+    ├── Ppyoloeloss/loss_cls = 0.5887
+    │   ├── Best until now = 0.5847 (↗ 0.004)
+    │   └── Epoch N-1      = 0.5889 (↘ -0.0002)
+    ├── Ppyoloeloss/loss_dfl = 0.8164
+    │   ├── Best until now = 0.8154 (↗ 0.001)
+    │   └── Epoch N-1      = 0.8158 (↗ 0.0006)
+    ├── Ppyoloeloss/loss_iou = 0.1743
+    │   ├── Best until now = 0.1737 (↗ 0.0006)
+    │   └── Epoch N-1      = 0.1742 (↗ 1e-04)
+    ├── Precision@0.50 = 0.6052
+    │   ├── Best until now = 0.671  (↘ -0.0658)
+    │   └── Epoch N-1      = 0.5953 (↗ 0.01)
+    └── Recall@0.50 = 0.9853
+        ├── Best until now = 0.9853 (= 0.0)
+        └── Epoch N-1      = 0.9734 (↗ 0.0119)
+```
+
+We not only observed no decline in accuracy of our quantized model, but we also gained an improvement of 0.08 mAP!
+The QAT model is available in our checkpoints directory, already converted to .onnx format under  <YOUR_CHECKPOINTS_ROOT_DIRECTORY>/soccer_players_qat_deciyolo_s/soccer_players_qat_deciyolo_s_16x3x640x640_qat.onnx, ready to be converted to [converted and deployed to int8 using TRT](https://docs.nvidia.com/deeplearning/tensorrt/quick-start-guide/index.html#onnx-export).
