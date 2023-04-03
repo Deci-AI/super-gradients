@@ -9,7 +9,7 @@ From the [Pytorch Lightning](https://pytorch-lightning.readthedocs.io/en/stable/
     
     Checkpoints also enable your training to resume where it was in case the training process is interrupted.
 
-## Checkpoints Saving in SG: Which, When, and Where?
+## Checkpoints Saving: Which, When, and Where?
 
 From the previous subsection, we understand that checkpoints saved at different times during training have different purposes.
 That's why in SG, multiple checkpoints are saved throughout training:
@@ -29,7 +29,7 @@ The user controls the checkpoint root directory, which can be passed to the `Tra
 
 When working with a cloned version of SG, one can leave out the `ckpt_root_dir` arg, and checkpoints will be saved under the `super_gradients/checkpoints` directory.
 
-## Checkpoint Structure in SG
+## Checkpoint Structure
 
 Checkpoints in SG are instances of [state_dict](https://pytorch.org/tutorials/beginner/saving_loading_models.html#what-is-a-state-dict).
 They hold additional information about the model's training besides the model weights.
@@ -66,27 +66,27 @@ Loading model weights can be done right after model initialization, using `model
 
 Suppose we have launched a training experiment with a similar structure to the one below:
 
-   ```python
-        from super_gradients.training import Trainer
-        ...
-        ...
-        from super_gradients.training import models
-        from super_gradients.common.object_names import Models
-        
-        trainer = Trainer("my_resnet18_training_experiment", ckpt_root_dir="/path/to/my_checkpoints_folder")
-        train_dataloader = ...
-        valid_dataloader = ...
-        model = models.get(model_name=Models.RESNET18, num_classes=10)
-  
-        train_params = {
-            ...
-            "loss": "cross_entropy",
-            "criterion_params": {},
-            "save_ckpt_epoch_list": [10,15]
-            ...
-        }
-        trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
-   ```
+```python
+from super_gradients.training import Trainer
+...
+...
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+
+trainer = Trainer("my_resnet18_training_experiment", ckpt_root_dir="/path/to/my_checkpoints_folder")
+train_dataloader = ...
+valid_dataloader = ...
+model = models.get(model_name=Models.RESNET18, num_classes=10)
+
+train_params = {
+    ...
+    "loss": "cross_entropy",
+    "criterion_params": {},
+    "save_ckpt_epoch_list": [10,15]
+    ...
+}
+trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
+```
 
 Then at the end of the training, our `ckpt_root_dir` contents will look similar to the following:
 
@@ -106,25 +106,25 @@ my_checkpoints_folder
 
 Suppose we wish to load the weights from `ckpt_best.pth`. We can simply pass its path to the `checkpoint_path` argument in `models.get(...)`:
 
-   ```python
-        from super_gradients.training import models
-        from super_gradients.common.object_names import Models
-        
-        model = models.get(model_name=Models.RESNET18, num_classes=10, checkpoint_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
-   ```
+```python
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+
+model = models.get(model_name=Models.RESNET18, num_classes=10, checkpoint_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
+```
 
 > Important: when loading SG-trained checkpoints using models.get(...), if the network was trained with EMA, the EMA weights will be the ones loaded. 
 
 If we already possess an instance of our model, we can also directly use `load_checkpoint_to_model`:
 
-   ```python
-        from super_gradients.training import models
-        from super_gradients.common.object_names import Models
-        from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
-        
-        model = models.get(model_name=Models.RESNET18, num_classes=10)
-        load_checkpoint_to_model(net=model, ckpt_local_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
-   ```
+```python
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
+
+model = models.get(model_name=Models.RESNET18, num_classes=10)
+load_checkpoint_to_model(net=model, ckpt_local_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
+```
 ### Extending the Functionality of PyTorch's `strict` Parameter in `load_state_dict()`
 
 When not familiar with PyTorch's `strict` parameter in `load_state_dict()`, please see [PyTorch's docs on this matter](https://pytorch.org/tutorials/beginner/saving_loading_models.html#id4) first.
@@ -175,14 +175,14 @@ Notice the above networks have identical weight structures but will have differe
 This is why loading a checkpoint from either one to the other, using `strict=True`, will fail and crash. Using `strict=False` will not crash and successfully load the first layer's weights only.
 Using SG's `no_key_matching` will successfully load a checkpoint from either one to the other.
 
-### Loading Pretrained Weights from the SG Model Zoo
+### Loading Pretrained Weights from the Model Zoo
 
 Using `models.get(...)`, you can load any of our pre-trained models in 3 lines of code:
 ```python
-        from super_gradients.training import models
-        from super_gradients.common.object_names import Models
-        
-        model = models.get(Models.YOLOX_S, pretrained_weights="coco")
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+
+model = models.get(Models.YOLOX_S, pretrained_weights="coco")
 ```
 
 The `pretrained_weights` argument specifies the dataset on which the pre-trained weights were trained. [Here is the complete list of pre-trained weights](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md).
@@ -216,34 +216,34 @@ pretrained_weights: # a string describing the dataset of the pre-trained weights
 And note the above parameters are used to start the training with different weights (fine-tuning etc.) - they are passed to model.get() in the underlying flow of `Trainer.train_from_config(...)`:
 ```python
 
-    @classmethod
-    def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
+@classmethod
+def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
+    ...
+
+    # BUILD NETWORK
+    model = models.get(
         ...
+        strict_load=cfg.checkpoint_params.strict_load,
+        pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+        checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+        load_backbone=cfg.checkpoint_params.load_backbone,
+    )
 
-        # BUILD NETWORK
-        model = models.get(
-            ...
-            strict_load=cfg.checkpoint_params.strict_load,
-            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-            load_backbone=cfg.checkpoint_params.load_backbone,
-        )
+    # INSTANTIATE DATA LOADERS
 
-        # INSTANTIATE DATA LOADERS
+    train_dataloader = ...
+    val_dataloader = ...
+    
+    ...
 
-        train_dataloader = ...
-        val_dataloader = ...
-        
-        ...
-
-        # TRAIN
-        res = trainer.train(...)
+    # TRAIN
+    res = trainer.train(...)
 ... 
 ```
 
 ## Resuming Training
 
-In SG, we separate the logic of resuming training from loading model weights. Therefore continuing training is controlled by two arguments, passed through `training_params`: `resume` and `resume_path`:
+In SG, we separate the logic of resuming training from loading model weights. Therefore, continuing training is controlled by two arguments, passed through `training_params`: `resume` and `resume_path`:
 ```yaml
 ...
 resume: False # whether to continue training from ckpt with the same experiment name.

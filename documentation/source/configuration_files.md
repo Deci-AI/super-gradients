@@ -36,7 +36,7 @@ optimizer_params:
 
 ```
 
-## Why to use configuration files
+## Why using configuration files
 Using configuration file might seem too complicated or redundant at first. But, after a short training, you will find it extremely convenient and useful. 
 
 Configuration file can help you manage your assets, such as datasets, models and training recipes. Keeping your code files as clean of parameters as possible,

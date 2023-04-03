@@ -1,4 +1,4 @@
-# Losses in SG
+# Losses
 
 SuperGradients can support any PyTorch-based loss function. Additionally, multiple Loss function implementations for various tasks are also supported:
 
@@ -17,7 +17,7 @@ SuperGradients can support any PyTorch-based loss function. Additionally, multip
 
 All the above, are just string aliases for the underlying torch.nn.Module classes, implementing the specified loss functions.
 
-## Basic Usage of Implemented Loss Functions in SG:
+## Basic Usage of Implemented Loss Functions
 
 The most basic use case is when using a direct Trainer.train(...) call:
 
@@ -112,7 +112,7 @@ forward(preds, target):
 And as the argument names suggest, the first argument is the model's output, and target is the label/ground truth (argument naming is arbitrary and does not need to be specifically 'preds' or 'target').
 Loss functions accepting additional arguments in their `forward` method will be supported in the future.
 
-### Using Your Own Loss- Logging Loss Outputs
+### Using Your Own Loss - Logging Loss Outputs
 
 In the most common case, where the loss function returns a single item for backprop the loss output will appear in
 the logs, training logs (i.e Tensorboards and any other supported SGLogger, for more information on SGLoggers click [here](https://github.com/Deci-AI/super-gradients)), over epochs under <LOSS_CLASS.__name__>. 
@@ -177,7 +177,7 @@ The above code will log and monitor `MyLoss/total_loss`, `MyLoss/my_1st_componen
 Since running logs will save the loss_items in some internal state, it is recommended to
 detach loss_items from their computational graph for memory efficiency.
 
-### Using Your Own Loss- Training with Configuration Files
+### Using Your Own Loss - Training with Configuration Files
 
 When using configuration files, for example, training using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...)),  In your ``my_loss.py``, register your loss class by decorating the class with `register_loss`:
 ```python
