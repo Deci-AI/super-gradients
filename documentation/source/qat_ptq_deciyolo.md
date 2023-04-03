@@ -12,8 +12,8 @@ The steps will be:
 2. Performing post-training quantization and quantization-aware training
 
 Pre-requisites:
-- [Training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)
-- [PTQ and QAT](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/ptq_qat.md)
+- [Training with configuration files]()
+- [PTQ and QAT]()
 
 
 Now, let's get to it.
@@ -58,7 +58,7 @@ pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidi
 
 Although this might come as a surprise - the name quantization-aware training needs to be more accurate and be performed on a trained checkpoint rather than from scratch.
 So in practice, we need to train our model on our dataset fully, then after we perform calibration, we fine-tune our model once again, which will be our final step.
-As we discuss in our [Training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md), we clone the SG repo, then use the repo's configuration files in our training examples.
+As we discuss in our [Training with configuration files](), we clone the SG repo, then use the repo's configuration files in our training examples.
 We will use the ```src/super_gradients/recipes/roboflow_deciyolo_s.yaml```configuration to train the small variant of our DeciModel, DeciModel S.
 
 So we navigate to our ```train_from_recipe``` script:
