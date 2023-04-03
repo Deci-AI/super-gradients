@@ -29,13 +29,27 @@ class DetectionPrediction(Prediction):
         :param labels:      Labels for each bounding box.
         :param image_shape: Shape of the image the prediction is made on, (H, W). This is used to convert bboxes to xyxy format
         """
+        self._validate_input(bboxes, confidence, labels)
+
         factory = BBoxFormatFactory()
-        self.bboxes_xyxy = convert_bboxes(
+        bboxes_xyxy = convert_bboxes(
             bboxes=bboxes,
             image_shape=image_shape,
             source_format=factory.get(bbox_format),
             target_format=factory.get("xyxy"),
             inplace=False,
         )
+
+        self.bboxes_xyxy = bboxes_xyxy
         self.confidence = confidence
         self.labels = labels
+
+    def _validate_input(self, bboxes: np.ndarray, confidence: np.ndarray, labels: np.ndarray) -> None:
+        n_bboxes, n_confidences, n_labels = bboxes.shape[0], confidence.shape[0], labels.shape[0]
+        if n_bboxes != n_confidences != n_labels:
+            raise ValueError(
+                f"The number of bounding boxes ({n_bboxes}) does not match the number of confidence scores ({n_confidences}) and labels ({n_labels})."
+            )
+
+    def __len__(self):
+        return len(self.bboxes_xyxy)
