@@ -7,7 +7,7 @@ from super_gradients.common.object_names import Models
 from super_gradients.common.registry import register_model
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
-from super_gradients.training.utils import HpmStruct
+from super_gradients.training.utils import HpmStruct, get_param
 
 
 @register_model(Models.DECIYOLO_S)
@@ -16,7 +16,13 @@ class DeciYolo_S(CustomizableDetector):
         default_arch_params = get_arch_params("deciyolo_s_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
-        super().__init__(merged_arch_params, in_channels=in_channels)
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=get_param(merged_arch_params, "num_classes", None),
+            in_channels=in_channels,
+        )
 
     @property
     def num_classes(self):
@@ -29,7 +35,13 @@ class DeciYolo_M(CustomizableDetector):
         default_arch_params = get_arch_params("deciyolo_m_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
-        super().__init__(merged_arch_params, in_channels=in_channels)
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=get_param(merged_arch_params, "num_classes", None),
+            in_channels=in_channels,
+        )
 
     @property
     def num_classes(self):
@@ -42,7 +54,13 @@ class DeciYolo_L(CustomizableDetector):
         default_arch_params = get_arch_params("deciyolo_l_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
-        super().__init__(merged_arch_params, in_channels=in_channels)
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=get_param(merged_arch_params, "num_classes", None),
+            in_channels=in_channels,
+        )
 
     @property
     def num_classes(self):
