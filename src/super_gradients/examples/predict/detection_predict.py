@@ -2,7 +2,7 @@ from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
 # Note that currently only YoloX and PPYoloE are supported.
-model = models.get(Models.YOLOX_L, pretrained_weights="coco")
+model = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
 
 IMAGES = [
     "https://miro.medium.com/v2/resize:fit:500/0*w1s81z-Q72obhE_z",

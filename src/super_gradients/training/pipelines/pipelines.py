@@ -9,8 +9,8 @@ from super_gradients.training.utils.load_image import load_images, ImageType
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.results import Results, DetectionResults
-from super_gradients.training.transforms.processing import Processing, ComposeProcessing
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
+from super_gradients.training.transforms.processing import Processing, ComposeProcessing
 
 
 @contextmanager
@@ -92,7 +92,7 @@ class Pipeline(ABC):
 
     @abstractmethod
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[Prediction]:
-        """Decode the model output, which in some case is in a different format to the prediction.
+        """Decode the model outputs, move each prediction to numpy and store it in a Prediction object.
 
         :param model_output:    Direct output of the model, without any post-processing.
         :param model_input:     Model input (i.e. images after preprocessing).
