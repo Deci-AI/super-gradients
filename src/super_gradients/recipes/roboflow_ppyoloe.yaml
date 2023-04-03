@@ -5,7 +5,6 @@
 #
 # Example: python train_from_recipe.py --config-name=roboflow_ppyoloe dataset_name=digits-t2eg6
 
-
 defaults:
   - training_hyperparams: coco2017_ppyoloe_train_params
   - dataset_params: roboflow_detection_dataset_params
@@ -13,19 +12,17 @@ defaults:
   - arch_params: ppyoloe_m_arch_params
   - _self_
 
+train_dataloader: roboflow_train_yolox
+val_dataloader: roboflow_val_yolox
+
 dataset_name: ??? # Placeholder for the name of the dataset you want to use (e.g. "digits-t2eg6")
 dataset_params:
   dataset_name: ${dataset_name}
 num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
 
-
 architecture: ppyoloe_m
 arch_params:
   num_classes: ${num_classes}
-
-
-train_dataloader: roboflow_train_yolox
-val_dataloader: roboflow_val_yolox
 
 
 load_checkpoint: False
@@ -37,6 +34,21 @@ result_path: # By defaults saves results in checkpoints directory
 resume: False
 training_hyperparams:
   resume: ${resume}
+  zero_weight_decay_on_bias_and_bn: True
+
+  lr_warmup_epochs: 3
+  warmup_mode: linear_epoch_step
+
+  initial_lr: 4e-4
+  cosine_final_lr_ratio: 0.1
+
+  optimizer_params:
+    weight_decay: 0.0001
+
+  ema: True
+  ema_params:
+    decay: 0.9
+
   max_epochs: 100
   mixed_precision: True
   criterion_params:
@@ -44,17 +56,14 @@ training_hyperparams:
 #  lr_warmup_epochs: 0
 #  lr_cooldown_epochs: 0
 #  initial_lr: 1e-4
-  phase_callbacks:
-    - RoboflowResultCallback:
-        dataset_name: ${dataset_name}
-        output_path: ${result_path}
+  phase_callbacks: []
   loss:
     ppyoloe_loss:
       num_classes: ${num_classes}
       reg_max: ${arch_params.head.reg_max}
 
   valid_metrics_list:
-    - DetectionMetrics:
+    - DetectionMetrics_050:
         score_thres: 0.1
         top_k_predictions: 300
         num_cls: ${num_classes}
@@ -65,6 +74,8 @@ training_hyperparams:
           nms_top_k: 1000
           max_predictions: 300
           nms_threshold: 0.7
+
+  metric_to_watch: 'mAP@0.50'
 #  sg_logger: "wandb_sg_logger"
 #  sg_logger_params:
 #    project_name: Roboflow100Aerial
@@ -75,8 +86,8 @@ training_hyperparams:
 #    save_logs_remote: True
 
 
-multi_gpu: DDP
-num_gpus:
+multi_gpu: Off
+num_gpus: 1
 experiment_name: ${architecture}_roboflow_${dataset_name}
 ckpt_root_dir:
 
