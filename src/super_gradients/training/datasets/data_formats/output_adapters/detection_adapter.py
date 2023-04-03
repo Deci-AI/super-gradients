@@ -114,7 +114,7 @@ class DetectionOutputAdapter(nn.Module):
     >>> )
     >>>
     >>> # Now we can construct output adapter and attach it to the model
-    >>> output_adapter = DetectionOutputAdapter(yolox,
+    >>> output_adapter = DetectionOutputAdapter(
     >>>     input_format=yolox.head.format,
     >>>     output_format=output_format,
     >>>     image_shape=(640, 640)
