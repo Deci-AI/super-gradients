@@ -1,6 +1,5 @@
 data_dir: /data/rf100
 
-# TODO: Find a way to write "???" in dataset_name without breaking the code...
 dataset_name: # Set the name of the dataset you want to use (e.g. "digits-t2eg6")
 
 train_dataset_params:

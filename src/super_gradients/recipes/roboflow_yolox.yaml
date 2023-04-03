@@ -1,3 +1,10 @@
+# Checkout the datasets at https://universe.roboflow.com/roboflow-100?ref=blog.roboflow.com
+#
+# `dataset_name` refers to the official name of the dataset.
+# You can find it in the url of the dataset: https://universe.roboflow.com/roboflow-100/digits-t2eg6 -> digits-t2eg6
+#
+# Example: python train_from_recipe.py --config-name=roboflow_yolox dataset_name=digits-t2eg6
+
 defaults:
   - training_hyperparams: coco2017_yolox_train_params
   - dataset_params: roboflow_detection_dataset_params

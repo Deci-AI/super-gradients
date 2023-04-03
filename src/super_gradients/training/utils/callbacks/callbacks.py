@@ -708,6 +708,9 @@ class RoboflowResultCallback(Callback):
         self.dataset_name = dataset_name
         self.output_path = output_path or os.path.join(get_project_checkpoints_dir_path(), "results.csv")
 
+        if self.output_path is None:
+            raise ValueError("Output path must be specified")
+
         super(RoboflowResultCallback, self).__init__()
 
     @multi_process_safe
@@ -716,8 +719,8 @@ class RoboflowResultCallback(Callback):
         with open(self.output_path, mode="a", newline="") as csv_file:
             writer = csv.writer(csv_file)
 
-        mAP = context.metrics_dict["mAP@0.50:0.95"].item()
-        writer.writerow([self.dataset_name, mAP])
+            mAP = context.metrics_dict["mAP@0.50:0.95"].item()
+            writer.writerow([self.dataset_name, mAP])
 
 
 class TestLRCallback(PhaseCallback):
