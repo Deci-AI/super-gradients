@@ -1,6 +1,5 @@
 data_dir: /data/rf100
 
-# TODO: Find a way to write "???" in dataset_name without breaking the code...
 dataset_name: # Set the name of the dataset you want to use (e.g. "digits-t2eg6")
 
 train_dataset_params:
@@ -11,9 +10,6 @@ train_dataset_params:
   cache_dir:
   cache: False
   transforms:
-#    - DetectionMosaic:
-#        input_dim: ${dataset_params.train_dataset_params.input_dim}
-#        prob: 1.
     - DetectionRandomAffine:
         degrees: 0.                  # rotation degrees, randomly sampled from [-degrees, degrees]
         translate: 0.1                # image translation fraction
@@ -25,11 +21,6 @@ train_dataset_params:
         area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when filter_box_candidates = True
         ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
         border_value: 128
-#    - DetectionMixup:
-#        input_dim: ${dataset_params.train_dataset_params.input_dim}
-#        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
-#        prob: 1.0                       # probability to apply per-sample mixup
-#        flip_prob: 0.5                  # probability to apply horizontal flip
     - DetectionHSV:
         prob: 1.0                       # probability to apply HSV transform
         hgain: 5                        # HSV transform hue gain (randomly sampled from [-hgain, hgain])
