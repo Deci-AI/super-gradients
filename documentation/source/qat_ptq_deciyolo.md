@@ -3,29 +3,29 @@
 <img src="images/soccer.png" width="750">
 </div>
 
-In this tutorial we will guide you step by step on how to prepare  our DeciYolo to production!
-We will leverage DeciYolos architecture which includes quantization friendly blocks, and train a deci yolo model on Roboflow's [Soccer Player Detection Dataset](https://universe.roboflow.com/roboflow-100/soccer-players-5fuqs)
-in a way that would maximize our throughput without comprimising on the model's accuracy.
+In this tutorial, we will guide you step by step on how to prepare our DeciYolo for production!
+We will leverage DeciYolos architecture which includes quantization-friendly blocks, and train a DeciYolo model on Roboflow's [Soccer Player Detection Dataset](https://universe.roboflow.com/roboflow-100/soccer-players-5fuqs)
+in a way that would maximize our throughput without compromising on the model's accuracy.
 
 The steps will be:
-1. Training from scratch on one of the downstream datasets- these will play the role of the users dataset (i.e the one which the model will need to be trained for the user's task)
-2. Performing post training quantization and quantization aware training
+1. Training from scratch on one of the downstream datasets- these will play the role of the user's dataset (i.e., the one in which the model will need to be trained for the user's task)
+2. Performing post-training quantization and quantization-aware training
 
 Pre-requisites:
 - [Training with configuration files]()
 - [PTQ and QAT]()
 
 
-Now, lets get to it.
+Now, let's get to it.
 
 ## Step 0: Installations and Dataset Setup
 
-Follow setup instructions for RF100:
+Follow the setup instructions for RF100:
 ```
         - Follow the official instructions to download Roboflow100: https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog
-            //!\\ To use this dataset, you have to download the "coco" format, NOT the yolov5.
+            //!\\ To use this dataset, you must download the "coco" format, NOT the yolov5.
 
-        - Your dataset should loook like this:
+        - Your dataset should look like this:
             rf100
             ├── 4-fold-defect
             │      ├─ train
@@ -48,18 +48,18 @@ Install the latest version of SG:
 pip install super-gradients
 ```
 
-Install torch + pytorch-quantization (note that later versions should be compatible as well and that you should essentially just follow torch installation according to https://pytorch.org/get-started/locally/)
+Install torch + PyTorch-quantization (note that later versions should be compatible as well and that you should essentially follow torch installation according to https://pytorch.org/get-started/locally/)
 ```commandline
 pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113 &> /dev/null
 pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com &> /dev/null
 ```
 
-## Launch Training (non QA)
+## Launch Training (non-QA)
 
-Although this might come as a surprise - the name quantization aware training is a bit misleading, and is performed on a trained checkpoint rather then from-scratch.
-So in practice, we need to fully train our model on our dataset, then after we perfrom calibration we fine tune our model once again, which will be our final step.
-As we fiscuss in our [Training with configuration files](), we clone the SG repo, then use the repo's configuration files in our training examples.
-We will use the ```src/super_gradients/recipes/roboflow_deciyolo_s.yaml``` configurataion in order to train the small variant of our DeciModel, DeciModel S.
+Although this might come as a surprise - the name quantization-aware training needs to be more accurate and be performed on a trained checkpoint rather than from scratch.
+So in practice, we need to train our model on our dataset fully, then after we perform calibration, we fine-tune our model once again, which will be our final step.
+As we discuss in our [Training with configuration files](), we clone the SG repo, then use the repo's configuration files in our training examples.
+We will use the ```src/super_gradients/recipes/roboflow_deciyolo_s.yaml```configuration to train the small variant of our DeciModel, DeciModel S.
 
 So we navigate to our ```train_from_recipe``` script:
 
@@ -67,12 +67,12 @@ So we navigate to our ```train_from_recipe``` script:
 cd <YOUR-LOCAL-PATH>/super_gradients/src/super_gradients/examples/train_from_recipe_example
 ```
 
-Then in order to avoid collisions between our cloned and installed SG:
+Then to avoid collisions between our cloned and installed SG:
 ```commandline
 export PYTHONPATH=$PYTHONPATH:<YOUR-LOCAL-PATH>/super_gradients/
 ```
 
-In order to launch training on one of RF100 datasets, we simply pass it through the dataset_name argument:
+To launch training on one of the RF100 datasets, we pass it through the dataset_name argument:
 ```
 python -m train_from_recipe --config-name=roboflow_deciyolo_s  dataset_name=soccer-players-5fuqs dataset_params.data_dir=<PATH_TO_RF100_ROOT> ckpt_root_dir=<YOUR_CHECKPOINTS_ROOT_DIRECTORY> experiment_name=deciyolo_s_soccer_players
 
@@ -166,24 +166,24 @@ SUMMARY OF EPOCH 100
         └── Epoch N-1      = 0.9567 (= 0.0)
 ```
 
-And so our best checkpoint, that resides in <YOUR_CHECKPOINTS_ROOT_DIRECTORY>/deciyolo_s_soccer_players/ckpt_best.pth reaches 0.967 mAP !
+And so our best checkpoint resides in <YOUR_CHECKPOINTS_ROOT_DIRECTORY>/deciyolo_s_soccer_players/ckpt_best.pth reaches 0.967 mAP!
 
-Lets visualize some results:
+Let's visualize some results:
 ```python
 #TODO: ADD PREDICT ONCE PREPROCESSING IS READY
 ```
 
 ## QAT and PTQ
 
-Now, we will take our checkpoint from our previous section and perfrom post training quantization, then quantization aware training.
-In order to do so, we will need to launch training with our `qat_from_recipe` example script, which simplifies taking any existing training recipe and making it a quantization-aware one with the help of some of our recommended practices.
-So this time we navigate to the `qat_from_recipe` example directory:
+Now, we will take our checkpoint from our previous section and perform post-training quantization, then quantization-aware training.
+To do so, we will need to launch training with our `qat_from_recipe` example script, which simplifies taking any existing training recipe and making it a quantization-aware one with the help of some of our recommended practices.
+So this time, we navigate to the `qat_from_recipe` example directory:
 ```commandline
 cd <YOUR-LOCAL-PATH>/super_gradients/src/super_gradients/examples/qat_from_recipe_example
 ```
 
-Now, before we launch lets see how we can easily create a configuration from our `roboflow_deciyolo_s` config to get the most out of QAT and PTQ.
-Wev'e added a new config that inherits from our previous one, called `roboflow_deciyolo_s_qat.yaml`, lets peek at it:
+Before we launch, let's see how we can easily create a configuration from our `roboflow_deciyolo_s` config to get the most out of QAT and PTQ.
+We added a new config that inherits from our previous one, called `roboflow_deciyolo_s_qat.yaml`. Let's peek at it:
 ```yaml
 
 defaults:
@@ -208,14 +208,14 @@ pre_launch_callbacks_list:
         disable_augmentations: False
 ```
 
-Lets break it down:
+Let's break it down:
 - We inherit from our original non-QA recipe
 
 - We set `quantization_params` to the default ones. Reminder - this is where QAT and PTQ hyper-parameters are defined. 
 
 - We set our checkpoint_params.checkpoint_path to ??? so that passing a checkpoint is required. We will override this value when launching from the command line.
 
-- We add a `QATRecipeModificationCallback` to our `pre_launch_callbacks_list`: This callback accepts the entire `cfg: DictConfig` and manipulates it right before we start the training. This allows to easily adapt any non-QA recipe to a QA one.
+- We add a `QATRecipeModificationCallback` to our `pre_launch_callbacks_list`: This callback accepts the entire `cfg: DictConfig` and manipulates it right before we start the training. This allows us to adapt any non-QA recipe to a QA one quickly.
   Here we will:
   - Use half the batch size of the original recipe.
   - Use 10 percent of the number of the epochs (and warmup epochs).
@@ -223,7 +223,7 @@ Lets break it down:
   - Set the final learning rate ratio of the cosine scheduling to 0.01
   - Disable augmentations and the phase_callbacks.
     
-Now we can just launch PTQ and QAT from the command line:
+Now we can launch PTQ and QAT from the command line:
 ```commandline
 python -m qat_from_recipe --config-name=roboflow_deciyolo_s_qat experiment_name=soccer_players_qat_deciyolo_s dataset_name=soccer-players-5fuqs checkpoint_params.checkpoint_path=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>/deciyolo_s_soccer_players/ckpt_best.pth ckpt_ckpt_root_dir=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>
 ...
@@ -250,7 +250,7 @@ Test: 100%|██████████| 3/3 [00:00<00:00,  3.86it/s]
    - F1@0.50   : 0.7861716747283936
 ```
 
-Observe that for PTQ our model's mAP decreased from 0.967 to 0.9466. After PTQ, QAT is performed automatically:
+Observe that for PTQ, our model's mAP decreased from 0.967 to 0.9466. After PTQ, QAT is performed automatically:
 
 ```commandline
 
@@ -366,5 +366,5 @@ SUMMARY OF EPOCH 10
         └── Epoch N-1      = 0.9734 (↗ 0.0119)
 ```
 
-We not only observed no decline in accuracy of our quantized model, but we also gained an improvement of 0.08 mAP!
+We not only observed no decline in the accuracy of our quantized model, but we also gained an improvement of 0.08 mAP!
 The QAT model is available in our checkpoints directory, already converted to .onnx format under  <YOUR_CHECKPOINTS_ROOT_DIRECTORY>/soccer_players_qat_deciyolo_s/soccer_players_qat_deciyolo_s_16x3x640x640_qat.onnx, ready to be converted to [converted and deployed to int8 using TRT](https://docs.nvidia.com/deeplearning/tensorrt/quick-start-guide/index.html#onnx-export).
