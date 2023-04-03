@@ -26,6 +26,7 @@ architecture: deciyolo_m
 arch_params:
   num_classes: ${num_classes}
 
+
 load_checkpoint: False
 checkpoint_params:
   pretrained_weights: coco
@@ -80,7 +81,7 @@ training_hyperparams:
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
-    project_name: DeciYolo_M_RF100_QAT
+    project_name: DeciYolo-M-RF100
     entity: super-gradients
     api_server: "https://wandb.research.deci.ai"
     save_checkpoints_remote: False

@@ -81,7 +81,7 @@ training_hyperparams:
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
-    project_name: DeciYolo_M_RF100_QAT
+    project_name: DeciYolo-S-RF100
     entity: super-gradients
     api_server: "https://wandb.research.deci.ai"
     save_checkpoints_remote: False
@@ -91,7 +91,8 @@ training_hyperparams:
 
 multi_gpu: Off
 num_gpus: 1
-experiment_name: ${architecture}_roboflow_${dataset_name}
+experiment_suffix: "v2"
+experiment_name: ${architecture}_roboflow_${dataset_name}_${experiment_suffix}
 ckpt_root_dir:
 
 
