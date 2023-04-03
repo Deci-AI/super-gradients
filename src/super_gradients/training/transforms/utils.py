@@ -1,12 +1,21 @@
 from typing import Tuple
-
+from dataclasses import dataclass
 import cv2
+
 import numpy as np
 
 from super_gradients.training.utils.detection_utils import xyxy2cxcywh, cxcywh2xyxy
 
 
-def _rescale_image(image: np.ndarray, target_shape: Tuple[float, float]) -> np.ndarray:
+@dataclass
+class PaddingCoordinates:
+    top: int
+    bottom: int
+    left: int
+    right: int
+
+
+def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarray:
     """Rescale image to target_shape, without preserving aspect ratio.
 
     :param image:           Image to rescale. (H, W, C) or (H, W).
@@ -32,26 +41,38 @@ def _rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np
     return targets
 
 
-def _get_center_padding_params(input_shape: Tuple[int, int], output_shape: Tuple[int, int]) -> Tuple[int, int, Tuple[int, int], Tuple[int, int]]:
+def _get_center_padding_coordinates(input_shape: Tuple[int, int], output_shape: Tuple[int, int]) -> PaddingCoordinates:
     """Get parameters for padding an image to given output shape, in center mode.
 
     :param input_shape:  Shape of the input image.
     :param output_shape: Shape to resize to.
-    :return:
-        - shift_h:  Horizontal shift.
-        - shift_w:  Vertical shift.
-        - pad_h:    Tuple of (padding_top, padding_bottom).
-        - pad_w:    Tuple of (padding_left, padding_right).
+    :return:             Padding parameters.
     """
-    pad_h, pad_w = output_shape[0] - input_shape[0], output_shape[1] - input_shape[1]
-    shift_h, shift_w = pad_h // 2, pad_w // 2
-    pad_h = (shift_h, pad_h - shift_h)
-    pad_w = (shift_w, pad_w - shift_w)
-    return shift_h, shift_w, pad_h, pad_w
+    pad_height, pad_width = output_shape[0] - input_shape[0], output_shape[1] - input_shape[1]
+
+    pad_top = pad_height // 2
+    pad_bottom = pad_height - pad_top
+
+    pad_left = pad_width // 2
+    pad_right = pad_width - pad_left
+
+    return PaddingCoordinates(top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right)
 
 
-def _shift_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, int], pad_value: int) -> np.ndarray:
-    """Shift bboxes with respect to padding coordinates.
+def _get_bottom_right_padding_coordinates(input_shape: Tuple[int, int], output_shape: Tuple[int, int]) -> PaddingCoordinates:
+    """Get parameters for padding an image to given output shape, in bottom right mode
+    (i.e. image will be at top-left while bottom-right corner will be padded).
+
+    :param input_shape:  Shape of the input image.
+    :param output_shape: Shape to resize to.
+    :return:             Padding parameters.
+    """
+    pad_height, pad_width = output_shape[0] - input_shape[0], output_shape[1] - input_shape[1]
+    return PaddingCoordinates(top=0, bottom=pad_height, left=0, right=pad_width)
+
+
+def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_value: int) -> np.ndarray:
+    """Pad an image.
 
     :param image:       Image to shift. (H, W, C) or (H, W).
     :param pad_h:       Tuple of (padding_top, padding_bottom).
@@ -59,7 +80,12 @@ def _shift_image(image: np.ndarray, pad_h: Tuple[int, int], pad_w: Tuple[int, in
     :param pad_value:   Padding value
     :return:            Image shifted according to padding coordinates.
     """
-    return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+    pad_h = (padding_coordinates.top, padding_coordinates.bottom)
+    pad_w = (padding_coordinates.left, padding_coordinates.right)
+    if len(image.shape) == 3:
+        return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+    else:
+        return np.pad(image, (pad_h, pad_w), "constant", constant_values=pad_value)
 
 
 def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
@@ -94,7 +120,7 @@ def _rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
 def _rescale_and_pad_to_size(image: np.ndarray, output_shape: Tuple[int, int], swap: Tuple[int] = (2, 0, 1), pad_val: int = 114) -> Tuple[np.ndarray, float]:
     """
     Rescales image according to minimum ratio input height/width and output height/width rescaled_padded_image,
-    pads the image to the target size and finally swap axis.
+    pads the image to the target shape and finally swap axis.
     Note: Pads the image to corner, padding is not centered.
 
     :param image:           Image to be rescaled. (H, W, C) or (H, W).
@@ -109,25 +135,10 @@ def _rescale_and_pad_to_size(image: np.ndarray, output_shape: Tuple[int, int], s
     rescale_shape = (int(image.shape[0] * r), int(image.shape[1] * r))
 
     resized_image = _rescale_image(image=image, target_shape=rescale_shape)
-    padded_image = _pad_image_on_side(image=resized_image, output_shape=output_shape, pad_val=pad_val)
+
+    padding_coordinates = _get_bottom_right_padding_coordinates(input_shape=rescale_shape, output_shape=output_shape)
+    padded_image = _pad_image(image=resized_image, padding_coordinates=padding_coordinates, pad_value=pad_val)
 
     padded_image = padded_image.transpose(swap)
     padded_image = np.ascontiguousarray(padded_image, dtype=np.float32)
     return padded_image, r
-
-
-def _pad_image_on_side(image: np.ndarray, output_shape: Tuple[int, int], pad_val: int = 114) -> np.ndarray:
-    """Pads an image to the specified output shape by adding padding only on the sides.
-
-    :param image:           Input image to pad. (H, W, C) or (H, W).
-    :param output_shape:    Expected shape of the output image (H, W).
-    :param pad_val:         Value to use for padding.
-    :return:                Padded image of shape output_shape.
-    """
-    if len(image.shape) == 3:
-        padded_image = np.ones((output_shape[0], output_shape[1], image.shape[-1]), dtype=np.uint8) * pad_val
-    else:
-        padded_image = np.ones(output_shape, dtype=np.uint8) * pad_val
-
-    padded_image[: image.shape[0], : image.shape[1]] = image
-    return padded_image

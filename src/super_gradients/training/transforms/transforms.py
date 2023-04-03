@@ -23,8 +23,8 @@ from super_gradients.training.transforms.utils import (
     _rescale_and_pad_to_size,
     _rescale_image,
     _rescale_bboxes,
-    _get_center_padding_params,
-    _shift_image,
+    _get_center_padding_coordinates,
+    _pad_image,
     _shift_bboxes,
     _rescale_xyxy_bboxes,
 )
@@ -740,12 +740,12 @@ class DetectionPadToSize(DetectionTransform):
 
     def __call__(self, sample: dict) -> dict:
         image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        shift_h, shift_w, pad_h, pad_w = _get_center_padding_params(input_shape=image.shape, output_shape=self.output_size)
+        padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=self.output_size)
 
-        sample["image"] = _shift_image(image=image, pad_h=pad_h, pad_w=pad_w, pad_value=self.pad_value)
-        sample["target"] = _shift_bboxes(targets=targets, shift_w=shift_w, shift_h=shift_h)
+        sample["image"] = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
+        sample["target"] = _shift_bboxes(targets=targets, shift_w=padding_coordinates.left, shift_h=padding_coordinates.top)
         if crowd_targets is not None:
-            sample["crowd_target"] = _shift_bboxes(targets=crowd_targets, shift_w=shift_w, shift_h=shift_h)
+            sample["crowd_target"] = _shift_bboxes(targets=crowd_targets, shift_w=padding_coordinates.left, shift_h=padding_coordinates.top)
         return sample
 
 
