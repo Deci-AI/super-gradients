@@ -45,13 +45,13 @@ class Pipeline(ABC):
         self.image_processor = image_processor
 
     @abstractmethod
-    def __call__(self, images: Union[ImageType, List[ImageType]]) -> Results:
+    def __call__(self, images: Union[ImageType, List[ImageType]]) -> Union[Results, Tuple[List[np.ndarray], List[Prediction]]]:
         """Apply the pipeline on images and return the result.
 
         :param images:  Single image or a list of images of supported types.
         :return         Results object containing the results of the prediction and the image.
         """
-        pass
+        return self._run(images=images)
 
     def _run(self, images: Union[ImageType, List[ImageType]]) -> Tuple[List[np.ndarray], List[Prediction]]:
         """Run the pipeline and return (image, predictions). The pipeline is made of 4 steps:
@@ -65,7 +65,7 @@ class Pipeline(ABC):
             - List of numpy arrays representing images.
             - List of model predictions.
         """
-        self.model = self.model.to(self.device)  # Make sure the model is on the correct device
+        self.model = self.model.to(self.device)  # Make sure the model is on the correct device, as it might have been moved after init
 
         images = load_images(images)
 
@@ -130,7 +130,7 @@ class DetectionPipeline(Pipeline):
         :param images:  Single image or a list of images of supported types.
         :return         Results object containing the results of the prediction and the image.
         """
-        images, predictions = self._run(images=images)
+        images, predictions = super().__call__(images=images)
         return DetectionResults(images=images, predictions=predictions, class_names=self.class_names)
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
