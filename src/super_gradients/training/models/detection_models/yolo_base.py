@@ -15,8 +15,8 @@ from super_gradients.training.models.results import DetectionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import (
     ComposeProcessing,
-    DetectionRescale,
-    DetectionSidePadding,
+    DetectionLongestMaxSizeRescale,
+    DetectionBottomRightPadding,
     ImagePermute,
 )
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
@@ -423,8 +423,8 @@ class YoloBase(SgModule):
 
         self._image_processor = ComposeProcessing(
             [
-                DetectionRescale((640, 640), keep_aspect_ratio=True),
-                DetectionSidePadding((640, 640), 114),
+                DetectionLongestMaxSizeRescale((640, 640)),
+                DetectionBottomRightPadding((640, 640), 114),
                 ImagePermute((2, 0, 1)),
             ]
         )

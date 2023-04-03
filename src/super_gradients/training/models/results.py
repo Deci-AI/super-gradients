@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 from super_gradients.training.utils.detection_utils import DetectionVisualization
+from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 
 
 @dataclass
@@ -13,15 +14,22 @@ class Result(ABC):
     """Results of a given computer vision task (detection, classification, etc.).
 
     :attr image:        Input image
+    :attr predictions:  Predictions of the model
     :attr class_names:  List of the class names to predict
     """
 
     image: np.ndarray
+    predictions: Prediction
     class_names: List[str]
 
     @abstractmethod
-    def show(self):
-        """Display images along with the run results."""
+    def draw(self) -> np.ndarray:
+        """Draw the predictions on the image."""
+        pass
+
+    @abstractmethod
+    def show(self) -> None:
+        """Display the predictions on the image."""
         pass
 
 
@@ -35,8 +43,13 @@ class Results(ABC):
     results: List[Result]
 
     @abstractmethod
-    def show(self):
-        """Display images along with the run results."""
+    def draw(self) -> List[np.ndarray]:
+        """Draw the predictions on the image."""
+        pass
+
+    @abstractmethod
+    def show(self) -> None:
+        """Display the predictions on the image."""
         pass
 
 
@@ -45,34 +58,42 @@ class DetectionResult(Result):
     """Result of a detection task.
 
     :attr image:        Input image
-    :attr _predictions: Predictions of the model
+    :attr predictions:  Predictions of the model
     :attr class_names:  List of the class names to predict
     """
 
     image: np.ndarray
-    _predictions: np.ndarray  # (N, 6) [X1, Y1, X2, Y2, score, class_id]
+    predictions: DetectionPrediction
     class_names: List[str]
 
-    @property
-    def bboxes_xyxy(self) -> np.ndarray:
-        """Prediction bounding boxes in (x1, y1, x2, y2) format"""
-        return self._predictions[:, :4]
+    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> np.ndarray:
+        """Draw the predicted bboxes on the image.
 
-    @bboxes_xyxy.setter
-    def bboxes_xyxy(self, value):
-        self._predictions[:, :4] = value
+        :param box_thickness:   Thickness of bounding boxes.
+        :param show_confidence: Whether to show confidence scores on the image.
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        :return:                Image with predicted bboxes. Note that this does not modify the original image.
+        """
+        image_np = self.image.copy()
+        color_mapping = color_mapping or DetectionVisualization._generate_color_mapping(len(self.class_names))
 
-    @property
-    def confidence(self) -> np.ndarray:
-        """Confidence scores of the predictions."""
-        return self._predictions[:, 4]
+        for pred_i in range(len(self.predictions)):
+            image_np = DetectionVisualization._draw_box_title(
+                color_mapping=color_mapping,
+                class_names=self.class_names,
+                box_thickness=box_thickness,
+                image_np=image_np,
+                x1=int(self.predictions.bboxes_xyxy[pred_i, 0]),
+                y1=int(self.predictions.bboxes_xyxy[pred_i, 1]),
+                x2=int(self.predictions.bboxes_xyxy[pred_i, 2]),
+                y2=int(self.predictions.bboxes_xyxy[pred_i, 3]),
+                class_id=int(self.predictions.labels[pred_i]),
+                pred_conf=self.predictions.confidence[pred_i] if show_confidence else None,
+            )
+        return image_np
 
-    @property
-    def class_ids(self) -> np.ndarray:
-        """Predicted class IDs."""
-        return self._predictions[:, 5]
-
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None):
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
         """Display the image with predicted bboxes.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -80,23 +101,7 @@ class DetectionResult(Result):
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
-        color_mapping = color_mapping or DetectionVisualization._generate_color_mapping(len(self.class_names))
-
-        image_np = self.image.copy()
-
-        for i in range(len(self._predictions)):
-            image_np = DetectionVisualization._draw_box_title(
-                color_mapping=color_mapping,
-                class_names=self.class_names,
-                box_thickness=box_thickness,
-                image_np=image_np,
-                x1=int(self.bboxes_xyxy[i, 0]),
-                y1=int(self.bboxes_xyxy[i, 1]),
-                x2=int(self.bboxes_xyxy[i, 2]),
-                y2=int(self.bboxes_xyxy[i, 3]),
-                class_id=int(self.class_ids[i]),
-                pred_conf=self.confidence[i] if show_confidence else None,
-            )
+        image_np = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
 
         plt.imshow(image_np, interpolation="nearest")
         plt.axis("off")
@@ -110,13 +115,24 @@ class DetectionResults(Results):
     :attr results:  List of the predictions results
     """
 
-    def __init__(self, images: List[np.ndarray], predictions: List[np.ndarray], class_names: List[str]):
+    def __init__(self, images: List[np.ndarray], predictions: List[DetectionPrediction], class_names: List[str]):
         self.results: List[DetectionResult] = []
         for image, prediction in zip(images, predictions):
-            self.results.append(DetectionResult(image=image, _predictions=prediction, class_names=class_names))
+            self.results.append(DetectionResult(image=image, predictions=prediction, class_names=class_names))
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None):
-        """Display the images with predicted bboxes.
+    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> List[np.ndarray]:
+        """Draw the predicted bboxes on the images.
+
+        :param box_thickness:   Thickness of bounding boxes.
+        :param show_confidence: Whether to show confidence scores on the image.
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        :return:                List of Images with predicted bboxes for each image. Note that this does not modify the original images.
+        """
+        return [prediction.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping) for prediction in self.results]
+
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
+        """Display the predicted bboxes on the images.
 
         :param box_thickness:   Thickness of bounding boxes.
         :param show_confidence: Whether to show confidence scores on the image.
@@ -124,4 +140,4 @@ class DetectionResults(Results):
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
         for prediction in self.results:
-            prediction.show(box_thickness=box_thickness, color_mapping=color_mapping)
+            prediction.show(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)

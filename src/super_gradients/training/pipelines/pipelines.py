@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Any, Union
+from typing import List, Optional, Tuple, Union
 from contextlib import contextmanager
 
 import numpy as np
@@ -10,6 +10,7 @@ from super_gradients.training.utils.detection_utils import DetectionPostPredicti
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.results import Results, DetectionResults
 from super_gradients.training.transforms.processing import Processing, ComposeProcessing
+from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 
 
 @contextmanager
@@ -52,7 +53,7 @@ class Pipeline(ABC):
         """
         pass
 
-    def _run(self, images: Union[ImageType, List[ImageType]]) -> Tuple[List[np.ndarray], List[Any]]:
+    def _run(self, images: Union[ImageType, List[ImageType]]) -> Tuple[List[np.ndarray], List[Prediction]]:
         """Run the pipeline and return (image, predictions). The pipeline is made of 4 steps:
         1. Load images - Loading the images into a list of numpy arrays.
         2. Preprocess - Encode the image in the shape/format expected by the model
@@ -79,23 +80,23 @@ class Pipeline(ABC):
         with eval_mode(self.model):
             torch_inputs = torch.Tensor(np.array(preprocessed_images)).to(self.device)
             model_output = self.model(torch_inputs)
-            torch_predictions = self._decode_model_output(model_output)
+            predictions = self._decode_model_output(model_output, model_input=torch_inputs)
 
         # Postprocess
-        predictions = []
-        for torch_prediction, processing_metadata in zip(torch_predictions, processing_metadatas):
-            prediction = torch_prediction.detach().cpu().numpy()
+        postprocessed_predictions = []
+        for prediction, processing_metadata in zip(predictions, processing_metadatas):
             prediction = self.image_processor.postprocess_predictions(predictions=prediction, metadata=processing_metadata)
-            predictions.append(prediction)
+            postprocessed_predictions.append(prediction)
 
-        return images, predictions
+        return images, postprocessed_predictions
 
     @abstractmethod
-    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor]) -> List[torch.Tensor]:
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[Prediction]:
         """Decode the model output, which in some case is in a different format to the prediction.
 
         :param model_output:    Direct output of the model, without any post-processing.
-        :return:                Model predictions. This might
+        :param model_input:     Model input (i.e. images after preprocessing).
+        :return:                Model predictions, without any post-processing.
         """
         pass
 
@@ -132,14 +133,27 @@ class DetectionPipeline(Pipeline):
         images, predictions = self._run(images=images)
         return DetectionResults(images=images, predictions=predictions, class_names=self.class_names)
 
-    def _decode_model_output(self, model_output) -> List[torch.Tensor]:
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
         """Decode the model output, by applying post prediction callback. This includes NMS.
 
         :param model_output:    Direct output of the model, without any post-processing.
+        :param model_input:     Model input (i.e. images after preprocessing).
         :return:                Predicted Bboxes.
         """
-        decoded_predictions = self.post_prediction_callback(model_output, device=self.device)
-        decoded_predictions = [
-            decoded_prediction if decoded_prediction is not None else torch.zeros((0, 6), dtype=torch.float32) for decoded_prediction in decoded_predictions
-        ]
-        return decoded_predictions
+        post_nms_predictions = self.post_prediction_callback(model_output, device=self.device)
+
+        predictions = []
+        for prediction, image in zip(post_nms_predictions, model_input):
+            prediction if prediction is not None else torch.zeros((0, 6), dtype=torch.float32)
+            prediction = prediction.detach().cpu().numpy()
+            predictions.append(
+                DetectionPrediction(
+                    bboxes=prediction[:, :4],
+                    confidence=prediction[:, 4],
+                    labels=prediction[:, 5],
+                    bbox_format="xyxy",
+                    image_shape=image.shape,
+                )
+            )
+
+        return predictions
