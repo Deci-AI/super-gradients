@@ -1,3 +1,11 @@
+# Checkout the datasets at https://universe.roboflow.com/roboflow-100?ref=blog.roboflow.com
+#
+# `dataset_name` refers to the official name of the dataset.
+# You can find it in the url of the dataset: https://universe.roboflow.com/roboflow-100/digits-t2eg6 -> digits-t2eg6
+#
+# Example: python train_from_recipe.py --config-name=roboflow_ppyoloe dataset_name=digits-t2eg6
+
+
 defaults:
   - training_hyperparams: coco2017_ppyoloe_train_params
   - dataset_params: roboflow_detection_dataset_params
@@ -33,9 +41,6 @@ training_hyperparams:
   mixed_precision: True
   criterion_params:
     num_classes: ${num_classes}
-#  lr_warmup_epochs: 0
-#  lr_cooldown_epochs: 0
-#  initial_lr: 1e-4
   phase_callbacks:
     - RoboflowResultCallback:
         dataset_name: ${dataset_name}
@@ -57,14 +62,6 @@ training_hyperparams:
           nms_top_k: 1000
           max_predictions: 300
           nms_threshold: 0.7
-#  sg_logger: "wandb_sg_logger"
-#  sg_logger_params:
-#    project_name: Roboflow100Aerial
-#    entity: super-gradients
-#    api_server: "https://wandb.research.deci.ai"
-#    save_checkpoints_remote: True
-#    save_tensorboard_remote: True
-#    save_logs_remote: True
 
 
 multi_gpu: DDP
