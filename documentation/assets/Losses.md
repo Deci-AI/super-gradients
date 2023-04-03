@@ -22,45 +22,44 @@ All the above, are just string aliases for the underlying torch.nn.Module classe
 The most basic use case is when using a direct Trainer.train(...) call:
 
 In your `my_training_script.py`:
-   ```python
-        ...
-        trainer = Trainer("external_criterion_test")
-        train_dataloader = ...
-        valid_dataloader = ...
-        model = ...
-  
-        train_params = {
-            ...
-            "loss": "cross_entropy",
-            "criterion_params": {}
-            ...
-        }
-        trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
-   ```
-   Note that object names in SG are not case-sensitive nor symbol-sensitive, so `"CrossEntropy` could have been passed as well.
-   Since most IDEs support auto-completion, for your convenience, you can use our object_names module:
-  ```python
-     from super_gradients.common.object_names import Losses
-  ```
-  Then simply instead of "cross_entropy", use 
-  ```python
-  Losses.CROSS_ENTROPY
-  ```
+```python
+...
+trainer = Trainer("external_criterion_test")
+train_dataloader = ...
+valid_dataloader = ...
+model = ...
+
+train_params = {
+   ...
+   "loss": "cross_entropy",
+   "criterion_params": {}
+   ...
+}
+trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
+```
+Note that object names in SG are not case-sensitive nor symbol-sensitive, so `"CrossEntropy` could have been passed as well.
+Since most IDEs support auto-completion, for your convenience, you can use our object_names module:
+```python
+from super_gradients.common.object_names import Losses
+```
+Then simply instead of "cross_entropy", use 
+```python
+Losses.CROSS_ENTROPY
+```
 
 
 Another use case is when using configuration files. For example, when training using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...)).
 
 When doing so, in your `my_training_hyperparams.yaml` file:
-  ```yaml
-    ...
-    ...
-    
-    loss: yolox_loss
-    
-    criterion_params:
-      strides: [8, 16, 32]  # output strides of all yolo outputs
-      num_classes: 80
-  ```
+```yaml
+...
+
+loss: yolox_loss
+
+criterion_params:
+   strides: [8, 16, 32]  # output strides of all yolo outputs
+   num_classes: 80
+```
 
 Note that two `training_params` parameters define the loss function:  `loss` which defines the type of the loss, and`criterion_params` dictionary which will be unpacked to the underlying `yolox_loss` class constructor.
 
@@ -81,17 +80,17 @@ train_params = {
     ...
 }
 trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
-   ```
+```
+
 Though not as convenient as using `register_loss` (discussed further into detail in the next sub-section), one can also equivalently instantiate objects when using train_from_recipe (or similar, when the underlying train method is Trainer.train_from_config(...) as demonstrated below:
 
 
 In your `my_training_hyperparams.yaml` file:
 ```yaml
-  ...
-  ...
-  loss:
-    _target_: torch.nn.CrossEntropy
+...
 
+loss:
+ _target_: torch.nn.CrossEntropy
 ```
   Note that when passing an instantiated loss object, `criterion_params` will be ignored.
 
@@ -107,7 +106,6 @@ MyLoss(torch.nn.Module):
 ...
 forward(preds, target):
 ...
-
 ```
 And as the argument names suggest, the first argument is the model's output, and target is the label/ground truth (argument naming is arbitrary and does not need to be specifically 'preds' or 'target').
 Loss functions accepting additional arguments in their `forward` method will be supported in the future.
@@ -126,19 +124,24 @@ where the computed loss is the sum of a few components we would like to log.
 For example:
 ```python
 class MyLoss(_Loss):
-       ...
-       def forward(self, inputs, targets):
-           ...
-           total_loss = comp1 + comp2
-           loss_items = torch.cat((total_loss.unsqueeze(0),comp1.unsqueeze(0), comp2.unsqueeze(0)).detach()
-           return total_loss, loss_items
-       ...
+    ...
+    def forward(self, inputs, targets):
+        ...
+        total_loss = comp1 + comp2
+        loss_items = torch.cat((total_loss.unsqueeze(0),comp1.unsqueeze(0), comp2.unsqueeze(0)).detach()
+        return total_loss, loss_items
 
-Trainer.train(...
-               train_params={"loss":MyLoss(),
-                               ...
-                               "metric_to_watch": "MyLoss2/loss_0"}
 
+train_params = {
+     ...,
+     "loss": MyLoss(),
+     "metric_to_watch": "MyLoss/loss_0"
+ }
+
+Trainer.train(
+    ...,
+    train_params=train_params
+)
 ```
 
 
@@ -152,24 +155,29 @@ according to it) under `<LOSS_CLASS.__name__>/<COMPONENT_NAME>`.
 
 For example:
 ```python
-   class MyLoss(_Loss):
-       ...
-       def forward(self, inputs, targets):
-           ...
-           total_loss = comp1 + comp2
-           loss_items = torch.cat((total_loss.unsqueeze(0),comp1.unsqueeze(0), comp2.unsqueeze(0)).detach()
-           return total_loss, loss_items
-       ...
-       @property
-       def component_names(self):
-           return ["total_loss", "my_1st_component", "my_2nd_component"]
+class MyLoss(_Loss):
+    ...
+    def forward(self, inputs, targets):
+        ...
+        total_loss = comp1 + comp2
+        loss_items = torch.cat((total_loss.unsqueeze(0),comp1.unsqueeze(0), comp2.unsqueeze(0)).detach()
+        return total_loss, loss_items
+    ...
+    @property
+    def component_names(self):
+        return ["total_loss", "my_1st_component", "my_2nd_component"]
 
-Trainer.train(...
-               train_params={"loss":MyLoss(),
-                               ...
-                               "metric_to_watch": "MyLoss/my_1st_component"}
+train_params = {
+     ...,
+     "loss": MyLoss(),
+     "metric_to_watch": "MyLoss/my_1st_component"
+ }
+
+Trainer.train(
+    ...,
+    train_params=train_params
+)
 ```
-
 
 The above code will log and monitor `MyLoss/total_loss`, `MyLoss/my_1st_component` and `MyLoss/my_2nd_component`.
 
@@ -181,46 +189,44 @@ detach loss_items from their computational graph for memory efficiency.
 
 When using configuration files, for example, training using train_from_recipe (or similar, when the underlying train method that is being called is Trainer.train_from_config(...)),  In your ``my_loss.py``, register your loss class by decorating the class with `register_loss`:
 ```python
- import torch.nn
- from super_gradients.common.registry import register_loss
+import torch.nn
+from super_gradients.common.registry import register_loss
  
- @register_loss("my_loss")
- class MyLoss(torch.nn.Module):
-           ...
+@register_loss("my_loss")
+class MyLoss(torch.nn.Module):
+    ...
 ```
+
 Then, in your `my_training_hyperparams.yaml`, use `"my_loss"` in the same way as any other loss supported in SG:
-  ```yaml
-...
+```yaml
 ...
 
 loss: my_loss
 
 criterion_params:
   ...
-  ```      
+```
+
 Last, in your ``my_train_from_recipe_script.py`` file, just import the newly registered class (even though the class itself is unused, just to trigger the registry):
         
 ```python
-
-  from omegaconf import DictConfig
-  import hydra
-  import pkg_resources
-  from my_loss import MyLoss
-  from super_gradients import Trainer, init_trainer
-  
-  
-  @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-  def main(cfg: DictConfig) -> None:
-      Trainer.train_from_config(cfg)
-  
-  
-  def run():
-      init_trainer()
-      main()
-  
-  
-  if __name__ == "__main__":
-      run()
+from omegaconf import DictConfig
+import hydra
+import pkg_resources
+from my_loss import MyLoss
+from super_gradients import Trainer, init_trainer
 
 
+@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
+def main(cfg: DictConfig) -> None:
+   Trainer.train_from_config(cfg)
+
+
+def run():
+   init_trainer()
+   main()
+
+
+if __name__ == "__main__":
+   run()
 ```

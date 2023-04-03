@@ -1,4 +1,4 @@
-# The Basic Skills
+# Basic Skills
 
 In this tutorial, we will go over all of the basic functionalities of SuperGradients very briefly.
 Go over the following sections to learn how to train, test and predict using SuperGradients.

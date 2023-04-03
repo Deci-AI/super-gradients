@@ -140,8 +140,7 @@ model = ...
 train_params = {...}
 
 trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
-   
-   ```
+```
 
 ### DataLoaders - Training with Configuration Files
 
