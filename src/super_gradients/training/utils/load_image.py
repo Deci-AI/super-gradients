@@ -1,6 +1,6 @@
 from typing import Union, List
 import PIL
-
+import io
 import numpy as np
 import torch
 import requests
@@ -63,7 +63,7 @@ def load_pil_image_from_str(image_str: str) -> PIL.Image.Image:
     if is_url(image_str):
         response = requests.get(image_str, stream=True)
         response.raise_for_status()
-        return PIL.Image.open(response.raw)
+        return PIL.Image.open(io.BytesIO(response.content))
     else:
         return PIL.Image.open(image_str)
 
