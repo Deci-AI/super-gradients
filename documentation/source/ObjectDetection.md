@@ -413,7 +413,9 @@ To implement a new model, you need to add the following parts:
 - Model architecture itself
 - Postprocessing Callback
 
-For a custom model, a good starting point would be a [CustomizableDetector](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.customizable_detector.CustomizableDetector) class since it allows to configure a backbone, a neck and a head separately. See an example yaml of a model that uses it:
-- [ssd_lite_mobilenetv2_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ssd_lite_mobilenetv2_arch_params.yaml)
+For a custom model, a good starting point would be a 
+[CustomizableDetector](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.customizable_detector.CustomizableDetector) 
+class since it allows to configure a backbone, a neck and a head separately. See an example yaml of 
+a model that uses it: [ssd_lite_mobilenetv2_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ssd_lite_mobilenetv2_arch_params.yaml)
 
 It is strongly advised to use the existing callbacks and to define your model's head such that it returns the same outputs. 

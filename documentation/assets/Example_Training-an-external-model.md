@@ -9,7 +9,7 @@ an external model, dataset, loss function, and metric into the training pipeline
 For this example, the only necessary package is super-gradients. Installing super-gradients will also
 install all dependencies required to run the code in this example.
 
-```
+```bash
 pip install super-gradients
 ```
 
@@ -52,7 +52,7 @@ the corresponding masks. This structure is not particularly convenient for data 
 we will first rearrange the data with the following script, which only requires changing the `data_path` and
 `out_path` variables:
 
-```
+```python
 import random
 import shutil
 from pathlib import Path
@@ -141,7 +141,7 @@ implementations for maximum flexibility.
 We will first present the complete Dataset class implementation, and then break it down to fully understand what is
 going on.
 
-```
+```python
 import os
 from PIL import Image
 import torch
@@ -213,7 +213,7 @@ mask path pairs are determined according to the split.
 Next, let's see what happens when we retrieve an item from the dataset via the `__getitem__()` function.
 First, an image and its corresponding mask are loaded according to the `idx` parameter:
 
-```
+```python
 image = Image.open(self.path_pairs[idx][0]).convert('RGB')
 mask = Image.open(self.path_pairs[idx][1]).split()[-1]
 ```
@@ -224,7 +224,7 @@ used as the soft mask for segmentation according to the
 
 Next, we apply transformations to the image and mask according to the split:
 
-```
+```python
 if self.split == 'train':
     seg_transforms = torch_transforms.Compose([
         SegRandomFlip(prob=0.5),
@@ -253,7 +253,7 @@ transforms the image. `SegResize()` resizes both the image and the mask.
 Next, we convert the image and the mask to PyTorch Tensors, and normalize the image using the `NORMALIZATION_MEANS` and 
 `NORMALIZATION_STDS`:
 
-```
+```python
 image_transform = torch_transforms.Compose([
     torch_transforms.ToTensor(),
     torch_transforms.Normalize(self.NORMALIZATION_MEANS, self.NORMALIZATION_STDS)
@@ -273,7 +273,7 @@ To conclude this section, let's visualize some images and their masks to test ou
 First, we instantiate two dataset objects, for the training and validation splits, and extract the first sample from 
 each:
 
-```
+```python
 import matplotlib.pyplot as plt
 
 data_path = '/path/to/arranged/data/dir'
@@ -287,7 +287,7 @@ val_image, val_mask = val_dataset[0]
 
 Let's first visualize the validation image and mask:
 
-```
+```python
 figure = plt.figure()
 figure.add_subplot(1, 2, 1)
 plt.title("Image")
@@ -305,7 +305,7 @@ plt.show()
 
 And the training image and mask:
 
-```
+```python
 figure = plt.figure()
 figure.add_subplot(1, 2, 1)
 plt.title("Image")
@@ -333,7 +333,7 @@ as part of SuperGradients' training pipeline. To this end, we will use a
 [U-Net implementation](https://github.com/mateuszbuda/brain-segmentation-pytorch) loaded directly from
 [PyTorch Hub](https://pytorch.org/hub/mateuszbuda_brain-segmentation-pytorch_unet/):
 
-```
+```python
 model = torch.hub.load('mateuszbuda/brain-segmentation-pytorch', 'unet', in_channels=3, out_channels=1, 
                        init_features=32, pretrained=False)
 ```
@@ -345,7 +345,7 @@ in this case we do not want to use pre-trained weights.
 
 Let's check our model's type:
 
-```
+```python
 print(type(model))
 ```
 ```
@@ -355,7 +355,7 @@ print(type(model))
 SuperGradients is compatible with models of type `torch.nn.Module`. Just to be sure, let's verify that our
 model is of the correct type:
 
-```
+```python
 print(type(model).__bases__)
 ```
 ```
@@ -364,7 +364,7 @@ print(type(model).__bases__)
 
 Finally, let's print the model to see its components:
 
-```
+```python
 print(model)
 ```
 ```
@@ -466,7 +466,7 @@ Similar to using an external model, the custom loss function's class must inheri
 `forward()` function's first parameter needs to be the predictions tensor and the second parameter needs to be the
 target tensor.
 
-```
+```python
 import torch
 import torch.nn as nn
 
@@ -533,7 +533,7 @@ task, we are interested in the foreground IoU. Therefore, we will need to modify
 about implementing a custom metric using torchmetrics, see 
 [here](https://torchmetrics.readthedocs.io/en/stable/pages/implement.html).
 
-```
+```python
 class SoftIoU(JaccardIndex):
     def __init__(self, **kwargs):
         super().__init__(reduction='none', **kwargs)
@@ -581,7 +581,7 @@ ckpt_root_dir
 
 We initialize the trainer as follows:
 
-```
+```python
 from super_gradients import Trainer
 
 experiment_name = "aisegment_example"
@@ -592,7 +592,7 @@ trainer = Trainer(experiment_name=experiment_name, ckpt_root_dir=CHECKPOINT_DIR)
 
 Next, we initialize the PyTorch dataloaders for our datasets:
 
-```
+```python
 from torch.utils.data import DataLoader
 
 train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=2)
@@ -601,7 +601,7 @@ val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=False, num_worke
 
 And lastly, we need to define the training hyperparameters:
 
-```
+```python
 train_params = {
     "max_epochs": 100,
     "lr_mode": "cosine",
@@ -639,7 +639,7 @@ and we are ready to go.
 We are all set to start training our model. Simply plug in the model, training and validation dataloaders,
 and training parameters into the trainer's `train()` function:
 
-```
+```python
 trainer.train(model=model, 
               training_params=train_params, 
               train_loader=train_dataloader,
@@ -698,7 +698,7 @@ At the end of each epoch, the different logs and checkpoints are saved in the pa
 To view the experiment's tensorboard logs, type the following command in the terminal from the
 experiment's path:
 
-```
+```bash
 tensorboard --logdir='.'
 ```
 
@@ -721,14 +721,14 @@ We can also check the validation set's IoU metric's value:
 Now that we have a trained model we can use it to make predictions on the test set. First, let's instantiate a test
 dataset:
 
-```
+```python
 test_dataset = AISegmentDataset(data_path=data_path, split='test')
 ```
 
 By instantiating the test dataset, all required pre-processing is already handled for us. Let's choose a single sample
 from the dataset:
 
-```
+```python
 image, mask = test_dataset[0]
 image, mask = image.unsqueeze(0), mask.unsqueeze(0)
 ```
@@ -736,7 +736,7 @@ image, mask = image.unsqueeze(0), mask.unsqueeze(0)
 Notice that we have added the batch dimension to the tensors. Next, we set the model to evaluation mode, and obtain
 the predicted mask. Since our model learned to predict soft masks, we apply a threshold of 0.5 to binarize the mask:
 
-```
+```python
 model.eval()
 
 pred = model(image)
@@ -745,13 +745,13 @@ pred = torch.gt(pred, 0.5).long()
 
 Finally, let's apply the predicted mask to the image:
 
-```
+```python
 masked_image = image*pred
 ```
 
 Now let's visualize the image, mask, and masked image to see how our model performed:
 
-```
+```python
 figure = plt.figure()
 figure.add_subplot(1, 3, 1)
 plt.title("Image")

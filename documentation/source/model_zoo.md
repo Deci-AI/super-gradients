@@ -32,6 +32,7 @@ All the available models are listed in the column `Model name`.
 | MobileNet V3_large-300 epochs | mobilenet_v3_large    | ImageNet    | 224x224    | 74.52   | 91.92   | **0.67ms**                 | **1.11ms**                          | **2.42ms**                               | **2.71ms**                                        |           **1.76ms**            |
 | MobileNet V3_small            | mobilenet_v3_small    | ImageNet    | 224x224    | 67.45   | 87.47   | **0.55ms**                 | **0.96ms**                          | **2.01ms** *                             | **2.35ms**                                        |           **1.06ms**            |
 | MobileNet V2_w1               | mobilenet_v2          | ImageNet    | 224x224    | 73.08   | 91.1    | **0.46 ms**                | **0.89ms**                          | **1.65ms** *                             | **1.90ms**                                        |           **1.56ms**            |
+
 > **NOTE:** <br/>
 > - Latency (HW)* - Hardware performance (not including IO)<br/>
 > - Latency (Production)** - Production Performance (including IO)
@@ -80,11 +81,11 @@ All the available models are listed in the column `Model name`.
 | STDC 2-Seg75          | stdc2_seg75       | Cityscapes | 768x1536   | 78.93 | **6.95ms**              | **33.89ms**                          |                   **54.48ms**                     |
 | RegSeg (exp48)        | regseg48          | Cityscapes | 1024x2048  | 78.15 | **12.03ms**             | **38.91ms**                          |                    **78.20ms**                    |
 
-> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency), and not including IO
+> **NOTE:** <br/>
+> - Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency), and not including IO
+> - For resolutions below 1024x2048 we first resize the input to the inference resolution and then resize the predictions to 1024x2048. The time of resizing is included in the measurements so that the practical input-size is 1024x2048.
+> - DDRNet23 and DDRNet23_Slim results were achieved with channel wise knowledge distillation training recipe.
 
-> **NOTE:** For resolutions below 1024x2048 we first resize the input to the inference resolution and then resize the predictions to 1024x2048. The time of resizing is included in the measurements so that the practical input-size is 1024x2048.
- 
-> **NOTE:** DDRNet23 and DDRNet23_Slim results were achieved with channel wise knowledge distillation training recipe.
 
 ### Pretrained Pose Estimation PyTorch Checkpoints
 

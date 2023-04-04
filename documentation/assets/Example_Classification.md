@@ -102,18 +102,27 @@ Expected output:
 
 ```
 Dataloader parameters:
-{'batch_size': 256,
- 'drop_last': False,
- 'num_workers': 2,
- 'pin_memory': True,
- 'shuffle': True}
-Dataset parameters:
-{'download': True,
- 'root': './data/cifar10',
- 'target_transform': None,
- 'train': True,
- 'transforms': [{'RandomCrop': {'size': 32, 'padding': 4}}, 'RandomHorizontalFlip', 'ToTensor', {'Normalize': {'mean': [0.4914, 0.4822, 0.4465], 'std': [0.2023, 0.1994, 0.201]}}]}
+{
+    "batch_size": 256,
+    "drop_last": False,
+    "num_workers": 2,
+    "pin_memory": True,
+    "shuffle": True
+}
 
+Dataset parameters:
+{
+    "download": True,
+    "root": "./data/cifar10",
+    "target_transform": None,
+    "train": True,
+    "transforms": [
+        {"RandomCrop": {"size": 32, "padding": 4}},
+        "RandomHorizontalFlip",
+        "ToTensor",
+        {"Normalize": {"mean": [0.4914, 0.4822, 0.4465], "std": [0.2023, 0.1994, 0.201]}},
+    ]
+}
 ```
 
 When the `get()` function is called as above, SuperGradients will attempt to download the CIFAR10 dataset for us. We 
@@ -124,7 +133,7 @@ can expect to see an output as follows:
 After the dataloaders are defined, we can iterate them to extract batches of images and their corresponding labels.
 This is useful for several purposes, such as visualization, verifying tensor shapes, and more. For example, visualization:
 
-```
+```python
 from matplotlib import pyplot as plt
 
 def show(images, labels, classes, rows=6, columns=5):
@@ -154,7 +163,7 @@ parameters, allowing for control over the flexibility vs. ease-of-use tradeoff.
 
 For completion of this section, let's print the tensors' shapes:
 
-```
+```python
 print(f'Training image tensor shape: {images_train.shape}')
 print(f'Training labels tensor shape: {labels_train.shape}')
 ```
@@ -177,7 +186,7 @@ the seamless integration SuperGradients allows with different PyTorch components
 visualization, the only transform we apply is `ToTensor()`, which simply converts the input
 images into PyTorch tensors.
 
-```
+```python
 from torchvision import transforms as T
 
 transforms_list = [T.ToTensor()]
@@ -206,7 +215,7 @@ SuperGradients provides out-of-the-box implementations of many architectures for
 line of code we can define a model with the chosen architecture. A list of all available architectures can be found
 [here](https://github.com/Deci-AI/super-gradients).
 
-```
+```python
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
 
@@ -247,7 +256,7 @@ this use-case. For more recommended training parameters you can have a look at o
 
 Obtaining the training parameters is as easy as writing a single line of code:
 
-```
+```python
 from super_gradients.training import training_hyperparams
 
 training_params =  training_hyperparams.get(config_name="training_hyperparams/cifar10_resnet_train_params")
@@ -261,7 +270,7 @@ the `get()` function. This function accepts two parameters:
 
 We can print the training parameters to see the different options:
 
-```
+```python
 pprint.pprint("Training parameters:") 
 pprint.pprint(training_params)
 ```
@@ -333,7 +342,7 @@ to affect the training process.
 
 It is also possible to change training parameters after obtaining them, for example:
 
-```
+```python
 training_params["max_epochs"] = 15
 training_params["sg_logger_params"]["launch_tensorboard"] = True
 ```
@@ -345,7 +354,7 @@ training_params["sg_logger_params"]["launch_tensorboard"] = True
 We are all set to start training our model. Simply plug in the model, training and validation dataloaders,
 and training parameters into the trainer's `train()` function:
 
-```
+```python
 trainer.train(model=model, 
               training_params=training_params, 
               train_loader=train_dataloader,
@@ -429,7 +438,7 @@ not very high. To get better insights as to what is happening, we turn to the te
 To view the experiment's tensorboard logs, type the following command in the terminal from the
 experiment's path:
 
-```
+```bash
 tensorboard --logdir='.'
 ```
 
@@ -456,7 +465,7 @@ the trainer know that we are continuing training and not starting from the first
 by setting the `resume` training parameter to `True`. Finally, we set the new `max_epochs` training
 parameter, and train the model once more.
 
-```
+```python
 import os
 
 model = models.get(model_name=Models.RESNET18, 
@@ -595,7 +604,7 @@ is required.
 Now that we have a trained model with reasonable performance, we can use it to make predictions on new data.
 First, let's import some packages:
 
-```
+```python
 from PIL import Image
 import torch
 import numpy as np
@@ -605,7 +614,7 @@ import requests
 Next, we load the model with the trained weights, and put it into evaluation mode. Notice that now we load the 
 `ckpt_best.pth` checkpoint.
 
-```
+```python
 model = models.get(model_name=Models.RESNET18, 
                    num_classes=10,
                    checkpoint_path=os.path.join(CHECKPOINT_DIR, experiment_name, 'ckpt_best.pth'))
@@ -616,7 +625,7 @@ We want to test the model on an image of one the classes the model was trained o
 model handles an image of a frog, taken from the [Aquarium of the Pacific website](https://www.aquariumofpacific.org/).
 The loaded image must undergo the same transformations as the training images for the model to work well:
 
-```
+```python
 url = "https://www.aquariumofpacific.org/images/exhibits/Magnificent_Tree_Frog_900.jpg"
 image = np.array(Image.open(requests.get(url, stream=True).raw))
 
@@ -631,13 +640,13 @@ input_tensor = transforms(image).unsqueeze(0).to(next(model.parameters()).device
 
 Next, to obtain the model's predictions we simply run the following line of code:
 
-```
+```python
 predictions = model(input_tensor)
 ```
 
 Let's see what the model predicted:
 
-```
+```python
 plt.xlabel(train_dataloader.dataset.classes[torch.argmax(predictions)])
 plt.imshow(image)
 plt.show()
@@ -653,7 +662,7 @@ For completion of this example, we provide a complete working code for training,
 a saved checkpoint, and predicting with the trained model. Simply change the `CHECKPOINT_DIR` variable and run the 
 script:
 
-```
+```python
 from super_gradients import Trainer
 from super_gradients.training import dataloaders
 from super_gradients.training import models

@@ -36,17 +36,12 @@ They hold additional information about the model's training besides the model we
 
 The checkpoint keys:
 
-> "net": The network's state_dict (state_dict).
-
-> "acc": The network's achieved metric value on the validation set ([metric_to_watch in training_params](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) (float).
-
-> "epoch": The last epoch performed.
-
-> "optimizer_state_dict": The state_dict of the optimizer (state_dict).
-
-> "scaler_state_dict": Optional - only present when training with [mixed_precision=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/average_mixed_precision.md). The state_dict of Trainer.scaler.
-
-> "ema_net": Optional - only present when training with [ema=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/EMA.md). The EMA model's state_dict. Note that `average_model.pth` lacks this entry even if ema=True since the average model's snapshots are of the EMA network already (i.e., the "net" entry is already an average of the EMA snapshots).
+- `net`: The network's state_dict (state_dict).
+- `acc`: The network's achieved metric value on the validation set ([metric_to_watch in training_params](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) (float).
+- `epoch`: The last epoch performed.
+- `optimizer_state_dict`: The state_dict of the optimizer (state_dict).
+- `scaler_state_dict`: Optional - only present when training with [mixed_precision=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/average_mixed_precision.md). The state_dict of Trainer.scaler.
+- `ema_net`: Optional - only present when training with [ema=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/EMA.md). The EMA model's state_dict. Note that `average_model.pth` lacks this entry even if ema=True since the average model's snapshots are of the EMA network already (i.e., the "net" entry is already an average of the EMA snapshots).
 
 ## Remote Checkpoint Saving with SG Loggers
 
@@ -196,11 +191,11 @@ Recall the SGs recipes library structure:
 
 
 The `super_gradients/recipes` include the following subdirectories:
-> - arch_params - containing configuration files for instantiating different models
-> - checkpoint_params - containing configuration files that define the loaded and saved checkpoints parameters for the training
-> - conversion_params - containing configuration files for the model conversion scripts (for deployment)
-> - dataset_params - containing configuration files for instantiating different datasets and dataloaders
-> - training_hyperparams - containing configuration files holding hyper-parameters for specific recipes
+- arch_params - containing configuration files for instantiating different models
+- checkpoint_params - containing configuration files that define the loaded and saved checkpoints parameters for the training
+- conversion_params - containing configuration files for the model conversion scripts (for deployment)
+- dataset_params - containing configuration files for instantiating different datasets and dataloaders
+- training_hyperparams - containing configuration files holding hyper-parameters for specific recipes
 
 And now, let's take a look at the default parameters in `checkpoint_params`:
 
@@ -258,10 +253,11 @@ In both cases, SG allows flexibility of the other training-related parameters. F
 
 
 ```shell
-> python train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=300
-...
-...
-> python train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=400
+$ python train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=300
+```
+
+```shell
+$ python train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=400
 ```
 
 However, this flexibility comes with a price: we must be aware of any change in parameters (by command line overrides or hard-coded changes inside the yaml file configurations) if we wish to resume training.
