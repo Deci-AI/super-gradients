@@ -9,6 +9,8 @@ from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 from super_gradients.training.utils import HpmStruct, get_param
 
+from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
+
 
 @register_model(Models.DECIYOLO_S)
 class DeciYolo_S(CustomizableDetector):
@@ -23,6 +25,10 @@ class DeciYolo_S(CustomizableDetector):
             num_classes=get_param(merged_arch_params, "num_classes", None),
             in_channels=in_channels,
         )
+
+    @staticmethod
+    def get_post_prediction_callback(conf: float, iou: float) -> PPYoloEPostPredictionCallback:
+        return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
 
     @property
     def num_classes(self):
@@ -43,6 +49,10 @@ class DeciYolo_M(CustomizableDetector):
             in_channels=in_channels,
         )
 
+    @staticmethod
+    def get_post_prediction_callback(conf: float, iou: float) -> PPYoloEPostPredictionCallback:
+        return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
+
     @property
     def num_classes(self):
         return self.heads.num_classes
@@ -61,6 +71,10 @@ class DeciYolo_L(CustomizableDetector):
             num_classes=get_param(merged_arch_params, "num_classes", None),
             in_channels=in_channels,
         )
+
+    @staticmethod
+    def get_post_prediction_callback(conf: float, iou: float) -> PPYoloEPostPredictionCallback:
+        return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
 
     @property
     def num_classes(self):

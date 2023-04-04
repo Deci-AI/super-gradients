@@ -96,6 +96,49 @@ class ImagePermute(Processing):
         return predictions
 
 
+class ReverseImageChannels(Processing):
+    """Reverse the order of the image channels (RGB -> BGR or BGR -> RGB)."""
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
+        """Reverse the channel order of an image.
+
+        :param image: Image, in (H, W, C) format.
+        :return:      Image with reversed channel order. (RGB if input was BGR, BGR if input was RGB)
+        """
+
+        if image.shape[2] != 3:
+            raise ValueError("ReverseImageChannels expects 3 channels, got: " + str(image.shape[2]))
+
+        processed_image = image[..., ::-1]
+        return processed_image, None
+
+    def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
+        return predictions
+
+
+class StandardizeImage(Processing):
+    """Standardize image pixel values with img/max_val
+
+    :param max_value: Current maximum value of the image pixels. (usually 255)
+    """
+
+    def __init__(self, max_value: float = 255.0):
+        super().__init__()
+        self.max_value = max_value
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
+        """Reverse the channel order of an image.
+
+        :param image: Image, in (H, W, C) format.
+        :return:      Image with reversed channel order. (RGB if input was BGR, BGR if input was RGB)
+        """
+        processed_image = (image / self.max_value).astype(np.float32)
+        return processed_image, None
+
+    def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
+        return predictions
+
+
 class NormalizeImage(Processing):
     """Normalize an image based on means and standard deviation.
 
@@ -210,6 +253,8 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
         return default_yolox_coco_processing_params()
     elif "ppyoloe" in model_name and pretrained_weights == "coco":
         return default_ppyoloe_coco_processing_params()
+    elif "deciyolo" in model_name and pretrained_weights == "coco":
+        return default_deciyolo_coco_processing_params()
     else:
         return None, None
 
@@ -237,6 +282,23 @@ def default_ppyoloe_coco_processing_params() -> Tuple[List[str], Processing]:
         [
             DetectionRescale(output_shape=(640, 640)),
             NormalizeImage(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375]),
+            ImagePermute(permutation=(2, 0, 1)),
+        ]
+    )
+    class_names = COCO_DETECTION_CLASSES_LIST
+    return class_names, image_processor
+
+
+def default_deciyolo_coco_processing_params() -> Tuple[List[str], Processing]:
+    """Processing parameters commonly used for training DeciYolo on COCO dataset."""
+    from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+
+    image_processor = ComposeProcessing(
+        [
+            ReverseImageChannels(),
+            DetectionLongestMaxSizeRescale(output_shape=(636, 636)),
+            DetectionCenterPadding(output_shape=(640, 640), pad_value=114),
+            StandardizeImage(max_value=255.0),
             ImagePermute(permutation=(2, 0, 1)),
         ]
     )
