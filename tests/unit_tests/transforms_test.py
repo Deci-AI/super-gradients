@@ -11,6 +11,18 @@ from super_gradients.training.transforms.keypoint_transforms import (
 )
 from super_gradients.training.transforms.transforms import DetectionImagePermute, DetectionPadToSize
 
+from super_gradients.training.transforms.utils import (
+    _rescale_image,
+    _rescale_bboxes,
+    _pad_image,
+    _shift_bboxes,
+    _rescale_and_pad_to_size,
+    _rescale_xyxy_bboxes,
+    _get_center_padding_coordinates,
+    _get_bottom_right_padding_coordinates,
+    PaddingCoordinates,
+)
+
 
 class TestTransforms(unittest.TestCase):
     def test_keypoints_random_affine(self):
@@ -119,6 +131,166 @@ class TestTransforms(unittest.TestCase):
         )
         self.assertEqual(output["image"].shape, (640, 640, 3))
         np.testing.assert_array_equal(output["target"], expected_boxes)
+
+    def test_rescale_image(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        target_shape = (320, 240)
+        rescaled_image = _rescale_image(image, target_shape)
+
+        # Check if the rescaled image has the correct target shape
+        self.assertEqual(rescaled_image.shape[:2], target_shape)
+
+    def test_rescale_bboxes(self):
+        sy, sx = (2.0, 0.5)
+
+        # Empty bboxes
+        bboxes = np.zeros((0, 4))
+        expected_bboxes = np.zeros((0, 4))
+        rescaled_bboxes = _rescale_bboxes(targets=bboxes, scale_factors=(sy, sx))
+        np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
+
+        # Not empty bboxes
+        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
+        expected_bboxes = np.array([[5.0, 40.0, 25.0, 120.0, 1.0], [15.0, 80.0, 40.0, 180.0, 2.0]], dtype=np.float32)
+        rescaled_bboxes = _rescale_bboxes(targets=bboxes, scale_factors=(sy, sx))
+        np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
+
+    def test_pad_image(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
+        pad_value = 0
+        shifted_image = _pad_image(image, padding_coordinates, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600, 3))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: padding_coordinates.top, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[-padding_coordinates.bottom :, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : padding_coordinates.left, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, -padding_coordinates.right :, :] == pad_value).all())
+
+    def test_shift_bboxes(self):
+        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
+        shift_w, shift_h = 60, 80
+        shifted_bboxes = _shift_bboxes(bboxes, shift_w, shift_h)
+
+        # Check if the shifted bboxes have the correct values
+        expected_bboxes = np.array([[70, 100, 110, 140, 1], [90, 120, 140, 170, 2]], dtype=np.float32)
+        np.testing.assert_array_equal(shifted_bboxes, expected_bboxes)
+
+    def test_rescale_xyxy_bboxes(self):
+        bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
+        r = 0.5
+        rescaled_bboxes = _rescale_xyxy_bboxes(bboxes, r)
+
+        # Check if the rescaled bboxes have the correct values
+        expected_bboxes = np.array([[5.0, 10.0, 25.0, 30.0, 1.0], [15.0, 20.0, 40.0, 45.0, 2.0]], dtype=np.float32)
+        np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
+
+    def test_padding(self):
+        # Test Case 1: Padding needed
+        image = np.array([[1, 2], [3, 4]])
+        padding_coordinates = PaddingCoordinates(top=0, left=0, bottom=1, right=2)
+        expected_padded_image = np.array([[1, 2, 114, 114], [3, 4, 114, 114], [114, 114, 114, 114]])
+
+        padded_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=114)
+        np.testing.assert_array_equal(padded_image, expected_padded_image)
+
+        # Test Case 2: No padding needed
+        image = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        padding_coordinates = PaddingCoordinates(top=0, left=0, bottom=0, right=0)
+        expected_padded_image = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+
+        padded_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=114)
+        np.testing.assert_array_equal(padded_image, expected_padded_image)
+
+        # Test Case 3: Image with channel dimension
+        image = np.array([[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]])
+        padding_coordinates = PaddingCoordinates(top=0, left=0, bottom=1, right=2)
+        expected_padded_image = np.array(
+            [
+                [[1, 2, 3], [4, 5, 6], [0, 0, 0], [0, 0, 0]],
+                [[7, 8, 9], [10, 11, 12], [0, 0, 0], [0, 0, 0]],
+                [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+            ],
+        )
+
+        padded_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=0)
+        np.testing.assert_array_equal(padded_image, expected_padded_image)
+
+    def test_get_padding_coordinates(self):
+        # Test Case 1: Width padding required
+        image = np.zeros((640, 480))
+        output_size = (640, 640)
+        expected_center_padding = PaddingCoordinates(top=0, bottom=0, left=80, right=80)
+        expected_bottom_right_padding = PaddingCoordinates(top=0, bottom=0, left=0, right=160)
+
+        center_padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=output_size)
+        bottom_right_padding_coordinates = _get_bottom_right_padding_coordinates(input_shape=image.shape, output_shape=output_size)
+        self.assertEqual(center_padding_coordinates, expected_center_padding)
+        self.assertEqual(bottom_right_padding_coordinates, expected_bottom_right_padding)
+
+        # Test Case 2: Height padding required
+        image = np.zeros((480, 640))
+        output_size = (640, 640)
+        expected_center_padding = PaddingCoordinates(top=80, bottom=80, left=0, right=0)
+        expected_bottom_right_padding = PaddingCoordinates(top=0, bottom=160, left=0, right=0)
+
+        center_padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=output_size)
+        bottom_right_padding_coordinates = _get_bottom_right_padding_coordinates(input_shape=image.shape, output_shape=output_size)
+        self.assertEqual(center_padding_coordinates, expected_center_padding)
+        self.assertEqual(bottom_right_padding_coordinates, expected_bottom_right_padding)
+
+        # Test Case 3: Width and Height padding required
+        image = np.zeros((480, 640))
+        output_size = (800, 800)
+        expected_center_padding = PaddingCoordinates(top=160, bottom=160, left=80, right=80)
+        expected_bottom_right_padding = PaddingCoordinates(top=0, bottom=320, left=0, right=160)
+
+        center_padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=output_size)
+        bottom_right_padding_coordinates = _get_bottom_right_padding_coordinates(input_shape=image.shape, output_shape=output_size)
+        self.assertEqual(center_padding_coordinates, expected_center_padding)
+        self.assertEqual(bottom_right_padding_coordinates, expected_bottom_right_padding)
+
+        # Test Case 4: Image shape is bigger than output shape
+        image = np.zeros((800, 800))
+        output_size = (640, 640)
+        expected_center_padding = PaddingCoordinates(top=-80, bottom=-80, left=-80, right=-80)
+        expected_bottom_right_padding = PaddingCoordinates(top=0, bottom=-160, left=0, right=-160)
+
+        center_padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=output_size)
+        bottom_right_padding_coordinates = _get_bottom_right_padding_coordinates(input_shape=image.shape, output_shape=output_size)
+        self.assertEqual(center_padding_coordinates, expected_center_padding)
+        self.assertEqual(bottom_right_padding_coordinates, expected_bottom_right_padding)
+
+        # Test Case 5: Width and Height padding required with an image of 3 channels
+        image = np.zeros((480, 640, 3))
+        output_size = (800, 800)
+        expected_center_padding = PaddingCoordinates(top=160, bottom=160, left=80, right=80)
+        expected_bottom_right_padding = PaddingCoordinates(top=0, bottom=320, left=0, right=160)
+
+        center_padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=output_size)
+        bottom_right_padding_coordinates = _get_bottom_right_padding_coordinates(input_shape=image.shape, output_shape=output_size)
+        self.assertEqual(center_padding_coordinates, expected_center_padding)
+        self.assertEqual(bottom_right_padding_coordinates, expected_bottom_right_padding)
+
+    def test_rescale_and_pad_to_size(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        output_size = (800, 500)
+        pad_val = 114
+        rescaled_padded_image, r = _rescale_and_pad_to_size(image, output_size, pad_val=pad_val)
+
+        # Check if the rescaled and padded image has the correct shape
+        self.assertEqual(rescaled_padded_image.shape, (3, *output_size))
+
+        # Check if the image is rescaled with the correct ratio
+        resized_image_shape = (int(image.shape[0] * r), int(image.shape[1] * r))
+
+        # Check if the padding is correctly applied
+        padded_area = rescaled_padded_image[:, resized_image_shape[0] :, :]  # Right padding area
+        self.assertTrue((padded_area == pad_val).all())
+        padded_area = rescaled_padded_image[:, :, resized_image_shape[1] :]  # Bottom padding area
+        self.assertTrue((padded_area == pad_val).all())
 
 
 if __name__ == "__main__":

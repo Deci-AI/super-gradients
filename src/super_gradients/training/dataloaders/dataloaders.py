@@ -17,7 +17,7 @@ from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar10,
     Cifar100,
 )
-from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
+from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, RoboflowDetectionDataset
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
     PascalVOCUnifiedDetectionTrainDataset,
     PascalVOCDetectionDataset,
@@ -227,6 +227,28 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = None, dataloader_p
     return get_data_loader(
         config_name="coco_detection_ssd_lite_mobilenet_v2_dataset_params",
         dataset_cls=COCODetectionDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader(Dataloaders.ROBOFLOW_TRAIN_BASE)
+def roboflow_train_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="roboflow_detection_dataset_params",
+        dataset_cls=RoboflowDetectionDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader(Dataloaders.ROBOFLOW_VAL_BASE)
+def roboflow_val_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="roboflow_detection_dataset_params",
+        dataset_cls=RoboflowDetectionDataset,
         train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
