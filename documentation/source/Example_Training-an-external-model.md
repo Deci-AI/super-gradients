@@ -301,7 +301,7 @@ plt.imshow(val_mask.squeeze(), cmap='gray')
 plt.show()
 ```
 
-<img src="SG_img/external_model_example_val_vis.png" width="750">
+<img src="images/external_model_example_val_vis.png" width="750">
 
 And the training image and mask:
 
@@ -319,7 +319,7 @@ plt.imshow(train_mask.squeeze(), cmap='gray')
 plt.show()
 ```
 
-<img src="SG_img/external_model_example_train_vis.png" width="750">
+<img src="images/external_model_example_train_vis.png" width="750">
 
 We can see the effect of the color jitter transform on the image.
 
@@ -708,11 +708,11 @@ SuperGradients logs many useful metrics to tensorboard, including CPU and GPU us
 scheduling, training and validation losses and other metrics, and many more. For example, let's check how the training
 process goes by looking at the training's custom loss value:
 
-<img src="SG_img/external_model_example_train_loss.png" width="700">
+<img src="images/external_model_example_train_loss.png" width="700">
 
 We can also check the validation set's IoU metric's value:
 
-<img src="SG_img/external_model_example_valid_iou.png" width="700">
+<img src="images/external_model_example_valid_iou.png" width="700">
 
 
 
@@ -768,4 +768,4 @@ plt.imshow(masked_image.detach().squeeze(0).permute(1, 2, 0))
 plt.show()
 ```
 
-<img src="SG_img/external_model_example_prediction.png" width="700">
+<img src="images/external_model_example_prediction.png" width="700">

@@ -200,12 +200,10 @@ The `super_gradients/recipes` include the following subdirectories:
 And now, let's take a look at the default parameters in `checkpoint_params`:
 
 ```yaml
-
 load_backbone: False # whether to load only the backbone part of the checkpoint
 checkpoint_path: # checkpoint path that is located in super_gradients/checkpoints
 strict_load: True # key matching strictness for loading checkpoint's weights
 pretrained_weights: # a string describing the dataset of the pre-trained weights (for example, "imagenent").
-
 ```
 
 And note the above parameters are used to start the training with different weights (fine-tuning etc.) - they are passed to model.get() in the underlying flow of `Trainer.train_from_config(...)`:

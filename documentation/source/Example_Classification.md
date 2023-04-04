@@ -128,7 +128,7 @@ Dataset parameters:
 When the `get()` function is called as above, SuperGradients will attempt to download the CIFAR10 dataset for us. We 
 can expect to see an output as follows:
 
-<img src="SG_img/classification_example_dataset_download.png" width="750">
+<img src="images/classification_example_dataset_download.png" width="750">
 
 After the dataloaders are defined, we can iterate them to extract batches of images and their corresponding labels.
 This is useful for several purposes, such as visualization, verifying tensor shapes, and more. For example, visualization:
@@ -154,7 +154,7 @@ show(images_train, labels_train, classes=train_dataloader.dataset.classes)
 
 Output:
 
-<img src="SG_img/classification_example_data_vis.png" width="500">
+<img src="images/classification_example_data_vis.png" width="500">
 
 As can be seen, the images are normalized. The normalization process is defined, among other things, as part of the 
 default training recipe SuperGradients uses for the CIFAR10 dataset. As we will see in the following section,
@@ -202,7 +202,7 @@ show(images, labels, classes=train_dataloader.dataset.classes)
 Notice that the only difference in the dataloader's definition is that here, the `dataset_params` parameter
 is passed as a dictionary defining the parameters to override. The result of running the above code:
 
-<img src="SG_img/classification_example_transforms_data_vis.png" width="500">
+<img src="images/classification_example_transforms_data_vis.png" width="500">
 
 The effect of changing the transforms can be seen in the images - now, without normalization, the objects are more
 observable in the images. 
@@ -448,9 +448,9 @@ SuperGradients logs many useful metrics to tensorboard, including CPU and GPU us
 scheduling, training and validation losses and other metrics, and many more. For the purpose of this example,
 let us examine the training and validation loss:
 
-<img src="SG_img/classification_example_train_loss_initial.png" width="500">
+<img src="images/classification_example_train_loss_initial.png" width="500">
 
-<img src="SG_img/classification_example_valid_loss_initial.png" width="500">
+<img src="images/classification_example_valid_loss_initial.png" width="500">
 
 As can be seen in the graphs, the training (and validation) loss did not converge before training ended. This means
 that training the model for additional epochs will probably improve its performance. Earlier, when modifying the 
@@ -652,7 +652,7 @@ plt.imshow(image)
 plt.show()
 ```
 
-<img src="SG_img/classification_example_frog_prediction.png" width="500">
+<img src="images/classification_example_frog_prediction.png" width="500">
 
 As we can see, the model correctly predicted that the input image is an image of a frog.
 
