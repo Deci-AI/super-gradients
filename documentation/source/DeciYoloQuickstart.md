@@ -58,8 +58,7 @@ Follow the setup instructions for RF100:
 
         - Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
 ```
-We first clone the SG repo, then use the repo's configuration files in our training examples.
-We will use the ```src/super_gradients/recipes/roboflow_deciyolo_s.yaml```configuration to train the small variant of our DeciYolo, DeciYolo S.
+We will use the ```roboflow_deciyolo_s```configuration to train the small variant of our DeciYolo, DeciYolo S.
 
 To launch training on one of the RF100 datasets, we pass it through the dataset_name argument:
 ```
