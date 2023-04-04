@@ -10,6 +10,7 @@ logger = get_logger(__name__)
 
 class RoboflowDetectionDataset(COCOFormattedDetectionDataset):
     """Dataset that can be used with ANY of the Roboflow100 benchmark datasets for object detection.
+    Checkout the datasets at https://universe.roboflow.com/roboflow-100?ref=blog.roboflow.com
 
     To use this Dataset you need to:
 
@@ -36,6 +37,9 @@ class RoboflowDetectionDataset(COCOFormattedDetectionDataset):
         - Instantiate the dataset (in this case we load the dataset called "digits-t2eg6")"
             >> train_set = RoboflowDetectionDataset(data_dir='<path-to>/rf100', dataset_name="digits-t2eg6", split="train")
             >> valid_set = RoboflowDetectionDataset(data_dir='<path-to>/rf100', dataset_name="digits-t2eg6", split="valid")
+
+    Note: `dataset_name` refers to the official name of the dataset. You can run RoboflowDetectionDataset.list_datasets() to see all available datasets)
+          OR you can find it in the url of the dataset: https://universe.roboflow.com/roboflow-100/digits-t2eg6 -> digits-t2eg6
     """
 
     def __init__(self, data_dir: str, dataset_name: str, split: str, *args, **kwargs):
@@ -51,7 +55,7 @@ class RoboflowDetectionDataset(COCOFormattedDetectionDataset):
         dataset_split_dir = os.path.join(dataset_name, split)
         json_annotation_file = os.path.join(dataset_split_dir, "_annotations.coco.json")
 
-        super().__init__(data_dir=data_dir, json_annotation_file=json_annotation_file, images_dir=dataset_split_dir, *args, **kwargs)
+        super().__init__(data_dir=data_dir, json_annotation_file=json_annotation_file, images_dir=dataset_split_dir, class_ids_to_ignore=[0], *args, **kwargs)
 
     @staticmethod
     def list_datasets(categories: Optional[List[str]] = None) -> List[str]:

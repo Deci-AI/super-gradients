@@ -59,9 +59,9 @@ def _set_batch_labels_index(labels_batch):
     return labels_batch
 
 
-def convert_xywh_bbox_to_xyxy(input_bbox: torch.Tensor):
+def convert_cxcywh_bbox_to_xyxy(input_bbox: torch.Tensor):
     """
-    Converts bounding box format from [x, y, w, h] to [x1, y1, x2, y2]
+    Converts bounding box format from [cx, cy, w, h] to [x1, y1, x2, y2]
         :param input_bbox:  input bbox either 2-dimensional (for all boxes of a single image) or 3-dimensional (for
                             boxes of a batch of images)
         :return:            Converted bbox in same dimensions as the original
@@ -234,7 +234,7 @@ def box_iou(box1: torch.Tensor, box2: torch.Tensor) -> torch.Tensor:
 def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_per_box: bool = True, with_confidence: bool = False):
     """
     Performs Non-Maximum Suppression (NMS) on inference results
-        :param prediction: raw model prediction
+        :param prediction: raw model prediction. Should be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
         :param conf_thres: below the confidence threshold - prediction are discarded
         :param iou_thres: IoU threshold for the nms algorithm
         :param multi_label_per_box: whether to use re-use each box with all possible labels
@@ -257,7 +257,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_p
         if with_confidence:
             pred[:, 5:] *= pred[:, 4:5]  # multiply objectness score with class score
 
-        box = convert_xywh_bbox_to_xyxy(pred[:, :4])  # xywh to xyxy
+        box = convert_cxcywh_bbox_to_xyxy(pred[:, :4])  # cxcywh to xyxy
 
         # Detections matrix nx6 (xyxy, conf, cls)
         if multi_label_per_box:  # try for all good confidence classes
@@ -302,7 +302,7 @@ def matrix_non_max_suppression(
     pred[:, :, 4] *= class_conf
 
     # BOX (CENTER X, CENTER Y, WIDTH, HEIGHT) TO (X1, Y1, X2, Y2)
-    pred[:, :, :4] = convert_xywh_bbox_to_xyxy(pred[:, :, :4])
+    pred[:, :, :4] = convert_cxcywh_bbox_to_xyxy(pred[:, :, :4])
 
     # DETECTIONS ORDERED AS (x1y1x2y2, obj_conf, class_conf, class_pred)
     pred = torch.cat((pred[:, :, :5], class_pred.unsqueeze(2)), 2)
@@ -822,7 +822,7 @@ def crowd_ioa(det_box: torch.Tensor, crowd_box: torch.Tensor) -> torch.Tensor:
 
 
 def compute_detection_matching(
-    output: torch.Tensor,
+    output: List[torch.Tensor],
     targets: torch.Tensor,
     height: int,
     width: int,

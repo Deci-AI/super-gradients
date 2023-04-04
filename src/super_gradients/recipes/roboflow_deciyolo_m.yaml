@@ -1,7 +1,14 @@
 # A recipe to fine-tune DeciYolo on Roboflow datasets.
+# Checkout the datasets at https://universe.roboflow.com/roboflow-100?ref=blog.roboflow.com
+#
+# `dataset_name` refers to the official name of the dataset.
+# You can find it in the url of the dataset: https://universe.roboflow.com/roboflow-100/digits-t2eg6 -> digits-t2eg6
+#
+# Example: python roboflow_deciyolo_m.py --config-name=roboflow_ppyoloe dataset_name=digits-t2eg6
+
 defaults:
   - training_hyperparams: coco2017_deciyolo_train_params
-  - dataset_params: roboflow_detection_v2_dataset_params
+  - dataset_params: roboflow_detection_dataset_params
   - checkpoint_params: default_checkpoint_params
   - arch_params: deciyolo_m_arch_params
   - _self_
@@ -20,7 +27,6 @@ dataset_params:
     batch_size: 16
 
 num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
-
 
 architecture: deciyolo_m
 arch_params:
@@ -58,7 +64,6 @@ training_hyperparams:
 
 
   phase_callbacks: []
-
   loss:
     ppyoloe_loss:
       num_classes: ${num_classes}
@@ -91,7 +96,7 @@ training_hyperparams:
 
 multi_gpu: Off
 num_gpus: 1
-experiment_suffix: "v2"
+experiment_suffix: ""
 experiment_name: ${architecture}_roboflow_${dataset_name}_${experiment_suffix}
 ckpt_root_dir:
 
