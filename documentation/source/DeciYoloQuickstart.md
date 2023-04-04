@@ -23,6 +23,11 @@ net = models.get(Models.DECIYOLO_S, pretrained_weights="coco")
 #TODO: ADD ONCE PREDICT IS IMPLEMENTED
 ```
 
+## Export to ONNX
+```python
+models.convert_to_onnx(model=net, input_shape=(3,640,640), out_path="deci_yolo_s.onnx")
+```
+
 
 ## Train on RF100
 
