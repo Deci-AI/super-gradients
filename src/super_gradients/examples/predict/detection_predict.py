@@ -9,5 +9,5 @@ IMAGES = [
     "https://datasets-server.huggingface.co/assets/Chris1/cityscapes/--/Chris1--cityscapes/train/28/image/image.jpg",
     "https://media.timeout.com/images/105921973/750/422/image.jpg",
 ]
-prediction = model.predict(IMAGES, iou=0.65, conf=0.6)
+prediction = model.predict(IMAGES)
 prediction.show()

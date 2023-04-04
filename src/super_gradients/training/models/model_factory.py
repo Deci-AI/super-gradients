@@ -136,8 +136,9 @@ def instantiate_model(
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
 
-            class_names, image_processor = get_pretrained_processing_params(model_name, pretrained_weights)
-            net.set_dataset_processing_params(class_names, image_processor)
+            # TODO: remove once we load it from the checkpoint
+            processing_params = get_pretrained_processing_params(model_name, pretrained_weights)
+            net.set_dataset_processing_params(**processing_params)
 
     _add_model_name_attribute(net, model_name)
 

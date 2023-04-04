@@ -1,4 +1,4 @@
-from typing import Tuple, List, Union, Optional
+from typing import Tuple, List, Union
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -247,20 +247,10 @@ class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
         return predictions
 
 
-def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -> Tuple[Optional[List[str]], Optional[Processing]]:
-    """Get the processing parameters for a pretrained model."""
-    if "yolox" in model_name and pretrained_weights == "coco":
-        return default_yolox_coco_processing_params()
-    elif "ppyoloe" in model_name and pretrained_weights == "coco":
-        return default_ppyoloe_coco_processing_params()
-    elif "deciyolo" in model_name and pretrained_weights == "coco":
-        return default_deciyolo_coco_processing_params()
-    else:
-        return None, None
-
-
-def default_yolox_coco_processing_params() -> Tuple[List[str], Processing]:
-    """Processing parameters commonly used for training YoloX on COCO dataset."""
+def default_yolox_coco_processing_params() -> dict:
+    """Processing parameters commonly used for training YoloX on COCO dataset.
+    TODO: remove once we load it from the checkpoint
+    """
     from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 
     image_processor = ComposeProcessing(
@@ -270,12 +260,20 @@ def default_yolox_coco_processing_params() -> Tuple[List[str], Processing]:
             ImagePermute((2, 0, 1)),
         ]
     )
-    class_names = COCO_DETECTION_CLASSES_LIST
-    return class_names, image_processor
+
+    params = dict(
+        class_names=COCO_DETECTION_CLASSES_LIST,
+        image_processor=image_processor,
+        iou=0.65,
+        conf=0.1,
+    )
+    return params
 
 
-def default_ppyoloe_coco_processing_params() -> Tuple[List[str], Processing]:
-    """Processing parameters commonly used for training PPYoloE on COCO dataset."""
+def default_ppyoloe_coco_processing_params() -> dict:
+    """Processing parameters commonly used for training PPYoloE on COCO dataset.
+    TODO: remove once we load it from the checkpoint
+    """
     from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 
     image_processor = ComposeProcessing(
@@ -285,12 +283,20 @@ def default_ppyoloe_coco_processing_params() -> Tuple[List[str], Processing]:
             ImagePermute(permutation=(2, 0, 1)),
         ]
     )
-    class_names = COCO_DETECTION_CLASSES_LIST
-    return class_names, image_processor
+
+    params = dict(
+        class_names=COCO_DETECTION_CLASSES_LIST,
+        image_processor=image_processor,
+        iou=0.65,
+        conf=0.5,
+    )
+    return params
 
 
-def default_deciyolo_coco_processing_params() -> Tuple[List[str], Processing]:
-    """Processing parameters commonly used for training DeciYolo on COCO dataset."""
+def default_deciyolo_coco_processing_params() -> dict:
+    """Processing parameters commonly used for training DeciYolo on COCO dataset.
+    TODO: remove once we load it from the checkpoint
+    """
     from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 
     image_processor = ComposeProcessing(
@@ -302,5 +308,25 @@ def default_deciyolo_coco_processing_params() -> Tuple[List[str], Processing]:
             ImagePermute(permutation=(2, 0, 1)),
         ]
     )
-    class_names = COCO_DETECTION_CLASSES_LIST
-    return class_names, image_processor
+
+    params = dict(
+        class_names=COCO_DETECTION_CLASSES_LIST,
+        image_processor=image_processor,
+        iou=0.65,
+        conf=0.5,
+    )
+    return params
+
+
+def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -> dict:
+    """Get the processing parameters for a pretrained model.
+    TODO: remove once we load it from the checkpoint
+    """
+    if pretrained_weights == "coco":
+        if "yolox" in model_name:
+            return default_yolox_coco_processing_params()
+        elif "ppyoloe" in model_name:
+            return default_ppyoloe_coco_processing_params()
+        elif "deciyolo" in model_name:
+            return default_deciyolo_coco_processing_params()
+    return dict()
