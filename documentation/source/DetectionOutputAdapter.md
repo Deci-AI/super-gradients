@@ -28,9 +28,11 @@ Let's imagine model emits predictions in the following format:
 
 ```python
 # [N, 10] (cx, cy, w, h, class, confidence, attributes..)
-[
-    [cx, cy, w, h, class, confidence, attribute a, attribute b, attribute c, attribute d],
-    [cx, cy, w, h, class, confidence, attribute a, attribute b, attribute c, attribute d],
+example_input = [
+    #      cx          cy        w          h     class, confidence,   attribute a, attribute b, attribute c, attribute d
+    [0.465625,  0.5625,    0.13125,   0.125,          0,      0.968,         0.350,       0.643,       0.640,       0.453],
+    [0.103125,  0.1671875, 0.10625,   0.134375,       1,      0.897,         0.765,       0.654,       0.324,       0.816],
+    [0.078125,  0.078125,  0.15625,   0.15625,        2.,     0.423,         0.792,       0.203,       0.653,       0.777],
     ...
 ]
 ```
@@ -55,8 +57,10 @@ For sake of demonstration, let's assume that we want to convert the output to th
 ```python
 # [N, 10] (class, attributes, x1, y1, x2, y2)
 [
-    [class, attribute a, attribute b, attribute c, attribute d, x1, y1, x2, y2],
-    [class, attribute a, attribute b, attribute c, attribute d, x1, y1, x2, y2],
+    # class, attribute a, attribute b, attribute c, attribute d,     x1,   y1,   x2,    y2
+    [     0,       0.350,       0.643,       0.640,       0.453,    256,  320,  340,   400],
+    [     1,       0.765,       0.654,       0.324,       0.816,     32,   64,  100,   150],
+    [     2,       0.792,       0.203,       0.653,       0.777,      0,    0,  100,   100],
     ...
 ]
 ```
@@ -92,6 +96,22 @@ model = nn.Sequential(
     output_adapter
 )
 ```
+
+To test how the output adapter transforms dummy input one can easily run it alone:
+
+```python
+output = output_adapter(torch.from_numpy(example_input)).numpy()
+print(output)
+
+# Prints:
+[
+    # class,   attribute a, attribute b, attribute c, attribute d,     x1,   y1,   x2,    y2
+    [     0,         0.350,       0.643,       0.640,       0.453,    256,  320,  340,   400], 
+    [     1,         0.765,       0.654,       0.324,       0.816,     32,   64,  100,   150], 
+    [     2,         0.792,       0.203,       0.653,       0.777,      0,    0,  100,   100]
+]
+```
+
 
 ## Not supported features
 

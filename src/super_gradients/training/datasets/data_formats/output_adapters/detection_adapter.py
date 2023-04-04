@@ -133,14 +133,16 @@ class DetectionOutputAdapter(nn.Module):
                             If you're not using normalized coordinates you can set this to None
         """
         super().__init__()
-        self.rearrange_outputs, rearranged_format = self.get_rearrange_outputs_module(input_format, output_format)
 
         self.format_conversion: nn.Module = self.get_format_conversion_module(
-            location=rearranged_format.locations[rearranged_format.bboxes_format.name],
-            input_bbox_format=rearranged_format.bboxes_format.format,
+            location=input_format.locations[input_format.bboxes_format.name],
+            input_bbox_format=input_format.bboxes_format.format,
             output_bbox_format=output_format.bboxes_format.format,
             image_shape=image_shape,
         )
+
+        self.rearrange_outputs, rearranged_format = self.get_rearrange_outputs_module(input_format, output_format)
+
         self.input_format = input_format
         self.output_format = output_format
         self.input_length = input_format.num_channels
@@ -157,8 +159,8 @@ class DetectionOutputAdapter(nn.Module):
                 f"equal to {self.input_length} as defined by input format."
             )
 
+        predictions = self.format_conversion(predictions.clone())
         predictions = self.rearrange_outputs(predictions)
-        predictions = self.format_conversion(predictions)
         return predictions
 
     @classmethod
