@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 from super_gradients.training.transforms.utils import (
     _rescale_image,
@@ -251,7 +252,6 @@ def default_yolox_coco_processing_params() -> dict:
     """Processing parameters commonly used for training YoloX on COCO dataset.
     TODO: remove once we load it from the checkpoint
     """
-    from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 
     image_processor = ComposeProcessing(
         [
@@ -274,7 +274,6 @@ def default_ppyoloe_coco_processing_params() -> dict:
     """Processing parameters commonly used for training PPYoloE on COCO dataset.
     TODO: remove once we load it from the checkpoint
     """
-    from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 
     image_processor = ComposeProcessing(
         [
@@ -297,7 +296,6 @@ def default_deciyolo_coco_processing_params() -> dict:
     """Processing parameters commonly used for training DeciYolo on COCO dataset.
     TODO: remove once we load it from the checkpoint
     """
-    from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 
     image_processor = ComposeProcessing(
         [
