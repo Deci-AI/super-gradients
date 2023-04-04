@@ -429,8 +429,8 @@ class YoloBase(SgModule):
         self,
         class_names: Optional[List[str]] = None,
         image_processor: Optional[Processing] = None,
-        iou: Optional[List[str]] = None,
-        conf: Optional[List[str]] = None,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
     ) -> None:
         """Set the processing parameters for the dataset.
 
@@ -444,7 +444,7 @@ class YoloBase(SgModule):
         self._default_nms_iou = iou or self._default_iou
         self._default_nms_conf = conf or self._default_conf
 
-    def predict(self, images, iou: Optional[List[str]] = None, conf: Optional[List[str]] = None) -> DetectionResults:
+    def predict(self, images, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
         """Predict an image or a batch of images.
 
         :param images:  Images to predict.
