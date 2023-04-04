@@ -1,4 +1,4 @@
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Optional
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -202,3 +202,43 @@ class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
     def postprocess_predictions(self, predictions: DetectionPrediction, metadata: RescaleMetadata) -> DetectionPrediction:
         predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
+
+
+def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -> Tuple[Optional[List[str]], Optional[Processing]]:
+    """Get the processing parameters for a pretrained model."""
+    if "yolox" in model_name and pretrained_weights == "coco":
+        return default_yolox_coco_processing_params()
+    elif "ppyoloe" in model_name and pretrained_weights == "coco":
+        return default_ppyoloe_coco_processing_params()
+    else:
+        return None, None
+
+
+def default_yolox_coco_processing_params() -> Tuple[List[str], Processing]:
+    """Processing parameters commonly used for training YoloX on COCO dataset."""
+    from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+
+    image_processor = ComposeProcessing(
+        [
+            DetectionLongestMaxSizeRescale((640, 640)),
+            DetectionBottomRightPadding((640, 640), 114),
+            ImagePermute((2, 0, 1)),
+        ]
+    )
+    class_names = COCO_DETECTION_CLASSES_LIST
+    return class_names, image_processor
+
+
+def default_ppyoloe_coco_processing_params() -> Tuple[List[str], Processing]:
+    """Processing parameters commonly used for training PPYoloE on COCO dataset."""
+    from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+
+    image_processor = ComposeProcessing(
+        [
+            DetectionRescale(output_shape=(640, 640)),
+            NormalizeImage(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375]),
+            ImagePermute(permutation=(2, 0, 1)),
+        ]
+    )
+    class_names = COCO_DETECTION_CLASSES_LIST
+    return class_names, image_processor
