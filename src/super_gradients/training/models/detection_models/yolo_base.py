@@ -418,25 +418,46 @@ class YoloBase(SgModule):
 
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
+        self._default_nms_iou: Optional[float] = None
+        self._default_nms_conf: Optional[float] = None
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return YoloPostPredictionCallback(conf=conf, iou=iou)
 
-    def set_dataset_processing_params(self, class_names: Optional[List[str]], image_processor: Optional[Processing]) -> None:
+    def set_dataset_processing_params(
+        self,
+        class_names: Optional[List[str]] = None,
+        image_processor: Optional[Processing] = None,
+        iou: Optional[List[str]] = None,
+        conf: Optional[List[str]] = None,
+    ) -> None:
         """Set the processing parameters for the dataset.
 
         :param class_names:     (Optional) Names of the dataset the model was trained on.
         :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
+        :param iou:             (Optional) IoU threshold for the nms algorithm
+        :param conf:            (Optional) Below the confidence threshold, prediction are discarded
         """
         self._class_names = class_names or self._class_names
         self._image_processor = image_processor or self._image_processor
+        self._default_nms_iou = iou or self._default_iou
+        self._default_nms_conf = conf or self._default_conf
 
-    def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
-        if self._class_names is None or self._image_processor is None:
+    def predict(self, images, iou: Optional[List[str]] = None, conf: Optional[List[str]] = None) -> DetectionResults:
+        """Predict an image or a batch of images.
+
+        :param images:  Images to predict.
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        """
+        if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
                 "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
             )
+
+        iou = iou or self._default_nms_iou
+        conf = conf or self._default_nms_conf
 
         pipeline = DetectionPipeline(
             model=self,
