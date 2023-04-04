@@ -2,7 +2,8 @@
 <div>
 <img src="images/deciyolo_frontier.png" width="750">
 </div>
-Deci's research team developed a new deep learning architecture that competes with YOLOv8 using their efficient AutoNAC algorithm. They incorporated quantization-aware RepVGG blocks into the model architecture to ensure compatibility with Post-Training Quantization, making it more flexible and usable for different hardware configurations.
+We developed a new deep learning architecture that competes with YOLOv8 using their efficient AutoNAC algorithm. 
+We incorporated quantization-aware RepVGG blocks into the model architecture to ensure compatibility with Post-Training Quantization, making it more flexible and usable for different hardware configurations.
 
 
 In this tutorial, we will go over the basic functionalities of DeciYolo very briefly.
