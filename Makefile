@@ -23,7 +23,7 @@
 #11           asbestos      microscopic   0.596   0.611   0.631     0.602092     0.606690            0.028908
 #94     vehicles-q0x2v       real world   0.454   0.464   0.472     0.444800     0.460311            0.027200
 
-cells-uyemf:
+batch1:
 	CUDA_VISIBLE_DEVICES=0 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=coins-1apki &
 	CUDA_VISIBLE_DEVICES=1 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=aerial-pool &
 	CUDA_VISIBLE_DEVICES=2 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=aerial-cows &
@@ -33,6 +33,7 @@ cells-uyemf:
 	CUDA_VISIBLE_DEVICES=6 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=radio-signal &
 	CUDA_VISIBLE_DEVICES=7 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=underwater-objects-5v7p8 &
 
+batch2:
 	CUDA_VISIBLE_DEVICES=0 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=parasites-1s07h &
 	CUDA_VISIBLE_DEVICES=1 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=liver-disease &
 	CUDA_VISIBLE_DEVICES=2 python -m super_gradients.train_from_recipe --config-name=roboflow_deciyolo_s dataset_name=vehicles-q0x2v &
