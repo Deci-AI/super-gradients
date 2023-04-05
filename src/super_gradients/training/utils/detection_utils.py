@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional, Dict
 
 import cv2
-import matplotlib.pyplot as plt
+
 import numpy as np
 import torch
 import torchvision
@@ -16,6 +16,8 @@ from torch import nn
 from torch.utils.data.dataloader import default_collate
 
 from super_gradients.common.registry.registry import register_collate_function
+from super_gradients.training.utils.visualization.detection import draw_bbox
+from super_gradients.training.utils.visualization.utils import generate_color_mapping
 
 
 class DetectionTargetsFormat(Enum):
@@ -364,9 +366,8 @@ class DetectionVisualization:
         """
         Generate a unique BGR color for each class
         """
-        cmap = plt.cm.get_cmap("gist_rainbow", num_classes)
-        colors = [cmap(i, bytes=True)[:3][::-1] for i in range(num_classes)]
-        return [tuple(int(v) for v in c) for c in colors]
+
+        return generate_color_mapping(num_classes=num_classes)
 
     @staticmethod
     def _draw_box_title(
@@ -385,20 +386,12 @@ class DetectionVisualization:
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
-        # Draw the box
-        image_np = cv2.rectangle(image_np, (x1, y1), (x2, y2), color, box_thickness)
-
-        # Caption with class name and confidence if given
-        text_color = (255, 255, 255)  # white
-
         if is_target:
             title = f"[GT] {class_name}"
         if not is_target:
             title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
 
-        image_np = cv2.rectangle(image_np, (x1, y1 - 15), (x1 + len(title) * 10, y1), color, cv2.FILLED)
-        image_np = cv2.putText(image_np, title, (x1, y1 - box_thickness), 2, 0.5, text_color, 1, lineType=cv2.LINE_AA)
-
+        draw_bbox(image=image_np, title=title, x1=x1, y1=y1, x2=x2, y2=y2, box_thickness=box_thickness, color=color)
         return image_np
 
     @staticmethod
@@ -522,6 +515,28 @@ class DetectionVisualization:
                 out_images.append(res_image)
 
         return out_images
+
+
+def best_text_color(background_color):
+    """
+    Determines the best text color (either black or white) for a given background color.
+
+    Args:
+        background_color (tuple[int, int, int]): A tuple representing the RGB values of the background color.
+
+    Returns:
+        tuple[int, int, int]: A tuple representing the RGB values of the best text color for the given background color.
+    """
+    # Calculate the luminance of the background color using the formula for relative luminance of sRGB colors.
+    # The formula is given as L = 0.2126 * R + 0.7152 * G + 0.0722 * B, where R, G, and B are the red, green,
+    # and blue components of the color, respectively.
+    luminance = (0.2126 * background_color[0] + 0.7152 * background_color[1] + 0.0722 * background_color[2]) / 255
+
+    # If the luminance is greater than 0.5, use black text; otherwise, use white text.
+    if luminance > 0.5:
+        return (0, 0, 0)  # Black
+    else:
+        return (255, 255, 255)  # White
 
 
 class Anchors(nn.Module):
