@@ -44,7 +44,7 @@ backbone:
     out_layers: [stage1, stage2, stage3, context_module]
 
 neck:
-  PANNeckWithC2:
+  DeciYOLOPANNeckWithC2:
 
     neck1:
       DeciYOLOUpStage:

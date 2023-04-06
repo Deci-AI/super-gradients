@@ -23,6 +23,7 @@ __all__ = [
     "SSDInvertedResidualNeck",
     "SSDBottleneckNeck",
     "SSDHead",
+    "BaseDetectionModule",
 ]
 
 
