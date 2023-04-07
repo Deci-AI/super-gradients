@@ -16,12 +16,7 @@ class ReplaceHeadUnitTest(unittest.TestCase):
 
     def test_ppyolo_replace_head(self):
         input = torch.randn(1, 3, 640, 640).to(self.device)
-        for model in [
-            # Models.PP_YOLOE_S,
-            # Models.PP_YOLOE_M,
-            Models.PP_YOLOE_L,
-            # Models.PP_YOLOE_X
-        ]:
+        for model in [Models.PP_YOLOE_S, Models.PP_YOLOE_M, Models.PP_YOLOE_L, Models.PP_YOLOE_X]:
             model = models.get(model, pretrained_weights="coco").to(self.device).eval()
             model.replace_head(new_num_classes=100)
             (_, pred_scores), _ = model.forward(input)
