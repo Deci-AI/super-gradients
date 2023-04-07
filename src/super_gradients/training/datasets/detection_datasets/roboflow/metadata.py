@@ -148,7 +148,7 @@ _NUM_CLASSES_FOUND = {
     "underwater-objects-5v7p8": 5,
     "coral-lwptl": 14,
     "tweeter-posts": 2,
-    "tweeter-profile": 0,
+    "tweeter-profile": 1,
     "document-parts": 2,
     "activity-diagrams-qdobr": 19,
     "signatures-xc8up": 1,
