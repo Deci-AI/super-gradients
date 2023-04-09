@@ -432,7 +432,7 @@ class YoloBase(SgModule):
         self._class_names = class_names or self._class_names
         self._image_processor = image_processor or self._image_processor
 
-    def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
+    def _get_pipeline(self, iou: float, conf: float) -> DetectionPipeline:
         if self._class_names is None or self._image_processor is None:
             raise RuntimeError(
                 "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
@@ -444,10 +444,19 @@ class YoloBase(SgModule):
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
         )
-        return pipeline(images)
+        return pipeline
 
-    def predict_video(self, video_path: str, iou: float = 0.65, conf: float = 0.01, batch_size: int = 64):
-        raise NotImplementedError
+    def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        return pipeline.predict_images(images)  # type: ignore
+
+    def predict_image_folder(self, image_folder_path: str, output_folder_path: str, iou: float = 0.65, conf: float = 0.01, batch_size: Optional[int] = 32):
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline.predict_image_folder(image_folder_path=image_folder_path, output_folder_path=output_folder_path, batch_size=batch_size)
+
+    def predict_video(self, video_path: str, iou: float = 0.65, conf: float = 0.01, output_video_path: str = None, batch_size: Optional[int] = 32):
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size)
 
     def forward(self, x):
         out = self._backbone(x)

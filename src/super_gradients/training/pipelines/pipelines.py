@@ -9,7 +9,7 @@ import torch
 
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.videos import load_video, save_video
-from super_gradients.training.utils.media.load_image import load_images, ImageType, generate_loaded_image, list_images_in_folder, save_image
+from super_gradients.training.utils.media.load_image import load_images, ImageSource, generate_loaded_image, list_images_in_folder, save_image
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.results import Results, DetectionResults, Result, DetectionResult
@@ -53,52 +53,54 @@ class Pipeline(ABC):
             image_processor = ComposeProcessing(image_processor)
         self.image_processor = image_processor
 
-    def __call__(self, images: Union[ImageType, List[ImageType]]) -> Results:
-        """Perform inference on single or multiple images.
-
-        :param images:  Single image or a list of images of supported types.
-        :return:        Results object containing the results of the prediction and the image.
-        """
-        return self.predict_images(images)
-
-    def predict_images(self, images: Union[ImageType, List[ImageType]], batch_size: Optional[int] = None) -> Results:
+    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = None) -> Results:
         loaded_images_generator = load_images(images)
         result_generator = self._generate_prediction_result(images=loaded_images_generator, batch_size=batch_size)
         return self._combine_results(results=list(result_generator))
 
-    def predict_video(self, video_path: str, output_path: str = None, batch_size: Optional[int] = 32):
+    def predict_video(self, video_path: str, output_video_path: str = None, batch_size: Optional[int] = 32):
         """Perform inference on a video file, by processing the frames in batches.
 
-        :param video_path:  Path to the video file.
-        :param output_path: Path to save the resulting video. If not specified, the output video will be saved in the same directory as the input video.
-        :param batch_size:  The size of each batch.
+        :param video_path:          Path to the video file.
+        :param output_video_path:   Path to save the resulting video. If not specified, the output video will be saved in the same directory as the input video.
+        :param batch_size:          The size of each batch.
         """
 
         video_frames, fps = load_video(file_path=video_path)
 
         result_generator = self._generate_prediction_result(images=video_frames, batch_size=batch_size)
-        frames_with_pred = [frame_result.draw() for frame_result in tqdm(result_generator, total=len(video_frames))]
+        frames_with_pred = [frame_result.draw() for frame_result in tqdm(result_generator, total=len(video_frames), desc="Predicting video frames")]
 
-        if output_path is None:
+        if output_video_path is None:
             directory, filename = os.path.split(video_path)
             name, ext = os.path.splitext(filename)
-            output_path = os.path.join(directory, f"{name}_{self.model.__class__.__name__}_{ext}")
+            output_video_path = os.path.join(directory, f"{name}_{self.model.__class__.__name__}_{ext}")
 
-        save_video(output_path=output_path, frames=frames_with_pred, fps=fps)
-        logger.info(f"Successfully saved video with predictions to {output_path}")
+        save_video(output_path=output_video_path, frames=frames_with_pred, fps=fps)
+        logger.info(f"Successfully saved video with predictions to {output_video_path}")
 
-    def predict_folder(self, input_folder_path: str, output_folder_path: str, batch_size: Optional[int] = 32):
-        images_paths = list_images_in_folder(input_folder_path)
+    def predict_image_folder(self, image_folder_path: str, output_folder_path: str, batch_size: Optional[int] = 32):
+        images_paths = list_images_in_folder(image_folder_path)
         images_generator = generate_loaded_image(images_paths)
         result_generator = self._generate_prediction_result(images=images_generator, batch_size=batch_size)
 
-        for image_path, result in tqdm(zip(images_paths, result_generator), total=len(images_paths)):
+        os.makedirs(output_folder_path, exist_ok=True)
+        for image_path, result in tqdm(zip(images_paths, result_generator), total=len(images_paths), desc="Predicting images"):
             output_path = os.path.join(output_folder_path, os.path.basename(image_path))
             save_image(image=result.draw(), path=output_path)
 
-        logger.info(f"Successfully processed images from {input_folder_path}, saved with predictions to {output_folder_path}")
+        logger.info(f"Successfully processed images from {image_folder_path}, saved with predictions to {output_folder_path}")
 
     def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[Result]:
+        """Run the pipeline on the images as single batch or through multiple batches.
+
+        NOTE: A core motivation to have this function as a generator is that that way it can be used in a lazy way,
+              i.e. without having to load all the images into memory.
+
+        :param images:      Iterable of numpy arrays representing images.
+        :param batch_size:  The size of each batch.
+        :return:            Iterable of Results object, each containing the results of the prediction and the image.
+        """
         if batch_size is None:
             yield from self._generate_prediction_result_single_batch(images)
         else:
@@ -107,13 +109,13 @@ class Pipeline(ABC):
 
     def _generate_prediction_result_single_batch(self, images: Iterable[np.ndarray]) -> Iterable[Result]:
         """Run the pipeline and return (image, predictions). The pipeline is made of 4 steps:
-        1. Load images - Loading the images into a list of numpy arrays.
-        2. Preprocess - Encode the image in the shape/format expected by the model
-        3. Predict - Run the model on the preprocessed image
-        4. Postprocess - Decode the output of the model so that the predictions are in the shape/format of original image.
+            1. Load images - Loading the images into a list of numpy arrays.
+            2. Preprocess - Encode the image in the shape/format expected by the model
+            3. Predict - Run the model on the preprocessed image
+            4. Postprocess - Decode the output of the model so that the predictions are in the shape/format of original image.
 
-        :param images:  List of numpy arrays representing images.
-        :return:        Results object containing the results of the prediction and the image.
+        :param images:  Iterable of numpy arrays representing images.
+        :return:        Iterable of Results object, each containing the results of the prediction and the image.
         """
         self.model = self.model.to(self.device)  # Make sure the model is on the correct device, as it might have been moved after init
 

@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 
-__all__ = ["load_video", "save_video"]
+__all__ = ["load_video", "save_video", "is_video"]
 
 
 def load_video(file_path: str, max_frames: Optional[int] = None) -> Tuple[List[np.ndarray], int]:
@@ -97,3 +97,17 @@ def _validate_frames(frames: List[np.ndarray]) -> Tuple[float, float]:
         raise RuntimeError("Your frames must include 3 channels.")
 
     return max_height, max_width
+
+
+def is_video(file_path: str) -> bool:
+    """Check if a file is a video file.
+    :param file_path:   Path to the video file.
+    :return:            True if the file is a video file, False otherwise.
+    """
+    try:
+        cap = cv2.VideoCapture(file_path)
+        if cap.isOpened():
+            cap.release()
+            return True
+    except Exception:
+        return False

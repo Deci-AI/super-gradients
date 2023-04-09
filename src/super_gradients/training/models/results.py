@@ -52,6 +52,12 @@ class Results(ABC):
         """Display the predictions on the image."""
         pass
 
+    def __iter__(self):
+        return iter(self.results)
+
+    def __getitem__(self, index) -> Result:
+        return self.results[index]
+
 
 @dataclass
 class DetectionResult(Result):

@@ -43,50 +43,31 @@ class PPYoloE(SgModule):
         self._class_names = class_names or self._class_names
         self._image_processor = image_processor or self._image_processor
 
+    def _get_pipeline(self, iou: float, conf: float) -> DetectionPipeline:
+        if self._class_names is None or self._image_processor is None:
+            raise RuntimeError(
+                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
+            )
+
+        pipeline = DetectionPipeline(
+            model=self,
+            image_processor=self._image_processor,
+            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            class_names=self._class_names,
+        )
+        return pipeline
+
     def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        return pipeline.predict_images(images)  # type: ignore
 
-        if self._class_names is None or self._image_processor is None:
-            raise RuntimeError(
-                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
-            )
+    def predict_image_folder(self, image_folder_path: str, output_folder_path: str, iou: float = 0.65, conf: float = 0.01, batch_size: Optional[int] = 32):
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline.predict_image_folder(image_folder_path=image_folder_path, output_folder_path=output_folder_path, batch_size=batch_size)
 
-        pipeline = DetectionPipeline(
-            model=self,
-            image_processor=self._image_processor,
-            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
-            class_names=self._class_names,
-        )
-        return pipeline(images)
-
-    # def predict_folder(self, folder_path: str, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
-    #     from super_gradients.training.utils.media.load_image import list_images_in_folder
-    #
-    #     images = list_images_in_folder(folder_path)
-    #     images = images[:10000]
-    #
-    #     pipeline = DetectionPipeline(
-    #         model=self,
-    #         image_processor=self._image_processor,
-    #         post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
-    #         class_names=self._class_names,
-    #     )
-    #
-    #     predict_iterator = pipeline.batch_predict(images=images)
-
-    def predict_video(self, video_path, iou: float = 0.65, conf: float = 0.01, output_path: str = None, batch_size: Optional[int] = 32):
-
-        if self._class_names is None or self._image_processor is None:
-            raise RuntimeError(
-                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
-            )
-
-        pipeline = DetectionPipeline(
-            model=self,
-            image_processor=self._image_processor,
-            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
-            class_names=self._class_names,
-        )
-        pipeline.predict_video(video_path=video_path, output_path=output_path, batch_size=batch_size)
+    def predict_video(self, video_path: str, iou: float = 0.65, conf: float = 0.01, output_video_path: str = None, batch_size: Optional[int] = 32):
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size)
 
     def forward(self, x: Tensor):
         features = self.backbone(x)

@@ -11,10 +11,10 @@ from urllib.parse import urlparse
 
 from super_gradients.training.utils.utils import generate_batch
 
-ImageType = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
+ImageSource = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
 
 
-def load_images(images: Union[List[ImageType], ImageType]) -> List[np.ndarray]:
+def load_images(images: Union[List[ImageSource], ImageSource]) -> List[np.ndarray]:
     """Load a single image or a list of images and return them as a list of numpy arrays.
 
     Supported image types include:
@@ -29,7 +29,7 @@ def load_images(images: Union[List[ImageType], ImageType]) -> List[np.ndarray]:
     return [image for image in generate_loaded_image(images=images)]
 
 
-def generate_loaded_image(images: Union[List[ImageType], ImageType]) -> Iterable[np.ndarray]:
+def generate_loaded_image(images: Union[List[ImageSource], ImageSource]) -> Iterable[np.ndarray]:
     if isinstance(images, list):
         for image in images:
             yield load_image(image=image)
@@ -37,7 +37,7 @@ def generate_loaded_image(images: Union[List[ImageType], ImageType]) -> Iterable
         yield load_image(image=images)
 
 
-def generate_loaded_image_batch(images: Union[List[ImageType], ImageType], batch_size: int) -> List[np.ndarray]:
+def generate_loaded_image_batch(images: Union[List[ImageSource], ImageSource], batch_size: int) -> List[np.ndarray]:
     images_generator = generate_loaded_image(images=images)
     yield from generate_batch(iterable=images_generator, batch_size=batch_size)
 
@@ -48,26 +48,11 @@ def list_images_in_folder(directory: str) -> List[str]:
     :return: A list of image file names.
     """
     files = os.listdir(directory)
-    images_paths = [f for f in files if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif"))]
+    images_paths = [os.path.join(directory, f) for f in files if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif"))]
     return images_paths
 
 
-# def load_directory_images_iterator(directory: str, limit: Optional[int] = None) -> Iterator[Image.Image]:
-#     """Return an iterator that loads each image one by one with tqdm.
-#
-#     :param directory:   The path to the directory containing the images.
-#     :param limit:       The maximum number of images to load
-#     :return: An iterator object that yields loaded images.
-#     """
-#     images_paths = list_images_in_folder(directory)
-#     if limit is not None:
-#         images_paths = images_paths[:limit]
-#
-#     for image_path in images_paths:
-#         yield load_image(image=image_path)
-
-
-def load_image(image: ImageType) -> np.ndarray:
+def load_image(image: ImageSource) -> np.ndarray:
     """Load a single image and return it as a numpy arrays.
 
     Supported image types include:

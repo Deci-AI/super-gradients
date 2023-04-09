@@ -9,5 +9,5 @@ IMAGES = [
     "https://s.hs-data.com/bilder/spieler/gross/128069.jpg",
     "https://datasets-server.huggingface.co/assets/Chris1/cityscapes/--/Chris1--cityscapes/train/28/image/image.jpg",
 ]
-prediction = model.predict(IMAGES, iou=0.65, conf=0.5)
+prediction = model.predict(images=IMAGES, iou=0.65, conf=0.5)
 prediction.show()
