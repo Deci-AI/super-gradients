@@ -15,6 +15,7 @@ from super_gradients.training.models.detection_models.pp_yolo_e.post_prediction_
 from super_gradients.training.models.results import DetectionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
+from super_gradients.training.utils.media.videos import visualize_video
 
 
 class PPYoloE(SgModule):
@@ -65,9 +66,13 @@ class PPYoloE(SgModule):
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         pipeline.predict_image_folder(image_folder_path=image_folder_path, output_folder_path=output_folder_path, batch_size=batch_size)
 
-    def predict_video(self, video_path: str, iou: float = 0.65, conf: float = 0.01, output_video_path: str = None, batch_size: Optional[int] = 32):
+    def predict_video(
+        self, video_path: str, iou: float = 0.65, conf: float = 0.01, output_video_path: str = None, batch_size: Optional[int] = 32, visualize: bool = False
+    ):
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size)
+        if visualize:
+            visualize_video(output_video_path)
 
     def forward(self, x: Tensor):
         features = self.backbone(x)

@@ -194,7 +194,7 @@ class DetectionPipeline(Pipeline):
 
         predictions = []
         for prediction, image in zip(post_nms_predictions, model_input):
-            prediction if prediction is not None else torch.zeros((0, 6), dtype=torch.float32)
+            prediction = prediction if prediction is not None else torch.zeros((0, 6), dtype=torch.float32)
             prediction = prediction.detach().cpu().numpy()
             predictions.append(
                 DetectionPrediction(

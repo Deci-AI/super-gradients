@@ -14,7 +14,7 @@ from super_gradients.training.utils.utils import HpmStruct, check_img_size_divis
 from super_gradients.training.models.results import DetectionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
-
+from super_gradients.training.utils.media.videos import visualize_video
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
     [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]
@@ -454,9 +454,13 @@ class YoloBase(SgModule):
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         pipeline.predict_image_folder(image_folder_path=image_folder_path, output_folder_path=output_folder_path, batch_size=batch_size)
 
-    def predict_video(self, video_path: str, iou: float = 0.65, conf: float = 0.01, output_video_path: str = None, batch_size: Optional[int] = 32):
+    def predict_video(
+        self, video_path: str, iou: float = 0.65, conf: float = 0.01, output_video_path: str = None, batch_size: Optional[int] = 32, visualize: bool = False
+    ):
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size)
+        if visualize:
+            visualize_video(output_video_path)
 
     def forward(self, x):
         out = self._backbone(x)

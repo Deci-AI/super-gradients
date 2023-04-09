@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 
-__all__ = ["load_video", "save_video", "is_video"]
+__all__ = ["load_video", "save_video", "is_video", "visualize_video"]
 
 
 def load_video(file_path: str, max_frames: Optional[int] = None) -> Tuple[List[np.ndarray], int]:
@@ -30,6 +30,7 @@ def _open_video(file_path: str) -> cv2.VideoCapture:
     :return:            Opened video capture object
     """
     cap = cv2.VideoCapture(file_path)
+
     if not cap.isOpened():
         raise ValueError(f"Failed to open video file: {file_path}")
     return cap
@@ -97,6 +98,28 @@ def _validate_frames(frames: List[np.ndarray]) -> Tuple[float, float]:
         raise RuntimeError("Your frames must include 3 channels.")
 
     return max_height, max_width
+
+
+def visualize_video(video_path: str):
+    cap = _open_video(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+
+        if ret:
+            # Display the frame
+            cv2.imshow("frame", frame)
+
+            # Wait for the specified number of milliseconds before displaying the next frame
+            if cv2.waitKey(int(1000 / fps)) & 0xFF == ord("q"):
+                break
+        else:
+            break
+
+    # Release the VideoCapture object and destroy the window
+    cap.release()
+    cv2.destroyAllWindows()
 
 
 def is_video(file_path: str) -> bool:
