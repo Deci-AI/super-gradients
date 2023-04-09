@@ -446,6 +446,9 @@ class YoloBase(SgModule):
         )
         return pipeline(images)
 
+    def predict_video(self, video_path: str, iou: float = 0.65, conf: float = 0.01, batch_size: int = 64):
+        raise NotImplementedError
+
     def forward(self, x):
         out = self._backbone(x)
         out = self._head(out)

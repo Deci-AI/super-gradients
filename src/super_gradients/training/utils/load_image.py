@@ -27,6 +27,11 @@ def load_images(images: Union[List[ImageType], ImageType]) -> List[np.ndarray]:
         return [load_image(image=images)]
 
 
+def load_images_generator(images: Union[List[ImageType], ImageType]) -> List[np.ndarray]:
+    for image in images:
+        yield load_image(image=image)
+
+
 def load_image(image: ImageType) -> np.ndarray:
     """Load a single image and return it as a numpy arrays.
 

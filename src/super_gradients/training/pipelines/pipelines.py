@@ -1,16 +1,22 @@
+import os
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Iterable
 from contextlib import contextmanager
 
 import numpy as np
 import torch
 
+from super_gradients.training.utils.utils import batch_generator
+from super_gradients.training.utils.videos import load_video, save_video
 from super_gradients.training.utils.load_image import load_images, ImageType
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.models.results import Results, DetectionResults
+from super_gradients.training.models.results import Results, DetectionResults, Result
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 from super_gradients.training.transforms.processing import Processing, ComposeProcessing
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @contextmanager
@@ -44,30 +50,57 @@ class Pipeline(ABC):
             image_processor = ComposeProcessing(image_processor)
         self.image_processor = image_processor
 
-    @abstractmethod
-    def __call__(self, images: Union[ImageType, List[ImageType]]) -> Union[Results, Tuple[List[np.ndarray], List[Prediction]]]:
-        """Apply the pipeline on images and return the result.
+    def __call__(self, images: Union[ImageType, List[ImageType]]) -> Results:
+        """Perform inference on single or multiple images.
 
         :param images:  Single image or a list of images of supported types.
-        :return         Results object containing the results of the prediction and the image.
+        :return:        Results object containing the results of the prediction and the image.
         """
-        return self._run(images=images)
+        np_images = load_images(images)
+        return self.predict(images=np_images)
 
-    def _run(self, images: Union[ImageType, List[ImageType]]) -> Tuple[List[np.ndarray], List[Prediction]]:
+    def batch_predict(self, images: Iterable[np.ndarray], batch_size: int) -> Iterable[Result]:
+        """Predict images batch by batch in a lazy way (i.e. loads into memory one batch at a time).
+
+        :param images:      Iterable containing numpy arrays of images.
+        :param batch_size:  Size of each batch.
+        :return:            Iterator that yields the results of the prediction one image at a time.
+        """
+        for batch_images in batch_generator(images, batch_size):
+            yield from self.predict(batch_images).results
+
+    def predict_video(self, video_path: str, output_path: str = None, batch_size: Optional[int] = 32):
+        """Perform inference on a video file, by processing the frames in batches.
+
+        :param video_path:  Path to the video file.
+        :param output_path: Path to save the resulting video. If not specified, the output video will be saved in the same directory as the input video.
+        :param batch_size:  The size of each batch.
+        """
+
+        video_frames, fps = load_video(file_path=video_path)
+
+        images_with_predictions = [result.draw() for result in self.batch_predict(video_frames, batch_size=batch_size)]
+
+        if output_path is None:
+            directory, filename = os.path.split(video_path)
+            name, ext = os.path.splitext(filename)
+            output_path = os.path.join(directory, f"{name}_{self.model.__class__.__name__}_{ext}")
+
+        save_video(output_path=output_path, frames=images_with_predictions, fps=fps)
+        logger.info(f"Successfully saved video with predictions to {output_path}")
+
+    def predict(self, images: List[np.ndarray]) -> Results:
         """Run the pipeline and return (image, predictions). The pipeline is made of 4 steps:
         1. Load images - Loading the images into a list of numpy arrays.
         2. Preprocess - Encode the image in the shape/format expected by the model
         3. Predict - Run the model on the preprocessed image
         4. Postprocess - Decode the output of the model so that the predictions are in the shape/format of original image.
 
-        :param images:  Single image or a list of images of supported types.
-        :return:
-            - List of numpy arrays representing images.
-            - List of model predictions.
+        :param images:  List of numpy arrays representing images.
+        :return:        Results object containing the results of the prediction and the image.
         """
+        ...
         self.model = self.model.to(self.device)  # Make sure the model is on the correct device, as it might have been moved after init
-
-        images = load_images(images)
 
         # Preprocess
         preprocessed_images, processing_metadatas = [], []
@@ -88,7 +121,11 @@ class Pipeline(ABC):
             prediction = self.image_processor.postprocess_predictions(predictions=prediction, metadata=processing_metadata)
             postprocessed_predictions.append(prediction)
 
-        return images, postprocessed_predictions
+        return self._instantiate_results(images=images, predictions=postprocessed_predictions)
+
+    @abstractmethod
+    def _instantiate_results(self, images: List[np.ndarray], predictions: List[Prediction]) -> Results:
+        pass
 
     @abstractmethod
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[Prediction]:
@@ -124,13 +161,7 @@ class DetectionPipeline(Pipeline):
         self.post_prediction_callback = post_prediction_callback
         self.class_names = class_names
 
-    def __call__(self, images: Union[List[ImageType], ImageType]) -> DetectionResults:
-        """Apply the pipeline on images and return the detection result.
-
-        :param images:  Single image or a list of images of supported types.
-        :return         Results object containing the results of the prediction and the image.
-        """
-        images, predictions = super().__call__(images=images)
+    def _instantiate_results(self, images: List[np.ndarray], predictions: List[DetectionPrediction]) -> Results:
         return DetectionResults(images=images, predictions=predictions, class_names=self.class_names)
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:

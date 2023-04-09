@@ -1,17 +1,18 @@
+import os
+import tarfile
+import re
 import math
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Mapping, Optional, Tuple, Union, List, Dict, Any
+from typing import Mapping, Optional, Tuple, Union, List, Dict, Any, Iterable
 from zipfile import ZipFile
-import os
 from jsonschema import validate
-import tarfile
+from itertools import islice
+
 from PIL import Image, ExifTags
-import re
 import torch
 import torch.nn as nn
-
 
 # These functions changed from torch 1.2 to torch 1.3
 
@@ -526,3 +527,14 @@ def override_default_params_without_nones(params: Dict, default_params: Mapping)
         if key not in params.keys() or params[key] is None:
             params[key] = val
     return params
+
+
+def batch_generator(iterable: Iterable, batch_size: int) -> Iterable:
+    """Batch data into tuples of length n. The last batch may be shorter."""
+    it = iter(iterable)
+    while True:
+        batch = tuple(islice(it, batch_size))
+        if batch:
+            yield batch
+        else:
+            return
