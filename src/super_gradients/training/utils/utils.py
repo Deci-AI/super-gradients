@@ -529,7 +529,7 @@ def override_default_params_without_nones(params: Dict, default_params: Mapping)
     return params
 
 
-def batch_generator(iterable: Iterable, batch_size: int) -> Iterable:
+def generate_batch(iterable: Iterable, batch_size: int) -> Iterable:
     """Batch data into tuples of length n. The last batch may be shorter."""
     it = iter(iterable)
     while True:

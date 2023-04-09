@@ -115,10 +115,7 @@ class DetectionResults(Results):
     :attr results:  List of the predictions results
     """
 
-    def __init__(self, images: List[np.ndarray], predictions: List[DetectionPrediction], class_names: List[str]):
-        self.results: List[DetectionResult] = []
-        for image, prediction in zip(images, predictions):
-            self.results.append(DetectionResult(image=image, predictions=prediction, class_names=class_names))
+    results: List[DetectionResult]
 
     def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> List[np.ndarray]:
         """Draw the predicted bboxes on the images.

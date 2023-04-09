@@ -58,6 +58,21 @@ class PPYoloE(SgModule):
         )
         return pipeline(images)
 
+    # def predict_folder(self, folder_path: str, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
+    #     from super_gradients.training.utils.media.load_image import list_images_in_folder
+    #
+    #     images = list_images_in_folder(folder_path)
+    #     images = images[:10000]
+    #
+    #     pipeline = DetectionPipeline(
+    #         model=self,
+    #         image_processor=self._image_processor,
+    #         post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+    #         class_names=self._class_names,
+    #     )
+    #
+    #     predict_iterator = pipeline.batch_predict(images=images)
+
     def predict_video(self, video_path, iou: float = 0.65, conf: float = 0.01, output_path: str = None, batch_size: Optional[int] = 32):
 
         if self._class_names is None or self._image_processor is None:

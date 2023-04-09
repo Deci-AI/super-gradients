@@ -2,19 +2,21 @@ import os
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union, Iterable
 from contextlib import contextmanager
+from tqdm import tqdm
 
 import numpy as np
 import torch
 
-from super_gradients.training.utils.utils import batch_generator
-from super_gradients.training.utils.videos import load_video, save_video
-from super_gradients.training.utils.load_image import load_images, ImageType
+from super_gradients.training.utils.utils import generate_batch
+from super_gradients.training.utils.media.videos import load_video, save_video
+from super_gradients.training.utils.media.load_image import load_images, ImageType, generate_loaded_image, list_images_in_folder, save_image
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.models.results import Results, DetectionResults, Result
+from super_gradients.training.models.results import Results, DetectionResults, Result, DetectionResult
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 from super_gradients.training.transforms.processing import Processing, ComposeProcessing
 from super_gradients.common.abstractions.abstract_logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -41,10 +43,11 @@ class Pipeline(ABC):
     :param device:          The device on which the model will be run. Defaults to "cpu". Use "cuda" for GPU support.
     """
 
-    def __init__(self, model: SgModule, image_processor: Union[Processing, List[Processing]], device: Optional[str] = "cpu"):
+    def __init__(self, model: SgModule, image_processor: Union[Processing, List[Processing]], class_names: List[str], device: Optional[str] = "cpu"):
         super().__init__()
         self.model = model.to(device)
         self.device = device
+        self.class_names = class_names
 
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
@@ -56,18 +59,12 @@ class Pipeline(ABC):
         :param images:  Single image or a list of images of supported types.
         :return:        Results object containing the results of the prediction and the image.
         """
-        np_images = load_images(images)
-        return self.predict(images=np_images)
+        return self.predict_images(images)
 
-    def batch_predict(self, images: Iterable[np.ndarray], batch_size: int) -> Iterable[Result]:
-        """Predict images batch by batch in a lazy way (i.e. loads into memory one batch at a time).
-
-        :param images:      Iterable containing numpy arrays of images.
-        :param batch_size:  Size of each batch.
-        :return:            Iterator that yields the results of the prediction one image at a time.
-        """
-        for batch_images in batch_generator(images, batch_size):
-            yield from self.predict(batch_images).results
+    def predict_images(self, images: Union[ImageType, List[ImageType]], batch_size: Optional[int] = None) -> Results:
+        loaded_images_generator = load_images(images)
+        result_generator = self._generate_prediction_result(images=loaded_images_generator, batch_size=batch_size)
+        return self._combine_results(results=list(result_generator))
 
     def predict_video(self, video_path: str, output_path: str = None, batch_size: Optional[int] = 32):
         """Perform inference on a video file, by processing the frames in batches.
@@ -79,17 +76,36 @@ class Pipeline(ABC):
 
         video_frames, fps = load_video(file_path=video_path)
 
-        images_with_predictions = [result.draw() for result in self.batch_predict(video_frames, batch_size=batch_size)]
+        result_generator = self._generate_prediction_result(images=video_frames, batch_size=batch_size)
+        frames_with_pred = [frame_result.draw() for frame_result in tqdm(result_generator, total=len(video_frames))]
 
         if output_path is None:
             directory, filename = os.path.split(video_path)
             name, ext = os.path.splitext(filename)
             output_path = os.path.join(directory, f"{name}_{self.model.__class__.__name__}_{ext}")
 
-        save_video(output_path=output_path, frames=images_with_predictions, fps=fps)
+        save_video(output_path=output_path, frames=frames_with_pred, fps=fps)
         logger.info(f"Successfully saved video with predictions to {output_path}")
 
-    def predict(self, images: List[np.ndarray]) -> Results:
+    def predict_folder(self, input_folder_path: str, output_folder_path: str, batch_size: Optional[int] = 32):
+        images_paths = list_images_in_folder(input_folder_path)
+        images_generator = generate_loaded_image(images_paths)
+        result_generator = self._generate_prediction_result(images=images_generator, batch_size=batch_size)
+
+        for image_path, result in tqdm(zip(images_paths, result_generator), total=len(images_paths)):
+            output_path = os.path.join(output_folder_path, os.path.basename(image_path))
+            save_image(image=result.draw(), path=output_path)
+
+        logger.info(f"Successfully processed images from {input_folder_path}, saved with predictions to {output_folder_path}")
+
+    def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[Result]:
+        if batch_size is None:
+            yield from self._generate_prediction_result_single_batch(images)
+        else:
+            for batch_images in generate_batch(images, batch_size):
+                yield from self._generate_prediction_result_single_batch(batch_images)
+
+    def _generate_prediction_result_single_batch(self, images: Iterable[np.ndarray]) -> Iterable[Result]:
         """Run the pipeline and return (image, predictions). The pipeline is made of 4 steps:
         1. Load images - Loading the images into a list of numpy arrays.
         2. Preprocess - Encode the image in the shape/format expected by the model
@@ -99,7 +115,6 @@ class Pipeline(ABC):
         :param images:  List of numpy arrays representing images.
         :return:        Results object containing the results of the prediction and the image.
         """
-        ...
         self.model = self.model.to(self.device)  # Make sure the model is on the correct device, as it might have been moved after init
 
         # Preprocess
@@ -117,15 +132,13 @@ class Pipeline(ABC):
 
         # Postprocess
         postprocessed_predictions = []
-        for prediction, processing_metadata in zip(predictions, processing_metadatas):
+        for image, prediction, processing_metadata in zip(images, predictions, processing_metadatas):
             prediction = self.image_processor.postprocess_predictions(predictions=prediction, metadata=processing_metadata)
             postprocessed_predictions.append(prediction)
 
-        return self._instantiate_results(images=images, predictions=postprocessed_predictions)
-
-    @abstractmethod
-    def _instantiate_results(self, images: List[np.ndarray], predictions: List[Prediction]) -> Results:
-        pass
+        # Yield results one by one
+        for image, predictions in zip(images, postprocessed_predictions):
+            yield self._instantiate_result(image=image, predictions=predictions)
 
     @abstractmethod
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[Prediction]:
@@ -135,7 +148,15 @@ class Pipeline(ABC):
         :param model_input:     Model input (i.e. images after preprocessing).
         :return:                Model predictions, without any post-processing.
         """
-        pass
+        raise NotImplementedError
+
+    @abstractmethod
+    def _instantiate_result(self, image: np.ndarray, predictions: Prediction) -> Result:
+        raise NotImplementedError
+
+    @abstractmethod
+    def _combine_results(self, results: List[Result]) -> Results:
+        raise NotImplementedError
 
 
 class DetectionPipeline(Pipeline):
@@ -157,12 +178,8 @@ class DetectionPipeline(Pipeline):
         device: Optional[str] = "cpu",
         image_processor: Optional[Processing] = None,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor)
+        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names)
         self.post_prediction_callback = post_prediction_callback
-        self.class_names = class_names
-
-    def _instantiate_results(self, images: List[np.ndarray], predictions: List[DetectionPrediction]) -> Results:
-        return DetectionResults(images=images, predictions=predictions, class_names=self.class_names)
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
         """Decode the model output, by applying post prediction callback. This includes NMS.
@@ -188,3 +205,9 @@ class DetectionPipeline(Pipeline):
             )
 
         return predictions
+
+    def _instantiate_result(self, image: np.ndarray, predictions: DetectionPrediction) -> DetectionResult:
+        return DetectionResult(image=image, predictions=predictions, class_names=self.class_names)
+
+    def _combine_results(self, results: List[DetectionResult]) -> DetectionResults:
+        return DetectionResults(results)
