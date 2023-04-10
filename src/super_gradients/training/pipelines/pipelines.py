@@ -10,6 +10,7 @@ import torch
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.videos import load_video, save_video, visualize_video
 from super_gradients.training.utils.media.load_image import load_images, ImageSource, generate_loaded_image, list_images_in_folder, save_image
+from super_gradients.training.utils.media.stream import Streaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.results import Results, DetectionResults, Result, DetectionResult
@@ -64,7 +65,7 @@ class Pipeline(ABC):
         result_generator = self._generate_prediction_result(images=loaded_images_generator, batch_size=batch_size)
         return self._combine_results(results=list(result_generator))
 
-    def predict_video(self, video_path: str, output_video_path: str = None, batch_size: Optional[int] = 32, visualize: Optional[bool] = False):
+    def predict_video(self, video_path: str, output_video_path: str = None, batch_size: Optional[int] = 32, visualize: Optional[bool] = False) -> None:
         """Perform inference on a video file, by processing the frames in batches.
 
         :param video_path:          Path to the video file.
@@ -89,7 +90,7 @@ class Pipeline(ABC):
         if visualize:
             visualize_video(output_video_path)
 
-    def predict_image_folder(self, image_folder_path: str, output_folder_path: str, batch_size: Optional[int] = 32):
+    def predict_image_folder(self, image_folder_path: str, output_folder_path: str, batch_size: Optional[int] = 32) -> None:
         """Predict on a folder of images.
 
         :param image_folder_path:   Path of the folder including the images to process.
@@ -107,14 +108,12 @@ class Pipeline(ABC):
 
         logger.info(f"Successfully processed images from {image_folder_path}, saved with predictions to {output_folder_path}")
 
-    def predict_streaming(self):
-        from super_gradients.training.utils.media.stream import Streaming
-
+    def predict_streaming(self) -> None:
         def _draw_predictions(frame: np.ndarray) -> np.ndarray:
             [prediction] = self.predict_images(images=[frame])
             return prediction.draw()
 
-        streaming = Streaming(frame_processing_fn=_draw_predictions)
+        streaming = Streaming(frame_processing_fn=_draw_predictions, fps_update_frequency=1)
         streaming.run()
 
     def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[Result]:
