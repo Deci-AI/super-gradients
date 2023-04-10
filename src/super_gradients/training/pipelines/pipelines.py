@@ -110,7 +110,7 @@ class Pipeline(ABC):
     def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[Result]:
         """Run the pipeline on the images as single batch or through multiple batches.
 
-        NOTE: A core motivation to have this function as a generator is that that way it can be used in a lazy way,
+        NOTE: A core motivation to have this function as a generator is that it can be used in a lazy way (if images is generator itself),
               i.e. without having to load all the images into memory.
 
         :param images:      Iterable of numpy arrays representing images.
