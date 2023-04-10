@@ -54,6 +54,12 @@ class Pipeline(ABC):
         self.image_processor = image_processor
 
     def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = None) -> Results:
+        """Predict an image or a list of images.
+
+        :param images:      Images to predict.
+        :param batch_size:  The size of each batch.
+        :return:            Results of the prediction.
+        """
         loaded_images_generator = load_images(images)
         result_generator = self._generate_prediction_result(images=loaded_images_generator, batch_size=batch_size)
         return self._combine_results(results=list(result_generator))
@@ -84,6 +90,12 @@ class Pipeline(ABC):
             visualize_video(output_video_path)
 
     def predict_image_folder(self, image_folder_path: str, output_folder_path: str, batch_size: Optional[int] = 32):
+        """Predict on a folder of images.
+
+        :param image_folder_path:   Path of the folder including the images to process.
+        :param output_folder_path:  Path of the folder where the images with predictions will be saved.
+        :param batch_size:          Number of images to process at once.
+        """
         images_paths = list_images_in_folder(image_folder_path)
         images_generator = generate_loaded_image(images_paths)
         result_generator = self._generate_prediction_result(images=images_generator, batch_size=batch_size)
