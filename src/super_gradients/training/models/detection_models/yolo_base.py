@@ -14,6 +14,7 @@ from super_gradients.training.utils.utils import HpmStruct, check_img_size_divis
 from super_gradients.training.models.results import DetectionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
+from super_gradients.training.utils.media.load_image import ImageSource
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
     [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]
@@ -444,10 +445,10 @@ class YoloBase(SgModule):
         self._default_nms_conf = conf or self._default_conf
 
     def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPipeline:
-        """Predict an image or a batch of images.
+        """Instantiate the prediction pipeline of this model.
 
-        :param iou:  IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf: Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        :param iou:     IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
@@ -465,23 +466,47 @@ class YoloBase(SgModule):
         )
         return pipeline
 
-    def predict(self, images, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
-        """Predict an image or a batch of images.
+    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
+        """Predict an image or a list of images.
 
         :param images:  Images to predict.
-        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:    (Optional) Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        :param iou:     IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         return pipeline.predict_images(images)  # type: ignore
 
-    def predict_image_folder(self, image_folder_path: str, output_folder_path: str, iou: float = 0.65, conf: float = 0.01, batch_size: Optional[int] = 32):
+    def predict_image_folder(self, image_folder_path: str, output_folder_path: str, batch_size: int = 32, iou: float = 0.65, conf: float = 0.01):
+        """Predict on a folder of images.
+
+        :param image_folder_path:   Path of the folder including the images to process.
+        :param output_folder_path:  Path of the folder where the images with predictions will be saved.
+        :param batch_size:          Number of images to process at once.
+        :param iou:                 IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:                Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        """
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         pipeline.predict_image_folder(image_folder_path=image_folder_path, output_folder_path=output_folder_path, batch_size=batch_size)
 
     def predict_video(
-        self, video_path: str, iou: float = 0.65, conf: float = 0.01, output_video_path: str = None, batch_size: Optional[int] = 32, visualize: bool = False
+        self,
+        video_path: str,
+        output_video_path: str = None,
+        batch_size: int = 32,
+        visualize: bool = False,
+        iou: float = 0.65,
+        conf: float = 0.01,
     ):
+        """Predict on a folder of images.
+
+        :param video_path:          Path of the video to predict.
+        :param output_video_path:   Path of that will be used to save video with predictions.
+        :param batch_size:          Number of images to process at once.
+        :param visualize:           If True, visualize the video.
+        :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
+                                    If None, the default value associated to the training is used.
+        """
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size, visualize=visualize)
 
