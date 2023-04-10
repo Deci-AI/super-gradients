@@ -14,7 +14,7 @@ from super_gradients.training.utils.utils import HpmStruct, check_img_size_divis
 from super_gradients.training.models.results import DetectionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
-
+from super_gradients.training.utils.load_image import ImageType
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
     [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]
@@ -444,7 +444,7 @@ class YoloBase(SgModule):
         self._default_nms_iou = iou or self._default_iou
         self._default_nms_conf = conf or self._default_conf
 
-    def predict(self, images, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
+    def predict(self, images: ImageType, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
         """Predict an image or a batch of images.
 
         :param images:  Images to predict.

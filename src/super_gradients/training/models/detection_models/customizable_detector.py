@@ -17,6 +17,7 @@ from super_gradients.training.models.results import DetectionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
+from super_gradients.training.utils.load_image import ImageType
 
 
 class CustomizableDetector(SgModule):
@@ -128,7 +129,7 @@ class CustomizableDetector(SgModule):
         self._default_nms_iou = iou or self._default_iou
         self._default_nms_conf = conf or self._default_conf
 
-    def predict(self, images, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
+    def predict(self, images: ImageType, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
         """Predict an image or a batch of images.
 
         :param images:  Images to predict.
