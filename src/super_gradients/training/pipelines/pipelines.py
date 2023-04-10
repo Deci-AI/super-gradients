@@ -13,7 +13,7 @@ from super_gradients.training.utils.media.load_image import load_images, ImageSo
 from super_gradients.training.utils.media.stream import Streaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.models.results import Results, DetectionResults, Result, DetectionResult
+from super_gradients.training.models.prediction_results import PredictionResults, DetectionPredictionResults, PredictionResult, DetectionPredictionResult
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 from super_gradients.training.transforms.processing import Processing, ComposeProcessing
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -54,7 +54,7 @@ class Pipeline(ABC):
             image_processor = ComposeProcessing(image_processor)
         self.image_processor = image_processor
 
-    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = None) -> Results:
+    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = None) -> PredictionResults:
         """Predict an image or a list of images.
 
         :param images:      Images to predict.
@@ -118,7 +118,7 @@ class Pipeline(ABC):
         streaming = Streaming(frame_processing_fn=_draw_predictions, fps_update_frequency=1)
         streaming.run()
 
-    def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[Result]:
+    def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[PredictionResult]:
         """Run the pipeline on the images as single batch or through multiple batches.
 
         NOTE: A core motivation to have this function as a generator is that it can be used in a lazy way (if images is generator itself),
@@ -134,7 +134,7 @@ class Pipeline(ABC):
             for batch_images in generate_batch(images, batch_size):
                 yield from self._generate_prediction_result_single_batch(batch_images)
 
-    def _generate_prediction_result_single_batch(self, images: Iterable[np.ndarray]) -> Iterable[Result]:
+    def _generate_prediction_result_single_batch(self, images: Iterable[np.ndarray]) -> Iterable[PredictionResult]:
         """Run the pipeline and return (image, predictions). The pipeline is made of 4 steps:
             1. Load images - Loading the images into a list of numpy arrays.
             2. Preprocess - Encode the image in the shape/format expected by the model
@@ -180,11 +180,11 @@ class Pipeline(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _instantiate_result(self, image: np.ndarray, predictions: Prediction) -> Result:
+    def _instantiate_result(self, image: np.ndarray, predictions: Prediction) -> PredictionResult:
         raise NotImplementedError
 
     @abstractmethod
-    def _combine_results(self, results: List[Result]) -> Results:
+    def _combine_results(self, results: List[PredictionResult]) -> PredictionResults:
         raise NotImplementedError
 
 
@@ -235,8 +235,8 @@ class DetectionPipeline(Pipeline):
 
         return predictions
 
-    def _instantiate_result(self, image: np.ndarray, predictions: DetectionPrediction) -> DetectionResult:
-        return DetectionResult(image=image, predictions=predictions, class_names=self.class_names)
+    def _instantiate_result(self, image: np.ndarray, predictions: DetectionPrediction) -> DetectionPredictionResult:
+        return DetectionPredictionResult(image=image, predictions=predictions, class_names=self.class_names)
 
-    def _combine_results(self, results: List[DetectionResult]) -> DetectionResults:
-        return DetectionResults(results)
+    def _combine_results(self, results: List[DetectionPredictionResult]) -> DetectionPredictionResults:
+        return DetectionPredictionResults(results)

@@ -12,7 +12,7 @@ from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head imp
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.pp_yolo_e.post_prediction_callback import PPYoloEPostPredictionCallback, DetectionPostPredictionCallback
-from super_gradients.training.models.results import DetectionResults
+from super_gradients.training.models.prediction_results import DetectionPredictionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
 from super_gradients.training.utils.media.load_image import ImageSource
@@ -78,7 +78,7 @@ class PPYoloE(SgModule):
         )
         return pipeline
 
-    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
+    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPredictionResults:
         """Predict an image or a list of images.
 
         :param images:  Images to predict.

@@ -11,7 +11,7 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
-from super_gradients.training.models.results import DetectionResults
+from super_gradients.training.models.prediction_results import DetectionPredictionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
 from super_gradients.training.utils.media.load_image import ImageSource
@@ -466,7 +466,7 @@ class YoloBase(SgModule):
         )
         return pipeline
 
-    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
+    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPredictionResults:
         """Predict an image or a list of images.
 
         :param images:  Images to predict.

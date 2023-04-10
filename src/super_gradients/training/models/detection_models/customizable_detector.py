@@ -13,7 +13,7 @@ from omegaconf import DictConfig
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
-from super_gradients.training.models.results import DetectionResults
+from super_gradients.training.models.prediction_results import DetectionPredictionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
@@ -151,7 +151,7 @@ class CustomizableDetector(SgModule):
         )
         return pipeline
 
-    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
+    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPredictionResults:
         """Predict an image or a list of images.
 
         :param images:  Images to predict.

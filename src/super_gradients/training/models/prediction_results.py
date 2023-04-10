@@ -10,7 +10,7 @@ from super_gradients.training.models.predictions import Prediction, DetectionPre
 
 
 @dataclass
-class Result(ABC):
+class PredictionResult(ABC):
     """Results of a given computer vision task (detection, classification, etc.).
 
     :attr image:        Input image
@@ -34,13 +34,13 @@ class Result(ABC):
 
 
 @dataclass
-class Results(ABC):
+class PredictionResults(ABC):
     """List of results of a given computer vision task (detection, classification, etc.).
 
     :attr results: List of results of the run
     """
 
-    results: List[Result]
+    results: List[PredictionResult]
 
     @abstractmethod
     def draw(self) -> List[np.ndarray]:
@@ -55,12 +55,12 @@ class Results(ABC):
     def __iter__(self):
         return iter(self.results)
 
-    def __getitem__(self, index) -> Result:
+    def __getitem__(self, index) -> PredictionResult:
         return self.results[index]
 
 
 @dataclass
-class DetectionResult(Result):
+class DetectionPredictionResult(PredictionResult):
     """Result of a detection task.
 
     :attr image:        Input image
@@ -115,13 +115,13 @@ class DetectionResult(Result):
 
 
 @dataclass
-class DetectionResults(Results):
+class DetectionPredictionResults(PredictionResults):
     """Results of a detection task.
 
     :attr results:  List of the predictions results
     """
 
-    results: List[DetectionResult]
+    results: List[DetectionPredictionResult]
 
     def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> List[np.ndarray]:
         """Draw the predicted bboxes on the images.

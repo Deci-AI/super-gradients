@@ -3,7 +3,7 @@ from typing import Union
 from torch import nn
 
 from super_gradients.training.utils.utils import HpmStruct
-from super_gradients.training.models.results import Results
+from super_gradients.training.models.prediction_results import PredictionResults
 
 
 class SgModule(nn.Module):
@@ -64,7 +64,7 @@ class SgModule(nn.Module):
 
         raise NotImplementedError
 
-    def predict(self, images, *args, **kwargs) -> Results:
+    def predict(self, images, *args, **kwargs) -> PredictionResults:
         raise NotImplementedError(f"`predict` is not implemented for {self.__class__.__name__}.")
 
     def set_dataset_processing_params(self, *args, **kwargs) -> None:
