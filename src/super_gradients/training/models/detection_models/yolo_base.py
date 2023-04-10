@@ -476,7 +476,9 @@ class YoloBase(SgModule):
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         return pipeline.predict_images(images)  # type: ignore
 
-    def predict_image_folder(self, image_folder_path: str, output_folder_path: str, batch_size: int = 32, iou: float = 0.65, conf: float = 0.01):
+    def predict_image_folder(
+        self, image_folder_path: str, output_folder_path: str, batch_size: int = 32, iou: Optional[float] = None, conf: Optional[float] = None
+    ):
         """Predict on a folder of images.
 
         :param image_folder_path:   Path of the folder including the images to process.
@@ -494,8 +496,8 @@ class YoloBase(SgModule):
         output_video_path: str = None,
         batch_size: int = 32,
         visualize: bool = False,
-        iou: float = 0.65,
-        conf: float = 0.01,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
     ):
         """Predict on a folder of images.
 
@@ -509,6 +511,16 @@ class YoloBase(SgModule):
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size, visualize=visualize)
+
+    def predict_streaming(self, iou: Optional[float] = None, conf: Optional[float] = None):
+        """Predict using webcam.
+
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        """
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline.predict_streaming()
 
     def forward(self, x):
         out = self._backbone(x)

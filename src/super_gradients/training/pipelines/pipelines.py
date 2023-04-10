@@ -107,6 +107,16 @@ class Pipeline(ABC):
 
         logger.info(f"Successfully processed images from {image_folder_path}, saved with predictions to {output_folder_path}")
 
+    def predict_streaming(self):
+        from super_gradients.training.utils.media.stream import Streaming
+
+        def _draw_predictions(frame: np.ndarray) -> np.ndarray:
+            [prediction] = self.predict_images(images=[frame])
+            return prediction.draw()
+
+        streaming = Streaming(frame_processing_fn=_draw_predictions)
+        streaming.run()
+
     def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[Result]:
         """Run the pipeline on the images as single batch or through multiple batches.
 
