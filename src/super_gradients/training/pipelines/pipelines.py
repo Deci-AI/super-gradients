@@ -109,6 +109,8 @@ class Pipeline(ABC):
         logger.info(f"Successfully processed images from {image_folder_path}, saved with predictions to {output_folder_path}")
 
     def predict_streaming(self) -> None:
+        """Predict using webcam."""
+
         def _draw_predictions(frame: np.ndarray) -> np.ndarray:
             [prediction] = self.predict_images(images=[frame])
             return prediction.draw()

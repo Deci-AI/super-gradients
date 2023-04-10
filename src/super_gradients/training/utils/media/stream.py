@@ -34,7 +34,7 @@ class Streaming:
 
         self._fps_counter = FPSCounter(update_frequency=fps_update_frequency)
 
-    def run(self):
+    def run(self) -> None:
         """Start streaming video from the webcam and displaying it in a window.
 
         Press 'q' to quit the streaming.
@@ -42,7 +42,7 @@ class Streaming:
         while not self._stop():
             self._run_single_frame()
 
-    def _run_single_frame(self):
+    def _run_single_frame(self) -> None:
         """Read a single frame from the video capture device, apply any specified frame processing,
         and display the resulting frame in the window.
 
