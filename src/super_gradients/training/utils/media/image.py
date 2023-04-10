@@ -1,8 +1,9 @@
-from typing import Union, List, Iterable
+from typing import Union, List, Iterable, Iterator
 import PIL
 
 import os
 from PIL import Image
+import matplotlib.pyplot as plt
 
 import numpy as np
 import torch
@@ -17,20 +18,25 @@ ImageSource = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
 def load_images(images: Union[List[ImageSource], ImageSource]) -> List[np.ndarray]:
     """Load a single image or a list of images and return them as a list of numpy arrays.
 
-    Supported image types include:
+    Supported types include:
+        - str:              A string representing either an image or an URL.
         - numpy.ndarray:    A numpy array representing the image
         - torch.Tensor:     A PyTorch tensor representing the image
         - PIL.Image.Image:  A PIL Image object
-        - str:              A string representing either a local file path or a URL to an image
+        - List:             A list of images of any of the above types.
 
     :param images:  Single image or a list of images of supported types.
     :return:        List of images as numpy arrays. If loaded from string, the image will be returned as RGB.
     """
-    return [image for image in generate_loaded_image(images=images)]
+    return [image for image in generate_image_loader(images=images)]
 
 
-def generate_loaded_image(images: Union[List[ImageSource], ImageSource]) -> Iterable[np.ndarray]:
-    if isinstance(images, list):
+def generate_image_loader(images: Union[List[ImageSource], ImageSource]) -> Iterable[np.ndarray]:
+    if isinstance(images, str) and os.path.isdir(images):
+        images_paths = list_images_in_folder(images)
+        for image_path in images_paths:
+            yield load_image(image=image_path)
+    elif isinstance(images, (list, Iterator)):
         for image in images:
             yield load_image(image=image)
     else:
@@ -38,7 +44,7 @@ def generate_loaded_image(images: Union[List[ImageSource], ImageSource]) -> Iter
 
 
 def generate_loaded_image_batch(images: Union[List[ImageSource], ImageSource], batch_size: int) -> List[np.ndarray]:
-    images_generator = generate_loaded_image(images=images)
+    images_generator = generate_image_loader(images=images)
     yield from generate_batch(iterable=images_generator, batch_size=batch_size)
 
 
@@ -104,3 +110,12 @@ def is_url(url: str) -> bool:
         return all([result.scheme, result.netloc, result.path])
     except Exception:
         return False
+
+
+def show_image(image: np.ndarray) -> None:
+    """Show an image using matplotlib.
+    :param image: Image to show in (H, W, C), RGB.
+    """
+    plt.imshow(image, interpolation="nearest")
+    plt.axis("off")
+    plt.show()

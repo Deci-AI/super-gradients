@@ -12,10 +12,10 @@ from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head imp
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.pp_yolo_e.post_prediction_callback import PPYoloEPostPredictionCallback, DetectionPostPredictionCallback
-from super_gradients.training.models.prediction_results import DetectionPredictionResults
+from super_gradients.training.models.prediction_results import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
-from super_gradients.training.utils.media.load_image import ImageSource
+from super_gradients.training.utils.media.image import ImageSource
 
 
 class PPYoloE(SgModule):
@@ -78,7 +78,7 @@ class PPYoloE(SgModule):
         )
         return pipeline
 
-    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPredictionResults:
+    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
         :param images:  Images to predict.
@@ -86,45 +86,9 @@ class PPYoloE(SgModule):
         :param conf:    Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf)
-        return pipeline.predict_images(images)  # type: ignore
+        return pipeline(images)  # type: ignore
 
-    def predict_image_folder(
-        self, image_folder_path: str, output_folder_path: str, batch_size: int = 32, iou: Optional[float] = None, conf: Optional[float] = None
-    ):
-        """Predict on a folder of images.
-
-        :param image_folder_path:   Path of the folder including the images to process.
-        :param output_folder_path:  Path of the folder where the images with predictions will be saved.
-        :param batch_size:          Number of images to process at once.
-        :param iou:                 IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:                Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
-        """
-        pipeline = self._get_pipeline(iou=iou, conf=conf)
-        pipeline.predict_image_folder(image_folder_path=image_folder_path, output_folder_path=output_folder_path, batch_size=batch_size)
-
-    def predict_video(
-        self,
-        video_path: str,
-        output_video_path: str = None,
-        batch_size: int = 32,
-        visualize: bool = False,
-        iou: Optional[float] = None,
-        conf: Optional[float] = None,
-    ):
-        """Predict on a folder of images.
-
-        :param video_path:          Path of the video to predict.
-        :param output_video_path:   Path of that will be used to save video with predictions.
-        :param batch_size:          Number of images to process at once.
-        :param visualize:           If True, visualize the video.
-        :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
-                                    If None, the default value associated to the training is used.
-        """
-        pipeline = self._get_pipeline(iou=iou, conf=conf)
-        pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size, visualize=visualize)
-
-    def predict_streaming(self, iou: Optional[float] = None, conf: Optional[float] = None):
+    def stream(self, iou: Optional[float] = None, conf: Optional[float] = None):
         """Predict using webcam.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
@@ -132,7 +96,7 @@ class PPYoloE(SgModule):
                         If None, the default value associated to the training is used.
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf)
-        pipeline.predict_streaming()
+        pipeline.stream()
 
     def forward(self, x: Tensor):
         features = self.backbone(x)

@@ -4,5 +4,6 @@ from super_gradients.training import models
 # Note that currently only YoloX and PPYoloE are supported.
 model = models.get(Models.YOLOX_N, pretrained_weights="coco")
 
-video_path = "<path/to/image>"
-model.predict_video(video_path=video_path, visualize=True)
+video_path = "<path/to/your/video>"
+predictions = model.predict(video_path)
+predictions.show()

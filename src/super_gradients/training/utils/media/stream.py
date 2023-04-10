@@ -40,9 +40,9 @@ class Streaming:
         Press 'q' to quit the streaming.
         """
         while not self._stop():
-            self._run_single_frame()
+            self._display_single_frame()
 
-    def _run_single_frame(self) -> None:
+    def _display_single_frame(self) -> None:
         """Read a single frame from the video capture device, apply any specified frame processing,
         and display the resulting frame in the window.
 
