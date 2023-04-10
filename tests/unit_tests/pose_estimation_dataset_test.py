@@ -1,5 +1,4 @@
-from super_gradients.training.datasets.pose_estimation_datasets.coco_keypoints import COCOKeypointsDataset
-from super_gradients.common.registry.registry import DEKRTargetsGenerator
+from super_gradients.training.datasets.pose_estimation_datasets import DEKRTargetsGenerator, COCOKeypointsDataset
 from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointsRandomVerticalFlip
 
 

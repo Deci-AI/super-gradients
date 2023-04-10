@@ -7,7 +7,7 @@ from super_gradients.common.object_names import Models
 from super_gradients.modules import RepVGGBlock
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
-from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN
+from super_gradients.training.models.detection_models.pp_yolo_e.pan import PPYoloECSPPAN
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.arch_params_factory import get_arch_params
@@ -15,7 +15,6 @@ from super_gradients.training.models.detection_models.pp_yolo_e.post_prediction_
 from super_gradients.training.models.results import DetectionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
-from super_gradients.training.utils.media.videos import visualize_video
 
 
 class PPYoloE(SgModule):
@@ -25,30 +24,50 @@ class PPYoloE(SgModule):
             arch_params = arch_params.to_dict()
 
         self.backbone = CSPResNetBackbone(**arch_params["backbone"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
-        self.neck = CustomCSPPAN(**arch_params["neck"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
+        self.neck = PPYoloECSPPAN(**arch_params["neck"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
         self.head = PPYOLOEHead(**arch_params["head"], width_mult=arch_params["width_mult"], num_classes=arch_params["num_classes"])
 
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
+        self._default_nms_iou: Optional[float] = None
+        self._default_nms_conf: Optional[float] = None
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
 
-    def set_dataset_processing_params(self, class_names: Optional[List[str]], image_processor: Optional[Processing]) -> None:
+    def set_dataset_processing_params(
+        self,
+        class_names: Optional[List[str]] = None,
+        image_processor: Optional[Processing] = None,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+    ) -> None:
         """Set the processing parameters for the dataset.
 
         :param class_names:     (Optional) Names of the dataset the model was trained on.
         :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
+        :param iou:             (Optional) IoU threshold for the nms algorithm
+        :param conf:            (Optional) Below the confidence threshold, prediction are discarded
         """
         self._class_names = class_names or self._class_names
         self._image_processor = image_processor or self._image_processor
+        self._default_nms_iou = iou or self._default_iou
+        self._default_nms_conf = conf or self._default_conf
 
-    def _get_pipeline(self, iou: float, conf: float) -> DetectionPipeline:
-        if self._class_names is None or self._image_processor is None:
+    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPipeline:
+        """Predict an image or a batch of images.
+
+        :param iou:  IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf: Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        """
+        if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
                 "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
             )
+
+        iou = iou or self._default_nms_iou
+        conf = conf or self._default_nms_conf
 
         pipeline = DetectionPipeline(
             model=self,
@@ -58,7 +77,13 @@ class PPYoloE(SgModule):
         )
         return pipeline
 
-    def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
+    def predict(self, images, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
+        """Predict an image or a batch of images.
+
+        :param images:  Images to predict.
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        """
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         return pipeline.predict_images(images)  # type: ignore
 
@@ -70,9 +95,7 @@ class PPYoloE(SgModule):
         self, video_path: str, iou: float = 0.65, conf: float = 0.01, output_video_path: str = None, batch_size: Optional[int] = 32, visualize: bool = False
     ):
         pipeline = self._get_pipeline(iou=iou, conf=conf)
-        pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size)
-        if visualize:
-            visualize_video(output_video_path)
+        pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size, visualize=visualize)
 
     def forward(self, x: Tensor):
         features = self.backbone(x)

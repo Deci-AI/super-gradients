@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from super_gradients.training.utils.utils import generate_batch
-from super_gradients.training.utils.media.videos import load_video, save_video
+from super_gradients.training.utils.media.videos import load_video, save_video, visualize_video
 from super_gradients.training.utils.media.load_image import load_images, ImageSource, generate_loaded_image, list_images_in_folder, save_image
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
@@ -58,12 +58,13 @@ class Pipeline(ABC):
         result_generator = self._generate_prediction_result(images=loaded_images_generator, batch_size=batch_size)
         return self._combine_results(results=list(result_generator))
 
-    def predict_video(self, video_path: str, output_video_path: str = None, batch_size: Optional[int] = 32):
+    def predict_video(self, video_path: str, output_video_path: str = None, batch_size: Optional[int] = 32, visualize: Optional[bool] = False):
         """Perform inference on a video file, by processing the frames in batches.
 
         :param video_path:          Path to the video file.
         :param output_video_path:   Path to save the resulting video. If not specified, the output video will be saved in the same directory as the input video.
         :param batch_size:          The size of each batch.
+        :param visualize:           If True, visualize the video.
         """
 
         video_frames, fps = load_video(file_path=video_path)
@@ -78,6 +79,9 @@ class Pipeline(ABC):
 
         save_video(output_path=output_video_path, frames=frames_with_pred, fps=fps)
         logger.info(f"Successfully saved video with predictions to {output_video_path}")
+
+        if visualize:
+            visualize_video(output_video_path)
 
     def predict_image_folder(self, image_folder_path: str, output_folder_path: str, batch_size: Optional[int] = 32):
         images_paths = list_images_in_folder(image_folder_path)

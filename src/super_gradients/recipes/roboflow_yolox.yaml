@@ -40,6 +40,13 @@ training_hyperparams:
   resume: ${resume}
   criterion_params:
     num_classes: ${num_classes}
+  lr_warmup_epochs: 0
+  lr_cooldown_epochs: 0
+  initial_lr: 0.001
+  phase_callbacks:
+    - RoboflowResultCallback:
+        dataset_name: ${dataset_name}
+        output_path: ${result_path}
   train_metrics_list:
     - DetectionMetrics:
         normalize_targets: True
@@ -56,6 +63,14 @@ training_hyperparams:
           iou: 0.65
           conf: 0.01
         num_cls: 80
+#  sg_logger: "wandb_sg_logger"
+#  sg_logger_params:
+#    project_name: Roboflow100FullTraining
+#    entity: super-gradients
+#    api_server: "https://wandb.research.deci.ai"
+#    save_checkpoints_remote: True
+#    save_tensorboard_remote: True
+#    save_logs_remote: True
 
 
 multi_gpu: DDP

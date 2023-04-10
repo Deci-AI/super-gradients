@@ -4,9 +4,9 @@ from typing import Union, Type, List, Tuple, Optional
 import torch
 import torch.nn as nn
 
-from super_gradients.modules import CrossModelSkipConnection
+from super_gradients.modules import CrossModelSkipConnection, Conv
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
-from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
+from super_gradients.training.models.detection_models.csp_darknet53 import GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
@@ -14,7 +14,6 @@ from super_gradients.training.utils.utils import HpmStruct, check_img_size_divis
 from super_gradients.training.models.results import DetectionResults
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
-from super_gradients.training.utils.media.videos import visualize_video
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
     [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]
@@ -418,25 +417,45 @@ class YoloBase(SgModule):
 
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
+        self._default_nms_iou: Optional[float] = None
+        self._default_nms_conf: Optional[float] = None
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return YoloPostPredictionCallback(conf=conf, iou=iou)
 
-    def set_dataset_processing_params(self, class_names: Optional[List[str]], image_processor: Optional[Processing]) -> None:
+    def set_dataset_processing_params(
+        self,
+        class_names: Optional[List[str]] = None,
+        image_processor: Optional[Processing] = None,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+    ) -> None:
         """Set the processing parameters for the dataset.
 
         :param class_names:     (Optional) Names of the dataset the model was trained on.
         :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
+        :param iou:             (Optional) IoU threshold for the nms algorithm
+        :param conf:            (Optional) Below the confidence threshold, prediction are discarded
         """
         self._class_names = class_names or self._class_names
         self._image_processor = image_processor or self._image_processor
+        self._default_nms_iou = iou or self._default_iou
+        self._default_nms_conf = conf or self._default_conf
 
-    def _get_pipeline(self, iou: float, conf: float) -> DetectionPipeline:
-        if self._class_names is None or self._image_processor is None:
+    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPipeline:
+        """Predict an image or a batch of images.
+
+        :param iou:  IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf: Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        """
+        if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
                 "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
             )
+
+        iou = iou or self._default_nms_iou
+        conf = conf or self._default_nms_conf
 
         pipeline = DetectionPipeline(
             model=self,
@@ -446,7 +465,13 @@ class YoloBase(SgModule):
         )
         return pipeline
 
-    def predict(self, images, iou: float = 0.65, conf: float = 0.01) -> DetectionResults:
+    def predict(self, images, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionResults:
+        """Predict an image or a batch of images.
+
+        :param images:  Images to predict.
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        """
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         return pipeline.predict_images(images)  # type: ignore
 
@@ -458,9 +483,7 @@ class YoloBase(SgModule):
         self, video_path: str, iou: float = 0.65, conf: float = 0.01, output_video_path: str = None, batch_size: Optional[int] = 32, visualize: bool = False
     ):
         pipeline = self._get_pipeline(iou=iou, conf=conf)
-        pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size)
-        if visualize:
-            visualize_video(output_video_path)
+        pipeline.predict_video(video_path=video_path, output_video_path=output_video_path, batch_size=batch_size, visualize=visualize)
 
     def forward(self, x):
         out = self._backbone(x)
