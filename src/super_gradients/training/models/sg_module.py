@@ -67,6 +67,12 @@ class SgModule(nn.Module):
     def predict(self, images, *args, **kwargs) -> Results:
         raise NotImplementedError(f"`predict` is not implemented for {self.__class__.__name__}.")
 
+    def predict_video(self, *args, **kwargs):
+        raise NotImplementedError(f"`predict_video` is not implemented for {self.__class__.__name__}.")
+
+    def predict_image_folder(self, *args, **kwargs):
+        raise NotImplementedError(f"`predict_image_folder` is not implemented for {self.__class__.__name__}.")
+
     def set_dataset_processing_params(self, *args, **kwargs) -> None:
         """Set the processing parameters for the dataset.
         TODO: remove once we load it from the checkpoint
