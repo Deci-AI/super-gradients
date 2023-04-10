@@ -28,6 +28,7 @@ from super_gradients.modules.detection_modules import (
     SSDBottleneckNeck,
     SSDHead,
 )
+from super_gradients.modules.interfaces import SupportsReplaceNumClasses
 
 __all__ = [
     "BaseDetectionModule",
@@ -56,6 +57,7 @@ __all__ = [
     "SSDInvertedResidualNeck",
     "SSDBottleneckNeck",
     "SSDHead",
+    "SupportsReplaceNumClasses",
 ]
 
 logger = get_logger(__name__)

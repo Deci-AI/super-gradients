@@ -1,21 +1,23 @@
 import math
-from typing import Tuple, Union, List, Optional
+from typing import Tuple, Union, List, Callable, Optional
 
-import super_gradients.common.factories.detection_modules_factory as det_factory
 import torch
 from omegaconf import DictConfig
+from torch import nn, Tensor
+
+import super_gradients.common.factories.detection_modules_factory as det_factory
 from super_gradients.common.registry import register_detection_module
 from super_gradients.modules import ConvBNReLU
 from super_gradients.modules.base_modules import BaseDetectionModule
+from super_gradients.modules.interfaces import SupportsReplaceNumClasses
 from super_gradients.modules.utils import width_multiplier
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell
 from super_gradients.training.utils import HpmStruct, torch_version_is_greater_or_equal
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
-from torch import nn, Tensor
 
 
 @register_detection_module()
-class DeciYOLODFLHead(BaseDetectionModule):
+class DeciYOLODFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
     def __init__(self, in_channels: int, inter_channels: int, width_mult: float, first_conv_group_size: int, num_classes: int, stride: int, reg_max: int):
         """
         Initialize the DeciYOLODFLHead
@@ -55,6 +57,10 @@ class DeciYOLODFLHead(BaseDetectionModule):
         self.prior_prob = 1e-2
         self._initialize_biases()
 
+    def replace_num_classes(self, num_classes: int, compute_new_weights_fn: Callable[[nn.Module, int], nn.Module]):
+        self.cls_pred = compute_new_weights_fn(self.cls_pred, num_classes)
+        self.num_classes = num_classes
+
     @property
     def out_channels(self):
         return None
@@ -85,7 +91,7 @@ class DeciYOLODFLHead(BaseDetectionModule):
 
 
 @register_detection_module()
-class NDFLHeads(BaseDetectionModule):
+class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
     def __init__(
         self,
         num_classes: int,
@@ -136,6 +142,13 @@ class NDFLHeads(BaseDetectionModule):
             setattr(self, f"head{i + 1}", new_head)
 
         self.fpn_strides = tuple(fpn_strides)
+
+    def replace_num_classes(self, num_classes: int, compute_new_weights_fn: Callable[[nn.Module, int], nn.Module]):
+        for i in range(self.num_heads):
+            head = getattr(self, f"head{i + 1}")
+            head.replace_num_classes(num_classes, compute_new_weights_fn)
+
+        self.num_classes = num_classes
 
     @staticmethod
     def _pass_args(heads_list, factory, num_classes, reg_max):
