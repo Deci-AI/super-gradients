@@ -10,7 +10,6 @@ import torch
 import requests
 from urllib.parse import urlparse
 
-from super_gradients.training.utils.utils import generate_batch
 
 ImageSource = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
 
@@ -32,6 +31,18 @@ def load_images(images: Union[List[ImageSource], ImageSource]) -> List[np.ndarra
 
 
 def generate_image_loader(images: Union[List[ImageSource], ImageSource]) -> Iterable[np.ndarray]:
+    """Generator that loads images one at a time.
+
+    Supported types include:
+        - str:              A string representing either an image or an URL.
+        - numpy.ndarray:    A numpy array representing the image
+        - torch.Tensor:     A PyTorch tensor representing the image
+        - PIL.Image.Image:  A PIL Image object
+        - List:             A list of images of any of the above types.
+
+    :param images:  Single image or a list of images of supported types.
+    :return:        Generator of images as numpy arrays. If loaded from string, the image will be returned as RGB.
+    """
     if isinstance(images, str) and os.path.isdir(images):
         images_paths = list_images_in_folder(images)
         for image_path in images_paths:
@@ -41,11 +52,6 @@ def generate_image_loader(images: Union[List[ImageSource], ImageSource]) -> Iter
             yield load_image(image=image)
     else:
         yield load_image(image=images)
-
-
-def generate_loaded_image_batch(images: Union[List[ImageSource], ImageSource], batch_size: int) -> List[np.ndarray]:
-    images_generator = generate_image_loader(images=images)
-    yield from generate_batch(iterable=images_generator, batch_size=batch_size)
 
 
 def list_images_in_folder(directory: str) -> List[str]:
@@ -100,11 +106,17 @@ def load_pil_image_from_str(image_str: str) -> PIL.Image.Image:
 
 
 def save_image(image: np.ndarray, path: str) -> None:
+    """Save a numpy array as an image.
+    :param image:  Image to save, (H, W, C), RGB.
+    :param path:   Path to save the image to.
+    """
     Image.fromarray(image).save(path)
 
 
 def is_url(url: str) -> bool:
-    """Check if the given string is a URL."""
+    """Check if the given string is a URL.
+    :param url:  String to check.
+    """
     try:
         result = urlparse(url)
         return all([result.scheme, result.netloc, result.path])

@@ -151,7 +151,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
 class VideoDetectionPrediction(VideoPredictions):
     """Object wrapping the list of image detection predictions as a Video.
 
-    :attr _images_prediction_lst:  List of the predictions results
+    :attr _images_prediction_lst:   List of the predictions results
     :att fps:                       Frames per second of the video
     """
 
