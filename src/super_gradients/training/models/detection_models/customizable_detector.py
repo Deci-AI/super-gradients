@@ -161,7 +161,7 @@ class CustomizableDetector(SgModule):
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         return pipeline(images)  # type: ignore
 
-    def stream(self, iou: Optional[float] = None, conf: Optional[float] = None):
+    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None):
         """Predict using webcam.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
@@ -169,4 +169,4 @@ class CustomizableDetector(SgModule):
                         If None, the default value associated to the training is used.
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf)
-        pipeline.stream()
+        pipeline.predict_webcam()

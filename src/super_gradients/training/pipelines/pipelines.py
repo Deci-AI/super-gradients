@@ -8,7 +8,7 @@ import torch
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, is_video
 from super_gradients.training.utils.media.image import ImageSource
-from super_gradients.training.utils.media.stream import Streaming
+from super_gradients.training.utils.media.stream import VideoStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.prediction_results import (
@@ -101,7 +101,7 @@ class Pipeline(ABC):
         result_generator = self._generate_prediction_result(images=video_frames, batch_size=batch_size)
         return self._combine_image_prediction_to_video(result_generator, fps=fps, n_images=len(video_frames))
 
-    def stream(self) -> None:
+    def predict_webcam(self) -> None:
         """Predict using webcam"""
 
         def _draw_predictions(frame: np.ndarray) -> np.ndarray:
@@ -109,8 +109,8 @@ class Pipeline(ABC):
             frame_prediction = next(iter(self._generate_prediction_result(images=[frame])))
             return frame_prediction.draw()
 
-        streaming = Streaming(frame_processing_fn=_draw_predictions, fps_update_frequency=1)
-        streaming.run()
+        video_streaming = VideoStreaming(frame_processing_fn=_draw_predictions, fps_update_frequency=1)
+        video_streaming.run()
 
     def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[ImagePrediction]:
         """Run the pipeline on the images as single batch or through multiple batches.

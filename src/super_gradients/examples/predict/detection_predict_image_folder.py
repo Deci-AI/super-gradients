@@ -4,6 +4,6 @@ from super_gradients.training import models
 # Note that currently only YoloX and PPYoloE are supported.
 model = models.get(Models.YOLOX_N, pretrained_weights="coco")
 
-image_folder_path = "<path/to/image_folder>"
+image_folder_path = "../../../../documentation/source/images/examples"
 predictions = model.predict(image_folder_path)
 predictions.show()
