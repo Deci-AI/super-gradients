@@ -140,6 +140,10 @@ class DeciYOLOStem(BaseDetectionModule):
 
 @register_detection_module()
 class DeciYOLOStage(BaseDetectionModule):
+    """
+    A single stage module for DeciYOLO. It consists of a downsample block (QARepVGGBlock) followed by DeciYOLOCSPLayer.
+    """
+
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
@@ -150,6 +154,15 @@ class DeciYOLOStage(BaseDetectionModule):
         hidden_channels: int = None,
         concat_intermediates: bool = False,
     ):
+        """
+        Initialize the DeciYOLOStage module
+        :param in_channels: Number of input channels
+        :param out_channels: Number of output channels
+        :param num_blocks: Number of bottleneck blocks in the DeciYOLOCSPLayer
+        :param activation_type: Activation type for all blocks
+        :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks.
+        :param concat_intermediates: If True, concatenates the intermediate values from the DeciYOLOCSPLayer.
+        """
         super().__init__(in_channels)
         self._out_channels = out_channels
         self.downsample = QARepVGGBlock(in_channels, out_channels, stride=2, activation_type=activation_type, use_residual_connection=False)
