@@ -48,7 +48,7 @@ from super_gradients.common.object_names import Models
 
 model = models.get(Models.YOLOX_S, pretrained_weights="coco")
 ```
-#### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/model_zoo.md)
+#### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/41dkt89)
 
 #### Classification
 <div align="center">
@@ -109,23 +109,26 @@ ________________________________________________________________________________
 pip install super-gradients
 ```
 
-## What's New
+## What's New - Version 3.0.8
 __________________________________________________________________________________________________________
-* 【17/11/2022】 Integration with ClearML
-* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
-* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
-* 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
-* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](http://bit.ly/3gfLw07) and pre-trained [checkpoints](http://bit.ly/3EGfKD4) on COCO - Tailored for edge devices! 📱
-* 【07/07/2022】 STDC  - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
+*  [QAT&PTQ](https://bit.ly/41hC8uI)
+* [Pose estimation](http://bit.ly/3o0xHq2)
+* [New documentation](http://bit.ly/3KYVCiJ)
+* [New semantic segmentation dataset - Mapillary Vistas Dataset](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/mapillary_dataset.py)
+*  Lion optimizer
+* PP-YoloE pre-trained - new pre-trained [checkpoints](https://bit.ly/41dkt89) and [recipes](http://bit.ly/3gfLw07) for COCO2017 🎯
+* DDRNet pre-trained segmentation model - new pre-trained [checkpoints](https://bit.ly/41dkt89) and [recipes](http://bit.ly/3gfLw07) for Cityscapes and  [Knowledge distillation recipe for DDRNet](http://bit.ly/3GzZHHo)🎯
+
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Coming soon
 __________________________________________________________________________________________________________
-- [ ] PP-Yolo-E implementation
-- [ ] Quantization aware training (QAT)
-- [ ] Tools for faster training 
-- [ ] Integration with more professional tools.
+- [ ] Pre-trained pose estimation model
+- [ ] New predict function on detection models
+- [ ] RoboFlow100 datasets integration 
+- [ ] A new documentation hub
+- [ ] LR finder
 
 
 ## Table of Content
@@ -158,7 +161,7 @@ Just make sure that you [setup your dataset](https://github.com/Deci-AI/super-gr
 python -m super_gradients.examples.train_from_recipe_example.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
-Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](http://bit.ly/3EGfKD4)
+Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](http://bit.ly/41dkt89)
 
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
@@ -558,7 +561,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ## Implemented Model Architectures 
 __________________________________________________________________________________________________________
 
-All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
+All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/41dkt89)
 
 Detailed list can be found [here](http://bit.ly/3GnJwgZ) 
 
@@ -620,6 +623,7 @@ Deci provides implementation for various datasets. If you need to download any o
 - [Coco](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/coco_segmentation.py) 
 - [PascalVOC 2012 / PascalAUG 2012](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/pascal_voc_segmentation.py)
 - [SuperviselyPersons](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/supervisely_persons_segmentation.py)
+- [Mapillary Vistas Dataset](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/mapillary_dataset.py)
 
 
 ### Object Detection
