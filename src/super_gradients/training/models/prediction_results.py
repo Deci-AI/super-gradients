@@ -12,7 +12,7 @@ from super_gradients.training.utils.media.image import show_image
 
 @dataclass
 class ImagePrediction(ABC):
-    """Results of a given computer vision task (detection, classification, etc.).
+    """Object wrapping an image and a model's prediction.
 
     :attr image:        Input image
     :attr predictions:  Predictions of the model
@@ -36,7 +36,7 @@ class ImagePrediction(ABC):
 
 @dataclass
 class ImageDetectionPrediction(ImagePrediction):
-    """Result of a detection task.
+    """Object wrapping an image and a detection model's prediction.
 
     :attr image:        Input image
     :attr predictions:  Predictions of the model
@@ -88,7 +88,7 @@ class ImageDetectionPrediction(ImagePrediction):
 
 @dataclass
 class ImagesPredictions(ABC):
-    """List of results of a given computer vision task (detection, classification, etc.).
+    """Object wrapping the list of image predictions.
 
     :attr _images_prediction_lst: List of results of the run
     """
@@ -111,12 +111,14 @@ class ImagesPredictions(ABC):
 
 @dataclass
 class VideoPredictions(ImagesPredictions, ABC):
-    """List of results of a given computer vision task (detection, classification, etc.).
+    """Object wrapping the list of image predictions as a Video.
 
-    :attr results: List of results of the run
+    :attr _images_prediction_lst:   List of results of the run
+    :att fps:                       Frames per second of the video
     """
 
     _images_prediction_lst: List[ImagePrediction]
+    fps: float
 
     @abstractmethod
     def show(self, *args, **kwargs) -> None:
@@ -126,9 +128,9 @@ class VideoPredictions(ImagesPredictions, ABC):
 
 @dataclass
 class ImagesDetectionPrediction(ImagesPredictions):
-    """Results of a detection task.
+    """Object wrapping the list of image detection predictions.
 
-    :attr results:  List of the predictions results
+    :attr _images_prediction_lst:  List of the predictions results
     """
 
     _images_prediction_lst: List[ImageDetectionPrediction]
@@ -147,13 +149,14 @@ class ImagesDetectionPrediction(ImagesPredictions):
 
 @dataclass
 class VideoDetectionPrediction(VideoPredictions):
-    """Results of a detection task.
+    """Object wrapping the list of image detection predictions as a Video.
 
     :attr _images_prediction_lst:  List of the predictions results
+    :att fps:                       Frames per second of the video
     """
 
-    fps: float
     _images_prediction_lst: List[ImageDetectionPrediction]
+    fps: float
 
     def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
         """Display the predicted bboxes on the images.
