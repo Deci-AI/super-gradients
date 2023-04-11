@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, is_video
-from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.training.utils.media.image import ImageSource, check_image_typing
 from super_gradients.training.utils.media.stream import WebcamStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
@@ -59,7 +59,7 @@ class Pipeline(ABC):
             image_processor = ComposeProcessing(image_processor)
         self.image_processor = image_processor
 
-    def __call__(self, inputs: Union[str, ImageSource, List[ImageSource]], batch_size: Optional[int] = None) -> ImagesPredictions:
+    def __call__(self, inputs: Union[str, ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> ImagesPredictions:
         """Predict an image or a list of images.
 
         Supported types include:
@@ -70,15 +70,18 @@ class Pipeline(ABC):
             - List:             A list of images of any of the above image types (list of videos not supported).
 
         :param inputs:      inputs to the model, which can be any of the above-mentioned types.
-        :param batch_size:  The size of each batch.
+        :param batch_size:  Number of images to be processed at the same time.
         :return:            Results of the prediction.
         """
-        if isinstance(inputs, str) and is_video(inputs):
-            return self.predict_video(inputs, batch_size)
-        else:
-            return self.predict_images(inputs, batch_size)
 
-    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = None) -> ImagesPredictions:
+        if is_video(inputs):
+            return self.predict_video(inputs, batch_size)
+        elif check_image_typing(inputs):
+            return self.predict_images(inputs, batch_size)
+        else:
+            raise ValueError(f"Input {inputs} not supported for prediction.")
+
+    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> ImagesPredictions:
         """Predict an image or a list of images.
 
         :param images:      Images to predict.
@@ -94,8 +97,9 @@ class Pipeline(ABC):
     def predict_video(self, video_path: str, batch_size: Optional[int] = 32) -> VideoPredictions:
         """Predict on a video file, by processing the frames in batches.
 
-        :param video_path:          Path to the video file.
-        :param batch_size:          The size of each batch.
+        :param video_path:  Path to the video file.
+        :param batch_size:  The size of each batch.
+        :return:            Results of the prediction.
         """
         video_frames, fps = load_video(file_path=video_path)
         result_generator = self._generate_prediction_result(images=video_frames, batch_size=batch_size)

@@ -1,4 +1,4 @@
-from typing import Union, List, Iterable, Iterator
+from typing import Union, List, Iterable, Iterator, get_args
 import PIL
 
 import os
@@ -11,7 +11,8 @@ import requests
 from urllib.parse import urlparse
 
 
-ImageSource = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
+SingleImageSource = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
+ImageSource = Union[SingleImageSource, List[SingleImageSource]]
 
 
 def load_images(images: Union[List[ImageSource], ImageSource]) -> List[np.ndarray]:
@@ -131,3 +132,16 @@ def show_image(image: np.ndarray) -> None:
     plt.imshow(image, interpolation="nearest")
     plt.axis("off")
     plt.show()
+
+
+def check_image_typing(image: ImageSource) -> bool:
+    """Check if the given object respects typing of image.
+    :param image: Image to check.
+    :return: True if the object is an image, False otherwise.
+    """
+    if isinstance(image, get_args(SingleImageSource)):
+        return True
+    elif isinstance(image, list):
+        return all([isinstance(image_item, get_args(SingleImageSource)) for image_item in image])
+    else:
+        return False
