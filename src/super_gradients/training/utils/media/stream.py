@@ -4,10 +4,10 @@ import time
 from typing import Callable, Optional
 
 
-__all__ = ["VideoStreaming"]
+__all__ = ["WebcamStreaming"]
 
 
-class VideoStreaming:
+class WebcamStreaming:
     """Stream video from a webcam. Press 'q' to quit the streaming.
 
     :param window_name:          Name of the window to display the video stream.

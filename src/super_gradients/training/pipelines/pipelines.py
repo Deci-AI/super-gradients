@@ -8,7 +8,7 @@ import torch
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, is_video
 from super_gradients.training.utils.media.image import ImageSource
-from super_gradients.training.utils.media.stream import VideoStreaming
+from super_gradients.training.utils.media.stream import WebcamStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.prediction_results import (
@@ -67,7 +67,7 @@ class Pipeline(ABC):
             - numpy.ndarray:    A numpy array representing the image
             - torch.Tensor:     A PyTorch tensor representing the image
             - PIL.Image.Image:  A PIL Image object
-            - List:             A list of images of any of the above types.
+            - List:             A list of images of any of the above image types (list of videos not supported).
 
         :param inputs:      inputs to the model, which can be any of the above-mentioned types.
         :param batch_size:  The size of each batch.
@@ -78,16 +78,16 @@ class Pipeline(ABC):
         else:
             return self.predict_images(inputs, batch_size)
 
-    def predict_images(self, inputs: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = None) -> ImagesPredictions:
+    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = None) -> ImagesPredictions:
         """Predict an image or a list of images.
 
-        :param inputs:      Images to predict.
+        :param images:      Images to predict.
         :param batch_size:  The size of each batch.
         :return:            Results of the prediction.
         """
         from super_gradients.training.utils.media.image import load_images
 
-        images = load_images(inputs)
+        images = load_images(images)
         result_generator = self._generate_prediction_result(images=images, batch_size=batch_size)
         return self._combine_image_prediction_to_images(result_generator, n_images=len(images))
 
@@ -109,7 +109,7 @@ class Pipeline(ABC):
             frame_prediction = next(iter(self._generate_prediction_result(images=[frame])))
             return frame_prediction.draw()
 
-        video_streaming = VideoStreaming(frame_processing_fn=_draw_predictions, fps_update_frequency=1)
+        video_streaming = WebcamStreaming(frame_processing_fn=_draw_predictions, fps_update_frequency=1)
         video_streaming.run()
 
     def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[ImagePrediction]:
@@ -129,7 +129,7 @@ class Pipeline(ABC):
                 yield from self._generate_prediction_result_single_batch(batch_images)
 
     def _generate_prediction_result_single_batch(self, images: Iterable[np.ndarray]) -> Iterable[ImagePrediction]:
-        """Run the pipeline and return (image, predictions). The pipeline is made of 4 steps:
+        """Run the pipeline on images. The pipeline is made of 4 steps:
             1. Load images - Loading the images into a list of numpy arrays.
             2. Preprocess - Encode the image in the shape/format expected by the model
             3. Predict - Run the model on the preprocessed image
@@ -138,7 +138,7 @@ class Pipeline(ABC):
         :param images:  Iterable of numpy arrays representing images.
         :return:        Iterable of Results object, each containing the results of the prediction and the image.
         """
-        images = list(images)
+        images = list(images)  # We need to load all the images into memory, and to reuse it afterwards.
         self.model = self.model.to(self.device)  # Make sure the model is on the correct device, as it might have been moved after init
 
         # Preprocess
@@ -161,8 +161,8 @@ class Pipeline(ABC):
             postprocessed_predictions.append(prediction)
 
         # Yield results one by one
-        for image, predictions in zip(images, postprocessed_predictions):
-            yield self._instantiate_result(image=image, predictions=predictions)
+        for image, prediction in zip(images, postprocessed_predictions):
+            yield self._instantiate_image_prediction(image=image, prediction=prediction)
 
     @abstractmethod
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[Prediction]:
@@ -175,15 +175,36 @@ class Pipeline(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _instantiate_result(self, image: np.ndarray, predictions: Prediction) -> ImagePrediction:
+    def _instantiate_image_prediction(self, image: np.ndarray, prediction: Prediction) -> ImagePrediction:
+        """Instantiate an object wrapping an image and the pipeline's prediction.
+
+        :param image:       Image to predict.
+        :param prediction:  Model prediction on that image.
+        :return:            Object wrapping an image and the pipeline's prediction.
+        """
         raise NotImplementedError
 
     @abstractmethod
-    def _combine_image_prediction_to_images(self, results: Iterable[ImagePrediction], n_images: Optional[int] = None) -> ImagesPredictions:
+    def _combine_image_prediction_to_images(self, images_prediction_lst: Iterable[ImagePrediction], n_images: Optional[int] = None) -> ImagesPredictions:
+        """Instantiate an object wrapping the list of images and the pipeline's predictions on them.
+
+        :param images_prediction_lst:   List of image predictions.
+        :param n_images:                (Optional) Number of images in the list. This used for tqdm progress bar to work with iterables, but is not required.
+        :return:                        Object wrapping the list of image predictions.
+        """
         raise NotImplementedError
 
     @abstractmethod
-    def _combine_image_prediction_to_video(self, results: Iterable[ImagePrediction], fps: float, n_images: Optional[int] = None) -> VideoPredictions:
+    def _combine_image_prediction_to_video(
+        self, images_prediction_lst: Iterable[ImagePrediction], fps: float, n_images: Optional[int] = None
+    ) -> VideoPredictions:
+        """Instantiate an object holding the video frames and the pipeline's predictions on it.
+
+        :param images_prediction_lst:   List of image predictions.
+        :param fps:                     Frames per second.
+        :param n_images:                (Optional) Number of images in the list. This used for tqdm progress bar to work with iterables, but is not required.
+        :return:                        Object wrapping the list of image predictions as a Video.
+        """
         raise NotImplementedError
 
 
@@ -234,8 +255,8 @@ class DetectionPipeline(Pipeline):
 
         return predictions
 
-    def _instantiate_result(self, image: np.ndarray, predictions: DetectionPrediction) -> ImagePrediction:
-        return ImageDetectionPrediction(image=image, predictions=predictions, class_names=self.class_names)
+    def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
+        return ImageDetectionPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
         self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None

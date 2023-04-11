@@ -68,7 +68,7 @@ class SgModule(nn.Module):
         raise NotImplementedError(f"`predict` is not implemented for {self.__class__.__name__}.")
 
     def predict_webcam(self, *args, **kwargs) -> None:
-        raise NotImplementedError(f"`stream` is not implemented for {self.__class__.__name__}.")
+        raise NotImplementedError(f"`predict_webcam` is not implemented for {self.__class__.__name__}.")
 
     def set_dataset_processing_params(self, *args, **kwargs) -> None:
         """Set the processing parameters for the dataset."""
