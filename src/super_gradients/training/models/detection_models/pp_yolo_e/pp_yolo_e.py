@@ -53,14 +53,15 @@ class PPYoloE(SgModule):
         """
         self._class_names = class_names or self._class_names
         self._image_processor = image_processor or self._image_processor
-        self._default_nms_iou = iou or self._default_iou
-        self._default_nms_conf = conf or self._default_conf
+        self._default_nms_iou = iou or self._default_nms_iou
+        self._default_nms_conf = conf or self._default_nms_conf
 
     def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
-        :param iou:     IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:    Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
@@ -82,8 +83,9 @@ class PPYoloE(SgModule):
         """Predict an image or a list of images.
 
         :param images:  Images to predict.
-        :param iou:     IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:    Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf)
         return pipeline(images)  # type: ignore
