@@ -90,19 +90,19 @@ class ImageDetectionPrediction(ImagePrediction):
 class ImagesPredictions(ABC):
     """List of results of a given computer vision task (detection, classification, etc.).
 
-    :attr images_prediction_lst: List of results of the run
+    :attr _images_prediction_lst: List of results of the run
     """
 
-    images_prediction_lst: List[ImagePrediction]
+    _images_prediction_lst: List[ImagePrediction]
 
     def __len__(self) -> int:
-        return len(self.images_prediction_lst)
+        return len(self._images_prediction_lst)
 
     def __getitem__(self, index: int) -> ImagePrediction:
-        return self.images_prediction_lst[index]
+        return self._images_prediction_lst[index]
 
     def __iter__(self) -> Iterator[ImagePrediction]:
-        return iter(self.images_prediction_lst)
+        return iter(self._images_prediction_lst)
 
     @abstractmethod
     def show(self) -> None:
@@ -116,7 +116,7 @@ class VideoPredictions(ImagesPredictions, ABC):
     :attr results: List of results of the run
     """
 
-    images_prediction_lst: List[ImagePrediction]
+    _images_prediction_lst: List[ImagePrediction]
 
     @abstractmethod
     def show(self, *args, **kwargs) -> None:
@@ -131,7 +131,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
     :attr results:  List of the predictions results
     """
 
-    images_prediction_lst: List[ImageDetectionPrediction]
+    _images_prediction_lst: List[ImageDetectionPrediction]
 
     def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
         """Display the predicted bboxes on the images.
@@ -141,7 +141,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
-        for prediction in self.images_prediction_lst:
+        for prediction in self._images_prediction_lst:
             prediction.show(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
 
 
@@ -149,11 +149,11 @@ class ImagesDetectionPrediction(ImagesPredictions):
 class VideoDetectionPrediction(VideoPredictions):
     """Results of a detection task.
 
-    :attr images_prediction_lst:  List of the predictions results
+    :attr _images_prediction_lst:  List of the predictions results
     """
 
     fps: float
-    images_prediction_lst: List[ImageDetectionPrediction]
+    _images_prediction_lst: List[ImageDetectionPrediction]
 
     def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
         """Display the predicted bboxes on the images.
@@ -164,6 +164,6 @@ class VideoDetectionPrediction(VideoPredictions):
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
         frames = [
-            result.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping) for result in self.images_prediction_lst
+            result.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping) for result in self._images_prediction_lst
         ]
         show_video_from_frames(window_name="Detection", frames=frames, fps=self.fps)

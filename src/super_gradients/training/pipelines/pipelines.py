@@ -262,10 +262,10 @@ class DetectionPipeline(Pipeline):
         self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
     ) -> ImagesDetectionPrediction:
         images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
-        return ImagesDetectionPrediction(images_predictions)
+        return ImagesDetectionPrediction(_images_prediction_lst=images_predictions)
 
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoDetectionPrediction:
         images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
-        return VideoDetectionPrediction(images_predictions, fps)
+        return VideoDetectionPrediction(_images_prediction_lst=images_predictions, fps=fps)
