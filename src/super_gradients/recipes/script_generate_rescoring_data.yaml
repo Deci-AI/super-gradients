@@ -1,0 +1,22 @@
+defaults:
+  - dataset_params: coco_pose_estimation_dekr_dataset_params
+  - arch_params: pose_rescoring_arch_params
+  - _self_
+
+train_dataloader: coco2017_pose_train
+val_dataloader: coco2017_pose_val
+
+arch_params:
+  num_classes: ${dataset_params.num_joints}
+
+checkpoint_params:
+  checkpoint_path: ??? # Put the path to the checkpoint here
+
+training_hyperparams:
+  phase_callbacks:
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
