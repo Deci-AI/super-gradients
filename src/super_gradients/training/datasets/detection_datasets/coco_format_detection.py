@@ -15,7 +15,7 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 logger = get_logger(__name__)
 
 
-class COCOFormattedDetectionDataset(DetectionDataset):
+class COCOFormatDetectionDataset(DetectionDataset):
     """Base dataset to load ANY dataset that is with a similar structure to the COCO dataset.
     - Annotation file (.json). It has to respect the exact same format as COCO, for both the json schema and the bbox format (xywh).
     - One folder with all the images.

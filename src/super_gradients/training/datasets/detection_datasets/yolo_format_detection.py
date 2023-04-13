@@ -14,7 +14,7 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 logger = get_logger(__name__)
 
 
-class YoloV5FormattedDetectionDataset(DetectionDataset):
+class YoloFormatDetectionDataset(DetectionDataset):
     """Base dataset to load ANY dataset that is with a similar structure to the YoloV5 dataset.
 
     **Note**: For compatibility reasons, the dataset returns labels in Coco format (XYXY_LABEL) and NOT in YoloV5 format (LABEL_CXCYWH).
