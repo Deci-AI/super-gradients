@@ -40,14 +40,14 @@ The checkpoint keys:
 - `acc`: The network's achieved metric value on the validation set ([metric_to_watch in training_params](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) (float).
 - `epoch`: The last epoch performed.
 - `optimizer_state_dict`: The state_dict of the optimizer (state_dict).
-- `scaler_state_dict`: Optional - only present when training with [mixed_precision=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/average_mixed_precision.md). The state_dict of Trainer.scaler.
-- `ema_net`: Optional - only present when training with [ema=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/EMA.md). The EMA model's state_dict. Note that `average_model.pth` lacks this entry even if ema=True since the average model's snapshots are of the EMA network already (i.e., the "net" entry is already an average of the EMA snapshots).
+- `scaler_state_dict`: Optional - only present when training with [mixed_precision=True](average_mixed_precision.md). The state_dict of Trainer.scaler.
+- `ema_net`: Optional - only present when training with [ema=True](EMA.md). The EMA model's state_dict. Note that `average_model.pth` lacks this entry even if ema=True since the average model's snapshots are of the EMA network already (i.e., the "net" entry is already an average of the EMA snapshots).
 
 ## Remote Checkpoint Saving with SG Loggers
 
 SG supports remote checkpoint saving using 3rd party tools (for example, [Weights & Biases](https://www.google.com/aclk?sa=l&ai=DChcSEwi1iaLxhYj9AhXejWgJHZYqCGIYABAAGgJ3Zg&sig=AOD64_30zInAUka20YKKdULr8PHnLnLWgg&q&adurl&ved=2ahUKEwiKxZvxhYj9AhUzTKQEHSJwCkcQ0Qx6BAgGEAE)).
 To do so, specify `save_checkpoints_remote=True` inside `sg_logger_params` training_param.
-See our documentation on [Third-party experiment monitoring](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/experiment_monitoring.md).
+See our documentation on [Third-party experiment monitoring](experiment_monitoring.md).
 
 
 ## Loading Checkpoints
@@ -185,7 +185,7 @@ The `pretrained_weights` argument specifies the dataset on which the pre-trained
 
 ### Loading Checkpoints: Training with Configuration Files
 
-Prerequisites: [Training with Configuration Files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)
+Prerequisites: [Training with Configuration Files](configuration_files.md)
 
 Recall the SGs recipes library structure:
 

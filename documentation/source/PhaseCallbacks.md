@@ -185,7 +185,7 @@ class SaveFirstBatchCallback(Callback):
 
 Note the `@multi_process_safe` decorator, which allows the callback to be triggered precisely once when running distributed training.
 
-For coded training scripts (i.e., not [using configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)), we can pass an instance of the callback through `phase_callbacks`:
+For coded training scripts (i.e., not [using configuration files](configuration_files.md)), we can pass an instance of the callback through `phase_callbacks`:
 
    ```python
 ...

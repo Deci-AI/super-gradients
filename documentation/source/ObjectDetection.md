@@ -23,7 +23,7 @@ The easiest way to start training any mode in SuperGradients is to use a pre-def
 
 ### Prerequisites
 
-1. You have to install SuperGradients first. Please refer to the [Installation](https://docs.deci.ai/super-gradients/documentation/source/installation/) section for more details.
+1. You have to install SuperGradients first. Please refer to the [Installation](installation.md) section for more details.
 2. Prepare the COCO dataset as described in the [Computer Vision Datasets Setup](https://docs.deci.ai/super-gradients/src/super_gradients/training/datasets/Dataset_Setup_Instructions/) under Detection Datasets section. 
 
 After you meet the prerequisites, you can start training the model by running from the root of the repository:
@@ -36,7 +36,7 @@ python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.
 
 Note, the default configuration for this recipe is to use 8 GPUs in DDP mode. This hardware configuration may not be for everyone, so in the example above we override GPU settings to use a single GPU.
 It is highly recommended to read through the recipe file [coco2017_yolox](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_yolox.yaml) to get better understanding of the hyperparameters we use here.
-If you're unfamiliar with config files, we recommend you to read the [Configuration Files](https://docs.deci.ai/super-gradients/documentation/source/configuration_files/) part first.
+If you're unfamiliar with config files, we recommend you to read the [Configuration Files](configuration_files.md) part first.
 
 ### Datasets
 

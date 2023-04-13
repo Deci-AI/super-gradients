@@ -1,4 +1,4 @@
-# Example: Training an external model
+# Training an external model
 
 In this example we will use SuperGradients to train a deep learning segmentation model to extract human portraits from  
 images, i.e., to remove the background from the image. We will show how SuperGradients allows seamless integration of 

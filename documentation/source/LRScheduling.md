@@ -39,10 +39,10 @@ trainer.train(model=model, training_params=train_params, train_loader=train_data
 
 ## Using Custom LR Schedulers
 
-Prerequisites: [phase callbacks](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/PhaseCallbacks.md), [training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md).
+Prerequisites: [phase callbacks](PhaseCallbacks.md), [training with configuration files](configuration_files.md).
 
 
-In SG, learning rate schedulers are implemented as [phase callbacks](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/PhaseCallbacks.md).
+In SG, learning rate schedulers are implemented as [phase callbacks](PhaseCallbacks.md).
 They read the learning rate from the `PhaseContext` in their `__call__` method, calculate the new learning rate according to the current state of training, and update the optimizer's param groups.
 
 For example, the code snippet from the previous section translates "lr_mode":"step" to a `super_gradients.training.utils.callbacks.callbacks.StepLRCallback` instance, which is added to the phase callbacks list.

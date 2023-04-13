@@ -30,7 +30,7 @@ All SuperGradients models’ are production ready in the sense that they are com
 ## Getting Started
 Check out our [Quickstart tutorial](QuickstartBasicToolkit.md) to get learn the basic of SuperGradients.
 
-You can also start from our tutorial on [Detection](.), [Segmentation](Segmentation.md) or [Pose Estimation](PoseEstimation.md).
+You can also start from our tutorial on [Detection](ObjectDetection.md), [Segmentation](Segmentation.md) or [Pose Estimation](PoseEstimation.md).
  
 ## What's New
 __________________________________________________________________________________________________________

@@ -35,7 +35,7 @@ Apart from the native `torchmetrics` implementations, SG implements some metrics
 
 ## Basic Usage of Implemented Metrics
 
-For coded training scripts (i.e., not [using configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)), the most basic usage is simply passing the metric objects through
+For coded training scripts (i.e., not [using configuration files](configuration_files.md)), the most basic usage is simply passing the metric objects through
 `train_metrics_list` and `valid_metrics_list`:
 
 ```python
@@ -63,7 +63,7 @@ Also, notice the `metric_to_watch` set to `Accuracy` and `greater_metric_to_watc
 Open any of the [tutorial notebooks](https://github.com/Deci-AI/super-gradients#getting-started) to see the metrics monitoring in action.
 For more info on checkpoints and logs, follow our SG checkpoints tutorial.
 
-Equivalently, for [training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md), your `my_training_hyperparams.yaml` would contain:
+Equivalently, for [training with configuration files](configuration_files.md), your `my_training_hyperparams.yaml` would contain:
 ```yaml
 defaults:
   - default_train_params
@@ -84,7 +84,7 @@ valid_metrics_list:                               # metrics for evaluation
 ## Using Custom Metrics
 
 Suppose you implemented your own `MyAccuracy` (more information on how to do so [here](https://torchmetrics.readthedocs.io/en/latest/pages/implement.html)), for coded training, you can pass an instance of it as done in the previous sub-section.
-For [training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md), first decorate your metric class with SG's `@register_metric` decorator:
+For [training with configuration files](configuration_files.md), first decorate your metric class with SG's `@register_metric` decorator:
 ```python
 from torchmetrics import Metric
 import torch

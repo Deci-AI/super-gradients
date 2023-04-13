@@ -105,7 +105,7 @@ Note that during KD training, the `KDModule` outputs (which are of `KDOutput` in
 
 ## Knowledge Distillation Training: Checkpoints
 
-Checkpointing during KD training is generally the [same as checkpointing without KD](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/Checkpoints.md).
+Checkpointing during KD training is generally the [same as checkpointing without KD](Checkpoints.md).
 Nevertheless, there are a few differences worth mentioning:
 
 - `ckpt_latest.pth` contains the state dict of the entire `KDModule`. 
@@ -115,7 +115,7 @@ Nevertheless, there are a few differences worth mentioning:
 
 ## Knowledge Distillation Training with Configuration Files
 
-As done when training without knowledge distillation, to [train with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md#required-hyper-parameters), we call the [`KDTrainer.train_from_config` method](https://github.com/Deci-AI/super-gradients/blob/9485f1533ff64cecb32a238d4779aafca1f0d199/src/super_gradients/training/kd_trainer/kd_trainer.py#L43), which assumes a specific [configuration structure](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md#required-hyper-parameters).
+As done when training without knowledge distillation, to [train with configuration files](configuration_files.md#required-hyper-parameters), we call the [`KDTrainer.train_from_config` method](https://github.com/Deci-AI/super-gradients/blob/9485f1533ff64cecb32a238d4779aafca1f0d199/src/super_gradients/training/kd_trainer/kd_trainer.py#L43), which assumes a specific [configuration structure](configuration_files.md#required-hyper-parameters).
 When training with KD, the same structure and required fields hold, but we introduce a few additions:
 
 - `arch_params` are being passed to the `KDModule` constructor. For example, in our [Resnet50 KD training on Imagenet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/imagenet_resnet50_kd.yaml), we handle the difference in preprocessing of the teacher, which expects different normalization by passing the `KDModule` a normalization adaptor module:

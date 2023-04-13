@@ -680,7 +680,7 @@ If you want to be a part of SuperGradients growing community, hear about all the
 
 * Join the [SG Newsletter](https://www.supergradients.com/#Newsletter)
   for staying up to date with new features and models, important announcements, and upcoming events.
-    
+
 * For a short meeting with us, use this [link](https://calendly.com/ofer-baratz-deci/15min) and choose your preferred time.
 
 ## License
