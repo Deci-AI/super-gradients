@@ -13,8 +13,8 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 logger = get_logger(__name__)
 
 
-class YoloFormatDetectionDataset(DetectionDataset):
-    """Base dataset to load ANY dataset that is with a similar structure to the Yolo dataset.
+class YoloDarknetFormatDetectionDataset(DetectionDataset):
+    """Base dataset to load ANY dataset that is with a similar structure to the Yolo/Darknet dataset.
 
     **Note**: For compatibility reasons, the dataset returns labels in Coco format (XYXY_LABEL) and NOT in Yolo format (LABEL_CXCYWH).
 
@@ -33,8 +33,8 @@ class YoloFormatDetectionDataset(DetectionDataset):
     ):
         """
         :param data_dir:                Where the data is stored.
-        :param images_dir_name:         Name of the directory that includes all the images. Path relative to data_dir.
-        :param labels_dir_name:         Name of the directory that includes all the labels. Path relative to data_dir.
+        :param images_dir_name:         Name of the directory that includes all the images. Path relative to `data_dir`.
+        :param labels_dir_name:         Name of the directory that includes all the labels. Path relative to `data_dir`.
         :param classes:                 List of class names.
         :param class_ids_to_ignore:     List of class ids to ignore in the dataset. By default, doesnt ignore any class.
         """
