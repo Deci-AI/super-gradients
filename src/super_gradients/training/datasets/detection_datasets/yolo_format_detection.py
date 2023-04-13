@@ -18,6 +18,48 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
 
     **Note**: For compatibility reasons, the dataset returns labels in Coco format (XYXY_LABEL) and NOT in Yolo format (LABEL_CXCYWH).
 
+    The dataset can have any structure, as long as `images_dir_name` are `labels_dir_name` inside `data_dir`.
+    Each image is expected to have a file with the same name as the label.
+
+    Example1:
+        data_dir
+        ├── images_dir_name
+        │      ├─ 0001.jpg
+        │      ├─ 0002.jpg
+        │      └─ ...
+        └── labels_dir_name
+               ├─ 0001.txt
+               ├─ 0002.txt
+               └─ ...
+
+    Example2:
+        data_dir
+        ├── train
+        │   ├── images_dir_name
+        │   │      ├─ 0001.jpg
+        │   │      ├─ 0002.jpg
+        │   │      └─ ...
+        │   └── labels_dir_name
+        │          ├─ 0001.txt
+        │          ├─ 0002.txt
+        │          └─ ...
+        └── val
+            ├── images_dir_name
+            │      ├─ 434343.jpg
+            │      ├─ 434344.jpg
+            │      └─ ...
+            └── labels_dir_name
+                   ├─ 434343.txt
+                   ├─ 434344.txt
+                   └─ ...
+
+
+    Each label being in LABEL_CXCYWH:
+        0 0.33333 0.33333 0.50000 0.44444
+        1 0.21111 0.54000 0.30000 0.60000
+        ...
+
+
     Output format: XYXY_LABEL (x, y, x, y, class_id)
     """
 
@@ -33,8 +75,8 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
     ):
         """
         :param data_dir:                Where the data is stored.
-        :param images_dir_name:         Name of the directory that includes all the images. Path relative to `data_dir`.
-        :param labels_dir_name:         Name of the directory that includes all the labels. Path relative to `data_dir`.
+        :param images_dir_name:         Name of the directory that includes all the images. Path relative to `data_dir`. Can be the same as `labels_dir_name`.
+        :param labels_dir_name:         Name of the directory that includes all the labels. Path relative to `data_dir`. Can be the same as `images_dir_name`.
         :param classes:                 List of class names.
         :param class_ids_to_ignore:     List of class ids to ignore in the dataset. By default, doesnt ignore any class.
         """
@@ -60,7 +102,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         self.images_folder = os.path.join(self.data_dir, self.images_dir_name)
         self.labels_folder = os.path.join(self.data_dir, self.labels_dir_name)
 
-        all_images_file_names = list(image_name for image_name in os.listdir(self.images_folder) if image_name.endswith(".jpg"))
+        all_images_file_names = list(image_name for image_name in os.listdir(self.images_folder) if is_image(image_name))
         all_labels_file_names = list(label_name for label_name in os.listdir(self.labels_folder) if label_name.endswith(".txt"))
 
         remove_file_extension = lambda file_name: os.path.splitext(os.path.basename(file_name))[0]
@@ -146,3 +188,8 @@ def parse_yolo_label_file(label_file_path: str) -> np.ndarray:
         label_id, cx, cw, w, h = line.split(" ")
         labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
     return np.array(labels_yolo_format)
+
+
+def is_image(filename: str) -> bool:
+    IMG_EXTENSIONS = ("bmp", "dng", "jpeg", "jpg", "mpo", "png", "tif", "tiff", "webp", "pfm")
+    return filename.split(".")[-1].lower() in IMG_EXTENSIONS
