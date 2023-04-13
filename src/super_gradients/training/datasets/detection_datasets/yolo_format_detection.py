@@ -6,7 +6,6 @@ from typing import List, Optional
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
-from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException
 
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_NORMALIZED_CXCYWH
@@ -15,9 +14,9 @@ logger = get_logger(__name__)
 
 
 class YoloFormatDetectionDataset(DetectionDataset):
-    """Base dataset to load ANY dataset that is with a similar structure to the YoloV5 dataset.
+    """Base dataset to load ANY dataset that is with a similar structure to the Yolo dataset.
 
-    **Note**: For compatibility reasons, the dataset returns labels in Coco format (XYXY_LABEL) and NOT in YoloV5 format (LABEL_CXCYWH).
+    **Note**: For compatibility reasons, the dataset returns labels in Coco format (XYXY_LABEL) and NOT in Yolo format (LABEL_CXCYWH).
 
     Output format: XYXY_LABEL (x, y, x, y, class_id)
     """
@@ -25,8 +24,8 @@ class YoloFormatDetectionDataset(DetectionDataset):
     def __init__(
         self,
         data_dir: str,
-        images_dir: str,
-        labels_dir: str,
+        images_dir_name: str,
+        labels_dir_name: str,
         classes: List[str],
         class_ids_to_ignore: Optional[List[int]] = None,
         *args,
@@ -34,19 +33,19 @@ class YoloFormatDetectionDataset(DetectionDataset):
     ):
         """
         :param data_dir:                Where the data is stored.
-        :param images_dir:              Name of the directory that includes all the images. Path relative to data_dir.
-        :param labels_dir:              Name of the directory that includes all the labels. Path relative to data_dir.
+        :param images_dir_name:         Name of the directory that includes all the images. Path relative to data_dir.
+        :param labels_dir_name:         Name of the directory that includes all the labels. Path relative to data_dir.
         :param classes:                 List of class names.
         :param class_ids_to_ignore:     List of class ids to ignore in the dataset. By default, doesnt ignore any class.
         """
-        self.images_dir = images_dir
-        self.labels_dir = labels_dir
+        self.images_dir_name = images_dir_name
+        self.labels_dir_name = labels_dir_name
         self.class_ids_to_ignore = class_ids_to_ignore or []
         self.classes = classes
 
         kwargs["target_fields"] = ["target"]
         kwargs["output_fields"] = ["image", "target"]
-        kwargs["original_target_format"] = XYXY_LABEL  # We convert yolov5 format (LABEL_CXCYWH) to Coco format (XYXY_LABEL) when loading the annotation
+        kwargs["original_target_format"] = XYXY_LABEL  # We convert yolo format (LABEL_CXCYWH) to Coco format (XYXY_LABEL) when loading the annotation
         super().__init__(data_dir=data_dir, *args, **kwargs)
 
     @property
@@ -58,16 +57,24 @@ class YoloFormatDetectionDataset(DetectionDataset):
 
         :return: number of images in the dataset
         """
-        self.images_folder = os.path.join(self.data_dir, self.images_dir)
-        self.labels_folder = os.path.join(self.data_dir, self.labels_dir)
+        self.images_folder = os.path.join(self.data_dir, self.images_dir_name)
+        self.labels_folder = os.path.join(self.data_dir, self.labels_dir_name)
 
-        self.images_file_names = list(sorted(os.listdir(self.images_folder)))
-        self.labels_file_names = list(sorted(os.listdir(self.labels_folder)))
+        self.images_file_names = list(sorted([image_name for image_name in os.listdir(self.images_folder) if image_name.endswith(".jpg")]))
+        self.labels_file_names = list(sorted([label_name for label_name in os.listdir(self.images_folder) if label_name.endswith(".txt")]))
+        # self.images_file_names = list(sorted(os.listdir(self.images_folder)))
+        # self.labels_file_names = list(sorted(os.listdir(self.labels_folder)))
 
         image_file_base_names = set(os.path.splitext(os.path.basename(image_file_name))[0] for image_file_name in self.images_file_names)
         label_file_base_names = set(os.path.splitext(os.path.basename(label_file_name))[0] for label_file_name in self.labels_file_names)
-        if image_file_base_names != label_file_base_names:
-            raise DatasetValidationException(f"image folder {self.images_folder} and label folder {self.labels_folder} include files that don't match")
+
+        images_not_in_labels = image_file_base_names - label_file_base_names
+        if images_not_in_labels is not None:
+            logger.warning(f"{len(images_not_in_labels)} images are note associated to any label file")
+
+        labels_not_in_images = label_file_base_names - image_file_base_names
+        if labels_not_in_images is not None:
+            logger.warning(f"{len(labels_not_in_images)} label files are not associated to any image.")
 
         return len(self.images_file_names)
 
@@ -87,10 +94,10 @@ class YoloFormatDetectionDataset(DetectionDataset):
         image_width, image_height = imagesize.get(image_path)
         image_shape = (image_height, image_width)
 
-        yolov5_format_target = parse_yolov5_label_file(label_path)
+        yolo_format_target = parse_yolo_label_file(label_path)
 
         converter = ConcatenatedTensorFormatConverter(input_format=LABEL_NORMALIZED_CXCYWH, output_format=XYXY_LABEL, image_shape=image_shape)
-        target = converter(yolov5_format_target)
+        target = converter(yolo_format_target)
 
         # The base class includes a feature to resize the image, so we need to resize the target as well when self.input_dim is set.
         if self.input_dim is not None:
@@ -110,16 +117,18 @@ class YoloFormatDetectionDataset(DetectionDataset):
         return annotation
 
 
-def parse_yolov5_label_file(label_file_path: str) -> np.ndarray:
-    """Parse a single label file in yolo v5 format.
+def parse_yolo_label_file(label_file_path: str) -> np.ndarray:
+    """Parse a single label file in yolo format.
 
-    :return: np.ndarray of shape (n_labels, 5) in yolo v5 format (LABEL_NORMALIZED_CXCYWH)
+    #TODO: Add support for additional fields (with ConcatenatedTensorFormat)
+
+    :return: np.ndarray of shape (n_labels, 5) in yolo format (LABEL_NORMALIZED_CXCYWH)
     """
     with open(label_file_path, "r") as f:
         labels_txt = f.read()
 
-    labels_yolo_v5_format = []
+    labels_yolo_format = []
     for line in labels_txt.split("\n"):
         label_id, cx, cw, w, h = line.split(" ")
-        labels_yolo_v5_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
-    return np.array(labels_yolo_v5_format)
+        labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
+    return np.array(labels_yolo_format)
