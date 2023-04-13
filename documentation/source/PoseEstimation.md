@@ -428,8 +428,8 @@ Training of rescoring model differs from the regular training in the following w
 ### 1. Generate the training data.
 
 Training data for rescoring is a function of dataset and pose estimation model.  
-To generate this training & validation data we need to run inference for pose estimation model on the dataset and save the training data. 
-The rescoring model input are poses `[B,J,3]` and the outputs are the rescoring scores `[B,1]`. Targets are computed object-keypoint similarity (OKs) between predicted pose and ground-truth pose.
+To generate the training & validation data for rescoding model we run inference on the original dataset (COCO in this example) using our pretrained pose estimation model and save it's predictions. 
+The rescoring model input are poses `[B,J,3]` and the outputs are the rescoring scores `[B,1]`. Our targets are computed object-keypoint similarity (OKs) scores between predicted pose and ground-truth pose.
 This step should be done using utility script: 
 
 ```bash
