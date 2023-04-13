@@ -18,7 +18,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
 
     **Note**: For compatibility reasons, the dataset returns labels in Coco format (XYXY_LABEL) and NOT in Yolo format (LABEL_CXCYWH).
 
-    The dataset can have any structure, as long as `images_dir_name` are `labels_dir_name` inside `data_dir`.
+    The dataset can have any structure, as long as `images_dir_name` and `labels_dir_name` inside `data_dir`.
     Each image is expected to have a file with the same name as the label.
 
     Example1:
