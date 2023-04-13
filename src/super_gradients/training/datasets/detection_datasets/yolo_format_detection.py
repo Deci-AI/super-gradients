@@ -54,9 +54,9 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
                    └─ ...
 
 
-    Each label being in LABEL_CXCYWH:
-        0 0.33333 0.33333 0.50000 0.44444
-        1 0.21111 0.54000 0.30000 0.60000
+    Each label file being in LABEL_NORMALIZED_CXCYWH format:
+        0 0.33 0.33 0.50 0.44
+        1 0.21 0.54 0.30 0.60
         ...
 
 
