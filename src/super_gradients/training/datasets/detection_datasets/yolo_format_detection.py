@@ -5,8 +5,8 @@ import numpy as np
 from typing import List, Optional
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.load_image import is_image
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
-
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_NORMALIZED_CXCYWH
 
@@ -188,8 +188,3 @@ def parse_yolo_label_file(label_file_path: str) -> np.ndarray:
         label_id, cx, cw, w, h = line.split(" ")
         labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
     return np.array(labels_yolo_format)
-
-
-def is_image(filename: str) -> bool:
-    IMG_EXTENSIONS = ("bmp", "dng", "jpeg", "jpg", "mpo", "png", "tif", "tiff", "webp", "pfm")
-    return filename.split(".")[-1].lower() in IMG_EXTENSIONS
