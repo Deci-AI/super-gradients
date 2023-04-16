@@ -6,7 +6,7 @@ from tqdm import tqdm
 import numpy as np
 import torch
 from super_gradients.training.utils.utils import generate_batch
-from super_gradients.training.utils.media.video import load_video, is_video
+from super_gradients.training.utils.media.video import load_video, includes_video_extension
 from super_gradients.training.utils.media.image import ImageSource, check_image_typing
 from super_gradients.training.utils.media.stream import WebcamStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
@@ -74,7 +74,7 @@ class Pipeline(ABC):
         :return:            Results of the prediction.
         """
 
-        if is_video(inputs):
+        if includes_video_extension(inputs):
             return self.predict_video(inputs, batch_size)
         elif check_image_typing(inputs):
             return self.predict_images(inputs, batch_size)
