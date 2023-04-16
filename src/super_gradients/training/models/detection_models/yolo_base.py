@@ -11,10 +11,10 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
-from super_gradients.training.models.results import DetectionResults
+from super_gradients.training.models.prediction_results import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.transforms.processing import Processing
-
+from super_gradients.training.utils.media.image import ImageSource
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
     [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]
@@ -429,8 +429,8 @@ class YoloBase(SgModule):
         self,
         class_names: Optional[List[str]] = None,
         image_processor: Optional[Processing] = None,
-        iou: Optional[List[str]] = None,
-        conf: Optional[List[str]] = None,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
     ) -> None:
         """Set the processing parameters for the dataset.
 
@@ -441,15 +441,15 @@ class YoloBase(SgModule):
         """
         self._class_names = class_names or self._class_names
         self._image_processor = image_processor or self._image_processor
-        self._default_nms_iou = iou or self._default_iou
-        self._default_nms_conf = conf or self._default_conf
+        self._default_nms_iou = iou or self._default_nms_iou
+        self._default_nms_conf = conf or self._default_nms_conf
 
-    def predict(self, images, iou: Optional[List[str]] = None, conf: Optional[List[str]] = None) -> DetectionResults:
-        """Predict an image or a batch of images.
+    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPipeline:
+        """Instantiate the prediction pipeline of this model.
 
-        :param images:  Images to predict.
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:    (Optional) Below the confidence threshold, prediction are discarded. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
@@ -465,7 +465,28 @@ class YoloBase(SgModule):
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
         )
-        return pipeline(images)
+        return pipeline
+
+    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> ImagesDetectionPrediction:
+        """Predict an image or a list of images.
+
+        :param images:  Images to predict.
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        """
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        return pipeline(images)  # type: ignore
+
+    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None):
+        """Predict using webcam.
+
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        """
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline.predict_webcam()
 
     def forward(self, x):
         out = self._backbone(x)
