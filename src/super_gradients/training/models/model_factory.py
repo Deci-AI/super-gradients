@@ -136,7 +136,7 @@ def instantiate_model(
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
 
-            # TODO: remove once we load it from the checkpoint
+            # STILL NEED TO GET PREPROCESSING PARAMS IN CASE CHECKPOINT HAS NO RECIPE
             processing_params = get_pretrained_processing_params(model_name, pretrained_weights)
             net.set_dataset_processing_params(**processing_params)
 
@@ -200,7 +200,9 @@ def get(
         raise ValueError("Please set checkpoint_path when load_backbone=True")
 
     if checkpoint_path:
-        load_ema_as_net = "ema_net" in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
+        ckpt_entries = read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
+        load_processing = "processing_params" in ckpt_entries
+        load_ema_as_net = "ema_net" in ckpt_entries
         _ = load_checkpoint_to_model(
             ckpt_local_path=checkpoint_path,
             load_backbone=load_backbone,
@@ -208,6 +210,7 @@ def get(
             strict=strict_load.value if hasattr(strict_load, "value") else strict_load,
             load_weights_only=True,
             load_ema_as_net=load_ema_as_net,
+            load_processing_params=load_processing,
         )
     if checkpoint_num_classes != num_classes:
         net.replace_head(new_num_classes=num_classes)
