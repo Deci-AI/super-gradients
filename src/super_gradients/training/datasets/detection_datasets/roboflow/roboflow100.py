@@ -2,13 +2,13 @@ import os
 from typing import List, Dict, Union, Optional
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOFormattedDetectionDataset
+from super_gradients.training.datasets.detection_datasets.coco_format_detection import COCOFormatDetectionDataset
 from super_gradients.training.datasets.detection_datasets.roboflow.utils import get_dataset_metadata, list_datasets
 
 logger = get_logger(__name__)
 
 
-class RoboflowDetectionDataset(COCOFormattedDetectionDataset):
+class RoboflowDetectionDataset(COCOFormatDetectionDataset):
     """Dataset that can be used with ANY of the Roboflow100 benchmark datasets for object detection.
     Checkout the datasets at https://universe.roboflow.com/roboflow-100?ref=blog.roboflow.com
 
