@@ -1,17 +1,18 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Iterator
 from dataclasses import dataclass
-from matplotlib import pyplot as plt
 
 import numpy as np
 
 from super_gradients.training.utils.detection_utils import DetectionVisualization
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
+from super_gradients.training.utils.media.video import show_video_from_frames
+from super_gradients.training.utils.media.image import show_image
 
 
 @dataclass
-class Result(ABC):
-    """Results of a given computer vision task (detection, classification, etc.).
+class ImagePrediction(ABC):
+    """Object wrapping an image and a model's prediction.
 
     :attr image:        Input image
     :attr predictions:  Predictions of the model
@@ -19,7 +20,7 @@ class Result(ABC):
     """
 
     image: np.ndarray
-    predictions: Prediction
+    prediction: Prediction
     class_names: List[str]
 
     @abstractmethod
@@ -34,28 +35,8 @@ class Result(ABC):
 
 
 @dataclass
-class Results(ABC):
-    """List of results of a given computer vision task (detection, classification, etc.).
-
-    :attr results: List of results of the run
-    """
-
-    results: List[Result]
-
-    @abstractmethod
-    def draw(self) -> List[np.ndarray]:
-        """Draw the predictions on the image."""
-        pass
-
-    @abstractmethod
-    def show(self) -> None:
-        """Display the predictions on the image."""
-        pass
-
-
-@dataclass
-class DetectionResult(Result):
-    """Result of a detection task.
+class ImageDetectionPrediction(ImagePrediction):
+    """Object wrapping an image and a detection model's prediction.
 
     :attr image:        Input image
     :attr predictions:  Predictions of the model
@@ -63,7 +44,7 @@ class DetectionResult(Result):
     """
 
     image: np.ndarray
-    predictions: DetectionPrediction
+    prediction: DetectionPrediction
     class_names: List[str]
 
     def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> np.ndarray:
@@ -78,18 +59,18 @@ class DetectionResult(Result):
         image_np = self.image.copy()
         color_mapping = color_mapping or DetectionVisualization._generate_color_mapping(len(self.class_names))
 
-        for pred_i in range(len(self.predictions)):
+        for pred_i in range(len(self.prediction)):
             image_np = DetectionVisualization._draw_box_title(
                 color_mapping=color_mapping,
                 class_names=self.class_names,
                 box_thickness=box_thickness,
                 image_np=image_np,
-                x1=int(self.predictions.bboxes_xyxy[pred_i, 0]),
-                y1=int(self.predictions.bboxes_xyxy[pred_i, 1]),
-                x2=int(self.predictions.bboxes_xyxy[pred_i, 2]),
-                y2=int(self.predictions.bboxes_xyxy[pred_i, 3]),
-                class_id=int(self.predictions.labels[pred_i]),
-                pred_conf=self.predictions.confidence[pred_i] if show_confidence else None,
+                x1=int(self.prediction.bboxes_xyxy[pred_i, 0]),
+                y1=int(self.prediction.bboxes_xyxy[pred_i, 1]),
+                x2=int(self.prediction.bboxes_xyxy[pred_i, 2]),
+                y2=int(self.prediction.bboxes_xyxy[pred_i, 3]),
+                class_id=int(self.prediction.labels[pred_i]),
+                pred_conf=self.prediction.confidence[pred_i] if show_confidence else None,
             )
         return image_np
 
@@ -102,34 +83,57 @@ class DetectionResult(Result):
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
         image_np = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
-
-        plt.imshow(image_np, interpolation="nearest")
-        plt.axis("off")
-        plt.show()
+        show_image(image_np)
 
 
 @dataclass
-class DetectionResults(Results):
-    """Results of a detection task.
+class ImagesPredictions(ABC):
+    """Object wrapping the list of image predictions.
 
-    :attr results:  List of the predictions results
+    :attr _images_prediction_lst: List of results of the run
     """
 
-    def __init__(self, images: List[np.ndarray], predictions: List[DetectionPrediction], class_names: List[str]):
-        self.results: List[DetectionResult] = []
-        for image, prediction in zip(images, predictions):
-            self.results.append(DetectionResult(image=image, predictions=prediction, class_names=class_names))
+    _images_prediction_lst: List[ImagePrediction]
 
-    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> List[np.ndarray]:
-        """Draw the predicted bboxes on the images.
+    def __len__(self) -> int:
+        return len(self._images_prediction_lst)
 
-        :param box_thickness:   Thickness of bounding boxes.
-        :param show_confidence: Whether to show confidence scores on the image.
-        :param color_mapping:   List of tuples representing the colors for each class.
-                                Default is None, which generates a default color mapping based on the number of class names.
-        :return:                List of Images with predicted bboxes for each image. Note that this does not modify the original images.
-        """
-        return [prediction.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping) for prediction in self.results]
+    def __getitem__(self, index: int) -> ImagePrediction:
+        return self._images_prediction_lst[index]
+
+    def __iter__(self) -> Iterator[ImagePrediction]:
+        return iter(self._images_prediction_lst)
+
+    @abstractmethod
+    def show(self) -> None:
+        pass
+
+
+@dataclass
+class VideoPredictions(ImagesPredictions, ABC):
+    """Object wrapping the list of image predictions as a Video.
+
+    :attr _images_prediction_lst:   List of results of the run
+    :att fps:                       Frames per second of the video
+    """
+
+    _images_prediction_lst: List[ImagePrediction]
+    fps: float
+
+    @abstractmethod
+    def show(self, *args, **kwargs) -> None:
+        """Display the predictions on the image."""
+        pass
+
+
+@dataclass
+class ImagesDetectionPrediction(ImagesPredictions):
+    """Object wrapping the list of image detection predictions.
+
+    :attr _images_prediction_lst:  List of the predictions results
+    """
+
+    _images_prediction_lst: List[ImageDetectionPrediction]
 
     def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
         """Display the predicted bboxes on the images.
@@ -139,5 +143,30 @@ class DetectionResults(Results):
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
-        for prediction in self.results:
+        for prediction in self._images_prediction_lst:
             prediction.show(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
+
+
+@dataclass
+class VideoDetectionPrediction(VideoPredictions):
+    """Object wrapping the list of image detection predictions as a Video.
+
+    :attr _images_prediction_lst:   List of the predictions results
+    :att fps:                       Frames per second of the video
+    """
+
+    _images_prediction_lst: List[ImageDetectionPrediction]
+    fps: float
+
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
+        """Display the predicted bboxes on the images.
+
+        :param box_thickness:   Thickness of bounding boxes.
+        :param show_confidence: Whether to show confidence scores on the image.
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
+        frames = [
+            result.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping) for result in self._images_prediction_lst
+        ]
+        show_video_from_frames(window_name="Detection", frames=frames, fps=self.fps)

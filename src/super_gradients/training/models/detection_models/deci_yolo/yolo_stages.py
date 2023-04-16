@@ -2,7 +2,7 @@ from functools import partial
 from typing import Type, List
 
 import torch
-from torch import nn
+from torch import nn, Tensor
 
 from super_gradients.common.registry import register_detection_module
 from super_gradients.modules import Residual, BaseDetectionModule
@@ -15,7 +15,23 @@ __all__ = ["DeciYOLOStage", "DeciYOLOUpStage", "DeciYOLOStem", "DeciYOLODownStag
 
 
 class DeciYOLOBottleneck(nn.Module):
-    def __init__(self, input_channels, output_channels, block_type: Type[nn.Module], activation_type: Type[nn.Module], shortcut: bool, use_alpha: bool):
+    """
+    A bottleneck block for DeciYOLO. Consists of two consecutive blocks and optional residual connection.
+    """
+
+    def __init__(
+        self, input_channels: int, output_channels: int, block_type: Type[nn.Module], activation_type: Type[nn.Module], shortcut: bool, use_alpha: bool
+    ):
+        """
+        Initialize the DeciYOLOBottleneck block
+
+        :param input_channels: Number of input channels
+        :param output_channels: Number of output channels
+        :param block_type: Type of the convolutional block
+        :param activation_type: Activation type for the convolutional block
+        :param shortcut: If True, adds the residual connection from input to output.
+        :param use_alpha: If True, adds the learnable alpha parameter (multiplier for the residual connection).
+        """
         super().__init__()
 
         self.cv1 = block_type(input_channels, output_channels, activation_type=activation_type)
@@ -32,11 +48,15 @@ class DeciYOLOBottleneck(nn.Module):
 
 
 class SequentialWithIntermediates(nn.Sequential):
-    def __init__(self, output_intermediates, *args):
+    """
+    A Sequential module that can return all intermediate values as a list of Tensors
+    """
+
+    def __init__(self, output_intermediates: bool, *args):
         super(SequentialWithIntermediates, self).__init__(*args)
         self.output_intermediates = output_intermediates
 
-    def forward(self, input):
+    def forward(self, input: Tensor) -> List[Tensor]:
         if self.output_intermediates:
             output = [input]
             for module in self:
@@ -47,6 +67,10 @@ class SequentialWithIntermediates(nn.Sequential):
 
 
 class DeciYOLOCSPLayer(nn.Module):
+    """
+    Cross-stage layer module for DeciYOLO.
+    """
+
     def __init__(
         self,
         in_channels: int,
@@ -60,6 +84,19 @@ class DeciYOLOCSPLayer(nn.Module):
         hidden_channels: int = None,
         concat_intermediates: bool = False,
     ):
+        """
+
+        :param in_channels: Number of input channels.
+        :param out_channels:  Number of output channels.
+        :param num_bottlenecks: Number of bottleneck blocks.
+        :param block_type: Bottleneck block type.
+        :param activation_type: Activation type for all blocks.
+        :param shortcut: If True, adds the residual connection from input to output.
+        :param use_alpha: If True, adds the learnable alpha parameter (multiplier for the residual connection).
+        :param expansion: If hidden_channels is None, hidden_channels is set to in_channels * expansion.
+        :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks.
+        :param concat_intermediates:
+        """
         super(DeciYOLOCSPLayer, self).__init__()
         if hidden_channels is None:
             hidden_channels = int(out_channels * expansion)
@@ -69,7 +106,7 @@ class DeciYOLOCSPLayer(nn.Module):
         module_list = [DeciYOLOBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha) for _ in range(num_bottlenecks)]
         self.bottlenecks = SequentialWithIntermediates(concat_intermediates, *module_list)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         x_1 = self.conv1(x)
         x_1 = self.bottlenecks(x_1)
         x_2 = self.conv2(x)
@@ -79,7 +116,16 @@ class DeciYOLOCSPLayer(nn.Module):
 
 @register_detection_module()
 class DeciYOLOStem(BaseDetectionModule):
+    """
+    Stem module for DeciYOLO. Consists of a single QARepVGGBlock with stride of two.
+    """
+
     def __init__(self, in_channels: int, out_channels: int):
+        """
+        Initialize the DeciYOLOStem module
+        :param in_channels: Number of input channels
+        :param out_channels: Number of output channels
+        """
         super().__init__(in_channels)
         self._out_channels = out_channels
         self.conv = QARepVGGBlock(in_channels, out_channels, stride=2, use_residual_connection=False)
@@ -88,12 +134,16 @@ class DeciYOLOStem(BaseDetectionModule):
     def out_channels(self):
         return self._out_channels
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         return self.conv(x)
 
 
 @register_detection_module()
 class DeciYOLOStage(BaseDetectionModule):
+    """
+    A single stage module for DeciYOLO. It consists of a downsample block (QARepVGGBlock) followed by DeciYOLOCSPLayer.
+    """
+
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
@@ -104,6 +154,15 @@ class DeciYOLOStage(BaseDetectionModule):
         hidden_channels: int = None,
         concat_intermediates: bool = False,
     ):
+        """
+        Initialize the DeciYOLOStage module
+        :param in_channels: Number of input channels
+        :param out_channels: Number of output channels
+        :param num_blocks: Number of bottleneck blocks in the DeciYOLOCSPLayer
+        :param activation_type: Activation type for all blocks
+        :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks.
+        :param concat_intermediates: If True, concatenates the intermediate values from the DeciYOLOCSPLayer.
+        """
         super().__init__(in_channels)
         self._out_channels = out_channels
         self.downsample = QARepVGGBlock(in_channels, out_channels, stride=2, activation_type=activation_type, use_residual_connection=False)
@@ -128,6 +187,10 @@ class DeciYOLOStage(BaseDetectionModule):
 
 @register_detection_module()
 class DeciYOLOUpStage(BaseDetectionModule):
+    """
+    Upsampling stage for DeciYOLO.
+    """
+
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
@@ -141,6 +204,18 @@ class DeciYOLOUpStage(BaseDetectionModule):
         concat_intermediates: bool = False,
         reduce_channels: bool = False,
     ):
+        """
+        Initialize the DeciYOLOUpStage module
+        :param in_channels: Number of input channels
+        :param out_channels: Number of output channels
+        :param width_mult: Multiplier for the number of channels in the stage.
+        :param num_blocks: Number of bottleneck blocks
+        :param depth_mult: Multiplier for the number of blocks in the stage.
+        :param activation_type: Activation type for all blocks
+        :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks
+        :param concat_intermediates:
+        :param reduce_channels:
+        """
         super().__init__(in_channels)
 
         num_inputs = len(in_channels)
@@ -212,6 +287,19 @@ class DeciYOLODownStage(BaseDetectionModule):
         hidden_channels: int = None,
         concat_intermediates: bool = False,
     ):
+        """
+        Initializes a DeciYOLODownStage.
+
+        :param in_channels: Number of input channels.
+        :param out_channels: Number of output channels.
+        :param width_mult: Multiplier for the number of channels in the stage.
+        :param num_blocks: Number of blocks in the stage.
+        :param depth_mult: Multiplier for the number of blocks in the stage.
+        :param activation_type: Type of activation to use inside the blocks.
+        :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks.
+        :param concat_intermediates:
+        """
+
         super().__init__(in_channels)
 
         in_channels, skip_in_channels = in_channels
@@ -221,11 +309,11 @@ class DeciYOLODownStage(BaseDetectionModule):
         self.conv = Conv(in_channels, out_channels // 2, 3, 2, activation_type)
         after_concat_channels = out_channels // 2 + skip_in_channels
         self.blocks = DeciYOLOCSPLayer(
-            after_concat_channels,
-            out_channels,
-            num_blocks,
-            partial(Conv, kernel=3, stride=1),
-            activation_type,
+            in_channels=after_concat_channels,
+            out_channels=out_channels,
+            num_bottlenecks=num_blocks,
+            block_type=partial(Conv, kernel=3, stride=1),
+            activation_type=activation_type,
             hidden_channels=hidden_channels,
             concat_intermediates=concat_intermediates,
         )

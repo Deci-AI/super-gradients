@@ -1,22 +1,34 @@
 import math
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, Callable, Optional
 
-import super_gradients.common.factories.detection_modules_factory as det_factory
 import torch
 from omegaconf import DictConfig
+from torch import nn, Tensor
+
+import super_gradients.common.factories.detection_modules_factory as det_factory
 from super_gradients.common.registry import register_detection_module
 from super_gradients.modules import ConvBNReLU
 from super_gradients.modules.base_modules import BaseDetectionModule
+from super_gradients.modules.interfaces import SupportsReplaceNumClasses
 from super_gradients.modules.utils import width_multiplier
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell
 from super_gradients.training.utils import HpmStruct, torch_version_is_greater_or_equal
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
-from torch import nn, Tensor
 
 
 @register_detection_module()
-class DeciYOLODFLHead(BaseDetectionModule):
+class DeciYOLODFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
     def __init__(self, in_channels: int, inter_channels: int, width_mult: float, first_conv_group_size: int, num_classes: int, stride: int, reg_max: int):
+        """
+        Initialize the DeciYOLODFLHead
+        :param in_channels: Input channels
+        :param inter_channels: Intermediate number of channels
+        :param width_mult: Width multiplier
+        :param first_conv_group_size: Group size
+        :param num_classes: Number of detection classes
+        :param stride: Output stride for this head
+        :param reg_max: Number of bins in the regression head
+        """
         super().__init__(in_channels)
 
         inter_channels = width_multiplier(inter_channels, width_mult, 8)
@@ -44,6 +56,10 @@ class DeciYOLODFLHead(BaseDetectionModule):
 
         self.prior_prob = 1e-2
         self._initialize_biases()
+
+    def replace_num_classes(self, num_classes: int, compute_new_weights_fn: Callable[[nn.Module, int], nn.Module]):
+        self.cls_pred = compute_new_weights_fn(self.cls_pred, num_classes)
+        self.num_classes = num_classes
 
     @property
     def out_channels(self):
@@ -75,32 +91,29 @@ class DeciYOLODFLHead(BaseDetectionModule):
 
 
 @register_detection_module()
-class NDFLHeads(BaseDetectionModule):
+class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
     def __init__(
         self,
         num_classes: int,
         in_channels: Tuple[int, int, int],
         heads_list: Union[str, HpmStruct, DictConfig],
-        grid_cell_scale=5.0,
-        grid_cell_offset=0.5,
-        reg_max=16,
-        eval_size: Tuple[int, int] = None,
+        grid_cell_scale: float = 5.0,
+        grid_cell_offset: float = 0.5,
+        reg_max: int = 16,
+        eval_size: Optional[Tuple[int, int]] = None,
         width_mult: float = 1.0,
     ):
         """
+        Initializes the NDFLHeads module.
 
-        :param num_classes:
+        :param num_classes: Number of detection classes
         :param in_channels: Number of channels for each feature map (See width_mult)
-        :param activation: Type of the activation used in module
-        :param fpn_strides: Output strides of the feature maps from the neck
         :param grid_cell_scale:
         :param grid_cell_offset:
-        :param reg_max:
+        :param reg_max: Number of bins in the regression head
         :param eval_size: (rows, cols) Size of the image for evaluation. Setting this value can be beneficial for inference speed,
                since anchors will not be regenerated for each forward call.
-        :param exclude_nms:
-        :param exclude_post_process:
-        :param width_mult: A scaling factor applied to in_channels in order.
+        :param width_mult: A scaling factor applied to in_channels.
         """
         super(NDFLHeads, self).__init__(in_channels)
         in_channels = [max(round(c * width_mult), 1) for c in in_channels]
@@ -129,6 +142,13 @@ class NDFLHeads(BaseDetectionModule):
             setattr(self, f"head{i + 1}", new_head)
 
         self.fpn_strides = tuple(fpn_strides)
+
+    def replace_num_classes(self, num_classes: int, compute_new_weights_fn: Callable[[nn.Module, int], nn.Module]):
+        for i in range(self.num_heads):
+            head = getattr(self, f"head{i + 1}")
+            head.replace_num_classes(num_classes, compute_new_weights_fn)
+
+        self.num_classes = num_classes
 
     @staticmethod
     def _pass_args(heads_list, factory, num_classes, reg_max):
