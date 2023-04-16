@@ -4,7 +4,9 @@ import cv2
 import numpy as np
 
 
-__all__ = ["load_video", "save_video", "is_video", "show_video_from_disk", "show_video_from_frames"]
+__all__ = ["load_video", "save_video", "includes_video_extension", "show_video_from_disk", "show_video_from_frames"]
+
+VIDEO_EXTENSIONS = (".mp4", ".avi", ".mov", ".wmv", ".flv")
 
 
 def load_video(file_path: str, max_frames: Optional[int] = None) -> Tuple[List[np.ndarray], int]:
@@ -143,15 +145,9 @@ def show_video_from_frames(frames: List[np.ndarray], fps: float, window_name: st
     cv2.waitKey(1)
 
 
-def is_video(file_path: str) -> bool:
-    """Check if a file is a video file.
+def includes_video_extension(file_path: str) -> bool:
+    """Check if a file includes a video extension.
     :param file_path:   Path to the video file.
-    :return:            True if the file is a video file, False otherwise.
+    :return:            True if the file includes a video extension.
     """
-    try:
-        cap = cv2.VideoCapture(file_path, apiPreference=cv2.CAP_FFMPEG)
-        if cap.isOpened():
-            cap.release()
-            return True
-    except Exception:
-        return False
+    return file_path.lower().endswith(VIDEO_EXTENSIONS)
