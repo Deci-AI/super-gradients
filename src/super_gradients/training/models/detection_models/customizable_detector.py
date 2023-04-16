@@ -5,9 +5,7 @@ A base for a detection network built according to the following scheme:
  * each module accepts in_channels and other parameters
  * each module defines out_channels property on construction
 """
-
-
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 from torch import nn
 from omegaconf import DictConfig
@@ -15,6 +13,11 @@ from omegaconf import DictConfig
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
+from super_gradients.training.models.prediction_results import ImagesDetectionPrediction
+from super_gradients.training.pipelines.pipelines import DetectionPipeline
+from super_gradients.training.transforms.processing import Processing
+from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
+from super_gradients.training.utils.media.image import ImageSource
 
 
 class CustomizableDetector(SgModule):
@@ -67,6 +70,12 @@ class CustomizableDetector(SgModule):
 
         self._initialize_weights(bn_eps, bn_momentum, inplace_act)
 
+        # Processing params
+        self._class_names: Optional[List[str]] = None
+        self._image_processor: Optional[Processing] = None
+        self._default_nms_iou: Optional[float] = None
+        self._default_nms_conf: Optional[float] = None
+
     def forward(self, x):
         x = self.backbone(x)
         x = self.neck(x)
@@ -96,3 +105,70 @@ class CustomizableDetector(SgModule):
             self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", new_num_classes)
             self.heads = factory.get(factory.insert_module_param(self.heads_params, "in_channels", self.neck.out_channels))
             self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)
+
+    @staticmethod
+    def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
+        raise NotImplementedError
+
+    def set_dataset_processing_params(
+        self,
+        class_names: Optional[List[str]] = None,
+        image_processor: Optional[Processing] = None,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+    ) -> None:
+        """Set the processing parameters for the dataset.
+
+        :param class_names:     (Optional) Names of the dataset the model was trained on.
+        :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
+        :param iou:             (Optional) IoU threshold for the nms algorithm
+        :param conf:            (Optional) Below the confidence threshold, prediction are discarded
+        """
+        self._class_names = class_names or self._class_names
+        self._image_processor = image_processor or self._image_processor
+        self._default_nms_iou = iou or self._default_nms_iou
+        self._default_nms_conf = conf or self._default_nms_conf
+
+    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPipeline:
+        """Instantiate the prediction pipeline of this model.
+
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        """
+        if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
+            raise RuntimeError(
+                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
+            )
+
+        iou = iou or self._default_nms_iou
+        conf = conf or self._default_nms_conf
+
+        pipeline = DetectionPipeline(
+            model=self,
+            image_processor=self._image_processor,
+            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            class_names=self._class_names,
+        )
+        return pipeline
+
+    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> ImagesDetectionPrediction:
+        """Predict an image or a list of images.
+
+        :param images:  Images to predict.
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        """
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        return pipeline(images)  # type: ignore
+
+    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None):
+        """Predict using webcam.
+
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        """
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline.predict_webcam()
