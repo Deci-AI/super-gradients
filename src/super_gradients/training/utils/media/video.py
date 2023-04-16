@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 
-__all__ = ["load_video", "save_video"]
+__all__ = ["load_video", "save_video", "is_video", "show_video_from_disk", "show_video_from_frames"]
 
 
 def load_video(file_path: str, max_frames: Optional[int] = None) -> Tuple[List[np.ndarray], int]:
@@ -30,6 +30,7 @@ def _open_video(file_path: str) -> cv2.VideoCapture:
     :return:            Opened video capture object
     """
     cap = cv2.VideoCapture(file_path)
+
     if not cap.isOpened():
         raise ValueError(f"Failed to open video file: {file_path}")
     return cap
@@ -97,3 +98,60 @@ def _validate_frames(frames: List[np.ndarray]) -> Tuple[float, float]:
         raise RuntimeError("Your frames must include 3 channels.")
 
     return max_height, max_width
+
+
+def show_video_from_disk(video_path: str, window_name: str = "Prediction"):
+    """Display a video from disk using OpenCV.
+
+    :param video_path:   Path to the video file.
+    :param window_name:  Name of the window to display the video
+    """
+    cap = _open_video(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+
+        if ret:
+            # Display the frame
+            cv2.imshow(window_name, frame)
+
+            # Wait for the specified number of milliseconds before displaying the next frame
+            if cv2.waitKey(int(1000 / fps)) & 0xFF == ord("q"):
+                break
+        else:
+            break
+
+    # Release the VideoCapture object and destroy the window
+    cap.release()
+    cv2.destroyAllWindows()
+    cv2.waitKey(1)
+
+
+def show_video_from_frames(frames: List[np.ndarray], fps: float, window_name: str = "Prediction") -> None:
+    """Display a video from a list of frames using OpenCV.
+
+    :param frames:      Frames representing the video, each in (H, W, C), RGB. Note that all the frames are expected to have the same shape.
+    :param fps:         Frames per second
+    :param window_name:  Name of the window to display the video
+    """
+    for frame in frames:
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        cv2.imshow(window_name, frame)
+        cv2.waitKey(int(1000 / fps))
+    cv2.destroyAllWindows()
+    cv2.waitKey(1)
+
+
+def is_video(file_path: str) -> bool:
+    """Check if a file is a video file.
+    :param file_path:   Path to the video file.
+    :return:            True if the file is a video file, False otherwise.
+    """
+    try:
+        cap = cv2.VideoCapture(file_path, apiPreference=cv2.CAP_FFMPEG)
+        if cap.isOpened():
+            cap.release()
+            return True
+    except Exception:
+        return False
