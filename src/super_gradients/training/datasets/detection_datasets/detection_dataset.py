@@ -473,3 +473,23 @@ class DetectionDataset(Dataset):
             plot_counter += 1
             if plot_counter == n_plots:
                 return
+
+    def get_dataset_preprocessing_params(self):
+        """
+        Return any hardcoded preprocessing + adaptation for PIL.Image image reading (RGB)
+        :return:
+        """
+        from super_gradients.training.transforms import processing
+
+        pipeline = [processing.ReverseImageChannels()]
+        if self.input_dim is not None:
+            pipeline += [processing.DetectionLongestMaxSizeRescale(self.input_dim)]
+        for t in self.transforms:
+            pipeline += t.get_equivalent_preprocessing()
+        params = dict(
+            class_names=self.classes,
+            image_processor=processing.ComposeProcessing(pipeline),
+            iou=0.65,
+            conf=0.5,
+        )
+        return params

@@ -64,7 +64,7 @@ training_hyperparams:
           nms_threshold: 0.7
 
 
-multi_gpu: Off
+multi_gpu: DDP
 num_gpus:
 experiment_name: ${architecture}_roboflow_${dataset_name}
 ckpt_root_dir:

@@ -10,5 +10,5 @@ IMAGES = [
     "https://cdn-attachments.timesofmalta.com/cc1eceadde40d2940bc5dd20692901371622153217-1301777007-4d978a6f-620x348.jpg",
 ]
 
-prediction = model.predict(IMAGES)
+prediction = model.predict("../../../../documentation/source/images/examples/countryside.jpg")
 prediction.show()

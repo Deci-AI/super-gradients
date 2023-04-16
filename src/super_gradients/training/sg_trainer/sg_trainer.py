@@ -89,11 +89,6 @@ from super_gradients.training.params import TrainingParams
 logger = get_logger(__name__)
 
 
-def set_preprocessing_pipeline(net, valid_loader):
-    if hasattr(valid_loader.dataset, "get_dataset_preprocessing_params"):
-        net.set_dataset_processing_params(**valid_loader.dataset.get_dataset_preprocessing_params)
-
-
 class Trainer:
     """
     SuperGradient Model - Base Class for Sg Models
@@ -1221,9 +1216,7 @@ class Trainer:
             len_train_set=len(self.train_loader.dataset),
         )
 
-        if isinstance(self.net.module, SgModule):
-            set_preprocessing_pipeline(self.net, self.valid_loader)
-
+        self._set_net_preprocessing_from_valid_loader()
         try:
             # HEADERS OF THE TRAINING PROGRESS
             if not silent_mode:
@@ -1320,6 +1313,16 @@ class Trainer:
 
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
+
+    def _set_net_preprocessing_from_valid_loader(self):
+        if isinstance(self.net.module, SgModule) and hasattr(self.valid_loader.dataset, "get_dataset_preprocessing_params"):
+            try:
+                self.net.module.set_dataset_processing_params(**self.valid_loader.dataset.get_dataset_preprocessing_params())
+            except Exception as e:
+                logger.warning(
+                    f"Could not set preprocessing pipeline from the validation dataset: {e}. Before calling"
+                    "predict make sure to call set_dataset_processing_params."
+                )
 
     def _reset_best_metric(self):
         self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
