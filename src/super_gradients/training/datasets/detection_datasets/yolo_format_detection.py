@@ -150,7 +150,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         image_width, image_height = imagesize.get(image_path)
         image_shape = (image_height, image_width)
 
-        yolo_format_target = parse_yolo_label_file(label_path)
+        yolo_format_target = self._parse_yolo_label_file(label_path)
 
         converter = ConcatenatedTensorFormatConverter(input_format=LABEL_NORMALIZED_CXCYWH, output_format=XYXY_LABEL, image_shape=image_shape)
         target = converter(yolo_format_target)
@@ -172,19 +172,19 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         }
         return annotation
 
+    @staticmethod
+    def _parse_yolo_label_file(label_file_path: str) -> np.ndarray:
+        """Parse a single label file in yolo format.
 
-def parse_yolo_label_file(label_file_path: str) -> np.ndarray:
-    """Parse a single label file in yolo format.
+        #TODO: Add support for additional fields (with ConcatenatedTensorFormat)
 
-    #TODO: Add support for additional fields (with ConcatenatedTensorFormat)
+        :return: np.ndarray of shape (n_labels, 5) in yolo format (LABEL_NORMALIZED_CXCYWH)
+        """
+        with open(label_file_path, "r") as f:
+            labels_txt = f.read()
 
-    :return: np.ndarray of shape (n_labels, 5) in yolo format (LABEL_NORMALIZED_CXCYWH)
-    """
-    with open(label_file_path, "r") as f:
-        labels_txt = f.read()
-
-    labels_yolo_format = []
-    for line in labels_txt.split("\n"):
-        label_id, cx, cw, w, h = line.split(" ")
-        labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
-    return np.array(labels_yolo_format)
+        labels_yolo_format = []
+        for line in labels_txt.split("\n"):
+            label_id, cx, cw, w, h = line.split(" ")
+            labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
+        return np.array(labels_yolo_format)
