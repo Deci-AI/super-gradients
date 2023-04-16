@@ -6,6 +6,7 @@ import torch
 import requests
 from urllib.parse import urlparse
 
+IMG_EXTENSIONS = ("bmp", "dng", "jpeg", "jpg", "mpo", "png", "tif", "tiff", "webp", "pfm")
 ImageType = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
 
 
@@ -75,3 +76,12 @@ def is_url(url: str) -> bool:
         return all([result.scheme, result.netloc, result.path])
     except Exception:
         return False
+
+
+def is_image(filename: str) -> bool:
+    """Check if the given file name refers to image.
+
+    :param filename:    The filename to check.
+    :return:            True if the file is an image, False otherwise.
+    """
+    return filename.split(".")[-1].lower() in IMG_EXTENSIONS
