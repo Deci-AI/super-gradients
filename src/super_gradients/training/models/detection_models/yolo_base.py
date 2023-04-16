@@ -4,6 +4,8 @@ from typing import Union, Type, List, Tuple, Optional
 import torch
 import torch.nn as nn
 
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.modules import CrossModelSkipConnection
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
@@ -425,6 +427,7 @@ class YoloBase(SgModule):
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return YoloPostPredictionCallback(conf=conf, iou=iou)
 
+    @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(
         self,
         class_names: Optional[List[str]] = None,
