@@ -72,11 +72,11 @@ class DetectionDataset(Dataset):
     def __init__(
         self,
         data_dir: str,
-        input_dim: Optional[Tuple[int, int]],
         original_target_format: Union[ConcatenatedTensorFormat, DetectionTargetsFormat],
         max_num_samples: int = None,
         cache: bool = False,
         cache_dir: str = None,
+        input_dim: Optional[Tuple[int, int]] = None,
         transforms: List[DetectionTransform] = [],
         all_classes_list: Optional[List[str]] = [],
         class_inclusion_list: Optional[List[str]] = None,
@@ -258,6 +258,8 @@ class DetectionDataset(Dataset):
             "********************************************************************************"
         )
 
+        if self.input_dim is None:
+            raise RuntimeError("caching is not possible without input_dim is not set")
         max_h, max_w = self.input_dim[0], self.input_dim[1]
 
         # The cache should be the same as long as the images and their sizes are the same
