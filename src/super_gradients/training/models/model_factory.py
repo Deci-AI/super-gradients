@@ -20,6 +20,7 @@ from super_gradients.training.utils.checkpoint_utils import (
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
+from super_gradients.training.transforms.processing import get_pretrained_processing_params
 
 logger = get_logger(__name__)
 
@@ -134,6 +135,10 @@ def instantiate_model(
             if num_classes_new_head != arch_params.num_classes:
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
+
+            # TODO: remove once we load it from the checkpoint
+            processing_params = get_pretrained_processing_params(model_name, pretrained_weights)
+            net.set_dataset_processing_params(**processing_params)
 
     _add_model_name_attribute(net, model_name)
 

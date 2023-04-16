@@ -49,7 +49,7 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Uni
     :param strict: (StrictLoad) key matching strictness
     :param solver: callable with signature (ckpt_key, ckpt_val, model_key, model_val)
                      that returns a desired weight for ckpt_val.
-    @return:
+    :return:
     """
     state_dict = state_dict["net"] if "net" in state_dict else state_dict
     try:
@@ -190,13 +190,13 @@ def load_checkpoint_to_model(
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
 
-    @param load_ema_as_net: Will load the EMA inside the checkpoint file to the network when set
-    @param ckpt_local_path: local path to the checkpoint file
-    @param load_backbone: whether to load the checkpoint as a backbone
-    @param net: network to load the checkpoint to
-    @param strict:
-    @param load_weights_only:
-    @return:
+    :param load_ema_as_net: Will load the EMA inside the checkpoint file to the network when set
+    :param ckpt_local_path: local path to the checkpoint file
+    :param load_backbone: whether to load the checkpoint as a backbone
+    :param net: network to load the checkpoint to
+    :param strict:
+    :param load_weights_only:
+    :return:
     """
     if isinstance(strict, str):
         strict = StrictLoad(strict)
@@ -237,8 +237,7 @@ def load_checkpoint_to_model(
 class MissingPretrainedWeightsException(Exception):
     """Exception raised by unsupported pretrianed model.
 
-    Attributes:
-        message -- explanation of the error
+    :param desc: explanation of the error
     """
 
     def __init__(self, desc):
@@ -271,10 +270,10 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
 
     """
     Loads pretrained weights from the MODEL_URLS dictionary to model
-    @param architecture: name of the model's architecture
-    @param model: model to load pretrinaed weights for
-    @param pretrained_weights: name for the pretrianed weights (i.e imagenet)
-    @return: None
+    :param architecture: name of the model's architecture
+    :param model: model to load pretrinaed weights for
+    :param pretrained_weights: name for the pretrianed weights (i.e imagenet)
+    :return: None
     """
     model_url_key = architecture + "_" + str(pretrained_weights)
     if model_url_key not in MODEL_URLS.keys():
@@ -298,10 +297,10 @@ def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pre
 
     """
     Loads pretrained weights from the MODEL_URLS dictionary to model
-    @param architecture: name of the model's architecture
-    @param model: model to load pretrinaed weights for
-    @param pretrained_weights: path tp pretrained weights
-    @return: None
+    :param architecture: name of the model's architecture
+    :param model: model to load pretrinaed weights for
+    :param pretrained_weights: path tp pretrained weights
+    :return: None
     """
 
     map_location = torch.device("cpu")

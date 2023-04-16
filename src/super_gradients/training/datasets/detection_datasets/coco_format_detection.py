@@ -4,6 +4,7 @@ import os
 import cv2
 import numpy as np
 from pycocotools.coco import COCO
+from typing import List, Optional
 
 from contextlib import redirect_stdout
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -14,10 +15,12 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 logger = get_logger(__name__)
 
 
-class COCOFormattedDetectionDataset(DetectionDataset):
+class COCOFormatDetectionDataset(DetectionDataset):
     """Base dataset to load ANY dataset that is with a similar structure to the COCO dataset.
     - Annotation file (.json). It has to respect the exact same format as COCO, for both the json schema and the bbox format (xywh).
     - One folder with all the images.
+
+    Output format: (x, y, x, y, class_id)
     """
 
     def __init__(
@@ -27,6 +30,7 @@ class COCOFormattedDetectionDataset(DetectionDataset):
         images_dir: str,
         tight_box_rotation: bool = False,
         with_crowd: bool = True,
+        class_ids_to_ignore: Optional[List[int]] = None,
         *args,
         **kwargs,
     ):
@@ -37,11 +41,13 @@ class COCOFormattedDetectionDataset(DetectionDataset):
         :param tight_box_rotation:      bool, whether to use of segmentation maps convex hull as target_seg
                                             (check get_sample docs).
         :param with_crowd:              Add the crowd groundtruths to __getitem__
+        :param class_ids_to_ignore:     List of class ids to ignore in the dataset. By default, doesnt ignore any class.
         """
         self.images_dir = images_dir
         self.json_annotation_file = json_annotation_file
         self.tight_box_rotation = tight_box_rotation
         self.with_crowd = with_crowd
+        self.class_ids_to_ignore = class_ids_to_ignore or []
 
         target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
         kwargs["target_fields"] = target_fields
@@ -68,14 +74,14 @@ class COCOFormattedDetectionDataset(DetectionDataset):
         """
 
         self.coco = self._init_coco()
-        self.class_ids = sorted(self.coco.getCatIds())
+        self.class_ids = sorted(cls_id for cls_id in self.coco.getCatIds() if cls_id not in self.class_ids_to_ignore)
         self.original_classes = list([category["name"] for category in self.coco.loadCats(self.class_ids)])
         self.classes = copy.deepcopy(self.original_classes)
         self.sample_id_to_coco_id = self.coco.getImgIds()
         return len(self.sample_id_to_coco_id)
 
     @property
-    def _all_classes(self):
+    def _all_classes(self) -> List[str]:
         return self.original_classes
 
     def _init_coco(self) -> COCO:
@@ -151,6 +157,7 @@ class COCOFormattedDetectionDataset(DetectionDataset):
             crowd_target[ix, 0:4] = annotation["clean_bbox"]
             crowd_target[ix, 4] = cls
 
+        # Currently, the base class includes a feature to resize the image, so we need to resize the target as well when self.input_dim is set.
         initial_img_shape = (height, width)
         if self.input_dim is not None:
             r = min(self.input_dim[0] / height, self.input_dim[1] / width)
@@ -177,7 +184,7 @@ class COCOFormattedDetectionDataset(DetectionDataset):
         return annotation
 
 
-def remove_useless_info(coco, use_seg_info=False):
+def remove_useless_info(coco: COCO, use_seg_info: bool = False) -> None:
     """
     Remove useless info in coco dataset. COCO object is modified inplace.
     This function is mainly used for saving memory (save about 30% mem).

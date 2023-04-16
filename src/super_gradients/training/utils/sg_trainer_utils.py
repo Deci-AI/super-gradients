@@ -379,7 +379,7 @@ def unpack_batch_items(batch_items: Union[tuple, torch.Tensor]):
     """
     Adds support for unpacking batch items in train/validation loop.
 
-    @param batch_items: (Union[tuple, torch.Tensor]) returned by the data loader, which is expected to be in one of
+    :param batch_items: (Union[tuple, torch.Tensor]) returned by the data loader, which is expected to be in one of
          the following formats:
             1. torch.Tensor or tuple, s.t inputs = batch_items[0], targets = batch_items[1] and len(batch_items) = 2
             2. tuple: (inputs, targets, additional_batch_items)
@@ -389,7 +389,7 @@ def unpack_batch_items(batch_items: Union[tuple, torch.Tensor]):
          the phase context under the attribute additional_batch_item_i_name, using a phase callback.
 
 
-    @return: inputs, target, additional_batch_items
+    :return: inputs, target, additional_batch_items
     """
     additional_batch_items = {}
     if len(batch_items) == 2:
@@ -407,9 +407,9 @@ def unpack_batch_items(batch_items: Union[tuple, torch.Tensor]):
 def log_uncaught_exceptions(logger):
     """
     Makes logger log uncaught exceptions
-    @param logger: logging.Logger
+    :param logger: logging.Logger
 
-    @return: None
+    :return: None
     """
 
     def log_exceptook(excepthook: Callable) -> Callable:

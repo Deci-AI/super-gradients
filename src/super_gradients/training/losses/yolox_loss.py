@@ -25,9 +25,8 @@ logger = get_logger(__name__)
 class IOUloss(nn.Module):
     """
     IoU loss with the following supported loss types:
-    Attributes:
-        reduction: str: One of ["mean", "sum", "none"] reduction to apply to the computed loss (Default="none")
-        loss_type: str: One of ["iou", "giou"] where:
+    :param reduction: One of ["mean", "sum", "none"] reduction to apply to the computed loss (Default="none")
+    :param loss_type: One of ["iou", "giou"] where:
             * 'iou' for
                 (1 - iou^2)
             * 'giou' according to "Generalized Intersection over Union: A Metric and A Loss for Bounding Box Regression"
@@ -108,17 +107,14 @@ class YoloXDetectionLoss(_Loss):
             for each cell add BCE with a label of 1 if there is GT assigned to the cell
             Coef: 1
 
-    Attributes:
-        strides: list: List of Yolo levels output grid sizes (i.e [8, 16, 32]).
-        num_classes: int: Number of classes.
-        use_l1: bool: Controls the L_l1 Coef as discussed above (default=False).
-        center_sampling_radius: float: Sampling radius used for center sampling when creating the fg mask (default=2.5).
-        iou_type: str: Iou loss type, one of ["iou","giou"] (deafult="iou").
-
-
+    :param strides:                 List of Yolo levels output grid sizes (i.e [8, 16, 32]).
+    :param num_classes:             Number of classes.
+    :param use_l1:                  Controls the L_l1 Coef as discussed above (default=False).
+    :param center_sampling_radius:  Sampling radius used for center sampling when creating the fg mask (default=2.5).
+    :param iou_type:                Iou loss type, one of ["iou","giou"] (deafult="iou").
     """
 
-    def __init__(self, strides: list, num_classes: int, use_l1: bool = False, center_sampling_radius: float = 2.5, iou_type="iou"):
+    def __init__(self, strides: list, num_classes: int, use_l1: bool = False, center_sampling_radius: float = 2.5, iou_type: str = "iou"):
         super().__init__()
         self.grids = [torch.zeros(1)] * len(strides)
         self.strides = strides
@@ -131,7 +127,7 @@ class YoloXDetectionLoss(_Loss):
         self.iou_loss = IOUloss(reduction="none", loss_type=iou_type)
 
     @property
-    def component_names(self):
+    def component_names(self) -> List[str]:
         """
         Component names for logging during training.
         These correspond to 2nd item in the tuple returned in self.forward(...).
@@ -688,7 +684,8 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
             bbox_preds, cls_preds, obj_preds, expanded_strides, x_shifts, y_shifts, targets
         )
 
-        num_gts = max(flattened_gts.shape[0], 1)
+        num_gts = flattened_gts.shape[0]
+        num_gts_clamped = max(flattened_gts.shape[0], 1)
         num_fg = max(matched_gt_ids.shape[0], 1)
         total_num_anchors = max(transformed_outputs.shape[0] * transformed_outputs.shape[1], 1)
 
@@ -696,7 +693,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         obj_targets = transformed_outputs.new_zeros((transformed_outputs.shape[0], transformed_outputs.shape[1]))
         obj_targets[matched_img_ids, matched_fg_ids] = 1
         reg_targets = flattened_gts[matched_gt_ids][:, 1:]
-        if self.use_l1:
+        if self.use_l1 and num_gts > 0:
             l1_targets = self.get_l1_target(
                 transformed_outputs.new_zeros((num_fg, 4)),
                 flattened_gts[matched_gt_ids][:, 1:],
@@ -711,7 +708,8 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         loss_iou = self.iou_loss(bbox_preds[matched_img_ids, matched_fg_ids], reg_targets).sum() / num_fg
         loss_obj = self.bcewithlog_loss(obj_preds.squeeze(-1), obj_targets).sum() / (total_num_anchors if self.obj_loss_fix else num_fg)
         loss_cls = self.bcewithlog_loss(cls_preds[matched_img_ids, matched_fg_ids], cls_targets).sum() / num_fg
-        if self.use_l1:
+
+        if self.use_l1 and num_gts > 0:
             loss_l1 = self.l1_loss(raw_outputs[matched_img_ids, matched_fg_ids], l1_targets).sum() / num_fg
         else:
             loss_l1 = 0.0
@@ -727,7 +725,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
                     loss_obj.unsqueeze(0),
                     loss_cls.unsqueeze(0),
                     torch.tensor(loss_l1).unsqueeze(0).to(transformed_outputs.device),
-                    torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).to(transformed_outputs.device),
+                    torch.tensor(num_fg / num_gts_clamped).unsqueeze(0).to(transformed_outputs.device),
                     loss.unsqueeze(0),
                 )
             ).detach(),

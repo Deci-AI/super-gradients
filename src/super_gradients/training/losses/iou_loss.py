@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 
 import torch
 
@@ -14,7 +14,7 @@ class IoULoss(AbstarctSegmentationStructureLoss):
     Compute average IoU loss between two tensors, It can support both multi-classes and binary tasks.
     """
 
-    def _calc_numerator_denominator(self, labels_one_hot, predict):
+    def _calc_numerator_denominator(self, labels_one_hot: torch.tensor, predict: torch.tensor) -> Tuple[torch.tensor, torch.tensor]:
         """
         Calculate iou metric's numerator and denominator.
 
@@ -57,7 +57,7 @@ class BinaryIoULoss(IoULoss):
         super().__init__(apply_softmax=False, ignore_index=None, smooth=smooth, eps=eps, reduce_over_batches=False)
         self.apply_sigmoid = apply_sigmoid
 
-    def forward(self, predict, target):
+    def forward(self, predict: torch.tensor, target: torch.tensor) -> torch.tensor:
         if self.apply_sigmoid:
             predict = torch.sigmoid(predict)
         return super().forward(predict=predict, target=target)
@@ -67,10 +67,11 @@ class GeneralizedIoULoss(IoULoss):
     """
     Compute the Generalised IoU loss, contribution of each label is normalized by the inverse of its volume, in order
      to deal with class imbalance.
-    Args:
-        smooth (float): default value is 0, smooth laplacian is not recommended to be used with GeneralizedIoULoss.
+
+    # FIXME: Why duplicate some parats in class and __init__ docstring ? (+they have different description)
+    :param smooth (float): default value is 0, smooth laplacian is not recommended to be used with GeneralizedIoULoss.
          because the weighted values to be added are very small.
-        eps (float): default value is 1e-17, must be a very small value, because weighted `intersection` and
+    :param eps (float): default value is 1e-17, must be a very small value, because weighted `intersection` and
         `denominator` are very small after multiplication with `1 / counts ** 2`
     """
 
