@@ -20,7 +20,7 @@ from super_gradients.training.utils.checkpoint_utils import (
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
-from super_gradients.training.transforms.processing import get_pretrained_processing_params
+from super_gradients.training.processing.processing import get_pretrained_processing_params
 
 logger = get_logger(__name__)
 

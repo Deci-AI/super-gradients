@@ -479,7 +479,7 @@ class DetectionDataset(Dataset):
         Return any hardcoded preprocessing + adaptation for PIL.Image image reading (RGB)
         :return:
         """
-        from super_gradients.training.transforms import processing
+        from super_gradients.training.processing import processing
 
         pipeline = [processing.ReverseImageChannels()]
         if self.input_dim is not None:

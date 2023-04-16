@@ -13,7 +13,7 @@ from super_gradients.training.utils.detection_utils import non_max_suppression, 
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 from super_gradients.training.models.prediction_results import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
-from super_gradients.training.transforms.processing import Processing
+from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(

@@ -11,7 +11,7 @@ from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.object_names import Transforms
+from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
@@ -444,10 +444,8 @@ class DetectionStandardize(DetectionTransform):
         sample["image"] = (sample["image"] / self.max_value).astype(np.float32)
         return sample
 
-    def get_equivalent_preprocessing(self) -> List:
-        from super_gradients.training.transforms import processing
-
-        return [processing.StandardizeImage(self.max_value)]
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.StandardizeImage: {"max_value": self.max_value}}]
 
 
 @register_transform(Transforms.DetectionMosaic)
@@ -725,10 +723,8 @@ class DetectionImagePermute(DetectionTransform):
         sample["image"] = np.ascontiguousarray(sample["image"].transpose(*self.dims))
         return sample
 
-    def get_equivalent_preprocessing(self) -> List:
-        from super_gradients.training.transforms import processing
-
-        return [processing.ImagePermute(self.dims)]
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.ImagePermute: {"permutation": self.dims}}]
 
 
 @register_transform(Transforms.DetectionPadToSize)
@@ -762,9 +758,7 @@ class DetectionPadToSize(DetectionTransform):
         return sample
 
     def get_equivalent_preprocessing(self) -> List:
-        from super_gradients.training.transforms import processing
-
-        return [processing.DetectionCenterPadding(self.output_size, self.pad_value)]
+        return [{Processings.DetectionCenterPadding: {"output_shape": self.output_size, "pad_value": self.pad_value}}]
 
 
 @register_transform(Transforms.DetectionPaddedRescale)
@@ -797,13 +791,11 @@ class DetectionPaddedRescale(DetectionTransform):
             sample["crowd_target"] = _rescale_xyxy_bboxes(crowd_targets, r)
         return sample
 
-    def get_equivalent_preprocessing(self) -> List:
-        from super_gradients.training.transforms import processing
-
+    def get_equivalent_preprocessing(self) -> List[Dict]:
         return [
-            processing.DetectionLongestMaxSizeRescale(self.input_dim),
-            processing.DetectionBottomRightPadding(self.input_dim, self.pad_value),
-            processing.ImagePermute(self.swap),
+            {Processings.DetectionLongestMaxSizeRescale: {"output_shape": self.input_dim}},
+            {Processings.DetectionBottomRightPadding: {"output_shape": self.input_dim, "pad_value": self.pad_value}},
+            {Processings.ImagePermute: {"permutation": self.swap}},
         ]
 
 
@@ -857,10 +849,8 @@ class DetectionRescale(DetectionTransform):
             sample["crowd_target"] = _rescale_bboxes(crowd_targets, scale_factors=(sy, sx))
         return sample
 
-    def get_equivalent_preprocessing(self) -> List:
-        from super_gradients.training.transforms import processing
-
-        return [processing.DetectionRescale(self.output_shape)]
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.DetectionRescale: {"output_shape": self.output_size}}]
 
 
 @register_transform(Transforms.DetectionRandomRotate90)
@@ -940,11 +930,9 @@ class DetectionRGB2BGR(DetectionTransform):
         return sample
 
     def get_equivalent_preprocessing(self) -> List:
-        from super_gradients.training.transforms import processing
-
         if self.prob < 1:
             raise RuntimeError("Cannot set preprocessing pipeline with randomness. Set prob to 1.")
-        return [processing.ReverseImageChannels()]
+        return [{Processings.ReverseImageChannels}]
 
 
 @register_transform(Transforms.DetectionHSV)
@@ -1000,10 +988,8 @@ class DetectionNormalize(DetectionTransform):
         sample["image"] = (sample["image"] - self.mean) / self.std
         return sample
 
-    def get_equivalent_preprocessing(self) -> List:
-        from super_gradients.training.transforms import processing
-
-        return [processing.NormalizeImage(self.mean, self.std)]
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.NormalizeImage: {"mean": self.mean, "std": self.std}}]
 
 
 @register_transform(Transforms.DetectionTargetsFormatTransform)
