@@ -38,7 +38,7 @@ resume: False
 training_hyperparams:
   resume: ${resume}
   max_epochs: 100
-  mixed_precision: True
+  mixed_precision: False
   criterion_params:
     num_classes: ${num_classes}
   phase_callbacks:
@@ -64,7 +64,7 @@ training_hyperparams:
           nms_threshold: 0.7
 
 
-multi_gpu: DDP
+multi_gpu: Off
 num_gpus:
 experiment_name: ${architecture}_roboflow_${dataset_name}
 ckpt_root_dir:

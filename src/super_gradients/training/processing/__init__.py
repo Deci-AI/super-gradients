@@ -1,4 +1,4 @@
-from processing import (
+from .processing import (
     StandardizeImage,
     DetectionRescale,
     DetectionLongestMaxSizeRescale,
