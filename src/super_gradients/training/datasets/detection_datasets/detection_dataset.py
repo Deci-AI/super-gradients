@@ -13,7 +13,7 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset
 
-from super_gradients.common.object_names import Datasets
+from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.training.utils.detection_utils import get_cls_posx_in_target
@@ -476,19 +476,18 @@ class DetectionDataset(Dataset):
 
     def get_dataset_preprocessing_params(self):
         """
-        Return any hardcoded preprocessing + adaptation for PIL.Image image reading (RGB)
+        Return any hardcoded preprocessing + adaptation for PIL.Image image reading (RGB).
+         image_processor as returned as as list of dicts to be resolved by processing factory.
         :return:
         """
-        from super_gradients.training.processing import processing
-
-        pipeline = [processing.ReverseImageChannels()]
+        pipeline = [Processings.ReverseImageChannels]
         if self.input_dim is not None:
-            pipeline += [processing.DetectionLongestMaxSizeRescale(self.input_dim)]
+            pipeline += [{Processings.DetectionLongestMaxSizeRescale: {"output_shape": self.input_dim}}]
         for t in self.transforms:
             pipeline += t.get_equivalent_preprocessing()
         params = dict(
             class_names=self.classes,
-            image_processor=processing.ComposeProcessing(pipeline),
+            image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
             iou=0.65,
             conf=0.5,
         )
