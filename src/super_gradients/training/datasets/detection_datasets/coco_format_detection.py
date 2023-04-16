@@ -15,10 +15,12 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 logger = get_logger(__name__)
 
 
-class COCOFormattedDetectionDataset(DetectionDataset):
+class COCOFormatDetectionDataset(DetectionDataset):
     """Base dataset to load ANY dataset that is with a similar structure to the COCO dataset.
     - Annotation file (.json). It has to respect the exact same format as COCO, for both the json schema and the bbox format (xywh).
     - One folder with all the images.
+
+    Output format: (x, y, x, y, class_id)
     """
 
     def __init__(
@@ -155,6 +157,7 @@ class COCOFormattedDetectionDataset(DetectionDataset):
             crowd_target[ix, 0:4] = annotation["clean_bbox"]
             crowd_target[ix, 4] = cls
 
+        # Currently, the base class includes a feature to resize the image, so we need to resize the target as well when self.input_dim is set.
         initial_img_shape = (height, width)
         if self.input_dim is not None:
             r = min(self.input_dim[0] / height, self.input_dim[1] / width)

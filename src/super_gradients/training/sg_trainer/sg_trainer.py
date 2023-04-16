@@ -89,6 +89,11 @@ from super_gradients.training.params import TrainingParams
 logger = get_logger(__name__)
 
 
+def set_preprocessing_pipeline(net, valid_loader):
+    if hasattr(valid_loader.dataset, "get_dataset_preprocessing_params"):
+        net.set_dataset_processing_params(**valid_loader.dataset.get_dataset_preprocessing_params)
+
+
 class Trainer:
     """
     SuperGradient Model - Base Class for Sg Models
@@ -1215,6 +1220,9 @@ class Trainer:
             batch_accumulate=self.batch_accumulate,
             len_train_set=len(self.train_loader.dataset),
         )
+
+        if isinstance(self.net.module, SgModule):
+            set_preprocessing_pipeline(self.net, self.valid_loader)
 
         try:
             # HEADERS OF THE TRAINING PROGRESS
