@@ -1,4 +1,5 @@
-from typing import Union, List, Iterable, Iterator, get_args
+from typing import Union, List, Iterable, Iterator
+from typing_extensions import get_args
 import PIL
 
 import os
