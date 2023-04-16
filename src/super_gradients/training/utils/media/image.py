@@ -1,7 +1,7 @@
 from typing import Union, List, Iterable, Iterator
 from typing_extensions import get_args
 import PIL
-
+import io
 import os
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -103,7 +103,7 @@ def load_pil_image_from_str(image_str: str) -> PIL.Image.Image:
     if is_url(image_str):
         response = requests.get(image_str, stream=True)
         response.raise_for_status()
-        return PIL.Image.open(response.raw)
+        return PIL.Image.open(io.BytesIO(response.content))
     else:
         return PIL.Image.open(image_str)
 
