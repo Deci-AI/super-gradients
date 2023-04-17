@@ -121,6 +121,7 @@ class PoseEstimationMetrics(Metric):
     def reset(self) -> None:
         self.predictions = []
 
+    @torch.no_grad()
     def update(
         self,
         preds,
@@ -238,7 +239,7 @@ class PoseEstimationMetrics(Metric):
             top_k=self.max_objects_per_image,
         )
 
-        self.predictions.append((preds_matched, preds_to_ignore, preds_scores, num_targets))
+        self.predictions.append((preds_matched.cpu(), preds_to_ignore.cpu(), preds_scores.cpu(), int(num_targets)))
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
         """
