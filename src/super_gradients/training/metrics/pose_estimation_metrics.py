@@ -119,7 +119,7 @@ class PoseEstimationMetrics(Metric):
         self.add_state("predictions", default=[], dist_reduce_fx=None)
 
     def reset(self) -> None:
-        self.predictions = []
+        self.predictions.clear()
 
     @torch.no_grad()
     def update(
