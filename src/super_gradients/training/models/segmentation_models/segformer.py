@@ -7,6 +7,8 @@ from super_gradients.training.utils import get_param
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.modules.conv_bn_relu_block import ConvBNReLU
+from super_gradients.common.object_names import Models
+from super_gradients.common.registry.registry import register_model
 
 
 from typing import List, Tuple
@@ -467,6 +469,7 @@ DEFAULT_SEGFORMER_B5_PARAMS = {
 }
 
 
+@register_model(Models.SEGFORMER_B0)
 class SegFormerB0(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
         """
@@ -479,6 +482,7 @@ class SegFormerB0(SegFormerCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.SEGFORMER_B1)
 class SegFormerB1(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
         """
@@ -491,6 +495,7 @@ class SegFormerB1(SegFormerCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.SEGFORMER_B2)
 class SegFormerB2(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
         """
@@ -503,6 +508,7 @@ class SegFormerB2(SegFormerCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.SEGFORMER_B3)
 class SegFormerB3(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
         """
@@ -515,6 +521,7 @@ class SegFormerB3(SegFormerCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.SEGFORMER_B4)
 class SegFormerB4(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
         """
@@ -527,6 +534,7 @@ class SegFormerB4(SegFormerCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.SEGFORMER_B5)
 class SegFormerB5(SegFormerCustom):
     def __init__(self, arch_params: HpmStruct):
         """
