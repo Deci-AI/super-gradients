@@ -1,4 +1,4 @@
-# EMA
+# Exponential Moving Average (EMA)
 
 Exponential Moving Average or EMA is a technique used during training to smooth the noise in the training process and improve the generalization of the model.
 It is a simple technique that can be used with any model and optimizer. Here's a recap how EMA works: 

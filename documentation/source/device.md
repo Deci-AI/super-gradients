@@ -1,4 +1,4 @@
-# Training modes
+# Training Modes
 
 SuperGradients allows users to train models on different modes:
 1. CPU 

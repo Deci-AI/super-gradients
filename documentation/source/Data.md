@@ -144,7 +144,7 @@ trainer.train(model=model, training_params=train_params, train_loader=train_data
 
 ### DataLoaders - Training with Configuration Files
 
-If you are still getting familiar with training with configuration files, follow [this link](https://github.com/Deci-AI/super-gradients/tree/master/documentation/source).
+If you are still getting familiar with training with configuration files, follow [this link](configuration_files.md).
 
 Their names can reference any of the SG-predefined data loaders listed earlier.
 For example, using the imagenet_resnet50_train and imagenet_resnet50_val:

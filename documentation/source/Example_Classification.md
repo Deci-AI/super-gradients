@@ -1,4 +1,4 @@
-# Example: Training a classification model and transfer learning
+# Training a classification model and transfer learning
 
 In this example we will use SuperGradients to train from scratch a ResNet18 model on the CIFAR10 image classification 
 dataset. We will also fine-tune the same model via transfer learning with weights pre-trained on the ImageNet dataset.

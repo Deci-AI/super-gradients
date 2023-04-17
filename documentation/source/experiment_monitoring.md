@@ -1,4 +1,4 @@
-# Third-party experiment monitoring
+# Third-party Experiment Monitoring
 
 SuperGradients supports out-of-the-box Weights & Biases (wandb) and ClearML. 
 You can also inherit from our base class to integrate any monitoring tool with minimal code change.  

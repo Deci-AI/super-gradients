@@ -1,4 +1,4 @@
-# Configuration files and Recipes
+# Configuration Files and Recipes
 SuperGradients supports [YAML](https://en.wikipedia.org/wiki/YAML) formatted configuration files. These files can contain training hyper-parameters,
 architecture parameters, datasets parameters and any other parameters required by the training process.
 These parameters will be consumed as dictionaries or as function arguments by different parts of SuperGradients.

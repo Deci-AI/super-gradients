@@ -1,6 +1,6 @@
-# Knowledge Distillation Training
+# Knowledge Distillation (KD)
 
-Pre-requisites: [Training in SG](https://github.com/Deci-AI/super-gradients/blob/master/documentation/assets/Example_Classification.md), [Training with Configuration Files]()
+Pre-requisites: [Training in SG](Example_Classification.md), [Training with Configuration Files](configuration_files.md)
 
 Knowledge distillation is a technique in deep learning that aims to transfer the knowledge of a large, pre-trained neural network model (the "teacher") to a smaller, more computationally efficient model (the "student"). This is accomplished by training the student to mimic the teacher's predictions and the ground-truth labels. The student network can also be designed to have a different architecture from the teacher, making it possible to distill the knowledge of a complex teacher network into a lighter and faster student network for deployment in real-world applications.
 
