@@ -7,9 +7,9 @@ import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
-from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.common.data_types import StrictLoad
+import super_gradients
 
 from torch import nn, Tensor
 from typing import Union, Mapping
@@ -236,7 +236,7 @@ def load_checkpoint_to_model(
         # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS
         [checkpoint.pop(key) for key in list(checkpoint.keys()) if key != "net"]
 
-    if isinstance(net.module, SgModule) and load_processing_params:
+    if isinstance(net.module, super_gradients.training.models.SgModule) and load_processing_params:
         if "processing_params" not in checkpoint.keys():
             raise ValueError("Can't load processing params - could not find any stored in checkpoint file.")
         try:
