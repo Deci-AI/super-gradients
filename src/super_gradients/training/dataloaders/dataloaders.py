@@ -96,6 +96,9 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
     dataloader_params = _process_sampler_params(dataloader_params, dataset, default_dataloader_params)
     dataloader_params = _process_collate_fn_params(dataloader_params)
 
+    # The following check is needed to gracefully handle the rare but possible case when the dataset length
+    # is less than the number of workers. In this case DataLoader will crash.
+    # So we clamp the number of workers to not exceed the dataset length.
     num_workers = get_param(dataloader_params, "num_workers")
     if num_workers is not None and num_workers > 0:
         num_workers = min(num_workers, len(dataset))

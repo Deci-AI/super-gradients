@@ -189,6 +189,23 @@ dataset_params:
 
 ```
 
+### DataLoaders - Additional params
+
+In addition to the parameters that are supported by the `torch.utils.data.DataLoader` class, SuperGradients also provide additional parameters:
+
+* `min_samples` - When present, this parameter will guarantee that at least `min_samples` items will be processed in each epoch. It is useful when working with small datasets. 
+To use this option, simply add this parameter to the `dataloader_params` dictionary, and set it to the desired value:
+```yaml
+train_dataloader: imagenet_resnet50_train
+dataset_params:
+    train_dataloader_params:
+      batch_size: 4
+      shuffle: True
+      min_samples: 1024
+```
+
+On the technical side, when this parameter is se, SuperGradients will attach the RandomSampler to the DataLoader, and set it's  `num_samples` parameter to `min_samples`.
+
 ## Using Custom Datasets
 
 Suppose we already have our own `torch.utils.data.Dataset` class:
