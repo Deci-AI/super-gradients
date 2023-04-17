@@ -11,9 +11,21 @@ Don't use this script if:
     - You want to evaluate a checkpoint from one of your previous experiment, using the same parameters as used during the
         training of the experiment (use examples/evaluate_checkpoint_example)
 
-Note:
-    This script does NOT run TRAINING, so make sure in the recipe that you load a PRETRAINED MODEL
-    either from one of your checkpoint or from a pretrained model.
+
+How to use:
+
+    1. If you want to evaluate a checkpoint using its path:
+        Set `cfg.checkpoint_params.checkpoint_path`.
+    2. If you want to evaluate a checkpoint using its experiment name:
+        Use the same `cfg.ckpt_root_dir` and `cfg.experiment_name` as during training.
+        You can choose which checkpoint by setting: `cfg.training_hyperparams.ckpt_name`
+    3. If you want to evaluate a pretrained model from model zoo:
+        Set `cfg.checkpoint_params.pretrained_weights=<dataset-name>`
+
+**Note**:
+    - If multiple conditions are set (let's say 2. and 3.), then only the first one will be evaluated (2. in this example).*
+    - This script only runs using the validation set only.
+
 
 General use: python evaluate_from_recipe.py --config-name="DESIRED_RECIPE".
 -> Evaluate the latest checkpoint according to parameters set in "DESIRED_RECIPE"

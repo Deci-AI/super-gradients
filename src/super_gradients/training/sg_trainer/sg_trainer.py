@@ -1,7 +1,6 @@
 import inspect
 import os
 from copy import deepcopy
-from pathlib import Path
 from typing import Union, Tuple, Mapping, Dict, Any
 
 import hydra
@@ -284,8 +283,20 @@ class Trainer:
         """
         Evaluate according to a cfg recipe configuration.
 
-        Note:   This script does NOT run training, only validation.
-                Please make sure that the config refers to a PRETRAINED MODEL either from one of your checkpoint or from pretrained weights from model zoo.
+        How to use:
+
+            1. If you want to evaluate a checkpoint using its path:
+                Set `cfg.checkpoint_params.checkpoint_path`.
+            2. If you want to evaluate a checkpoint using its experiment name:
+                Use the same `cfg.ckpt_root_dir` and `cfg.experiment_name` as during training.
+                You can choose which checkpoint by setting: `cfg.training_hyperparams.ckpt_name`
+            3. If you want to evaluate a pretrained model from model zoo:
+                Set `cfg.checkpoint_params.pretrained_weights=<dataset-name>`
+
+        **Note**:
+            - If multiple conditions are set (let's say 2. and 3.), then only the first one will be evaluated (2. in this example).*
+            - This script only runs using the validation set only.
+
         :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         """
 
@@ -305,14 +316,33 @@ class Trainer:
             name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
         )
 
-        if cfg.checkpoint_params.pretrained_weights is None and cfg.checkpoint_params.checkpoint_path is None:
-            logger.info(
-                "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
-            )
-            checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-            cfg.checkpoint_params.checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
+        if cfg.checkpoint_params.checkpoint_path is not None:
+            logger.info(f"Evaluating checkpoint defined by `<cfg.checkpoint_params.checkpoint_path>`: {cfg.checkpoint_params.checkpoint_path}")
+        else:
+            checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+            checkpoint_path = os.path.join(checkpoints_dir, cfg.training_hyperparams.ckpt_name)
 
-        logger.info(f"Evaluating checkpoint: {cfg.checkpoint_params.checkpoint_path}")
+            if os.path.exists(checkpoint_path):
+                cfg.checkpoint_params.checkpoint_path = checkpoint_path
+                logger.info(
+                    f"Evaluating checkpoint defined by "
+                    f"`<cfg.ckpt_root_dir>/<cfg.experiment_name>/<cfg.training_hyperparams.ckpt_name>`: {cfg.checkpoint_params.checkpoint_path}"
+                )
+            elif cfg.checkpoint_params.pretrained_weights:
+                logger.info(
+                    f"Evaluating pretrained weights defined by `<cfg.checkpoint_params.pretrained_weights>`: {cfg.checkpoint_params.pretrained_weights}"
+                )
+            else:
+                raise RuntimeError(
+                    f"No checkpoint found at `<cfg.ckpt_root_dir>/<cfg.experiment_name>/<cfg.training_hyperparams.ckpt_name>`={checkpoint_path}\n"
+                    "1. If you want to evaluate a checkpoint using its path:\n"
+                    "    Set `cfg.checkpoint_params.checkpoint_path`.\n"
+                    "2. If you want to evaluate a checkpoint using its experiment name:\n"
+                    "    Use the same `cfg.ckpt_root_dir` and `cfg.experiment_name` as during training. "
+                    "You can chose which checkpoint by setting: `cfg.training_hyperparams.ckpt_name`\n"
+                    "3. If you want to evaluate a pretrained model from model zoo:\n"
+                    "    Set `cfg.checkpoint_params.pretrained_weights=<dataset-name>`"
+                )
 
         # BUILD NETWORK
         model = models.get(
