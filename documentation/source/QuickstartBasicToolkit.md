@@ -1,4 +1,4 @@
-# The Basic Skills of SG
+# Basic Skills
 
 In this tutorial, we will go over all of the basic functionalities of SuperGradients very briefly.
 Go over the following sections to learn how to train, test and predict using SuperGradients.
@@ -24,7 +24,7 @@ from super_gradients.training.utils.distributed_training_utils import setup_devi
 ```python
 init_trainer()
 ```
-2. Call [setup_device()](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/device.md) according to your available hardware and needs.
+2. Call [setup_device()](device.md) according to your available hardware and needs.
 For example, if you want the training to be performed entirely on the CPU: 
 
 ```python
@@ -49,12 +49,12 @@ setup_device(num_gpus=-1)
 trainer = Trainer(experiment_name="my_cifar_experiment", ckpt_root_dir="/path/to/checkpoints_directory/")
 ```
 
-4. [Instantiate a model](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/models.md):
+4. [Instantiate a model](models.md):
 ```python
 model = models.get(Models.RESNET18, num_classes=10)
 ```
 
-5. Define [metrics](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/Metrics.md) and other [training parameters](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml):
+5. Define [metrics](Metrics.md) and other [training parameters](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml):
 ```python
 training_params = {
     "max_epochs": 20,
@@ -98,7 +98,7 @@ from super_gradients.training.utils.distributed_training_utils import setup_devi
 init_trainer()
 ```
 
-2. Call [setup_device()](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/device.md) according to your available hardware and needs.
+2. Call [setup_device()](device.md) according to your available hardware and needs.
 For example, if you want the test to be performed entirely on the CPU: 
 
 ```python
@@ -123,16 +123,16 @@ trainer = Trainer(experiment_name="test_my_cifar_experiment", ckpt_root_dir="/pa
 
 ```
 
-4. [Instantiate a model](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/models.md) and load weights to it. 
+4. [Instantiate a model](models.md) and load weights to it. 
    
-Learn more about the different options for loading model weights from our [checkpoints tutorial](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/Checkpoints.md).
+Learn more about the different options for loading model weights from our [checkpoints tutorial](Checkpoints.md).
 ```python
 model = models.get(Models.RESNET18, num_classes=10, checkpoint_path="/path/to/checkpoints_directory/my_cifar_experiment/ckpt_best.pth")
 ```
 
 
 
-5. Define [metrics](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/Metrics.md) for test:
+5. Define [metrics](Metrics.md) for test:
 ```python
 test_metrics = [Accuracy(), Top5()]
 ```
@@ -172,7 +172,7 @@ from super_gradients import Trainer, init_trainer
 init_trainer()
 ```
 
-2. Call [setup_device()](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/device.md) according to your available hardware and needs.
+2. Call [setup_device()](device.md) according to your available hardware and needs.
 For example, if you want the finetuning/test to be performed entirely on the CPU: 
 
 ```python
@@ -229,13 +229,13 @@ from super_gradients.training.utils.distributed_training_utils import setup_devi
 init_trainer()
 ```
 
-2. Call [setup_device()](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/device.md) according to your available hardware and needs:
+2. Call [setup_device()](device.md) according to your available hardware and needs:
 
 ```python
 setup_device("cpu")
 ```
 
-3. [Instantiate a model](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/models.md), load weights to it, and put it in `eval` mode: 
+3. [Instantiate a model](models.md), load weights to it, and put it in `eval` mode: 
 
 ```python
 
@@ -299,5 +299,5 @@ plt.imshow(image)
 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=my_resnet18_cifar10_experiment
 ```
 
-Learn more in detail on how to launch, customize and evaluate training recipes from our [training with configuration files tutorial](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)
+Learn more in detail on how to launch, customize and evaluate training recipes from our [training with configuration files tutorial](configuration_files.md)
 </details>
