@@ -25,6 +25,8 @@ nav:
     - Configurations: ./documentation/source/configuration_files.md
     - Recipes: ./src/super_gradients/recipes/Training_Recipes.md
   - Checkpoints: ./documentation/source/Checkpoints.md
+  - Docker: ./documentation/source/SGDocker.md
+  - Output Adapter: ./documentation/source/DetectionOutputAdapter.md
 - Features:
   - Training Modes: ./documentation/source/device.md
   - Logging: ./documentation/source/logs.md
