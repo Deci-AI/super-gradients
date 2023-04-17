@@ -1,3 +1,4 @@
+site_name: super-gradients
 nav:
 - Welcome:
   - Intro: ./documentation/source/welcome.md
