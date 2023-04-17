@@ -1,0 +1,41 @@
+defaults:
+  - cityscapes_dataset_params
+  - _self_
+
+train_dataset_params:
+  transforms:
+    - SegColorJitter:
+        brightness: 0.5
+        contrast: 0.5
+        saturation: 0.5
+
+    - SegRandomFlip:
+        prob: 0.5
+
+    - SegRandomRescale:
+        scales: [ 0.5, 2.0 ]
+
+    - SegPadShortToCropSize:
+        crop_size: [ 1024, 1024 ]
+        fill_mask: 19
+
+    - SegCropImageAndMask:
+        crop_size: [ 1024, 1024 ]
+        mode: random
+
+val_dataset_params:
+  transforms:
+    - SegRescale:
+        long_size: 1024
+
+    - SegPadShortToCropSize:
+        crop_size: [ 1024, 1024 ]
+        fill_mask: 19
+
+train_dataloader_params:
+  batch_size: 2
+  shuffle: True
+
+val_dataloader_params:
+  batch_size: 2
+  shuffle: False
