@@ -257,7 +257,6 @@ class PoseEstimationMetrics(Metric):
         if self.is_distributed:
             local_state_dict = self.predictions
             gathered_state_dicts = [None] * self.world_size
-            torch.distributed.barrier()
             torch.distributed.all_gather_object(gathered_state_dicts, local_state_dict)
             self.predictions = list(itertools.chain(*gathered_state_dicts))
 
