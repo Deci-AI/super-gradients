@@ -1,3 +1,5 @@
+import collections
+
 import hydra
 import json_tricks as json
 import numpy as np
@@ -13,6 +15,12 @@ from super_gradients.training.metrics.pose_estimation_utils import compute_oks
 from super_gradients.training.utils import get_param
 
 
+def remove_starting_module(key: str):
+    if key.startswith("module."):
+        return key[7:]
+    return key
+
+
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name="script_generate_rescoring_data", version_base="1.2")
 def main(cfg: DictConfig) -> None:
     setup_device(
@@ -24,6 +32,16 @@ def main(cfg: DictConfig) -> None:
     sigmas = torch.from_numpy(np.array(cfg.dataset_params.oks_sigmas))
 
     cfg = instantiate(cfg)
+
+    # Temporary hack to remove "module." from model state dict saved in checkpoint
+    if cfg.checkpoint_params.checkpoint_path is not None:
+        checkpoint = torch.load(cfg.checkpoint_params.checkpoint_path, map_location="cpu")
+        if "ema_net" in checkpoint:
+            checkpoint["ema_net"] = collections.OrderedDict((remove_starting_module(k), v) for k, v in checkpoint["ema_net"].items())
+        if "model_state_dict" in checkpoint:
+            checkpoint["net"] = collections.OrderedDict((remove_starting_module(k), v) for k, v in checkpoint["net"].items())
+        torch.save(checkpoint, cfg.checkpoint_params.checkpoint_path)
+
     # BUILD NETWORK
     model = (
         models.get(
@@ -52,41 +70,45 @@ def main(cfg: DictConfig) -> None:
     for inputs, targets, extras in tqdm(val_dataloader):
         with torch.no_grad(), torch.cuda.amp.autocast(True):
             predictions = model(inputs.cuda(non_blocking=True))
-        all_poses, all_scores = post_prediction_callback(predictions)
-        print(all_poses)
+            all_poses, all_scores = post_prediction_callback(predictions)
 
         batch_size = len(inputs)
         for image_index in range(batch_size):
             pred_poses = all_poses[image_index]  # [M, J, 3]
             pred_scores = all_scores[image_index]  # [M]
 
+            gt_is_crowd = extras["gt_is_crowd"][image_index]
             gt_keypoints = extras["gt_joints"][image_index]  # [N, J, 3]
             gt_bboxes = extras["gt_bboxes"][image_index]  # [N, 4]
 
-            gt_keypoints_xy = gt_keypoints[:, :, 0:2]
-            gt_keypoints_visibility = gt_keypoints[:, :, 2]
-
             # Filter out poses with no visible keypoints
-            if len(gt_keypoints_xy) == 0 or len(pred_poses) == 0:
-                continue
+            if len(gt_keypoints) > 0 and len(pred_poses) > 0:
+                gt_keypoints_xy = gt_keypoints[:, :, 0:2]
+                gt_keypoints_visibility = gt_keypoints[:, :, 2]
 
-            iou = compute_oks(
-                pred_joints=torch.from_numpy(pred_poses),
-                gt_joints=torch.from_numpy(gt_keypoints_xy),
-                gt_keypoint_visibility=torch.from_numpy(gt_keypoints_visibility),
-                sigmas=sigmas,
-                gt_bboxes=torch.from_numpy(gt_bboxes),
-            )
+                iou = compute_oks(
+                    pred_joints=torch.from_numpy(pred_poses),
+                    gt_joints=torch.from_numpy(gt_keypoints_xy),
+                    gt_keypoint_visibility=torch.from_numpy(gt_keypoints_visibility),
+                    sigmas=sigmas,
+                    gt_bboxes=torch.from_numpy(gt_bboxes),
+                )
 
-            # Here we are not interested in solving the MxN matching problem, but rather
-            # in getting the largest IoU for each predicted pose with the ground truth poses.
-            max_iou = iou.max(axis=1).values  # [M]
+                # Here we are not interested in solving the MxN matching problem, but rather
+                # in getting the largest IoU for each predicted pose with the ground truth poses.
+                max_iou = iou.max(axis=1).values.numpy()  # [M]
+            else:
+                max_iou = np.zeros(len(pred_poses), dtype=np.float32)
 
             sample = {
-                "image_path": extras["image_path"][image_index],
                 "pred_poses": pred_poses,
                 "pred_scores": pred_scores,
-                "gt_iou": max_iou,
+                # Targets
+                "iou": max_iou,
+                #
+                "gt_bboxes": gt_bboxes,
+                "gt_joints": gt_keypoints,
+                "gt_is_crowd": gt_is_crowd,
             }
             samples.append(sample)
 
