@@ -173,16 +173,19 @@ def compute_img_keypoint_matching(
     num_iou_thresholds = len(iou_thresholds)
 
     device = preds.device if torch.is_tensor(preds) else (targets.device if torch.is_tensor(targets) else "cpu")
-
-    if preds is None or len(preds) == 0:
-        preds_matched = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
-        preds_to_ignore = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
-        preds_scores = torch.zeros((0,), dtype=torch.float, device=device)
-        return preds_matched, preds_to_ignore, preds_scores, len(targets)
+    num_targets = len(targets) - torch.count_nonzero(targets_ignored)
 
     preds_matched = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
     targets_matched = torch.zeros(len(targets), num_iou_thresholds, dtype=torch.bool, device=device)
     preds_to_ignore = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
+
+    if preds is None or len(preds) == 0:
+        return ImageKeypointMatchingResult(
+            preds_matched=preds_matched,
+            preds_to_ignore=preds_to_ignore,
+            preds_scores=pred_scores,
+            num_targets=num_targets.item(),
+        )
 
     # Ignore all but the predictions that were top_k
     k = min(top_k, len(pred_scores))
@@ -252,8 +255,6 @@ def compute_img_keypoint_matching(
 
         preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
 
-    # return preds_matched, preds_to_ignore, pred_scores, len(targets)
-    num_targets = len(targets) - torch.count_nonzero(targets_ignored)
     return ImageKeypointMatchingResult(
         preds_matched=preds_matched[preds_idx_to_use],
         preds_to_ignore=preds_to_ignore[preds_idx_to_use],
