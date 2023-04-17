@@ -1,17 +1,18 @@
+import os
+import tarfile
+import re
 import math
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Mapping, Optional, Tuple, Union, List, Dict, Any
+from typing import Mapping, Optional, Tuple, Union, List, Dict, Any, Iterable
 from zipfile import ZipFile
-import os
 from jsonschema import validate
-import tarfile
+from itertools import islice
+
 from PIL import Image, ExifTags
-import re
 import torch
 import torch.nn as nn
-
 
 # These functions changed from torch 1.2 to torch 1.3
 
@@ -314,8 +315,8 @@ def load_func(dotpath: str):
 
     Used for passing functions (without calling them) in yaml files.
 
-    @param dotpath: path to module.
-    @return: a python function
+    :param dotpath: path to module.
+    :return: a python function
     """
     module_, func = dotpath.rsplit(".", maxsplit=1)
     m = import_module(module_)
@@ -326,8 +327,8 @@ def get_filename_suffix_by_framework(framework: str):
     """
     Return the file extension of framework.
 
-    @param framework: (str)
-    @return: (str) the suffix for the specific framework
+    :param framework: (str)
+    :return: (str) the suffix for the specific framework
     """
     frameworks_dict = {
         "TENSORFLOW1": ".pb",
@@ -352,9 +353,9 @@ def check_models_have_same_weights(model_1: torch.nn.Module, model_2: torch.nn.M
     """
     Checks whether two networks have the same weights
 
-    @param model_1: Net to be checked
-    @param model_2: Net to be checked
-    @return: True iff the two networks have the same weights
+    :param model_1: Net to be checked
+    :param model_2: Net to be checked
+    :return: True iff the two networks have the same weights
     """
     model_1, model_2 = model_1.to("cpu"), model_2.to("cpu")
     models_differ = 0
@@ -526,3 +527,14 @@ def override_default_params_without_nones(params: Dict, default_params: Mapping)
         if key not in params.keys() or params[key] is None:
             params[key] = val
     return params
+
+
+def generate_batch(iterable: Iterable, batch_size: int) -> Iterable:
+    """Batch data into tuples of length n. The last batch may be shorter."""
+    it = iter(iterable)
+    while True:
+        batch = tuple(islice(it, batch_size))
+        if batch:
+            yield batch
+        else:
+            return

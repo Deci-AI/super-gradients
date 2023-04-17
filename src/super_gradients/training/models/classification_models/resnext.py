@@ -6,6 +6,9 @@ Code adapted from https://github.com/pytorch/vision/blob/master/torchvision/mode
 """
 import torch.nn as nn
 import torch.nn.functional as F
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models.sg_module import SgModule
 
 
@@ -142,11 +145,13 @@ class CustomizedResNeXt(ResNeXt):
         )
 
 
+@register_model(Models.RESNEXT50)
 class ResNeXt50(ResNeXt):
     def __init__(self, arch_params):
         super(ResNeXt50, self).__init__(layers=[3, 4, 6, 3], cardinality=32, bottleneck_width=4, num_classes=arch_params.num_classes)
 
 
+@register_model(Models.RESNEXT101)
 class ResNeXt101(ResNeXt):
     def __init__(self, arch_params):
         super(ResNeXt101, self).__init__(layers=[3, 4, 23, 3], cardinality=32, bottleneck_width=8, num_classes=arch_params.num_classes)

@@ -8,6 +8,8 @@ from torchmetrics import Metric
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.ddp_utils import is_distributed
+from super_gradients.common.object_names import Metrics
+from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching, compute_visible_bbox_xywh
 from super_gradients.training.utils.detection_utils import compute_detection_metrics_per_cls
 
@@ -16,6 +18,7 @@ logger = get_logger(__name__)
 __all__ = ["PoseEstimationMetrics"]
 
 
+@register_metric(Metrics.POSE_ESTIMATION_METRICS)
 class PoseEstimationMetrics(Metric):
     """
     Implementation of COCO Keypoint evaluation metric.
@@ -242,8 +245,8 @@ class PoseEstimationMetrics(Metric):
         When in distributed mode, stats are aggregated after each forward pass to the metric state. Since these have all
         different sizes we override the synchronization function since it works only for tensors (and use
         all_gather_object)
-        @param dist_sync_fn:
-        @return:
+        :param dist_sync_fn:
+        :return:
         """
         if self.world_size is None:
             self.world_size = torch.distributed.get_world_size() if self.is_distributed else -1

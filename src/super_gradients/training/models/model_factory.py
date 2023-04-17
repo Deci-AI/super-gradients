@@ -9,7 +9,7 @@ from super_gradients.common.plugins.deci_client import DeciClient, client_enable
 from super_gradients.training import utils as core_utils
 from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
 from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import ARCHITECTURES
+from super_gradients.common.registry.registry import ARCHITECTURES
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training.utils.checkpoint_utils import (
@@ -20,6 +20,7 @@ from super_gradients.training.utils.checkpoint_utils import (
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
+from super_gradients.training.transforms.processing import get_pretrained_processing_params
 
 logger = get_logger(__name__)
 
@@ -134,7 +135,26 @@ def instantiate_model(
             if num_classes_new_head != arch_params.num_classes:
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
+
+            # TODO: remove once we load it from the checkpoint
+            processing_params = get_pretrained_processing_params(model_name, pretrained_weights)
+            net.set_dataset_processing_params(**processing_params)
+
+    _add_model_name_attribute(net, model_name)
+
     return net
+
+
+def _add_model_name_attribute(model: torch.nn.Module, model_name: str) -> None:
+    """Add an attribute to a model.
+    This is useful to keep track of the exact name used to instantiate the model using `models.get()`,
+    which differs to the class name because the same class can be used to build different architectures."""
+    setattr(model, "_sg_model_name", model_name)
+
+
+def get_model_name(model: torch.nn.Module) -> Optional[str]:
+    """Get the name of a model loaded by SuperGradients' `models.get()`. If the model was not loaded using `models.get()`, return None."""
+    return getattr(model, "_sg_model_name", None)
 
 
 def get(

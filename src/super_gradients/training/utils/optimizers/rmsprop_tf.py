@@ -1,5 +1,10 @@
+from typing import Optional, Union, Iterable
+
 import torch
 from torch.optim import Optimizer
+
+from super_gradients.common.object_names import Optimizers
+from super_gradients.common.registry.registry import register_optimizer
 
 """
 This implementation is taken from timm's github:
@@ -13,6 +18,7 @@ Modifications Copyright 2020 Ross Wightman
 """
 
 
+@register_optimizer(Optimizers.RMS_PROP_TF)
 class RMSpropTF(Optimizer):
     """Implements RMSprop algorithm (TensorFlow style epsilon)
     NOTE: This is a direct cut-and-paste of PyTorch RMSprop with eps applied before sqrt
@@ -26,9 +32,20 @@ class RMSpropTF(Optimizer):
     The centered version first appears in `Generating Sequences
     With Recurrent Neural Networks <https://arxiv.org/pdf/1308.0850v5.pdf>`_."""
 
-    def __init__(self, params, lr=1e-2, alpha=0.9, eps=1e-10, weight_decay=0, momentum=0.0, centered=False, decoupled_decay=False, lr_in_momentum=True):
+    def __init__(
+        self,
+        params: Union[Iterable[torch.Tensor], Iterable[dict]],
+        lr: float = 1e-2,
+        alpha: float = 0.9,
+        eps: float = 1e-10,
+        weight_decay: float = 0,
+        momentum: float = 0.0,
+        centered: bool = False,
+        decoupled_decay: bool = False,
+        lr_in_momentum: bool = True,
+    ):
         """RMSprop optimizer that follows the tf's RMSprop characteristics
-        :param params (iterable): iterable of parameters to optimize or dicts defining parameter groups
+        :param params (iterable): iterable of parameters to optimize or dicts defining parameter groups.
         :param lr (float, optional): learning rate
         :param momentum (float, optional): momentum factor
         :param alpha (float, optional): smoothing (decay) constant
@@ -69,7 +86,7 @@ class RMSpropTF(Optimizer):
             group.setdefault("momentum", 0)
             group.setdefault("centered", False)
 
-    def step(self, closure=None):  # noqa: C901
+    def step(self, closure: Optional[callable] = None) -> torch.Tensor:  # noqa: C901
         """Performs a single optimization step.
         Arguments:
             closure (callable, optional): A closure that reevaluates the model

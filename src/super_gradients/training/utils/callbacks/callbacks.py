@@ -3,8 +3,9 @@ import math
 import os
 import signal
 import time
-from typing import List, Union
+from typing import List, Union, Optional
 
+import csv
 import cv2
 import numpy as np
 import onnx
@@ -14,9 +15,14 @@ from deprecate import deprecated
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.plugins.deci_client import DeciClient
+from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback
+from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
+from super_gradients.common.environment.ddp_utils import multi_process_safe
+from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
+
 
 logger = get_logger(__name__)
 
@@ -31,6 +37,7 @@ class ContextSgMethods:
             setattr(self, attr, attr_val)
 
 
+@register_callback(Callbacks.MODEL_CONVERSION_CHECK)
 class ModelConversionCheckCallback(PhaseCallback):
     """
     Pre-training callback that verifies model conversion to onnx given specified conversion parameters.
@@ -39,23 +46,14 @@ class ModelConversionCheckCallback(PhaseCallback):
 
     Use this callback wit hthe same args as DeciPlatformCallback to prevent conversion fails at the end of training.
 
-    Attributes:
-
-        model_meta_data: (ModelMetadata) model's meta-data object.
-
-        The following parameters may be passed as kwargs in order to control the conversion to onnx:
-        :param opset_version (default=11)
-        :param do_constant_folding (default=True)
-        :param dynamic_axes (default=
-                                        {'input': {0: 'batch_size'},
-                                        # Variable length axes
-                                        'output': {0: 'batch_size'}}
-
-                                        )
-        :param input_names (default=["input"])
-        :param output_names (default=["output"])
-        :param rtol (default=1e-03)
-        :param atol (default=1e-05)
+    :param model_meta_data:         Model's meta-data object. Type: ModelMetadata/
+    :param opset_version:           (default=11)
+    :param do_constant_folding:     (default=True)
+    :param dynamic_axes:            (default={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}})
+    :param input_names:             (default=["input"])
+    :param output_names:            (default=["output"])
+    :param rtol:                    (default=1e-03)
+    :param atol:                    (default=1e-05)
     """
 
     def __init__(self, model_meta_data, **kwargs):
@@ -118,30 +116,20 @@ class ModelConversionCheckCallback(PhaseCallback):
         logger.info("Exported model has been tested with ONNXRuntime, and the result looks good!")
 
 
+@register_callback(Callbacks.DECI_LAB_UPLOAD)
 class DeciLabUploadCallback(PhaseCallback):
     """
     Post-training callback for uploading and optimizing a model.
 
-    Attributes:
-
-        model_meta_data: (ModelMetadata) model's meta-data object.
-        optimization_request_form: (dict) optimization request form object.
-        ckpt_name: (str) default="ckpt_best" refers to the filename of the checkpoint, inside the checkpoint directory.
-
-        The following parameters may be passed as kwargs in order to control the conversion to onnx:
-        :param opset_version
-        :param do_constant_folding
-        :param dynamic_axes
-        :param input_names
-        :param output_names
+    :param model_meta_data:             Model's meta-data object. Type: ModelMetadata
+    :param optimization_request_form:   Optimization request form object. Type: OptimizationRequestForm
+    :param ckpt_name:                   Checkpoint filename, inside the checkpoint directory.
     """
 
-    def __init__(self, model_meta_data, optimization_request_form, ckpt_name="ckpt_best.pth", **kwargs):
+    def __init__(self, model_meta_data, optimization_request_form, ckpt_name: str = "ckpt_best.pth", **kwargs):
         super().__init__(phase=Phase.POST_TRAINING)
-
         self.model_meta_data = model_meta_data
         self.optimization_request_form = optimization_request_form
-        self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
         self.platform_client = DeciClient()
 
@@ -153,8 +141,7 @@ class DeciLabUploadCallback(PhaseCallback):
         """
         This function will upload the trained model to the Deci Lab
 
-        Args:
-            model: The resulting model from the training process
+        :param model: The resulting model from the training process
         """
         self.platform_client.upload_model(model=model, model_meta_data=self.model_meta_data, optimization_request_form=self.optimization_request_form)
 
@@ -163,10 +150,10 @@ class DeciLabUploadCallback(PhaseCallback):
         This function will do fetch the optimized version of the trained model and check on its benchmark status.
         The status will be checked against the server every 30 seconds and the process will timeout after 30 minutes
         or log about the successful optimization - whichever happens first.
-        Args:
-            optimized_model_name (str): Optimized model name
-        Returns:
-            bool: whether or not the optimized model has been benchmarked
+
+        :param optimized_model_name: Optimized model name
+
+        :return: Whether or not the optimized model has been benchmarked
         """
 
         def handler(_signum, _frame):
@@ -186,13 +173,11 @@ class DeciLabUploadCallback(PhaseCallback):
         signal.alarm(0)
         return True
 
-    def __call__(self, context: PhaseContext):
+    def __call__(self, context: PhaseContext) -> None:
         """
         This function will attempt to upload the trained model and schedule an optimization for it.
-        Args:
-            context (PhaseContext): Training phase context
-        Returns:
-            bool: whether or not the optimized model has been benchmarked
+
+        :param context: Training phase context
         """
         try:
             model = copy.deepcopy(context.net)
@@ -220,6 +205,7 @@ class DeciLabUploadCallback(PhaseCallback):
             logger.error(ex)
 
 
+@register_callback(Callbacks.LR_CALLBACK_BASE)
 class LRCallbackBase(PhaseCallback):
     """
     Base class for hard coded learning rate scheduling regimes, implemented as callbacks.
@@ -242,8 +228,8 @@ class LRCallbackBase(PhaseCallback):
         """
         Predicate that controls whether to perform lr scheduling based on values in context.
 
-        @param context: PhaseContext: current phase's context.
-        @return: bool, whether to apply lr scheduling or not.
+        :param context: PhaseContext: current phase's context.
+        :return: bool, whether to apply lr scheduling or not.
         """
         raise NotImplementedError
 
@@ -251,7 +237,7 @@ class LRCallbackBase(PhaseCallback):
         """
         Performs lr scheduling based on values in context.
 
-        @param context: PhaseContext: current phase's context.
+        :param context: PhaseContext: current phase's context.
         """
         raise NotImplementedError
 
@@ -265,6 +251,7 @@ class LRCallbackBase(PhaseCallback):
                 param_group["lr"] = self.lr
 
 
+@register_lr_warmup(LRWarmups.LINEAR_EPOCH_STEP)
 class EpochStepWarmupLRCallback(LRCallbackBase):
     """
     LR scheduling callback for linear step warmup. This scheduler uses a whole epoch as single step.
@@ -288,6 +275,19 @@ class EpochStepWarmupLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
+@register_lr_warmup(LRWarmups.LINEAR_STEP)
+class LinearStepWarmupLRCallback(EpochStepWarmupLRCallback):
+    """Deprecated, use EpochStepWarmupLRCallback instead"""
+
+    def __init__(self, **kwargs):
+        logger.warning(
+            f"Parameter {LRWarmups.LINEAR_STEP} has been made deprecated and will be removed in the next SG release. "
+            f"Please use `{LRWarmups.LINEAR_EPOCH_STEP}` instead."
+        )
+        super(LinearStepWarmupLRCallback, self).__init__(**kwargs)
+
+
+@register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP)
 class BatchStepLinearWarmupLRCallback(Callback):
     """
     LR scheduling callback for linear step warmup on each batch step.
@@ -357,6 +357,7 @@ class BatchStepLinearWarmupLRCallback(Callback):
                 param_group["lr"] = self.lr
 
 
+@register_lr_scheduler(LRSchedulers.STEP)
 class StepLRCallback(LRCallbackBase):
     """
     Hard coded step learning rate scheduling (i.e at specific milestones).
@@ -387,6 +388,7 @@ class StepLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch
 
 
+@register_lr_scheduler(LRSchedulers.EXP)
 class ExponentialLRCallback(LRCallbackBase):
     """
     Exponential decay learning rate scheduling. Decays the learning rate by `lr_decay_factor` every epoch.
@@ -407,6 +409,7 @@ class ExponentialLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
+@register_lr_scheduler(LRSchedulers.POLY)
 class PolyLRCallback(LRCallbackBase):
     """
     Hard coded polynomial decay learning rate scheduling (i.e at specific milestones).
@@ -429,6 +432,7 @@ class PolyLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
+@register_lr_scheduler(LRSchedulers.COSINE)
 class CosineLRCallback(LRCallbackBase):
     """
     Hard coded step Cosine anealing learning rate scheduling.
@@ -466,6 +470,7 @@ class CosineLRCallback(LRCallbackBase):
         return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
+@register_lr_scheduler(LRSchedulers.FUNCTION)
 class FunctionLRCallback(LRCallbackBase):
     """
     Hard coded rate scheduling for user defined lr scheduling function.
@@ -498,28 +503,29 @@ class FunctionLRCallback(LRCallbackBase):
 class IllegalLRSchedulerMetric(Exception):
     """Exception raised illegal combination of training parameters.
 
-    Attributes:
-        message -- explanation of the error
+    :param metric_name: Name of the metric that is not supported.
+    :param metrics_dict: Dictionary of metrics that are supported.
     """
 
-    def __init__(self, metric_name, metrics_dict):
+    def __init__(self, metric_name: str, metrics_dict: dict):
         self.message = "Illegal metric name: " + metric_name + ". Expected one of metics_dics keys: " + str(metrics_dict.keys())
         super().__init__(self.message)
 
 
+@register_callback(Callbacks.LR_SCHEDULER)
 class LRSchedulerCallback(PhaseCallback):
     """
     Learning rate scheduler callback.
 
-    Attributes:
-        scheduler: torch.optim._LRScheduler, the learning rate scheduler to be called step() with.
-        metric_name: str, (default=None) the metric name for ReduceLROnPlateau learning rate scheduler.
-
-        When passing __call__ a metrics_dict, with a key=self.metric_name, the value of that metric will monitored
+    When passing __call__ a metrics_dict, with a key=self.metric_name, the value of that metric will monitored
          for ReduceLROnPlateau (i.e step(metrics_dict[self.metric_name]).
+
+    :param scheduler:       Learning rate scheduler to be called step() with.
+    :param metric_name:     Metric name for ReduceLROnPlateau learning rate scheduler.
+    :param phase:           Phase of when to trigger it.
     """
 
-    def __init__(self, scheduler, phase, metric_name=None):
+    def __init__(self, scheduler: torch.optim.lr_scheduler._LRScheduler, phase: Phase, metric_name: str = None):
         super(LRSchedulerCallback, self).__init__(phase)
         self.scheduler = scheduler
         self.metric_name = metric_name
@@ -537,6 +543,7 @@ class LRSchedulerCallback(PhaseCallback):
         return "LRSchedulerCallback: " + repr(self.scheduler)
 
 
+@register_callback(Callbacks.METRICS_UPDATE)
 class MetricsUpdateCallback(PhaseCallback):
     def __init__(self, phase: Phase):
         super(MetricsUpdateCallback, self).__init__(phase)
@@ -571,14 +578,16 @@ class PhaseContextTestCallback(PhaseCallback):
         self.context = context
 
 
+@register_callback(Callbacks.DETECTION_VISUALIZATION_CALLBACK)
 class DetectionVisualizationCallback(PhaseCallback):
     """
     A callback that adds a visualization of a batch of detection predictions to context.sg_logger
-    Attributes:
-        freq: frequency (in epochs) to perform this callback.
-        batch_idx: batch index to perform visualization for.
-        classes: class list of the dataset.
-        last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
+
+    :param phase:                   When to trigger the callback.
+    :param freq:                    Frequency (in epochs) to perform this callback.
+    :param batch_idx:               Batch index to perform visualization for.
+    :param classes:                 Class list of the dataset.
+    :param last_img_idx_in_batch:   Last image index to add to log. (default=-1, will take entire batch).
     """
 
     def __init__(
@@ -612,10 +621,11 @@ class DetectionVisualizationCallback(PhaseCallback):
 class BinarySegmentationVisualizationCallback(PhaseCallback):
     """
     A callback that adds a visualization of a batch of segmentation predictions to context.sg_logger
-    Attributes:
-        freq: frequency (in epochs) to perform this callback.
-        batch_idx: batch index to perform visualization for.
-        last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
+
+    :param phase:                   When to trigger the callback.
+    :param freq:                    Frequency (in epochs) to perform this callback.
+    :param batch_idx:               Batch index to perform visualization for.
+    :param last_img_idx_in_batch:   Last image index to add to log. (default=-1, will take entire batch).
     """
 
     def __init__(self, phase: Phase, freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
@@ -644,8 +654,7 @@ class TrainingStageSwitchCallbackBase(PhaseCallback):
     A phase callback that is called at a specific epoch (epoch start) to support multi-stage training.
     It does so by manipulating the objects inside the context.
 
-    Attributes:
-        next_stage_start_epoch: int, the epoch idx to apply the stage change.
+    :param next_stage_start_epoch: Epoch idx to apply the stage change.
     """
 
     def __init__(self, next_stage_start_epoch: int):
@@ -666,6 +675,7 @@ class TrainingStageSwitchCallbackBase(PhaseCallback):
         raise NotImplementedError
 
 
+@register_callback(Callbacks.YOLOX_TRAINING_STAGE_SWITCH)
 class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
     """
     YoloXTrainingStageSwitchCallback
@@ -684,6 +694,33 @@ class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
                 transform.close()
         iter(context.train_loader)
         context.criterion.use_l1 = True
+
+
+@register_callback(Callbacks.ROBOFLOW_RESULT_CALLBACK)
+class RoboflowResultCallback(Callback):
+    """Append the training results to a csv file. Be aware that this does not fully overwrite the existing file, just appends."""
+
+    def __init__(self, dataset_name: str, output_path: Optional[str] = None):
+        """
+        :param dataset_name:    Name of the dataset that was used to train the model.
+        :param output_path:     Full path to the output csv file. By default, save at 'checkpoint_dir/results.csv'
+        """
+        self.dataset_name = dataset_name
+        self.output_path = output_path or os.path.join(get_project_checkpoints_dir_path(), "results.csv")
+
+        if self.output_path is None:
+            raise ValueError("Output path must be specified")
+
+        super(RoboflowResultCallback, self).__init__()
+
+    @multi_process_safe
+    def on_training_end(self, context: PhaseContext):
+
+        with open(self.output_path, mode="a", newline="") as csv_file:
+            writer = csv.writer(csv_file)
+
+            mAP = context.metrics_dict["mAP@0.50:0.95"].item()
+            writer.writerow([self.dataset_name, mAP])
 
 
 class TestLRCallback(PhaseCallback):

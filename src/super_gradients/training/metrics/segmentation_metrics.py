@@ -7,11 +7,15 @@ from torchmetrics.utilities.distributed import reduce
 from abc import ABC, abstractmethod
 
 
-def batch_pix_accuracy(predict, target):
+from super_gradients.common.object_names import Metrics
+from super_gradients.common.registry.registry import register_metric
+
+
+def batch_pix_accuracy(predict: torch.Tensor, target: torch.Tensor) -> Tuple[float, float]:
     """Batch Pixel Accuracy
-    Args:
-        predict: input 4D tensor
-        target: label 3D tensor
+
+    :param predict: input 4D tensor
+    :param target: label 3D tensor
     """
     _, predict = torch.max(predict, 1)
     predict = predict.cpu().numpy() + 1
@@ -22,12 +26,12 @@ def batch_pix_accuracy(predict, target):
     return pixel_correct, pixel_labeled
 
 
-def batch_intersection_union(predict, target, nclass):
+def batch_intersection_union(predict: torch.Tensor, target: torch.Tensor, nclass: int) -> Tuple[float, float]:
     """Batch Intersection of Union
-    Args:
-        predict: input 4D tensor
-        target: label 3D tensor
-        nclass: number of categories (int)
+
+    :param predict: input 4D tensor
+    :param target: label 3D tensor
+    :param nclass: number of categories (int)
     """
     _, predict = torch.max(predict, 1)
     mini = 1
@@ -69,15 +73,13 @@ def _dice_from_confmat(
 ) -> torch.Tensor:
     """Computes Dice coefficient from confusion matrix.
 
-    Args:
-        confmat: Confusion matrix without normalization
-        num_classes: Number of classes for a given prediction and target tensor
-        ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute
+    :param confmat:         Confusion matrix without normalization
+    :param num_classes:     Number of classes for a given prediction and target tensor
+    :param ignore_index:    Optional int specifying a target class to ignore. If given, this class index does not contribute
             to the returned score, regardless of reduction method.
-        absent_score: score to use for an individual class, if no instances of the class index were present in `pred`
+    :param absent_score:    Score to use for an individual class, if no instances of the class index were present in `pred`
             AND no instances of the class index were present in `target`.
-        reduction: a method to reduce metric score over labels.
-
+    :param reduction:       Method to reduce metric score over labels.
             - ``'elementwise_mean'``: takes the mean (default)
             - ``'sum'``: takes the sum
             - ``'none'``: no reduction will be applied
@@ -160,6 +162,7 @@ class PreprocessSegmentationMetricsArgs(AbstractMetricsArgsPrepFn):
         return preds, target
 
 
+@register_metric(Metrics.PIXEL_ACCURACY)
 class PixelAccuracy(Metric):
     def __init__(self, ignore_label=-100, dist_sync_on_step=False, metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
@@ -185,6 +188,7 @@ class PixelAccuracy(Metric):
         return pix_acc
 
 
+@register_metric(Metrics.IOU)
 class IoU(torchmetrics.JaccardIndex):
     def __init__(
         self,
@@ -208,6 +212,7 @@ class IoU(torchmetrics.JaccardIndex):
         super().update(preds=preds, target=target)
 
 
+@register_metric(Metrics.DICE)
 class Dice(torchmetrics.JaccardIndex):
     def __init__(
         self,
@@ -235,6 +240,7 @@ class Dice(torchmetrics.JaccardIndex):
         return _dice_from_confmat(self.confmat, self.num_classes, self.ignore_index, self.absent_score, self.reduction)
 
 
+@register_metric(Metrics.BINARY_IOU)
 class BinaryIOU(IoU):
     def __init__(
         self,
@@ -264,6 +270,7 @@ class BinaryIOU(IoU):
         return {"target_IOU": ious[1], "background_IOU": ious[0], "mean_IOU": ious.mean()}
 
 
+@register_metric(Metrics.BINARY_DICE)
 class BinaryDice(Dice):
     def __init__(
         self,

@@ -76,6 +76,16 @@ class FactoriesTest(unittest.TestCase):
         model = DummyModel(activation_in_head="leaky_relu")
         self.assertIsInstance(model.activation_in_head, nn.LeakyReLU)
 
+    def test_activations_factory_input_is_type(self):
+        class DummyModel(nn.Module):
+            @resolve_param("activation_in_head", ActivationsTypeFactory())
+            def __init__(self, activation_in_head):
+                super().__init__()
+                self.activation_in_head = activation_in_head()
+
+        model = DummyModel(activation_in_head=nn.LeakyReLU)
+        self.assertIsInstance(model.activation_in_head, nn.LeakyReLU)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -379,7 +379,7 @@ def unpack_batch_items(batch_items: Union[tuple, torch.Tensor]):
     """
     Adds support for unpacking batch items in train/validation loop.
 
-    @param batch_items: (Union[tuple, torch.Tensor]) returned by the data loader, which is expected to be in one of
+    :param batch_items: (Union[tuple, torch.Tensor]) returned by the data loader, which is expected to be in one of
          the following formats:
             1. torch.Tensor or tuple, s.t inputs = batch_items[0], targets = batch_items[1] and len(batch_items) = 2
             2. tuple: (inputs, targets, additional_batch_items)
@@ -389,7 +389,7 @@ def unpack_batch_items(batch_items: Union[tuple, torch.Tensor]):
          the phase context under the attribute additional_batch_item_i_name, using a phase callback.
 
 
-    @return: inputs, target, additional_batch_items
+    :return: inputs, target, additional_batch_items
     """
     additional_batch_items = {}
     if len(batch_items) == 2:
@@ -407,9 +407,9 @@ def unpack_batch_items(batch_items: Union[tuple, torch.Tensor]):
 def log_uncaught_exceptions(logger):
     """
     Makes logger log uncaught exceptions
-    @param logger: logging.Logger
+    :param logger: logging.Logger
 
-    @return: None
+    :return: None
     """
 
     def log_exceptook(excepthook: Callable) -> Callable:
@@ -449,18 +449,20 @@ def get_callable_param_names(obj: callable) -> Tuple[str]:
     return tuple(inspect.signature(obj).parameters)
 
 
-def log_main_training_params(multi_gpu: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, len_train_set: int):
+def log_main_training_params(
+    multi_gpu: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, train_dataset_length: int, train_dataloader_len: int
+):
     """Log training parameters"""
     msg = (
         "TRAINING PARAMETERS:\n"
         f"    - Mode:                         {multi_gpu.name if multi_gpu else 'Single GPU'}\n"
         f"    - Number of GPUs:               {num_gpus if 'cuda' in device_config.device  else 0:<10} ({torch.cuda.device_count()} available on the machine)\n"
-        f"    - Dataset size:                 {len_train_set:<10} (len(train_set))\n"
+        f"    - Dataset size:                 {train_dataset_length:<10} (len(train_set))\n"
         f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n"
         f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n"
         f"    - Total batch size:             {num_gpus * batch_size:<10} (num_gpus * batch_size)\n"
         f"    - Effective Batch size:         {num_gpus * batch_size * batch_accumulate:<10} (num_gpus * batch_size * batch_accumulate)\n"
-        f"    - Iterations per epoch:         {int(len_train_set / (num_gpus * batch_size)):<10} (len(train_set) / total_batch_size)\n"
-        f"    - Gradient updates per epoch:   {int(len_train_set / (num_gpus * batch_size * batch_accumulate)):<10} (len(train_set) / effective_batch_size)\n"
+        f"    - Iterations per epoch:         {int(train_dataloader_len):<10} (len(train_loader))\n"
+        f"    - Gradient updates per epoch:   {int(train_dataloader_len / batch_accumulate):<10} (len(train_loader) / batch_accumulate)\n"
     )
     logger.info(msg)

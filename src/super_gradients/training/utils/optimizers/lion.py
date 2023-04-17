@@ -1,24 +1,35 @@
 """PyTorch implementation of the Lion optimizer.
 Code adopted from: https://github.com/google/automl/blob/master/lion/lion_pytorch.py
 """
+from typing import Optional, Union, Iterable, Tuple
+
 import torch
 from torch.optim.optimizer import Optimizer
 
+from super_gradients.common.object_names import Optimizers
+from super_gradients.common.registry.registry import register_optimizer
 
+
+@register_optimizer(Optimizers.LION)
 class Lion(Optimizer):
     r"""Implements Lion algorithm.
     Generaly, it is recommended to divide lr used by AdamW by 10 and multiply the weight decay by 10.
     """
 
-    def __init__(self, params, lr=1e-4, betas=(0.9, 0.99), weight_decay=0.0):
-        """Initialize the hyperparameters.
-        Args:
-          params (iterable): iterable of parameters to optimize or dicts defining
-            parameter groups
-          lr (float, optional): learning rate (default: 1e-4)
-          betas (Tuple[float, float], optional): coefficients used for computing
-            running averages of gradient and its square (default: (0.9, 0.99))
-          weight_decay (float, optional): weight decay coefficient (default: 0)
+    def __init__(
+        self,
+        params: Union[Iterable[torch.Tensor], Iterable[dict]],
+        lr: float = 1e-4,
+        betas: Tuple[float, float] = (0.9, 0.99),
+        weight_decay: float = 0.0,
+    ):
+        """
+        Initialize the hyperparameters.
+
+        :param params:          Iterable of parameters to optimize or dicts defining parameter groups
+        :param lr:              Learning rate (default: 1e-4)
+        :param betas:           Coefficients used for computing running averages of gradient and its square (default: (0.9, 0.99))
+        :param weight_decay:    Weight decay coefficient (default: 0)
         """
 
         if not 0.0 <= lr:
@@ -31,13 +42,12 @@ class Lion(Optimizer):
         super().__init__(params, defaults)
 
     @torch.no_grad()
-    def step(self, closure=None):
-        """Performs a single optimization step.
-        Args:
-          closure (callable, optional): A closure that reevaluates the model
-            and returns the loss.
-        Returns:
-          the loss.
+    def step(self, closure: Optional[callable] = None) -> torch.Tensor:
+        """
+        Perform a single optimization step.
+
+        :param closure: A closure that reevaluates the model and returns the loss.
+        :return: Loss.
         """
         loss = None
         if closure is not None:

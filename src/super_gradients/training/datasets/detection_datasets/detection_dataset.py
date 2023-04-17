@@ -13,6 +13,8 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset
 
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.training.utils.detection_utils import get_cls_posx_in_target
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -26,6 +28,7 @@ from super_gradients.training.datasets.data_formats.formats import ConcatenatedT
 logger = get_logger(__name__)
 
 
+@register_dataset(Datasets.DETECTION_DATASET)
 class DetectionDataset(Dataset):
     """Detection dataset.
 
@@ -69,11 +72,11 @@ class DetectionDataset(Dataset):
     def __init__(
         self,
         data_dir: str,
-        input_dim: Optional[Tuple[int, int]],
         original_target_format: Union[ConcatenatedTensorFormat, DetectionTargetsFormat],
         max_num_samples: int = None,
         cache: bool = False,
         cache_dir: str = None,
+        input_dim: Optional[Tuple[int, int]] = None,
         transforms: List[DetectionTransform] = [],
         all_classes_list: Optional[List[str]] = [],
         class_inclusion_list: Optional[List[str]] = None,
@@ -255,6 +258,8 @@ class DetectionDataset(Dataset):
             "********************************************************************************"
         )
 
+        if self.input_dim is None:
+            raise RuntimeError("caching is not possible without input_dim is not set")
         max_h, max_w = self.input_dim[0], self.input_dim[1]
 
         # The cache should be the same as long as the images and their sizes are the same

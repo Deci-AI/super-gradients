@@ -23,7 +23,7 @@ try:
     from deci_lab_client.models import ModelBenchmarkState
     from deci_common.data_interfaces.files_data_interface import FilesDataInterface
     from deci_lab_client.models import AutoNACFileName
-    from deci_lab_client import ApiException
+    from deci_lab_client import ApiException, BodyRegisterUserArchitecture
 
 except (ImportError, NameError):
     client_enabled = False
@@ -150,10 +150,9 @@ class DeciClient:
         """
         This function will upload the trained model to the Deci Lab
 
-        Args:
-            model:                     The resulting model from the training process
-            model_meta_data:           Metadata to accompany the model
-            optimization_request_form: The optimization parameters
+        :param model:                     The resulting model from the training process
+        :param model_meta_data:           Metadata to accompany the model
+        :param optimization_request_form: The optimization parameters
         """
         self.lab_client.add_model(
             add_model_request=model_meta_data,
@@ -173,6 +172,14 @@ class DeciClient:
         :param name:        Name of the experiment to register
         :param model_name:  Name of the model architecture to connect the experiment to
         """
+        try:
+            self.lab_client.register_user_architecture(BodyRegisterUserArchitecture(architecture_name=model_name))
+        except ApiException as e:
+            if e.status == 422:
+                logger.debug(f"The model was already registered, or validation error: {e.body}")
+            else:
+                raise e
+
         self.lab_client.register_experiment(name=name, model_name=model_name, resume=resume)
 
     def save_experiment_file(self, file_path: str):

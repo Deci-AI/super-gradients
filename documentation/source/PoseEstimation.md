@@ -25,19 +25,21 @@ The easiest way to start training a pose estimation model is to use a recipe fro
 
 ### Prerequisites
 
-1. You have to install SuperGradients first. Please refer to the [Installation](https://docs.deci.ai/super-gradients/documentation/source/installation/) section for more details.
+1. You have to install SuperGradients first. Please refer to the [Installation](installation.md) section for more details.
 2. Prepare the COCO dataset as described in the [Computer Vision Datasets Setup](https://docs.deci.ai/super-gradients/src/super_gradients/training/datasets/Dataset_Setup_Instructions/) under Pose Estimation Datasets
  section. 
 
 After you met the prerequisites, you can start training the model by running from the root of the repository:
+
+### Training from recipe
 
 ```bash
 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32 multi_gpu=Off num_gpus=1
 ```
 
 Note, the default configuration for recipe is to use 8 GPUs in DDP mode. This hardware configuration may not be for everyone, so we in the example above we override GPU settings to use single GPU.
-It is highly recommended to read through the recipe file https://github.com/Deci-AI/super-gradients/src/super_gradients/recipes/coco2017_pose_dekr_w32.yaml to get better understanding of the hyperparameters we use here.
-If you're unfamiliar with config files, we recommend you to read the [Configuration Files](https://docs.deci.ai/super-gradients/documentation/source/configuration_files/) part first.
+It is highly recommended to read through the [recipe file](https://github.com/Deci-AI/super-gradients/src/super_gradients/recipes/coco2017_pose_dekr_w32.yaml) to get better understanding of the hyperparameters we use here.
+If you're unfamiliar with config files, we recommend you to read the [Configuration Files](configuration_files.md) part first.
 
 The start of the config file looks like this:
 

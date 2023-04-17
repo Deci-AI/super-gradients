@@ -8,12 +8,11 @@ __all__ = ["batch_distance2bbox"]
 
 def batch_distance2bbox(points: Tensor, distance: Tensor, max_shapes: Optional[Tensor] = None) -> Tensor:
     """Decode distance prediction to bounding box for batch.
-    Args:
-        points (Tensor): [B, ..., 2], "xy" format
-        distance (Tensor): [B, ..., 4], "ltrb" format
-        max_shapes (Tensor): [B, 2], "h,w" format, Shape of the image.
-    Returns:
-        Tensor: Decoded bboxes, "x1y1x2y2" format.
+
+    :param points: [B, ..., 2], "xy" format
+    :param distance: [B, ..., 4], "ltrb" format
+    :param max_shapes: [B, 2], "h,w" format, Shape of the image.
+    :return: Tensor: Decoded bboxes, "x1y1x2y2" format.
     """
     lt, rb = torch.split(distance, 2, dim=-1)
     # while tensor add parameters, parameters should be better placed on the second place

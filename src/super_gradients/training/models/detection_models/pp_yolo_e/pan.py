@@ -2,9 +2,11 @@ import collections
 from typing import Type, Tuple, List
 
 import torch
+from torch import nn, Tensor
+
+from super_gradients.common.registry.registry import register_detection_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
-from torch import nn, Tensor
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBasicBlock
 from super_gradients.modules import ConvBNAct
 
@@ -65,6 +67,7 @@ class CSPStage(nn.Module):
         return y
 
 
+@register_detection_module()
 class CustomCSPPAN(nn.Module):
     @resolve_param("activation", ActivationsTypeFactory())
     def __init__(

@@ -6,8 +6,10 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import torch
-from super_gradients.common.abstractions.abstract_logger import get_logger
 
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.registry.registry import register_sg_logger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 
@@ -22,6 +24,7 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     _imported_clear_ml_failure = import_err
 
 
+@register_sg_logger("clearml_sg_logger")
 class ClearMLSGLogger(BaseSGLogger):
     def __init__(
         self,
@@ -40,20 +43,19 @@ class ClearMLSGLogger(BaseSGLogger):
         monitor_system: bool = None,
     ):
         """
-        :param project_name: ClearML project name that can include many experiments
-        :param experiment_name: Used for logging and loading purposes
-        :param storage_location: If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
-        :param resumed: if true, then old tensorboard files will *not* be deleted when tb_files_user_prompt=True
-        :param training_params: training_params for the experiment.
-        :param checkpoints_dir_path: Local root directory path where all experiment logging directories will
-                                                 reside.
-        :param tb_files_user_prompt: Asks user for Tensorboard deletion prompt.
-        :param launch_tensorboard: Whether to launch a TensorBoard process.
-        :param tensorboard_port: Specific port number for the tensorboard to use when launched (when set to None, some free port
-                    number will be used
-        :param save_checkpoints_remote: Saves checkpoints in ClearML server.
-        :param save_tensorboard_remote: Saves tensorboard in ClearML server.
-        :param save_logs_remote: Saves log files in ClearML server.
+        :param project_name:            ClearML project name that can include many experiments
+        :param experiment_name:         Name used for logging and loading purposes
+        :param storage_location:        If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
+        :param resumed:                 If true, then old tensorboard files will **NOT** be deleted when tb_files_user_prompt=True
+        :param training_params:         training_params for the experiment.
+        :param checkpoints_dir_path:    Local root directory path where all experiment logging directories will reside.
+        :param tb_files_user_prompt:    Asks user for Tensorboard deletion prompt.
+        :param launch_tensorboard:      Whether to launch a TensorBoard process.
+        :param tensorboard_port:        Specific port number for the tensorboard to use when launched (when set to None, some free port number will be used
+        :param save_checkpoints_remote: Saves checkpoints in s3.
+        :param save_tensorboard_remote: Saves tensorboard in s3.
+        :param save_logs_remote:        Saves log files in s3.
+        :param monitor_system:          Not Available for ClearML logger. Save the system statistics (GPU utilization, CPU, ...) in the tensorboard
         """
         if monitor_system is not None:
             logger.warning("monitor_system not available on ClearMLSGLogger. To remove this warning, please don't set monitor_system in your logger parameters")

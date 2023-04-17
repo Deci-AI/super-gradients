@@ -1,24 +1,43 @@
 import cv2
+from typing import List
+
 import numpy as np
 import torch
+from torch import Tensor
+
+from super_gradients.common.registry.registry import register_callback
+from super_gradients.common.object_names import Callbacks
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
 from super_gradients.training.utils.pose_estimation.dekr_decode_callbacks import _hierarchical_pool
-from torch import Tensor
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 
 __all__ = ["DEKRVisualizationCallback"]
 
 
+@register_callback(Callbacks.DEKR_VISUALIZATION)
 class DEKRVisualizationCallback(PhaseCallback):
     """
     A callback that adds a visualization of a batch of segmentation predictions to context.sg_logger
-    Attributes:
-        freq: frequency (in epochs) to perform this callback.
-        batch_idx: batch index to perform visualization for.
-        last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
+
+    :param phase:                   When to trigger the callback.
+    :param prefix:                  Prefix to add to the log.
+    :param mean:                    Mean to subtract from image.
+    :param std:                     Standard deviation to subtract from image.
+    :param apply_sigmoid:           Whether to apply sigmoid to the output.
+    :param batch_idx:               Batch index to perform visualization for.
+    :param keypoints_threshold:     Keypoint threshold to use for visualization.
     """
 
-    def __init__(self, phase: Phase, prefix: str, mean, std, apply_sigmoid: bool = False, batch_idx: int = 0, keypoints_threshold: float = 0.01):
+    def __init__(
+        self,
+        phase: Phase,
+        prefix: str,
+        mean: List[float],
+        std: List[float],
+        apply_sigmoid: bool = False,
+        batch_idx: int = 0,
+        keypoints_threshold: float = 0.01,
+    ):
         super(DEKRVisualizationCallback, self).__init__(phase)
         self.batch_idx = batch_idx
         self.prefix = prefix
