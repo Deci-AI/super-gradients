@@ -95,9 +95,6 @@ train_dataloader_params:
   batch_size: 8
   num_workers: 8
   drop_last: True
-  worker_init_fn:
-    _target_: super_gradients.training.utils.utils.load_func
-    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
   collate_fn:
     _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
 
