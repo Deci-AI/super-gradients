@@ -363,6 +363,7 @@ Please note that if you work with `torch<1.9.0` (deprecated), you will have to l
 ```bash
 python -m torch.distributed.launch --nproc_per_node=4 main.py
 ```
+
 ```bash
 torchrun --nproc_per_node=4 main.py
 ```

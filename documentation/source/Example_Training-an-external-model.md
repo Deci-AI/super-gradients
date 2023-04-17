@@ -348,6 +348,7 @@ Let's check our model's type:
 ```python
 print(type(model))
 ```
+
 ```
 <class 'unet.UNet'>
 ```
@@ -358,6 +359,7 @@ model is of the correct type:
 ```python
 print(type(model).__bases__)
 ```
+
 ```
 (<class 'torch.nn.modules.module.Module'>,)
 ```
@@ -367,6 +369,7 @@ Finally, let's print the model to see its components:
 ```python
 print(model)
 ```
+
 ```
 UNet(
   (encoder1): Sequential(
