@@ -7,9 +7,9 @@ import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
+from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.common.data_types import StrictLoad
-import super_gradients
 
 from torch import nn, Tensor
 from typing import Union, Mapping
@@ -232,23 +232,20 @@ def load_checkpoint_to_model(
     message_model = "model" if not load_backbone else "model's backbone"
     logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
 
-    if load_weights_only or load_backbone:
-        # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS
-        [checkpoint.pop(key) for key in list(checkpoint.keys()) if key != "net"]
-
-    if (
-        isinstance(net, super_gradients.training.models.SgModule)
-        or (hasattr(net, "module") and isinstance(net.module, super_gradients.training.models.SgModule))
-    ) and load_processing_params:
+    if (isinstance(net, HasPredict) or (hasattr(net, "module") and isinstance(net.module, HasPredict))) and load_processing_params:
         if "processing_params" not in checkpoint.keys():
             raise ValueError("Can't load processing params - could not find any stored in checkpoint file.")
         try:
-            net.set_dataset_processing_params(*checkpoint["processing_params"])
+            net.set_dataset_processing_params(**checkpoint["processing_params"])
         except Exception as e:
             logger.warning(
                 f"Could not set preprocessing pipeline from the checkpoint dataset: {e}. Before calling"
                 "predict make sure to call set_dataset_processing_params."
             )
+
+    if load_weights_only or load_backbone:
+        # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS
+        [checkpoint.pop(key) for key in list(checkpoint.keys()) if key != "net"]
 
     return checkpoint
 

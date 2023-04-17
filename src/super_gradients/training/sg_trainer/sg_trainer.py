@@ -18,6 +18,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
+from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -599,7 +600,7 @@ class Trainer:
         if self.ema:
             state["ema_net"] = self.ema_model.ema.state_dict()
 
-        if isinstance(self.net.module, SgModule) and hasattr(self.valid_loader.dataset, "get_dataset_preprocessing_params"):
+        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
             state["processing_params"] = self.valid_loader.dataset.get_dataset_preprocessing_params()
 
         # SAVES CURRENT MODEL AS ckpt_latest

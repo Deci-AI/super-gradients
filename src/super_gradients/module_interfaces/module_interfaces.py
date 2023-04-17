@@ -10,7 +10,7 @@ class HasPreprocessingParams:
 
     """
 
-    @abstractmethod()
+    @abstractmethod
     def get_dataset_preprocessing_params(self):
         pass
 
@@ -22,13 +22,15 @@ class HasPredict:
 
     """
 
-    @abstractmethod()
+    @abstractmethod
     def set_dataset_processing_params(self, *args, **kwargs) -> None:
         """Set the processing parameters for the dataset."""
         pass
 
+    @abstractmethod
     def predict(self, images, *args, **kwargs) -> None:
         pass
 
+    @abstractmethod
     def predict_webcam(self, *args, **kwargs) -> None:
         pass

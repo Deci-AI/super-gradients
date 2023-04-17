@@ -7,7 +7,7 @@ from super_gradients.common.factories.processing_factory import ProcessingFactor
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.modules import RepVGGBlock
-from super_gradients.modules.interfaces import HasPredict
+from super_gradients.module_interfaces.module_interfaces import HasPredict
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN

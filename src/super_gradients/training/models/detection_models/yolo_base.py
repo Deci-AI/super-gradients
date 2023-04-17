@@ -7,7 +7,7 @@ import torch.nn as nn
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.modules import CrossModelSkipConnection
-from super_gradients.modules.interfaces import HasPredict
+from super_gradients.module_interfaces.module_interfaces import HasPredict
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
 from super_gradients.training.models.sg_module import SgModule
