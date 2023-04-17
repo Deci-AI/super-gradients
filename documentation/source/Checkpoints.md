@@ -1,4 +1,4 @@
-# Model Checkpoints in SG
+# Model Checkpoints
 
 The first question that arises is: what is a checkpoint?
 
@@ -9,7 +9,7 @@ From the [Pytorch Lightning](https://pytorch-lightning.readthedocs.io/en/stable/
     
     Checkpoints also enable your training to resume where it was in case the training process is interrupted.
 
-## Checkpoints Saving in SG: Which, When, and Where?
+## Checkpoints Saving: Which, When, and Where?
 
 From the previous subsection, we understand that checkpoints saved at different times during training have different purposes.
 That's why in SG, multiple checkpoints are saved throughout training:
@@ -29,30 +29,25 @@ The user controls the checkpoint root directory, which can be passed to the `Tra
 
 When working with a cloned version of SG, one can leave out the `ckpt_root_dir` arg, and checkpoints will be saved under the `super_gradients/checkpoints` directory.
 
-## Checkpoint Structure in SG
+## Checkpoint Structure
 
 Checkpoints in SG are instances of [state_dict](https://pytorch.org/tutorials/beginner/saving_loading_models.html#what-is-a-state-dict).
 They hold additional information about the model's training besides the model weights.
 
 The checkpoint keys:
 
-> "net": The network's state_dict (state_dict).
-
-> "acc": The network's achieved metric value on the validation set ([metric_to_watch in training_params](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) (float).
-
-> "epoch": The last epoch performed.
-
-> "optimizer_state_dict": The state_dict of the optimizer (state_dict).
-
-> "scaler_state_dict": Optional - only present when training with [mixed_precision=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/average_mixed_precision.md). The state_dict of Trainer.scaler.
-
-> "ema_net": Optional - only present when training with [ema=True](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/EMA.md). The EMA model's state_dict. Note that `average_model.pth` lacks this entry even if ema=True since the average model's snapshots are of the EMA network already (i.e., the "net" entry is already an average of the EMA snapshots).
+- `net`: The network's state_dict (state_dict).
+- `acc`: The network's achieved metric value on the validation set ([metric_to_watch in training_params](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) (float).
+- `epoch`: The last epoch performed.
+- `optimizer_state_dict`: The state_dict of the optimizer (state_dict).
+- `scaler_state_dict`: Optional - only present when training with [mixed_precision=True](average_mixed_precision.md). The state_dict of Trainer.scaler.
+- `ema_net`: Optional - only present when training with [ema=True](EMA.md). The EMA model's state_dict. Note that `average_model.pth` lacks this entry even if ema=True since the average model's snapshots are of the EMA network already (i.e., the "net" entry is already an average of the EMA snapshots).
 
 ## Remote Checkpoint Saving with SG Loggers
 
 SG supports remote checkpoint saving using 3rd party tools (for example, [Weights & Biases](https://www.google.com/aclk?sa=l&ai=DChcSEwi1iaLxhYj9AhXejWgJHZYqCGIYABAAGgJ3Zg&sig=AOD64_30zInAUka20YKKdULr8PHnLnLWgg&q&adurl&ved=2ahUKEwiKxZvxhYj9AhUzTKQEHSJwCkcQ0Qx6BAgGEAE)).
 To do so, specify `save_checkpoints_remote=True` inside `sg_logger_params` training_param.
-See our documentation on [Third-party experiment monitoring](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/experiment_monitoring.md).
+See our documentation on [Third-party experiment monitoring](experiment_monitoring.md).
 
 
 ## Loading Checkpoints
@@ -66,27 +61,27 @@ Loading model weights can be done right after model initialization, using `model
 
 Suppose we have launched a training experiment with a similar structure to the one below:
 
-   ```python
-        from super_gradients.training import Trainer
-        ...
-        ...
-        from super_gradients.training import models
-        from super_gradients.common.object_names import Models
-        
-        trainer = Trainer("my_resnet18_training_experiment", ckpt_root_dir="/path/to/my_checkpoints_folder")
-        train_dataloader = ...
-        valid_dataloader = ...
-        model = models.get(model_name=Models.RESNET18, num_classes=10)
-  
-        train_params = {
-            ...
-            "loss": "cross_entropy",
-            "criterion_params": {},
-            "save_ckpt_epoch_list": [10,15]
-            ...
-        }
-        trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
-   ```
+```python
+from super_gradients.training import Trainer
+...
+...
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+
+trainer = Trainer("my_resnet18_training_experiment", ckpt_root_dir="/path/to/my_checkpoints_folder")
+train_dataloader = ...
+valid_dataloader = ...
+model = models.get(model_name=Models.RESNET18, num_classes=10)
+
+train_params = {
+    ...
+    "loss": "cross_entropy",
+    "criterion_params": {},
+    "save_ckpt_epoch_list": [10,15]
+    ...
+}
+trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
+```
 
 Then at the end of the training, our `ckpt_root_dir` contents will look similar to the following:
 
@@ -106,25 +101,25 @@ my_checkpoints_folder
 
 Suppose we wish to load the weights from `ckpt_best.pth`. We can simply pass its path to the `checkpoint_path` argument in `models.get(...)`:
 
-   ```python
-        from super_gradients.training import models
-        from super_gradients.common.object_names import Models
-        
-        model = models.get(model_name=Models.RESNET18, num_classes=10, checkpoint_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
-   ```
+```python
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+
+model = models.get(model_name=Models.RESNET18, num_classes=10, checkpoint_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
+```
 
 > Important: when loading SG-trained checkpoints using models.get(...), if the network was trained with EMA, the EMA weights will be the ones loaded. 
 
 If we already possess an instance of our model, we can also directly use `load_checkpoint_to_model`:
 
-   ```python
-        from super_gradients.training import models
-        from super_gradients.common.object_names import Models
-        from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
-        
-        model = models.get(model_name=Models.RESNET18, num_classes=10)
-        load_checkpoint_to_model(net=model, ckpt_local_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
-   ```
+```python
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
+
+model = models.get(model_name=Models.RESNET18, num_classes=10)
+load_checkpoint_to_model(net=model, ckpt_local_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
+```
 ### Extending the Functionality of PyTorch's `strict` Parameter in `load_state_dict()`
 
 When not familiar with PyTorch's `strict` parameter in `load_state_dict()`, please see [PyTorch's docs on this matter](https://pytorch.org/tutorials/beginner/saving_loading_models.html#id4) first.
@@ -175,14 +170,14 @@ Notice the above networks have identical weight structures but will have differe
 This is why loading a checkpoint from either one to the other, using `strict=True`, will fail and crash. Using `strict=False` will not crash and successfully load the first layer's weights only.
 Using SG's `no_key_matching` will successfully load a checkpoint from either one to the other.
 
-### Loading Pretrained Weights from the SG Model Zoo
+### Loading Pretrained Weights from the Model Zoo
 
 Using `models.get(...)`, you can load any of our pre-trained models in 3 lines of code:
 ```python
-        from super_gradients.training import models
-        from super_gradients.common.object_names import Models
-        
-        model = models.get(Models.YOLOX_S, pretrained_weights="coco")
+from super_gradients.training import models
+from super_gradients.common.object_names import Models
+
+model = models.get(Models.YOLOX_S, pretrained_weights="coco")
 ```
 
 The `pretrained_weights` argument specifies the dataset on which the pre-trained weights were trained. [Here is the complete list of pre-trained weights](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md).
@@ -190,60 +185,59 @@ The `pretrained_weights` argument specifies the dataset on which the pre-trained
 
 ### Loading Checkpoints: Training with Configuration Files
 
-Prerequisites: [Training with Configuration Files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)
+Prerequisites: [Training with Configuration Files](configuration_files.md)
 
 Recall the SGs recipes library structure:
 
 
-The `super_gradients/recipes` include the following subdirectories:
-> - arch_params - containing configuration files for instantiating different models
-> - checkpoint_params - containing configuration files that define the loaded and saved checkpoints parameters for the training
-> - conversion_params - containing configuration files for the model conversion scripts (for deployment)
-> - dataset_params - containing configuration files for instantiating different datasets and dataloaders
-> - training_hyperparams - containing configuration files holding hyper-parameters for specific recipes
+The `super_gradients/recipes` include the following subdirectories
+
+- arch_params - containing configuration files for instantiating different models
+- checkpoint_params - containing configuration files that define the loaded and saved checkpoints parameters for the training
+- conversion_params - containing configuration files for the model conversion scripts (for deployment)
+- dataset_params - containing configuration files for instantiating different datasets and dataloaders
+- training_hyperparams - containing configuration files holding hyper-parameters for specific recipes
 
 And now, let's take a look at the default parameters in `checkpoint_params`:
 
 ```yaml
-
 load_backbone: False # whether to load only the backbone part of the checkpoint
 checkpoint_path: # checkpoint path that is located in super_gradients/checkpoints
 strict_load: True # key matching strictness for loading checkpoint's weights
 pretrained_weights: # a string describing the dataset of the pre-trained weights (for example, "imagenent").
-
 ```
 
 And note the above parameters are used to start the training with different weights (fine-tuning etc.) - they are passed to model.get() in the underlying flow of `Trainer.train_from_config(...)`:
 ```python
 
-    @classmethod
-    def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
+@classmethod
+def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
+    ...
+
+    # BUILD NETWORK
+    model = models.get(
         ...
+        strict_load=cfg.checkpoint_params.strict_load,
+        pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+        checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+        load_backbone=cfg.checkpoint_params.load_backbone,
+    )
 
-        # BUILD NETWORK
-        model = models.get(
-            ...
-            strict_load=cfg.checkpoint_params.strict_load,
-            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-            load_backbone=cfg.checkpoint_params.load_backbone,
-        )
+    # INSTANTIATE DATA LOADERS
 
-        # INSTANTIATE DATA LOADERS
+    train_dataloader = ...
+    val_dataloader = ...
+    
+    ...
 
-        train_dataloader = ...
-        val_dataloader = ...
-        
-        ...
-
-        # TRAIN
-        res = trainer.train(...)
+    # TRAIN
+    res = trainer.train(...)
 ... 
 ```
 
 ## Resuming Training
 
-In SG, we separate the logic of resuming training from loading model weights. Therefore continuing training is controlled by two arguments, passed through `training_params`: `resume` and `resume_path`:
+In SG, we separate the logic of resuming training from loading model weights. Therefore, continuing training is controlled by two arguments, passed through `training_params`: `resume` and `resume_path`:
 ```yaml
 ...
 resume: False # whether to continue training from ckpt with the same experiment name.
@@ -258,10 +252,11 @@ In both cases, SG allows flexibility of the other training-related parameters. F
 
 
 ```shell
-> python train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=300
-...
-...
-> python train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=400
+$ python train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=300
+```
+
+```shell
+$ python train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=400
 ```
 
 However, this flexibility comes with a price: we must be aware of any change in parameters (by command line overrides or hard-coded changes inside the yaml file configurations) if we wish to resume training.

@@ -1,4 +1,4 @@
-## Models
+# Models
 
 SuperGradients provides an extensive collection of state-of-the-art (SOTA) models in its [model zoo](http://bit.ly/3EGfKD4).
 These models are implemented as `torch.nn.Module` and can be used, customized, and trained like any other torch module.
@@ -8,7 +8,7 @@ The 3 main use cases of the Model Zoo are to
 - Fine-tune a pre-trained model
 - Use a model (pre-trained or not) as the backbone of a larger architecture.
 
-### I. Instantiating a model
+## Instantiating a model
 
 To instantiate a model, specify the model name and the number of classes desired.
 ```python
@@ -28,7 +28,7 @@ default_resnet18 = models.get(model_name=object_names.Models.RESNET18, num_class
 ```
 
 
-### II. Instantiating a pretrained model
+## Instantiating a pretrained model
 When loading a pre-trained model, SuperGradients also provides a pre-trained head by default. 
 The head's dimension is determined by the number of classes in the dataset used for training.
 
@@ -55,7 +55,7 @@ model = models.get(model_name="resnet18", num_classes=94, pretrained_weights="im
 
 
 
-### III. Loading a Backbone
+## Loading a Backbone
 In deep learning, a backbone is a pre-trained neural network that serves as a starting point to build a larger architecture. 
 It is typically a feature extractor trained on a large dataset and meant to capture important features of the data. 
 
@@ -87,7 +87,7 @@ model = CustomModel(backbone=backbone_resnet18)
 ```
 
 
-### Playing with the model architecture parameters 
+## Playing with the model architecture parameters 
 
 All of SuperGradients model architectures can be parametrized using `arch_params`.
 You can find the documentation about parameters of every architecture, and their default values, in the [recipes](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/arch_params).

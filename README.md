@@ -363,6 +363,7 @@ Please note that if you work with `torch<1.9.0` (deprecated), you will have to l
 ```bash
 python -m torch.distributed.launch --nproc_per_node=4 main.py
 ```
+
 ```bash
 torchrun --nproc_per_node=4 main.py
 ```
@@ -680,7 +681,7 @@ If you want to be a part of SuperGradients growing community, hear about all the
 
 * Join the [SG Newsletter](https://www.supergradients.com/#Newsletter)
   for staying up to date with new features and models, important announcements, and upcoming events.
-    
+
 * For a short meeting with us, use this [link](https://calendly.com/ofer-baratz-deci/15min) and choose your preferred time.
 
 ## License
@@ -718,7 +719,8 @@ Deci Platform is our end to end platform for building, optimizing and deploying 
 
 [Request free trial](https://bit.ly/3qO3icq) to enjoy immediate improvement in throughput, latency, memory footprint and model size.
 
-Features:
+Features
+
 - Automatically compile and quantize your models with just a few clicks (TensorRT, OpenVINO).
 - Gain up to 10X improvement in throughput, latency, memory and model size. 
 - Easily benchmark your models’ performance on different hardware and batch sizes.

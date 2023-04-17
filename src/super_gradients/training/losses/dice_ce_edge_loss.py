@@ -26,15 +26,23 @@ class DiceCEEdgeLoss(_Loss):
     ):
         """
         Total loss is computed as follows:
-                Loss-cls-edge = λ1 * CE + λ2 * M * CE , where [λ1, λ2] are ce_edge_weights.
-            For each Main feature maps and auxiliary heads the loss is calculated as:
-                Loss-main-aux = λ3 * Loss-cls-edge + λ4 * Loss-Dice, where [λ3, λ4] are dice_ce_weights.
-            For Feature maps defined as detail maps that predicts only the edge mask, the loss is computed as follow:
-                Loss-detail = BinaryCE + BinaryDice
-            Finally the total loss is computed as follows for the whole feature maps:
-                Loss = Σw[i] * Loss-main-aux[i] + Σw[j] * Loss-detail[j], where `w` is defined as the `weights` argument
-                    `i` in [0, 1 + num_aux_heads], 1 is for the main feature map.
-                    `j` in [1 + num_aux_heads, 1 + num_aux_heads + num_detail_heads].
+
+            Loss-cls-edge = λ1 * CE + λ2 * M * CE , where [λ1, λ2] are ce_edge_weights.
+
+        For each Main feature maps and auxiliary heads the loss is calculated as:
+
+            Loss-main-aux = λ3 * Loss-cls-edge + λ4 * Loss-Dice, where [λ3, λ4] are dice_ce_weights.
+
+        For Feature maps defined as detail maps that predicts only the edge mask, the loss is computed as follow:
+
+            Loss-detail = BinaryCE + BinaryDice
+
+        Finally the total loss is computed as follows for the whole feature maps:
+
+            Loss = Σw[i] * Loss-main-aux[i] + Σw[j] * Loss-detail[j], where `w` is defined as the `weights` argument
+                `i` in [0, 1 + num_aux_heads], 1 is for the main feature map.
+                `j` in [1 + num_aux_heads, 1 + num_aux_heads + num_detail_heads].
+
 
         :param num_aux_heads: num of auxiliary heads.
         :param num_detail_heads: num of detail heads.
