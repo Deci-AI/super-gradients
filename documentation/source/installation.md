@@ -1,7 +1,9 @@
 # Installing SuperGradients
+
 ## Requirements
 
-### General requirements</summary>
+### General requirements
+
   
 - Python 3.7, 3.8 or 3.9 installed.
 - torch>=1.9.0
@@ -14,9 +16,7 @@
 - [Nvidia CUDA Toolkit >= 11.2](https://developer.nvidia.com/cuda-11.2.0-download-archive?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu)
 - CuDNN >= 8.1.x
 - Nvidia Driver with CUDA >= 11.2 support (≥460.x)
-  
-</details>
-    
+
 ## Quick Installation
 
 ### Install stable version using PyPi 
