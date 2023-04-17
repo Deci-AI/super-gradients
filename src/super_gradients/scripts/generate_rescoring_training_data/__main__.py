@@ -77,7 +77,7 @@ def main(cfg: DictConfig) -> None:
             pred_poses = all_poses[image_index]  # [M, J, 3]
             pred_scores = all_scores[image_index]  # [M]
 
-            gt_is_crowd = extras["gt_is_crowd"][image_index]
+            gt_is_crowd = extras["gt_iscrowd"][image_index]
             gt_keypoints = extras["gt_joints"][image_index]  # [N, J, 3]
             gt_bboxes = extras["gt_bboxes"][image_index]  # [N, 4]
 
@@ -114,6 +114,8 @@ def main(cfg: DictConfig) -> None:
 
     with open("rescoring_data.json", "w") as f:
         json.dump(samples, f, indent=2)
+
+    print("Train data for rescoring saved to rescoring_data.json")
 
 
 def run():
