@@ -6,6 +6,7 @@ import torch
 
 from super_gradients.common.data_types.enum.strict_load import StrictLoad
 from super_gradients.common.plugins.deci_client import DeciClient, client_enabled
+from super_gradients.module_interfaces import HasPredict
 from super_gradients.training import utils as core_utils
 from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
 from super_gradients.training.models import SgModule
@@ -137,8 +138,9 @@ def instantiate_model(
                 arch_params.num_classes = num_classes_new_head
 
             # STILL NEED TO GET PREPROCESSING PARAMS IN CASE CHECKPOINT HAS NO RECIPE
-            processing_params = get_pretrained_processing_params(model_name, pretrained_weights)
-            net.set_dataset_processing_params(**processing_params)
+            if isinstance(net, HasPredict):
+                processing_params = get_pretrained_processing_params(model_name, pretrained_weights)
+                net.set_dataset_processing_params(**processing_params)
 
     _add_model_name_attribute(net, model_name)
 
