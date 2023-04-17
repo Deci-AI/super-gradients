@@ -189,7 +189,7 @@ class DEKRTargetsGenerator(KeypointsTargetsGenerator):
 
         for person_id, p in enumerate(joints):
             person_area = area[person_id]
-            offset_weight_factor = 1.0 / np.clip(np.sqrt(person_area), a_min=1)
+            offset_weight_factor = 1.0 / np.clip(np.sqrt(person_area), a_min=1, a_max=None)
             ct_x = int(p[-1, 0])
             ct_y = int(p[-1, 1])
             ct_v = int(p[-1, 2])
