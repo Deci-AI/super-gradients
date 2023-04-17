@@ -44,7 +44,7 @@ trainer.train(model=model, training_params=training_params, ...)
 ### ClearML
 **requirements**
 
--  Install `clearml` 
+- Install `clearml` 
 - Set up CleaML according to the [official documentation](https://clear.ml/docs/latest/docs/getting_started/ds/ds_first_steps#install-clearml)
 - Adapt your code like in the following example
 
@@ -155,7 +155,7 @@ trainer.train(model=model, training_params=training_params, ...)
 
 **Notes**
 
--  `@multi_process_safe` prevents multiple training nodes to do the same action. Check out [DDP documentation](device.md) for more details
+- `@multi_process_safe` prevents multiple training nodes to do the same action. Check out [DDP documentation](device.md) for more details
 - `@register_logger()` registers your class into our factory, allowing it to be instantiated from a string.
 - `sg_logger_params` only requires `project_name`, the rest is provided by the Trainer.
 

@@ -132,7 +132,7 @@ class UserStepLRCallback(LRCallbackBase):
 
 Notes
 
--  We specified that scheduling is enabled only after `lr_warmup_epochs`, this means that during lr warmup no updates will be done, even if such epoch is specifed!
+- We specified that scheduling is enabled only after `lr_warmup_epochs`, this means that during lr warmup no updates will be done, even if such epoch is specifed!
 - Notice the Phase.TRAIN_EPOCH_END which we pass to the constructor, this means that our `__call__` is triggered inside `on_train_loader_end(self, context)` (see [new callbacks API mapping between `Phase` to `Callback` methods](https://github.com/Deci-AI/super-gradients/blob/9d65cbbe5efc80b1db04d0aae081608dd91bce03/src/super_gradients/training/utils/callbacks/base_callbacks.py#L141).)
 
 Now, we need to register our new scheduler so we can pass it through the `lr_mode` training parameter.

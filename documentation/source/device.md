@@ -37,7 +37,7 @@ DataParallel (DP) is a single-process, multi-thread technic for scaling deep lea
 
 The general flow is as below
 
--  Split the data into smaller chunks (mini-batch) on GPU:0
+- Split the data into smaller chunks (mini-batch) on GPU:0
 - Move one chunk of data per GPU
 - Copy the model to all available GPUs
 - Perform the forward pass on each GPU in parallel

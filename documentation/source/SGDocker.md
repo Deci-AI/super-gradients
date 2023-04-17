@@ -26,7 +26,7 @@ docker run deciai/super-gradients:3.0.7
 
 Recommendations for training
 
--  For the heavier, multi-GPU training, it is best to set the shared memory to at least 64GB by appending `-shm-size=64gb` to your run command.
+- For the heavier, multi-GPU training, it is best to set the shared memory to at least 64GB by appending `-shm-size=64gb` to your run command.
 - Add volume mapping for your training data by appending `-v /PATH/TO/DATA_DIR/:/PATH/TO/DATA_DIR_INSIDE_THE_CONTAINER/` to your run command. Do the same for your training scripts.
 - Make sure all GPUS are accessible by adding `--gpus all`.
 - Run with `-it` for interactiveness.

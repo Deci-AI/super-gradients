@@ -40,7 +40,7 @@ ________________________________________________________________________________
 * 【17/1/2023】 Quantization Aware Training (QAT) and Post Training Quantization (PTQ) - including selective quantization 
 * 【17/11/2022】 Integration with ClearML
 * 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
-* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
+* 【07/08/2022】DDRNet23 - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
 * 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
 * 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](http://bit.ly/3gfLw07) and pre-trained [checkpoints](http://bit.ly/3EGfKD4) on COCO - Tailored for edge devices! 📱
 * 【07/07/2022】 STDC  - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯

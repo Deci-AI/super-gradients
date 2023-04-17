@@ -4,7 +4,7 @@ We appreciate all contributions. If you are planning to contribute back bug-fixe
 
 Here are a few more things to know
 
--  [How to Contirbute](#how-to-contribute)
+- [How to Contirbute](#how-to-contribute)
 - [Jupyter Notebooks Contribution](#jupyter-notebooks-contribution)
 - [Code Style Guidelines](#code-style-guidelines)
     

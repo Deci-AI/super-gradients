@@ -720,7 +720,7 @@ Deci Platform is our end to end platform for building, optimizing and deploying 
 
 Features
 
--  Automatically compile and quantize your models with just a few clicks (TensorRT, OpenVINO).
+- Automatically compile and quantize your models with just a few clicks (TensorRT, OpenVINO).
 - Gain up to 10X improvement in throughput, latency, memory and model size. 
 - Easily benchmark your models’ performance on different hardware and batch sizes.
 - Invite co-workers to collaborate on models and communicate your progress.
