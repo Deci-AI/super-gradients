@@ -1,7 +1,10 @@
 defaults:
   - dataset_params: coco_pose_estimation_dekr_dataset_params
-  - arch_params: pose_rescoring_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - arch_params: pose_dekr_w32_no_dc_arch_params
   - _self_
+
+architecture: dekr_w32_no_dc
 
 train_dataloader: coco2017_pose_train
 val_dataloader: coco2017_pose_val
@@ -10,13 +13,19 @@ arch_params:
   num_classes: ${dataset_params.num_joints}
 
 checkpoint_params:
-  checkpoint_path: ??? # Put the path to the checkpoint here
+  checkpoint_path:  # Put the path to the checkpoint here
 
-training_hyperparams:
-  phase_callbacks:
+post_prediction_callback:
+  _target_: super_gradients.training.utils.pose_estimation.DEKRPoseEstimationDecodeCallback
+  max_num_people: 20
+  keypoint_threshold: 0.05
+  nms_threshold: 0.05
+  nms_num_threshold: 8
+  output_stride: 4
+  apply_sigmoid: False
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
   run:
     # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
+    dir: .
