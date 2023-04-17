@@ -1,4 +1,4 @@
-# Example: Training a classification model and transfer learning
+# Training a classification model and transfer learning
 
 In this example we will use SuperGradients to train from scratch a ResNet18 model on the CIFAR10 image classification 
 dataset. We will also fine-tune the same model via transfer learning with weights pre-trained on the ImageNet dataset.
@@ -102,29 +102,38 @@ Expected output:
 
 ```
 Dataloader parameters:
-{'batch_size': 256,
- 'drop_last': False,
- 'num_workers': 2,
- 'pin_memory': True,
- 'shuffle': True}
-Dataset parameters:
-{'download': True,
- 'root': './data/cifar10',
- 'target_transform': None,
- 'train': True,
- 'transforms': [{'RandomCrop': {'size': 32, 'padding': 4}}, 'RandomHorizontalFlip', 'ToTensor', {'Normalize': {'mean': [0.4914, 0.4822, 0.4465], 'std': [0.2023, 0.1994, 0.201]}}]}
+{
+    "batch_size": 256,
+    "drop_last": False,
+    "num_workers": 2,
+    "pin_memory": True,
+    "shuffle": True
+}
 
+Dataset parameters:
+{
+    "download": True,
+    "root": "./data/cifar10",
+    "target_transform": None,
+    "train": True,
+    "transforms": [
+        {"RandomCrop": {"size": 32, "padding": 4}},
+        "RandomHorizontalFlip",
+        "ToTensor",
+        {"Normalize": {"mean": [0.4914, 0.4822, 0.4465], "std": [0.2023, 0.1994, 0.201]}},
+    ]
+}
 ```
 
 When the `get()` function is called as above, SuperGradients will attempt to download the CIFAR10 dataset for us. We 
 can expect to see an output as follows:
 
-<img src="SG_img/classification_example_dataset_download.png" width="750">
+<img src="images/classification_example_dataset_download.png" width="750">
 
 After the dataloaders are defined, we can iterate them to extract batches of images and their corresponding labels.
 This is useful for several purposes, such as visualization, verifying tensor shapes, and more. For example, visualization:
 
-```
+```python
 from matplotlib import pyplot as plt
 
 def show(images, labels, classes, rows=6, columns=5):
@@ -145,7 +154,7 @@ show(images_train, labels_train, classes=train_dataloader.dataset.classes)
 
 Output:
 
-<img src="SG_img/classification_example_data_vis.png" width="500">
+<img src="images/classification_example_data_vis.png" width="500">
 
 As can be seen, the images are normalized. The normalization process is defined, among other things, as part of the 
 default training recipe SuperGradients uses for the CIFAR10 dataset. As we will see in the following section,
@@ -154,7 +163,7 @@ parameters, allowing for control over the flexibility vs. ease-of-use tradeoff.
 
 For completion of this section, let's print the tensors' shapes:
 
-```
+```python
 print(f'Training image tensor shape: {images_train.shape}')
 print(f'Training labels tensor shape: {labels_train.shape}')
 ```
@@ -177,7 +186,7 @@ the seamless integration SuperGradients allows with different PyTorch components
 visualization, the only transform we apply is `ToTensor()`, which simply converts the input
 images into PyTorch tensors.
 
-```
+```python
 from torchvision import transforms as T
 
 transforms_list = [T.ToTensor()]
@@ -193,7 +202,7 @@ show(images, labels, classes=train_dataloader.dataset.classes)
 Notice that the only difference in the dataloader's definition is that here, the `dataset_params` parameter
 is passed as a dictionary defining the parameters to override. The result of running the above code:
 
-<img src="SG_img/classification_example_transforms_data_vis.png" width="500">
+<img src="images/classification_example_transforms_data_vis.png" width="500">
 
 The effect of changing the transforms can be seen in the images - now, without normalization, the objects are more
 observable in the images. 
@@ -206,7 +215,7 @@ SuperGradients provides out-of-the-box implementations of many architectures for
 line of code we can define a model with the chosen architecture. A list of all available architectures can be found
 [here](https://github.com/Deci-AI/super-gradients).
 
-```
+```python
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
 
@@ -247,7 +256,7 @@ this use-case. For more recommended training parameters you can have a look at o
 
 Obtaining the training parameters is as easy as writing a single line of code:
 
-```
+```python
 from super_gradients.training import training_hyperparams
 
 training_params =  training_hyperparams.get(config_name="training_hyperparams/cifar10_resnet_train_params")
@@ -261,71 +270,72 @@ the `get()` function. This function accepts two parameters:
 
 We can print the training parameters to see the different options:
 
-```
+```python
 pprint.pprint("Training parameters:") 
 pprint.pprint(training_params)
 ```
 
-Output:
+Output (Training parameters):
 
-```
-Training parameters:
-{'_convert_': 'all',
- 'average_best_models': True,
- 'batch_accumulate': 1,
- 'ckpt_best_name': 'ckpt_best.pth',
- 'ckpt_name': 'ckpt_latest.pth',
- 'clip_grad_norm': None,
- 'cosine_final_lr_ratio': 0.01,
- 'criterion_params': {},
- 'dataset_statistics': False,
- 'ema': False,
- 'ema_params': {'decay': 0.9999, 'decay_type': 'exp', 'beta': 15},
- 'enable_qat': False,
- 'greater_metric_to_watch_is_better': True,
- 'initial_lr': 0.1,
- 'launch_tensorboard': False,
- 'load_opt_params': True,
- 'log_installed_packages': True,
- 'loss': 'cross_entropy',
- 'lr_cooldown_epochs': 0,
- 'lr_decay_factor': 0.1,
- 'lr_mode': 'step',
- 'lr_schedule_function': None,
- 'lr_updates': array([100, 150, 200]),
- 'lr_warmup_epochs': 0,
- 'lr_warmup_steps': 0,
- 'max_epochs': 250,
- 'max_train_batches': None,
- 'max_valid_batches': None,
- 'metric_to_watch': 'Accuracy',
- 'mixed_precision': False,
- 'optimizer': 'SGD',
- 'optimizer_params': {'weight_decay': 0.0001, 'momentum': 0.9},
- 'phase_callbacks': [],
- 'pre_prediction_callback': None,
- 'precise_bn': False,
- 'precise_bn_batch_size': None,
- 'qat_params': {'start_epoch': 0, 'quant_modules_calib_method': 'percentile', 'per_channel_quant_modules': False, 'calibrate': True, 'calibrated_model_path': None, 'calib_data_loader': None, 'num_calib_batches': 2, 'percentile': 99.99},
- 'resume': False,
- 'resume_path': None,
- 'run_validation_freq': 1,
- 'save_ckpt_epoch_list': [],
- 'save_model': True,
- 'save_tensorboard_to_s3': False,
- 'seed': 42,
- 'sg_logger': 'base_sg_logger',
- 'sg_logger_params': {'tb_files_user_prompt': False, 'launch_tensorboard': False, 'tensorboard_port': None, 'save_checkpoints_remote': False, 'save_tensorboard_remote': False, 'save_logs_remote': False, 'monitor_system': True},
- 'silent_mode': False,
- 'step_lr_update_freq': None,
- 'sync_bn': False,
- 'tb_files_user_prompt': False,
- 'tensorboard_port': None,
- 'train_metrics_list': ['Accuracy', 'Top5'],
- 'valid_metrics_list': ['Accuracy', 'Top5'],
- 'warmup_initial_lr': None,
- 'warmup_mode': 'linear_epoch_step',
- 'zero_weight_decay_on_bias_and_bn': False}
+```python
+{
+    '_convert_': 'all',
+    'average_best_models': True,
+    'batch_accumulate': 1,
+    'ckpt_best_name': 'ckpt_best.pth',
+    'ckpt_name': 'ckpt_latest.pth',
+    'clip_grad_norm': None,
+    'cosine_final_lr_ratio': 0.01,
+    'criterion_params': {},
+    'dataset_statistics': False,
+    'ema': False,
+    'ema_params': {'decay': 0.9999, 'decay_type': 'exp', 'beta': 15},
+    'enable_qat': False,
+    'greater_metric_to_watch_is_better': True,
+    'initial_lr': 0.1,
+    'launch_tensorboard': False,
+    'load_opt_params': True,
+    'log_installed_packages': True,
+    'loss': 'cross_entropy',
+    'lr_cooldown_epochs': 0,
+    'lr_decay_factor': 0.1,
+    'lr_mode': 'step',
+    'lr_schedule_function': None,
+    'lr_updates': array([100, 150, 200]),
+    'lr_warmup_epochs': 0,
+    'lr_warmup_steps': 0,
+    'max_epochs': 250,
+    'max_train_batches': None,
+    'max_valid_batches': None,
+    'metric_to_watch': 'Accuracy',
+    'mixed_precision': False,
+    'optimizer': 'SGD',
+    'optimizer_params': {'weight_decay': 0.0001, 'momentum': 0.9},
+    'phase_callbacks': [],
+    'pre_prediction_callback': None,
+    'precise_bn': False,
+    'precise_bn_batch_size': None,
+    'qat_params': {'start_epoch': 0, 'quant_modules_calib_method': 'percentile', 'per_channel_quant_modules': False, 'calibrate': True, 'calibrated_model_path': None, 'calib_data_loader': None, 'num_calib_batches': 2, 'percentile': 99.99},
+    'resume': False,
+    'resume_path': None,
+    'run_validation_freq': 1,
+    'save_ckpt_epoch_list': [],
+    'save_model': True,
+    'save_tensorboard_to_s3': False,
+    'seed': 42,
+    'sg_logger': 'base_sg_logger',
+    'sg_logger_params': {'tb_files_user_prompt': False, 'launch_tensorboard': False, 'tensorboard_port': None, 'save_checkpoints_remote': False, 'save_tensorboard_remote': False, 'save_logs_remote': False, 'monitor_system': True},
+    'silent_mode': False,
+    'step_lr_update_freq': None,
+    'sync_bn': False,
+    'tb_files_user_prompt': False,
+    'tensorboard_port': None,
+    'train_metrics_list': ['Accuracy', 'Top5'],
+    'valid_metrics_list': ['Accuracy', 'Top5'],
+    'warmup_initial_lr': None,
+    'warmup_mode': 'linear_epoch_step',
+    'zero_weight_decay_on_bias_and_bn': False
+}
 ```
 
 As can be seen in the above output, there are numerous options to modify the training parameters
@@ -333,7 +343,7 @@ to affect the training process.
 
 It is also possible to change training parameters after obtaining them, for example:
 
-```
+```python
 training_params["max_epochs"] = 15
 training_params["sg_logger_params"]["launch_tensorboard"] = True
 ```
@@ -345,7 +355,7 @@ training_params["sg_logger_params"]["launch_tensorboard"] = True
 We are all set to start training our model. Simply plug in the model, training and validation dataloaders,
 and training parameters into the trainer's `train()` function:
 
-```
+```python
 trainer.train(model=model, 
               training_params=training_params, 
               train_loader=train_dataloader,
@@ -429,7 +439,7 @@ not very high. To get better insights as to what is happening, we turn to the te
 To view the experiment's tensorboard logs, type the following command in the terminal from the
 experiment's path:
 
-```
+```bash
 tensorboard --logdir='.'
 ```
 
@@ -439,9 +449,9 @@ SuperGradients logs many useful metrics to tensorboard, including CPU and GPU us
 scheduling, training and validation losses and other metrics, and many more. For the purpose of this example,
 let us examine the training and validation loss:
 
-<img src="SG_img/classification_example_train_loss_initial.png" width="500">
+<img src="images/classification_example_train_loss_initial.png" width="500">
 
-<img src="SG_img/classification_example_valid_loss_initial.png" width="500">
+<img src="images/classification_example_valid_loss_initial.png" width="500">
 
 As can be seen in the graphs, the training (and validation) loss did not converge before training ended. This means
 that training the model for additional epochs will probably improve its performance. Earlier, when modifying the 
@@ -456,7 +466,7 @@ the trainer know that we are continuing training and not starting from the first
 by setting the `resume` training parameter to `True`. Finally, we set the new `max_epochs` training
 parameter, and train the model once more.
 
-```
+```python
 import os
 
 model = models.get(model_name=Models.RESNET18, 
@@ -595,7 +605,7 @@ is required.
 Now that we have a trained model with reasonable performance, we can use it to make predictions on new data.
 First, let's import some packages:
 
-```
+```python
 from PIL import Image
 import torch
 import numpy as np
@@ -605,7 +615,7 @@ import requests
 Next, we load the model with the trained weights, and put it into evaluation mode. Notice that now we load the 
 `ckpt_best.pth` checkpoint.
 
-```
+```python
 model = models.get(model_name=Models.RESNET18, 
                    num_classes=10,
                    checkpoint_path=os.path.join(CHECKPOINT_DIR, experiment_name, 'ckpt_best.pth'))
@@ -616,7 +626,7 @@ We want to test the model on an image of one the classes the model was trained o
 model handles an image of a frog, taken from the [Aquarium of the Pacific website](https://www.aquariumofpacific.org/).
 The loaded image must undergo the same transformations as the training images for the model to work well:
 
-```
+```python
 url = "https://www.aquariumofpacific.org/images/exhibits/Magnificent_Tree_Frog_900.jpg"
 image = np.array(Image.open(requests.get(url, stream=True).raw))
 
@@ -631,19 +641,19 @@ input_tensor = transforms(image).unsqueeze(0).to(next(model.parameters()).device
 
 Next, to obtain the model's predictions we simply run the following line of code:
 
-```
+```python
 predictions = model(input_tensor)
 ```
 
 Let's see what the model predicted:
 
-```
+```python
 plt.xlabel(train_dataloader.dataset.classes[torch.argmax(predictions)])
 plt.imshow(image)
 plt.show()
 ```
 
-<img src="SG_img/classification_example_frog_prediction.png" width="500">
+<img src="images/classification_example_frog_prediction.png" width="500">
 
 As we can see, the model correctly predicted that the input image is an image of a frog.
 
@@ -653,7 +663,7 @@ For completion of this example, we provide a complete working code for training,
 a saved checkpoint, and predicting with the trained model. Simply change the `CHECKPOINT_DIR` variable and run the 
 script:
 
-```
+```python
 from super_gradients import Trainer
 from super_gradients.training import dataloaders
 from super_gradients.training import models

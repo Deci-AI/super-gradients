@@ -1,4 +1,4 @@
-# Metrics in SG
+# Metrics
 
 The purpose of metrics is to allow you to monitor and quantify the training process. Therefore, metrics are an essential component in every deep learning training process.
 For this purpose, we leverage the [torchmetrics](https://torchmetrics.rtfd.io/en/latest/) library.
@@ -33,9 +33,9 @@ Apart from the native `torchmetrics` implementations, SG implements some metrics
     DetectionMetrics_075
     DetectionMetrics_050_095
 
-## Basic Usage of Implemented Metrics in SG:
+## Basic Usage of Implemented Metrics
 
-For coded training scripts (i.e., not [using configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)), the most basic usage is simply passing the metric objects through
+For coded training scripts (i.e., not [using configuration files](configuration_files.md)), the most basic usage is simply passing the metric objects through
 `train_metrics_list` and `valid_metrics_list`:
 
 ```python
@@ -63,7 +63,7 @@ Also, notice the `metric_to_watch` set to `Accuracy` and `greater_metric_to_watc
 Open any of the [tutorial notebooks](https://github.com/Deci-AI/super-gradients#getting-started) to see the metrics monitoring in action.
 For more info on checkpoints and logs, follow our SG checkpoints tutorial.
 
-Equivalently, for [training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md), your `my_training_hyperparams.yaml` would contain:
+Equivalently, for [training with configuration files](configuration_files.md), your `my_training_hyperparams.yaml` would contain:
 ```yaml
 defaults:
   - default_train_params
@@ -81,10 +81,10 @@ valid_metrics_list:                               # metrics for evaluation
   - Top5
 ```
 
-## Using Custom Metrics in SG
+## Using Custom Metrics
 
 Suppose you implemented your own `MyAccuracy` (more information on how to do so [here](https://torchmetrics.readthedocs.io/en/latest/pages/implement.html)), for coded training, you can pass an instance of it as done in the previous sub-section.
-For [training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md), first decorate your metric class with SG's `@register_metric` decorator:
+For [training with configuration files](configuration_files.md), first decorate your metric class with SG's `@register_metric` decorator:
 ```python
 from torchmetrics import Metric
 import torch
@@ -129,26 +129,23 @@ valid_metrics_list:                               # metrics for evaluation
 Last, in your ``my_train_from_recipe_script.py`` file, import the newly registered class (even though the class itself is unused, just to trigger the registry):
         
 ```python
-
-  from omegaconf import DictConfig
-  import hydra
-  import pkg_resources
-  from my_accuracy import MyAccuracy
-  from super_gradients import Trainer, init_trainer
-  
-  
-  @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-  def main(cfg: DictConfig) -> None:
-      Trainer.train_from_config(cfg)
-  
-  
-  def run():
-      init_trainer()
-      main()
-  
-  
-  if __name__ == "__main__":
-      run()
+from omegaconf import DictConfig
+import hydra
+import pkg_resources
+from my_accuracy import MyAccuracy
+from super_gradients import Trainer, init_trainer
 
 
+@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
+def main(cfg: DictConfig) -> None:
+  Trainer.train_from_config(cfg)
+
+
+def run():
+  init_trainer()
+  main()
+
+
+if __name__ == "__main__":
+  run()
 ```

@@ -1,7 +1,4 @@
-
-
-
-# Configuration files and Recipes
+# Configuration Files and Recipes
 SuperGradients supports [YAML](https://en.wikipedia.org/wiki/YAML) formatted configuration files. These files can contain training hyper-parameters,
 architecture parameters, datasets parameters and any other parameters required by the training process.
 These parameters will be consumed as dictionaries or as function arguments by different parts of SuperGradients.
@@ -39,7 +36,7 @@ optimizer_params:
 
 ```
 
-## Why to use configuration files
+## Why using configuration files
 Using configuration file might seem too complicated or redundant at first. But, after a short training, you will find it extremely convenient and useful. 
 
 Configuration file can help you manage your assets, such as datasets, models and training recipes. Keeping your code files as clean of parameters as possible,
