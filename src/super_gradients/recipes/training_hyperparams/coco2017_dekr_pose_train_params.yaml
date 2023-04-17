@@ -2,11 +2,16 @@ defaults:
   - default_train_params
 
 ema: True
-max_epochs: 400
+ema_params:
+  decay: 0.9997
+  decay_type: exp
+  beta: 20
+
+max_epochs: 150
 lr_mode: cosine
-cosine_final_lr_ratio: 0.01
+cosine_final_lr_ratio: 0.1
 batch_accumulate: 1
-initial_lr: 0.001
+initial_lr: 0.0001
 loss: dekr_loss
 
 criterion_params:
@@ -16,7 +21,7 @@ criterion_params:
 
 optimizer: AdamW
 optimizer_params:
-  weight_decay: 0.0005
+  weight_decay: 0.0001
 lr_warmup_steps: 256
 warmup_initial_lr: 1e-06
 
