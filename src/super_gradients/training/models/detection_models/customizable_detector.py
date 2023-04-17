@@ -12,6 +12,7 @@ from omegaconf import DictConfig
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
+from super_gradients.modules.interfaces import HasPredict
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
@@ -22,7 +23,7 @@ from super_gradients.training.utils.detection_utils import DetectionPostPredicti
 from super_gradients.training.utils.media.image import ImageSource
 
 
-class CustomizableDetector(SgModule):
+class CustomizableDetector(SgModule, HasPredict):
     """
     A customizable detector with backbone -> neck -> heads
     Each submodule with its parameters must be defined explicitly.

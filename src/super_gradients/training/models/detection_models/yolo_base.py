@@ -7,6 +7,7 @@ import torch.nn as nn
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.modules import CrossModelSkipConnection
+from super_gradients.modules.interfaces import HasPredict
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
 from super_gradients.training.models.sg_module import SgModule
@@ -392,7 +393,7 @@ class YoloHead(nn.Module):
         )
 
 
-class YoloBase(SgModule):
+class YoloBase(SgModule, HasPredict):
     def __init__(self, backbone: Type[nn.Module], arch_params: HpmStruct, initialize_module: bool = True):
         super().__init__()
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params

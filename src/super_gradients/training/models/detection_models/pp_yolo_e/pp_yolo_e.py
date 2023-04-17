@@ -7,6 +7,7 @@ from super_gradients.common.factories.processing_factory import ProcessingFactor
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.modules import RepVGGBlock
+from super_gradients.modules.interfaces import HasPredict
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN
@@ -20,7 +21,7 @@ from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
 
 
-class PPYoloE(SgModule):
+class PPYoloE(SgModule, HasPredict):
     def __init__(self, arch_params):
         super().__init__()
         if isinstance(arch_params, HpmStruct):
