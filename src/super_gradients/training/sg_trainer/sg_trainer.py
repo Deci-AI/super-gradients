@@ -1321,7 +1321,7 @@ class Trainer:
                 self.sg_logger.close()
 
     def _set_net_preprocessing_from_valid_loader(self):
-        if isinstance(self.net.module, SgModule) and hasattr(self.valid_loader.dataset, "get_dataset_preprocessing_params"):
+        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
             try:
                 self.net.module.set_dataset_processing_params(**self.valid_loader.dataset.get_dataset_preprocessing_params())
             except Exception as e:
