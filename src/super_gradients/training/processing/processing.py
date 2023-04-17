@@ -266,13 +266,12 @@ def default_yolox_coco_processing_params() -> dict:
 
     image_processor = ComposeProcessing(
         [
+            ReverseImageChannels(),
             DetectionLongestMaxSizeRescale((640, 640)),
             DetectionBottomRightPadding((640, 640), 114),
             ImagePermute((2, 0, 1)),
         ]
     )
-    class_names = COCO_DETECTION_CLASSES_LIST
-    return class_names, image_processor
 
     params = dict(
         class_names=COCO_DETECTION_CLASSES_LIST,
@@ -290,6 +289,7 @@ def default_ppyoloe_coco_processing_params() -> dict:
 
     image_processor = ComposeProcessing(
         [
+            ReverseImageChannels(),
             DetectionRescale(output_shape=(640, 640)),
             NormalizeImage(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375]),
             ImagePermute(permutation=(2, 0, 1)),
