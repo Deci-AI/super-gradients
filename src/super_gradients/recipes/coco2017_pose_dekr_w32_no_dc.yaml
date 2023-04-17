@@ -63,10 +63,10 @@ checkpoint_params:
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 10
+    batch_size: 4
 
   val_dataloader_params:
-    batch_size: 10
+    batch_size: 8
 
 training_hyperparams:
   resume: ${resume}

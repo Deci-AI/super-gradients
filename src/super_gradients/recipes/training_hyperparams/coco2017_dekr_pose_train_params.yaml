@@ -18,6 +18,7 @@ criterion_params:
   heatmap_loss_factor: 1.0
   offset_loss_factor: 0.03
 
+mixed_precision: False
 
 optimizer: AdamW
 optimizer_params:
