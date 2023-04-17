@@ -1,6 +1,6 @@
-# Knowledge Distillation Training in SG
+# Knowledge Distillation (KD)
 
-Pre-requisites: [Training in SG](https://github.com/Deci-AI/super-gradients/blob/master/documentation/assets/Example_Classification.md), [Training with Configuration Files]()
+Pre-requisites: [Training in SG](Example_Classification.md), [Training with Configuration Files](configuration_files.md)
 
 Knowledge distillation is a technique in deep learning that aims to transfer the knowledge of a large, pre-trained neural network model (the "teacher") to a smaller, more computationally efficient model (the "student"). This is accomplished by training the student to mimic the teacher's predictions and the ground-truth labels. The student network can also be designed to have a different architecture from the teacher, making it possible to distill the knowledge of a complex teacher network into a lighter and faster student network for deployment in real-world applications.
 
@@ -41,7 +41,7 @@ kd_trainer.train(student=student_model, teacher=teacher_model, training_params=t
 Check out our [knowledge distillation tutorial notebook](https://bit.ly/3BLA5oR) to see a practical example.
 
 
-## Knowledge Distillation Training in SG: Key Components
+## Knowledge Distillation Training: Key Components
 
 
 ### [KDModule](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/kd_modules/kd_module.py)
@@ -103,9 +103,9 @@ This means that when customizing KD, it's essential for the custom `KDModule` to
 Currently, [KDLogitsLoss](https://github.com/Deci-AI/super-gradients/blob/12a4e53a96e8608409100b5ef83971157518434b/src/super_gradients/training/losses/kd_losses.py#L15) is currently the only supported loss function in SGs KD losses bank, but more is to come.
 Note that during KD training, the `KDModule` outputs (which are of `KDOutput` instance) are passed to the loss's forward method as predictions.
 
-## Knowledge Distillation Training in SG: Checkpoints
+## Knowledge Distillation Training: Checkpoints
 
-Checkpointing during KD training is generally the [same as checkpointing without KD](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/Checkpoints.md).
+Checkpointing during KD training is generally the [same as checkpointing without KD](Checkpoints.md).
 Nevertheless, there are a few differences worth mentioning:
 
 - `ckpt_latest.pth` contains the state dict of the entire `KDModule`. 
@@ -115,7 +115,7 @@ Nevertheless, there are a few differences worth mentioning:
 
 ## Knowledge Distillation Training with Configuration Files
 
-As done when training without knowledge distillation, to [train with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md#required-hyper-parameters), we call the [`KDTrainer.train_from_config` method](https://github.com/Deci-AI/super-gradients/blob/9485f1533ff64cecb32a238d4779aafca1f0d199/src/super_gradients/training/kd_trainer/kd_trainer.py#L43), which assumes a specific [configuration structure](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md#required-hyper-parameters).
+As done when training without knowledge distillation, to [train with configuration files](configuration_files.md#required-hyper-parameters), we call the [`KDTrainer.train_from_config` method](https://github.com/Deci-AI/super-gradients/blob/9485f1533ff64cecb32a238d4779aafca1f0d199/src/super_gradients/training/kd_trainer/kd_trainer.py#L43), which assumes a specific [configuration structure](configuration_files.md#required-hyper-parameters).
 When training with KD, the same structure and required fields hold, but we introduce a few additions:
 
 - `arch_params` are being passed to the `KDModule` constructor. For example, in our [Resnet50 KD training on Imagenet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/imagenet_resnet50_kd.yaml), we handle the difference in preprocessing of the teacher, which expects different normalization by passing the `KDModule` a normalization adaptor module:

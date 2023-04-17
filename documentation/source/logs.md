@@ -1,6 +1,6 @@
 # Local Logging
 
-SuperGradients automatically logs locally multiple files that can help you explore your experiments results. This includes one tensorboard and 3 .txt files.
+SuperGradients automatically logs locally multiple files that can help you explore your experiments results. This includes 1 tensorboard and 3 .txt files.
 
 
 
@@ -50,7 +50,7 @@ This means that it includes any log that was under the logging level (`logging.D
 **How to set log level?** You can filter the logs saved in the file by setting the environment variable `FILE_LOG_LEVEL=<LOG-LEVEL> # DEBUG/INFO/WARNING/ERROR`
 
 
-## VI. (Additional) Hydra config folder
+## (Additional) Hydra config folder
 Only when training using hydra recipe.
 
 **What does it include?**
