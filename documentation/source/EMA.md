@@ -5,9 +5,9 @@ It is a simple technique that can be used with any model and optimizer. Here's a
 
 - At the start of training, the model parameters are copied to the EMA parameters.
 - At each gradient update step, the EMA parameters are updated using the following formula:
-    ```py
-    ema_param = ema_param * decay + param * (1 - decay)
-    ```
+  ```python
+  ema_param = ema_param * decay + param * (1 - decay)
+  ```
 - On start of validation epoch the model parameters are replaced by the EMA parameters and reverted back on the end of validation epoch.  
 - At the end of training, the model parameters are replaced by the EMA parameters.
 
