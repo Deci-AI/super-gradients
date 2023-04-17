@@ -219,7 +219,7 @@ class PoseEstimationMetrics(Metric):
         crowd_targets_areas = gt_areas[gt_is_ignore]
         crowd_targets_bboxes = gt_bboxes[gt_is_ignore]
 
-        preds_matched, preds_to_ignore, preds_scores, num_targets = compute_img_keypoint_matching(
+        mr = compute_img_keypoint_matching(
             predicted_poses,
             predicted_scores,
             #
@@ -239,7 +239,7 @@ class PoseEstimationMetrics(Metric):
             top_k=self.max_objects_per_image,
         )
 
-        self.predictions.append((preds_matched.cpu(), preds_to_ignore.cpu(), preds_scores.cpu(), int(num_targets)))
+        self.predictions.append((mr.preds_matched.cpu(), mr.preds_to_ignore.cpu(), mr.preds_scores.cpu(), int(mr.num_targets)))
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
         """
