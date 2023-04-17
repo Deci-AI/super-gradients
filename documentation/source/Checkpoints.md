@@ -190,8 +190,9 @@ Prerequisites: [Training with Configuration Files](configuration_files.md)
 Recall the SGs recipes library structure:
 
 
-The `super_gradients/recipes` include the following subdirectories:
-- arch_params - containing configuration files for instantiating different models
+The `super_gradients/recipes` include the following subdirectories
+
+-  arch_params - containing configuration files for instantiating different models
 - checkpoint_params - containing configuration files that define the loaded and saved checkpoints parameters for the training
 - conversion_params - containing configuration files for the model conversion scripts (for deployment)
 - dataset_params - containing configuration files for instantiating different datasets and dataloaders
