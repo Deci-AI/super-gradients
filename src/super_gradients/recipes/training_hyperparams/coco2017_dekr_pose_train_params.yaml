@@ -11,13 +11,14 @@ max_epochs: 150
 lr_mode: cosine
 cosine_final_lr_ratio: 0.1
 batch_accumulate: 1
-initial_lr: 0.0001
+initial_lr: 1e-4
 loss: dekr_loss
 
 criterion_params:
   heatmap_loss_factor: 1.0
   offset_loss_factor: 0.03
 
+mixed_precision: False
 
 optimizer: AdamW
 optimizer_params:
