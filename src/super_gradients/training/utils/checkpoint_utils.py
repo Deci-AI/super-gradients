@@ -236,7 +236,11 @@ def load_checkpoint_to_model(
         # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS
         [checkpoint.pop(key) for key in list(checkpoint.keys()) if key != "net"]
 
-    if isinstance(net.module, super_gradients.training.models.SgModule) and load_processing_params:
+    if (
+        isinstance(net, super_gradients.training.models.SgModule)
+        or (hasattr(net, "module") and isinstance(net.module, super_gradients.training.models.SgModule))
+        and load_processing_params
+    ):
         if "processing_params" not in checkpoint.keys():
             raise ValueError("Can't load processing params - could not find any stored in checkpoint file.")
         try:
