@@ -1218,7 +1218,8 @@ class Trainer:
             num_gpus=get_world_size(),
             batch_size=len(inputs),
             batch_accumulate=self.batch_accumulate,
-            len_train_set=len(self.train_loader.dataset),
+            train_dataset_length=len(self.train_loader.dataset),
+            train_dataloader_len=len(self.train_loader),
         )
 
         self._set_net_preprocessing_from_valid_loader()

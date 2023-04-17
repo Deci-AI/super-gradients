@@ -150,4 +150,4 @@ def includes_video_extension(file_path: str) -> bool:
     :param file_path:   Path to the video file.
     :return:            True if the file includes a video extension.
     """
-    return file_path.lower().endswith(VIDEO_EXTENSIONS)
+    return isinstance(file_path, str) and file_path.lower().endswith(VIDEO_EXTENSIONS)
