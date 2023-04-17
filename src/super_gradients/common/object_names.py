@@ -293,6 +293,12 @@ class Models:
     PP_YOLOE_M = "ppyoloe_m"
     PP_YOLOE_L = "ppyoloe_l"
     PP_YOLOE_X = "ppyoloe_x"
+    SEGFORMER_B0 = "segformer_b0"
+    SEGFORMER_B1 = "segformer_b1"
+    SEGFORMER_B2 = "segformer_b2"
+    SEGFORMER_B3 = "segformer_b3"
+    SEGFORMER_B4 = "segformer_b4"
+    SEGFORMER_B5 = "segformer_b5"
 
     DEKR_CUSTOM = "dekr_custom"
     DEKR_W32_NO_DC = "dekr_w32_no_dc"
