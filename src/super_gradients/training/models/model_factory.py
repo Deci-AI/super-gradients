@@ -6,6 +6,7 @@ import torch
 
 from super_gradients.common.data_types.enum.strict_load import StrictLoad
 from super_gradients.common.plugins.deci_client import DeciClient, client_enabled
+from super_gradients.module_interfaces import HasPredict
 from super_gradients.training import utils as core_utils
 from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
 from super_gradients.training.models import SgModule
@@ -20,7 +21,7 @@ from super_gradients.training.utils.checkpoint_utils import (
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
-from super_gradients.training.transforms.processing import get_pretrained_processing_params
+from super_gradients.training.processing.processing import get_pretrained_processing_params
 
 logger = get_logger(__name__)
 
@@ -136,9 +137,10 @@ def instantiate_model(
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
 
-            # TODO: remove once we load it from the checkpoint
-            processing_params = get_pretrained_processing_params(model_name, pretrained_weights)
-            net.set_dataset_processing_params(**processing_params)
+            # STILL NEED TO GET PREPROCESSING PARAMS IN CASE CHECKPOINT HAS NO RECIPE
+            if isinstance(net, HasPredict):
+                processing_params = get_pretrained_processing_params(model_name, pretrained_weights)
+                net.set_dataset_processing_params(**processing_params)
 
     _add_model_name_attribute(net, model_name)
 
@@ -200,7 +202,9 @@ def get(
         raise ValueError("Please set checkpoint_path when load_backbone=True")
 
     if checkpoint_path:
-        load_ema_as_net = "ema_net" in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
+        ckpt_entries = read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
+        load_processing = "processing_params" in ckpt_entries
+        load_ema_as_net = "ema_net" in ckpt_entries
         _ = load_checkpoint_to_model(
             ckpt_local_path=checkpoint_path,
             load_backbone=load_backbone,
@@ -208,6 +212,7 @@ def get(
             strict=strict_load.value if hasattr(strict_load, "value") else strict_load,
             load_weights_only=True,
             load_ema_as_net=load_ema_as_net,
+            load_processing_params=load_processing,
         )
     if checkpoint_num_classes != num_classes:
         net.replace_head(new_num_classes=num_classes)
