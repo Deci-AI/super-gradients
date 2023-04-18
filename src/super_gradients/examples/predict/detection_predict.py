@@ -11,5 +11,5 @@ IMAGES = [
 ]
 
 predictions = model.predict(IMAGES)
-# predictions.show()
+predictions.show()
 predictions.save(output_folder="")  # Save in working directory

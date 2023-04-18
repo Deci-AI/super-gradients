@@ -7,5 +7,5 @@ model = models.get(Models.YOLOX_N, pretrained_weights="coco")
 image_folder_path = "../../../../documentation/source/images/examples"
 
 predictions = model.predict(image_folder_path)
-# predictions.show()
+predictions.show()
 predictions.save(output_folder="")  # Save in working directory
