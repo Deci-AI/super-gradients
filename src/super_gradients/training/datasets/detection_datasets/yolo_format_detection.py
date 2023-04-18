@@ -175,10 +175,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         image_width, image_height = imagesize.get(image_path)
         image_shape = (image_height, image_width)
 
-        try:
-            yolo_format_target = self._parse_yolo_label_file(label_path)
-        except Exception as e:
-            logger.warning(f"Failed to parse label file {label_path}: {e}")
+        yolo_format_target = self._parse_yolo_label_file(label_path)
 
         converter = ConcatenatedTensorFormatConverter(input_format=LABEL_NORMALIZED_CXCYWH, output_format=XYXY_LABEL, image_shape=image_shape)
         target = converter(yolo_format_target)
