@@ -1326,7 +1326,7 @@ class Trainer:
                 self.net.module.set_dataset_processing_params(**self.valid_loader.dataset.get_dataset_preprocessing_params())
             except Exception as e:
                 logger.warning(
-                    f"Could not set preprocessing pipeline from the validation dataset: {e}. Before calling"
+                    f"Could not set preprocessing pipeline from the validation dataset:\n {e}.\n Before calling"
                     "predict make sure to call set_dataset_processing_params."
                 )
 
