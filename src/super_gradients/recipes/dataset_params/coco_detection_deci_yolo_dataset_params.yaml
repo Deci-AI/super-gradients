@@ -69,7 +69,7 @@ val_dataset_params:
         pad_value: 114
     - DetectionStandardizeImage:
         max_value: 255.
-    - DetectionImagePermute:
+    - DetectionImagePermute
     - DetectionTargetsFormatTransform:
         max_targets: 50
         input_dim: [640, 640]
