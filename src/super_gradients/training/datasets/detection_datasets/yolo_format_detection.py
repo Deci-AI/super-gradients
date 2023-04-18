@@ -175,7 +175,10 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         image_width, image_height = imagesize.get(image_path)
         image_shape = (image_height, image_width)
 
-        yolo_format_target = self._parse_yolo_label_file(label_path)
+        try:
+            yolo_format_target = self._parse_yolo_label_file(label_path)
+        except Exception as e:
+            logger.warning(f"Failed to parse label file {label_path}: {e}")
 
         converter = ConcatenatedTensorFormatConverter(input_format=LABEL_NORMALIZED_CXCYWH, output_format=XYXY_LABEL, image_shape=image_shape)
         target = converter(yolo_format_target)
@@ -206,10 +209,13 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         :return: np.ndarray of shape (n_labels, 5) in yolo format (LABEL_NORMALIZED_CXCYWH)
         """
         with open(label_file_path, "r") as f:
-            labels_txt = f.read()
+            lines = f.readlines()
 
         labels_yolo_format = []
-        for line in labels_txt.split("\n"):
-            label_id, cx, cw, w, h = line.split(" ")
-            labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
-        return np.array(labels_yolo_format)
+        for line in filter(lambda x: x != "\n", lines):
+            try:
+                label_id, cx, cw, w, h = line.split(" ")
+                labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
+            except Exception as e:
+                logger.warning(rf"Failed to parse line `{line}` of {label_file_path} to LABEL_NORMALIZED_CXCYWH format: {e}")
+        return np.array(labels_yolo_format) if labels_yolo_format else np.zeros((0, 5))
