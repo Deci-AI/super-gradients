@@ -23,14 +23,14 @@ class HasPredict:
     """
 
     @abstractmethod
-    def set_dataset_processing_params(self, *args, **kwargs) -> None:
+    def set_dataset_processing_params(self, *args, **kwargs):
         """Set the processing parameters for the dataset."""
         pass
 
     @abstractmethod
-    def predict(self, images, *args, **kwargs) -> None:
+    def predict(self, images, *args, **kwargs):
         pass
 
     @abstractmethod
-    def predict_webcam(self, *args, **kwargs) -> None:
+    def predict_webcam(self, *args, **kwargs):
         pass
