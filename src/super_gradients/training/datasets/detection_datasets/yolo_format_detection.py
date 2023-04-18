@@ -217,5 +217,5 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
                 label_id, cx, cw, w, h = line.split(" ")
                 labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
             except Exception as e:
-                logger.warning(rf"Failed to parse line `{line}` of {label_file_path} to LABEL_NORMALIZED_CXCYWH format: {e}")
+                logger.warning(f"Line `{line}` of file {label_file_path} will be ignored because not in LABEL_NORMALIZED_CXCYWH format: {e}")
         return np.array(labels_yolo_format) if labels_yolo_format else np.zeros((0, 5))
