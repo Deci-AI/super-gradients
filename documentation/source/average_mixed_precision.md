@@ -1,4 +1,4 @@
-# Automatic mixed precision (AMP)
+# Automatic Mixed Precision (AMP)
 Automatic mixed precision (AMP) is a feature in PyTorch that enables the use of lower-precision data types, such as float16, in deep learning models for improved memory and computation efficiency. 
 It automatically casts the model's parameters and buffers to a lower-precision data type, and dynamically rescales the activations to prevent underflow or overflow. 
 

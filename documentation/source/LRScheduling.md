@@ -1,4 +1,4 @@
-# Learning Rate Scheduling in SG
+# Learning Rate Scheduling
 
 When training deep neural networks, it is often useful to reduce learning rate as the training progresses. This can be done by using pre-defined learning rate schedules or adaptive learning rate methods.
 Learning rate scheduling type is controlled by the training parameter `lr_mode`. From `Trainer.train(...)` docs:
@@ -39,10 +39,10 @@ trainer.train(model=model, training_params=train_params, train_loader=train_data
 
 ## Using Custom LR Schedulers
 
-Prerequisites: [phase callbacks](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/PhaseCallbacks.md), [training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md).
+Prerequisites: [phase callbacks](PhaseCallbacks.md), [training with configuration files](configuration_files.md).
 
 
-In SG, learning rate schedulers are implemented as [phase callbacks](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/PhaseCallbacks.md).
+In SG, learning rate schedulers are implemented as [phase callbacks](PhaseCallbacks.md).
 They read the learning rate from the `PhaseContext` in their `__call__` method, calculate the new learning rate according to the current state of training, and update the optimizer's param groups.
 
 For example, the code snippet from the previous section translates "lr_mode":"step" to a `super_gradients.training.utils.callbacks.callbacks.StepLRCallback` instance, which is added to the phase callbacks list.
@@ -130,7 +130,8 @@ class UserStepLRCallback(LRCallbackBase):
 
 ```
 
-Notes:
+Notes
+
 - We specified that scheduling is enabled only after `lr_warmup_epochs`, this means that during lr warmup no updates will be done, even if such epoch is specifed!
 - Notice the Phase.TRAIN_EPOCH_END which we pass to the constructor, this means that our `__call__` is triggered inside `on_train_loader_end(self, context)` (see [new callbacks API mapping between `Phase` to `Callback` methods](https://github.com/Deci-AI/super-gradients/blob/9d65cbbe5efc80b1db04d0aae081608dd91bce03/src/super_gradients/training/utils/callbacks/base_callbacks.py#L141).)
 

@@ -1,9 +1,11 @@
-from typing import Tuple, List, Union, Optional
+from typing import Tuple, List, Union
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 import numpy as np
 
+from super_gradients.common.registry.registry import register_processing
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 from super_gradients.training.transforms.utils import (
     _rescale_image,
@@ -14,6 +16,7 @@ from super_gradients.training.transforms.utils import (
     _shift_bboxes,
     PaddingCoordinates,
 )
+from super_gradients.common.object_names import Processings
 
 
 @dataclass
@@ -57,6 +60,7 @@ class Processing(ABC):
         pass
 
 
+@register_processing(Processings.ComposeProcessing)
 class ComposeProcessing(Processing):
     """Compose a list of Processing objects into a single Processing object."""
 
@@ -79,6 +83,7 @@ class ComposeProcessing(Processing):
         return postprocessed_predictions
 
 
+@register_processing(Processings.ImagePermute)
 class ImagePermute(Processing):
     """Permute the image dimensions.
 
@@ -96,6 +101,52 @@ class ImagePermute(Processing):
         return predictions
 
 
+@register_processing(Processings.ReverseImageChannels)
+class ReverseImageChannels(Processing):
+    """Reverse the order of the image channels (RGB -> BGR or BGR -> RGB)."""
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
+        """Reverse the channel order of an image.
+
+        :param image: Image, in (H, W, C) format.
+        :return:      Image with reversed channel order. (RGB if input was BGR, BGR if input was RGB)
+        """
+
+        if image.shape[2] != 3:
+            raise ValueError("ReverseImageChannels expects 3 channels, got: " + str(image.shape[2]))
+
+        processed_image = image[..., ::-1]
+        return processed_image, None
+
+    def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
+        return predictions
+
+
+@register_processing(Processings.StandardizeImage)
+class StandardizeImage(Processing):
+    """Standardize image pixel values with img/max_val
+
+    :param max_value: Current maximum value of the image pixels. (usually 255)
+    """
+
+    def __init__(self, max_value: float = 255.0):
+        super().__init__()
+        self.max_value = max_value
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
+        """Reverse the channel order of an image.
+
+        :param image: Image, in (H, W, C) format.
+        :return:      Image with reversed channel order. (RGB if input was BGR, BGR if input was RGB)
+        """
+        processed_image = (image / self.max_value).astype(np.float32)
+        return processed_image, None
+
+    def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
+        return predictions
+
+
+@register_processing(Processings.NormalizeImage)
 class NormalizeImage(Processing):
     """Normalize an image based on means and standard deviation.
 
@@ -145,11 +196,13 @@ class _DetectionPadding(Processing, ABC):
         pass
 
 
+@register_processing(Processings.DetectionCenterPadding)
 class DetectionCenterPadding(_DetectionPadding):
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
         return _get_center_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
 
 
+@register_processing(Processings.DetectionBottomRightPadding)
 class DetectionBottomRightPadding(_DetectionPadding):
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
         return _get_bottom_right_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
@@ -192,53 +245,98 @@ class _LongestMaxSizeRescale(Processing, ABC):
         return image, RescaleMetadata(original_shape=(height, width), scale_factor_h=scale_factor, scale_factor_w=scale_factor)
 
 
+@register_processing(Processings.DetectionRescale)
 class DetectionRescale(_Rescale):
     def postprocess_predictions(self, predictions: DetectionPrediction, metadata: RescaleMetadata) -> DetectionPrediction:
         predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
 
 
+@register_processing(Processings.DetectionLongestMaxSizeRescale)
 class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
     def postprocess_predictions(self, predictions: DetectionPrediction, metadata: RescaleMetadata) -> DetectionPrediction:
         predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
 
 
-def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -> Tuple[Optional[List[str]], Optional[Processing]]:
-    """Get the processing parameters for a pretrained model."""
-    if "yolox" in model_name and pretrained_weights == "coco":
-        return default_yolox_coco_processing_params()
-    elif "ppyoloe" in model_name and pretrained_weights == "coco":
-        return default_ppyoloe_coco_processing_params()
-    else:
-        return None, None
-
-
-def default_yolox_coco_processing_params() -> Tuple[List[str], Processing]:
-    """Processing parameters commonly used for training YoloX on COCO dataset."""
-    from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+def default_yolox_coco_processing_params() -> dict:
+    """Processing parameters commonly used for training YoloX on COCO dataset.
+    TODO: remove once we load it from the checkpoint
+    """
 
     image_processor = ComposeProcessing(
         [
+            ReverseImageChannels(),
             DetectionLongestMaxSizeRescale((640, 640)),
             DetectionBottomRightPadding((640, 640), 114),
             ImagePermute((2, 0, 1)),
         ]
     )
-    class_names = COCO_DETECTION_CLASSES_LIST
-    return class_names, image_processor
+
+    params = dict(
+        class_names=COCO_DETECTION_CLASSES_LIST,
+        image_processor=image_processor,
+        iou=0.65,
+        conf=0.1,
+    )
+    return params
 
 
-def default_ppyoloe_coco_processing_params() -> Tuple[List[str], Processing]:
-    """Processing parameters commonly used for training PPYoloE on COCO dataset."""
-    from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+def default_ppyoloe_coco_processing_params() -> dict:
+    """Processing parameters commonly used for training PPYoloE on COCO dataset.
+    TODO: remove once we load it from the checkpoint
+    """
 
     image_processor = ComposeProcessing(
         [
+            ReverseImageChannels(),
             DetectionRescale(output_shape=(640, 640)),
             NormalizeImage(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375]),
             ImagePermute(permutation=(2, 0, 1)),
         ]
     )
-    class_names = COCO_DETECTION_CLASSES_LIST
-    return class_names, image_processor
+
+    params = dict(
+        class_names=COCO_DETECTION_CLASSES_LIST,
+        image_processor=image_processor,
+        iou=0.65,
+        conf=0.5,
+    )
+    return params
+
+
+def default_deciyolo_coco_processing_params() -> dict:
+    """Processing parameters commonly used for training DeciYolo on COCO dataset.
+    TODO: remove once we load it from the checkpoint
+    """
+
+    image_processor = ComposeProcessing(
+        [
+            DetectionLongestMaxSizeRescale(output_shape=(636, 636)),
+            DetectionCenterPadding(output_shape=(640, 640), pad_value=114),
+            StandardizeImage(max_value=255.0),
+            ImagePermute(permutation=(2, 0, 1)),
+        ]
+    )
+
+    params = dict(
+        class_names=COCO_DETECTION_CLASSES_LIST,
+        image_processor=image_processor,
+        iou=0.65,
+        conf=0.5,
+    )
+    return params
+
+
+def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -> dict:
+    """Get the processing parameters for a pretrained model.
+    TODO: remove once we load it from the checkpoint
+    """
+    if pretrained_weights == "coco":
+        if "yolox" in model_name:
+            return default_yolox_coco_processing_params()
+        elif "ppyoloe" in model_name:
+            return default_ppyoloe_coco_processing_params()
+        elif "deciyolo" in model_name:
+            return default_deciyolo_coco_processing_params()
+    return dict()

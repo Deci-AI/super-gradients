@@ -1,4 +1,4 @@
-# Training modes
+# Training Modes
 
 SuperGradients allows users to train models on different modes:
 1. CPU 
@@ -35,7 +35,8 @@ trainer.train(...)
 ## 3. DP - Data Parallel
 DataParallel (DP) is a single-process, multi-thread technic for scaling deep learning model training across multiple GPUs on a single machine.
 
-The general flow is as below:
+The general flow is as below
+
 - Split the data into smaller chunks (mini-batch) on GPU:0
 - Move one chunk of data per GPU
 - Copy the model to all available GPUs

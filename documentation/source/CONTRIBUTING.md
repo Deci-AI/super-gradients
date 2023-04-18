@@ -69,9 +69,9 @@ You can find more information [here](https://withblue.ink/2020/05/17/how-and-why
 1. [Generate a new GPG key](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key) 
 2. Copy the GPG key by running the command on step 12 from the link above
     
-    ```bash
-    $ gpg --armor --export 3AA5C34371567BD2
-    ```
+```bash
+$ gpg --armor --export 3AA5C34371567BD2
+```
     
 3. [Add the new GPG key to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-new-gpg-key-to-your-github-account)
 
@@ -80,11 +80,11 @@ You can find more information [here](https://withblue.ink/2020/05/17/how-and-why
 - [From Pycharm](https://www.jetbrains.com/help/pycharm/set-up-GPG-commit-signing.html#enable-commit-signing)
 - [From Terminal](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits), but first also do:
     
-    ```bash
-    $ git config --global user.signingkey 3AA5C34371567BD2
-    $ git config --global gpg.program /usr/local/bin/gpg
-    $ git config --global commit.gpgsign true
-    ```
+```bash
+$ git config --global user.signingkey 3AA5C34371567BD2
+$ git config --global gpg.program /usr/local/bin/gpg
+$ git config --global commit.gpgsign true
+```
 
 
 ## Jupyter Notebooks Contribution

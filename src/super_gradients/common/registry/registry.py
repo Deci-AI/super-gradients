@@ -145,3 +145,6 @@ OPTIMIZERS = {
     Optimizers.RMS_PROP: optim.RMSprop,
 }
 register_optimizer = create_register_decorator(registry=OPTIMIZERS)
+
+PROCESSINGS = {}
+register_processing = create_register_decorator(registry=PROCESSINGS)
