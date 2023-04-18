@@ -7,7 +7,7 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#       DEKR-W32: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32_no_dc
+#       DEKR-W32: python -m super_gradients.train_from_recipe --config-name=coco2017_pose_dekr_w32_no_dc checkpoint_params.checkpoint_path=hrnetv2_w32_imagenet_pretrained
 #  NOTE: Add "checkpoint_params.checkpoint_path=<hrnet-pretrained-path>" to use pretrained backbone (See line 55).
 #
 #
@@ -23,8 +23,6 @@
 #
 #  Comments:
 #      * Pretrained backbones were used.
-#      * Results with Deci code are higher than original implementation, mostly thanks to changes in Detail loss and
-#          module, different auxiliary feature maps and different loss weights.
 
 defaults:
   - training_hyperparams: coco2017_dekr_pose_train_params
@@ -41,7 +39,7 @@ multi_gpu: DDP
 num_gpus: 8
 
 experiment_suffix: ""
-experiment_name: coco2017_pose_${architecture}_${experiment_suffix}
+experiment_name: coco2017_pose_${architecture}${experiment_suffix}
 
 ckpt_root_dir:
 
