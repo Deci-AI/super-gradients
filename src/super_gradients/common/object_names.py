@@ -15,6 +15,7 @@ class Losses:
     KD_LOSS = "kd_loss"
     DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
     DEKR_LOSS = "dekr_loss"
+    RESCORING_LOSS = "rescoring_loss"
 
 
 class Metrics:
@@ -298,6 +299,7 @@ class Models:
     DEKR_W32_NO_DC = "dekr_w32_no_dc"
     POSE_PP_YOLO_L = "pose_ppyolo_l"
     POSE_DDRNET_39 = "pose_ddrnet39"
+    POSE_RESCORING = "pose_rescoring"
 
 
 class ConcatenatedTensorFormats:
@@ -328,6 +330,8 @@ class Dataloaders:
     COCO2017_VAL_SSD_LITE_MOBILENET_V2 = "coco2017_val_ssd_lite_mobilenet_v2"
     COCO2017_POSE_TRAIN = "coco2017_pose_train"
     COCO2017_POSE_VAL = "coco2017_pose_val"
+    COCO2017_RESCORING_TRAIN = "coco2017_rescoring_train"
+    COCO2017_RESCORING_VAL = "coco2017_rescoring_val"
     IMAGENET_TRAIN = "imagenet_train"
     IMAGENET_VAL = "imagenet_val"
     IMAGENET_EFFICIENTNET_TRAIN = "imagenet_efficientnet_train"

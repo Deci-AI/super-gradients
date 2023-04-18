@@ -11,6 +11,7 @@ from super_gradients.common.environment.ddp_utils import is_distributed
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching, compute_visible_bbox_xywh
+from super_gradients.training.utils import convert_to_tensor
 from super_gradients.training.utils.detection_utils import compute_detection_metrics_per_cls
 
 logger = get_logger(__name__)
@@ -172,7 +173,7 @@ class PoseEstimationMetrics(Metric):
 
         for i in range(len(predicted_poses)):
             self.update_single_image(
-                predicted_poses[i], predicted_scores[i], gt_joints[i], gt_areas=gt_areas[i], gt_bboxes=gt_bboxes[i], gt_is_crowd=gt_iscrowd[i]
+                predicted_poses[i], predicted_scores[i], gt_joints[i], gt_areas=gt_areas[i], gt_bboxes=gt_bboxes[i], gt_iscrowd=gt_iscrowd[i]
             )
 
     def update_single_image(
@@ -182,31 +183,32 @@ class PoseEstimationMetrics(Metric):
         groundtruths: Union[Tensor, np.ndarray],
         gt_bboxes: Union[Tensor, np.ndarray],
         gt_areas: Union[Tensor, np.ndarray],
-        gt_is_crowd: Union[Tensor, np.ndarray, List[bool]],
+        gt_iscrowd: Union[Tensor, np.ndarray, List[bool]],
     ):
         if len(predicted_poses) == 0 and len(groundtruths) == 0:
             return
         if len(predicted_poses) != len(predicted_scores):
             raise ValueError("Length of predicted poses and scores should be equal. Got {} and {}".format(len(predicted_poses), len(predicted_scores)))
-        if len(groundtruths) != len(gt_areas) != len(gt_bboxes) != len(gt_is_crowd):
+        if len(groundtruths) != len(gt_areas) != len(gt_bboxes) != len(gt_iscrowd):
             raise ValueError(
                 "Length of groundtruths, areas, bboxes and iscrowd should be equal. Got {} and {} and {} and {}".format(
-                    len(groundtruths), len(gt_areas), len(gt_bboxes), len(gt_is_crowd)
+                    len(groundtruths), len(gt_areas), len(gt_bboxes), len(gt_iscrowd)
                 )
             )
 
-        predicted_poses = torch.tensor(predicted_poses, dtype=torch.float, device=self.device)
-        predicted_scores = torch.tensor(predicted_scores, dtype=torch.float, device=self.device)
+        predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float32, device=self.device)
+        predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float, device=self.device)
+        predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float, device=self.device)
 
-        gt_keypoints = torch.tensor(groundtruths, dtype=torch.float, device=self.device)
-        gt_areas = torch.tensor(gt_areas, dtype=torch.float, device=self.device)
-        gt_bboxes = torch.tensor(gt_bboxes, dtype=torch.float, device=self.device)
+        gt_keypoints = convert_to_tensor(groundtruths, dtype=torch.float, device=self.device)
+        gt_areas = convert_to_tensor(gt_areas, dtype=torch.float, device=self.device)
+        gt_bboxes = convert_to_tensor(gt_bboxes, dtype=torch.float, device=self.device)
 
         gt_keypoints_xy = gt_keypoints[:, :, 0:2]
         gt_keypoints_visibility = gt_keypoints[:, :, 2]
         gt_all_kpts_invisible = gt_keypoints_visibility.eq(0).all(dim=1)
-        gt_is_crowd = torch.tensor(gt_is_crowd, dtype=torch.bool, device=self.device)
-        gt_is_ignore = gt_all_kpts_invisible | gt_is_crowd
+        gt_iscrowd = convert_to_tensor(gt_iscrowd, dtype=torch.bool, device=self.device)
+        gt_is_ignore = gt_all_kpts_invisible | gt_iscrowd
 
         targets = gt_keypoints_xy[~gt_is_ignore] if len(groundtruths) else []
         targets_visibilities = gt_keypoints_visibility[~gt_is_ignore] if len(groundtruths) else []

@@ -77,9 +77,10 @@ def main(cfg: DictConfig) -> None:
             pred_poses = all_poses[image_index]  # [M, J, 3]
             pred_scores = all_scores[image_index]  # [M]
 
-            gt_is_crowd = extras["gt_iscrowd"][image_index]
+            gt_iscrowd = extras["gt_iscrowd"][image_index]
             gt_keypoints = extras["gt_joints"][image_index]  # [N, J, 3]
             gt_bboxes = extras["gt_bboxes"][image_index]  # [N, 4]
+            gt_areas = extras["gt_areas"][image_index]  # [N]
 
             # Filter out poses with no visible keypoints
             if len(gt_keypoints) > 0 and len(pred_poses) > 0:
@@ -108,7 +109,8 @@ def main(cfg: DictConfig) -> None:
                 #
                 "gt_bboxes": gt_bboxes,
                 "gt_joints": gt_keypoints,
-                "gt_is_crowd": gt_is_crowd,
+                "gt_iscrowd": gt_iscrowd,
+                "gt_areas": gt_areas,
             }
             samples.append(sample)
 

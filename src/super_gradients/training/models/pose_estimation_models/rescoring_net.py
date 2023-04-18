@@ -1,8 +1,17 @@
+from typing import List, Tuple
+
+import torch
 from torch import nn, Tensor
-import numpy as np
+
+__all__ = ["PoseRescoringNet"]
+
+from super_gradients.common.object_names import Models
+from super_gradients.common.registry import register_model
+from super_gradients.training.models import SgModule
 
 
-class RescoringNet(nn.Module):
+@register_model(Models.POSE_RESCORING)
+class PoseRescoringNet(SgModule):
     """
     Rescoring network for pose estimation. It takes input features and predicts the single scalar score
     which is the multiplication factor for original score prediction. This model learns what are the reasonable/possible
@@ -13,18 +22,29 @@ class RescoringNet(nn.Module):
     The output is a single scalar value.
     """
 
-    def __init__(self, in_channels: int, hidden_channels):
-        super(RescoringNet, self).__init__()
-        self.l1 = nn.Linear(in_channels, hidden_channels, bias=True)
-        self.l2 = nn.Linear(hidden_channels, hidden_channels, bias=True)
-        self.l3 = nn.Linear(hidden_channels, 1, bias=True)
-        self.relu = nn.ReLU()
+    def __init__(self, num_classes: int, hidden_channels: int, num_layers: int, joint_links: List[Tuple[int, int]]):
+        super(PoseRescoringNet, self).__init__()
+        in_channels = len(joint_links) * 2 + len(joint_links) + num_classes  # [joint_relate, joint_length, visibility]
+        layers = []
+        for _ in range(num_layers):
+            layers.append(nn.Linear(in_channels, hidden_channels, bias=True))
+            layers.append(nn.ReLU())
+            in_channels = hidden_channels
+        self.layers = nn.Sequential(*layers)
+        self.final = nn.Linear(hidden_channels, 1, bias=True)
+        self.joint_links = torch.tensor(joint_links).long()
 
-    def forward(self, x: Tensor) -> Tensor:
-        x1 = self.relu(self.l1(x))
-        x2 = self.relu(self.l2(x1))
-        y_pred = self.l3(x2)
-        return y_pred
+    def forward(self, poses: Tensor) -> Tuple[Tensor, Tensor]:
+        """
+
+        :param x: Predicted poses or shape [N, J, 3] or [B, N, J, 3]
+        :return: Tuple of input poses and corresponding scores
+        """
+
+        x = self.get_feature(poses, self.joint_links)
+        x = self.layers(x)
+        y_pred = self.final(x)
+        return poses, y_pred
 
     def init_weights(self):
         for m in self.modules():
@@ -33,7 +53,7 @@ class RescoringNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     @classmethod
-    def get_feature(cls, poses: np.ndarray, joint_links: np.ndarray) -> np.ndarray:
+    def get_feature(cls, poses: Tensor, joint_links: Tensor) -> Tensor:
         """
         Compute the feature vector input to the rescoring network.
 
@@ -41,25 +61,25 @@ class RescoringNet(nn.Module):
         :param joint_links: [L,2] List of joint indices
         :return: [N, L*2+L+J] Feature vector
         """
-        joint_xy = poses[:, :, :2]
-        visibility = poses[:, :, 2]
+        joint_xy = poses[..., :2]
+        visibility = poses[..., 2]
 
         joint_1 = joint_links[:, 0]
         joint_2 = joint_links[:, 1]
 
         # To get the Delta x Delta y
-        joint_relate = joint_xy[:, joint_1] - joint_xy[:, joint_2]
-        joint_length = ((joint_relate**2)[:, :, 0] + (joint_relate**2)[:, :, 1]) ** (0.5)
+        joint_relate = joint_xy[..., joint_1, :] - joint_xy[..., joint_2, :]  # [N, L, 2]
+        joint_length = ((joint_relate**2)[..., 0] + (joint_relate**2)[..., 1]) ** (0.5)  # [N, L]
 
         # To use the torso distance to normalize
-        normalize = (joint_length[:, 9] + joint_length[:, 11]) / 2
-        normalize = np.tile(normalize, (len(joint_1), 2, 1)).transpose(2, 0, 1)
-        normalize[normalize < 1] = 1
+        normalize = (joint_length[..., 9] + joint_length[..., 11]) / 2  # [N] # NOTE: THIS IS COCO-SPECIFIC
+        normalize_tiled = torch.tile(normalize, (len(joint_1), 2, 1)).permute(2, 0, 1)
+        normalize_tiled = normalize_tiled.clamp_min(1)
 
-        joint_length = joint_length / normalize[:, :, 0]
-        joint_relate = joint_relate / normalize
-        joint_relate = joint_relate.reshape((-1, len(joint_1) * 2))
+        joint_length = joint_length / normalize_tiled[..., 0]
+        joint_relate = joint_relate / normalize_tiled
+        joint_relate = torch.flatten(joint_relate, start_dim=-2)  # .reshape((-1, len(joint_1) * 2))
 
         feature = [joint_relate, joint_length, visibility]
-        feature = np.concatenate(feature, axis=1)
+        feature = torch.cat(feature, dim=-1)
         return feature
