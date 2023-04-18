@@ -45,7 +45,7 @@ class PreprocessingUnitTest(unittest.TestCase):
         self.assertEqual(len(preprocessing_params["class_names"]), 80)
         self.assertEqual(preprocessing_params["image_processor"], expected_image_processor)
         self.assertEqual(preprocessing_params["iou"], 0.65)
-        self.assertEqual(preprocessing_params["conf", 0.5])
+        self.assertEqual(preprocessing_params["conf"], 0.5)
 
     def test_setting_preprocessing_params_from_validation_set(self):
         train_dataset_params = {
