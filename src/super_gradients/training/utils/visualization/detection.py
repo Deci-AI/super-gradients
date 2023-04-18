@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Tuple
 import cv2
 import numpy as np
 
@@ -8,7 +8,7 @@ from super_gradients.training.utils.visualization.utils import draw_text_box
 def draw_bbox(
     image: np.ndarray,
     title: str,
-    color: Sequence[int],
+    color: Tuple[int, int, int],
     box_thickness: int,
     x1: int,
     y1: int,
