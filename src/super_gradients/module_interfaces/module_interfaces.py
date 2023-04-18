@@ -1,6 +1,7 @@
-from typing_extensions import Protocol
+from typing_extensions import Protocol, runtime_checkable
 
 
+@runtime_checkable
 class HasPreprocessingParams(Protocol):
     """
     Protocol interface for torch datasets that support getting preprocessing params, later to be passed to a model
@@ -13,6 +14,7 @@ class HasPreprocessingParams(Protocol):
         ...
 
 
+@runtime_checkable
 class HasPredict(Protocol):
     """
     Protocol class serves a purpose of explicitly indicating whether a torch model has the functionality of ".predict"
