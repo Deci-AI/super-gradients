@@ -9,15 +9,17 @@ from omegaconf import DictConfig
 import hydra
 import pkg_resources
 
-from super_gradients import Trainer, init_trainer
-
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
 def main(cfg: DictConfig) -> None:
+    from super_gradients import Trainer
+
     Trainer.train_from_config(cfg)
 
 
 def run():
+    from super_gradients import init_trainer
+
     init_trainer()
     main()
 
