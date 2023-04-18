@@ -5,5 +5,7 @@ from super_gradients.training import models
 model = models.get(Models.DECIYOLO_L, pretrained_weights="coco")
 
 image_folder_path = "../../../../documentation/source/images/examples"
+
 predictions = model.predict(image_folder_path)
 predictions.show()
+predictions.save(output_folder="")  # Save in working directory
