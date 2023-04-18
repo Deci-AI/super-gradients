@@ -18,4 +18,4 @@ with open(video_path, mode="wb") as f:
 
 predictions = model.predict(video_path)
 predictions.show()
-predictions.save("output_path.mp4")
+predictions.save("pose_elephant_flip_prediction.mp4")

@@ -175,18 +175,20 @@ class ImagesDetectionPrediction(ImagesPredictions):
         for prediction in self._images_prediction_lst:
             prediction.show(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
 
-    def save(self, output_path: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
+    def save(self, output_folder: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
         """Save the predicted bboxes on the images.
 
-        :param output_path:     Folder path, where the images will be saved.
+        :param output_folder:     Folder path, where the images will be saved.
         :param box_thickness:   Thickness of bounding boxes.
         :param show_confidence: Whether to show confidence scores on the image.
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
-        os.makedirs(output_path, exist_ok=True)
+        if output_folder:
+            os.makedirs(output_folder, exist_ok=True)
+
         for i, prediction in enumerate(self._images_prediction_lst):
-            image_output_path = os.path.join(output_path, f"pred_{i}.jpg")
+            image_output_path = os.path.join(output_folder, f"pred_{i}.jpg")
             prediction.save(output_path=image_output_path, box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
 
 
