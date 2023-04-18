@@ -20,7 +20,7 @@ from super_gradients.training.models.prediction_results import (
     VideoPredictions,
 )
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
-from super_gradients.training.transforms.processing import Processing, ComposeProcessing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 
