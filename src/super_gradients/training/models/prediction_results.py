@@ -64,7 +64,6 @@ class ImageDetectionPrediction(ImagePrediction):
         :return:                Image with predicted bboxes. Note that this does not modify the original image.
         """
         image = self.image.copy()
-
         color_mapping = color_mapping or generate_color_mapping(len(self.class_names))
 
         for pred_i in range(len(self.prediction)):
