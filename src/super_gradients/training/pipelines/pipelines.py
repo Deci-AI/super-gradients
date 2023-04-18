@@ -46,13 +46,13 @@ class Pipeline(ABC):
 
     :param model:           The model used for making predictions.
     :param image_processor: A single image processor or a list of image processors for preprocessing and postprocessing the images.
-    :param device:          The device on which the model will be run. Defaults to "cpu". Use "cuda" for GPU support.
+    :param device:          The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     """
 
-    def __init__(self, model: SgModule, image_processor: Union[Processing, List[Processing]], class_names: List[str], device: Optional[str] = "cpu"):
+    def __init__(self, model: SgModule, image_processor: Union[Processing, List[Processing]], class_names: List[str], device: Optional[str] = None):
         super().__init__()
-        self.model = model.to(device)
-        self.device = device
+        self.device = device or next(model.parameters()).device
+        self.model = model.to(self.device)
         self.class_names = class_names
 
         if isinstance(image_processor, list):
@@ -220,7 +220,7 @@ class DetectionPipeline(Pipeline):
     :param class_names:                 List of class names corresponding to the model's output classes.
     :param post_prediction_callback:    Callback function to process raw predictions from the model.
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
-    :param device:                      The device on which the model will be run. Defaults to "cpu". Use "cuda" for GPU support.
+    :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     """
 
     def __init__(
@@ -228,7 +228,7 @@ class DetectionPipeline(Pipeline):
         model: SgModule,
         class_names: List[str],
         post_prediction_callback: DetectionPostPredictionCallback,
-        device: Optional[str] = "cpu",
+        device: Optional[str] = None,
         image_processor: Optional[Processing] = None,
     ):
         super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names)
