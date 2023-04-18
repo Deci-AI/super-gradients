@@ -9,7 +9,6 @@ from typing import Union, Optional, List
 
 from torch import nn
 from omegaconf import DictConfig
-from typing_extensions import runtime_checkable
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
@@ -23,7 +22,6 @@ from super_gradients.training.utils.detection_utils import DetectionPostPredicti
 from super_gradients.training.utils.media.image import ImageSource
 
 
-@runtime_checkable
 class CustomizableDetector(SgModule):
     """
     A customizable detector with backbone -> neck -> heads

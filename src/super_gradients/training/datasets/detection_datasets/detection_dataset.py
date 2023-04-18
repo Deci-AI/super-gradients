@@ -12,7 +12,6 @@ import hashlib
 import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset
-from typing_extensions import runtime_checkable
 
 from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
@@ -30,7 +29,6 @@ logger = get_logger(__name__)
 
 
 @register_dataset(Datasets.DETECTION_DATASET)
-@runtime_checkable
 class DetectionDataset(Dataset):
     """Detection dataset.
 

@@ -1,8 +1,6 @@
 from typing import Union, Optional, List
 
 from torch import Tensor
-from typing_extensions import runtime_checkable
-
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.common.registry.registry import register_model
@@ -21,7 +19,6 @@ from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
 
 
-@runtime_checkable
 class PPYoloE(SgModule):
     def __init__(self, arch_params):
         super().__init__()

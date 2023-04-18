@@ -3,7 +3,6 @@ from typing import Union, Type, List, Tuple, Optional
 
 import torch
 import torch.nn as nn
-from typing_extensions import runtime_checkable
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
@@ -393,7 +392,6 @@ class YoloHead(nn.Module):
         )
 
 
-@runtime_checkable
 class YoloBase(SgModule):
     def __init__(self, backbone: Type[nn.Module], arch_params: HpmStruct, initialize_module: bool = True):
         super().__init__()
