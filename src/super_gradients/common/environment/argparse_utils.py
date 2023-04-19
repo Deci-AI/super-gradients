@@ -1,10 +1,7 @@
 import argparse
 import sys
 from typing import Any
-from super_gradients.common.abstractions.abstract_logger import get_logger
 
-
-logger = get_logger(__name__)
 
 EXTRA_ARGS = []
 
@@ -30,6 +27,4 @@ def pop_local_rank() -> int:
     except ValueError:
         local_rank = -1
 
-    if local_rank != -1:
-        logger.info("local_rank was automatically parsed from your config.")
     return local_rank

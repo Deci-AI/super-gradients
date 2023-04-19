@@ -5,9 +5,6 @@ import time
 from typing import Union
 
 
-from super_gradients.common.environment.env_variables import env_variables
-
-
 class AutoLoggerConfig:
     """
     A Class for the Automated Logging Config
@@ -54,6 +51,8 @@ class AutoLoggerConfig:
             with open(self.filename, "r", encoding="utf-8") as src:
                 with open(filename, "w") as dst:
                     dst.write(src.read())
+
+        from super_gradients.common.environment.env_variables import env_variables
 
         file_logging_level = log_level or env_variables.FILE_LOG_LEVEL
         console_logging_level = log_level or env_variables.CONSOLE_LOG_LEVEL
