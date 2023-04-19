@@ -119,7 +119,7 @@ class DetectionDataset(Dataset):
 
         self.data_dir = data_dir
         if not Path(data_dir).exists():
-            raise FileNotFoundError(f"data_dir={data_dir} not found. Please make sure that data_dir points toward your dataset.")
+            raise RuntimeError(f"data_dir={data_dir} not found. Please make sure that data_dir points toward your dataset.")
 
         # Number of images that are available (regardless of ignored images)
         self.n_available_samples = self._setup_data_source()
