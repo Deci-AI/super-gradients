@@ -54,7 +54,7 @@ class ImageDetectionPrediction(ImagePrediction):
     prediction: DetectionPrediction
     class_names: List[str]
 
-    def draw(self, box_thickness: int = 2, show_confidence: bool = False, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> np.ndarray:
+    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> np.ndarray:
         """Draw the predicted bboxes on the image.
 
         :param box_thickness:   Thickness of bounding boxes.

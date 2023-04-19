@@ -388,7 +388,7 @@ class DetectionVisualization:
 
         if is_target:
             title = f"[GT] {class_name}"
-        if not is_target:
+        else:
             title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
 
         draw_bbox(image=image_np, title=title, x1=x1, y1=y1, x2=x2, y2=y2, box_thickness=box_thickness, color=color)
@@ -515,28 +515,6 @@ class DetectionVisualization:
                 out_images.append(res_image)
 
         return out_images
-
-
-def best_text_color(background_color):
-    """
-    Determines the best text color (either black or white) for a given background color.
-
-    Args:
-        background_color (tuple[int, int, int]): A tuple representing the RGB values of the background color.
-
-    Returns:
-        tuple[int, int, int]: A tuple representing the RGB values of the best text color for the given background color.
-    """
-    # Calculate the luminance of the background color using the formula for relative luminance of sRGB colors.
-    # The formula is given as L = 0.2126 * R + 0.7152 * G + 0.0722 * B, where R, G, and B are the red, green,
-    # and blue components of the color, respectively.
-    luminance = (0.2126 * background_color[0] + 0.7152 * background_color[1] + 0.0722 * background_color[2]) / 255
-
-    # If the luminance is greater than 0.5, use black text; otherwise, use white text.
-    if luminance > 0.5:
-        return (0, 0, 0)  # Black
-    else:
-        return (255, 255, 255)  # White
 
 
 class Anchors(nn.Module):
