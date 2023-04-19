@@ -161,13 +161,6 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
             if base_name in valid_base_names:
                 self.images_file_names.append(image_full_name)
                 self.labels_file_names.append(base_name + ".txt")
-        # valid_labels_file_names = [label_full_name for label_full_name in all_labels_file_names if remove_file_extension(label_full_name) in valid_base_names]
-        # self.images_file_names = list(
-        #     sorted(image_full_name for image_full_name in all_images_file_names if remove_file_extension(image_full_name) in valid_base_names)
-        # )
-        # self.labels_file_names = list(
-        #     sorted(label_full_name for label_full_name in all_labels_file_names if remove_file_extension(label_full_name) in valid_base_names)
-        # )
         return len(self.images_file_names)
 
     def _load_annotation(self, sample_id: int) -> dict:
