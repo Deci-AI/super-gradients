@@ -8,6 +8,7 @@ from super_gradients.common.data_types import StrictLoad, DeepLearningTask, Eval
 from super_gradients.common.decorators import explicit_params_validation, singleton
 from super_gradients.common.environment.argparse_utils import pop_local_rank
 from super_gradients.common.environment.ddp_utils import init_trainer, is_distributed
+from super_gradients.common.environment.mute_processes import mute_subprocesses
 from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 
 __all__ = [
@@ -32,3 +33,5 @@ __all__ = [
 
 
 setup_crash_handler()
+# Mute on import to avoid the import prints/logs on sub processes
+mute_subprocesses()

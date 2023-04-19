@@ -2,11 +2,7 @@ import logging
 import logging.config
 from typing import Union
 
-from super_gradients.common.abstractions.mute_processes import mute_subprocesses
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
-
-# Mute on import to avoid the import prints/logs on sub processes
-mute_subprocesses()
 
 
 def get_logger(logger_name: str, log_level: Union[str, None] = None) -> logging.Logger:
@@ -15,7 +11,6 @@ def get_logger(logger_name: str, log_level: Union[str, None] = None) -> logging.
     if log_level is not None:
         logger.setLevel(log_level)
 
-    mute_subprocesses()
     return logger
 
 
