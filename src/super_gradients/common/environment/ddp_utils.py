@@ -2,6 +2,7 @@ import os
 import socket
 from functools import wraps
 
+from super_gradients.common import setup_crash_handler, mute_subprocesses
 from super_gradients.common.environment.device_utils import device_config
 
 
@@ -12,10 +13,14 @@ def init_trainer():
     This function should be the first thing to be called by any code running super_gradients.
     """
     from super_gradients.sanity_check import env_sanity_check
-    from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 
-    register_hydra_resolvers()
+    # register_hydra_resolvers()
+
     env_sanity_check()
+
+    setup_crash_handler()
+    # Mute on import to avoid the import prints/logs on sub processes
+    mute_subprocesses()
 
 
 def is_distributed() -> bool:
