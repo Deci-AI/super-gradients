@@ -25,7 +25,11 @@ def pop_arg(arg_name: str, default_value: Any = None) -> Any:
 
 def pop_local_rank() -> int:
     """Pop the python arg "local-rank". If exists inform the user with a log, otherwise return -1."""
-    local_rank = pop_arg("local_rank", default_value=-1)
+    try:
+        local_rank = int(pop_arg("local_rank", default_value=-1))
+    except ValueError:
+        local_rank = -1
+
     if local_rank != -1:
         logger.info("local_rank was automatically parsed from your config.")
     return local_rank

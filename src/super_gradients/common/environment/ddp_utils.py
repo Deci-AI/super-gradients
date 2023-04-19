@@ -3,8 +3,6 @@ import socket
 from functools import wraps
 
 from super_gradients.common.environment.device_utils import device_config
-from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
-from super_gradients.common.environment.argparse_utils import pop_local_rank
 
 
 def init_trainer():
@@ -13,8 +11,11 @@ def init_trainer():
 
     This function should be the first thing to be called by any code running super_gradients.
     """
+    from super_gradients.sanity_check import env_sanity_check
+    from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
+
     register_hydra_resolvers()
-    pop_local_rank()
+    env_sanity_check()
 
 
 def is_distributed() -> bool:
