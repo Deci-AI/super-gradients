@@ -146,8 +146,8 @@ test_data_loader = cifar10_val()
 7. Launch test:
 
 ```python
-accuracy, top5 = trainer.test(model=model, test_loader=test_data_loader, test_metrics_list=test_metrics)
-print(f"Test results: Accuracy: {accuracy}, Top5: {top5}")
+test_results = trainer.test(model=model, test_loader=test_data_loader, test_metrics_list=test_metrics)
+print(f"Test results: Accuracy: {test_results['Accuracy']}, Top5: {test_results['Top5']}")
 ```
 
 </details>

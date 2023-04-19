@@ -5,10 +5,11 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from super_gradients.training.utils.detection_utils import DetectionVisualization
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.media.image import show_image, save_image
+from super_gradients.training.utils.visualization.utils import generate_color_mapping
+from super_gradients.training.utils.visualization.detection import draw_bbox
 
 
 @dataclass
@@ -53,7 +54,7 @@ class ImageDetectionPrediction(ImagePrediction):
     prediction: DetectionPrediction
     class_names: List[str]
 
-    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> np.ndarray:
+    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> np.ndarray:
         """Draw the predicted bboxes on the image.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -62,25 +63,28 @@ class ImageDetectionPrediction(ImagePrediction):
                                 Default is None, which generates a default color mapping based on the number of class names.
         :return:                Image with predicted bboxes. Note that this does not modify the original image.
         """
-        image_np = self.image.copy()
-        color_mapping = color_mapping or DetectionVisualization._generate_color_mapping(len(self.class_names))
+        image = self.image.copy()
+        color_mapping = color_mapping or generate_color_mapping(len(self.class_names))
 
         for pred_i in range(len(self.prediction)):
-            image_np = DetectionVisualization._draw_box_title(
-                color_mapping=color_mapping,
-                class_names=self.class_names,
+
+            class_id = int(self.prediction.labels[pred_i])
+            score = "" if not show_confidence else str(round(self.prediction.confidence[pred_i], 2))
+
+            draw_bbox(
+                image=image,
+                title=f"{self.class_names[class_id]} {score}",
+                color=color_mapping[class_id],
                 box_thickness=box_thickness,
-                image_np=image_np,
                 x1=int(self.prediction.bboxes_xyxy[pred_i, 0]),
                 y1=int(self.prediction.bboxes_xyxy[pred_i, 1]),
                 x2=int(self.prediction.bboxes_xyxy[pred_i, 2]),
                 y2=int(self.prediction.bboxes_xyxy[pred_i, 3]),
-                class_id=int(self.prediction.labels[pred_i]),
-                pred_conf=self.prediction.confidence[pred_i] if show_confidence else None,
             )
-        return image_np
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
+        return image
+
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
         """Display the image with predicted bboxes.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -91,7 +95,7 @@ class ImageDetectionPrediction(ImagePrediction):
         image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
         show_image(image)
 
-    def save(self, output_path: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
+    def save(self, output_path: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
         """Save the predicted bboxes on the images.
 
         :param output_path:     Path to the output video file.
@@ -164,7 +168,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
 
     _images_prediction_lst: List[ImageDetectionPrediction]
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
         """Display the predicted bboxes on the images.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -175,7 +179,9 @@ class ImagesDetectionPrediction(ImagesPredictions):
         for prediction in self._images_prediction_lst:
             prediction.show(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
 
-    def save(self, output_folder: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
+    def save(
+        self, output_folder: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None
+    ) -> None:
         """Save the predicted bboxes on the images.
 
         :param output_folder:     Folder path, where the images will be saved.
@@ -203,7 +209,7 @@ class VideoDetectionPrediction(VideoPredictions):
     _images_prediction_lst: List[ImageDetectionPrediction]
     fps: int
 
-    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> List[np.ndarray]:
+    def draw(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> List[np.ndarray]:
         """Draw the predicted bboxes on the images.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -217,7 +223,7 @@ class VideoDetectionPrediction(VideoPredictions):
         ]
         return frames_with_bbox
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
         """Display the predicted bboxes on the images.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -228,7 +234,7 @@ class VideoDetectionPrediction(VideoPredictions):
         frames = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
         show_video_from_frames(window_name="Detection", frames=frames, fps=self.fps)
 
-    def save(self, output_path: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int]]] = None) -> None:
+    def save(self, output_path: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
         """Save the predicted bboxes on the images.
 
         :param output_path:     Path to the output video file.
