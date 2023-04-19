@@ -270,7 +270,7 @@ def roboflow_val_yolox(dataset_params: Dict = None, dataloader_params: Dict = No
     )
 
 
-@register_dataloader(Dataloaders.coco_detection_yolo_format_train)
+@register_dataloader(Dataloaders.COCO_DETECTION_YOLO_FORMAT_TRAIN)
 def coco_detection_yolo_format_train(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return get_data_loader(
         config_name="coco_detection_yolo_format_base_dataset_params",
@@ -281,7 +281,7 @@ def coco_detection_yolo_format_train(dataset_params: Dict = None, dataloader_par
     )
 
 
-@register_dataloader(Dataloaders.coco_detection_yolo_format_val)
+@register_dataloader(Dataloaders.COCO_DETECTION_YOLO_FORMAT_VAL)
 def coco_detection_yolo_format_val(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return get_data_loader(
         config_name="coco_detection_yolo_format_base_dataset_params",
