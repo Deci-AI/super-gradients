@@ -11,7 +11,6 @@ from torch import nn
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.metrics.metric_utils import get_metrics_dict
 from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import setup_device
@@ -158,8 +157,7 @@ class QATTrainer(Trainer):
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
         logger.info("Validating PTQ model...")
         trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=get_param(cfg, "ckpt_root_dir", default_val=None))
-        val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
-        valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
+        valid_metrics_dict = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
         results = ["PTQ Model Validation Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
