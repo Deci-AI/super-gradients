@@ -19,7 +19,7 @@ from super_gradients.common.environment.ddp_utils import find_free_port, is_dist
 
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.abstractions.mute_processes import mute_current_process
+from super_gradients.common.environment.mute_processes import mute_current_process
 from super_gradients.common.environment.device_utils import device_config
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
