@@ -5,6 +5,8 @@ from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.kd_trainer import KDTrainer
 from super_gradients.training.qat_trainer import QATTrainer
 from super_gradients.common import MultiGPUMode, StrictLoad, EvaluationType
+from super_gradients.training.utils.distributed_training_utils import setup_device
+
 
 __all__ = [
     "distributed_training_utils",
@@ -16,4 +18,5 @@ __all__ = [
     "MultiGPUMode",
     "StrictLoad",
     "EvaluationType",
+    "setup_device",
 ]
