@@ -203,11 +203,11 @@ class PoseEstimationMetrics(Metric):
         gt_keypoints = convert_to_tensor(groundtruths, dtype=torch.float, device=self.device)
         gt_areas = convert_to_tensor(gt_areas, dtype=torch.float, device=self.device)
         gt_bboxes = convert_to_tensor(gt_bboxes, dtype=torch.float, device=self.device)
+        gt_iscrowd = convert_to_tensor(gt_iscrowd, dtype=torch.bool, device=self.device)
 
         gt_keypoints_xy = gt_keypoints[:, :, 0:2]
         gt_keypoints_visibility = gt_keypoints[:, :, 2]
         gt_all_kpts_invisible = gt_keypoints_visibility.eq(0).all(dim=1)
-        gt_iscrowd = convert_to_tensor(gt_iscrowd, dtype=torch.bool, device=self.device)
         gt_is_ignore = gt_all_kpts_invisible | gt_iscrowd
 
         targets = gt_keypoints_xy[~gt_is_ignore] if len(groundtruths) else []
