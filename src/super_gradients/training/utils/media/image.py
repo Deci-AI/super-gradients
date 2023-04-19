@@ -131,6 +131,7 @@ def show_image(image: np.ndarray) -> None:
     """Show an image using matplotlib.
     :param image: Image to show in (H, W, C), RGB.
     """
+    plt.figure(figsize=(image.shape[1] / 100.0, image.shape[0] / 100.0), dpi=100)
     plt.imshow(image, interpolation="nearest")
     plt.axis("off")
     plt.show()
