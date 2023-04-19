@@ -1748,6 +1748,8 @@ class Trainer:
 
         self._first_backward = True
 
+        test_results = get_metrics_dict(test_results, self.test_metrics, self.loss_logging_items_names)
+
         return test_results
 
     def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
