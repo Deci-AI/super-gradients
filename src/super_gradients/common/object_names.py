@@ -334,6 +334,8 @@ class Dataloaders:
     COCO2017_VAL_SSD_LITE_MOBILENET_V2 = "coco2017_val_ssd_lite_mobilenet_v2"
     COCO2017_POSE_TRAIN = "coco2017_pose_train"
     COCO2017_POSE_VAL = "coco2017_pose_val"
+    COCO_YOLO_FORMAT_TRAIN = "coco_yolo_format_train"
+    COCO_YOLO_FORMAT_VAL = "coco_yolo_format_val"
     IMAGENET_TRAIN = "imagenet_train"
     IMAGENET_VAL = "imagenet_val"
     IMAGENET_EFFICIENTNET_TRAIN = "imagenet_efficientnet_train"

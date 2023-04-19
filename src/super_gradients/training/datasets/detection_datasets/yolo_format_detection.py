@@ -146,7 +146,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
             logger.warning(f"{len(labels_not_in_images)} label files are not associated to any image.")
 
         # Only keep names that are in both the images and the labels
-        valid_base_names = list(unique_image_file_base_names & unique_label_file_base_names)
+        valid_base_names = unique_image_file_base_names & unique_label_file_base_names
         if len(valid_base_names) != len(all_images_file_names):
             logger.warning(
                 f"As a consequence, "
@@ -154,12 +154,20 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
                 f"{len(valid_base_names)}/{len(all_labels_file_names)} label files will be used."
             )
 
-        self.images_file_names = list(
-            sorted(image_full_name for image_full_name in all_images_file_names if remove_file_extension(image_full_name) in valid_base_names)
-        )
-        self.labels_file_names = list(
-            sorted(label_full_name for label_full_name in all_labels_file_names if remove_file_extension(label_full_name) in valid_base_names)
-        )
+        self.images_file_names = []
+        self.labels_file_names = []
+        for image_full_name in all_images_file_names:
+            base_name = remove_file_extension(image_full_name)
+            if base_name in valid_base_names:
+                self.images_file_names.append(image_full_name)
+                self.labels_file_names.append(base_name + ".txt")
+        # valid_labels_file_names = [label_full_name for label_full_name in all_labels_file_names if remove_file_extension(label_full_name) in valid_base_names]
+        # self.images_file_names = list(
+        #     sorted(image_full_name for image_full_name in all_images_file_names if remove_file_extension(image_full_name) in valid_base_names)
+        # )
+        # self.labels_file_names = list(
+        #     sorted(label_full_name for label_full_name in all_labels_file_names if remove_file_extension(label_full_name) in valid_base_names)
+        # )
         return len(self.images_file_names)
 
     def _load_annotation(self, sample_id: int) -> dict:
