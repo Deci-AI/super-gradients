@@ -10,7 +10,6 @@ from super_gradients.training import MultiGPUMode
 from super_gradients.training import models as sg_models
 from super_gradients.training.dataloaders import imagenet_train, imagenet_val
 from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.training.metrics.metric_utils import get_metrics_dict
 from super_gradients.training.models.classification_models.resnet import Bottleneck
 from super_gradients.training.models.classification_models.resnet import Bottleneck as sg_Bottleneck
 from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
@@ -112,8 +111,7 @@ if __name__ == "__main__":
 
     trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=val_dataloader)
 
-    val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)
-    valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
+    valid_metrics_dict = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)
 
     export_quantized_module_to_onnx(model=model, onnx_filename=f"{args.model_name}.onnx", input_shape=(args.batch, 3, 224, 224))
 
