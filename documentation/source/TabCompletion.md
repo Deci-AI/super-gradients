@@ -6,6 +6,8 @@ SuperGradients configuration system uses Hydra, so it is possible to enable [tab
 
 To enable tab completion you need to run following commands:
 
+Example for train_from_recipe.py (Command to be executed from `src/super_gradients`)
+
 `eval "$(python train_from_recipe.py -sc install=bash)"`
 
 If you're using ZSH (Mac OS X), then ensure that you have the following lines in your `.zshrc`:
