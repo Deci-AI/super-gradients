@@ -80,7 +80,7 @@ stored or transmitted ([Wikipedia](https://en.wikipedia.org/wiki/YAML)). We pars
 either as a recursive dictionary or as function arguments. 
 
 Let's try running a training session from a configuration file.
-In your SG project, go to the examples directory and run the `train_from_recipe.py` script as shown below: 
+ 
 ```shell
 python -m super_gradients.train_from_recipe --config-name=cifar10_resnet
 ```
