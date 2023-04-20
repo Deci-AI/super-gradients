@@ -1,7 +1,7 @@
 """
 Example code for resuming SuperGradient's recipes.
 
-General use: python resume_experiment.py --experiment_name=<PREVIOUSLY-RUN-EXPERIMENT>
+General use: python -m super_gradients.resume_experiment --experiment_name=resnet18_cifar
 """
 from super_gradients import Trainer, init_trainer
 from super_gradients.common.environment.argparse_utils import pop_arg
