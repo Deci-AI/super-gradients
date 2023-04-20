@@ -7,10 +7,8 @@ For recipe's specific instructions and details refer to the recipe's configurati
 
 
 import hydra
-from super_gradients.hydra_support import hydra_love
 
 
-@hydra_love
 @hydra.main(config_path="recipes", config_name="cifar10_resnet", version_base="1.2")
 def run(config):
     from super_gradients.training import Trainer
