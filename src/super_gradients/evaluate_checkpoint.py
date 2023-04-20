@@ -15,7 +15,7 @@ Note:
     The parameters will be unchanged even if the recipe used for that experiment was changed since then.
     This is to ensure that validation of the experiment will remain exactly the same as during training.
 
-Example: python evaluate_checkpoint.py --experiment_name=my_experiment_name --ckpt_name=average_model.pth
+Example: python -m super_gradients.evaluate_checkpoint --experiment_name=my_experiment_name --ckpt_name=average_model.pth
 -> Evaluate the checkpoint average_model from experiment my_experiment_name.
 
 """
