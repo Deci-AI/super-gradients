@@ -5,24 +5,12 @@ General use: python -m super_gradients.train_from_recipe --config-name="DESIRED_
 For recipe's specific instructions and details refer to the recipe's configuration file in the recipes directory.
 """
 
+
 import hydra
+from super_gradients.hydra_support import hydra_love
 
 
-def sg_main(function):
-    def wrapper(*args, **kwargs):
-        print("Inside pop_local_rank", *args, **kwargs)
-        print("Before popping local rank")
-        from super_gradients.common import pop_local_rank, register_hydra_resolvers
-
-        pop_local_rank()
-        register_hydra_resolvers()
-        print("Before calling inner function")
-        return function(*args, **kwargs)
-
-    return wrapper
-
-
-@sg_main
+@hydra_love
 @hydra.main(config_path="recipes", config_name="cifar10_resnet", version_base="1.2")
 def run(config):
     from super_gradients.training import Trainer

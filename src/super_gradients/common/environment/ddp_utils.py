@@ -2,9 +2,6 @@ import os
 import socket
 from functools import wraps
 
-from super_gradients.common import setup_crash_handler, mute_subprocesses
-from super_gradients.common.environment.device_utils import device_config
-
 
 def init_trainer():
     """
@@ -13,6 +10,8 @@ def init_trainer():
     This function should be the first thing to be called by any code running super_gradients.
     """
     from super_gradients.sanity_check import env_sanity_check
+    from super_gradients.common.crash_handler import setup_crash_handler
+    from super_gradients.common.environment.mute_processes import mute_subprocesses
 
     # register_hydra_resolvers()
 
@@ -25,6 +24,8 @@ def init_trainer():
 
 def is_distributed() -> bool:
     """Check if current process is a DDP subprocess."""
+    from super_gradients.common.environment.device_utils import device_config
+
     return device_config.assigned_rank >= 0
 
 
@@ -42,6 +43,7 @@ def is_main_process():
         - If DDP launched using SuperGradients: main process is the launching process (rank=-1)
         - If DDP launched with torch: main process is rank 0
     """
+    from super_gradients.common.environment.device_utils import device_config
 
     if not is_distributed():  # If no DDP, or DDP launching process
         return True
@@ -66,6 +68,8 @@ def multi_process_safe(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
+        from super_gradients.common.environment.device_utils import device_config
+
         if device_config.assigned_rank <= 0:
             return func(*args, **kwargs)
         else:
