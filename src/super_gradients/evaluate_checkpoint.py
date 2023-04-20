@@ -31,10 +31,5 @@ def main() -> None:
     Trainer.evaluate_checkpoint(experiment_name=experiment_name, ckpt_name=ckpt_name, ckpt_root_dir=ckpt_root_dir)
 
 
-def run():
-    init_trainer()
-    main()
-
-
 if __name__ == "__main__":
-    run()
+    main()

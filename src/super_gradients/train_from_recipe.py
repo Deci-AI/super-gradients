@@ -13,14 +13,14 @@ from super_gradients import Trainer, init_trainer
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-def main(cfg: DictConfig) -> None:
+def _main(cfg: DictConfig) -> None:
     Trainer.train_from_config(cfg)
 
 
-def run():
-    init_trainer()
-    main()
+def main() -> None:
+    init_trainer()  # `init_trainer` needs to be called before `@hydra.main`
+    _main()
 
 
 if __name__ == "__main__":
-    run()
+    main()

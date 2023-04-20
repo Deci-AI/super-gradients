@@ -14,14 +14,14 @@ from super_gradients.training.qat_trainer.qat_trainer import QATTrainer
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-def main(cfg: DictConfig) -> None:
+def _main(cfg: DictConfig) -> None:
     QATTrainer.train_from_config(cfg)
 
 
-def run():
-    init_trainer()
-    main()
+def main():
+    init_trainer()  # `init_trainer` needs to be called before `@hydra.main`
+    _main()
 
 
 if __name__ == "__main__":
-    run()
+    main()
