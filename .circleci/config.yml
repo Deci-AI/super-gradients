@@ -632,27 +632,21 @@ workflows:
             - login_to_codeartifact_release
           <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt1:
-          <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt2:
           requires:
             - recipe_sanity_tests_classification_pt1
-          <<: *release_tag_filter
       - recipe_sanity_tests_segmentation:
           requires:
             - recipe_sanity_tests_classification_pt2
-          <<: *release_tag_filter
       - recipe_sanity_tests_detection:
           requires:
             - recipe_sanity_tests_segmentation
-          <<: *release_tag_filter
       - recipe_sanity_tests_pose_estimation:
           requires:
             - recipe_sanity_tests_detection
-          <<: *release_tag_filter
       - recipe_accuracy_tests:
           requires:
             - recipe_sanity_tests_pose_estimation
-          <<: *release_tag_filter
       - release_version:
           py_version: "3.7"
           requires:
