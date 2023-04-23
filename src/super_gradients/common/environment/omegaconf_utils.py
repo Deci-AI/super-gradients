@@ -1,9 +1,52 @@
 import importlib
 import sys
+from typing import Any
 
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
+from hydra.experimental.callback import Callback
+
+
+class RecipeShortcutsCallback(Callback):
+    """
+    Interpolates the shortcuts defined in variable_set.yaml:
+            lr
+            batch_size
+            valid_batch_size
+            ema
+            resume: False
+            num_workers
+
+    When any of the above are not set, they will be populated with the original values (for example
+        config.lr will be set with config.training_hyperparams.initial_lr) for clarity in logs.
+
+    """
+
+    def on_run_start(self, config: DictConfig, **kwargs: Any) -> None:
+        config.training_hyperparams.initial_lr = config.lr or config.training_hyperparams.initial_lr
+        config.lr = config.training_hyperparams.initial_lr
+
+        config.dataset_params.train_dataloader_params.batch_size = config.batch_size or config.dataset_params.train_dataloader_params.batch_size
+        config.batch_size = config.dataset_params.train_dataloader_params.batch_size
+
+        config.dataset_params.val_dataloader_params.batch_size = config.val_batch_size or config.dataset_params.val_dataloader_params.batch_size
+        config.val_batch_size = config.dataset_params.val_dataloader_params.batch_size
+
+        config.training_hyperparams.resume = config.resume or config.training_hyperparams.resume
+        config.resume = config.training_hyperparams.resume
+
+        if config.ema is not None:
+            config.training_hyperparams.ema = config.ema
+        else:
+            config.lr = config.training_hyperparams.ema
+
+        if config.num_workers is not None:
+            config.dataset_params.train_dataloader_params.num_workers = config.num_workers
+            config.dataset_params.val_dataloader_params.num_workers = config.num_workers
+
+        else:
+            config.num_workers = config.dataset_params.val_dataloader_params.num_workers
 
 
 def get_cls(cls_path: str):

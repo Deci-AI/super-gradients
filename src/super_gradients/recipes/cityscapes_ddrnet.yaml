@@ -46,6 +46,7 @@ defaults:
   - dataset_params: cityscapes_ddrnet_dataset_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 train_dataloader: cityscapes_train
 val_dataloader: cityscapes_val
@@ -83,15 +84,5 @@ checkpoint_params:
 
 experiment_name: ${architecture}_cityscapes
 
-
-ckpt_root_dir:
-
 multi_gpu: DDP
 num_gpus: 4
-
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

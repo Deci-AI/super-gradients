@@ -1,0 +1,16 @@
+lr:
+batch_size:
+valid_batch_size:
+ema:
+resume: False
+num_workers:
+
+ckpt_root_dir:
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  callbacks:
+    shortcuts_cb:
+      _target_: super_gradients.common.environment.omegaconf_utils.RecipeShortcutsCallback
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

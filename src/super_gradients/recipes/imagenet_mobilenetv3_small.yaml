@@ -12,6 +12,7 @@ defaults:
   - imagenet_mobilenetv3_base
   - arch_params: mobilenet_v3_small_arch_params
   - _self_
+  - variable_setup
 
 arch_params:
   num_classes: 1000
@@ -20,10 +21,3 @@ arch_params:
 experiment_name: mobileNetv3_small_training
 
 architecture: mobilenet_v3_small
-ckpt_root_dir:
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

@@ -45,6 +45,7 @@ defaults:
   - dataset_params: cityscapes_segformer_dataset_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 architecture: segformer_b0    # segformer_b1, segformer_b2, segformer_b3, segformer_b4, segformer_b5
 
@@ -56,7 +57,7 @@ dataset_params:
     root_dir: ${data_root_dir}
 
 experiment_name: ${architecture}_cityscapes
-ckpt_root_dir:
+
 
 train_dataloader: cityscapes_train
 val_dataloader: cityscapes_val
@@ -108,10 +109,3 @@ training_hyperparams:
 
 multi_gpu: DDP
 num_gpus: 4
-
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
