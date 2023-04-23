@@ -69,7 +69,7 @@ def save_video(output_path: str, frames: List[np.ndarray], fps: int) -> None:
     :param fps:         Frames per second
     """
     if not includes_video_extension(output_path):
-        logger.warning(f'Output path "{output_path}" does not have a video extension, and will be saved as {output_path}.mp4')
+        logger.info(f'Output path "{output_path}" does not have a video extension, and therefore will be saved as {output_path}.mp4')
         output_path += ".mp4"
 
     if check_is_gif(output_path):
