@@ -1,7 +1,8 @@
 lr:
 batch_size:
-valid_batch_size:
+val_batch_size:
 ema:
+epochs:
 resume: False
 num_workers:
 

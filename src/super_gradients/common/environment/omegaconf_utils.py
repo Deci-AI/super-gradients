@@ -13,8 +13,9 @@ class RecipeShortcutsCallback(Callback):
     Interpolates the shortcuts defined in variable_set.yaml:
             lr
             batch_size
-            valid_batch_size
+            val_batch_size
             ema
+            epochs
             resume: False
             num_workers
 
@@ -35,6 +36,9 @@ class RecipeShortcutsCallback(Callback):
 
         config.training_hyperparams.resume = config.resume or config.training_hyperparams.resume
         config.resume = config.training_hyperparams.resume
+
+        config.training_hyperparams.max_epochs = config.epochs or config.training_hyperparams.max_epochs
+        config.epochs = config.training_hyperparams.max_epochs
 
         if config.ema is not None:
             config.training_hyperparams.ema = config.ema
