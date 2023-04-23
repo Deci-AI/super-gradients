@@ -34,7 +34,7 @@ After you met the prerequisites, you can start training the model by running fro
 ### Training from recipe
 
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32 multi_gpu=Off num_gpus=1
+python -m super_gradients.train_from_recipe --config-name=coco2017_pose_dekr_w32 multi_gpu=Off num_gpus=1
 ```
 
 Note, the default configuration for recipe is to use 8 GPUs in DDP mode. This hardware configuration may not be for everyone, so we in the example above we override GPU settings to use single GPU.

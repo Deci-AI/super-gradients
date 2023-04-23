@@ -296,7 +296,7 @@ plt.imshow(image)
 
 1. Launch one of SGs [training recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/Training_Recipes.md). For example, Resnet18 on Cifar10:
 ```shell
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=my_resnet18_cifar10_experiment
+python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=my_resnet18_cifar10_experiment
 ```
 
 Learn more in detail on how to launch, customize and evaluate training recipes from our [training with configuration files tutorial](configuration_files.md)
