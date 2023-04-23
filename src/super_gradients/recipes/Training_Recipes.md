@@ -27,7 +27,7 @@ export PYTHONPATH=$PYTHONPATH:<YOUR-LOCAL-PATH>/super-gradients/
 The recipes are defined in .yaml format and we use the hydra library to allow you to easily customize the parameters.
 The basic basic syntax is as follow:
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=<CONFIG-NAME> dataset_params.data_dir=<PATH-TO-DATASET>
+python -m super_gradients.train_from_recipe --config-name=<CONFIG-NAME> dataset_params.data_dir=<PATH-TO-DATASET>
 ```
 *Note: this script needs to be launched from the root folder of super_gradients*
 *Note: if you stored your dataset in the path specified by the recipe you can drop "dataset_params.data_dir=<PATH-TO-DATASET>".*
@@ -39,7 +39,7 @@ You will find information about the performance of a recipe as well as the comma
 
 *Example: [Training of YoloX Small on Coco 2017](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_yolox.yaml), using 8 GPU* 
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s dataset_params.data_dir=/home/coco2017
+python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_s dataset_params.data_dir=/home/coco2017
 ```
 
 
@@ -55,7 +55,7 @@ Please make to "dataset_params.data_dir=<PATH-TO-DATASET>" if you did not store 
 
 resnet
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet +experiment_name=cifar10
+python -m super_gradients.train_from_recipe --config-name=cifar10_resnet +experiment_name=cifar10
 ```
 
 </details>
@@ -64,65 +64,65 @@ python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.
 
 efficientnet
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet
+python -m super_gradients.train_from_recipe --config-name=imagenet_efficientnet
 ```
 mobilenetv2
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2
+python -m super_gradients.train_from_recipe --config-name=imagenet_mobilenetv2
 ```
 mobilenetv3 small
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_small
+python -m super_gradients.train_from_recipe --config-name=imagenet_mobilenetv3_small
 ```
 
 mobilenetv3 large
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_large
+python -m super_gradients.train_from_recipe --config-name=imagenet_mobilenetv3_large
 ```
 
 regnetY200
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY200
+python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY200
 ```
 
 regnetY400
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY400
+python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY400
 ```
 
 regnetY600
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY600
+python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY600
 ```
 
 regnetY800
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY800
+python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800
 ```
 
 repvgg
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
+python -m super_gradients.train_from_recipe --config-name=imagenet_repvgg
 ```
 
 resnet50
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
+python -m super_gradients.train_from_recipe --config-name=imagenet_resnet50
 ```
 
 resnet50_kd
 ```bash
-python src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
+python -m super_gradients.train_from_kd_recipe --config-name=imagenet_resnet50_kd
 ```
 
 vit_base
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
+python -m super_gradients.train_from_recipe --config-name=imagenet_vit_base
 ```
 
 vit_large
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_large
+python -m super_gradients.train_from_recipe --config-name=imagenet_vit_large
 ```
 </details>
 
@@ -133,37 +133,37 @@ python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.
 
 ssd_lite_mobilenet_v2
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2
+python -m super_gradients.train_from_recipe --config-name=coco2017_ssd_lite_mobilenet_v2
 ```
 
 yolox_n
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n
+python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_n
 ```
 
 yolox_t
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t
+python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_t
 ```
 
 yolox_s
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s
+python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_s
 ```
 
 yolox_m
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m
+python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_m
 ```
 
 yolox_l
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l
+python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_l
 ```
 
 yolox_x
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_x
+python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_x
 ```
 
 </details>
@@ -176,37 +176,37 @@ python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.
 
 DDRNet23
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet
+python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet
 ```
 
 DDRNet23-Slim
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim
+python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim
 ```
 
 RegSeg48
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_regseg48
+python -m super_gradients.train_from_recipe --config-name=cityscapes_regseg48
 ```
 
 STDC1-Seg50
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50
+python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg50
 ```
 
 STDC2-Seg50
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50 architecture=stdc2_seg
+python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg50 architecture=stdc2_seg
 ```
 
 STDC1-Seg75
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75
+python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75
 ```
 
 STDC2-Seg75
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
+python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
 ```
 
 </details>

@@ -20,7 +20,7 @@
 #   5. Edit the "ckpt_root_dir" field to the path where you want to save checkpoints and logs
 #   6. Move to the project root (where you will find the ReadMe and src folder)
 #   7. Run the command (change:
-#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_segformer
+#       python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer
 #
 #
 # Imagenet-1K pre-trained backbone:

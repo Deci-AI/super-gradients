@@ -8,12 +8,12 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command you want:
-#         yolox_n: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n
-#         yolox_t: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t
-#         yolox_s: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s
-#         yolox_m: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m
-#         yolox_l: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l
-#         yolox_x: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_x
+#         yolox_n: python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_n
+#         yolox_t: python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_t
+#         yolox_s: python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_s
+#         yolox_m: python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_m
+#         yolox_l: python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_l
+#         yolox_x: python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_x
 #
 # Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images):
 #         yolox_n: 1d 16h 33m 9s  on 8 NVIDIA GeForce RTX 3090, mAP: 26.77

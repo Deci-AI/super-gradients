@@ -329,14 +329,13 @@ class Trainer:
         )
 
         # TEST
-        val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
+        valid_metrics_dict = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
 
-        valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
         results = ["Validate Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
 
-        return model, val_results_tuple
+        return model, valid_metrics_dict
 
     @classmethod
     def evaluate_checkpoint(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
@@ -1747,6 +1746,8 @@ class Trainer:
             self.net = keep_model
 
         self._first_backward = True
+
+        test_results = get_metrics_dict(test_results, self.test_metrics, self.loss_logging_items_names)
 
         return test_results
 
