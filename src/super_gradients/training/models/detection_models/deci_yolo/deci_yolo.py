@@ -24,6 +24,9 @@ class DeciYolo_S(CustomizableDetector):
             heads=merged_arch_params.heads,
             num_classes=get_param(merged_arch_params, "num_classes", None),
             in_channels=in_channels,
+            bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
+            bn_eps=get_param(merged_arch_params, "bn_eps", None),
+            inplace_act=get_param(merged_arch_params, "inplace_act", None),
         )
 
     @staticmethod
@@ -47,6 +50,9 @@ class DeciYolo_M(CustomizableDetector):
             heads=merged_arch_params.heads,
             num_classes=get_param(merged_arch_params, "num_classes", None),
             in_channels=in_channels,
+            bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
+            bn_eps=get_param(merged_arch_params, "bn_eps", None),
+            inplace_act=get_param(merged_arch_params, "inplace_act", None),
         )
 
     @staticmethod
@@ -70,6 +76,9 @@ class DeciYolo_L(CustomizableDetector):
             heads=merged_arch_params.heads,
             num_classes=get_param(merged_arch_params, "num_classes", None),
             in_channels=in_channels,
+            bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
+            bn_eps=get_param(merged_arch_params, "bn_eps", None),
+            inplace_act=get_param(merged_arch_params, "inplace_act", None),
         )
 
     @staticmethod
