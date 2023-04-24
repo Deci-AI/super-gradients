@@ -58,7 +58,7 @@ Follow the setup instructions for RF100:
 
         - Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
 ```
-We will use the ```roboflow_yolosg_s```configuration to train the small variant of our YoloSG, YoloSG-S.
+We will use the ```roboflow_yolo_sg_s```configuration to train the small variant of our YoloSG, YoloSG-S.
 
 To launch training on one of the RF100 datasets, we pass it through the dataset_name argument:
 ```
