@@ -6,11 +6,12 @@ from typing import Tuple, Type
 
 import torch
 import torch.nn as nn
+
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import register_model, register_detection_module
-from super_gradients.modules import Residual, BaseDetectionModule, Conv
+from super_gradients.modules import Residual, Conv, BaseDetectionModule
 from super_gradients.modules.utils import width_multiplier
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.utils import get_param, HpmStruct
