@@ -3,7 +3,7 @@ from typing import Dict, Mapping
 import hydra
 import numpy as np
 import torch
-from torch.utils.data import BatchSampler, DataLoader, TensorDataset
+from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSampler
 
 import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -17,7 +17,7 @@ from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar10,
     Cifar100,
 )
-from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
+from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, RoboflowDetectionDataset, YoloDarknetFormatDetectionDataset
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
     PascalVOCUnifiedDetectionTrainDataset,
     PascalVOCDetectionDataset,
@@ -96,6 +96,14 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
     dataloader_params = _process_sampler_params(dataloader_params, dataset, default_dataloader_params)
     dataloader_params = _process_collate_fn_params(dataloader_params)
 
+    # The following check is needed to gracefully handle the rare but possible case when the dataset length
+    # is less than the number of workers. In this case DataLoader will crash.
+    # So we clamp the number of workers to not exceed the dataset length.
+    num_workers = get_param(dataloader_params, "num_workers")
+    if num_workers is not None and num_workers > 0:
+        num_workers = min(num_workers, len(dataset))
+        dataloader_params["num_workers"] = num_workers
+
     return dataloader_params
 
 
@@ -114,6 +122,13 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     elif is_dist:
         dataloader_params["sampler"] = {"DistributedSampler": {}}
         dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+    elif get_param(dataloader_params, "min_samples") is not None:
+        min_samples = dataloader_params.pop("min_samples")
+        if len(dataset) < min_samples:
+            dataloader_params["sampler"] = RandomSampler(dataset, replacement=True, num_samples=min_samples)
+            if "shuffle" in dataloader_params.keys():
+                dataloader_params.pop("shuffle")
+            logger.info(f"Using min_samples={min_samples}")
     if get_param(dataloader_params, "batch_sampler"):
         sampler = dataloader_params.pop("sampler")
         batch_size = dataloader_params.pop("batch_size")
@@ -227,6 +242,50 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = None, dataloader_p
     return get_data_loader(
         config_name="coco_detection_ssd_lite_mobilenet_v2_dataset_params",
         dataset_cls=COCODetectionDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader(Dataloaders.ROBOFLOW_TRAIN_BASE)
+def roboflow_train_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="roboflow_detection_dataset_params",
+        dataset_cls=RoboflowDetectionDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader(Dataloaders.ROBOFLOW_VAL_BASE)
+def roboflow_val_yolox(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="roboflow_detection_dataset_params",
+        dataset_cls=RoboflowDetectionDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader(Dataloaders.COCO_DETECTION_YOLO_FORMAT_TRAIN)
+def coco_detection_yolo_format_train(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
+    return get_data_loader(
+        config_name="coco_detection_yolo_format_base_dataset_params",
+        dataset_cls=YoloDarknetFormatDetectionDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader(Dataloaders.COCO_DETECTION_YOLO_FORMAT_VAL)
+def coco_detection_yolo_format_val(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
+    return get_data_loader(
+        config_name="coco_detection_yolo_format_base_dataset_params",
+        dataset_cls=YoloDarknetFormatDetectionDataset,
         train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,

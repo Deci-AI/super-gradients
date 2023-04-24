@@ -2,7 +2,8 @@ import csv
 import numpy as np
 import os
 import os.path
-from typing import Callable
+from typing import Callable, Tuple, Any
+
 from torchvision.datasets import VisionDataset
 from torchvision.datasets.folder import default_loader
 
@@ -269,12 +270,10 @@ class ListDataset(BaseSgVisionDataset):
             target_transform=target_transform,
         )
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> Tuple[Any, Any]:
         """
-        Args:
-            item (int): Index
-        Returns:
-            tuple: (sample, target) where target is class_index of the target class.
+        :param item: Index
+        :return: Tuple (sample, target) where target is class_index of the target class.
         """
         sample_path, target_path = self.samples_targets_tuples_list[item]
         sample = self.loader(sample_path)

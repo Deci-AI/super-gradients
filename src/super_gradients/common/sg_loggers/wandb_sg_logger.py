@@ -50,16 +50,18 @@ class WandBSGLogger(BaseSGLogger):
     ):
         """
 
-        :param experiment_name:         Used for logging and loading purposes
-        :param s3_path:                 If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
-        :param checkpoint_loaded:       If true, then old tensorboard files will *not* be deleted when tb_files_user_prompt=True
-        :param max_epochs:              Number of epochs planned for this training
+        :param experiment_name:         Name used for logging and loading purposes
+        :param storage_location:        If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
+        :param resumed:                 If true, then old tensorboard files will **NOT** be deleted when tb_files_user_prompt=True
+        :param training_params:         training_params for the experiment.
+        :param checkpoints_dir_path:    Local root directory path where all experiment logging directories will reside.
         :param tb_files_user_prompt:    Asks user for Tensorboard deletion prompt.
         :param launch_tensorboard:      Whether to launch a TensorBoard process.
         :param tensorboard_port:        Specific port number for the tensorboard to use when launched (when set to None, some free port number will be used)
         :param save_checkpoints_remote: Saves checkpoints in s3.
         :param save_tensorboard_remote: Saves tensorboard in s3.
         :param save_logs_remote:        Saves log files in s3.
+        :param monitor_system:          Not Available for WandB logger. Save the system statistics (GPU utilization, CPU, ...) in the tensorboard
         :param save_code:               Save current code to wandb
         """
         if monitor_system is not None:

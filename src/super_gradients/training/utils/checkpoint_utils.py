@@ -7,6 +7,7 @@ import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
+from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.common.data_types import StrictLoad
 
@@ -186,16 +187,20 @@ def load_checkpoint_to_model(
     strict: Union[str, StrictLoad] = StrictLoad.NO_KEY_MATCHING,
     load_weights_only: bool = False,
     load_ema_as_net: bool = False,
+    load_processing_params: bool = False,
 ):
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
+
 
     :param load_ema_as_net: Will load the EMA inside the checkpoint file to the network when set
     :param ckpt_local_path: local path to the checkpoint file
     :param load_backbone: whether to load the checkpoint as a backbone
     :param net: network to load the checkpoint to
     :param strict:
-    :param load_weights_only:
+    :param load_weights_only: Whether to ignore all other entries other then "net".
+    :param load_processing_params: Whether to call set_dataset_processing_params on "processing_params" entry inside the
+     checkpoint file (default=False).
     :return:
     """
     if isinstance(strict, str):
@@ -227,6 +232,17 @@ def load_checkpoint_to_model(
     message_model = "model" if not load_backbone else "model's backbone"
     logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
 
+    if (isinstance(net, HasPredict) or (hasattr(net, "module") and isinstance(net.module, HasPredict))) and load_processing_params:
+        if "processing_params" not in checkpoint.keys():
+            raise ValueError("Can't load processing params - could not find any stored in checkpoint file.")
+        try:
+            net.set_dataset_processing_params(**checkpoint["processing_params"])
+        except Exception as e:
+            logger.warning(
+                f"Could not set preprocessing pipeline from the checkpoint dataset: {e}. Before calling"
+                "predict make sure to call set_dataset_processing_params."
+            )
+
     if load_weights_only or load_backbone:
         # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS
         [checkpoint.pop(key) for key in list(checkpoint.keys()) if key != "net"]
@@ -237,8 +253,7 @@ def load_checkpoint_to_model(
 class MissingPretrainedWeightsException(Exception):
     """Exception raised by unsupported pretrianed model.
 
-    Attributes:
-        message -- explanation of the error
+    :param desc: explanation of the error
     """
 
     def __init__(self, desc):

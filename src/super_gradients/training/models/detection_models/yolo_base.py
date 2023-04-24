@@ -1,9 +1,11 @@
 import math
-from typing import Union, Type, List, Tuple
+from typing import Union, Type, List, Tuple, Optional
 
 import torch
 import torch.nn as nn
 
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.modules import CrossModelSkipConnection
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
@@ -11,6 +13,10 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
+from super_gradients.training.models.prediction_results import ImagesDetectionPrediction
+from super_gradients.training.pipelines.pipelines import DetectionPipeline
+from super_gradients.training.processing.processing import Processing
+from super_gradients.training.utils.media.image import ImageSource
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
     [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]
@@ -80,6 +86,11 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         self.with_confidence = with_confidence
 
     def forward(self, x, device: str = None):
+        """Apply NMS to the raw output of the model and keep only top `max_predictions` results.
+
+        :param x: Raw output of the model, with x[0] expected to be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
+        :return: List of Tensors of shape (x1, y1, x2, y2, conf, cls)
+        """
 
         if self.nms_type == NMS_Type.ITERATIVE:
             nms_result = non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, with_confidence=self.with_confidence)
@@ -90,7 +101,6 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
 
     def _filter_max_predictions(self, res: List) -> List:
         res[:] = [im[: self.max_pred] if (im is not None and im.shape[0] > self.max_pred) else im for im in res]
-
         return res
 
 
@@ -408,6 +418,79 @@ class YoloBase(SgModule):
             self._head = YoloHead(self.arch_params)
             self._initialize_module()
 
+        self._class_names: Optional[List[str]] = None
+        self._image_processor: Optional[Processing] = None
+        self._default_nms_iou: Optional[float] = None
+        self._default_nms_conf: Optional[float] = None
+
+    @staticmethod
+    def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
+        return YoloPostPredictionCallback(conf=conf, iou=iou)
+
+    @resolve_param("image_processor", ProcessingFactory())
+    def set_dataset_processing_params(
+        self,
+        class_names: Optional[List[str]] = None,
+        image_processor: Optional[Processing] = None,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+    ) -> None:
+        """Set the processing parameters for the dataset.
+
+        :param class_names:     (Optional) Names of the dataset the model was trained on.
+        :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
+        :param iou:             (Optional) IoU threshold for the nms algorithm
+        :param conf:            (Optional) Below the confidence threshold, prediction are discarded
+        """
+        self._class_names = class_names or self._class_names
+        self._image_processor = image_processor or self._image_processor
+        self._default_nms_iou = iou or self._default_nms_iou
+        self._default_nms_conf = conf or self._default_nms_conf
+
+    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPipeline:
+        """Instantiate the prediction pipeline of this model.
+
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        """
+        if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
+            raise RuntimeError(
+                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
+            )
+
+        iou = iou or self._default_nms_iou
+        conf = conf or self._default_nms_conf
+
+        pipeline = DetectionPipeline(
+            model=self,
+            image_processor=self._image_processor,
+            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            class_names=self._class_names,
+        )
+        return pipeline
+
+    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> ImagesDetectionPrediction:
+        """Predict an image or a list of images.
+
+        :param images:  Images to predict.
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        """
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        return pipeline(images)  # type: ignore
+
+    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None):
+        """Predict using webcam.
+
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        """
+        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline.predict_webcam()
+
     def forward(self, x):
         out = self._backbone(x)
         out = self._head(out)
@@ -429,9 +512,7 @@ class YoloBase(SgModule):
         self._initialize_biases()
         self._initialize_weights()
         if self.arch_params.add_nms:
-            nms_conf = self.arch_params.nms_conf
-            nms_iou = self.arch_params.nms_iou
-            self._nms = YoloPostPredictionCallback(nms_conf, nms_iou)
+            self._nms = self.get_post_prediction_callback(conf=self.arch_params.nms_conf, iou=self.arch_params.nms_iou)
 
     def _check_strides(self):
         m = self._head._modules_list[-1]  # DetectX()

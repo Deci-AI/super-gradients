@@ -48,7 +48,7 @@ from super_gradients.common.object_names import Models
 
 model = models.get(Models.YOLOX_S, pretrained_weights="coco")
 ```
-#### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/model_zoo.md)
+#### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/41dkt89)
 
 #### Classification
 <div align="center">
@@ -73,8 +73,8 @@ For more information on how to do it go to [Getting Started](#getting-started)
     
 
 #### Plug and play recipes
-```python
-python -m super_gradients.examples.train_from_recipe_example.train_from_recipe architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+```bash
+python -m super_gradients.train_from_recipe architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 More example on how and why to use recipes can be found in [Recipes](#recipes)
 
@@ -109,23 +109,26 @@ ________________________________________________________________________________
 pip install super-gradients
 ```
 
-## What's New
+## What's New - Version 3.0.8
 __________________________________________________________________________________________________________
-* 【17/11/2022】 Integration with ClearML
-* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
-* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
-* 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
-* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](http://bit.ly/3gfLw07) and pre-trained [checkpoints](http://bit.ly/3EGfKD4) on COCO - Tailored for edge devices! 📱
-* 【07/07/2022】 STDC  - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
+*  [QAT&PTQ](https://bit.ly/41hC8uI)
+* [Pose estimation](http://bit.ly/3o0xHq2)
+* [New documentation](http://bit.ly/3KYVCiJ)
+* [New semantic segmentation dataset - Mapillary Vistas Dataset](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/mapillary_dataset.py)
+*  Lion optimizer
+* PP-YoloE pre-trained - new pre-trained [checkpoints](https://bit.ly/41dkt89) and [recipes](http://bit.ly/3gfLw07) for COCO2017 🎯
+* DDRNet pre-trained segmentation model - new pre-trained [checkpoints](https://bit.ly/41dkt89) and [recipes](http://bit.ly/3gfLw07) for Cityscapes and  [Knowledge distillation recipe for DDRNet](http://bit.ly/3GzZHHo)🎯
+
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Coming soon
 __________________________________________________________________________________________________________
-- [ ] PP-Yolo-E implementation
-- [ ] Quantization aware training (QAT)
-- [ ] Tools for faster training 
-- [ ] Integration with more professional tools.
+- [ ] Pre-trained pose estimation model
+- [ ] New predict function on detection models
+- [ ] RoboFlow100 datasets integration 
+- [ ] A new documentation hub
+- [ ] LR finder
 
 
 ## Table of Content
@@ -155,10 +158,10 @@ The most simple and straightforward way to start training SOTA performance model
 Just make sure that you [setup your dataset](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md) according to the data dir specified in the recipe.
 
 ```bash
-python -m super_gradients.examples.train_from_recipe_example.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
-Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](http://bit.ly/3EGfKD4)
+Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](http://bit.ly/41dkt89)
 
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
@@ -266,6 +269,17 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ## Advanced Features
 __________________________________________________________________________________________________________
+### Post Training Quantization and Quantization Aware Training
+Quantization involves representing weights and biases in lower precision, resulting in reduced memory and computational requirements, making it useful for deploying models on devices with limited resources. The process can be done during training, called Quantization aware training, or after training, called post-training quantization. A full tutorial can be found [here](http://bit.ly/41hC8uI).
+  <table class=“tfo-notebook-buttons” align=“left”>
+ <td width=“500”>
+   <a target="_blank" href="http://bit.ly/3KrN6an"><img src="./docs/assets/SG_img/colab_logo.png" /> Post Training Quantization and Quantization Aware Training</a>
+  </td>
+ <td width=“200”>
+<a target="_blank" href="http://bit.ly/3nUGzxb"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
+ </td>
+</table>
+
 ### Knowledge Distillation Training
 Knowledge Distillation is a training technique that uses a large model, teacher model, to improve the performance of a smaller model, the student model.
 Learn more about SuperGradients knowledge distillation training with our pre-trained BEiT base teacher model and Resnet18 student model on CIFAR10 example notebook on Google Colab for an easy to use tutorial using free GPU hardware
@@ -349,6 +363,7 @@ Please note that if you work with `torch<1.9.0` (deprecated), you will have to l
 ```bash
 python -m torch.distributed.launch --nproc_per_node=4 main.py
 ```
+
 ```bash
 torchrun --nproc_per_node=4 main.py
 ```
@@ -558,7 +573,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ## Implemented Model Architectures 
 __________________________________________________________________________________________________________
 
-All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
+All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/41dkt89)
 
 Detailed list can be found [here](http://bit.ly/3GnJwgZ) 
 
@@ -620,6 +635,7 @@ Deci provides implementation for various datasets. If you need to download any o
 - [Coco](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/coco_segmentation.py) 
 - [PascalVOC 2012 / PascalAUG 2012](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/pascal_voc_segmentation.py)
 - [SuperviselyPersons](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/supervisely_persons_segmentation.py)
+- [Mapillary Vistas Dataset](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/mapillary_dataset.py)
 
 
 ### Object Detection
@@ -665,13 +681,33 @@ If you want to be a part of SuperGradients growing community, hear about all the
 
 * Join the [SG Newsletter](https://www.supergradients.com/#Newsletter)
   for staying up to date with new features and models, important announcements, and upcoming events.
-    
+
 * For a short meeting with us, use this [link](https://calendly.com/ofer-baratz-deci/15min) and choose your preferred time.
 
 ## License
 
 This project is released under the [Apache 2.0 license](LICENSE).
     
+## Citing
+
+### BibTeX
+
+```bibtex
+
+@misc{supergradients,
+  doi = {10.5281/ZENODO.7789328},
+  url = {https://zenodo.org/record/7789328},
+  author = {Aharon,  Shay and {Louis-Dupont} and {Ofri Masad} and Yurkova,  Kate and {Lotem Fridman} and {Lkdci} and Khvedchenya,  Eugene and Rubin,  Ran and Bagrov,  Natan and Tymchenko,  Borys and Keren,  Tomer and Zhilko,  Alexander and {Eran-Deci}},
+  title = {Super-Gradients},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  year = {2021},
+}
+```
+
+### Latest DOI
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7789328.svg)](https://doi.org/10.5281/zenodo.7789328)
 
     
 __________________________________________________________________________________________________________
@@ -683,7 +719,8 @@ Deci Platform is our end to end platform for building, optimizing and deploying 
 
 [Request free trial](https://bit.ly/3qO3icq) to enjoy immediate improvement in throughput, latency, memory footprint and model size.
 
-Features:
+Features
+
 - Automatically compile and quantize your models with just a few clicks (TensorRT, OpenVINO).
 - Gain up to 10X improvement in throughput, latency, memory and model size. 
 - Easily benchmark your models’ performance on different hardware and batch sizes.

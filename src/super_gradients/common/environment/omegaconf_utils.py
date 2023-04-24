@@ -24,6 +24,9 @@ def hydra_output_dir_resolver(ckpt_root_dir: str, experiment_name: str) -> str:
 
 def register_hydra_resolvers():
     """Register all the hydra resolvers required for the super-gradients recipes."""
+
+    from super_gradients.training.datasets.detection_datasets.roboflow.utils import get_dataset_num_classes
+
     OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
     OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
     OmegaConf.register_new_resolver("add", lambda *args: sum(args), replace=True)
@@ -31,3 +34,5 @@ def register_hydra_resolvers():
     OmegaConf.register_new_resolver("getitem", lambda container, key: container[key], replace=True)  # get item from a container (list, dict...)
     OmegaConf.register_new_resolver("first", lambda lst: lst[0], replace=True)  # get the first item from a list
     OmegaConf.register_new_resolver("last", lambda lst: lst[-1], replace=True)  # get the last item from a list
+
+    OmegaConf.register_new_resolver("roboflow_dataset_num_classes", get_dataset_num_classes, replace=True)

@@ -131,6 +131,33 @@ Dataset Structure:
 
 
 
+<details>
+<summary>Yolo/Darknet format</summary>
+
+1. Download your dataset (can be from https://roboflow.com/universe)
+
+2. You should have a structure similar to this.
+```
+     data_dir
+     └── train/test/val
+         ├── images
+         │      ├─ 0001.jpg
+         │      ├─ 0002.jpg
+         │      └─ ...
+         └── labels
+                ├─ 0001.txt
+                ├─ 0002.txt
+                └─ ...
+```
+*Note: train/test/val folders are not required, any folder structure is supported.*
+
+3. Instantiate the dataset:
+```python
+from super_gradients.training.datasets import YoloDarknetFormatDetectionDataset
+data_set = YoloDarknetFormatDetectionDataset(data_dir='<path-to>/data_dir', images_dir="<train/test/val>/images", labels_dir="<train/test/val>/labels", classes=["<to-fill>"])
+```
+</details>
+
 ### Segmentation Datasets
 
 
