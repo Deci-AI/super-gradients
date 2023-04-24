@@ -12,10 +12,10 @@ from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
 
 
-@register_model(Models.DECIYOLO_S)
-class DeciYolo_S(CustomizableDetector):
+@register_model(Models.YoloSG_S)
+class YoloSG_S(CustomizableDetector):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):
-        default_arch_params = get_arch_params("deciyolo_s_arch_params")
+        default_arch_params = get_arch_params("yolo_sg_s_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(
@@ -38,10 +38,10 @@ class DeciYolo_S(CustomizableDetector):
         return self.heads.num_classes
 
 
-@register_model(Models.DECIYOLO_M)
-class DeciYolo_M(CustomizableDetector):
+@register_model(Models.YoloSG_M)
+class YoloSG_M(CustomizableDetector):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):
-        default_arch_params = get_arch_params("deciyolo_m_arch_params")
+        default_arch_params = get_arch_params("yolo_sg_m_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(
@@ -64,10 +64,10 @@ class DeciYolo_M(CustomizableDetector):
         return self.heads.num_classes
 
 
-@register_model(Models.DECIYOLO_L)
-class DeciYolo_L(CustomizableDetector):
+@register_model(Models.YoloSG_L)
+class YoloSG_L(CustomizableDetector):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):
-        default_arch_params = get_arch_params("deciyolo_l_arch_params")
+        default_arch_params = get_arch_params("yolo_sg_l_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(

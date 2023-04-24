@@ -1,14 +1,14 @@
-# PTQ and QAT with DeciYolo
+# PTQ and QAT with YoloSG
 <div>
 <img src="images/soccer.png" width="750">
 </div>
 
-In this tutorial, we will guide you step by step on how to prepare our DeciYolo for production!
-We will leverage DeciYolos architecture which includes quantization-friendly blocks, and train a DeciYolo model on Roboflow's [Soccer Player Detection Dataset](https://universe.roboflow.com/roboflow-100/soccer-players-5fuqs)
+In this tutorial, we will guide you step by step on how to prepare our YoloSG for production!
+We will leverage YoloSG architecture which includes quantization-friendly blocks, and train a YoloSG model on Roboflow's [Soccer Player Detection Dataset](https://universe.roboflow.com/roboflow-100/soccer-players-5fuqs)
 in a way that would maximize our throughput without compromising on the model's accuracy.
 
 The steps will be:
-1. Training from scratch on one of the downstream datasets- these will play the role of the user's dataset (i.e., the one in which the model will need to be trained for the user's task)
+1. Training from scratch on one of the downstream datasets - these will play the role of the user's dataset (i.e., the one in which the model will need to be trained for the user's task)
 2. Performing post-training quantization and quantization-aware training
 
 Pre-requisites:
@@ -59,7 +59,7 @@ pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidi
 Although this might come as a surprise - the name quantization-aware training needs to be more accurate and be performed on a trained checkpoint rather than from scratch.
 So in practice, we need to train our model on our dataset fully, then after we perform calibration, we fine-tune our model once again, which will be our final step.
 As we discuss in our [Training with configuration files](), we clone the SG repo, then use the repo's configuration files in our training examples.
-We will use the ```src/super_gradients/recipes/roboflow_deciyolo_s.yaml```configuration to train the small variant of our DeciModel, DeciModel S.
+We will use the ```src/super_gradients/recipes/roboflow_yolo_sg_s.yaml```configuration to train the small variant of our DeciModel, DeciModel S.
 
 So we navigate to our ```train_from_recipe``` script:
 
@@ -74,7 +74,7 @@ export PYTHONPATH=$PYTHONPATH:<YOUR-LOCAL-PATH>/super_gradients/
 
 To launch training on one of the RF100 datasets, we pass it through the dataset_name argument:
 ```
-python -m train_from_recipe --config-name=roboflow_deciyolo_s  dataset_name=soccer-players-5fuqs dataset_params.data_dir=<PATH_TO_RF100_ROOT> ckpt_root_dir=<YOUR_CHECKPOINTS_ROOT_DIRECTORY> experiment_name=deciyolo_s_soccer_players
+python -m train_from_recipe --config-name=roboflow_yolo_sg_s  dataset_name=soccer-players-5fuqs dataset_params.data_dir=<PATH_TO_RF100_ROOT> ckpt_root_dir=<YOUR_CHECKPOINTS_ROOT_DIRECTORY> experiment_name=yolo_sg_s_soccer_players
 
 ...
 
@@ -166,7 +166,7 @@ SUMMARY OF EPOCH 100
         └── Epoch N-1      = 0.9567 (= 0.0)
 ```
 
-And so our best checkpoint resides in <YOUR_CHECKPOINTS_ROOT_DIRECTORY>/deciyolo_s_soccer_players/ckpt_best.pth reaches 0.967 mAP!
+And so our best checkpoint resides in <YOUR_CHECKPOINTS_ROOT_DIRECTORY>/yolo_sg_s_soccer_players/ckpt_best.pth reaches 0.967 mAP!
 
 Let's visualize some results:
 ```python
@@ -182,12 +182,12 @@ So this time, we navigate to the `qat_from_recipe` example directory:
 cd <YOUR-LOCAL-PATH>/super_gradients/src/super_gradients/examples/qat_from_recipe_example
 ```
 
-Before we launch, let's see how we can easily create a configuration from our `roboflow_deciyolo_s` config to get the most out of QAT and PTQ.
-We added a new config that inherits from our previous one, called `roboflow_deciyolo_s_qat.yaml`. Let's peek at it:
+Before we launch, let's see how we can easily create a configuration from our `roboflow_yolo_sg_s` config to get the most out of QAT and PTQ.
+We added a new config that inherits from our previous one, called `roboflow_yolo_sg_s_qat.yaml`. Let's peek at it:
 ```yaml
 
 defaults:
-  - roboflow_deciyolo_s
+  - roboflow_yolo_sg_s
   - quantization_params: default_quantization_params
   - _self_
 
@@ -195,7 +195,7 @@ checkpoint_params:
   checkpoint_path: ???
   strict_load: no_key_matching
 
-experiment_name: soccer_players_qat_deciyolo_s
+experiment_name: soccer_players_qat_yolo_sg_s
 
 pre_launch_callbacks_list:
     - QATRecipeModificationCallback:
@@ -225,7 +225,7 @@ Let's break it down:
     
 Now we can launch PTQ and QAT from the command line:
 ```commandline
-python -m qat_from_recipe --config-name=roboflow_deciyolo_s_qat experiment_name=soccer_players_qat_deciyolo_s dataset_name=soccer-players-5fuqs dataset_params.data_dir=<PATH_TO_RF100_ROOT> checkpoint_params.checkpoint_path=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>/deciyolo_s_soccer_players/ckpt_best.pth ckpt_ckpt_root_dir=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>
+python -m qat_from_recipe --config-name=roboflow_yolo_sg_s_qat experiment_name=soccer_players_qat_yolo_sg_s dataset_name=soccer-players-5fuqs dataset_params.data_dir=<PATH_TO_RF100_ROOT> checkpoint_params.checkpoint_path=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>/yolo_sg_s_soccer_players/ckpt_best.pth ckpt_ckpt_root_dir=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>
 ...
 
 [2023-04-02 11:37:56,848][super_gradients.training.pre_launch_callbacks.pre_launch_callbacks][INFO] - Modifying recipe to suit QAT rules of thumb. Remove QATRecipeModificationCallback to disable.
@@ -367,4 +367,4 @@ SUMMARY OF EPOCH 10
 ```
 
 We not only observed no decline in the accuracy of our quantized model, but we also gained an improvement of 0.08 mAP!
-The QAT model is available in our checkpoints directory, already converted to .onnx format under  <YOUR_CHECKPOINTS_ROOT_DIRECTORY>/soccer_players_qat_deciyolo_s/soccer_players_qat_deciyolo_s_16x3x640x640_qat.onnx, ready to be converted to [converted and deployed to int8 using TRT](https://docs.nvidia.com/deeplearning/tensorrt/quick-start-guide/index.html#onnx-export).
+The QAT model is available in our checkpoints directory, already converted to .onnx format under  <YOUR_CHECKPOINTS_ROOT_DIRECTORY>/soccer_players_qat_yolo_sg_s/soccer_players_qat_yolo_sg_s_16x3x640x640_qat.onnx, ready to be converted to [converted and deployed to int8 using TRT](https://docs.nvidia.com/deeplearning/tensorrt/quick-start-guide/index.html#onnx-export).

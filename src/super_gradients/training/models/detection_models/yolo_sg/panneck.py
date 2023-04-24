@@ -9,8 +9,8 @@ from super_gradients.training.utils.utils import HpmStruct
 import super_gradients.common.factories.detection_modules_factory as det_factory
 
 
-@register_detection_module("DeciYOLOPANNeckWithC2")
-class DeciYOLOPANNeckWithC2(BaseDetectionModule):
+@register_detection_module("YoloSGPANNeckWithC2")
+class YoloSGPANNeckWithC2(BaseDetectionModule):
     """
     A PAN (path aggregation network) neck with 4 stages (2 up-sampling and 2 down-sampling stages)
     where the up-sampling stages include a higher resolution skip

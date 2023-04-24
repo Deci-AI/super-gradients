@@ -11,19 +11,19 @@ from super_gradients.common.factories.activations_type_factory import Activation
 from super_gradients.modules import QARepVGGBlock, Conv
 from super_gradients.modules.utils import width_multiplier
 
-__all__ = ["DeciYOLOStage", "DeciYOLOUpStage", "DeciYOLOStem", "DeciYOLODownStage", "DeciYOLOBottleneck"]
+__all__ = ["YoloSGStage", "YoloSGUpStage", "YoloSGStem", "YoloSGDownStage", "YoloSGBottleneck"]
 
 
-class DeciYOLOBottleneck(nn.Module):
+class YoloSGBottleneck(nn.Module):
     """
-    A bottleneck block for DeciYOLO. Consists of two consecutive blocks and optional residual connection.
+    A bottleneck block for YoloSG. Consists of two consecutive blocks and optional residual connection.
     """
 
     def __init__(
         self, input_channels: int, output_channels: int, block_type: Type[nn.Module], activation_type: Type[nn.Module], shortcut: bool, use_alpha: bool
     ):
         """
-        Initialize the DeciYOLOBottleneck block
+        Initialize the YoloSGBottleneck block
 
         :param input_channels: Number of input channels
         :param output_channels: Number of output channels
@@ -66,9 +66,9 @@ class SequentialWithIntermediates(nn.Sequential):
         return [super(SequentialWithIntermediates, self).forward(input)]
 
 
-class DeciYOLOCSPLayer(nn.Module):
+class YoloSGCSPLayer(nn.Module):
     """
-    Cross-stage layer module for DeciYOLO.
+    Cross-stage layer module for YoloSG.
     """
 
     def __init__(
@@ -97,13 +97,13 @@ class DeciYOLOCSPLayer(nn.Module):
         :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks.
         :param concat_intermediates:
         """
-        super(DeciYOLOCSPLayer, self).__init__()
+        super(YoloSGCSPLayer, self).__init__()
         if hidden_channels is None:
             hidden_channels = int(out_channels * expansion)
         self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
         self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
         self.conv3 = Conv(hidden_channels * (2 + concat_intermediates * num_bottlenecks), out_channels, 1, stride=1, activation_type=activation_type)
-        module_list = [DeciYOLOBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha) for _ in range(num_bottlenecks)]
+        module_list = [YoloSGBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha) for _ in range(num_bottlenecks)]
         self.bottlenecks = SequentialWithIntermediates(concat_intermediates, *module_list)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -115,14 +115,14 @@ class DeciYOLOCSPLayer(nn.Module):
 
 
 @register_detection_module()
-class DeciYOLOStem(BaseDetectionModule):
+class YoloSGStem(BaseDetectionModule):
     """
-    Stem module for DeciYOLO. Consists of a single QARepVGGBlock with stride of two.
+    Stem module for YoloSG. Consists of a single QARepVGGBlock with stride of two.
     """
 
     def __init__(self, in_channels: int, out_channels: int):
         """
-        Initialize the DeciYOLOStem module
+        Initialize the YoloSGStem module
         :param in_channels: Number of input channels
         :param out_channels: Number of output channels
         """
@@ -139,9 +139,9 @@ class DeciYOLOStem(BaseDetectionModule):
 
 
 @register_detection_module()
-class DeciYOLOStage(BaseDetectionModule):
+class YoloSGStage(BaseDetectionModule):
     """
-    A single stage module for DeciYOLO. It consists of a downsample block (QARepVGGBlock) followed by DeciYOLOCSPLayer.
+    A single stage module for YoloSG. It consists of a downsample block (QARepVGGBlock) followed by YoloSGCSPLayer.
     """
 
     @resolve_param("activation_type", ActivationsTypeFactory())
@@ -155,18 +155,18 @@ class DeciYOLOStage(BaseDetectionModule):
         concat_intermediates: bool = False,
     ):
         """
-        Initialize the DeciYOLOStage module
+        Initialize the YoloSGStage module
         :param in_channels: Number of input channels
         :param out_channels: Number of output channels
-        :param num_blocks: Number of bottleneck blocks in the DeciYOLOCSPLayer
+        :param num_blocks: Number of bottleneck blocks in the YoloSGCSPLayer
         :param activation_type: Activation type for all blocks
         :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks.
-        :param concat_intermediates: If True, concatenates the intermediate values from the DeciYOLOCSPLayer.
+        :param concat_intermediates: If True, concatenates the intermediate values from the YoloSGCSPLayer.
         """
         super().__init__(in_channels)
         self._out_channels = out_channels
         self.downsample = QARepVGGBlock(in_channels, out_channels, stride=2, activation_type=activation_type, use_residual_connection=False)
-        self.blocks = DeciYOLOCSPLayer(
+        self.blocks = YoloSGCSPLayer(
             out_channels,
             out_channels,
             num_blocks,
@@ -186,9 +186,9 @@ class DeciYOLOStage(BaseDetectionModule):
 
 
 @register_detection_module()
-class DeciYOLOUpStage(BaseDetectionModule):
+class YoloSGUpStage(BaseDetectionModule):
     """
-    Upsampling stage for DeciYOLO.
+    Upsampling stage for YoloSG.
     """
 
     @resolve_param("activation_type", ActivationsTypeFactory())
@@ -205,7 +205,7 @@ class DeciYOLOUpStage(BaseDetectionModule):
         reduce_channels: bool = False,
     ):
         """
-        Initialize the DeciYOLOUpStage module
+        Initialize the YoloSGUpStage module
         :param in_channels: Number of input channels
         :param out_channels: Number of output channels
         :param width_mult: Multiplier for the number of channels in the stage.
@@ -241,7 +241,7 @@ class DeciYOLOUpStage(BaseDetectionModule):
         self.reduce_after_concat = Conv(num_inputs * out_channels, out_channels, 1, 1, activation_type) if reduce_channels else nn.Identity()
 
         after_concat_channels = out_channels if reduce_channels else out_channels + skip_in_channels
-        self.blocks = DeciYOLOCSPLayer(
+        self.blocks = YoloSGCSPLayer(
             after_concat_channels,
             out_channels,
             num_blocks,
@@ -274,7 +274,7 @@ class DeciYOLOUpStage(BaseDetectionModule):
 
 
 @register_detection_module()
-class DeciYOLODownStage(BaseDetectionModule):
+class YoloSGDownStage(BaseDetectionModule):
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
@@ -288,7 +288,7 @@ class DeciYOLODownStage(BaseDetectionModule):
         concat_intermediates: bool = False,
     ):
         """
-        Initializes a DeciYOLODownStage.
+        Initializes a YoloSGDownStage.
 
         :param in_channels: Number of input channels.
         :param out_channels: Number of output channels.
@@ -308,7 +308,7 @@ class DeciYOLODownStage(BaseDetectionModule):
 
         self.conv = Conv(in_channels, out_channels // 2, 3, 2, activation_type)
         after_concat_channels = out_channels // 2 + skip_in_channels
-        self.blocks = DeciYOLOCSPLayer(
+        self.blocks = YoloSGCSPLayer(
             in_channels=after_concat_channels,
             out_channels=out_channels,
             num_bottlenecks=num_blocks,

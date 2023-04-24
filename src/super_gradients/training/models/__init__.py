@@ -69,18 +69,18 @@ from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1,
 from super_gradients.training.models.detection_models.yolo_base import YoloBase, YoloPostPredictionCallback
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
-from super_gradients.training.models.detection_models.deci_yolo import (
-    DeciYOLOStage,
-    DeciYOLOStem,
-    DeciYOLODownStage,
-    DeciYOLOUpStage,
-    DeciYOLOBottleneck,
-    DeciYOLODFLHead,
+from super_gradients.training.models.detection_models.yolo_sg import (
+    YoloSGStage,
+    YoloSGStem,
+    YoloSGDownStage,
+    YoloSGUpStage,
+    YoloSGBottleneck,
+    YoloSGDFLHead,
     NDFLHeads,
-    DeciYOLOPANNeckWithC2,
-    DeciYolo_S,
-    DeciYolo_M,
-    DeciYolo_L,
+    YoloSGPANNeckWithC2,
+    YoloSG_S,
+    YoloSG_M,
+    YoloSG_L,
 )
 
 # Segmentation models
@@ -129,17 +129,17 @@ from super_gradients.common.registry.registry import ARCHITECTURES
 
 __all__ = [
     "SPP",
-    "DeciYolo_S",
-    "DeciYolo_M",
-    "DeciYolo_L",
-    "DeciYOLOStage",
-    "DeciYOLOUpStage",
-    "DeciYOLOStem",
-    "DeciYOLODownStage",
-    "DeciYOLODFLHead",
-    "DeciYOLOBottleneck",
+    "YoloSG_S",
+    "YoloSG_M",
+    "YoloSG_L",
+    "YoloSGStage",
+    "YoloSGUpStage",
+    "YoloSGStem",
+    "YoloSGDownStage",
+    "YoloSGDFLHead",
+    "YoloSGBottleneck",
     "NDFLHeads",
-    "DeciYOLOPANNeckWithC2",
+    "YoloSGPANNeckWithC2",
     "SgModule",
     "Beit",
     "BeitLargePatch16_224",
