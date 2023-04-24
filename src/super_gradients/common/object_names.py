@@ -297,9 +297,9 @@ class Models:
     DEKR_W32_NO_DC = "dekr_w32_no_dc"
     POSE_PP_YOLO_L = "pose_ppyolo_l"
     POSE_DDRNET_39 = "pose_ddrnet39"
-    DECIYOLO_S = "deciyolo_s"
-    DECIYOLO_M = "deciyolo_m"
-    DECIYOLO_L = "deciyolo_l"
+    YoloSG_S = "yolo_sg_s"
+    YoloSG_M = "yolo_sg_m"
+    YoloSG_L = "yolo_sg_l"
 
 
 class ConcatenatedTensorFormats:
@@ -322,8 +322,8 @@ class Dataloaders:
     COCO2017_VAL = "coco2017_val"
     COCO2017_TRAIN_YOLOX = "coco2017_train_yolox"
     COCO2017_VAL_YOLOX = "coco2017_val_yolox"
-    COCO2017_TRAIN_DECIYOLO = "coco2017_train_deci_yolo"
-    COCO2017_VAL_DECIYOLO = "coco2017_val_deci_yolo"
+    COCO2017_TRAIN_YoloSG = "coco2017_train_yolo_sg"
+    COCO2017_VAL_YoloSG = "coco2017_val_yolo_sg"
     COCO2017_TRAIN_PPYOLOE = "coco2017_train_ppyoloe"
     COCO2017_VAL_PPYOLOE = "coco2017_val_ppyoloe"
     COCO2017_TRAIN_SSD_LITE_MOBILENET_V2 = "coco2017_train_ssd_lite_mobilenet_v2"
