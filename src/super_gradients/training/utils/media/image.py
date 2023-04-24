@@ -134,6 +134,7 @@ def show_image(image: np.ndarray) -> None:
     plt.figure(figsize=(image.shape[1] / 100.0, image.shape[0] / 100.0), dpi=100)
     plt.imshow(image, interpolation="nearest")
     plt.axis("off")
+    plt.tight_layout()
     plt.show()
 
 
