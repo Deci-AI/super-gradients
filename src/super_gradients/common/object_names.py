@@ -396,3 +396,15 @@ class Datasets:
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
+
+
+class Processings:
+    StandardizeImage = "StandardizeImage"
+    DetectionCenterPadding = "DetectionCenterPadding"
+    DetectionLongestMaxSizeRescale = "DetectionLongestMaxSizeRescale"
+    DetectionBottomRightPadding = "DetectionBottomRightPadding"
+    ImagePermute = "ImagePermute"
+    DetectionRescale = "DetectionRescale"
+    ReverseImageChannels = "ReverseImageChannels"
+    NormalizeImage = "NormalizeImage"
+    ComposeProcessing = "ComposeProcessing"
