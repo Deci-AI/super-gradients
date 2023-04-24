@@ -4,7 +4,7 @@ from torch import nn
 
 from super_gradients.common import UpsampleMode
 from super_gradients.common.data_types.enum import DownSampleMode
-from super_gradients.modules.anti_alias import AntiAliasDownsample
+from super_gradients.modules import AntiAliasDownsample, PixelShuffle
 
 
 def make_upsample_module(scale_factor: int, upsample_mode: Union[str, UpsampleMode], align_corners: Optional[bool] = None):
@@ -15,11 +15,19 @@ def make_upsample_module(scale_factor: int, upsample_mode: Union[str, UpsampleMo
     :return: nn.Module
     """
     upsample_mode = upsample_mode.value if isinstance(upsample_mode, UpsampleMode) else upsample_mode
+
     if upsample_mode == UpsampleMode.NEAREST.value:
         # Prevent ValueError when passing align_corners with nearest mode.
         module = nn.Upsample(scale_factor=scale_factor, mode=upsample_mode)
+
     elif upsample_mode in [UpsampleMode.BILINEAR.value, UpsampleMode.BICUBIC.value]:
         module = nn.Upsample(scale_factor=scale_factor, mode=upsample_mode, align_corners=align_corners)
+
+    elif upsample_mode == UpsampleMode.PIXEL_SHUFFLE.value:
+        module = PixelShuffle(upscale_factor=scale_factor)
+
+    elif upsample_mode == UpsampleMode.NN_PIXEL_SHUFFLE.value:
+        module = nn.PixelShuffle(upscale_factor=scale_factor)
     else:
         raise NotImplementedError(f"Upsample mode: `{upsample_mode}` is not supported.")
     return module
