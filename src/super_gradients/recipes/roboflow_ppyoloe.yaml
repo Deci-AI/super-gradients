@@ -3,7 +3,7 @@
 # `dataset_name` refers to the official name of the dataset.
 # You can find it in the url of the dataset: https://universe.roboflow.com/roboflow-100/digits-t2eg6 -> digits-t2eg6
 #
-# Example: python train_from_recipe.py --config-name=roboflow_ppyoloe dataset_name=digits-t2eg6
+# Example: python -m super_gradients.train_from_recipe --config-name=roboflow_ppyoloe dataset_name=digits-t2eg6
 
 defaults:
   - training_hyperparams: coco2017_ppyoloe_train_params
