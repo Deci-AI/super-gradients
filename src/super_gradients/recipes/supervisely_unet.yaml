@@ -18,6 +18,7 @@ defaults:
   - dataset_params: supervisely_persons_dataset_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 architecture: unet
 arch_params:
@@ -38,11 +39,3 @@ dataset_params:
 multi_gpu: OFF
 
 experiment_name: unet_supervisely
-ckpt_root_dir:
-
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
