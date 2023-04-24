@@ -3,7 +3,6 @@ from super_gradients.training import losses, utils, datasets_utils, DataAugmenta
 from super_gradients.common.registry.registry import ARCHITECTURES
 from super_gradients.sanity_check import env_sanity_check
 from super_gradients.training.utils.distributed_training_utils import setup_device
-from super_gradients.training.pre_launch_callbacks import pre_launch_callbacks
 
 __all__ = [
     "ARCHITECTURES",
@@ -19,9 +18,8 @@ __all__ = [
     "is_distributed",
     "env_sanity_check",
     "setup_device",
-    "pre_launch_callbacks",
 ]
 
-__version__ = "3.0.8"
+__version__ = "3.0.9"
 
 env_sanity_check()
