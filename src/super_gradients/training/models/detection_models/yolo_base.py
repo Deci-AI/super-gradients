@@ -3,7 +3,8 @@ from typing import Union, Type, List, Tuple, Optional
 
 import torch
 import torch.nn as nn
-
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.modules import CrossModelSkipConnection, Conv
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
@@ -13,7 +14,7 @@ from super_gradients.training.utils.detection_utils import non_max_suppression, 
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 from super_gradients.training.models.prediction_results import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
-from super_gradients.training.transforms.processing import Processing
+from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
@@ -425,6 +426,7 @@ class YoloBase(SgModule):
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return YoloPostPredictionCallback(conf=conf, iou=iou)
 
+    @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(
         self,
         class_names: Optional[List[str]] = None,

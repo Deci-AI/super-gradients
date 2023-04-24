@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from super_gradients.common.registry.registry import register_processing
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 from super_gradients.training.transforms.utils import (
@@ -15,6 +16,7 @@ from super_gradients.training.transforms.utils import (
     _shift_bboxes,
     PaddingCoordinates,
 )
+from super_gradients.common.object_names import Processings
 
 
 @dataclass
@@ -58,6 +60,7 @@ class Processing(ABC):
         pass
 
 
+@register_processing(Processings.ComposeProcessing)
 class ComposeProcessing(Processing):
     """Compose a list of Processing objects into a single Processing object."""
 
@@ -80,6 +83,7 @@ class ComposeProcessing(Processing):
         return postprocessed_predictions
 
 
+@register_processing(Processings.ImagePermute)
 class ImagePermute(Processing):
     """Permute the image dimensions.
 
@@ -97,6 +101,7 @@ class ImagePermute(Processing):
         return predictions
 
 
+@register_processing(Processings.ReverseImageChannels)
 class ReverseImageChannels(Processing):
     """Reverse the order of the image channels (RGB -> BGR or BGR -> RGB)."""
 
@@ -117,6 +122,7 @@ class ReverseImageChannels(Processing):
         return predictions
 
 
+@register_processing(Processings.StandardizeImage)
 class StandardizeImage(Processing):
     """Standardize image pixel values with img/max_val
 
@@ -140,6 +146,7 @@ class StandardizeImage(Processing):
         return predictions
 
 
+@register_processing(Processings.NormalizeImage)
 class NormalizeImage(Processing):
     """Normalize an image based on means and standard deviation.
 
@@ -189,11 +196,13 @@ class _DetectionPadding(Processing, ABC):
         pass
 
 
+@register_processing(Processings.DetectionCenterPadding)
 class DetectionCenterPadding(_DetectionPadding):
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
         return _get_center_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
 
 
+@register_processing(Processings.DetectionBottomRightPadding)
 class DetectionBottomRightPadding(_DetectionPadding):
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
         return _get_bottom_right_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
@@ -236,12 +245,14 @@ class _LongestMaxSizeRescale(Processing, ABC):
         return image, RescaleMetadata(original_shape=(height, width), scale_factor_h=scale_factor, scale_factor_w=scale_factor)
 
 
+@register_processing(Processings.DetectionRescale)
 class DetectionRescale(_Rescale):
     def postprocess_predictions(self, predictions: DetectionPrediction, metadata: RescaleMetadata) -> DetectionPrediction:
         predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
 
 
+@register_processing(Processings.DetectionLongestMaxSizeRescale)
 class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
     def postprocess_predictions(self, predictions: DetectionPrediction, metadata: RescaleMetadata) -> DetectionPrediction:
         predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
