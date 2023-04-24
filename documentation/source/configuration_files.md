@@ -80,10 +80,9 @@ stored or transmitted ([Wikipedia](https://en.wikipedia.org/wiki/YAML)). We pars
 either as a recursive dictionary or as function arguments. 
 
 Let's try running a training session from a configuration file.
-In your SG project, go to the examples directory and run the `train_from_recipe.py` script as shown below: 
-```commandline
-cd src/super_gradients/examples/train_from_recipe_example
-python train_from_recipe.py --config-name=cifar10_resnet
+ 
+```shell
+python -m super_gradients.train_from_recipe --config-name=cifar10_resnet
 ```
 You can stop the training after a few cycles. 
 
@@ -97,13 +96,13 @@ You will see a different result now. This is because the parameters from `cifar1
 
 Two more useful functionalities are 
 ```commandline
-python resume_experiment.py --experiment_name=cifar10_resnet
+python -m super_gradients.resume_experiment --experiment_name=cifar10_resnet
 ```
 
 that will resume the experiment from the last checkpoint, and
 
 ```commandline
-evaluate_from_recipe.py --config-name=cifar10_resnet
+python -m super_gradients.evaluate_from_recipe --config-name=cifar10_resnet
 ```
 that will run only the evaluation part of the recipe (without any training iterations)
 
@@ -156,8 +155,8 @@ The aggregated configuration file will be saved in the `.hydra` subdirectory.
 
 #### Command-Line Overrides
 When running with Hydra, you can override or even add configuration from the command line. These override will apply to the specific run only.
-```commandline
-python train_from_recipe.py --config-name=cifar10_resnet training_hyperparams.initial_lr=0.02 experiment_name=test_lr_002
+```shell
+python -m super_gradients.train_from_recipe --config-name=cifar10_resnet training_hyperparams.initial_lr=0.02 experiment_name=test_lr_002
 ```
 In the example above, the same script we launched earlier is used, but this time it will run with a different experiment name and a different 
 initial learning-rate. This feature is extremely usefully when experimenting with different hyper-parameters.

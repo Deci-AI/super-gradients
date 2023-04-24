@@ -146,8 +146,8 @@ test_data_loader = cifar10_val()
 7. Launch test:
 
 ```python
-accuracy, top5 = trainer.test(model=model, test_loader=test_data_loader, test_metrics_list=test_metrics)
-print(f"Test results: Accuracy: {accuracy}, Top5: {top5}")
+test_results = trainer.test(model=model, test_loader=test_data_loader, test_metrics_list=test_metrics)
+print(f"Test results: Accuracy: {test_results['Accuracy']}, Top5: {test_results['Top5']}")
 ```
 
 </details>
@@ -296,7 +296,7 @@ plt.imshow(image)
 
 1. Launch one of SGs [training recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/Training_Recipes.md). For example, Resnet18 on Cifar10:
 ```shell
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=my_resnet18_cifar10_experiment
+python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=my_resnet18_cifar10_experiment
 ```
 
 Learn more in detail on how to launch, customize and evaluate training recipes from our [training with configuration files tutorial](configuration_files.md)

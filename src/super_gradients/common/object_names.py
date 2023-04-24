@@ -293,6 +293,12 @@ class Models:
     PP_YOLOE_M = "ppyoloe_m"
     PP_YOLOE_L = "ppyoloe_l"
     PP_YOLOE_X = "ppyoloe_x"
+    SEGFORMER_B0 = "segformer_b0"
+    SEGFORMER_B1 = "segformer_b1"
+    SEGFORMER_B2 = "segformer_b2"
+    SEGFORMER_B3 = "segformer_b3"
+    SEGFORMER_B4 = "segformer_b4"
+    SEGFORMER_B5 = "segformer_b5"
 
     DEKR_CUSTOM = "dekr_custom"
     DEKR_W32_NO_DC = "dekr_w32_no_dc"
@@ -328,6 +334,8 @@ class Dataloaders:
     COCO2017_VAL_SSD_LITE_MOBILENET_V2 = "coco2017_val_ssd_lite_mobilenet_v2"
     COCO2017_POSE_TRAIN = "coco2017_pose_train"
     COCO2017_POSE_VAL = "coco2017_pose_val"
+    COCO_DETECTION_YOLO_FORMAT_TRAIN = "coco_detection_yolo_format_train"
+    COCO_DETECTION_YOLO_FORMAT_VAL = "coco_detection_yolo_format_val"
     IMAGENET_TRAIN = "imagenet_train"
     IMAGENET_VAL = "imagenet_val"
     IMAGENET_EFFICIENTNET_TRAIN = "imagenet_efficientnet_train"
@@ -392,3 +400,15 @@ class Datasets:
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
+
+
+class Processings:
+    StandardizeImage = "StandardizeImage"
+    DetectionCenterPadding = "DetectionCenterPadding"
+    DetectionLongestMaxSizeRescale = "DetectionLongestMaxSizeRescale"
+    DetectionBottomRightPadding = "DetectionBottomRightPadding"
+    ImagePermute = "ImagePermute"
+    DetectionRescale = "DetectionRescale"
+    ReverseImageChannels = "ReverseImageChannels"
+    NormalizeImage = "NormalizeImage"
+    ComposeProcessing = "ComposeProcessing"
