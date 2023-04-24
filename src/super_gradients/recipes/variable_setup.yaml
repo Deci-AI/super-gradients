@@ -1,0 +1,48 @@
+# Varaible setup for shortcuts and setting the hydra output directory.
+# Any SG Recipe should set this yaml file as a default, after _self_, i.e at the top of your recipe file:
+#
+#  defaults:
+#    - training_hyperparams: my_train_params
+#    - dataset_params: my_dataset_params
+#    - arch_params: my_arch_params
+#    - checkpoint_params: my_checkpoint_params
+#    - _self_
+#    - variable_setup
+#
+#
+#  Interpolates the shortcuts defined below, with their aliases (see comments near each parameter).
+#  When any of the above are not set, they will be populated with the original values (for example
+#      config.lr will be set with config.training_hyperparams.initial_lr) for clarity in logs.
+#
+#  In other words, the following training launch commands are equivalent:
+#
+#    python train_from_recipe --config-name=recipe lr=0.003
+#
+#    python train_from_recipe --config-name=recipe config.training_hyperparams.initial_lr=0.003
+#
+# Note that interpolation is done by triggering RecipeShortcutsCallbackm which is a Hydra Callback (see http://hydra.cc/docs/experimental/callbacks/)
+#  so interpolation of these in other yaml configuration files won't be present.
+
+lr: # config.training_hyperparams.initial_lr
+
+batch_size: # config.dataset_params.train_dataloader_params.batch_size
+
+val_batch_size: # config.dataset_params.val_dataloader_params.batch_size
+
+ema: # config.training_hyperparams.ema
+
+epochs: # config.training_hyperparams.max_epochs
+
+resume: # config.training_hyperparams.resume
+
+num_workers: # config.dataset_params.train_dataloader_params.num_workers and config.dataset_params.val_dataloader_params.num_workers
+
+ckpt_root_dir:
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  callbacks:
+    shortcuts_cb:
+      _target_: super_gradients.common.environment.omegaconf_utils.RecipeShortcutsCallback
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
