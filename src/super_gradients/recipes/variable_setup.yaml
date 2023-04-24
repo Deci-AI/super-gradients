@@ -14,6 +14,12 @@
 #  When any of the above are not set, they will be populated with the original values (for example
 #      config.lr will be set with config.training_hyperparams.initial_lr) for clarity in logs.
 #
+#  In other words, the following training launch commands are equivalent:
+#
+#    python train_from_recipe --config-name=recipe lr=0.003
+#
+#    python train_from_recipe --config-name=recipe config.training_hyperparams.initial_lr=0.003
+#
 # Note that interpolation is done by triggering RecipeShortcutsCallbackm which is a Hydra Callback (see http://hydra.cc/docs/experimental/callbacks/)
 #  so interpolation of these in other yaml configuration files won't be present.
 
