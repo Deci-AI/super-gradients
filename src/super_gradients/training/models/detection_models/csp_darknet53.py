@@ -2,31 +2,17 @@
 CSP Darknet
 
 """
-import math
 from typing import Tuple, Type
 
 import torch
 import torch.nn as nn
 
-from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.modules import Residual
-from super_gradients.training.utils.utils import get_param, HpmStruct
+from super_gradients.common.registry.registry import register_model
+from super_gradients.modules import Residual, Conv
+from super_gradients.modules.utils import width_multiplier
 from super_gradients.training.models.sg_module import SgModule
-
-
-def autopad(kernel, padding=None):
-    # PAD TO 'SAME'
-    if padding is None:
-        padding = kernel // 2 if isinstance(kernel, int) else [x // 2 for x in kernel]
-    return padding
-
-
-def width_multiplier(original, factor, divisor: int = None):
-    if divisor is None:
-        return int(original * factor)
-    else:
-        return math.ceil(int(original * factor) / divisor) * divisor
+from super_gradients.training.utils.utils import get_param, HpmStruct
 
 
 def get_yolo_type_params(yolo_type: str, width_mult_factor: float, depth_mult_factor: float):
@@ -44,22 +30,6 @@ def get_yolo_type_params(yolo_type: str, width_mult_factor: float, depth_mult_fa
 
 class NumClassesMissingException(Exception):
     pass
-
-
-class Conv(nn.Module):
-    # STANDARD CONVOLUTION
-    def __init__(self, input_channels, output_channels, kernel, stride, activation_type: Type[nn.Module], padding: int = None, groups: int = None):
-        super().__init__()
-
-        self.conv = nn.Conv2d(input_channels, output_channels, kernel, stride, autopad(kernel, padding), groups=groups or 1, bias=False)
-        self.bn = nn.BatchNorm2d(output_channels)
-        self.act = activation_type()
-
-    def forward(self, x):
-        return self.act(self.bn(self.conv(x)))
-
-    def fuseforward(self, x):
-        return self.act(self.conv(x))
 
 
 class GroupedConvBlock(nn.Module):
