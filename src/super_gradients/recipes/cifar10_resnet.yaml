@@ -14,26 +14,11 @@ defaults:
   - arch_params: resnet18_cifar_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 train_dataloader: cifar10_train
 val_dataloader: cifar10_val
-
-data_loader_num_workers: 8
-
-resume: False
-training_hyperparams:
-  resume: ${resume}
-
-ckpt_root_dir:
-
 architecture: resnet18_cifar
-
-experiment_name: resnet18_cifar
-
+experiment_name: resnet18_cifar_interpolation_check
 multi_gpu: Off
 num_gpus: 1
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

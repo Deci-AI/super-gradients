@@ -15,6 +15,7 @@
 defaults:
   - imagenet_vit_base
   - _self_
+  - variable_setup
 
 dataset_params:
   train_dataloader_params:
@@ -29,10 +30,3 @@ architecture: vit_large
 experiment_name: vit_large_imagenet1k
 multi_gpu: DDP
 num_gpus: 8
-ckpt_root_dir:
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

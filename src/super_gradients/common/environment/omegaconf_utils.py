@@ -1,9 +1,62 @@
 import importlib
 import sys
+from typing import Any
 
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
+from hydra.experimental.callback import Callback
+
+
+class RecipeShortcutsCallback(Callback):
+    """
+    Interpolates the shortcuts defined in variable_set.yaml:
+            lr
+            batch_size
+            val_batch_size
+            ema
+            epochs
+            resume: False
+            num_workers
+
+    When any of the above are not set, they will be populated with the original values (for example
+        config.lr will be set with config.training_hyperparams.initial_lr) for clarity in logs.
+
+    """
+
+    def on_run_start(self, config: DictConfig, **kwargs: Any) -> None:
+        config.lr, config.training_hyperparams.initial_lr = self._override_with_shortcut(config.lr, config.training_hyperparams.initial_lr)
+
+        config.batch_size, config.dataset_params.train_dataloader_params.batch_size = self._override_with_shortcut(
+            config.batch_size, config.dataset_params.train_dataloader_params.batch_size
+        )
+
+        config.val_batch_size, config.dataset_params.val_dataloader_params.batch_size = self._override_with_shortcut(
+            config.val_batch_size, config.dataset_params.val_dataloader_params.batch_size
+        )
+
+        config.resume, config.training_hyperparams.resume = self._override_with_shortcut(config.resume, config.training_hyperparams.resume)
+
+        config.epochs, config.training_hyperparams.max_epochs = self._override_with_shortcut(config.epochs, config.training_hyperparams.max_epochs)
+
+        config.ema, config.training_hyperparams.ema = self._override_with_shortcut(config.ema, config.training_hyperparams.ema)
+
+        config.num_workers, config.dataset_params.train_dataloader_params.num_workers = self._override_with_shortcut(
+            config.num_workers, config.dataset_params.train_dataloader_params.num_workers
+        )
+
+        config.num_workers, config.dataset_params.val_dataloader_params.num_workers = self._override_with_shortcut(
+            config.num_workers, config.dataset_params.val_dataloader_params.num_workers
+        )
+
+    @staticmethod
+    def _override_with_shortcut(shortcut_value, main_value):
+        if shortcut_value is not None:
+            value = shortcut_value
+        else:
+            value = main_value
+
+        return value, value
 
 
 def get_cls(cls_path: str):
