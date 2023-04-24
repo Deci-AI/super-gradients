@@ -1,4 +1,4 @@
-from typing import List, Type
+from typing import List, Type, Union, Optional, Tuple
 from abc import ABC, abstractmethod
 
 import torch.nn as nn
@@ -10,6 +10,7 @@ from super_gradients.modules.sampling import make_upsample_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.type_factory import TypeFactory
+from super_gradients.common import UpsampleMode
 
 
 class AbstractUpFuseBlock(nn.Module, ABC):
@@ -29,6 +30,31 @@ class AbstractUpFuseBlock(nn.Module, ABC):
     def forward(self, x, skip):
         raise NotImplementedError()
 
+    @staticmethod
+    def validate_upsample_mode(
+        in_channels: int, up_factor: int, upsample_mode: Union[UpsampleMode, str], fallback_mode: Optional[Union[UpsampleMode, str]] = None
+    ) -> Tuple[Union[UpsampleMode, str], int]:
+        """
+        Validate whether the upsample_mode is supported, and returns the upsample path output channels.
+        :return: tuple of upsample_mode and out_channels of the upsample module
+        """
+        out_channels = in_channels
+        upsample_mode = upsample_mode.value if isinstance(upsample_mode, UpsampleMode) else upsample_mode
+        if upsample_mode in [UpsampleMode.PIXEL_SHUFFLE.value, UpsampleMode.NN_PIXEL_SHUFFLE.value]:
+            # Check if in_channels is divisible by (up_factor ** 2) for pixel shuffle, else fallback to fallback_mode.
+            _in_ch = in_channels / (up_factor**2)
+            if _in_ch % 1 == 0:
+                out_channels = int(_in_ch)
+            elif fallback_mode is not None:
+                upsample_mode = fallback_mode
+            else:
+                raise ValueError(
+                    f"Upsample mode: {upsample_mode} can't be used, due to in_channels: {in_channels} "
+                    f"is not divisible by (up_factor ** 2) for up_factor: {up_factor}.\n"
+                    f"Consider setting a `fallback_mode`."
+                )
+        return upsample_mode, out_channels
+
 
 @register_unet_up_block()
 class UpFactorBlock(AbstractUpFuseBlock):
@@ -36,12 +62,24 @@ class UpFactorBlock(AbstractUpFuseBlock):
     Ignore Skip features, simply apply upsampling and ConvBNRelu layers.
     """
 
-    def __init__(self, in_channels: int, skip_channels: int, out_channels: int, up_factor: int, mode: str, num_repeats: int, **kwargs):
+    def __init__(
+        self,
+        in_channels: int,
+        skip_channels: int,
+        out_channels: int,
+        up_factor: int,
+        mode: Union[UpsampleMode, str],
+        num_repeats: int,
+        fallback_mode: Optional[Union[UpsampleMode, str]] = None,
+        **kwargs,
+    ):
         super().__init__(in_channels=in_channels, skip_channels=0, out_channels=out_channels)
+
+        mode, up_out_channels = self.validate_upsample_mode(in_channels, up_factor=up_factor, upsample_mode=mode, fallback_mode=fallback_mode)
         self.up_path = make_upsample_module(scale_factor=up_factor, upsample_mode=mode, align_corners=False)
 
         self.last_convs = nn.Sequential(
-            ConvBNReLU(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            ConvBNReLU(up_out_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.Sequential(*[ConvBNReLU(out_channels, out_channels, kernel_size=3, padding=1, bias=False) for _ in range(num_repeats - 1)]),
         )
 
@@ -56,11 +94,25 @@ class UpCatBlock(AbstractUpFuseBlock):
     Fuse features with concatenation and followed Convolutions.
     """
 
-    def __init__(self, in_channels: int, skip_channels: int, out_channels: int, up_factor: int, mode: str, num_repeats: int, **kwargs):
+    def __init__(
+        self,
+        in_channels: int,
+        skip_channels: int,
+        out_channels: int,
+        up_factor: int,
+        mode: Union[UpsampleMode, str],
+        num_repeats: int,
+        fallback_mode: Optional[Union[UpsampleMode, str]] = None,
+        **kwargs,
+    ):
         super().__init__(in_channels=in_channels, skip_channels=skip_channels, out_channels=out_channels)
+
+        mode, up_out_channels = self.validate_upsample_mode(in_channels, up_factor=up_factor, upsample_mode=mode, fallback_mode=fallback_mode)
+
         self.up_path = make_upsample_module(scale_factor=up_factor, upsample_mode=mode, align_corners=False)
+
         self.last_convs = nn.Sequential(
-            ConvBNReLU(in_channels + skip_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            ConvBNReLU(up_out_channels + skip_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.Sequential(*[ConvBNReLU(out_channels, out_channels, kernel_size=3, padding=1, bias=False) for _ in range(num_repeats - 1)]),
         )
 
@@ -76,13 +128,28 @@ class UpSumBlock(AbstractUpFuseBlock):
     Fuse features with concatenation and followed Convolutions.
     """
 
-    def __init__(self, in_channels: int, skip_channels: int, out_channels: int, up_factor: int, mode: str, num_repeats: int, **kwargs):
+    def __init__(
+        self,
+        in_channels: int,
+        skip_channels: int,
+        out_channels: int,
+        up_factor: int,
+        mode: Union[UpsampleMode, str],
+        num_repeats: int,
+        fallback_mode: Optional[Union[UpsampleMode, str]] = None,
+        **kwargs,
+    ):
         super().__init__(in_channels=in_channels, skip_channels=skip_channels, out_channels=out_channels)
-        self.proj_conv = Residual() if skip_channels == in_channels else ConvBNReLU(skip_channels, in_channels, kernel_size=1, bias=False, use_activation=False)
+        mode, up_out_channels = self.validate_upsample_mode(in_channels, up_factor=up_factor, upsample_mode=mode, fallback_mode=fallback_mode)
+
         self.up_path = make_upsample_module(scale_factor=up_factor, upsample_mode=mode, align_corners=False)
 
+        self.proj_conv = (
+            Residual() if skip_channels == up_out_channels else ConvBNReLU(skip_channels, up_out_channels, kernel_size=1, bias=False, use_activation=False)
+        )
+
         self.last_convs = nn.Sequential(
-            ConvBNReLU(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            ConvBNReLU(up_out_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.Sequential(*[ConvBNReLU(out_channels, out_channels, kernel_size=3, padding=1, bias=False) for _ in range(num_repeats - 1)]),
         )
 
