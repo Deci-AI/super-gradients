@@ -1,7 +1,7 @@
 import collections
+import pickle
 
 import hydra
-import json_tricks as json
 import numpy as np
 import pkg_resources
 import torch
@@ -21,53 +21,9 @@ def remove_starting_module(key: str):
     return key
 
 
-@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name="script_generate_rescoring_data", version_base="1.2")
-def main(cfg: DictConfig) -> None:
-    setup_device(
-        device=core_utils.get_param(cfg, "device"),
-        multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
-        num_gpus=core_utils.get_param(cfg, "num_gpus"),
-    )
-
-    sigmas = torch.from_numpy(np.array(cfg.dataset_params.oks_sigmas))
-
-    cfg = instantiate(cfg)
-
-    # Temporary hack to remove "module." from model state dict saved in checkpoint
-    if cfg.checkpoint_params.checkpoint_path is not None:
-        checkpoint = torch.load(cfg.checkpoint_params.checkpoint_path, map_location="cpu")
-        if "ema_net" in checkpoint:
-            checkpoint["ema_net"] = collections.OrderedDict((remove_starting_module(k), v) for k, v in checkpoint["ema_net"].items())
-        if "net" in checkpoint:
-            checkpoint["net"] = collections.OrderedDict((remove_starting_module(k), v) for k, v in checkpoint["net"].items())
-        torch.save(checkpoint, cfg.checkpoint_params.checkpoint_path)
-
-    # BUILD NETWORK
-    model = (
-        models.get(
-            model_name=cfg.architecture,
-            num_classes=cfg.arch_params.num_classes,
-            arch_params=cfg.arch_params,
-            strict_load=cfg.checkpoint_params.strict_load,
-            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-        )
-        .cuda()
-        .eval()
-    )
-
-    # INSTANTIATE DATA LOADERS
-
-    val_dataloader = dataloaders.get(
-        name=get_param(cfg, "val_dataloader"),
-        dataset_params=cfg.dataset_params.val_dataset_params,
-        dataloader_params=cfg.dataset_params.val_dataloader_params,
-    )
-
-    post_prediction_callback = cfg.post_prediction_callback
+def process_loader(model, loader, post_prediction_callback, sigmas):
     samples = []
-
-    for inputs, targets, extras in tqdm(val_dataloader):
+    for inputs, targets, extras in tqdm(loader):
         with torch.no_grad(), torch.cuda.amp.autocast(True):
             predictions = model(inputs.cuda(non_blocking=True))
             all_poses, all_scores = post_prediction_callback(predictions)
@@ -113,11 +69,66 @@ def main(cfg: DictConfig) -> None:
                 "gt_areas": gt_areas,
             }
             samples.append(sample)
+    return samples
 
-    with open("rescoring_data.json", "w") as f:
-        json.dump(samples, f, indent=2)
 
-    print("Train data for rescoring saved to rescoring_data.json")
+@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name="script_generate_rescoring_data", version_base="1.2")
+def main(cfg: DictConfig) -> None:
+    setup_device(
+        device=core_utils.get_param(cfg, "device"),
+        multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
+        num_gpus=core_utils.get_param(cfg, "num_gpus"),
+    )
+
+    sigmas = torch.from_numpy(np.array(cfg.dataset_params.oks_sigmas))
+
+    cfg.dataset_params.train_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
+    cfg = instantiate(cfg)
+
+    # Temporary hack to remove "module." from model state dict saved in checkpoint
+    if cfg.checkpoint_params.checkpoint_path is not None:
+        checkpoint = torch.load(cfg.checkpoint_params.checkpoint_path, map_location="cpu")
+        if "ema_net" in checkpoint:
+            checkpoint["ema_net"] = collections.OrderedDict((remove_starting_module(k), v) for k, v in checkpoint["ema_net"].items())
+        if "net" in checkpoint:
+            checkpoint["net"] = collections.OrderedDict((remove_starting_module(k), v) for k, v in checkpoint["net"].items())
+        torch.save(checkpoint, cfg.checkpoint_params.checkpoint_path)
+
+    # BUILD NETWORK
+    model = (
+        models.get(
+            model_name=cfg.architecture,
+            num_classes=cfg.arch_params.num_classes,
+            arch_params=cfg.arch_params,
+            strict_load=cfg.checkpoint_params.strict_load,
+            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+        )
+        .cuda()
+        .eval()
+    )
+
+    post_prediction_callback = cfg.post_prediction_callback
+
+    train_dataloader = dataloaders.get(
+        name=get_param(cfg, "train_dataloader"),
+        dataset_params=cfg.dataset_params.train_dataset_params,
+        dataloader_params=cfg.dataset_params.train_dataloader_params,
+    )
+    train_samples = process_loader(model, train_dataloader, post_prediction_callback, sigmas)
+    with open("rescoring_data_train.pkl", "wb") as f:
+        pickle.dump(train_samples, f)
+
+    val_dataloader = dataloaders.get(
+        name=get_param(cfg, "val_dataloader"),
+        dataset_params=cfg.dataset_params.val_dataset_params,
+        dataloader_params=cfg.dataset_params.val_dataloader_params,
+    )
+    valid_samples = process_loader(model, val_dataloader, post_prediction_callback, sigmas)
+    with open("rescoring_data_valid.pkl", "wb") as f:
+        pickle.dump(valid_samples, f)
+
+    print("Train data for rescoring saved to rescoring_data_train.pkl / rescoring_data_valid.pkl")
 
 
 def run():
