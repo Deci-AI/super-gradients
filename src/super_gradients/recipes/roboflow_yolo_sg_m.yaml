@@ -1,16 +1,16 @@
-# A recipe to fine-tune YoloSG on Roboflow datasets.
+# A recipe to fine-tune YoloNAS on Roboflow datasets.
 # Checkout the datasets at https://universe.roboflow.com/roboflow-100?ref=blog.roboflow.com
 #
 # `dataset_name` refers to the official name of the dataset.
 # You can find it in the url of the dataset: https://universe.roboflow.com/roboflow-100/digits-t2eg6 -> digits-t2eg6
 #
-# Example: python -m super_gradients.train_from_recipe --config-name=roboflow_yolo_sg_m dataset_name=digits-t2eg6
+# Example: python -m super_gradients.train_from_recipe --config-name=roboflow_yolo_nas_m dataset_name=digits-t2eg6
 
 defaults:
-  - training_hyperparams: coco2017_yolo_sg_train_params
+  - training_hyperparams: coco2017_yolo_nas_train_params
   - dataset_params: roboflow_detection_dataset_params
   - checkpoint_params: default_checkpoint_params
-  - arch_params: yolo_sg_m_arch_params
+  - arch_params: yolo_nas_m_arch_params
   - _self_
 
 train_dataloader: roboflow_train_yolox
@@ -28,7 +28,7 @@ dataset_params:
 
 num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
 
-architecture: yolo_sg_m
+architecture: yolo_nas_m
 arch_params:
   num_classes: ${num_classes}
 

@@ -1,5 +1,5 @@
 defaults:
-  - roboflow_yolo_sg_s
+  - roboflow_yolo_nas_s
   - quantization_params: default_quantization_params
   - _self_
 

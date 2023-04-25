@@ -60,9 +60,9 @@ MODEL_URLS = {
     "ppyoloe_l_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/coco2017_pp_yoloe_l_best_model_21uffbb8.pth",  # 0.4948
     "ppyoloe_x_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/coco2017_pp_yoloe_x_best_model_z03if91o.pth",  # 0.5115
     #
-    "yolo_sg_s_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolo_sg/yolo_sg_s_coco2017.pth",
-    "yolo_sg_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolo_sg/yolo_sg_m_coco2017.pth",
-    "yolo_sg_l_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolo_sg/yolo_sg_l_coco2017.pth",
+    "yolo_nas_s_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolo_nas/yolo_nas_s_coco2017.pth",
+    "yolo_nas_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolo_nas/yolo_nas_m_coco2017.pth",
+    "yolo_nas_l_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolo_nas/yolo_nas_l_coco2017.pth",
 }
 
 PRETRAINED_NUM_CLASSES = {

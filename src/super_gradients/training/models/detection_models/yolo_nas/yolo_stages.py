@@ -11,19 +11,19 @@ from super_gradients.common.factories.activations_type_factory import Activation
 from super_gradients.modules import QARepVGGBlock, Conv
 from super_gradients.modules.utils import width_multiplier
 
-__all__ = ["YoloSGStage", "YoloSGUpStage", "YoloSGStem", "YoloSGDownStage", "YoloSGBottleneck"]
+__all__ = ["YoloNASStage", "YoloNASUpStage", "YoloNASStem", "YoloNASDownStage", "YoloNASBottleneck"]
 
 
-class YoloSGBottleneck(nn.Module):
+class YoloNASBottleneck(nn.Module):
     """
-    A bottleneck block for YoloSG. Consists of two consecutive blocks and optional residual connection.
+    A bottleneck block for YoloNAS. Consists of two consecutive blocks and optional residual connection.
     """
 
     def __init__(
         self, input_channels: int, output_channels: int, block_type: Type[nn.Module], activation_type: Type[nn.Module], shortcut: bool, use_alpha: bool
     ):
         """
-        Initialize the YoloSGBottleneck block
+        Initialize the YoloNASBottleneck block
 
         :param input_channels: Number of input channels
         :param output_channels: Number of output channels
@@ -66,9 +66,9 @@ class SequentialWithIntermediates(nn.Sequential):
         return [super(SequentialWithIntermediates, self).forward(input)]
 
 
-class YoloSGCSPLayer(nn.Module):
+class YoloNASCSPLayer(nn.Module):
     """
-    Cross-stage layer module for YoloSG.
+    Cross-stage layer module for YoloNAS.
     """
 
     def __init__(
@@ -97,13 +97,13 @@ class YoloSGCSPLayer(nn.Module):
         :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks.
         :param concat_intermediates:
         """
-        super(YoloSGCSPLayer, self).__init__()
+        super(YoloNASCSPLayer, self).__init__()
         if hidden_channels is None:
             hidden_channels = int(out_channels * expansion)
         self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
         self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
         self.conv3 = Conv(hidden_channels * (2 + concat_intermediates * num_bottlenecks), out_channels, 1, stride=1, activation_type=activation_type)
-        module_list = [YoloSGBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha) for _ in range(num_bottlenecks)]
+        module_list = [YoloNASBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha) for _ in range(num_bottlenecks)]
         self.bottlenecks = SequentialWithIntermediates(concat_intermediates, *module_list)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -115,14 +115,14 @@ class YoloSGCSPLayer(nn.Module):
 
 
 @register_detection_module()
-class YoloSGStem(BaseDetectionModule):
+class YoloNASStem(BaseDetectionModule):
     """
-    Stem module for YoloSG. Consists of a single QARepVGGBlock with stride of two.
+    Stem module for YoloNAS. Consists of a single QARepVGGBlock with stride of two.
     """
 
     def __init__(self, in_channels: int, out_channels: int):
         """
-        Initialize the YoloSGStem module
+        Initialize the YoloNASStem module
         :param in_channels: Number of input channels
         :param out_channels: Number of output channels
         """
@@ -139,9 +139,9 @@ class YoloSGStem(BaseDetectionModule):
 
 
 @register_detection_module()
-class YoloSGStage(BaseDetectionModule):
+class YoloNASStage(BaseDetectionModule):
     """
-    A single stage module for YoloSG. It consists of a downsample block (QARepVGGBlock) followed by YoloSGCSPLayer.
+    A single stage module for YoloNAS. It consists of a downsample block (QARepVGGBlock) followed by YoloNASCSPLayer.
     """
 
     @resolve_param("activation_type", ActivationsTypeFactory())
@@ -155,18 +155,18 @@ class YoloSGStage(BaseDetectionModule):
         concat_intermediates: bool = False,
     ):
         """
-        Initialize the YoloSGStage module
+        Initialize the YoloNASStage module
         :param in_channels: Number of input channels
         :param out_channels: Number of output channels
-        :param num_blocks: Number of bottleneck blocks in the YoloSGCSPLayer
+        :param num_blocks: Number of bottleneck blocks in the YoloNASCSPLayer
         :param activation_type: Activation type for all blocks
         :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks.
-        :param concat_intermediates: If True, concatenates the intermediate values from the YoloSGCSPLayer.
+        :param concat_intermediates: If True, concatenates the intermediate values from the YoloNASCSPLayer.
         """
         super().__init__(in_channels)
         self._out_channels = out_channels
         self.downsample = QARepVGGBlock(in_channels, out_channels, stride=2, activation_type=activation_type, use_residual_connection=False)
-        self.blocks = YoloSGCSPLayer(
+        self.blocks = YoloNASCSPLayer(
             out_channels,
             out_channels,
             num_blocks,
@@ -186,9 +186,9 @@ class YoloSGStage(BaseDetectionModule):
 
 
 @register_detection_module()
-class YoloSGUpStage(BaseDetectionModule):
+class YoloNASUpStage(BaseDetectionModule):
     """
-    Upsampling stage for YoloSG.
+    Upsampling stage for YoloNAS.
     """
 
     @resolve_param("activation_type", ActivationsTypeFactory())
@@ -205,7 +205,7 @@ class YoloSGUpStage(BaseDetectionModule):
         reduce_channels: bool = False,
     ):
         """
-        Initialize the YoloSGUpStage module
+        Initialize the YoloNASUpStage module
         :param in_channels: Number of input channels
         :param out_channels: Number of output channels
         :param width_mult: Multiplier for the number of channels in the stage.
@@ -241,7 +241,7 @@ class YoloSGUpStage(BaseDetectionModule):
         self.reduce_after_concat = Conv(num_inputs * out_channels, out_channels, 1, 1, activation_type) if reduce_channels else nn.Identity()
 
         after_concat_channels = out_channels if reduce_channels else out_channels + skip_in_channels
-        self.blocks = YoloSGCSPLayer(
+        self.blocks = YoloNASCSPLayer(
             after_concat_channels,
             out_channels,
             num_blocks,
@@ -274,7 +274,7 @@ class YoloSGUpStage(BaseDetectionModule):
 
 
 @register_detection_module()
-class YoloSGDownStage(BaseDetectionModule):
+class YoloNASDownStage(BaseDetectionModule):
     @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
@@ -288,7 +288,7 @@ class YoloSGDownStage(BaseDetectionModule):
         concat_intermediates: bool = False,
     ):
         """
-        Initializes a YoloSGDownStage.
+        Initializes a YoloNASDownStage.
 
         :param in_channels: Number of input channels.
         :param out_channels: Number of output channels.
@@ -308,7 +308,7 @@ class YoloSGDownStage(BaseDetectionModule):
 
         self.conv = Conv(in_channels, out_channels // 2, 3, 2, activation_type)
         after_concat_channels = out_channels // 2 + skip_in_channels
-        self.blocks = YoloSGCSPLayer(
+        self.blocks = YoloNASCSPLayer(
             in_channels=after_concat_channels,
             out_channels=out_channels,
             num_bottlenecks=num_blocks,
