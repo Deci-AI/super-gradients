@@ -24,7 +24,7 @@ class ReplaceHeadUnitTest(unittest.TestCase):
 
     def test_yolo_nas_replace_head(self):
         input = torch.randn(1, 3, 640, 640).to(self.device)
-        for model in [Models.YoloNAS_S, Models.YoloNAS_M, Models.YoloNAS_L]:
+        for model in [Models.YOLO_NAS_S, Models.YOLO_NAS_M, Models.YOLO_NAS_L]:
             model = models.get(model, pretrained_weights="coco").to(self.device).eval()
             model.replace_head(new_num_classes=100)
             (_, pred_scores), _ = model.forward(input)
