@@ -1,4 +1,10 @@
-#  TODO Fill in the description of the recipe.
+#  DDRNet-39 training example with COCO dataset.
+#
+#
+#  Instructions:
+#   python -m super_gradients.train_from_recipe --config-name=coco2017_pose_ddrnet39
+#
+#
 
 defaults:
   - training_hyperparams: coco2017_dekr_pose_train_params
@@ -42,9 +48,30 @@ training_hyperparams:
     project_name: PoseEstimation
     entity: super-gradients
     api_server: "https://wandb.research.deci.ai"
-    save_checkpoints_remote: False
-    save_tensorboard_remote: False
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
     save_logs_remote: True
+
+  loss: dekr_loss
+
+  criterion_params:
+    heatmap_loss: qfl
+    heatmap_loss_factor: 1.0
+    offset_loss_factor: 0.03
+
+  valid_metrics_list:
+    - PoseEstimationMetrics:
+        num_joints: ${dataset_params.num_joints}
+        oks_sigmas: ${dataset_params.oks_sigmas}
+        max_objects_per_image: 20
+        post_prediction_callback:
+          _target_: super_gradients.training.utils.pose_estimation.DEKRPoseEstimationDecodeCallback
+          max_num_people: 20
+          keypoint_threshold: 0.05
+          nms_threshold: 0.05
+          nms_num_threshold: 8
+          output_stride: 4
+          apply_sigmoid: True
 
   phase_callbacks: []
 #   Note: You can uncomment following block to enable visualization of intermediate results during training.
