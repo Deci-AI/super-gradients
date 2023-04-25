@@ -87,13 +87,14 @@ class ValTrainRescoringDataset(RescoringDataset):
             self.extras.append(extras)
             self.iou.append(iou)
 
+        self.num_joints = next(p.shape[1] for p in self.pred_poses if len(p))
         self.num_samples = len(self.pred_poses)
 
     def __len__(self):
         return self.num_samples
 
     def __getitem__(self, index):
-        inputs = torch.tensor(self.pred_poses[index])
+        inputs = torch.tensor(self.pred_poses[index]).reshape(-1, self.num_joints, 3)
         targets = torch.tensor(self.iou[index]).reshape(-1, 1)
         extras = self.extras[index]
         return inputs, targets, extras

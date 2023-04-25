@@ -38,7 +38,7 @@ def main(cfg: DictConfig) -> None:
         checkpoint = torch.load(cfg.checkpoint_params.checkpoint_path, map_location="cpu")
         if "ema_net" in checkpoint:
             checkpoint["ema_net"] = collections.OrderedDict((remove_starting_module(k), v) for k, v in checkpoint["ema_net"].items())
-        if "model_state_dict" in checkpoint:
+        if "net" in checkpoint:
             checkpoint["net"] = collections.OrderedDict((remove_starting_module(k), v) for k, v in checkpoint["net"].items())
         torch.save(checkpoint, cfg.checkpoint_params.checkpoint_path)
 

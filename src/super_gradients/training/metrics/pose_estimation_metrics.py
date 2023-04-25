@@ -197,7 +197,6 @@ class PoseEstimationMetrics(Metric):
             )
 
         predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float32, device=self.device)
-        predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float, device=self.device)
         predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float, device=self.device)
 
         gt_keypoints = convert_to_tensor(groundtruths, dtype=torch.float, device=self.device)
