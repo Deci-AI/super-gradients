@@ -96,6 +96,7 @@ from super_gradients.training.models.segmentation_models.stdc import (
     STDCSegmentationBase,
     CustomSTDCSegmentation,
 )
+from super_gradients.training.models.segmentation_models.segformer import SegFormerB0, SegFormerB1, SegFormerB2, SegFormerB3, SegFormerB4, SegFormerB5
 
 # Pose estimation
 from super_gradients.training.models.pose_estimation_models.pose_ppyolo import PosePPYoloL
@@ -258,4 +259,10 @@ __all__ = [
     "ARCHITECTURES",
     "Models",
     "user_models",
+    "SegFormerB0",
+    "SegFormerB1",
+    "SegFormerB2",
+    "SegFormerB3",
+    "SegFormerB4",
+    "SegFormerB5",
 ]

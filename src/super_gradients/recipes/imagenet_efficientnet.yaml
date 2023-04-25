@@ -6,7 +6,7 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet
+#       python -m super_gradients.train_from_recipe --config-name=imagenet_efficientnet
 
 defaults:
   - training_hyperparams: imagenet_efficientnet_train_params
@@ -14,6 +14,7 @@ defaults:
   - arch_params: efficientnet_b0_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 arch_params:
   num_classes: 1000
@@ -29,16 +30,9 @@ training_hyperparams:
 experiment_name: efficientnet_b0_imagenet
 
 
-ckpt_root_dir:
+
 
 multi_gpu: DDP
 num_gpus: 4
 
 architecture: efficientnet_b0
-
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

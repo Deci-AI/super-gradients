@@ -31,7 +31,7 @@ After you meet the prerequisites, you can start training the model by running fr
 ### Training from recipe
 
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox multi_gpu=Off num_gpus=1
+python -m super_gradients.train_from_recipe --config-name=coco2017_yolox multi_gpu=Off num_gpus=1
 ```
 
 Note, the default configuration for this recipe is to use 8 GPUs in DDP mode. This hardware configuration may not be for everyone, so in the example above we override GPU settings to use a single GPU.

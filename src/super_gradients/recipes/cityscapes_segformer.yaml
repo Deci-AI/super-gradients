@@ -1,0 +1,111 @@
+#  SegFormer segmentation training example with Cityscapes dataset.
+#  Reproduction of paper:
+#  Enze Xie, Wenhai Wang, Zhiding Yu, Anima Anandkumar,  Jose M. Alvarez, Ping Luo
+#  "SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers"
+#  ( https://arxiv.org/pdf/2105.15203.pdf )
+#
+#  Official git repo:
+#      https://github.com/NVlabs/SegFormer
+#
+#  Code and Imagenet-1k pre-trained backbone weights taken and adapted from:
+#      https://github.com/sithu31296/semantic-segmentation
+#
+# Instructions:
+#   1. Choose SegFormer architecture (b0 - b5) by changing the value of the "architecture" field below
+#   2. We recommend preparing the data according to SG's CityScapes readme file:
+#      https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md
+#   3. Note: if you change the dataset's internal directory structure, make changes to the fields "list_file" and
+#      "labels_csv_path" of both "train_dataset_params" and "val_dataset_params" accordingly
+#   4. Edit the "data_root_dir" field below to point to the absolute path of the data root directory
+#   5. Edit the "ckpt_root_dir" field to the path where you want to save checkpoints and logs
+#   6. Move to the project root (where you will find the ReadMe and src folder)
+#   7. Run the command (change:
+#       python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer
+#
+#
+# Imagenet-1K pre-trained backbone:
+#   MiT (Mix Transformer) B0:   https://deci-pretrained-models.s3.amazonaws.com/mit_backbones/mit_b0.pth
+#                         B1:   https://deci-pretrained-models.s3.amazonaws.com/mit_backbones/mit_b1.pth
+#                         B2:   https://deci-pretrained-models.s3.amazonaws.com/mit_backbones/mit_b2.pth
+#                         B3:   https://deci-pretrained-models.s3.amazonaws.com/mit_backbones/mit_b3.pth
+#                         B4:   https://deci-pretrained-models.s3.amazonaws.com/mit_backbones/mit_b4.pth
+#                         B5:   https://deci-pretrained-models.s3.amazonaws.com/mit_backbones/mit_b5.pth
+#
+#   1. Download the weights from the above link and put them in a directory of your choice
+#   2. Below, insert the weights file's full path to checkpoint_params.checkpoint_path
+#   3. Ensure checkpoint_params.load_backbone: True
+#
+# Performance and training details:
+#      SegFormer-B0: mIoU (sliding-window inference) on validation set: 76.25
+#                    training time: 17 hours with 3 A10G GPUs with DDP, ~3 minuets / epoch
+
+
+defaults:
+  - training_hyperparams: default_train_params
+  - dataset_params: cityscapes_segformer_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+architecture: segformer_b0    # segformer_b1, segformer_b2, segformer_b3, segformer_b4, segformer_b5
+
+data_root_dir: /data/cityscapes
+dataset_params:
+  train_dataset_params:
+    root_dir: ${data_root_dir}
+  val_dataset_params:
+    root_dir: ${data_root_dir}
+
+experiment_name: ${architecture}_cityscapes
+
+
+train_dataloader: cityscapes_train
+val_dataloader: cityscapes_val
+
+cityscapes_ignored_label: 19    # convenience parameter since it is used in many places in the YAML
+
+arch_params:
+  num_classes: 19
+
+checkpoint_params:
+  checkpoint_path:
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
+
+load_checkpoint: False
+
+resume: False
+training_hyperparams:
+
+  resume: ${resume}
+
+  max_epochs: 400
+
+  lr_mode: poly
+  initial_lr: 0.0002   # for effective batch_size=8
+
+  optimizer: AdamW
+  zero_weight_decay_on_bias_and_bn: True
+
+  sync_bn: True
+
+  loss: cross_entropy
+  criterion_params:
+    ignore_index: ${cityscapes_ignored_label}
+
+  train_metrics_list:
+    - IoU:
+        num_classes: 20
+        ignore_index: ${cityscapes_ignored_label}
+
+  valid_metrics_list:
+    - IoU:
+        num_classes: 20
+        ignore_index: ${cityscapes_ignored_label}
+
+  metric_to_watch: IoU
+  greater_metric_to_watch_is_better: True
+
+multi_gpu: DDP
+num_gpus: 4

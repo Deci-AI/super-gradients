@@ -6,6 +6,7 @@ defaults:
   - arch_params: pose_ddrnet39_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 resume: False
 
@@ -17,7 +18,7 @@ num_gpus: 8
 experiment_suffix: ""
 experiment_name: coco2017_${architecture}${experiment_suffix}
 
-ckpt_root_dir:
+
 
 train_dataloader: coco2017_pose_train
 val_dataloader: coco2017_pose_val
@@ -69,9 +70,3 @@ training_hyperparams:
 #        mean: [ 0.485, 0.456, 0.406 ]
 #        std: [ 0.229, 0.224, 0.225 ]
 #        apply_sigmoid: False
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

@@ -1,4 +1,5 @@
 import copy
+import math
 from typing import List
 
 import torch
@@ -57,3 +58,17 @@ class NormalizationAdapter(torch.nn.Module):
     def forward(self, x):
         x = (x + self.additive) * self.multiplier
         return x
+
+
+def width_multiplier(original, factor, divisor: int = None):
+    if divisor is None:
+        return int(original * factor)
+    else:
+        return math.ceil(int(original * factor) / divisor) * divisor
+
+
+def autopad(kernel, padding=None):
+    # PAD TO 'SAME'
+    if padding is None:
+        padding = kernel // 2 if isinstance(kernel, int) else [x // 2 for x in kernel]
+    return padding

@@ -2,6 +2,8 @@ from typing import Union, Tuple, Type
 
 from torch import nn
 
+from super_gradients.modules.utils import autopad
+
 
 class ConvBNAct(nn.Module):
     """
@@ -64,3 +66,22 @@ class ConvBNAct(nn.Module):
 
     def forward(self, x):
         return self.seq(x)
+
+
+class Conv(nn.Module):
+    # STANDARD CONVOLUTION
+    # TODO: This class is illegaly similar to ConvBNAct, and the only reason it exists is due to fact that some models were using it
+    # previosly and one have to find a bulletproof way drop this class but still be able to load models that were using it. Perhaps
+    # it is possible through load_state_dict / save_state_dict magic.
+    def __init__(self, input_channels, output_channels, kernel, stride, activation_type: Type[nn.Module], padding: int = None, groups: int = None):
+        super().__init__()
+
+        self.conv = nn.Conv2d(input_channels, output_channels, kernel, stride, autopad(kernel, padding), groups=groups or 1, bias=False)
+        self.bn = nn.BatchNorm2d(output_channels)
+        self.act = activation_type()
+
+    def forward(self, x):
+        return self.act(self.bn(self.conv(x)))
+
+    def fuseforward(self, x):
+        return self.act(self.conv(x))

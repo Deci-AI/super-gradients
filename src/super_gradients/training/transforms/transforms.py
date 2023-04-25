@@ -11,7 +11,7 @@ from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.object_names import Transforms
+from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
@@ -424,6 +424,9 @@ class DetectionTransform:
     def __repr__(self):
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
+    def get_equivalent_preprocessing(self) -> List:
+        raise NotImplementedError
+
 
 @register_transform(Transforms.DetectionStandardize)
 class DetectionStandardize(DetectionTransform):
@@ -440,6 +443,9 @@ class DetectionStandardize(DetectionTransform):
     def __call__(self, sample: dict) -> dict:
         sample["image"] = (sample["image"] / self.max_value).astype(np.float32)
         return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.StandardizeImage: {"max_value": self.max_value}}]
 
 
 @register_transform(Transforms.DetectionMosaic)
@@ -717,6 +723,9 @@ class DetectionImagePermute(DetectionTransform):
         sample["image"] = np.ascontiguousarray(sample["image"].transpose(*self.dims))
         return sample
 
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.ImagePermute: {"permutation": self.dims}}]
+
 
 @register_transform(Transforms.DetectionPadToSize)
 class DetectionPadToSize(DetectionTransform):
@@ -748,6 +757,9 @@ class DetectionPadToSize(DetectionTransform):
             sample["crowd_target"] = _shift_bboxes(targets=crowd_targets, shift_w=padding_coordinates.left, shift_h=padding_coordinates.top)
         return sample
 
+    def get_equivalent_preprocessing(self) -> List:
+        return [{Processings.DetectionCenterPadding: {"output_shape": self.output_size, "pad_value": self.pad_value}}]
+
 
 @register_transform(Transforms.DetectionPaddedRescale)
 class DetectionPaddedRescale(DetectionTransform):
@@ -778,6 +790,13 @@ class DetectionPaddedRescale(DetectionTransform):
         if crowd_targets is not None:
             sample["crowd_target"] = _rescale_xyxy_bboxes(crowd_targets, r)
         return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [
+            {Processings.DetectionLongestMaxSizeRescale: {"output_shape": self.input_dim}},
+            {Processings.DetectionBottomRightPadding: {"output_shape": self.input_dim, "pad_value": self.pad_value}},
+            {Processings.ImagePermute: {"permutation": self.swap}},
+        ]
 
 
 @register_transform(Transforms.DetectionHorizontalFlip)
@@ -829,6 +848,9 @@ class DetectionRescale(DetectionTransform):
         if crowd_targets is not None:
             sample["crowd_target"] = _rescale_bboxes(crowd_targets, scale_factors=(sy, sx))
         return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.DetectionRescale: {"output_shape": self.output_size}}]
 
 
 @register_transform(Transforms.DetectionRandomRotate90)
@@ -907,6 +929,11 @@ class DetectionRGB2BGR(DetectionTransform):
             sample["image"] = sample["image"][..., ::-1]
         return sample
 
+    def get_equivalent_preprocessing(self) -> List:
+        if self.prob < 1:
+            raise RuntimeError("Cannot set preprocessing pipeline with randomness. Set prob to 1.")
+        return [{Processings.ReverseImageChannels}]
+
 
 @register_transform(Transforms.DetectionHSV)
 class DetectionHSV(DetectionTransform):
@@ -960,6 +987,9 @@ class DetectionNormalize(DetectionTransform):
     def __call__(self, sample: dict) -> dict:
         sample["image"] = (sample["image"] - self.mean) / self.std
         return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.NormalizeImage: {"mean": self.mean, "std": self.std}}]
 
 
 @register_transform(Transforms.DetectionTargetsFormatTransform)
@@ -1044,6 +1074,9 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         padded_targets[range(len(targets))[: self.max_targets]] = targets[: self.max_targets]
         padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
         return padded_targets
+
+    def get_equivalent_preprocessing(self) -> List:
+        return []
 
 
 def get_aug_params(value: Union[tuple, float], center: float = 0) -> float:
@@ -1133,7 +1166,7 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
         corner_ys = corner_points[:, 1::2]
         new_bboxes = np.concatenate((np.min(corner_xs, 1), np.min(corner_ys, 1), np.max(corner_xs, 1), np.max(corner_ys, 1))).reshape(4, -1).T
     else:
-        new_bboxes = np.ones((0, 4), dtype=np.float)
+        new_bboxes = np.ones((0, 4), dtype=np.float32)
 
     if num_gts_masks:
         # warp segmentation points
@@ -1152,7 +1185,7 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
             .T
         )
     else:
-        new_tight_bboxes = np.ones((0, 4), dtype=np.float)
+        new_tight_bboxes = np.ones((0, 4), dtype=np.float32)
 
     targets[~seg_is_present_mask, :4] = new_bboxes
     targets[seg_is_present_mask, :4] = new_tight_bboxes
