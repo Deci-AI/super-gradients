@@ -2,32 +2,32 @@ backbone:
   NStageBackbone:
 
     stem:
-      YoloSGStem:
+      YoloNASStem:
         out_channels: 48
 
     stages:
-      - YoloSGStage:
+      - YoloNASStage:
           out_channels: 96
           num_blocks: 2
           activation_type: relu
           hidden_channels: 64
           concat_intermediates: True
 
-      - YoloSGStage:
+      - YoloNASStage:
           out_channels: 192
           num_blocks: 3
           activation_type: relu
           hidden_channels: 128
           concat_intermediates: True
 
-      - YoloSGStage:
+      - YoloNASStage:
           out_channels: 384
           num_blocks: 5
           activation_type: relu
           hidden_channels: 256
           concat_intermediates: True
 
-      - YoloSGStage:
+      - YoloNASStage:
           out_channels: 768
           num_blocks: 2
           activation_type: relu
@@ -44,10 +44,10 @@ backbone:
     out_layers: [stage1, stage2, stage3, context_module]
 
 neck:
-  YoloSGPANNeckWithC2:
+  YoloNASPANNeckWithC2:
 
     neck1:
-      YoloSGUpStage:
+      YoloNASUpStage:
         out_channels: 192
         num_blocks: 2
         hidden_channels: 192
@@ -57,7 +57,7 @@ neck:
         reduce_channels: True
 
     neck2:
-      YoloSGUpStage:
+      YoloNASUpStage:
         out_channels: 96
         num_blocks: 3
         hidden_channels: 64
@@ -67,7 +67,7 @@ neck:
         reduce_channels: True
 
     neck3:
-      YoloSGDownStage:
+      YoloNASDownStage:
         out_channels: 192
         num_blocks: 2
         hidden_channels: 192
@@ -76,7 +76,7 @@ neck:
         depth_mult: 1
 
     neck4:
-      YoloSGDownStage:
+      YoloNASDownStage:
         out_channels: 384
         num_blocks: 3
         hidden_channels: 256
@@ -89,17 +89,17 @@ heads:
     num_classes: 80
     reg_max: 16
     heads_list:
-      - YoloSGDFLHead:
+      - YoloNASDFLHead:
           inter_channels: 128
           width_mult: 0.75
           first_conv_group_size: 0
           stride: 8
-      - YoloSGDFLHead:
+      - YoloNASDFLHead:
           inter_channels: 256
           width_mult: 0.75
           first_conv_group_size: 0
           stride: 16
-      - YoloSGDFLHead:
+      - YoloNASDFLHead:
           inter_channels: 512
           width_mult: 0.75
           first_conv_group_size: 0

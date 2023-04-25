@@ -17,10 +17,10 @@ from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 
 
 @register_detection_module()
-class YoloSGDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
+class YoloNASDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
     def __init__(self, in_channels: int, inter_channels: int, width_mult: float, first_conv_group_size: int, num_classes: int, stride: int, reg_max: int):
         """
-        Initialize the YoloSGDFLHead
+        Initialize the YoloNASDFLHead
         :param in_channels: Input channels
         :param inter_channels: Intermediate number of channels
         :param width_mult: Width multiplier
