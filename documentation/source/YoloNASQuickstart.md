@@ -2,11 +2,12 @@
 <div>
 <img src="images/yolo_nas_frontier.png" width="750">
 </div>
-We developed a new deep learning architecture that competes with YOLOv8 using their efficient AutoNAC algorithm. 
-We incorporated quantization-aware RepVGG blocks into the model architecture to ensure compatibility with Post-Training Quantization, making it more flexible and usable for different hardware configurations.
+Deci’s leveraged its proprietary Neural Architecture Search engine (AutoNAC) to generate YOLO-NAS - a new object detection architecture that delivers the world’s best accuracy-latency performance. 
 
+The YOLO-SG model incorporates quantization-aware RepVGG blocks to ensure compatibility with post-training quantization, making it very flexible and usable for different hardware configurations.
 
-In this tutorial, we will go briefly over the basic functionalities of YOLO-NAS.
+In this tutorial, we will go over the basic functionality of the YOLO-NAS model. 
+
 
 
 
