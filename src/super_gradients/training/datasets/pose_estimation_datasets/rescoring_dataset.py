@@ -1,6 +1,7 @@
+import pickle
+
 import torch
 from torch.utils.data import Dataset, DataLoader
-import json_tricks as json
 
 __all__ = ["ValTrainRescoringDataset", "TrainRescoringDataset"]
 
@@ -16,9 +17,9 @@ class RescoringDataset(Dataset):
         raise NotImplementedError()
 
     @classmethod
-    def parse_json_file(self, json_file: str):
-        with open(json_file) as f:
-            data = json.load(f)
+    def parse_pkl_file(self, pkl_file_path: str):
+        with open(pkl_file_path, "rb") as f:
+            data = pickle.load(f)
         return data
 
 
@@ -29,13 +30,13 @@ class TrainRescoringDataset(RescoringDataset):
     them to form a batch during training.
     """
 
-    def __init__(self, json_file: str):
-        super().__init__(json_file)
+    def __init__(self, pkl_file: str):
+        super().__init__(pkl_file)
         self.pred_poses = []
         self.pred_scores = []
         self.iou = []
 
-        for sample in self.parse_json_file(json_file):
+        for sample in self.parse_pkl_file(pkl_file):
             pred_poses = sample["pred_poses"]
             pred_scores = sample["pred_scores"]
             iou = sample["iou"]
@@ -65,8 +66,8 @@ class ValTrainRescoringDataset(RescoringDataset):
     In this case we don't need to padd poses in collate_fn.
     """
 
-    def __init__(self, json_file: str):
-        super().__init__(json_file)
+    def __init__(self, pkl_file: str):
+        super().__init__(pkl_file)
 
         self.pred_poses = []
         self.pred_scores = []
@@ -76,7 +77,7 @@ class ValTrainRescoringDataset(RescoringDataset):
         self.gt_area = []
         self.iou = []
 
-        for sample in self.parse_json_file(json_file):
+        for sample in self.parse_pkl_file(pkl_file):
             pred_poses = sample["pred_poses"]
             pred_scores = sample["pred_scores"]
             extras = dict(gt_joints=sample["gt_joints"], gt_iscrowd=sample["gt_iscrowd"], gt_bboxes=sample["gt_bboxes"], gt_areas=sample["gt_areas"])

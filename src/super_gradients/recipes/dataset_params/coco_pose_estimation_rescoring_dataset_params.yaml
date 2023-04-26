@@ -26,10 +26,10 @@ joint_links:
 
 
 train_dataset_params:
-  json_file: D:\Develop\GitHub\Deci\super-gradients\src\super_gradients/rescoring_data.json
+  pkl_file: D:\Develop\GitHub\Deci\super-gradients\src\super_gradients/rescoring_data_train.pkl
 
 val_dataset_params:
-  json_file: D:\Develop\GitHub\Deci\super-gradients\src\super_gradients/rescoring_data.json
+  pkl_file: D:\Develop\GitHub\Deci\super-gradients\src\super_gradients/rescoring_data_valid.pkl
 
 train_dataloader_params:
   shuffle: True
