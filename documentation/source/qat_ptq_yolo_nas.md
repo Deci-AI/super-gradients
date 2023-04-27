@@ -173,7 +173,7 @@ Let's visualize some results:
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
-model = models.get(Models.YoloSG_S,
+model = models.get(Models.YOLO_NAS_S,
                    checkpoint_path=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>/yolo_nas_s_soccer_players/ckpt_best.pth>,
                    num_classes=4)
 predictions = model.predict("messi_penalty.mp4")
