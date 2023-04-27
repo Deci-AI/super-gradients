@@ -1,7 +1,6 @@
 defaults:
   - coco_pose_estimation_dataset_params
   - _self_
-  -
 
 train_dataset_params:
   min_instance_area: 64
