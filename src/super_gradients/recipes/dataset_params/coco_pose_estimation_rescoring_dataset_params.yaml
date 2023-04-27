@@ -24,26 +24,23 @@ joint_links:
   - [13, 15]
   - [14, 16]
 
+data_dir: ???
 
 train_dataset_params:
-  pkl_file: D:\Develop\GitHub\Deci\super-gradients\src\super_gradients/rescoring_data_train.pkl
+  pkl_file: ${data_dir}/rescoring_data_train.pkl
 
 val_dataset_params:
-  pkl_file: D:\Develop\GitHub\Deci\super-gradients\src\super_gradients/rescoring_data_valid.pkl
+  pkl_file: ${data_dir}/rescoring_data_valid.pkl
 
 train_dataloader_params:
   shuffle: True
-  batch_size: 128
+  batch_size: 1024
   num_workers: 0
   drop_last: True
-#  collate_fn:
-#    _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
 
 val_dataloader_params:
   batch_size: 1
   num_workers: 0
   drop_last: False
-#  collate_fn:
-#    _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
 
 _convert_: all

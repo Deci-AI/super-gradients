@@ -427,23 +427,23 @@ Training of rescoring model differs from the regular training in the following w
 
 ### 1. Generate the training data.
 
-Training data for rescoring is a function of dataset and pose estimation model.  
-To generate the training & validation data for rescoding model we run inference on the original dataset (COCO in this example) using our pretrained pose estimation model and save it's predictions. 
-The rescoring model input are poses `[B,J,3]` and the outputs are the rescoring scores `[B,1]`. Our targets are computed object-keypoint similarity (OKs) scores between predicted pose and ground-truth pose.
-This step should be done using utility script: 
+To train a rescoring model you need to generate the training data first. This assumes that you have a pretrained pose estimation model.
+To generate the dataset for rescoding model we run inference on the original dataset (COCO in this example) using our pretrained pose estimation model and save it's predictions to Pickle files. 
+
+The rescoring model input are poses `[B,J,3]` and the outputs are the rescoring scores `[B,1]`. The targets are computed object-keypoint similarity (OKs) scores between predicted pose and ground-truth pose.
+
+Currently, rescoring is only supported for DEKR architecture. 
 
 ```bash
-python -m super_gradients.script.generate_rescoring_training_data rescoring_data_dir=COCO_DEKR_RESCORING_DATASET.JSON dataset=coco_pose_estimation_dekr_dataset_params architecture=dekr_w32_no_dc checkpoint=PATH_TO_TRAINED_MODEL_CHECKPOINT`.
+python -m super_gradients.script.generate_rescoring_training_data --config-name=script_generate_rescoring_data_dekr_coco2017 rescoring_data_dir=OUTPUT_DATA_DIR  checkpoint=PATH_TO_TRAINED_MODEL_CHECKPOINT`.
 ```
-
-The training data will be stored in `COCO_DEKR_RESCORING_DATASET.JSON` file. Once generated you can use this file to train rescoring model.
 
 ### 2. Train rescoring model.
 
-To train rescoring model you need to use the following recipe:
+The training data will be stored in output folder (In the example we use `OUTPUT_DATA_DIR` placeholder). Once generated you can use this file to train rescoring model:
 
 ```bash
-python -m super_gradients.train_from_recipe --config-name rescoring dataset_params=... rescoring_data_dir=COCO_DEKR_RESCORING_DATASET.JSON
+python -m super_gradients.train_from_recipe --config-name rescoring rescoring_data_dir=OUTPUT_DATA_DIR 
 ```
 
 This recipe uses custom callback to compute pose estimation metrics on the validation dataset using coordinates of poses from step 1 and confidence values after rescoring.
@@ -457,48 +457,3 @@ model = nn.Sequential(models.get("dekr_w32_no_dc", pretrained="coco"), PoseEstim
 ```
 
 **SG-TODO: We don't have `PoseEstimationNMS` implemented yet**
-
-
-### 3. Inference with TTA
-
-There are two options:
-
-```python
-model = nn.Sequential(
-    PoseEstimationFlipLRTTA(models.get("dekr_w32_no_dc", pretrained="coco")), 
-    PoseEstimationNMS(), 
-    models.get("rescoring", pretrained="coco")
-)
-```
-
-OR
-
-```python
-model = nn.Sequential(
-    models.get("dekr_w32_no_dc", pretrained="coco", flip_lr_tta=True), 
-    PoseEstimationNMS(), 
-    models.get("rescoring", pretrained="coco")
-)
-
-...
-
-class PoseEstimationModel(nn.Module):
-    def foward(self, x):
-        if self.train:
-            return self.internal_forward(x)
-        else:
-            x = torch.stack([x, x.flip(-1)], dim=0)
-            output = self.internal_forward(x)
-            normal, flipped = output.view(2, -1, *output.shape[1:])
-            unflipped = flipped.flip(-1)
-            # Note it's a bit more complicated than that, but you get the idea.
-            # This code would work fine for segmentation, but
-            # pose estimation predicts offsets, so for them code 
-            # would be actually ((offset + meshgrid) + unflip(flipped_offset + meshgrid)) * 0.5 - meshgrid
-            return (normal + flipped) * 0.5 
-    
-```
-
-Note the latter approach enables us to use the TTA model during training and do validation with TTA.
-
-**SG-TODO: I personally would love to get scores during training for regular and for TTA-ed version. However I'm not sure how to achieve this.**

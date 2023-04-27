@@ -1,4 +1,5 @@
 import collections
+import os.path
 import pickle
 
 import hydra
@@ -72,7 +73,9 @@ def process_loader(model, loader, post_prediction_callback, sigmas):
     return samples
 
 
-@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name="script_generate_rescoring_data", version_base="1.2")
+@hydra.main(
+    config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name="script_generate_rescoring_data_dekr_coco2017", version_base="1.2"
+)
 def main(cfg: DictConfig) -> None:
     setup_device(
         device=core_utils.get_param(cfg, "device"),
@@ -116,7 +119,7 @@ def main(cfg: DictConfig) -> None:
         dataloader_params=cfg.dataset_params.train_dataloader_params,
     )
     train_samples = process_loader(model, train_dataloader, post_prediction_callback, sigmas)
-    with open("rescoring_data_train.pkl", "wb") as f:
+    with open(os.path.join(cfg.rescoring_data_dir, "rescoring_data_train.pkl"), "wb") as f:
         pickle.dump(train_samples, f)
 
     val_dataloader = dataloaders.get(
@@ -125,10 +128,11 @@ def main(cfg: DictConfig) -> None:
         dataloader_params=cfg.dataset_params.val_dataloader_params,
     )
     valid_samples = process_loader(model, val_dataloader, post_prediction_callback, sigmas)
-    with open("rescoring_data_valid.pkl", "wb") as f:
+    os.makedirs(cfg.rescoring_data_dir, exist_ok=True)
+    with open(os.path.join(cfg.rescoring_data_dir, "rescoring_data_valid.pkl"), "wb") as f:
         pickle.dump(valid_samples, f)
 
-    print("Train data for rescoring saved to rescoring_data_train.pkl / rescoring_data_valid.pkl")
+    print(f"Train data for rescoring saved to {cfg.rescoring_data_dir}")
 
 
 def run():

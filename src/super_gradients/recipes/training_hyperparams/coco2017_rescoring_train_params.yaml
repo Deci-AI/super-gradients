@@ -1,17 +1,17 @@
 defaults:
   - default_train_params
 
-ema: True
+ema: False
 ema_params:
   decay: 0.9997
   decay_type: exp
   beta: 20
 
-max_epochs: 150
+max_epochs: 50
 lr_mode: cosine
 cosine_final_lr_ratio: 0.1
 batch_accumulate: 1
-initial_lr: 1e-3
+initial_lr: 0.001
 loss: rescoring_loss
 criterion_params: {}
 
