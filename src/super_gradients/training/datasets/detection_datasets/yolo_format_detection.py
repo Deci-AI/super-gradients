@@ -2,7 +2,7 @@ import os
 
 import imagesize
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.media.image import is_image
@@ -96,6 +96,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         classes: List[str],
         class_ids_to_ignore: Optional[List[int]] = None,
         ignore_invalid_labels: bool = True,
+        mute_parser_warnings: bool = True,
         *args,
         **kwargs,
     ):
@@ -106,12 +107,14 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         :param classes:                 List of class names.
         :param class_ids_to_ignore:     List of class ids to ignore in the dataset. By default, doesnt ignore any class.
         :param ignore_invalid_labels:   Whether to ignore labels that fail to be parsed. If True ignores and logs a warning, otherwise raise an error.
+        :param mute_parser_warnings:    Whether to mute the yolo format parser warnings.
         """
         self.images_dir = images_dir
         self.labels_dir = labels_dir
         self.class_ids_to_ignore = class_ids_to_ignore or []
         self.classes = classes
         self.ignore_invalid_labels = ignore_invalid_labels
+        self.mute_parser_warnings = mute_parser_warnings
 
         kwargs["target_fields"] = ["target"]
         kwargs["output_fields"] = ["image", "target"]
@@ -179,7 +182,13 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         image_width, image_height = imagesize.get(image_path)
         image_shape = (image_height, image_width)
 
-        yolo_format_target = self._parse_yolo_label_file(label_path, ignore_invalid_labels=self.ignore_invalid_labels)
+        yolo_format_target, invalid_labels = self._parse_yolo_label_file(
+            label_file_path=label_path,
+            ignore_invalid_labels=self.ignore_invalid_labels,
+            mute_warnings=self.mute_parser_warnings,
+        )
+        if len(invalid_labels):
+            logger.warning(f"Ignoring {len(invalid_labels)} invalid labels in {label_path}")
 
         converter = ConcatenatedTensorFormatConverter(input_format=LABEL_NORMALIZED_CXCYWH, output_format=XYXY_LABEL, image_shape=image_shape)
         target = converter(yolo_format_target)
@@ -202,26 +211,31 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         return annotation
 
     @staticmethod
-    def _parse_yolo_label_file(label_file_path: str, ignore_invalid_labels: bool = True) -> np.ndarray:
+    def _parse_yolo_label_file(label_file_path: str, ignore_invalid_labels: bool = True, mute_warnings: bool = True) -> Tuple[np.ndarray, List[str]]:
         """Parse a single label file in yolo format.
 
         #TODO: Add support for additional fields (with ConcatenatedTensorFormat)
         :param label_file_path:         Path to the label file in yolo format.
         :param ignore_invalid_labels:   Whether to ignore labels that fail to be parsed. If True ignores and logs a warning, otherwise raise an error.
+        :param mute_warnings:           Whether to show the warnings or silently ignore them.
 
-        :return: np.ndarray of shape (n_labels, 5) in yolo format (LABEL_NORMALIZED_CXCYWH)
+        :return:
+            - labels:           np.ndarray of shape (n_labels, 5) in yolo format (LABEL_NORMALIZED_CXCYWH)
+            - invalid_labels:   List of lines that failed to be parsed
         """
         with open(label_file_path, "r") as f:
             lines = f.readlines()
 
-        labels_yolo_format = []
+        labels_yolo_format, invalid_labels = [], []
         for line in filter(lambda x: x != "\n", lines):
             try:
                 label_id, cx, cw, w, h = line.split(" ")
                 labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
             except Exception as e:
                 if ignore_invalid_labels:
-                    logger.warning(f"Line `{line}` of file {label_file_path} will be ignored because not in LABEL_NORMALIZED_CXCYWH format: {e}")
+                    invalid_labels.append(line)
+                    if not mute_warnings:
+                        logger.warning(f"Line `{line}` of file {label_file_path} will be ignored because not in LABEL_NORMALIZED_CXCYWH format: {e}")
                 else:
                     raise e
-        return np.array(labels_yolo_format) if labels_yolo_format else np.zeros((0, 5))
+        return np.array(labels_yolo_format) if labels_yolo_format else np.zeros((0, 5)), invalid_labels
