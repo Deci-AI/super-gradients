@@ -96,6 +96,7 @@ class WandBSGLogger(BaseSGLogger):
             if wandb_id is not None:
                 logger.warning("Resuming the run with a previous WandB ID instead of the one from logger params")
             wandb_id = self._get_wandb_id()
+            wandb.restore
 
         run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
         if save_code:
