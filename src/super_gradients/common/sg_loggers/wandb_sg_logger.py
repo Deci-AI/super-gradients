@@ -91,12 +91,11 @@ class WandBSGLogger(BaseSGLogger):
 
         # allow passing an arbitrary pre-defined wandb_id
         wandb_id = kwargs.pop("wandb_id", None)
+
         self.resumed = resumed
         if self.resumed:
-            if wandb_id is not None:
-                logger.warning("Resuming the run with a previous WandB ID instead of the one from logger params")
-            wandb_id = self._get_wandb_id()
-            wandb.restore
+            if wandb_id is None:
+                wandb_id = self._get_wandb_id()
 
         run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
         if save_code:
@@ -317,3 +316,6 @@ class WandBSGLogger(BaseSGLogger):
             return None
 
         return None
+
+    def download_remote_ckpt(self, *args, **kwargs):
+        wandb.restore("ckpt_latest.pth", replace=True, run_path=self.local_dir())

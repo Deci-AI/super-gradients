@@ -648,7 +648,7 @@ class Trainer:
         self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
         self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None
         self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
-        self._load_checkpoint_to_model()
+        self.download_ckpt_from_sg_logger = core_utils.get_param(self.training_params, "download_ckpt_from_sg_logger", False)
 
     def _init_arch_params(self) -> None:
         default_arch_params = HpmStruct()
@@ -1032,6 +1032,10 @@ class Trainer:
 
         self.net = model
         self._prep_net_for_train()
+        with wait_for_the_master(get_local_rank()):
+            if not self.ddp_silent_mode:
+                self._initialize_sg_logger_objects(additional_configs_to_log)
+        self._load_checkpoint_to_model()
 
         # SET RANDOM SEED
         random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
@@ -1129,8 +1133,6 @@ class Trainer:
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
         if not self.ddp_silent_mode:
-            self._initialize_sg_logger_objects(additional_configs_to_log)
-
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
                 dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes, title="Train-set", anchors=self.net.module.arch_params.anchors)
@@ -1494,6 +1496,8 @@ class Trainer:
         NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params
          is True
         """
+        if self.download_ckpt_from_sg_logger:
+            self.sg_logger.download_remote_ckpt()
 
         if self.load_checkpoint or self.external_checkpoint_path:
             # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST

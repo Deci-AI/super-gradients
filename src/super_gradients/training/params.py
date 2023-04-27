@@ -64,6 +64,9 @@ DEFAULT_TRAINING_PARAMS = {
     # (i.e iterating over train_loader) when reaching this number of batches.
     "max_valid_batches": None,  # For debug- when not None- will break out of inner valid loop
     # (i.e iterating over valid_loader) when reaching this number of batches.
+    "download_ckpt_from_sg_logger": False  # When true, ckpt_name (checkpoint filename to resume) will be
+    # downloaded into the experiment checkpoints directory, prior to loading weights (when resume=True).
+    # The source is unique to every logger, and currently supported for WandB loggers only.s
 }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}
