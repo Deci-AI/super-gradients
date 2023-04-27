@@ -55,27 +55,27 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
 
 <table class="tfo-notebook-buttons" align="left">
 <tr>
- <td >   
-   <a target="_blank" href="documentation/source/YoloNASQuickstart.md"> Documentation: YOLO-NAS Quickstart </a>
-  </td>
+    <td>   
+        <a target="_blank" href="documentation/source/YoloNASQuickstart.md"> Documentation: YOLO-NAS Quickstart </a>
+    </td>
 </tr>
 <tr>
- <td >   
-   <a target="_blank" href="documentation/source/qat_ptq_yolo_nas.md"> Documentation: YOLO-NAS Quantization-Aware training and post-training Quantization </a>
-  </td>
-</tr>
-
-<tr>
- <td>   
-   <a target="_blank" href="https://colab.research.google.com/drive/1vRkBFn3mepx3NZtwwrDOKq2RZpa1EpIa"><img style="vertical-align:middle" src="./docs/assets/SG_img/colab_logo.png" /> Inference Notebook </a>
-  </td>
+    <td>
+        <a target="_blank" href="documentation/source/qat_ptq_yolo_nas.md"> Documentation: YOLO-NAS Quantization-Aware training and post-training Quantization </a>
+    </td>
 </tr>
 <tr>
-<td>   
-   <a target="_blank" href="https://colab.research.google.com/drive/1q0RmeVRzLwRXW-h9dPFSOchwJkThUy6d"><img style="vertical-align:middle" src="./docs/assets/SG_img/colab_logo.png" /> Fine-Tuning Notebook </a>
-  </td>
+    <td>   
+        <a target="_blank" href="https://colab.research.google.com/drive/1vRkBFn3mepx3NZtwwrDOKq2RZpa1EpIa"><img style="vertical-align:middle" src="./docs/assets/SG_img/colab_logo.png" /> Inference Notebook </a>
+    </td>
+</tr>
+<tr>
+    <td>   
+        <a target="_blank" href="https://colab.research.google.com/drive/1q0RmeVRzLwRXW-h9dPFSOchwJkThUy6d"><img style="vertical-align:middle" src="./docs/assets/SG_img/colab_logo.png" /> Fine-Tuning Notebook </a>
+    </td>
 </tr>
 </table>
+
 
 ## LICENSE
 
