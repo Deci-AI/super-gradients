@@ -12,8 +12,8 @@ The steps will be:
 2. Performing post-training quantization and quantization-aware training
 
 Pre-requisites:
-- [Training with configuration files]()
-- [PTQ and QAT]()
+- [Training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)
+- [PTQ and QAT](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/ptq_qat.md)
 
 
 Now, let's get to it.
@@ -170,8 +170,16 @@ And so our best checkpoint resides in <YOUR_CHECKPOINTS_ROOT_DIRECTORY>/yolo_nas
 
 Let's visualize some results:
 ```python
-#TODO: ADD PREDICT ONCE PREPROCESSING IS READY
+from super_gradients.common.object_names import Models
+from super_gradients.training import models
+
+model = models.get(Models.YOLO_NAS_S,
+                   checkpoint_path=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>/yolo_nas_s_soccer_players/ckpt_best.pth>,
+                   num_classes=4)
+predictions = model.predict("messi_penalty.mp4")
+predictions.show(show_confidence=False)
 ```
+![](images/messi_penalty_pred_higher_conf_right_class2.gif)
 
 ## QAT and PTQ
 
