@@ -1,6 +1,8 @@
 import collections
 import os.path
 import pickle
+from pprint import pprint
+from typing import Optional
 
 import hydra
 import numpy as np
@@ -8,10 +10,12 @@ import pkg_resources
 import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig
+from torch import nn
 from tqdm import tqdm
 
 from super_gradients import init_trainer, setup_device
 from super_gradients.training import utils as core_utils, models, dataloaders
+from super_gradients.training.metrics import PoseEstimationMetrics
 from super_gradients.training.metrics.pose_estimation_utils import compute_oks
 from super_gradients.training.utils import get_param
 
@@ -22,12 +26,15 @@ def remove_starting_module(key: str):
     return key
 
 
-def process_loader(model, loader, post_prediction_callback, sigmas):
+def process_loader(model, loader, post_prediction_callback, sigmas, metric: Optional[PoseEstimationMetrics] = None):
     samples = []
     for inputs, targets, extras in tqdm(loader):
         with torch.no_grad(), torch.cuda.amp.autocast(True):
             predictions = model(inputs.cuda(non_blocking=True))
             all_poses, all_scores = post_prediction_callback(predictions)
+
+        if metric is not None:
+            metric.update(predictions, targets, **extras)
 
         batch_size = len(inputs)
         for image_index in range(batch_size):
@@ -73,6 +80,57 @@ def process_loader(model, loader, post_prediction_callback, sigmas):
     return samples
 
 
+class DEKRWrapper(nn.Module):
+    def __init__(self, model, apply_sigmoid=False):
+        super().__init__()
+        self.model = model
+        self.apply_sigmoid = apply_sigmoid
+
+    def forward(self, inputs):
+        heatmap, offsets = self.model(inputs)
+
+        if self.apply_sigmoid:
+            heatmap = torch.sigmoid(heatmap)
+
+        return heatmap, offsets
+
+
+class DEKRHorisontalFlipWrapper(nn.Module):
+    def __init__(self, model, flip_indexes_heatmap, flip_indexes_offset, apply_sigmoid=False):
+        super().__init__()
+        self.model = model
+        self.flip_indexes_heatmap = torch.tensor(flip_indexes_heatmap).long()
+        self.flip_indexes_offset = torch.tensor(flip_indexes_offset).long()
+        self.apply_sigmoid = apply_sigmoid
+
+    def forward(self, inputs):
+
+        input_flip = inputs.flip(3)
+        input_flip[:, :, :, :-3] = input_flip[:, :, :, 3:]
+
+        heatmap, offsets = self.model(inputs)
+        heatmap_flip, offset_flip = self.model(input_flip)
+
+        heatmap_deaugment = heatmap_flip[:, self.flip_indexes_heatmap, :, :]
+
+        batch_size, num_offsets, rows, cols = offset_flip.size()
+
+        offset_flip = offset_flip.reshape(offset_flip.size(0), offset_flip.size(1) // 2, 2, offset_flip.size(2), offset_flip.size(3))
+        offset_flip = offset_flip[:, self.flip_indexes_offset, :, :, :]
+        offset_flip[:, :, 0, :, :] *= -1
+
+        offset_deaugment = offset_flip.reshape(batch_size, num_offsets, rows, cols)
+
+        if self.apply_sigmoid:
+            heatmap = torch.sigmoid(heatmap)
+            heatmap_deaugment = torch.sigmoid(heatmap_deaugment)
+
+        averaged_heatmap = (heatmap + heatmap_deaugment.flip(3)) * 0.5
+        averaged_offsets = (offsets + offset_deaugment.flip(3)) * 0.5
+
+        return averaged_heatmap, averaged_offsets
+
+
 @hydra.main(
     config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name="script_generate_rescoring_data_dekr_coco2017", version_base="1.2"
 )
@@ -98,20 +156,42 @@ def main(cfg: DictConfig) -> None:
         torch.save(checkpoint, cfg.checkpoint_params.checkpoint_path)
 
     # BUILD NETWORK
-    model = (
-        models.get(
-            model_name=cfg.architecture,
-            num_classes=cfg.arch_params.num_classes,
-            arch_params=cfg.arch_params,
-            strict_load=cfg.checkpoint_params.strict_load,
-            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-        )
-        .cuda()
-        .eval()
+    model = models.get(
+        model_name=cfg.architecture,
+        num_classes=cfg.arch_params.num_classes,
+        arch_params=cfg.arch_params,
+        strict_load=cfg.checkpoint_params.strict_load,
+        pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+        checkpoint_path=cfg.checkpoint_params.checkpoint_path,
     )
 
+    # model = DEKRWrapper(model, apply_sigmoid=True).cuda().eval()
+    model = DEKRHorisontalFlipWrapper(model, cfg.dataset_params.flip_indexes_heatmap, cfg.dataset_params.flip_indexes_offset, apply_sigmoid=True).cuda().eval()
+
     post_prediction_callback = cfg.post_prediction_callback
+    post_prediction_callback.apply_sigmoid = False
+
+    pose_estimation_metric = PoseEstimationMetrics(
+        post_prediction_callback=post_prediction_callback,
+        max_objects_per_image=post_prediction_callback.max_num_people,
+        num_joints=cfg.dataset_params.num_joints,
+        oks_sigmas=cfg.dataset_params.oks_sigmas,
+    )
+
+    os.makedirs(cfg.rescoring_data_dir, exist_ok=True)
+
+    val_dataloader = dataloaders.get(
+        name=get_param(cfg, "val_dataloader"),
+        dataset_params=cfg.dataset_params.val_dataset_params,
+        dataloader_params=cfg.dataset_params.val_dataloader_params,
+    )
+    valid_samples = process_loader(model, val_dataloader, post_prediction_callback, sigmas, metric=pose_estimation_metric)
+
+    with open(os.path.join(cfg.rescoring_data_dir, "rescoring_data_valid.pkl"), "wb") as f:
+        pickle.dump(valid_samples, f)
+
+    print("Pose estimation metrics on validation set:")
+    pprint(pose_estimation_metric.compute())
 
     train_dataloader = dataloaders.get(
         name=get_param(cfg, "train_dataloader"),
@@ -121,16 +201,6 @@ def main(cfg: DictConfig) -> None:
     train_samples = process_loader(model, train_dataloader, post_prediction_callback, sigmas)
     with open(os.path.join(cfg.rescoring_data_dir, "rescoring_data_train.pkl"), "wb") as f:
         pickle.dump(train_samples, f)
-
-    val_dataloader = dataloaders.get(
-        name=get_param(cfg, "val_dataloader"),
-        dataset_params=cfg.dataset_params.val_dataset_params,
-        dataloader_params=cfg.dataset_params.val_dataloader_params,
-    )
-    valid_samples = process_loader(model, val_dataloader, post_prediction_callback, sigmas)
-    os.makedirs(cfg.rescoring_data_dir, exist_ok=True)
-    with open(os.path.join(cfg.rescoring_data_dir, "rescoring_data_valid.pkl"), "wb") as f:
-        pickle.dump(valid_samples, f)
 
     print(f"Train data for rescoring saved to {cfg.rescoring_data_dir}")
 

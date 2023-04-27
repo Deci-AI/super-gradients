@@ -12,8 +12,6 @@ architecture: pose_rescoring
 multi_gpu: Off
 num_gpus: 1
 
-rescoring_data_dir: ???
-
 experiment_suffix: ""
 experiment_name: coco2017_pose_rescoring_${architecture}_${experiment_suffix}
 
@@ -21,9 +19,6 @@ ckpt_root_dir:
 
 train_dataloader: coco2017_rescoring_train
 val_dataloader: coco2017_rescoring_val
-
-dataset_params:
-  data_dir: ${rescoring_data_dir}
 
 arch_params:
   num_classes: ${dataset_params.num_joints}
