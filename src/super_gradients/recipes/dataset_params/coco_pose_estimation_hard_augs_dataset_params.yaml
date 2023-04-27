@@ -56,7 +56,7 @@ train_dataset_params:
         max_translate: 0.2
         image_pad_value: [ 127, 127, 127 ]
         mask_pad_value: 1
-        prob: 0.5
+        prob: 0.75
 
     - KeypointsImageToTensor
 
