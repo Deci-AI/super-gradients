@@ -52,7 +52,7 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
 ![YOLO-NAS-RF-100](documentation/source/images/yolo_nas_rf100.png)
 
 ## Additional resources
- <table class="tfo-notebook-buttons" align="left">
+<table class="tfo-notebook-buttons" align="left">
 <tr>
     <td>   
         <a target="_blank" href="documentation/source/YoloNASQuickstart.md"> 
@@ -70,19 +70,19 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
 <tr>
     <td>   
         <a target="_blank" href="https://colab.research.google.com/drive/1vRkBFn3mepx3NZtwwrDOKq2RZpa1EpIa">
-            <img style="vertical-align:middle" src="./docs/assets/SG_img/colab_logo.png" /> Inference Notebook 
+            <img src="./docs/assets/SG_img/colab_logo.png" /> Inference Notebook 
         </a>
     </td>
 </tr>
 <tr>
     <td>   
         <a target="_blank" href="https://colab.research.google.com/drive/1q0RmeVRzLwRXW-h9dPFSOchwJkThUy6d">
-            <img style="vertical-align:middle" src="./docs/assets/SG_img/colab_logo.png" /> Fine-Tuning Notebook 
+            <img src="./docs/assets/SG_img/colab_logo.png" /> Fine-Tuning Notebook 
         </a>
     </td>
 </tr>
 </table>
- <br>
+
 
 ## LICENSE
 
