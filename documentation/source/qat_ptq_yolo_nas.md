@@ -12,8 +12,8 @@ The steps will be:
 2. Performing post-training quantization and quantization-aware training
 
 Pre-requisites:
-- [Training with configuration files]()
-- [PTQ and QAT]()
+- [Training with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/configuration_files.md)
+- [PTQ and QAT](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/ptq_qat.md)
 
 
 Now, let's get to it.
