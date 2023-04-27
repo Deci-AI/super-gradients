@@ -119,7 +119,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         kwargs["target_fields"] = ["target"]
         kwargs["output_fields"] = ["image", "target"]
         kwargs["original_target_format"] = XYXY_LABEL  # We convert yolo format (LABEL_CXCYWH) to Coco format (XYXY_LABEL) when loading the annotation
-        super().__init__(data_dir=data_dir, *args, **kwargs)
+        super().__init__(data_dir=data_dir, show_all_warnings=show_all_warnings, *args, **kwargs)
 
     @property
     def _all_classes(self) -> List[str]:
@@ -187,8 +187,6 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
             ignore_invalid_labels=self.ignore_invalid_labels,
             show_warnings=self.show_all_warnings,
         )
-        if len(invalid_labels):
-            logger.warning(f"Ignoring {len(invalid_labels)} invalid labels in {label_path}")
 
         converter = ConcatenatedTensorFormatConverter(input_format=LABEL_NORMALIZED_CXCYWH, output_format=XYXY_LABEL, image_shape=image_shape)
         target = converter(yolo_format_target)
@@ -207,6 +205,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
             "resized_img_shape": resized_img_shape,
             "img_path": image_path,
             "id": np.array([sample_id]),
+            "n_invalid_labels": len(invalid_labels),
         }
         return annotation
 
