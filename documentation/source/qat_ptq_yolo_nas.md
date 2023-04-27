@@ -170,8 +170,16 @@ And so our best checkpoint resides in <YOUR_CHECKPOINTS_ROOT_DIRECTORY>/yolo_nas
 
 Let's visualize some results:
 ```python
-#TODO: ADD PREDICT ONCE PREPROCESSING IS READY
+from super_gradients.common.object_names import Models
+from super_gradients.training import models
+
+model = models.get(Models.YoloSG_S,
+                   checkpoint_path=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>/yolo_nas_s_soccer_players/ckpt_best.pth>,
+                   num_classes=4)
+predictions = model.predict("messi_penalty.mp4")
+predictions.show(show_confidence=False)
 ```
+![](images/messi_penalty_pred_higher_conf_right_class2.gif)
 
 ## QAT and PTQ
 

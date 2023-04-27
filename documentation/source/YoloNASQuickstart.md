@@ -23,6 +23,7 @@ net = models.get(Models.YoloNAS_S, pretrained_weights="coco")
 ## Predict
 ```python
 prediction = net.predict("https://www.aljazeera.com/wp-content/uploads/2022/12/2022-12-03T205130Z_851430040_UP1EIC31LXSAZ_RTRMADP_3_SOCCER-WORLDCUP-ARG-AUS-REPORT.jpg?w=770&resize=770%2C436&quality=80")
+prediction.show()
 ```
 <div>
 <img src="images/yolo_nas_qs_predict.png" width="750">
