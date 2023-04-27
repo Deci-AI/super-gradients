@@ -51,8 +51,12 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
 
 ![YOLO-NAS-RF-100](documentation/source/images/yolo_nas_rf100.png)
 
+
+
+
+
 ## Additional resources
-<table class="tfo-notebook-buttons" align="left">
+<table>
 <tr>
     <td>   
         <a target="_blank" href="documentation/source/YoloNASQuickstart.md"> 
@@ -81,6 +85,7 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
         </a>
     </td>
 </tr>
+    </tbody>
 </table>
 
 
