@@ -25,7 +25,6 @@ class ActivationsTypeFactory(AbstractFactory):
 
            If provided value is not one of the three above, the value will be returned as is
         """
-
         if isinstance(conf, str):
             return get_builtin_activation_type(conf)
 
