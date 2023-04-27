@@ -1,5 +1,5 @@
 defaults:
-  - coco_pose_estimation_dataset_params
+  - coco_pose_estimation_dekr_dataset_params
   - _self_
 
 train_dataset_params:
