@@ -75,6 +75,7 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
     </td>
 </tr>
 </table>
+ </br></br>
 
 
 ## LICENSE
