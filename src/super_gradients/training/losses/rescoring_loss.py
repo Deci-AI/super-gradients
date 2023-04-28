@@ -17,6 +17,6 @@ class RescoringLoss(nn.Module):
 
         :param predictions: Tuple of (poses, scores)
         :param targets: Target scores
-        :return: MSE loss between predicted scores and target scores
+        :return: KD loss between predicted scores and target scores
         """
-        return torch.nn.functional.mse_loss(predictions[1], targets)
+        return torch.nn.functional.binary_cross_entropy_with_logits(predictions[1], targets)

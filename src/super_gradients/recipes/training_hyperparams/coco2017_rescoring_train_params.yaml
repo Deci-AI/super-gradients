@@ -27,13 +27,10 @@ valid_metrics_list:
   - PoseEstimationMetrics:
       num_joints: ${dataset_params.num_joints}
       oks_sigmas: ${dataset_params.oks_sigmas}
-      max_objects_per_image: 20
+      max_objects_per_image: 30
       post_prediction_callback:
         _target_: super_gradients.training.utils.pose_estimation.RescoringPoseEstimationDecodeCallback
-        apply_sigmoid: False
-
-#metric_to_watch: 'MSELoss'
-#greater_metric_to_watch_is_better: False
+        apply_sigmoid: True
 
 metric_to_watch: 'AP'
 greater_metric_to_watch_is_better: True
