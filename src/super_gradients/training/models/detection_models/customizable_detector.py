@@ -12,7 +12,7 @@ from omegaconf import DictConfig
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
-from super_gradients.modules import SupportsReplaceNumClasses
+from super_gradients.module_interfaces import SupportsReplaceNumClasses
 from super_gradients.modules.head_replacement_utils import replace_num_classes_with_random_weights
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule

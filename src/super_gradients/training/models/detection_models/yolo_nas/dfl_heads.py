@@ -9,7 +9,7 @@ import super_gradients.common.factories.detection_modules_factory as det_factory
 from super_gradients.common.registry import register_detection_module
 from super_gradients.modules import ConvBNReLU
 from super_gradients.modules.base_modules import BaseDetectionModule
-from super_gradients.modules.interfaces import SupportsReplaceNumClasses
+from super_gradients.module_interfaces import SupportsReplaceNumClasses
 from super_gradients.modules.utils import width_multiplier
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell
 from super_gradients.training.utils import HpmStruct, torch_version_is_greater_or_equal
