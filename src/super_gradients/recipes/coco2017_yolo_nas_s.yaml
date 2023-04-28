@@ -15,6 +15,7 @@ defaults:
   - arch_params: yolo_nas_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 train_dataloader: coco2017_train_yolo_nas
 val_dataloader: coco2017_val_yolo_nas
@@ -40,12 +41,3 @@ num_gpus: 8
 
 experiment_suffix: ""
 experiment_name: coco2017_${architecture}${experiment_suffix}
-
-ckpt_root_dir:
-
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

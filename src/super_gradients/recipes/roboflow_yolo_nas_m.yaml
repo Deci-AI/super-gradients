@@ -12,6 +12,7 @@ defaults:
   - checkpoint_params: default_checkpoint_params
   - arch_params: yolo_nas_m_arch_params
   - _self_
+  - variable_setup
 
 train_dataloader: roboflow_train_yolox
 val_dataloader: roboflow_val_yolox
@@ -86,13 +87,6 @@ training_hyperparams:
 
 multi_gpu: Off
 num_gpus: 1
+
 experiment_suffix: ""
 experiment_name: ${architecture}_roboflow_${dataset_name}${experiment_suffix}
-ckpt_root_dir:
-
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
