@@ -72,7 +72,7 @@ dataset_params:
     batch_size: 32
 
 training_hyperparams:
-  mixed_precision: False
+  mixed_precision: True
   initial_lr: 4e-3
   resume: ${resume}
 
