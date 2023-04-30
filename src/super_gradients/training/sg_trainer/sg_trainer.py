@@ -1032,9 +1032,8 @@ class Trainer:
 
         self.net = model
         self._prep_net_for_train()
-        with wait_for_the_master(get_local_rank()):
-            if not self.ddp_silent_mode:
-                self._initialize_sg_logger_objects(additional_configs_to_log)
+        if not self.ddp_silent_mode:
+            self._initialize_sg_logger_objects(additional_configs_to_log)
         self._load_checkpoint_to_model()
 
         # SET RANDOM SEED
@@ -1496,8 +1495,9 @@ class Trainer:
         NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params
          is True
         """
-        if self.download_ckpt_from_sg_logger:
-            self.sg_logger.download_remote_ckpt()
+        with wait_for_the_master(get_local_rank()):
+            if self.download_ckpt_from_sg_logger and not self.ddp_silent_mode:
+                self.sg_logger.download_remote_ckpt()
 
         if self.load_checkpoint or self.external_checkpoint_path:
             # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST

@@ -318,4 +318,4 @@ class WandBSGLogger(BaseSGLogger):
         return None
 
     def download_remote_ckpt(self, *args, **kwargs):
-        wandb.restore("ckpt_latest.pth", replace=True, run_path=self.local_dir())
+        wandb.restore("ckpt_latest.pth", replace=True, root=self.local_dir())
