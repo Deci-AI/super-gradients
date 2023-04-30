@@ -646,9 +646,9 @@ class Trainer:
         self.load_ema_as_net = False
         self.load_checkpoint = core_utils.get_param(self.training_params, "resume", False)
         self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
-        self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None
         self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
-        self.download_ckpt_from_sg_logger = core_utils.get_param(self.training_params, "download_ckpt_from_sg_logger", False)
+        self.resume_from_remote_sg_logger = core_utils.get_param(self.training_params, "resume_from_remote_sg_logger", False)
+        self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None or self.resume_from_remote_sg_logger
 
     def _init_arch_params(self) -> None:
         default_arch_params = HpmStruct()
@@ -994,6 +994,14 @@ class Trainer:
 
                 -   `max_valid_batches`: int, for debug- when not None- will break out of inner valid loop (i.e iterating over
                       valid_loader) when reaching this number of batches. Usefull for debugging (default=None).
+
+                -   `resume_from_remote_sg_logger`: bool (default=False),  bool (default=False), When true, ckpt_name (checkpoint filename
+                       to resume i.e ckpt_latest.pth bydefault) will be downloaded into the experiment checkpoints directory
+                       prior to loading weights, then training is resumed from that checkpoint. The source is unique to
+                       every logger, and currently supported for WandB loggers only.
+
+                       IMPORTANT: Only works for experiments that were ran with sg_logger_params.save_checkpoints_remote=True.
+                       IMPORTANT: For WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
 
 
 
@@ -1496,8 +1504,8 @@ class Trainer:
          is True
         """
         with wait_for_the_master(get_local_rank()):
-            if self.download_ckpt_from_sg_logger and not self.ddp_silent_mode:
-                self.sg_logger.download_remote_ckpt()
+            if self.resume_from_remote_sg_logger and not self.ddp_silent_mode:
+                self.sg_logger.download_remote_ckpt(ckpt_name=self.ckpt_name)
 
         if self.load_checkpoint or self.external_checkpoint_path:
             # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST

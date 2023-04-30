@@ -171,6 +171,6 @@ class AbstractSGLogger(ABC):
         """
         raise NotImplementedError
 
-    def download_remote_ckpt(self, *args, **kwargs):
+    def download_remote_ckpt(self, ckpt_name: str, *args, **kwargs):
 
         raise NotImplementedError
