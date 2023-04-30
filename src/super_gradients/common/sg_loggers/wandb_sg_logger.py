@@ -95,6 +95,11 @@ class WandBSGLogger(BaseSGLogger):
         self.resumed = resumed
         if self.resumed:
             if wandb_id is None:
+                if self._resume_from_remote_sg_logger:
+                    raise RuntimeError(
+                        "For WandB loggers, when training_params.resume_from_remote_sg_logger=True "
+                        "pass the run id through the wandb_id arg in sg_logger_params"
+                    )
                 wandb_id = self._get_wandb_id()
 
         run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)

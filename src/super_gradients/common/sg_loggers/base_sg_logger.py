@@ -101,6 +101,7 @@ class BaseSGLogger(AbstractSGLogger):
         self._init_system_monitor(monitor_system)
 
         self._save_code()
+        self._resume_from_remote_sg_logger = training_params.resume_from_remote_sg_logger
 
     @multi_process_safe
     def _launch_tensorboard(self, port):
