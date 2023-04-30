@@ -84,6 +84,7 @@ class DetectionDataset(Dataset):
         target_fields: List[str] = None,
         output_fields: List[str] = None,
         verbose: bool = True,
+        show_all_warnings: bool = False,
     ):
         """Detection dataset.
 
@@ -106,10 +107,12 @@ class DetectionDataset(Dataset):
                                                 It has to include at least "target" but can include other.
         :param output_fields:                   Fields that will be outputed by __getitem__.
                                                 It has to include at least "image" and "target" but can include other.
-        :param verbose:                 Whether to show additional information or not, such as loading progress.
+        :param verbose:                 Whether to show additional information or not, such as loading progress. (doesnt include warnings)
+        :param show_all_warnings:       Whether to show all warnings or not.
         """
         super().__init__()
         self.verbose = verbose
+        self.show_all_warnings = show_all_warnings
 
         if isinstance(original_target_format, DetectionTargetsFormat):
             logger.warning(
@@ -186,6 +189,7 @@ class DetectionDataset(Dataset):
         """Load all the annotations to memory to avoid opening files back and forth.
         :return: List of annotations
         """
+        n_invalid_bbox = 0
         annotations = []
         for sample_id, img_id in enumerate(tqdm(range(self.n_available_samples), desc="Caching annotations", disable=not self.verbose)):
 
@@ -193,6 +197,8 @@ class DetectionDataset(Dataset):
                 break
 
             img_annotation = self._load_annotation(img_id)
+            n_invalid_bbox += img_annotation.get("n_invalid_labels", 0)
+
             if not self._required_annotation_fields.issubset(set(img_annotation.keys())):
                 raise KeyError(
                     f"_load_annotation is expected to return at least the fields {self._required_annotation_fields} " f"but got {set(img_annotation.keys())}"
@@ -208,8 +214,12 @@ class DetectionDataset(Dataset):
 
         if len(annotations) == 0:
             raise EmptyDatasetException(
-                f"Out of {self.n_available_samples} images, not a single one was found with" f"any of these classes: {self.class_inclusion_list}"
+                f"Out of {self.n_available_samples} images, not a single one was found with any of these classes: {self.class_inclusion_list}"
             )
+
+        if n_invalid_bbox > 0:
+            logger.warning(f"Found {n_invalid_bbox} invalid bbox that were ignored. For more information, please set `show_all_warnings=True`.")
+
         return annotations
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
