@@ -23,6 +23,8 @@ class DEKRLoss(nn.Module):
 
         :param heatmap_loss_factor: Weighting factor for heatmap loss
         :param offset_loss_factor: Weighting factor for offset loss
+        :param heatmap_loss: Type of heatmap loss to use. Can be "mse" (Used in DEKR paper) or "qfl" (Quality Focal Loss).
+                             We use QFL in our recipe as it produces better results.
         """
         super().__init__()
         self.heatmap_loss_factor = float(heatmap_loss_factor)
