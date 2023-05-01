@@ -20,4 +20,6 @@ class RescoringPoseEstimationDecodeCallback:
     def __call__(self, predictions: Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
         """ """
         poses, scores = predictions
+        if self.apply_sigmoid:
+            poses = poses.sigmoid()
         return poses, scores.squeeze(-1)  # Pose Estimation Callback expects that scores don't have the dummy dimension
