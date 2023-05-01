@@ -305,7 +305,8 @@ class Models:
     DEKR_W32_NO_DC = "dekr_w32_no_dc"
     POSE_PP_YOLO_L = "pose_ppyolo_l"
     POSE_DDRNET_39 = "pose_ddrnet39"
-    POSE_RESCORING = "pose_rescoring"
+    POSE_RESCORING = "pose_rescoring_custom"
+    POSE_RESCORING_COCO = "pose_rescoring_coco"
 
 
 class ConcatenatedTensorFormats:

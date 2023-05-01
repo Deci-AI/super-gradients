@@ -102,7 +102,7 @@ from super_gradients.training.models.segmentation_models.ddrnet_backbones import
 # Pose estimation
 from super_gradients.training.models.pose_estimation_models.pose_ppyolo import PosePPYoloL
 from super_gradients.training.models.pose_estimation_models.pose_ddrnet39 import PoseDDRNet39
-from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRPoseEstimationModel, DEKRW32
+from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRPoseEstimationModel, DEKRW32NODC
 
 # KD
 from super_gradients.training.models.kd_modules.kd_module import KDModule
@@ -250,7 +250,7 @@ __all__ = [
     "PosePPYoloL",
     "PoseDDRNet39",
     "DEKRPoseEstimationModel",
-    "DEKRW32",
+    "DEKRW32NODC",
     "KDModule",
     "get",
     "get_model_name",

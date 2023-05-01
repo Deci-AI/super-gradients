@@ -1,7 +1,7 @@
 defaults:
   - training_hyperparams: coco2017_rescoring_train_params
   - dataset_params: coco_pose_estimation_rescoring_dataset_params
-  - arch_params: pose_rescoring_arch_params
+  - arch_params: pose_dekr_coco_rescoring_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
 
@@ -19,12 +19,6 @@ ckpt_root_dir:
 
 train_dataloader: coco2017_rescoring_train
 val_dataloader: coco2017_rescoring_val
-
-arch_params:
-  num_classes: ${dataset_params.num_joints}
-  hidden_channels: 256
-  num_layers: 2
-  joint_links: ${dataset_params.joint_links}
 
 training_hyperparams:
   resume: ${resume}

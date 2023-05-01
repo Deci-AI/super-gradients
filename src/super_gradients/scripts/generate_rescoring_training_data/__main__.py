@@ -10,13 +10,13 @@ import pkg_resources
 import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig
-from torch import nn
 from tqdm import tqdm
 
 from super_gradients import init_trainer, setup_device
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.metrics import PoseEstimationMetrics
 from super_gradients.training.metrics.pose_estimation_utils import compute_oks
+from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRHorisontalFlipWrapper
 from super_gradients.training.utils import get_param
 
 
@@ -78,57 +78,6 @@ def process_loader(model, loader, post_prediction_callback, sigmas, metric: Opti
             }
             samples.append(sample)
     return samples
-
-
-class DEKRWrapper(nn.Module):
-    def __init__(self, model, apply_sigmoid=False):
-        super().__init__()
-        self.model = model
-        self.apply_sigmoid = apply_sigmoid
-
-    def forward(self, inputs):
-        heatmap, offsets = self.model(inputs)
-
-        if self.apply_sigmoid:
-            heatmap = torch.sigmoid(heatmap)
-
-        return heatmap, offsets
-
-
-class DEKRHorisontalFlipWrapper(nn.Module):
-    def __init__(self, model, flip_indexes_heatmap, flip_indexes_offset, apply_sigmoid=False):
-        super().__init__()
-        self.model = model
-        self.flip_indexes_heatmap = torch.tensor(flip_indexes_heatmap).long()
-        self.flip_indexes_offset = torch.tensor(flip_indexes_offset).long()
-        self.apply_sigmoid = apply_sigmoid
-
-    def forward(self, inputs):
-
-        input_flip = inputs.flip(3)
-        input_flip[:, :, :, :-3] = input_flip[:, :, :, 3:]
-
-        heatmap, offsets = self.model(inputs)
-        heatmap_flip, offset_flip = self.model(input_flip)
-
-        heatmap_deaugment = heatmap_flip[:, self.flip_indexes_heatmap, :, :]
-
-        batch_size, num_offsets, rows, cols = offset_flip.size()
-
-        offset_flip = offset_flip.reshape(offset_flip.size(0), offset_flip.size(1) // 2, 2, offset_flip.size(2), offset_flip.size(3))
-        offset_flip = offset_flip[:, self.flip_indexes_offset, :, :, :]
-        offset_flip[:, :, 0, :, :] *= -1
-
-        offset_deaugment = offset_flip.reshape(batch_size, num_offsets, rows, cols)
-
-        if self.apply_sigmoid:
-            heatmap = torch.sigmoid(heatmap)
-            heatmap_deaugment = torch.sigmoid(heatmap_deaugment)
-
-        averaged_heatmap = (heatmap + heatmap_deaugment.flip(3)) * 0.5
-        averaged_offsets = (offsets + offset_deaugment.flip(3)) * 0.5
-
-        return averaged_heatmap, averaged_offsets
 
 
 @hydra.main(
