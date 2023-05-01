@@ -574,33 +574,23 @@ class CocoMAPV2:
 
             from torch.utils.data._utils.collate import default_collate  # noqa
 
-            # Use default collate fonction to include every item returned by the dataloader in the batch
-            # val_loader.collate_fn, keep_collate_fn = default_collate, val_loader.collate_fn
-            # processing_params = self.dataloader.dataset.get_dataset_preprocessing_params()
-            # processing_params['conf'] = 0.03
-
             from super_gradients.training.utils.utils import generate_batch
 
             loader = generate_batch(val_loader.dataset, batch_size=30)
             for batch_i, samples in tqdm(enumerate(loader), total=int(5000 / 30)):
                 samples = list(samples)
                 ids = [sample["id"].tolist()[0] for sample in samples]
-                images = [sample["image"] for sample in samples]
+                images = [sample["image"][:, :, ::-1].copy() for sample in samples]
 
-                # prediction = self.model.predict(images, conf=0.001, iou=0.6)
                 prediction = self.model.predict(images, conf=0.01, iou=0.7)
-                # prediction = self.model.predict(images, conf=0.001, iou=0.6)
-                # prediction = self.model.predict(sample["image"], conf=0.03)
 
                 for pred, id in zip(prediction, ids):
                     output_formated = self.convert_to_coco_format(pred.prediction, id)
-                    # output_formated = self.convert_to_coco_format(prediction.prediction, sample["id"])
                     coco_list.extend(output_formated)
                 all_image_ids.extend(ids)
 
             with open(output_json_path, "w") as f:
                 json.dump(coco_list, f)
-            # val_loader.collate_fn = keep_collate_fn
 
         anno = COCO(self.annotations_json_path)  # init annotations api
         pred = anno.loadRes(output_json_path)  # init predictions api
@@ -610,6 +600,7 @@ class CocoMAPV2:
         eval.evaluate()
         eval.accumulate()
         eval.summarize()
+        print(eval.stats)
         return eval
 
     def convert_to_coco_format(self, prediction, ids):
@@ -681,14 +672,7 @@ def instantiate_dataset():
         coco2017_val_yolo_nas,
     )
     from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN
-    from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
 
-    post_prediction_callback = PPYoloEPostPredictionCallback(
-        score_threshold=0.01,
-        nms_top_k=1000,
-        max_predictions=300,
-        nms_threshold=0.7,
-    )
     import os
     from super_gradients.training import models
     from super_gradients.common.object_names import Models
@@ -698,13 +682,13 @@ def instantiate_dataset():
         dataset_params={"with_crowd": True, "ignore_empty_annotations": False, "transforms": []},
     )
 
-    model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco").cuda()
+    model = models.get(Models.YOLO_NAS_M, pretrained_weights="coco").cuda()
     model.eval()
 
     anno_json = "/data/coco/annotations/instances_val2017.json"
     coco_map_tool = CocoMAPV2(
         model=model,
-        post_prediction_callback=post_prediction_callback,
+        post_prediction_callback=None,
         dataloader=dataloader,
         image_size=640,
         batch_size=10,
