@@ -322,8 +322,8 @@ def default_yolo_nas_coco_processing_params() -> dict:
     params = dict(
         class_names=COCO_DETECTION_CLASSES_LIST,
         image_processor=image_processor,
-        iou=0.65,
-        conf=0.5,
+        iou=0.7,
+        conf=0.25,
     )
     return params
 
