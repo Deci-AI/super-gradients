@@ -197,11 +197,11 @@ class PoseEstimationMetrics(Metric):
             )
 
         predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float32, device=self.device)
-        predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float, device=self.device)
+        predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float32, device=self.device)
 
-        gt_keypoints = convert_to_tensor(groundtruths, dtype=torch.float, device=self.device)
-        gt_areas = convert_to_tensor(gt_areas, dtype=torch.float, device=self.device)
-        gt_bboxes = convert_to_tensor(gt_bboxes, dtype=torch.float, device=self.device)
+        gt_keypoints = convert_to_tensor(groundtruths, dtype=torch.float32, device=self.device)
+        gt_areas = convert_to_tensor(gt_areas, dtype=torch.float32, device=self.device)
+        gt_bboxes = convert_to_tensor(gt_bboxes, dtype=torch.float32, device=self.device)
         gt_iscrowd = convert_to_tensor(gt_iscrowd, dtype=torch.bool, device=self.device)
 
         gt_keypoints_xy = gt_keypoints[:, :, 0:2]
