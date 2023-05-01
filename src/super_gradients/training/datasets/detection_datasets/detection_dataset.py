@@ -337,7 +337,8 @@ class DetectionDataset(Dataset):
         for field in self.output_fields:
             if field not in sample.keys():
                 raise KeyError(f"The field {field} must be present in the sample but was not found." "Please check the output fields of your transforms.")
-        return tuple(sample[field] for field in self.output_fields)
+        # return tuple(sample[field] for field in self.output_fields)
+        return sample
 
     def get_random_item(self):
         return self[self._random_index()]
@@ -350,6 +351,7 @@ class DetectionDataset(Dataset):
         img = self.get_resized_image(index)
         annotation = deepcopy(self.annotations[index])
         return {"image": img, **annotation}
+        # return {"image": img, "paths": annotation["img_path"], "shapes": annotation["initial_img_shape"], **annotation}
 
     def get_resized_image(self, index: int) -> np.ndarray:
         """

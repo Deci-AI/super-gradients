@@ -16,7 +16,7 @@ from super_gradients.training.utils.sg_trainer_utils import parse_args
 import os
 import pathlib
 
-from onnxsim import simplify
+# from onnxsim import simplify
 import onnx
 
 logger = get_logger(__name__)
@@ -153,7 +153,7 @@ def onnx_simplify(onnx_path: str, onnx_sim_path: str):
     :param onnx_path: path to onnx model
     :param onnx_sim_path: path for output onnx simplified model
     """
-    model_sim, check = simplify(model=onnx_path)
+    model_sim, check = simplify(model=onnx_path)  # noqa
     if not check:
         raise RuntimeError("Simplified ONNX model could not be validated")
     onnx.save_model(model_sim, onnx_sim_path)

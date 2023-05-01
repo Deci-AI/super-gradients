@@ -783,9 +783,12 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
     """
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+        img_info = [_[3][0] for _ in data]
         batch = default_collate(data)
+        # ims, targets, crowd_targets, paths, shapes = batch[0:5]
         ims, targets, crowd_targets = batch[0:3]
-        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+        # return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets), "paths": paths, "shapes": shapes}
+        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets), "id": img_info}
 
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:

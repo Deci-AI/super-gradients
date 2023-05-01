@@ -504,6 +504,57 @@ class CocoMAPV2:
             "The function relies on the fact the input " "data is not shuffled, so the sampler must be " "SequentialSampler "
         )
 
+    # def calculate_coco_map(self, output_json_path: str):
+    #     """
+    #     Calculates mAP using the COCO API.
+    #     :param output_json_path:    The path to the json file where the eval results will be saved. If a pre-existing
+    #                                 path is supplied, the function will not re-run the inference and proceed straight to processing the raw results
+    #                                 that are saved in the json.
+    #     :return eval:               The COCO eval object holding the statistics.
+    #                                 For example: map050:095 = eval.stats[0], map050=eval.stats[1].
+    #     """
+    #     if os.path.exists(output_json_path):
+    #         logging.warning("[WARNING] Found precalculated json file, taking results from there...")
+    #     else:
+    #         val_loader = self.dataloader
+    #         self._validate_val_loader(val_loader)
+    #         coco_list = []
+    #         all_image_ids = []
+    #
+    #         from torch.utils.data._utils.collate import default_collate
+    #
+    #         # Use default collate fonction to include every item returned by the dataloader in the batch
+    #         val_loader.collate_fn, keep_collate_fn = default_collate, val_loader.collate_fn
+    #
+    #         # for batch_i, imgs, _, _, info_imgs, ids in enumerate(tqdm(val_loader.dataset)):
+    #         for batch_i, sample in enumerate(tqdm(val_loader.dataset)):
+    #             imgs = sample["image"]
+    #             imgs = torch.tensor(imgs).unsqueeze(0).cuda()
+    #
+    #             info_imgs = sample["initial_img_shape"]
+    #             info_imgs = [[info_imgs[0]], [info_imgs[1]]]
+    #             ids = [sample["id"]]
+    #
+    #             outputs = self._predict(imgs)
+    #             outputs = self.post_prediction_callback(outputs, self.device)
+    #             output_formated = self.convert_to_coco_format(outputs, info_imgs, ids)
+    #             coco_list.extend(output_formated)
+    #             all_image_ids.extend(ids)
+    #
+    #         with open(output_json_path, "w") as f:
+    #             json.dump(coco_list, f)
+    #         val_loader.collate_fn = keep_collate_fn
+    #
+    #     anno = COCO(self.annotations_json_path)  # init annotations api
+    #     pred = anno.loadRes(output_json_path)  # init predictions api
+    #     eval = COCOeval(anno, pred)
+    #     eval.params.imgIds = all_image_ids
+    #
+    #     eval.evaluate()
+    #     eval.accumulate()
+    #     eval.summarize()
+    #     return eval
+
     def calculate_coco_map(self, output_json_path: str):
         """
         Calculates mAP using the COCO API.
@@ -521,21 +572,35 @@ class CocoMAPV2:
             coco_list = []
             all_image_ids = []
 
-            from torch.utils.data._utils.collate import default_collate
+            from torch.utils.data._utils.collate import default_collate  # noqa
 
             # Use default collate fonction to include every item returned by the dataloader in the batch
-            val_loader.collate_fn, keep_collate_fn = default_collate, val_loader.collate_fn
+            # val_loader.collate_fn, keep_collate_fn = default_collate, val_loader.collate_fn
+            # processing_params = self.dataloader.dataset.get_dataset_preprocessing_params()
+            # processing_params['conf'] = 0.03
 
-            for batch_i, (imgs, _, _, info_imgs, ids) in enumerate(tqdm(val_loader)):
-                outputs = self._predict(imgs)
-                outputs = self.post_prediction_callback(outputs, self.device)
-                output_formated = self.convert_to_coco_format(outputs, info_imgs, ids)
-                coco_list.extend(output_formated)
+            from super_gradients.training.utils.utils import generate_batch
+
+            loader = generate_batch(val_loader.dataset, batch_size=30)
+            for batch_i, samples in tqdm(enumerate(loader), total=int(5000 / 30)):
+                samples = list(samples)
+                ids = [sample["id"].tolist()[0] for sample in samples]
+                images = [sample["image"] for sample in samples]
+
+                # prediction = self.model.predict(images, conf=0.001, iou=0.6)
+                prediction = self.model.predict(images, conf=0.01, iou=0.7)
+                # prediction = self.model.predict(images, conf=0.001, iou=0.6)
+                # prediction = self.model.predict(sample["image"], conf=0.03)
+
+                for pred, id in zip(prediction, ids):
+                    output_formated = self.convert_to_coco_format(pred.prediction, id)
+                    # output_formated = self.convert_to_coco_format(prediction.prediction, sample["id"])
+                    coco_list.extend(output_formated)
                 all_image_ids.extend(ids)
 
             with open(output_json_path, "w") as f:
                 json.dump(coco_list, f)
-            val_loader.collate_fn = keep_collate_fn
+            # val_loader.collate_fn = keep_collate_fn
 
         anno = COCO(self.annotations_json_path)  # init annotations api
         pred = anno.loadRes(output_json_path)  # init predictions api
@@ -547,39 +612,64 @@ class CocoMAPV2:
         eval.summarize()
         return eval
 
-    def convert_to_coco_format(self, outputs, info_imgs, ids):
+    def convert_to_coco_format(self, prediction, ids):
         data_list = []
-        for (output, img_h, img_w, img_id) in zip(outputs, info_imgs[0], info_imgs[1], ids):
-            if output is None:
-                continue
 
-            output = output.cpu()
-            bboxes, scores, cls = output[:, 0:4], output[:, 4], output[:, 5]
+        bboxes, scores, cls = prediction.bboxes_xyxy, prediction.confidence, prediction.labels
 
-            # preprocessing: resize
-            image_size = self.image_size
-            scale = min(image_size / float(img_h), image_size / float(img_w))
-            bboxes /= scale
+        def xyxy2xywh(bboxes):
+            bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 0]
+            bboxes[:, 3] = bboxes[:, 3] - bboxes[:, 1]
+            return bboxes
 
-            def xyxy2xywh(bboxes):
-                bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 0]
-                bboxes[:, 3] = bboxes[:, 3] - bboxes[:, 1]
-                return bboxes
+        bboxes = xyxy2xywh(bboxes)
 
-            bboxes = xyxy2xywh(bboxes)
-
-            for ind in range(bboxes.shape[0]):
-                label = self.class_map[int(cls[ind])]
-                pred_data = {
-                    "image_id": int(img_id),
-                    "category_id": label,
-                    "bbox": bboxes[ind].numpy().tolist(),
-                    "score": scores[ind].numpy().item(),
-                    "segmentation": [],
-                }
-                data_list.append(pred_data)
+        for ind in range(bboxes.shape[0]):
+            label = self.class_map[int(cls[ind])]
+            pred_data = {
+                "image_id": int(ids),
+                "category_id": label,
+                "bbox": bboxes[ind].tolist(),
+                "score": scores[ind].tolist(),
+                "segmentation": [],
+            }
+            data_list.append(pred_data)
 
         return data_list
+
+    #
+    # def convert_to_coco_format(self, outputs, info_imgs, ids):
+    #     data_list = []
+    #     for (output, img_h, img_w, img_id) in zip(outputs, info_imgs[0], info_imgs[1], ids):
+    #         if output is None:
+    #             continue
+    #
+    #         output = output.cpu()
+    #         bboxes, scores, cls = output[:, 0:4], output[:, 4], output[:, 5]
+    #
+    #         image_size = self.image_size
+    #         scale = min(image_size / float(img_h), image_size / float(img_w))
+    #         bboxes /= scale
+    #
+    #         def xyxy2xywh(bboxes):
+    #             bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 0]
+    #             bboxes[:, 3] = bboxes[:, 3] - bboxes[:, 1]
+    #             return bboxes
+    #
+    #         bboxes = xyxy2xywh(bboxes)
+    #
+    #         for ind in range(bboxes.shape[0]):
+    #             label = self.class_map[int(cls[ind])]
+    #             pred_data = {
+    #                 "image_id": int(img_id),
+    #                 "category_id": label,
+    #                 "bbox": bboxes[ind].numpy().tolist(),
+    #                 "score": scores[ind].numpy().item(),
+    #                 "segmentation": [],
+    #             }
+    #             data_list.append(pred_data)
+    #
+    #     return data_list
 
 
 super_gradients.init_trainer()
@@ -605,10 +695,10 @@ def instantiate_dataset():
 
     dataloader = coco2017_val_yolo_nas(
         dataloader_params={"collate_fn": CrowdDetectionCollateFN(), "batch_size": 10},
-        dataset_params={"with_crowd": True, "ignore_empty_annotations": False},
+        dataset_params={"with_crowd": True, "ignore_empty_annotations": False, "transforms": []},
     )
 
-    model = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
+    model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco").cuda()
     model.eval()
 
     anno_json = "/data/coco/annotations/instances_val2017.json"
@@ -643,3 +733,7 @@ def instantiate_dataset():
 
 if __name__ == "__main__":
     instantiate_dataset()
+
+# processing_params = self.dataloader.dataset.get_dataset_preprocessing_params()
+# processing_params['conf'] = 0.03
+# self.model.set_dataset_processing_params(**processing_params)

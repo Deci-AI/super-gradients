@@ -92,7 +92,7 @@ class Pipeline(ABC):
 
         images = load_images(images)
         result_generator = self._generate_prediction_result(images=images, batch_size=batch_size)
-        return self._combine_image_prediction_to_images(result_generator, n_images=len(images))
+        return self._combine_image_prediction_to_images(list(result_generator), n_images=len(images))
 
     def predict_video(self, video_path: str, batch_size: Optional[int] = 32) -> VideoPredictions:
         """Predict on a video file, by processing the frames in batches.

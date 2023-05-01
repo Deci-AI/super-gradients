@@ -33,7 +33,7 @@ training_hyperparams:
   resume: ${resume}
   mixed_precision: True
 
-architecture: yolo_nas_s
+architecture: yolo_nas_l
 
 multi_gpu: DDP
 num_gpus: 8

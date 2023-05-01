@@ -78,6 +78,7 @@ val_dataset_params:
   class_inclusion_list:
   max_num_samples:
   with_crowd: True
+  ignore_empty_annotations: False
 
 val_dataloader_params:
   batch_size: 25

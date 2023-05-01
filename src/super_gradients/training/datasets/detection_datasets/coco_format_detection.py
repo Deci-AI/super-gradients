@@ -50,6 +50,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         self.class_ids_to_ignore = class_ids_to_ignore or []
 
         target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
+        target_fields += ["id"]
         kwargs["target_fields"] = target_fields
         kwargs["output_fields"] = ["image", *target_fields]
         kwargs["original_target_format"] = XYXY_LABEL
