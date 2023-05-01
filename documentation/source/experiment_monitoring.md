@@ -8,6 +8,37 @@ You can also inherit from our base class to integrate any monitoring tool with m
 
 Tensorboard is natively integrated into the training and validation steps. You can find how to use it in [this section](logs.md).
 
+### DagsHub
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/11fW56pMpwOMHQSbQW6xxMRYvw1mEC-t-?usp=sharing) 
+
+**requirements**:
+
+- Install `dagshub` and `mlflow`
+- You can set up DagsHub according to the [official documentation](https://dagshub.com/docs/quick_start/set_up_dagshub/), or you'll be guided interactively to sign in when you run the code with the logger
+- Adapt your code like in the following example
+
+```python
+from super_gradients import Trainer
+
+trainer = Trainer("experiment_name")
+model = ...
+
+training_params = {
+    ...                               # Your training params
+    "sg_logger": "dagshub_sg_logger", # DagsHub Logger, see class super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger for details
+    "sg_logger_params":               # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger
+      {
+        "dagshub_repository": "<REPO_OWNER>/<REPO_NAME>", # Optional: Your DagsHub project name, consisting of the owner name, followed by '/', and the repo name. If this is left empty, you'll be prompted in your run to fill it in manually.
+        "log_mlflow_only": False, # Optional: Change to true to bypass logging to DVC, and log all artifacts only to MLflow
+        "save_checkpoints_remote": True,
+        "save_tensorboard_remote": True,
+        "save_logs_remote": True,
+      }
+}
+
+trainer.train(model=model, training_params=training_params, ...)
+```
 
 ### Weights & Biases
 **requirements**:

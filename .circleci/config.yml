@@ -142,15 +142,9 @@ jobs:
           check_version_file: true
           skip_md_files: true
       - deci-common/get_persisted_version_info
-      - when:
+      - unless:
           condition:
-            and:
-              - not:
-                  equal: [ develop, << pipeline.git.branch >> ]
-              - not:
-                  equal: [ staging, << pipeline.git.branch >> ]
-              - not:
-                  equal: [ master, << pipeline.git.branch >> ]
+            equal: [ master, << pipeline.git.branch >> ]
           steps:
             - run:
                 name: install Black Flake8 python linter
@@ -784,20 +778,23 @@ workflows:
           use_rc: true
           use_beta: false
           version_override: ""
-      - deci-common/codeartifact_login:
-          repo_name: "deci-packages"
+
       - build:
           name: "build3.7"
           py_version: "3.7"
           package_name: "super-gradients"
           requires:
             - deci-common/persist_version_info
-            - deci-common/codeartifact_login
+
+      - deci-common/codeartifact_login:
+          repo_name: "deci-packages"
+          <<: *release_candidate_filter
 
       - release_candidate: # happens on merge
           py_version: "3.7"
           requires:
             - "build3.7"
+            - deci-common/codeartifact_login
           <<: *release_candidate_filter
 
   SG_docker:
