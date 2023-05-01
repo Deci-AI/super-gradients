@@ -2,7 +2,7 @@
 # See documentation/source/PoseEstimation.md for more details.
 #
 # Example usage:
-#   python -m super_gradients.script.generate_rescoring_training_data --config-name=script_generate_rescoring_data_dekr_coco2017 rescoring_data_dir=WHERE_TO_STORE_FILES checkpoint=PATH_TO_TRAINED_MODEL_CHECKPOINT`.
+#   python -m super_gradients.scripts.generate_rescoring_training_data --config-name=script_generate_rescoring_data_dekr_coco2017 rescoring_data_dir=WHERE_TO_STORE_FILES checkpoint=PATH_TO_TRAINED_MODEL_CHECKPOINT`.
 
 defaults:
   - dataset_params: coco_pose_estimation_dekr_dataset_params

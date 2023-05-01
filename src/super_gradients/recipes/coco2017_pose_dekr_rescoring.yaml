@@ -3,7 +3,7 @@
 #
 # Important:
 #   If you want to train your own rescoring model, you need to generate the rescoring data first:
-#    python -m super_gradients.script.generate_rescoring_training_data --config-name=script_generate_rescoring_data_dekr_coco2017 rescoring_data_dir=OUTPUT_DATA_DIR  checkpoint=PATH_TO_TRAINED_MODEL_CHECKPOINT`
+#    python -m super_gradients.scripts.generate_rescoring_training_data --config-name=script_generate_rescoring_data_dekr_coco2017 rescoring_data_dir=OUTPUT_DATA_DIR  checkpoint=PATH_TO_TRAINED_MODEL_CHECKPOINT`
 #
 # Usage:
 #   python -m super_gradients.train_from_recipe --config-name coco2017_pose_dekr_rescoring \
