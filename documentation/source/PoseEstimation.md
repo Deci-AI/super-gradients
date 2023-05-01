@@ -443,17 +443,11 @@ python -m super_gradients.script.generate_rescoring_training_data --config-name=
 The training data will be stored in output folder (In the example we use `OUTPUT_DATA_DIR` placeholder). Once generated you can use this file to train rescoring model:
 
 ```bash
-python -m super_gradients.train_from_recipe --config-name rescoring rescoring_data_dir=OUTPUT_DATA_DIR 
+python -m super_gradients.train_from_recipe --config-name coco2017_pose_dekr_rescoring \
+  dataset_params.train_dataset_params.pkl_file=OUTPUT_DATA_DIR/rescoring_data_train.pkl \
+  dataset_params.val_dataset_params.pkl_file=OUTPUT_DATA_DIR/rescoring_data_valid.pkl
 ```
 
 This recipe uses custom callback to compute pose estimation metrics on the validation dataset using coordinates of poses from step 1 and confidence values after rescoring.
 
-### 3. Putting it alltogether.
-
-For testing purposes you can wrap the entire pipeline in `nn.Sequential` as follows:
-
-```python
-model = nn.Sequential(models.get("dekr_w32_no_dc", pretrained="coco"), PoseEstimationNMS(), models.get("rescoring", pretrained="coco"))
-```
-
-**SG-TODO: We don't have `PoseEstimationNMS` implemented yet**
+See `tests.integration_tests.pose_estimation_dataset_test.PoseEstimationDatasetIntegrationTest.test_dekr_model_with_rescoring` test for more details and end-to-end usage example.
