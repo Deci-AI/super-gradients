@@ -23,12 +23,12 @@ See [Tab Completion](https://hydra.cc/docs/tutorials/basic/running_your_app/tab_
 
 * Tab completion is not supported on Windows.
 * You need to enable tab completion explicitly for each entry point in your application. In other words, if your project.
-* Tab completion is not supported for running train_from_recipe using `-m` form: `python -m super_gradients.train_from_recipe ...`.
 contains two train scripts (train_a.py and train_b.py), you need to enable tab completion for each entry point separately:
 ```bash
 eval "$(python train_a.py -sc install=bash)"
 eval "$(python train_b.py -sc install=bash)"
 ```
+* Tab completion is not supported for running train_from_recipe using `-m` form: `python -m super_gradients.train_from_recipe ...`.
 * If you don't have tab completion in zsh shell, ensure that your `.zshrc` file contains following lines:
 ```
 autoload -Uz compinit
