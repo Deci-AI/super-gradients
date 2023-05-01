@@ -69,7 +69,6 @@ class PoseEstimationDatasetIntegrationTest(unittest.TestCase):
             "coco_pose_estimation_dekr_dataset_params",
             COCOKeypointsDataset,
             train=False,
-            dataset_params=dict(data_dir="e:/coco2017"),
             dataloader_params=dict(num_workers=0),
         )
 
@@ -102,7 +101,6 @@ class PoseEstimationDatasetIntegrationTest(unittest.TestCase):
             "coco_pose_estimation_dekr_dataset_params",
             COCOKeypointsDataset,
             train=False,
-            dataset_params=dict(data_dir="e:/coco2017"),
             dataloader_params=dict(num_workers=0),
         )
 
@@ -135,7 +133,6 @@ class PoseEstimationDatasetIntegrationTest(unittest.TestCase):
             "coco_pose_estimation_dekr_dataset_params",
             COCOKeypointsDataset,
             train=False,
-            dataset_params=dict(data_dir="e:/coco2017"),
             dataloader_params=dict(batch_size=1, num_workers=0),
         )
 
