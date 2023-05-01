@@ -145,7 +145,7 @@ class PoseEstimationDatasetIntegrationTest(unittest.TestCase):
         rescoring = models.get("pose_rescoring_coco", pretrained_weights="coco_pose").cuda().eval()
 
         post_prediction_callback = DEKRPoseEstimationDecodeCallback(
-            output_stride=4, max_num_people=30, apply_sigmoid=True, keypoint_threshold=0.05, nms_threshold=0.05, nms_num_threshold=8
+            output_stride=4, max_num_people=30, apply_sigmoid=False, keypoint_threshold=0.05, nms_threshold=0.05, nms_num_threshold=8
         )
 
         metric = PoseEstimationMetrics(
