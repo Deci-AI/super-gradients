@@ -5,4 +5,5 @@ class UpsampleMode(Enum):
     NEAREST = "nearest"
     BILINEAR = "bilinear"
     BICUBIC = "bicubic"
-    SNPE_BILINEAR = "snpe_bilinear"
+    NN_PIXEL_SHUFFLE = "nn_pixel_shuffle"
+    PIXEL_SHUFFLE = "pixel_shuffle"

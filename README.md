@@ -73,8 +73,8 @@ For more information on how to do it go to [Getting Started](#getting-started)
     
 
 #### Plug and play recipes
-```python
-python -m super_gradients.examples.train_from_recipe_example.train_from_recipe architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+```bash
+python -m super_gradients.train_from_recipe architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 More example on how and why to use recipes can be found in [Recipes](#recipes)
 
@@ -158,7 +158,7 @@ The most simple and straightforward way to start training SOTA performance model
 Just make sure that you [setup your dataset](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md) according to the data dir specified in the recipe.
 
 ```bash
-python -m super_gradients.examples.train_from_recipe_example.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
 Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](http://bit.ly/41dkt89)
@@ -465,6 +465,33 @@ trainer = Trainer("experiment_name")
 
 # define phase_callbacks as part of the training parameters
 train_params = {"phase_callbacks": phase_callbacks}
+```
+
+</details>
+
+<details>
+
+<summary><h3> Integration to DagsHub </h3></summary>    
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/11fW56pMpwOMHQSbQW6xxMRYvw1mEC-t-?usp=sharing) 
+
+```python
+from super_gradients import Trainer
+
+trainer = Trainer("experiment_name")
+model = ...
+
+training_params = { ...  # Your training params
+                   "sg_logger": "dagshub_sg_logger",  # DagsHub Logger, see class super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger for details
+                   "sg_logger_params":  # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger
+                     {
+                       "dagshub_repository": "<REPO_OWNER>/<REPO_NAME>", # Optional: Your DagsHub project name, consisting of the owner name, followed by '/', and the repo name. If this is left empty, you'll be prompted in your run to fill it in manually.
+                       "log_mlflow_only": False, # Optional: Change to true to bypass logging to DVC, and log all artifacts only to MLflow  
+                       "save_checkpoints_remote": True,
+                       "save_tensorboard_remote": True,
+                       "save_logs_remote": True,
+                     }
+                   }
 ```
 
 </details>

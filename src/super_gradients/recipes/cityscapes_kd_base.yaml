@@ -4,8 +4,8 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#      DDRNet23:        python src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=cityscapes_kd_base student_architecture=ddrnet_23
-#      DDRNet23-Slim:   python src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=cityscapes_kd_base student_architecture=ddrnet_23_slim
+#      DDRNet23:        python -m super_gradients.train_from_kd_recipe --config-name=cityscapes_kd_base student_architecture=ddrnet_23
+#      DDRNet23-Slim:   python -m super_gradients.train_from_kd_recipe --config-name=cityscapes_kd_base student_architecture=ddrnet_23_slim
 # Note: add "student_checkpoint_params.checkpoint_path=<ddrnet23-backbone-pretrained-path>" to use pretrained backbone
 #
 #  Teachers specifications:
@@ -39,6 +39,7 @@ defaults:
   - dataset_params: cityscapes_ddrnet_dataset_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 train_dataloader: cityscapes_train
 val_dataloader: cityscapes_val
@@ -96,10 +97,3 @@ student_architecture: ???
 teacher_architecture: ddrnet_39
 
 experiment_name: ${student_architecture}_teacher-${teacher_architecture}
-ckpt_root_dir:
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

@@ -71,7 +71,7 @@ class ImageDetectionPrediction(ImagePrediction):
             class_id = int(self.prediction.labels[pred_i])
             score = "" if not show_confidence else str(round(self.prediction.confidence[pred_i], 2))
 
-            draw_bbox(
+            image = draw_bbox(
                 image=image,
                 title=f"{self.class_names[class_id]} {score}",
                 color=color_mapping[class_id],

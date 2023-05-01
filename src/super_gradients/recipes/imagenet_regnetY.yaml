@@ -17,10 +17,10 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#         regnetY200: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY200
-#         regnetY400: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY400
-#         regnetY600: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY600
-#         regnetY800: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY800
+#         regnetY200: python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY200
+#         regnetY400: python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY400
+#         regnetY600: python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY600
+#         regnetY800: python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800
 
 defaults:
   - training_hyperparams: imagenet_regnetY_train_params
@@ -28,6 +28,7 @@ defaults:
   - arch_params: regnetY_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 arch_params:   
   num_classes: 1000
@@ -44,17 +45,10 @@ training_hyperparams:
   resume: ${resume}
 
 
-ckpt_root_dir:
+
 
 multi_gpu: Off
 num_gpus: 1
 
 architecture: regnetY800
 experiment_name: ${architecture}
-
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

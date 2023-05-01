@@ -25,7 +25,7 @@ def pop_arg(arg_name: str, default_value: Any = None) -> Any:
 
 
 @hydra.main(config_path="recipes", version_base="1.2")
-def run(config):
+def _main(config):
     from super_gradients import init_trainer, Trainer
 
     init_trainer()
@@ -34,4 +34,4 @@ def run(config):
 
 if __name__ == "__main__":
     pop_arg("local_rank", default_value=-1)
-    run()
+    _main()
