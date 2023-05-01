@@ -34,7 +34,7 @@ train_dataset_params:
   json_file: annotations/person_keypoints_train2017.json
 
   include_empty_samples: False
-  min_instance_area: 128
+  min_instance_area: 64
 
   transforms:
     - KeypointsLongestMaxSize:
@@ -54,12 +54,12 @@ train_dataset_params:
 
     - KeypointsRandomAffineTransform:
         max_rotation: 30
-        min_scale: 0.75
-        max_scale: 1.5
+        min_scale: 0.5
+        max_scale: 2
         max_translate: 0.2
         image_pad_value: [ 127, 127, 127 ]
         mask_pad_value: 1
-        prob: 0.5
+        prob: 0.75
 
     - KeypointsImageToTensor
 

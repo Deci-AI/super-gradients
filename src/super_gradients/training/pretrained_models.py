@@ -59,6 +59,9 @@ MODEL_URLS = {
     "ppyoloe_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/coco2017_ppyoloe_m.pth",
     "ppyoloe_l_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/coco2017_pp_yoloe_l_best_model_21uffbb8.pth",  # 0.4948
     "ppyoloe_x_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/coco2017_pp_yoloe_x_best_model_z03if91o.pth",  # 0.5115
+    #
+    "dekr_w32_no_dc_coco": "https://deci-pretrained-models.s3.amazonaws.com/dekr/coco2017_pose_dekr_w32_no_dc_3t2am79k.pth",
+    "pose_rescoring_coco": "https://deci-pretrained-models.s3.amazonaws.com/dekr/coco2017_pose_dekr_w32_no_dc_rescoring.pth",
 }
 
 PRETRAINED_NUM_CLASSES = {

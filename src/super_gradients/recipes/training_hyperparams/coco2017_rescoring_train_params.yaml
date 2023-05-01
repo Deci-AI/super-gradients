@@ -1,7 +1,7 @@
 defaults:
   - default_train_params
 
-ema: False
+ema: True
 ema_params:
   decay: 0.9997
   decay_type: exp
