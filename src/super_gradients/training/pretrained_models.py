@@ -49,8 +49,6 @@ MODEL_URLS = {
     "yolo_nas_l_coco": "https://sghub.deci.ai/models/yolo_nas_l_coco.pth",
 }
 
-for model_url in MODEL_URLS.keys():
-    MODEL_URLS[model_url] = "https://sghub.deci.ai/models/" + model_url + ".pth"
 
 PRETRAINED_NUM_CLASSES = {
     "imagenet": 1000,
