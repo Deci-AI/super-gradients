@@ -172,10 +172,10 @@ def coco2017_val(dataset_params: Dict = None, dataloader_params: Dict = None) ->
     )
 
 
-@register_dataloader(Dataloaders.COCO2017_TRAIN_DECIYOLO)
-def coco2017_train_deci_yolo(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
+@register_dataloader(Dataloaders.COCO2017_TRAIN_YOLO_NAS)
+def coco2017_train_yolo_nas(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return get_data_loader(
-        config_name="coco_detection_deci_yolo_dataset_params",
+        config_name="coco_detection_yolo_nas_dataset_params",
         dataset_cls=COCODetectionDataset,
         train=True,
         dataset_params=dataset_params,
@@ -183,10 +183,10 @@ def coco2017_train_deci_yolo(dataset_params: Dict = None, dataloader_params: Dic
     )
 
 
-@register_dataloader(Dataloaders.COCO2017_VAL_DECIYOLO)
-def coco2017_val_deci_yolo(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
+@register_dataloader(Dataloaders.COCO2017_VAL_YOLO_NAS)
+def coco2017_val_yolo_nas(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return get_data_loader(
-        config_name="coco_detection_deci_yolo_dataset_params",
+        config_name="coco_detection_yolo_nas_dataset_params",
         dataset_cls=COCODetectionDataset,
         train=False,
         dataset_params=dataset_params,

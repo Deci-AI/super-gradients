@@ -62,13 +62,26 @@ from super_gradients.training.models.classification_models.vgg import VGG
 from super_gradients.training.models.classification_models.vit import ViT, ViTBase, ViTLarge, ViTHuge
 
 # Detection models
-from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
-from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_e import PPYoloE, PPYoloE_S, PPYoloE_M, PPYoloE_L, PPYoloE_X
+from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53, SPP
+from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloE, PPYoloE_S, PPYoloE_M, PPYoloE_L, PPYoloE_X
 from super_gradients.training.models.detection_models.darknet53 import Darknet53, Darknet53Base
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolo_base import YoloBase, YoloPostPredictionCallback
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
+from super_gradients.training.models.detection_models.yolo_nas import (
+    YoloNASStage,
+    YoloNASStem,
+    YoloNASDownStage,
+    YoloNASUpStage,
+    YoloNASBottleneck,
+    YoloNASDFLHead,
+    NDFLHeads,
+    YoloNASPANNeckWithC2,
+    YoloNAS_S,
+    YoloNAS_M,
+    YoloNAS_L,
+)
 
 # Segmentation models
 from super_gradients.training.models.segmentation_models.shelfnet import (
@@ -96,7 +109,6 @@ from super_gradients.training.models.segmentation_models.stdc import (
     STDCSegmentationBase,
     CustomSTDCSegmentation,
 )
-from super_gradients.training.models.segmentation_models.segformer import SegFormerB0, SegFormerB1, SegFormerB2, SegFormerB3, SegFormerB4, SegFormerB5
 
 # Pose estimation
 from super_gradients.training.models.pose_estimation_models.pose_ppyolo import PosePPYoloL
@@ -116,6 +128,18 @@ from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import ARCHITECTURES
 
 __all__ = [
+    "SPP",
+    "YoloNAS_S",
+    "YoloNAS_M",
+    "YoloNAS_L",
+    "YoloNASStage",
+    "YoloNASUpStage",
+    "YoloNASStem",
+    "YoloNASDownStage",
+    "YoloNASDFLHead",
+    "YoloNASBottleneck",
+    "NDFLHeads",
+    "YoloNASPANNeckWithC2",
     "SgModule",
     "Beit",
     "BeitLargePatch16_224",
@@ -259,10 +283,4 @@ __all__ = [
     "ARCHITECTURES",
     "Models",
     "user_models",
-    "SegFormerB0",
-    "SegFormerB1",
-    "SegFormerB2",
-    "SegFormerB3",
-    "SegFormerB4",
-    "SegFormerB5",
 ]

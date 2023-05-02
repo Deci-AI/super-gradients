@@ -1,0 +1,56 @@
+defaults:
+  - default_train_params
+
+max_epochs: 300
+
+warmup_mode: "linear_batch_step"
+warmup_initial_lr:  1e-6
+lr_warmup_steps: 1000
+lr_warmup_epochs: 0
+
+initial_lr:  2e-4
+lr_mode: cosine
+cosine_final_lr_ratio: 0.1
+
+zero_weight_decay_on_bias_and_bn: True
+batch_accumulate: 1
+
+save_ckpt_epoch_list: [100, 200, 250]
+
+loss:
+  ppyoloe_loss:
+    use_static_assigner: False
+    num_classes: ${arch_params.num_classes}
+    reg_max: 16
+
+optimizer: AdamW
+optimizer_params:
+  weight_decay: 0.00001
+
+ema: True
+ema_params:
+  decay: 0.9997
+  decay_type: threshold
+
+mixed_precision: False
+sync_bn: True
+
+valid_metrics_list:
+  - DetectionMetrics:
+      score_thres: 0.1
+      top_k_predictions: 300
+      num_cls: ${arch_params.num_classes}
+      normalize_targets: True
+      post_prediction_callback:
+        _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
+        score_threshold: 0.01
+        nms_top_k: 1000
+        max_predictions: 300
+        nms_threshold: 0.7
+
+pre_prediction_callback:
+
+metric_to_watch: 'mAP@0.50:0.95'
+greater_metric_to_watch_is_better: True
+
+_convert_: all

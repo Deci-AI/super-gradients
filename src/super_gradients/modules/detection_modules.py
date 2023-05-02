@@ -1,37 +1,30 @@
+from abc import ABC, abstractmethod
 from typing import Union, List
-from abc import abstractmethod, ABC
 
 import torch
-from torch import nn
-from omegaconf.listconfig import ListConfig
 from omegaconf import DictConfig
-
+from omegaconf.listconfig import ListConfig
 from super_gradients.common.registry.registry import register_detection_module
+from super_gradients.modules.base_modules import BaseDetectionModule
+from super_gradients.modules.multi_output_modules import MultiOutputModule
+from super_gradients.training.models import MobileNet, MobileNetV2
 from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
 from super_gradients.training.utils.utils import HpmStruct
-from super_gradients.training.models import MobileNet, MobileNetV2
-from super_gradients.modules.multi_output_modules import MultiOutputModule
+from torch import nn
 
-
-class BaseDetectionModule(nn.Module, ABC):
-    """
-    An interface for a module that is easy to integrate into a model with complex connections
-    """
-
-    def __init__(self, in_channels: Union[List[int], int], **kwargs):
-        """
-        :param in_channels: defines channels of tensor(s) that will be accepted by a module in forward
-        """
-        super().__init__()
-        self.in_channels = in_channels
-
-    @property
-    @abstractmethod
-    def out_channels(self) -> Union[List[int], int]:
-        """
-        :return: channels of tensor(s) that will be returned by a module  in forward
-        """
-        raise NotImplementedError()
+__all__ = [
+    "PANNeck",
+    "NHeads",
+    "MultiOutputBackbone",
+    "NStageBackbone",
+    "MobileNetV1Backbone",
+    "MobileNetV2Backbone",
+    "SSDNeck",
+    "SSDInvertedResidualNeck",
+    "SSDBottleneckNeck",
+    "SSDHead",
+    "BaseDetectionModule",
+]
 
 
 @register_detection_module()

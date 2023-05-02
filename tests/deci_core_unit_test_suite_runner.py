@@ -34,6 +34,7 @@ from tests.unit_tests.pose_estimation_dataset_test import TestPoseEstimationData
 from tests.unit_tests.preprocessing_unit_test import PreprocessingUnitTest
 from tests.unit_tests.quantization_utility_tests import QuantizationUtilityTest
 from tests.unit_tests.random_erase_test import RandomEraseTest
+from tests.unit_tests.replace_head_test import ReplaceHeadUnitTest
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
@@ -132,6 +133,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationMetrics))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationDataset))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LoadCheckpointTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ReplaceHeadUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PreprocessingUnitTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):

@@ -12,6 +12,8 @@ from omegaconf import DictConfig
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
+from super_gradients.module_interfaces import SupportsReplaceNumClasses
+from super_gradients.modules.head_replacement_utils import replace_num_classes_with_random_weights
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
@@ -102,6 +104,8 @@ class CustomizableDetector(SgModule):
             raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
         if new_head is not None:
             self.heads = new_head
+        elif isinstance(self.heads, SupportsReplaceNumClasses):
+            self.heads.replace_num_classes(new_num_classes, replace_num_classes_with_random_weights)
         else:
             factory = det_factory.DetectionModulesFactory()
             self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", new_num_classes)

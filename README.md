@@ -44,12 +44,20 @@ ________________________________________________________________________________
 
 
 ### Ready to deploy pre-trained SOTA models
+
+YOLO-NAS architecture is out! The new YOLO-NAS delivers state-of-the-art performance with the unparalleled accuracy-speed performance, outperforming other models such as YOLOv5, YOLOv6, YOLOv7 and YOLOv8.
+Check it out here: [YOLO-NAS](YOLONAS.md).
+
+<div align="center">
+<img src="./documentation/source/images/yolo_nas_frontier.png" width="800px">
+</div>
+
 ```python
 # Load model with pretrained weights
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
 
-model = models.get(Models.YOLOX_S, pretrained_weights="coco")
+model = models.get(Models.YOLO_NAS_M, pretrained_weights="coco")
 ```
 #### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/41dkt89)
 
@@ -89,17 +97,17 @@ All SuperGradients models’ are production ready in the sense that they are com
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
 
-model = models.get(Models.YOLOX_S, pretrained_weights="coco")
+model = models.get(Models.YOLO_NAS_M, pretrained_weights="coco")
 
 # Prepare model for conversion
-# Input size is in format of [Batch x Channels x Width x Height] where 640 is the standart COCO dataset dimensions
+# Input size is in format of [Batch x Channels x Width x Height] where 640 is the standard COCO dataset dimensions
 model.eval()
 model.prep_model_for_conversion(input_size=[1, 3, 640, 640])
     
 # Create dummy_input
 
 # Convert model to onnx
-torch.onnx.export(model, dummy_input,  "yolox_s.onnx")
+torch.onnx.export(model, dummy_input,  "yolo_nas_m.onnx")
 ```
 More information on how to take your model to production can be found in [Getting Started](#getting-started) notebooks
 
