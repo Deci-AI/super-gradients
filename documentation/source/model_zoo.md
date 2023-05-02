@@ -46,6 +46,9 @@ All the available models are listed in the column `Model name`.
 
 | Model               | Model Name            | Dataset | Resolution | mAP<sup>val<br>0.5:0.95 | Latency (HW)*<sub>T4</sub>    | Latency (Production)**<sub>T4</sub> | Latency (HW)*<sub>Jetson Xavier NX</sub> | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub> |
 |---------------------|-----------------------|---------|------------|-------------------------|-------------------------------|-------------------------------------|------------------------------------------|---------------------------------------------------|:-------------------------------:|
+ | YOLO-NAS S	         | yolo_nas_s            | COCO |  640x640| 47.5(FP16) 47.03(INT8)	 | **3.21(FP16)** **2.36(INT8)** |
+ | YOLO-NAS M	         | yolo_nas_m            | COCO |  640x640| 51.55(FP16) 51.0(INT8)   | **5.85(FP16)** **3.78(INT8)** |
+ | YOLO-NAS L	         | yolo_nas_l            | COCO |  640x640| 52.22(FP16) 52.1(INT8)	  | **7.87(FP16)** **4.78(INT8)** |
 | SSD lite MobileNet v2 | ssd_lite_mobilenet_v2 | COCO    | 320x320    | 21.5                    | **0.77ms**                    | **1.40ms**                          | **5.28ms**                               | **6.44ms**                                        |            **4.13ms**           |
 | SSD lite MobileNet v1 | ssd_mobilenet_v1      | COCO    | 320x320    | 24.3                    | **1.55ms**                    | **2.84ms**                          | **8.07ms**                               | **9.14ms**                                        |           **22.76ms**           |
 | YOLOX nano          | yolox_n               | COCO    | 640x640    | 26.77                   | **2.47ms**                    | **4.09ms**                          | **11.49ms**                              | **12.97ms**                                       |              **-**              |
@@ -57,9 +60,6 @@ All the available models are listed in the column `Model name`.
 | PP-YOLOE medium     | ppyoloe_m             | COCO    | 640x640    | 47.11                   | **5.16ms**                    | **7.05ms**                          | **32.71ms**                              | **33.46ms**                                       |              **-**              |
 | PP-YOLOE large      | ppyoloe_l             | COCO    | 640x640    | 49.48                   | **7.65ms**                    | **9.59ms**                          | **51.13ms**                              | **50.39ms**                                       |              **-**              |
 | PP-YOLOE x-large    | ppyoloe_x             | COCO    | 640x640    | 51.15                   | **14.04ms**                   | **15.96ms**                         | **94.92ms**                              | **94.22ms**                                       |              **-**              |
- | YOLO-NAS S	         | yolo_nas_s            | COCO |  640x640| 47.5(FP16) 47.03(INT8)	 | **3.21(FP16)** **2.36(INT8)** |
- | YOLO-NAS M	         | yolo_nas_m            | COCO |  640x640| 51.55(FP16) 51.0(INT8)   | **5.85(FP16)** **3.78(INT8)** |
- | YOLO-NAS L	         | yolo_nas_l            | COCO |  640x640| 52.22(FP16) 52.1(INT8)	  | **7.87(FP16)** **4.78(INT8)** |
 
 > **NOTE:** <br/>
 > - Latency (HW)* - Hardware performance (not including IO)<br/>
