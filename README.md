@@ -120,26 +120,27 @@ ________________________________________________________________________________
 pip install super-gradients
 ```
 
-## What's New - Version 3.0.8
+## What's New - Version 3.1.0 (May 3rd)
 __________________________________________________________________________________________________________
-*  [QAT&PTQ](https://bit.ly/41hC8uI)
-* [Pose estimation](http://bit.ly/3o0xHq2)
-* [New documentation](http://bit.ly/3KYVCiJ)
-* [New semantic segmentation dataset - Mapillary Vistas Dataset](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/mapillary_dataset.py)
-*  Lion optimizer
-* PP-YoloE pre-trained - new pre-trained [checkpoints](https://bit.ly/41dkt89) and [recipes](http://bit.ly/3gfLw07) for COCO2017 🎯
-* DDRNet pre-trained segmentation model - new pre-trained [checkpoints](https://bit.ly/41dkt89) and [recipes](http://bit.ly/3gfLw07) for Cityscapes and  [Knowledge distillation recipe for DDRNet](http://bit.ly/3GzZHHo)🎯
-
+* [YOLO-NAS](https://bit.ly/41WeNPZ)
+* New [predict function](https://bit.ly/3oZfaea) (predict on any image, video, url, path, stream)
+* [RoboFlow100](https://bit.ly/40YOJ5z) datasets integration 
+* A new [Documentation Hub](https://docs.deci.ai/super-gradients/documentation/source/welcome.html)
+* Integration with [DagsHub for experiment monitoring](https://bit.ly/3ALFUkQ)
+* Support [Darknet/Yolo format detection dataset](https://bit.ly/41VX6Qu) (used by Yolo v5, v6, v7, v8) 
+* [Segformer](https://bit.ly/3oYu6Jp) model and recipe 
+* Post Training Quantization and Quantization Aware Training - [notebooks](http://bit.ly/3KrN6an)
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Coming soon
 __________________________________________________________________________________________________________
 - [ ] Pre-trained pose estimation model
-- [ ] New predict function on detection models
-- [ ] RoboFlow100 datasets integration 
-- [ ] A new documentation hub
+- [ ] Test Time Augmentations (TTA)
+- [ ] Recipe to train DEKR model(convertable to TRT) 
+- [ ] Key-points Rescoring for Pose estimation 
 - [ ] LR finder
+- [ ] Data analysis tools
 
 
 ## Table of Content
