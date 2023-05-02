@@ -96,7 +96,7 @@ class PoseEstimationDatasetIntegrationTest(unittest.TestCase):
                 metric.update(predictions, targets, **extras)
 
         stats = metric.compute()
-        self.assertAlmostEqual(stats["AP"], 0.6496, delta=0.05)
+        self.assertAlmostEqual(stats["AP"], 0.6490, delta=0.05)
 
     def test_dekr_model_with_rescoring(self):
         val_loader = get_data_loader(
