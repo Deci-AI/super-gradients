@@ -45,6 +45,7 @@ defaults:
   - dataset_params: cityscapes_stdc_seg75_dataset_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 train_dataloader: cityscapes_train
 val_dataloader: cityscapes_val
