@@ -22,7 +22,7 @@
 #      DEKR-W32-NO-DC:    input-size: [640, 640]     AP: 67.34 (With Flip TTA and Rescoring)
 #
 #  Rescoring:
-#      See `coco2017_pose_rescoring.yaml` recipe and `documentation/source/PoseEstimation.md#Rescoring` section of the documentation.
+#      See `coco2017_pose_dekr_rescoring.yaml` recipe and `documentation/source/PoseEstimation.md#Rescoring` section of the documentation.
 #
 #  Official git repo:
 #      https://github.com/HRNet/DEKR

@@ -24,7 +24,7 @@ multi_gpu: Off
 num_gpus: 1
 
 experiment_suffix: ""
-experiment_name: coco2017_pose_rescoring_${architecture}_${experiment_suffix}
+experiment_name: coco2017_pose_dekr_rescoring_${architecture}_${experiment_suffix}
 
 ckpt_root_dir:
 
