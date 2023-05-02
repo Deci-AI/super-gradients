@@ -5,7 +5,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from torch import nn, Tensor
 
-from super_gradients.modules.detection_modules import BaseDetectionModule
+from super_gradients.modules.base_modules import BaseDetectionModule
 from super_gradients.common.registry.registry import register_detection_module
 
 

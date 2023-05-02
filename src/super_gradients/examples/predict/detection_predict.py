@@ -1,8 +1,8 @@
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
-# Note that currently only YoloX and PPYoloE are supported.
-model = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
+# Note that currently only YoloX, PPYoloE and YOLO-NAS are supported.
+model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
 
 IMAGES = [
     "../../../../documentation/source/images/examples/countryside.jpg",
