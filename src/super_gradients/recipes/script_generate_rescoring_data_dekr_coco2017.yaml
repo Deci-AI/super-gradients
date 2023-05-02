@@ -7,13 +7,11 @@
 defaults:
   - dataset_params: coco_pose_estimation_dekr_dataset_params
   - checkpoint_params: default_checkpoint_params
-  - arch_params: pose_dekr_w32_no_dc_qfl_arch_params
+  - arch_params: pose_dekr_w32_no_dc_arch_params
   - _self_
 
 architecture: dekr_w32_no_dc
 rescoring_data_dir: ???
-
-
 
 train_dataloader: coco2017_pose_train
 val_dataloader: coco2017_pose_val
@@ -31,7 +29,7 @@ post_prediction_callback:
   nms_threshold: 0.05
   nms_num_threshold: 8
   output_stride: 4
-  apply_sigmoid: True
+  apply_sigmoid: False # We use Flip-TTA and apply sigmoid there
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:

@@ -83,8 +83,6 @@ class PoseEstimationDatasetIntegrationTest(unittest.TestCase):
             output_stride=4, max_num_people=30, apply_sigmoid=False, keypoint_threshold=0.05, nms_threshold=0.05, nms_num_threshold=8
         )
 
-        post_prediction_callback.apply_sigmoid = False
-
         metric = PoseEstimationMetrics(
             post_prediction_callback=post_prediction_callback,
             max_objects_per_image=post_prediction_callback.max_num_people,
