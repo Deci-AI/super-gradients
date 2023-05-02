@@ -78,7 +78,7 @@ We follow the Google docstring guidelines outlined on this [styleguide](https://
 
 ## Documentation
 
-We use  GitHub Pages for technical documentation hosting on https://deci-ai.github.io/super-gradients/welcome.html <br>
+We use  GitHub Pages for technical documentation hosting on https://docs.deci.ai/super-gradients/documentation/source/welcome.html <br>
 To generate the docs based on the current work tree, run: <br>
 <code>./scripts/generate_docs.sh</code> <br><br>
 And the documentation will automatically update, based on <code>documentation/</code>. <br>
