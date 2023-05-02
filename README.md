@@ -1,4 +1,4 @@
-<div align="center">
+<div align="center" markdown="1">
   <img src="docs/assets/SG_img/SG - Horizontal Glow 2.png" width="600"/>
  <br/><br/>
   
@@ -7,8 +7,9 @@
 
 #### Version 3 is out! Notebooks have been updated!
 ______________________________________________________________________
-  
-  <p align="center">
+</div>  
+<div align="center">
+<p align="center">
   <a href="https://www.supergradients.com/">Website</a> •
   <a href="https://docs.deci.ai/super-gradients/documentation/source/welcome.html">Docs</a> •
   <a href="#getting-started">Getting Started</a> •
@@ -25,9 +26,11 @@ ______________________________________________________________________
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
-  <a href="https://docs.deci.ai/super-gradients/documentation/source/welcome.html"><img src="https://img.shields.io/badge/docs-mkdocs-brightgreen" />
+  <a href="https://docs.deci.ai/super-gradients/documentation/source/welcome.html"><img src="https://img.shields.io/badge/docs-mkdocs-brightgreen" /></a>
 </p>    
 </div>
+
+______________________________________________________________________
 
 ## Build with SuperGradients
 __________________________________________________________________________________________________________
@@ -310,7 +313,7 @@ Recipes support out of the box every model, metric or loss that is implemented i
  </br></br>
 
  </br>
-<details>
+<details markdown="1">
   <summary><h3>Using Distributed Data Parallel (DDP) </h3></summary>
 
 #### Why use DDP ?
@@ -422,7 +425,7 @@ There is no clear rule, but a rule of thumb seems to be to [linearly increase th
 
 </details>
 
-<details>
+<details markdown="1">
 <summary><h3> Easily change architectures parameters </h3></summary>
 
 ```python
@@ -440,7 +443,7 @@ backbone_resnet18 = models.get(model_name="resnet18", arch_params={"backbone_mod
 
 </details>
 
-<details>
+<details markdown="1">
 
 <summary><h3> Using phase callbacks </h3></summary>  
   
@@ -469,7 +472,7 @@ train_params = {"phase_callbacks": phase_callbacks}
 
 </details>
 
-<details>
+<details markdown="1">
 
 <summary><h3> Integration to DagsHub </h3></summary>    
 
@@ -521,7 +524,7 @@ train_params = { ... # training parameters
 
 </details>
 
-<details>
+<details markdown="1">
 
 <summary><h3> Integration to ClearML </h3></summary>    
     
@@ -549,7 +552,7 @@ train_params = { ... # training parameters
 ## Installation Methods
 __________________________________________________________________________________________________________
 ### Prerequisites
-<details>
+<details markdown="1">
   
 <summary>General requirements</summary>
   
@@ -560,7 +563,7 @@ ________________________________________________________________________________
 
 </details>
     
-<details>
+<details markdown="1">
   
 <summary>To train on nvidia GPUs</summary>
   
@@ -572,7 +575,7 @@ ________________________________________________________________________________
     
 ### Quick Installation
 
-<details>
+<details markdown="1">
   
 <summary>Install stable version using PyPi</summary>
 
@@ -585,7 +588,7 @@ That's it !
 
 </details>
     
-<details>
+<details markdown="1">
   
 <summary>Install using GitHub</summary>
 
