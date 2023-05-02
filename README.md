@@ -11,7 +11,7 @@ ______________________________________________________________________
 <div align="center">
 <p align="center">
   <a href="https://www.supergradients.com/">Website</a> •
-  <a href="https://deci-ai.github.io/super-gradients/welcome.html">Docs</a> •
+  <a href="https://docs.deci.ai/super-gradients/documentation/source/welcome.html">Docs</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#implemented-model-architectures">Pretrained Models</a> •
   <a href="#community">Community</a> •
@@ -26,7 +26,7 @@ ______________________________________________________________________
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
-  <a href="https://deci-ai.github.io/super-gradients/welcome.html"><img src="https://img.shields.io/badge/docs-sphinx-brightgreen" /></a>
+  <a href="https://docs.deci.ai/super-gradients/documentation/source/welcome.html"><img src="https://img.shields.io/badge/docs-mkdocs-brightgreen" /></a>
 </p>    
 </div>
 
@@ -689,7 +689,7 @@ ________________________________________________________________________________
 
 ## Documentation
 
-Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.html) for full documentation, user guide, and examples.
+Check SuperGradients [Docs](https://docs.deci.ai/super-gradients/documentation/source/welcome.html) for full documentation, user guide, and examples.
   
 ## Contributing
 

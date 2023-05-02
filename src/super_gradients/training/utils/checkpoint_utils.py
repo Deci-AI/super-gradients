@@ -302,11 +302,11 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     if architecture in {Models.YOLO_NAS_S, Models.YOLO_NAS_M, Models.YOLO_NAS_L}:
         logger.info(
             "License Notification: YOLO-NAS pre-trained weights are subjected to the specific license terms and conditions detailed in \n"
-            "https://github.com/Deci-AI/super-gradients/LICENSE.YOLONAS.md. \n"
+            "https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.YOLONAS.md\n"
             "By downloading the pre-trained weight files you agree to comply with these terms."
         )
 
-    unique_filename = url.split("https://deci-pretrained-models.s3.amazonaws.com/")[1].replace("/", "_").replace(" ", "_")
+    unique_filename = url.split("https://sghub.deci.ai/models/")[1].replace("/", "_").replace(" ", "_")
     map_location = torch.device("cpu")
     pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
     _load_weights(architecture, model, pretrained_state_dict)

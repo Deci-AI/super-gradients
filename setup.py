@@ -50,7 +50,7 @@ setup(
     description="SuperGradients",
     author="Deci AI",
     author_email="rnd@deci.ai",
-    url="https://deci-ai.github.io/super-gradients/welcome.html",
+    url="https://docs.deci.ai/super-gradients/documentation/source/welcome.html",
     keywords=["Deci", "AI", "Training", "Deep Learning", "Computer Vision", "PyTorch", "SOTA", "Recipes", "Pre Trained", "Models"],
     install_requires=get_requirements(),
     packages=find_packages(where="./src"),
