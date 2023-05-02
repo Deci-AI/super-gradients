@@ -21,5 +21,5 @@ class RescoringPoseEstimationDecodeCallback:
         """ """
         poses, scores = predictions
         if self.apply_sigmoid:
-            poses = poses.sigmoid()
+            scores = scores.sigmoid()
         return poses, scores.squeeze(-1)  # Pose Estimation Callback expects that scores don't have the dummy dimension

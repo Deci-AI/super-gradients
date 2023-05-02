@@ -18,7 +18,7 @@ defaults:
 
 resume: False
 
-architecture: pose_rescoring
+architecture: pose_rescoring_coco
 
 multi_gpu: Off
 num_gpus: 1
