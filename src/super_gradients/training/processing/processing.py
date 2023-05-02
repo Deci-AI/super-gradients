@@ -305,8 +305,8 @@ def default_ppyoloe_coco_processing_params() -> dict:
     return params
 
 
-def default_deciyolo_coco_processing_params() -> dict:
-    """Processing parameters commonly used for training DeciYolo on COCO dataset.
+def default_yolo_nas_coco_processing_params() -> dict:
+    """Processing parameters commonly used for training YoloNAS on COCO dataset.
     TODO: remove once we load it from the checkpoint
     """
 
@@ -322,8 +322,8 @@ def default_deciyolo_coco_processing_params() -> dict:
     params = dict(
         class_names=COCO_DETECTION_CLASSES_LIST,
         image_processor=image_processor,
-        iou=0.65,
-        conf=0.5,
+        iou=0.7,
+        conf=0.25,
     )
     return params
 
@@ -337,6 +337,6 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
             return default_yolox_coco_processing_params()
         elif "ppyoloe" in model_name:
             return default_ppyoloe_coco_processing_params()
-        elif "deciyolo" in model_name:
-            return default_deciyolo_coco_processing_params()
+        elif "yolo_nas" in model_name:
+            return default_yolo_nas_coco_processing_params()
     return dict()

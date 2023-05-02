@@ -52,7 +52,7 @@ class Pipeline(ABC):
     def __init__(self, model: SgModule, image_processor: Union[Processing, List[Processing]], class_names: List[str], device: Optional[str] = None):
         super().__init__()
         self.device = device or next(model.parameters()).device
-        self.model = model.to(device)
+        self.model = model.to(self.device)
         self.class_names = class_names
 
         if isinstance(image_processor, list):
@@ -265,7 +265,12 @@ class DetectionPipeline(Pipeline):
     def _combine_image_prediction_to_images(
         self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
     ) -> ImagesDetectionPrediction:
-        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+        if n_images is not None and n_images == 1:
+            # Do not show tqdm progress bar if there is only one image
+            pass
+        else:
+            images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+
         return ImagesDetectionPrediction(_images_prediction_lst=images_predictions)
 
     def _combine_image_prediction_to_video(
