@@ -1,4 +1,4 @@
-from typing import Type, Union, Mapping, Any
+from typing import Type, Union, Mapping, Any, Optional
 
 import numpy as np
 import torch
@@ -202,6 +202,9 @@ class RepVGGBlock(nn.Module):
         )
         result.add_module("bn", nn.BatchNorm2d(num_features=out_channels))
         return result
+
+    def prep_model_for_conversion(self, input_size: Optional[Union[tuple, list]] = None, **kwargs):
+        self.fuse_block_residual_branches()
 
 
 def fuse_repvgg_blocks_residual_branches(model: nn.Module):
