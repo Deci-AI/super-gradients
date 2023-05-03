@@ -713,8 +713,8 @@ If you are using SuperGradients library or benchmarks in your research, please c
 If you want to be a part of SuperGradients growing community, hear about all the exciting news and updates, need help, request for advanced features,
     or want to file a bug or issue report, we would love to welcome you aboard!
 
-* Slack is the place to be and ask questions about SuperGradients and get support. [Click here to join our Slack](
-  https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q)
+* Discord is the place to be and ask questions about SuperGradients and get support. [Click here to join our Discord Community](
+  https://discord.gg/2v6cEGMREN)
     
 * To report a bug, [file an issue](https://github.com/Deci-AI/super-gradients/issues) on GitHub.
 

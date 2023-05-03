@@ -59,6 +59,13 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
 <table>
 <tr>
     <td>   
+        <a target="_blank" href="https://bit.ly/yolo-nas-starter-notebook">
+            <img src="./docs/assets/SG_img/colab_logo.png" /> Fine-Tuning Notebook 
+        </a>
+    </td>
+</tr>
+<tr>
+    <td>   
         <a target="_blank" href="documentation/source/YoloNASQuickstart.md"> 
             Documentation: YOLO-NAS Quickstart 
         </a>
@@ -71,21 +78,14 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
         </a>
     </td>
 </tr>
+
 <tr>
     <td>   
-        <a target="_blank" href="https://colab.research.google.com/drive/1vRkBFn3mepx3NZtwwrDOKq2RZpa1EpIa">
-            <img src="./docs/assets/SG_img/colab_logo.png" /> Inference Notebook 
+        Join our <a target="_blank" href="https://discord.gg/2v6cEGMREN">
+             Discord Community
         </a>
     </td>
 </tr>
-<tr>
-    <td>   
-        <a target="_blank" href="https://colab.research.google.com/drive/1q0RmeVRzLwRXW-h9dPFSOchwJkThUy6d">
-            <img src="./docs/assets/SG_img/colab_logo.png" /> Fine-Tuning Notebook 
-        </a>
-    </td>
-</tr>
-    </tbody>
 </table>
 
 
