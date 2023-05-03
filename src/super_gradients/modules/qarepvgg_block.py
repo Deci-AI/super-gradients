@@ -317,4 +317,4 @@ class QARepVGGBlock(nn.Module):
         raise NotImplementedError
 
     def prep_model_for_conversion(self, input_size: Optional[Union[tuple, list]] = None, **kwargs):
-        self.full_fusion()
+        self.partial_fusion()
