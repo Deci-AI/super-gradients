@@ -32,28 +32,29 @@ Check out our [Quickstart tutorial](QuickstartBasicToolkit.md) to get learn the 
 
 You can also start from our tutorial on [Detection](ObjectDetection.md), [Segmentation](Segmentation.md) or [Pose Estimation](PoseEstimation.md).
  
-## What's New
+## What's New (v3.1.0)
 __________________________________________________________________________________________________________
-* 【1/3/2023】 Lion optimizer was added  
-* 【27/2/2023】 Pose Estimation models and utilities were added to SuperGradients! 
-* 【20/2/2023】 PP-Yolo-E implementation 
-* 【17/1/2023】 Quantization Aware Training (QAT) and Post Training Quantization (PTQ) - including selective quantization 
-* 【17/11/2022】 Integration with ClearML
-* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
-* 【07/08/2022】DDRNet23 - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
-* 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
-* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](http://bit.ly/3gfLw07) and pre-trained [checkpoints](http://bit.ly/3EGfKD4) on COCO - Tailored for edge devices! 📱
-* 【07/07/2022】 STDC  - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
+
+* [YOLO-NAS](https://bit.ly/41WeNPZ)
+* New [predict function](https://bit.ly/3oZfaea) (predict on any image, video, url, path, stream)
+* [RoboFlow100](https://bit.ly/40YOJ5z) datasets integration 
+* A new [Documentation Hub](https://docs.deci.ai/super-gradients/documentation/source/welcome.html)
+* Integration with [DagsHub for experiment monitoring](https://bit.ly/3ALFUkQ)
+* Support [Darknet/Yolo format detection dataset](https://bit.ly/41VX6Qu) (used by Yolo v5, v6, v7, v8) 
+* [Segformer](https://bit.ly/3oYu6Jp) model and recipe 
+* Post Training Quantization and Quantization Aware Training - [notebooks](http://bit.ly/3KrN6an)
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Coming soon
 __________________________________________________________________________________________________________
 
-- [ ] Tools for faster training 
-- [ ] Tools for training health monitoring 
-- [ ] Integration with more professional 3rd party tools.
-- [ ] SegFormers
+- [ ] Pre-trained pose estimation model
+- [ ] Test Time Augmentations (TTA)
+- [ ] Recipe to train DEKR model(convertable to TRT) 
+- [ ] Key-points Rescoring for Pose estimation 
+- [ ] LR finder
+- [ ] Data analysis tools
 ## Citation
 
 If you are using SuperGradients library in your research, please cite SuperGradients deep learning training library.
