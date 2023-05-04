@@ -15,6 +15,7 @@ class Losses:
     KD_LOSS = "kd_loss"
     DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
     DEKR_LOSS = "dekr_loss"
+    RESCORING_LOSS = "rescoring_loss"
 
 
 class Metrics:
@@ -306,6 +307,8 @@ class Models:
     YOLO_NAS_S = "yolo_nas_s"
     YOLO_NAS_M = "yolo_nas_m"
     YOLO_NAS_L = "yolo_nas_l"
+    POSE_RESCORING = "pose_rescoring_custom"
+    POSE_RESCORING_COCO = "pose_rescoring_coco"
 
 
 class ConcatenatedTensorFormats:
@@ -338,6 +341,8 @@ class Dataloaders:
     COCO2017_POSE_VAL = "coco2017_pose_val"
     COCO_DETECTION_YOLO_FORMAT_TRAIN = "coco_detection_yolo_format_train"
     COCO_DETECTION_YOLO_FORMAT_VAL = "coco_detection_yolo_format_val"
+    COCO2017_RESCORING_TRAIN = "coco2017_rescoring_train"
+    COCO2017_RESCORING_VAL = "coco2017_rescoring_val"
     IMAGENET_TRAIN = "imagenet_train"
     IMAGENET_VAL = "imagenet_val"
     IMAGENET_EFFICIENTNET_TRAIN = "imagenet_efficientnet_train"

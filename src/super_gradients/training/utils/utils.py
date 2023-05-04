@@ -30,11 +30,14 @@ def empty_list():
     return list()
 
 
-def convert_to_tensor(array):
+def convert_to_tensor(array, dtype=None, device=None):
     """Converts numpy arrays and lists to Torch tensors before calculation losses
     :param array: torch.tensor / Numpy array / List
     """
-    return torch.FloatTensor(array) if type(array) != torch.Tensor else array
+    if not torch.is_tensor(array):
+        array = torch.tensor(array)
+
+    return array.to(device=device, dtype=dtype)
 
 
 class HpmStruct:
