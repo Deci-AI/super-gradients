@@ -18,8 +18,7 @@ hydra-core>=1.2.0
 omegaconf
 onnxruntime==1.13.1
 onnx==1.13.0
-# Pin Pillow version to major 8 version but allow minor version updates starting from 8.4
-pillow>=8.4,==8.*
+pillow>=9.5
 pip-tools>=6.12.1
 pyparsing==2.4.5
 einops==0.3.2
