@@ -450,4 +450,4 @@ python -m super_gradients.train_from_recipe --config-name coco2017_pose_dekr_res
 
 This recipe uses custom callback to compute pose estimation metrics on the validation dataset using coordinates of poses from step 1 and confidence values after rescoring.
 
-See `tests.integration_tests.pose_estimation_dataset_test.PoseEstimationDatasetIntegrationTest.test_dekr_model_with_rescoring` test for more details and end-to-end usage example.
+See integration test case [test_dekr_model_with_rescoring](https://github.com/Deci-AI/super-gradients/tests/integration_tests/pose_estimation_models_test.py#L101) for more details and end-to-end usage example.
