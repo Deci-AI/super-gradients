@@ -141,19 +141,20 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
         """
         print("Creating sub-dataset , this will take a while but don't worry, it only runs once and caches the results")
         all_coco_image_ids = list(self.coco.imgs.keys())
-        tbar = tqdm(all_coco_image_ids, desc="Generating sub-dataset image ids")
         sub_dataset_image_ids = []
-        for i, img_id in enumerate(tbar):
-            coco_target_annotations = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
-            img_metadata = self.coco.loadImgs(img_id)[0]
 
-            mask = self._generate_coco_segmentation_mask(coco_target_annotations, img_metadata["height"], img_metadata["width"])
+        with tqdm(all_coco_image_ids, desc="Generating sub-dataset image ids") as tbar:
+            for i, img_id in enumerate(tbar):
+                coco_target_annotations = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
+                img_metadata = self.coco.loadImgs(img_id)[0]
 
-            # MAKE SURE THERE IS ENOUGH INPUT IN THE IMAGE (MORE THAN 1K PIXELS) AFTER SUB-CLASSES FILTRATION
-            if (mask > 0).sum() > 1000:
-                sub_dataset_image_ids.append(img_id)
+                mask = self._generate_coco_segmentation_mask(coco_target_annotations, img_metadata["height"], img_metadata["width"])
 
-            tbar.set_description("Processed images: {}/{}, generated {} qualified images".format(i, len(all_coco_image_ids), len(sub_dataset_image_ids)))
+                # MAKE SURE THERE IS ENOUGH INPUT IN THE IMAGE (MORE THAN 1K PIXELS) AFTER SUB-CLASSES FILTRATION
+                if (mask > 0).sum() > 1000:
+                    sub_dataset_image_ids.append(img_id)
+
+                tbar.set_description("Processed images: {}/{}, generated {} qualified images".format(i, len(all_coco_image_ids), len(sub_dataset_image_ids)))
         print("Number of images in sub-dataset: ", len(sub_dataset_image_ids))
         torch.save(sub_dataset_image_ids, sub_dataset_image_ids_file_path)
         return sub_dataset_image_ids

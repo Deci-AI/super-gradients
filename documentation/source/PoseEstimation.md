@@ -407,3 +407,47 @@ See [DEKRPoseEstimationDecodeCallback](https://docs.deci.ai/super-gradients/docs
 
 A custom visualization callback class can inherit from `PhaseCallback` or `Callback` base class to generate a visualization of the model predictions. 
 See [DEKRVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_visualization_callbacks.DEKRVisualizationCallback) for more details.
+
+
+## Rescoring
+
+A rescoring is a third stage of pose estimation (after model forward and nms) aimed to improve the confidence score of the predicted poses.
+In a nutshell, rescoring is a multiplication of the final confidence score predicted by the model by a scalar value computed by a rescoring model.
+By incorporating the learned prior knowledge about the body structure (in the form for joints linkage information) rescoring model can adjust the final pose confidence 
+by downweighting the inaccurate of unlikely feasible poses and incresae confidence of poses that are more likely to be correct.
+
+A rescoring model is a simple MLP model that takes the model predictions as tensor of `[B, J, 3]` shape as input and outputs a single score for each pose prediction as tensor of `[B,1]` shape.
+Here `B` represents batch dimension, `J` number of joints and `3` is the dimension of the joint coordinates (x, y, confidence).
+
+To train a rescoring model, **you need to have a pretrained pose estimation model first**. 
+
+**SG-TODO: At this point in SG we don't have any pretrained models available. So we should train some models.**
+
+Training of rescoring model differs from the regular training in the following ways:
+
+### 1. Generate the training data.
+
+To train a rescoring model you need to generate the training data first. This assumes that you have a pretrained pose estimation model.
+To generate the dataset for rescoding model we run inference on the original dataset (COCO in this example) using our pretrained pose estimation model and save it's predictions to Pickle files. 
+
+The rescoring model input are poses `[B,J,3]` and the outputs are the rescoring scores `[B,1]`. The targets are computed object-keypoint similarity (OKs) scores between predicted pose and ground-truth pose.
+
+Currently, rescoring is only supported for DEKR architecture. 
+
+```bash
+python -m super_gradients.script.generate_rescoring_training_data --config-name=script_generate_rescoring_data_dekr_coco2017 rescoring_data_dir=OUTPUT_DATA_DIR  checkpoint=PATH_TO_TRAINED_MODEL_CHECKPOINT`.
+```
+
+### 2. Train rescoring model.
+
+The training data will be stored in output folder (In the example we use `OUTPUT_DATA_DIR` placeholder). Once generated you can use this file to train rescoring model:
+
+```bash
+python -m super_gradients.train_from_recipe --config-name coco2017_pose_dekr_rescoring \
+  dataset_params.train_dataset_params.pkl_file=OUTPUT_DATA_DIR/rescoring_data_train.pkl \
+  dataset_params.val_dataset_params.pkl_file=OUTPUT_DATA_DIR/rescoring_data_valid.pkl
+```
+
+This recipe uses custom callback to compute pose estimation metrics on the validation dataset using coordinates of poses from step 1 and confidence values after rescoring.
+
+See integration test case [test_dekr_model_with_rescoring](https://github.com/Deci-AI/super-gradients/tests/integration_tests/pose_estimation_models_test.py#L101) for more details and end-to-end usage example.

@@ -13,7 +13,6 @@ import torch.distributed as dist
 import torch.nn.functional as F
 import torchvision
 from PIL import Image
-from deprecate import deprecated
 from matplotlib.patches import Rectangle
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import transforms, InterpolationMode, RandomResizedCrop
@@ -72,26 +71,6 @@ def get_mean_and_std_torch(data_dir=None, dataloader=None, num_workers=4, Random
     std = torch.sqrt(chsum / (len(trainset) * h * w - 1))
     print(f"std: {std.view(-1)}")
     return mean.view(-1).cpu().numpy().tolist(), std.view(-1).cpu().numpy().tolist()
-
-
-@deprecated(target=get_mean_and_std_torch, deprecated_in="2.1.0", remove_in="3.0.0")
-def get_mean_and_std(dataset):
-    """Compute the mean and std value of dataset."""
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1)
-    mean = torch.zeros(3)
-    std = torch.zeros(3)
-    print("==> Computing mean and std..")
-    j = 0
-    for inputs, targets in dataloader:
-        if j % 10 == 0:
-            print(j)
-        j += 1
-        for i in range(3):
-            mean[i] += inputs[:, i, :, :].mean()
-            std[i] += inputs[:, i, :, :].std()
-    mean.div_(len(dataset))
-    std.div_(len(dataset))
-    return mean, std
 
 
 class AbstractCollateFunction(ABC):

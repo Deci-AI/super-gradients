@@ -58,7 +58,6 @@ class LightweightDEKRHead(BaseDetectionModule):
             activation(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=upscale_factor) if upscale_factor > 1 else nn.Identity(),
             nn.Conv2d(heatmap_channels, self.num_joints + 1, kernel_size=1, padding=0),
-            nn.Sigmoid(),
         )
 
         self.transition_offset = nn.Sequential(
