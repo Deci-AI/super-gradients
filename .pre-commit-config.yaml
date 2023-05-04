@@ -1,4 +1,15 @@
 repos:
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.6.1
+    hooks:
+      - id: nbstripout
+        name: nbstripout pycharm metadata
+        alias: nbstripout-pycharm
+        args:
+          - '--extra-keys=cell.metadata.pycharm'
+          - --keep-output
+          - --keep-count
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.3.0
     hooks:
