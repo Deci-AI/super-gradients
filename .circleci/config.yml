@@ -1,6 +1,12 @@
 version: 2.1
 
 parameters:
+  ad_hoc_container_build:
+    type: boolean
+    default: false
+  ad_hoc_container_build_code_only:
+    type: boolean
+    default: false
   remote_docker_version:
     type: string
     description: remote docker version
@@ -12,7 +18,7 @@ parameters:
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
-    default: "10.5.0"
+    default: "10.5.1"
 #    default: "dev:alpha"
 
 orbs:
@@ -42,6 +48,47 @@ release_candidate_tag_filter: &release_candidate_tag_filter
       only: /^\d+\.\d+\.\d+rc\d+/
 
 commands:
+  build_and_publish_command:
+    parameters:
+      repo_name:
+        type: string
+      docker_context:
+        type: string
+      image_tag:
+        type: string
+      additional_tags:
+        type: string
+      build_args:
+        type: string
+        default: ""
+      dockerfile:
+        type: string
+        default: "Dockerfile"
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Put config dir in repo context
+          command: |
+            if [ -d ~/.config ]; then
+              echo "found a .config directory, copying to repo dir"
+              cp -r  ~/.config ~/project/<< parameters.docker_context >>
+            fi
+      - deci-common/ecr_login_dev
+      - deci-common/container_image_build:
+          context: << parameters.docker_context >>
+          working_directory: "."
+          repository_name: << parameters.repo_name >>
+          image_tag: << parameters.image_tag >>
+          dockerfile: << parameters.dockerfile >>
+          build_args: << parameters.build_args >>
+      #          build_args: "PYTHON_VERSION=3.8 SG_VERSION=3.0.7"
+      - deci-common/push_docker_image_aws_dev:
+          repository_name: << parameters.repo_name >>
+          image_tag: << parameters.image_tag >>
+          additional_tags: << parameters.additional_tags >>
+
   get_beta_and_rc_tags:
     description: "getting beta and rc tag (if exist) according to ouir convention"
     steps:
@@ -607,8 +654,60 @@ jobs:
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
 
+  docker-build-and-publish-branch:
+    docker:
+      - image: cimg/base:stable-20.04
+    parameters:
+      repo_name:
+        type: string
+        default: "deci/super-gradients"
+      docker_context:
+        type: string
+        default: "."
+      additional_tags:
+        type: string
+        default: ''
+    steps:
+      - setup_remote_docker:
+          version: 20.10.7
+          docker_layer_caching: true
+      - deci-common/container_image_lint_tag:
+          image_tag: "${CIRCLE_BRANCH}"
+      - run:
+          command: |
+            ADDITIONAL_TAGS="<< parameters.additional_tags >>"
+            echo "export ADDITIONAL_TAGS=${ADDITIONAL_TAGS}" >> $BASH_ENV
+      - run:
+          command: |
+            source $BASH_ENV
+            echo "$CONTAINER_LINT_TAG"
+            echo "$ADDITIONAL_TAGS"
+      - when:
+          condition: << pipeline.parameters.ad_hoc_container_build_code_only >>
+          steps:
+            - build_and_publish_command:
+                repo_name: << parameters.repo_name >>
+                docker_context: << parameters.docker_context >>
+                image_tag: $CONTAINER_LINT_TAG
+                additional_tags: $ADDITIONAL_TAGS
+                dockerfile: 'scripts/Dockerfile.branch.code'
+                build_args: "BASE_TAG=$CONTAINER_LINT_TAG"
+      - unless:
+          condition: << pipeline.parameters.ad_hoc_container_build_code_only >>
+          steps:
+            - build_and_publish_command:
+                repo_name: << parameters.repo_name >>
+                docker_context: << parameters.docker_context >>
+                image_tag: $CONTAINER_LINT_TAG
+                additional_tags: $ADDITIONAL_TAGS
+                dockerfile: 'scripts/Dockerfile.branch'
+
 workflows:
   release:
+    unless:
+      or:
+        - << pipeline.parameters.ad_hoc_container_build >>
+        - << pipeline.parameters.ad_hoc_container_build_code_only >>
     jobs:
       - deci-common/persist_version_info:
           version_override: $CIRCLE_TAG
@@ -628,24 +727,14 @@ workflows:
       - recipe_sanity_tests_classification_pt1:
           <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt2:
-          requires:
-            - recipe_sanity_tests_classification_pt1
           <<: *release_tag_filter
       - recipe_sanity_tests_segmentation:
-          requires:
-            - recipe_sanity_tests_classification_pt2
           <<: *release_tag_filter
       - recipe_sanity_tests_detection:
-          requires:
-            - recipe_sanity_tests_segmentation
           <<: *release_tag_filter
       - recipe_sanity_tests_pose_estimation:
-          requires:
-            - recipe_sanity_tests_detection
           <<: *release_tag_filter
       - recipe_accuracy_tests:
-          requires:
-            - recipe_sanity_tests_pose_estimation
           <<: *release_tag_filter
       - release_version:
           py_version: "3.7"
@@ -670,6 +759,10 @@ workflows:
 
 
   build_and_deploy:
+    unless:
+      or:
+        - << pipeline.parameters.ad_hoc_container_build >>
+        - << pipeline.parameters.ad_hoc_container_build_code_only >>
     jobs:
       - deci-common/persist_version_info:
           use_rc: true
@@ -695,42 +788,46 @@ workflows:
           <<: *release_candidate_filter
 
   SG_docker:
-     jobs:
-       - change_rc_to_b: # works on release candidate creation
-           <<: *release_candidate_tag_filter
-       - build_and_publish_sg_container:  # works on release candidate creation
-           requires:
-             - "change_rc_to_b"
-           <<: *release_candidate_tag_filter
-       - testing_supergradients_docker_image:  # works on release candidate creation
+    unless:
+      or:
+        - << pipeline.parameters.ad_hoc_container_build >>
+        - << pipeline.parameters.ad_hoc_container_build_code_only >>
+    jobs:
+      - change_rc_to_b: # works on release candidate creation
+          <<: *release_candidate_tag_filter
+      - build_and_publish_sg_container:  # works on release candidate creation
+          requires:
+            - "change_rc_to_b"
+          <<: *release_candidate_tag_filter
+      - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
           requires:
             - "build_and_publish_sg_container"
             - "change_rc_to_b"
           <<: *release_candidate_tag_filter
-       - add_rc_tag_to_beta: # works on release candidate creation for ECR Repo
+      - add_rc_tag_to_beta: # works on release candidate creation for ECR Repo
           requires:
             - "testing_supergradients_docker_image"
             - "change_rc_to_b"
           <<: *release_candidate_tag_filter
-       - find_rc_tag_per_sha: # works on release
-           <<: *release_tag_filter
-       - add_release_tag_to_rc: # works on release
-            requires:
-              - "find_rc_tag_per_sha"
-            <<: *release_tag_filter
-       - slack/on-hold:
-           context: slack
-           channel: "sg-integration-tests"
-           requires:
-             - "add_release_tag_to_rc"
-           <<: *release_tag_filter
-       - hold-sg-public-release:  # works on release
-           type: approval
-           requires:
-             - "slack/on-hold"
-           <<: *release_tag_filter
-       - docker/publish:  # works on release
+      - find_rc_tag_per_sha: # works on release
+          <<: *release_tag_filter
+      - add_release_tag_to_rc: # works on release
+          requires:
+            - "find_rc_tag_per_sha"
+          <<: *release_tag_filter
+      - slack/on-hold:
+          context: slack
+          channel: "sg-integration-tests"
+          requires:
+           - "add_release_tag_to_rc"
+          <<: *release_tag_filter
+      - hold-sg-public-release:  # works on release
+          type: approval
+          requires:
+           - "slack/on-hold"
+          <<: *release_tag_filter
+      - docker/publish:  # works on release
           executor:
               image: cimg/base
               tag: stable-20.04
@@ -748,7 +845,7 @@ workflows:
           requires:
             - "hold-sg-public-release"
           <<: *release_tag_filter
-       - docker/publish: # works on release
+      - docker/publish: # works on release
           executor:
               image: cimg/base
               tag: stable-20.04
@@ -765,3 +862,11 @@ workflows:
           requires:
             - "hold-sg-public-release"
           <<: *release_tag_filter
+  build-and-push-container-flow:
+    when: << pipeline.parameters.ad_hoc_container_build >>
+    jobs:
+      - docker-build-and-publish-branch
+  build-and-push-container-code-only-flow:
+    when: << pipeline.parameters.ad_hoc_container_build_code_only >>
+    jobs:
+      - docker-build-and-publish-branch

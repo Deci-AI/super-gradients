@@ -167,7 +167,6 @@ class LRWarmups:
 class Samplers:
     """Static class to hold all the supported Samplers names"""
 
-    INFINITE = "InfiniteSampler"
     REPEAT_AUG = "RepeatAugSampler"
     DISTRIBUTED = "DistributedSampler"
     SEQUENTIAL = "SequentialSampler"
@@ -304,6 +303,9 @@ class Models:
     DEKR_W32_NO_DC = "dekr_w32_no_dc"
     POSE_PP_YOLO_L = "pose_ppyolo_l"
     POSE_DDRNET_39 = "pose_ddrnet39"
+    YOLO_NAS_S = "yolo_nas_s"
+    YOLO_NAS_M = "yolo_nas_m"
+    YOLO_NAS_L = "yolo_nas_l"
 
 
 class ConcatenatedTensorFormats:
@@ -326,8 +328,8 @@ class Dataloaders:
     COCO2017_VAL = "coco2017_val"
     COCO2017_TRAIN_YOLOX = "coco2017_train_yolox"
     COCO2017_VAL_YOLOX = "coco2017_val_yolox"
-    COCO2017_TRAIN_DECIYOLO = "coco2017_train_deci_yolo"
-    COCO2017_VAL_DECIYOLO = "coco2017_val_deci_yolo"
+    COCO2017_TRAIN_YOLO_NAS = "coco2017_train_yolo_nas"
+    COCO2017_VAL_YOLO_NAS = "coco2017_val_yolo_nas"
     COCO2017_TRAIN_PPYOLOE = "coco2017_train_ppyoloe"
     COCO2017_VAL_PPYOLOE = "coco2017_val_ppyoloe"
     COCO2017_TRAIN_SSD_LITE_MOBILENET_V2 = "coco2017_train_ssd_lite_mobilenet_v2"

@@ -1,0 +1,10 @@
+ARG BASE_TAG
+ARG BASE_DOCKER_REPO
+FROM ${BASE_DOCKER_REPO:-307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients}:${BASE_TAG:-latest}
+LABEL maintainer "DECI.AI <services@deci.ai>"
+ARG DEBIAN_FRONTEND=noninteractive
+WORKDIR /
+RUN rm -rf /SG && mkdir /SG
+WORKDIR /SG
+COPY . .
+RUN pip install . --no-cache-dir
