@@ -17,7 +17,7 @@ class RoboflowDetectionDataset(COCOFormatDetectionDataset):
         - Follow the official instructions to download Roboflow100: https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog
             //!\\ To use this dataset, you have to download the "coco" format, NOT the yolov5.
 
-        - Your dataset should loook like this:
+        - Your dataset should look like this:
             rf100
             ├── 4-fold-defect
             │      ├─ train
