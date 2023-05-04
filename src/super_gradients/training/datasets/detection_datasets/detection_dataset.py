@@ -291,11 +291,10 @@ class DetectionDataset(Dataset):
             cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="w+")
 
             # Store images in the placeholder
-            loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self), disable=not self.verbose)
-            for i, image in loaded_images_pbar:
-                cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
-            cached_imgs.flush()
-            loaded_images_pbar.close()
+            with tqdm(enumerate(loaded_images), total=len(self), disable=not self.verbose) as loaded_images_pbar:
+                for i, image in loaded_images_pbar:
+                    cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
+                cached_imgs.flush()
         else:
             logger.warning("You are using cached imgs!")
 
