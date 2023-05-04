@@ -70,6 +70,11 @@ class AutoLoggerConfig:
             )
         else:
             # If the logging does not support force=True, we should manually delete handlers
+            for h in manager.root.handlers:
+                try:
+                    h.close()
+                except AttributeError:
+                    pass
             del manager.root.handlers[:]
 
         if cur_version >= python_39:

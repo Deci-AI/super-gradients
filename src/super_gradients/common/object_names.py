@@ -168,7 +168,6 @@ class LRWarmups:
 class Samplers:
     """Static class to hold all the supported Samplers names"""
 
-    INFINITE = "InfiniteSampler"
     REPEAT_AUG = "RepeatAugSampler"
     DISTRIBUTED = "DistributedSampler"
     SEQUENTIAL = "SequentialSampler"

@@ -120,7 +120,7 @@ ________________________________________________________________________________
 pip install super-gradients
 ```
 
-## What's New - Version 3.1.0 (May 3rd)
+## What's New - Version 3.1.1 (May 3rd)
 __________________________________________________________________________________________________________
 * [YOLO-NAS](https://bit.ly/41WeNPZ)
 * New [predict function](https://bit.ly/3oZfaea) (predict on any image, video, url, path, stream)
