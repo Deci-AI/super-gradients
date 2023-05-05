@@ -1,19 +1,28 @@
 #  DEKR training example with COCO dataset.
 #  Reproduction and refinement of paper: Bottom-Up Human Pose Estimation Via Disentangled Keypoint Regression.
 #
-#  Recipe runs with batch size = 8 X 8 gpus = 64.
+#  Note: Original DEKR architecture using deformable convolutions. This recipe uses standard convolutions to enable
+#  model be exportable to ONNX.
+#
+#  Recipe runs with batch size = 24 X 8 gpus = 192.
 #
 #  Instructions:
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
-#   2. Run the command:
-#       DEKR-W32: python -m super_gradients.train_from_recipe --config-name=coco2017_pose_dekr_w32_no_dc
-#  NOTE: Add "checkpoint_params.checkpoint_path=<hrnet-pretrained-path>" to use pretrained backbone (See line 55).
+#   2. Make sure you've downloaded pretrained backbone weights from https://1drv.ms/u/s!Aus8VCZ_C_33dYBMemi9xOUFR0w to project root (See line 55).
+#   3. Run the command:
+#       DEKR-W32-NO-DC: python -m super_gradients.train_from_recipe --config-name=coco2017_pose_dekr_w32_no_dc checkpoint_params.checkpoint_path=hrnetv2_w32_imagenet_pretrained.pth
 #
 #
-#  Validation AP (Without multiscale & flip augmentation) - COCO, training time:
-#      DEKR-W32:    input-size: [640, 640]     AP: TBD    8 X RTX A5000
+#  Validation AP (Without flip augmentation and rescoring) - COCO, training time:
+#      DEKR-W32-NO-DC:    input-size: [640, 640]     AP: 63.08 (Regular training)   8 X RTX A5000 - 21h
 #
+#  Scores with flip TTA and rescoring (Using best model from above):
+#      DEKR-W32-NO-DC:    input-size: [640, 640]     AP: 64.96 (With Flip TTA)
+#      DEKR-W32-NO-DC:    input-size: [640, 640]     AP: 67.34 (With Flip TTA and Rescoring)
+#
+#  Rescoring:
+#      See `coco2017_pose_dekr_rescoring.yaml` recipe and `documentation/source/PoseEstimation.md#Rescoring` section of the documentation.
 #
 #  Official git repo:
 #      https://github.com/HRNet/DEKR
@@ -23,18 +32,15 @@
 #
 #  Comments:
 #      * Pretrained backbones were used.
-#      * Results with Deci code are higher than original implementation, mostly thanks to changes in Detail loss and
-#          module, different auxiliary feature maps and different loss weights.
+#      * In DEKR-W32-NO-DC A suffix "NO-DC" stands for "No deformable convolutions".
 
 defaults:
   - training_hyperparams: coco2017_dekr_pose_train_params
-  - dataset_params: coco_pose_estimation_dekr_dataset_params
+  - dataset_params: coco_pose_estimation_dataset_params
   - arch_params: pose_dekr_w32_no_dc_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
   - variable_setup
-
-resume: False
 
 architecture: dekr_w32_no_dc
 
@@ -42,15 +48,12 @@ multi_gpu: DDP
 num_gpus: 8
 
 experiment_suffix: ""
-experiment_name: coco2017_pose_${architecture}_${experiment_suffix}
+experiment_name: coco2017_pose_${architecture}${experiment_suffix}
 
-
+ckpt_root_dir:
 
 train_dataloader: coco2017_pose_train
 val_dataloader: coco2017_pose_val
-
-arch_params:
-  num_classes: ${dataset_params.num_joints}
 
 checkpoint_params:
   # Original training recipe uses pretrained weights for HRNet on ImageNet.
@@ -64,34 +67,7 @@ checkpoint_params:
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 8
+    batch_size: 24
 
   val_dataloader_params:
-    batch_size: 16
-
-training_hyperparams:
-  resume: ${resume}
-  phase_callbacks: []
-#   Note: You can uncomment following block to enable visualization of intermediate results during training.
-#   When enabled, these callbacks will save first batch from training & validation to Tensorboard.
-#   This is helpful for debugging and doing visual checks whether predictions are reasonable and transforms are
-#   working as expected.
-#   The only downside is that it tend to bloat Tensorboard logs (Up to ten Gigs for long training regimes).
-#  phase_callbacks:
-#    - DEKRVisualizationCallback:
-#        phase:
-#          _target_: super_gradients.training.utils.callbacks.callbacks.Phase
-#          value: TRAIN_BATCH_END
-#        prefix: "train_"
-#        mean: [ 0.485, 0.456, 0.406 ]
-#        std: [ 0.229, 0.224, 0.225 ]
-#        apply_sigmoid: False
-#
-#    - DEKRVisualizationCallback:
-#        phase:
-#          _target_: super_gradients.training.utils.callbacks.callbacks.Phase
-#          value: VALIDATION_BATCH_END
-#        prefix: "val_"
-#        mean: [ 0.485, 0.456, 0.406 ]
-#        std: [ 0.229, 0.224, 0.225 ]
-#        apply_sigmoid: False
+    batch_size: 32

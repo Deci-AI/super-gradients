@@ -1,0 +1,38 @@
+# This script contains a recipe to generate the training data for rescoring net for DEKR architecutre on COCO2017 dataset.
+# See documentation/source/PoseEstimation.md for more details.
+#
+# Example usage:
+#   python -m super_gradients.scripts.generate_rescoring_training_data --config-name=script_generate_rescoring_data_dekr_coco2017 rescoring_data_dir=WHERE_TO_STORE_FILES checkpoint=PATH_TO_TRAINED_MODEL_CHECKPOINT`.
+
+defaults:
+  - dataset_params: coco_pose_estimation_dekr_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - arch_params: pose_dekr_w32_no_dc_arch_params
+  - _self_
+
+architecture: dekr_w32_no_dc
+rescoring_data_dir: ???
+
+train_dataloader: coco2017_pose_train
+val_dataloader: coco2017_pose_val
+
+arch_params:
+  num_classes: ${dataset_params.num_joints}
+
+checkpoint_params:
+  checkpoint_path:  # Put the path to the checkpoint here
+
+post_prediction_callback:
+  _target_: super_gradients.training.utils.pose_estimation.DEKRPoseEstimationDecodeCallback
+  max_num_people: 30
+  keypoint_threshold: 0.05
+  nms_threshold: 0.05
+  nms_num_threshold: 8
+  output_stride: 4
+  apply_sigmoid: False # We use Flip-TTA and apply sigmoid there
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: .

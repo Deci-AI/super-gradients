@@ -79,7 +79,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.filter_joints(image_shape, gt_joints, gt_areas, gt_bboxes, gt_iscrowd)
 
         targets = self.target_generator(img, gt_joints, mask)
-        return img, targets, {"gt_joints": gt_joints, "gt_bboxes": gt_bboxes, "gt_iscrowd": gt_iscrowd}
+        return img, targets, {"gt_joints": gt_joints, "gt_bboxes": gt_bboxes, "gt_iscrowd": gt_iscrowd, "gt_areas": gt_areas}
 
     def load_sample(self, index):
         img_id = self.ids[index]
