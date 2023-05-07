@@ -1,13 +1,15 @@
-# Super Gradients Object Detection Tutorial
+# Pretrained Model Predictions 
 
 In this tutorial, we will demonstrate how to use the `model.predict()` method in the Super Gradients library for object detection tasks. 
 The model used in this tutorial is [YOLO-NAS](YoloNASQuickstart.md), pre-trained on the [COCO dataset](https://cocodataset.org/#home), which contains 80 object categories.
 
 
+*Note that the  `model.predict()` method is currently only available for detection tasks.*
+
 
 ## Detect Objects in Multiple Images
 
-### Load the Model and Prepare the Images
+#### Load the Model and Prepare the Images
 First, let's load the pre-trained `Yolo-NAS` model using the `models.get()` function and define a list of image paths or URLs that we want to process:
 
 ```python
@@ -133,7 +135,7 @@ The number of Frames Per Second (FPS) at which the model processes the gif/video
 In the following example, the FPS is 39.49it/s (i.e. fps)
 `Predicting Video: 100%|███████████████████████| 306/306 [00:07<00:00, 39.49it/s]`
 
-Note that the video/gif will be saved with original FPS (i.e. `media_predictions.fps`) to not alter the video speed.
+Note that the video/gif will be saved with original FPS (i.e. `media_predictions.fps`).
 
 ### Access Frame-by-Frame Detection Results for GIFs and Videos
 Iterating over the `media_predictions` object allows you to access the detection results for each frame. This provides an opportunity to perform frame-specific operations, like applying custom filters or visualizations.
@@ -157,11 +159,11 @@ for frame_index, frame_prediction in enumerate(media_predictions):
 Call the `model.predict_webcam()` method to start detecting objects using your webcam:
 
 ```python
-model.predict_webcam(box_thickness=2, show_confidence=True)
+model.predict_webcam()
 ```
 
 The detected objects and their bounding boxes will be displayed on the webcam feed in real-time. Press 'q' to quit the webcam feed.
-
+Note that `model.predict_webcam()` and `model.predict()` share the same parameters.
 
 ### Frames Per Second (FPS)
 In the case of a Webcam, contrary to when processing a video by batch, the number of Frames Per Seconds (FPS) directly affects the display FPS since we show each frame right after it is processed.
