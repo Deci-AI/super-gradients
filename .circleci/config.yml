@@ -47,6 +47,9 @@ release_candidate_tag_filter: &release_candidate_tag_filter
     tags:
       only: /^\d+\.\d+\.\d+rc\d+/
 
+build_python_versions: &build_python_versions
+  py_version:  [ "3.7", "3.8"]
+
 commands:
   build_and_publish_command:
     parameters:
@@ -770,9 +773,11 @@ workflows:
           version_override: ""
 
       - build:
-          name: "build3.7"
-          py_version: "3.7"
+          name: "build"
           package_name: "super-gradients"
+          matrix:
+            parameters:
+              <<: *build_python_versions
           requires:
             - deci-common/persist_version_info
 
