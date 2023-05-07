@@ -736,7 +736,6 @@ workflows:
             - recipe_sanity_tests_classification_pt2
             - recipe_sanity_tests_segmentation
             - recipe_sanity_tests_detection
-            - recipe_sanity_tests_pose_estimation
           <<: *release_tag_filter
       - deci-common/pip_upload_package_from_codeartifact_to_global_pypi:
           package_name: "super-gradients"
