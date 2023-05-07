@@ -14,7 +14,7 @@ from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPo
 
 @register_model(Models.YOLO_NAS_S)
 class YoloNAS_S(CustomizableDetector):
-    def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
         default_arch_params = get_arch_params("yolo_nas_s_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
@@ -23,7 +23,7 @@ class YoloNAS_S(CustomizableDetector):
             neck=merged_arch_params.neck,
             heads=merged_arch_params.heads,
             num_classes=get_param(merged_arch_params, "num_classes", None),
-            in_channels=in_channels,
+            in_channels=get_param(merged_arch_params, "in_channels", 3),
             bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
             bn_eps=get_param(merged_arch_params, "bn_eps", None),
             inplace_act=get_param(merged_arch_params, "inplace_act", None),
@@ -40,7 +40,7 @@ class YoloNAS_S(CustomizableDetector):
 
 @register_model(Models.YOLO_NAS_M)
 class YoloNAS_M(CustomizableDetector):
-    def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
         default_arch_params = get_arch_params("yolo_nas_m_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
@@ -49,7 +49,7 @@ class YoloNAS_M(CustomizableDetector):
             neck=merged_arch_params.neck,
             heads=merged_arch_params.heads,
             num_classes=get_param(merged_arch_params, "num_classes", None),
-            in_channels=in_channels,
+            in_channels=get_param(merged_arch_params, "in_channels", 3),
             bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
             bn_eps=get_param(merged_arch_params, "bn_eps", None),
             inplace_act=get_param(merged_arch_params, "inplace_act", None),
@@ -66,7 +66,7 @@ class YoloNAS_M(CustomizableDetector):
 
 @register_model(Models.YOLO_NAS_L)
 class YoloNAS_L(CustomizableDetector):
-    def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
         default_arch_params = get_arch_params("yolo_nas_l_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
@@ -75,7 +75,7 @@ class YoloNAS_L(CustomizableDetector):
             neck=merged_arch_params.neck,
             heads=merged_arch_params.heads,
             num_classes=get_param(merged_arch_params, "num_classes", None),
-            in_channels=in_channels,
+            in_channels=get_param(merged_arch_params, "in_channels", 3),
             bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
             bn_eps=get_param(merged_arch_params, "bn_eps", None),
             inplace_act=get_param(merged_arch_params, "inplace_act", None),

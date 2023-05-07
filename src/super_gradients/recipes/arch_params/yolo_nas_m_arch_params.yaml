@@ -1,3 +1,5 @@
+in_channels: 3
+
 backbone:
   NStageBackbone:
 
