@@ -1,4 +1,4 @@
-# Pretrained Model Predictions 
+# Using Pretrained Models for Predictions 
 
 In this tutorial, we will demonstrate how to use the `model.predict()` method in the Super Gradients library for object detection tasks. 
 The model used in this tutorial is [YOLO-NAS](YoloNASQuickstart.md), pre-trained on the [COCO dataset](https://cocodataset.org/#home), which contains 80 object categories.
@@ -17,27 +17,27 @@ from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
 model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
-
-IMAGES = [
-    "path/to/local/image1.jpg",
-    "path/to/local/image2.jpg",
-    "https://example.com/image3.jpg",
-]
 ```
 
 ### Detect Objects in the Images
 The `model.predict()` method returns an `ImagesDetectionPrediction` object, which contains the detection results for each image.
 
 ```python
+IMAGES = [
+    "path/to/local/image1.jpg",
+    "path/to/local/image2.jpg",
+    "https://example.com/image3.jpg",
+]
+
 images_predictions = model.predict(IMAGES)
 ```
-This will use the default IoU and Confidence threshold, but you can override them as follows:
+You can use the default IoU and Confidence threshold or override them like this:
 
 ```python
 images_predictions = model.predict(IMAGES, iou=0.5, conf=0.7)
 ```
-- `iou`: IoU threshold for the non-maximum suppression (NMS) algorithm. If None, the default value associated with the training is used.
-- `conf`: Confidence threshold. Predictions below this threshold are discarded. If None, the default value associated with the training is used.
+- `iou`: IoU threshold for the non-maximum suppression (NMS) algorithm. If None, the default value associated with training is used.
+- `conf`: Confidence threshold. Predictions below this threshold are discarded. If None, the default value associated with training is used.
 
 ### Display the Detected Objects
 To display the detected objects and their bounding boxes on the images, call `images_predictions.show()`.
@@ -54,8 +54,6 @@ images_predictions.show(box_thickness=2, show_confidence=True)
 - `show_confidence`: Whether to show confidence scores on the image.
 - `color_mapping`: List of tuples representing the colors for each class.
 
-
-
 ### Save the Images with Detected Objects
 To save the images with detected objects as separate files, call the `images_predictions.save()` method and specify the output folder.
 ```python
@@ -66,8 +64,6 @@ You can also customize the same parameters as in the `images_predictions.show()`
 ```python
 images_predictions.save(output_folder="output_folder/", box_thickness=2, show_confidence=True)
 ```
-
-
 ### Access Detection Results
 To access the detection results for each image, you can iterate over the `images_predictions` object. For each detected object, you can retrieve various attributes such as the label ID, label name, confidence score, and bounding box coordinates. These attributes can be used for further processing or analysis.
 
@@ -146,7 +142,7 @@ for frame_index, frame_prediction in enumerate(media_predictions):
     confidence = frame_prediction.prediction.confidence
     bboxes = frame_prediction.prediction.bboxes_xyxy
 
-    # You can do any Frame-specific operations
+    # You can do any frame-specific operations
     # ...
 
     # Example: Save individual frames with detected objects
@@ -168,8 +164,7 @@ Note that `model.predict_webcam()` and `model.predict()` share the same paramete
 ### Frames Per Second (FPS)
 In the case of a Webcam, contrary to when processing a video by batch, the number of Frames Per Seconds (FPS) directly affects the display FPS since we show each frame right after it is processed.
 
-You can find this information directly written in a corner of the video. 
-
+You can find this information directly written in a corner of the video.
 
 
 ## Using GPU for Object Detection
@@ -179,3 +174,5 @@ If your system has a GPU available, you can use it for faster object detection b
 model = model.to("cuda" if torch.cuda.is_available() else "cpu")
 model.predict(...)
 ```
+
+This allows the model to run on the GPU, significantly speeding up the object detection process. Note that using a GPU requires having the necessary drivers and compatible hardware installed.
