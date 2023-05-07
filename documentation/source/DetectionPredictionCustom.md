@@ -16,7 +16,7 @@ Everything is automatically saved during training inside the model checkpoint, s
  `model.set_dataset_processing_params()` 
 
 
-*For more information about the `model.predict()`, please check out the [following tutorial](DetectionPrediction.md)*
+*For more information about the `model.predict()`, please check out the [following tutorial](DetectionPrediction.md).*
 
 ## Defining the parameters
 ### Class Names
@@ -33,7 +33,7 @@ class_names = [
     ...
 ]
 ```
-Just make sure to keep the same class order as during training.
+Make sure to keep the same class order as during training.
 
 ### Processing 
 
@@ -90,3 +90,5 @@ IMAGES = [...]
 
 images_predictions = model.predict(IMAGES)
 ```
+
+*For more information about the `model.predict()`, please check out the [following tutorial](DetectionPrediction.md).*
