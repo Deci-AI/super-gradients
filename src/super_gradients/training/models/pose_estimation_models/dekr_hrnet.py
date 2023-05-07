@@ -24,7 +24,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.arch_params_factory import get_arch_params
 
-__all__ = ["DEKRPoseEstimationModel", "DEKRW32"]
+__all__ = ["DEKRPoseEstimationModel", "DEKRW32NODC"]
 
 from super_gradients.training.utils import HpmStruct
 
@@ -525,7 +525,7 @@ POSE_DEKR_W32_NO_DC_ARCH_PARAMS = get_arch_params("pose_dekr_w32_no_dc_arch_para
 
 
 @register_model(Models.DEKR_W32_NO_DC)
-class DEKRW32(DEKRPoseEstimationModel):
+class DEKRW32NODC(DEKRPoseEstimationModel):
     """
     DEKR-W32 model for pose estimation without deformable convolutions.
     """
@@ -534,3 +534,54 @@ class DEKRW32(DEKRPoseEstimationModel):
         merged_arch_params = HpmStruct(**copy.deepcopy(POSE_DEKR_W32_NO_DC_ARCH_PARAMS))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(merged_arch_params)
+
+
+class DEKRWrapper(nn.Module):
+    def __init__(self, model: DEKRPoseEstimationModel, apply_sigmoid=False):
+        super().__init__()
+        self.model = model
+        self.apply_sigmoid = apply_sigmoid
+
+    def forward(self, inputs):
+        heatmap, offsets = self.model(inputs)
+
+        if self.apply_sigmoid:
+            heatmap = torch.sigmoid(heatmap)
+
+        return heatmap, offsets
+
+
+class DEKRHorisontalFlipWrapper(nn.Module):
+    def __init__(self, model: DEKRPoseEstimationModel, flip_indexes_heatmap, flip_indexes_offset, apply_sigmoid=False):
+        super().__init__()
+        self.model = model
+        self.flip_indexes_heatmap = torch.tensor(flip_indexes_heatmap).long()
+        self.flip_indexes_offset = torch.tensor(flip_indexes_offset).long()
+        self.apply_sigmoid = apply_sigmoid
+
+    def forward(self, inputs):
+
+        input_flip = inputs.flip(3)
+        input_flip[:, :, :, :-3] = input_flip[:, :, :, 3:]
+
+        heatmap, offsets = self.model(inputs)
+        heatmap_flip, offset_flip = self.model(input_flip)
+
+        heatmap_deaugment = heatmap_flip[:, self.flip_indexes_heatmap, :, :]
+
+        batch_size, num_offsets, rows, cols = offset_flip.size()
+
+        offset_flip = offset_flip.reshape(offset_flip.size(0), offset_flip.size(1) // 2, 2, offset_flip.size(2), offset_flip.size(3))
+        offset_flip = offset_flip[:, self.flip_indexes_offset, :, :, :]
+        offset_flip[:, :, 0, :, :] *= -1
+
+        offset_deaugment = offset_flip.reshape(batch_size, num_offsets, rows, cols)
+
+        if self.apply_sigmoid:
+            heatmap = torch.sigmoid(heatmap)
+            heatmap_deaugment = torch.sigmoid(heatmap_deaugment)
+
+        averaged_heatmap = (heatmap + heatmap_deaugment.flip(3)) * 0.5
+        averaged_offsets = (offsets + offset_deaugment.flip(3)) * 0.5
+
+        return averaged_heatmap, averaged_offsets

@@ -92,11 +92,11 @@ All the available models are listed in the column `Model name`.
 
 ### Pretrained Pose Estimation PyTorch Checkpoints
 
-| Model           | Model Name      | Dataset     | Resolution | AP  | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO | Latency (Production)**<sub>Jetson Xavier NX</sub> | 
-|-----------------|-----------------|-------------|------------|-----|-------------------------|--------------------------------------|:-------------------------------------------------:|
-| DEKR_W32_NO_DC  | dekr_w32_no_dc  | COCO2017 PE | 640x640    |     |                         |                                      |                                                   |
-| POSE_PP_YOLO_L  | pose_ppyolo_l   | COCO2017 PE | 640x640    |     |                         |                                      |                                                   |
-| POSE_DDRNET_39  | pose_ddrnet39   | COCO2017 PE | 640x640    |     |                         |                                      |                                                   |
+| Model           | Model Name      | Dataset     | Resolution | AP (No TTA / H-Flip TTA / H-Flip TTA+Rescoring) | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO | Latency (Production)**<sub>Jetson Xavier NX</sub> | 
+|-----------------|-----------------|-------------|------------|-------------------------------------------------|-------------------------|--------------------------------------|:-------------------------------------------------:|
+| DEKR_W32_NO_DC  | dekr_w32_no_dc  | COCO2017 PE | 640x640    | 63.08 / 64.96 / 67.32                           |                         |                                      |                                                   |
+| POSE_PP_YOLO_L  | pose_ppyolo_l   | COCO2017 PE | 640x640    |                                                 |                         |                                      |                                                   |
+| POSE_DDRNET_39  | pose_ddrnet39   | COCO2017 PE | 640x640    |                                                 |                         |                                      |                                                   |
 
 
 ## Implemented Model Architectures 
