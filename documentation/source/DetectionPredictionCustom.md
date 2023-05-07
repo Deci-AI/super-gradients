@@ -1,8 +1,8 @@
 # Image Preprocessing and Postprocessing
-When making predictions on images, several parameters must be available:
-- Class names: The model is designed to predict class IDs; however, to visualize results, the class names used during training must be known.
-- Processing parameters: The model requires a specific input format.
-- Task-specific parameters: In the case of Detection, this includes `IoU` and `Confidence` thresholds, for example.
+To make accurate predictions on images, several parameters must be provided:
+- Class names: The model predicts class IDs, but to visualize results, the class names from the training dataset are needed.
+- Processing parameters: The model requires input data in a specific format.
+- Task-specific parameters: For instance, in the case of Detection, this includes `IoU` and `Confidence` thresholds.
 
 SuperGradients manages all of these within its `model.predict()` method, but in certain scenarios, you might need to set these parameters explicitly first.
 
@@ -16,7 +16,7 @@ All necessary information is automatically saved during training within the mode
 
 ## Setting the parameters
 ### Class Names
-This is a simple task, involving only the list of classes used during training. For example, if you are loading the weights of a model fine-tuned on a new dataset, this should be the classes of that dataset.
+This is straightforward as it corresponds to the list of classes used during training. For instance, if you're loading the weights of a model fine-tuned on a new dataset, use the classes from that dataset.
 
 ```python
 class_names = [
@@ -63,7 +63,7 @@ Default `iou` and `conf` values can be set, which will be used when calling `mod
 - `conf`: Confidence threshold. Predictions below this threshold are discarded. If None, the default value associated with training is used.
 
 ## Saving your processing parameters to your model
-After defining all the parameters, you can call `model.set_dataset_processing_params()` and then use `model.predict()`.
+After defining all parameters, call `model.set_dataset_processing_params()` and then use `model.predict()`.
 ```python
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
