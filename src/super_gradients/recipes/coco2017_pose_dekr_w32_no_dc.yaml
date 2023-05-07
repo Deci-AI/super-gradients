@@ -55,6 +55,9 @@ ckpt_root_dir:
 train_dataloader: coco2017_pose_train
 val_dataloader: coco2017_pose_val
 
+arch_params:
+  num_classes: ${dataset_params.num_joints}
+
 checkpoint_params:
   # Original training recipe uses pretrained weights for HRNet on ImageNet.
   # You will need to download the pretrained weights from the original repo and place
