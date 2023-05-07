@@ -14,11 +14,11 @@ torchvision>=0.10.0
 sphinx~=4.0.2
 sphinx-rtd-theme
 torchmetrics==0.8
-pillow>=9.2.0
 hydra-core>=1.2.0
 omegaconf
 onnxruntime==1.13.1
 onnx==1.13.0
+pillow>=5.3.0,!=8.3.*
 pip-tools>=6.12.1
 pyparsing==2.4.5
 einops==0.3.2
