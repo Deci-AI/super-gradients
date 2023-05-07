@@ -773,7 +773,6 @@ workflows:
           version_override: ""
 
       - build:
-          name: "build"
           package_name: "super-gradients"
           matrix:
             parameters:
@@ -788,7 +787,8 @@ workflows:
       - release_candidate: # happens on merge
           py_version: "3.7"
           requires:
-            - "build3.7"
+            - "build-3.7"
+            - "build-3.8"
             - deci-common/codeartifact_login
           <<: *release_candidate_filter
 
