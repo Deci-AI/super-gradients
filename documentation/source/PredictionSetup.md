@@ -1,4 +1,5 @@
-# Image Preprocessing and Postprocessing
+# Prediction Set-Up
+
 To make accurate predictions on images, several parameters must be provided:
 - Class names: The model predicts class IDs, but to visualize results, the class names from the training dataset are needed.
 - Processing parameters: The model requires input data in a specific format.
@@ -14,7 +15,8 @@ All necessary information is automatically saved during training within the mode
 
 *For more details about `model.predict()`, please refer to the [related tutorial](DetectionPrediction.md).*
 
-## Setting the parameters
+
+## Set-up parameters
 ### Class Names
 This is straightforward as it corresponds to the list of classes used during training. For instance, if you're loading the weights of a model fine-tuned on a new dataset, use the classes from that dataset.
 

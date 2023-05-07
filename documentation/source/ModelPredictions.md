@@ -9,6 +9,7 @@ The model used in this tutorial is [YOLO-NAS](YoloNASQuickstart.md), pre-trained
 
 *Note that the  `model.predict()` method is currently only available for detection tasks.*
 
+
 ## Detect Objects in Multiple Images
 
 #### Load the Model and Prepare the Images
