@@ -1,6 +1,6 @@
 # Using Pretrained Models for Predictions 
 
-In this tutorial, we will demonstrate how to use the `model.predict()` method in the Super Gradients library for object detection tasks.
+In this tutorial, we will demonstrate how to use the `model.predict()` method for object detection tasks.
 
 The model used in this tutorial is [YOLO-NAS](YoloNASQuickstart.md), pre-trained on the [COCO dataset](https://cocodataset.org/#home), which contains 80 object categories.
 
