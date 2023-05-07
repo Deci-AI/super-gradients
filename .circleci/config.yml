@@ -717,8 +717,8 @@ workflows:
           repo_name: "deci-packages"
           <<: *release_tag_filter
       - build:
-          name: "build3.7"
-          py_version: "3.7"
+          name: "build3.8"
+          py_version: "3.8"
           package_name: "super-gradients"
           requires:
             - deci-common/persist_version_info
@@ -730,9 +730,9 @@ workflows:
       - recipe_sanity_tests_pose_estimation
       - recipe_accuracy_tests
       - release_version:
-          py_version: "3.7"
+          py_version: "3.8"
           requires:
-            - "build3.7"
+            - "build3.8"
             - recipe_accuracy_tests
             - recipe_sanity_tests_classification_pt1
             - recipe_sanity_tests_classification_pt2
@@ -763,8 +763,8 @@ workflows:
           version_override: ""
 
       - build:
-          name: "build3.7"
-          py_version: "3.7"
+          name: "build3.8"
+          py_version: "3.8"
           package_name: "super-gradients"
           requires:
             - deci-common/persist_version_info
@@ -774,9 +774,9 @@ workflows:
           <<: *release_candidate_filter
 
       - release_candidate: # happens on merge
-          py_version: "3.7"
+          py_version: "3.8"
           requires:
-            - "build3.7"
+            - "build3.8"
             - deci-common/codeartifact_login
           <<: *release_candidate_filter
 
