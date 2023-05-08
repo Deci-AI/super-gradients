@@ -1489,7 +1489,9 @@ class Trainer:
 
         if self.load_checkpoint or self.external_checkpoint_path:
             # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST
+            ckpt_root_dir = str(Path(self.checkpoints_dir_path).parent)
             ckpt_local_path = get_ckpt_local_path(
+                ckpt_root_dir=ckpt_root_dir,
                 source_ckpt_folder_name=self.source_ckpt_folder_name,
                 experiment_name=self.experiment_name,
                 ckpt_name=self.ckpt_name,
