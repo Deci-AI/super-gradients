@@ -58,7 +58,7 @@ def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None) ->
     return os.path.join(ckpt_root_dir, experiment_name)
 
 
-def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, external_checkpoint_path: str, ckpt_root_dir: str = None) -> str:
+def get_ckpt_local_path(experiment_name: str, ckpt_name: str, external_checkpoint_path: str, ckpt_root_dir: str = None) -> str:
     """
     Gets the local path to the checkpoint file, which will be:
         - By default: YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name/ckpt_name.
@@ -70,8 +70,6 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
             YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name/ckpt_name if such file exists.
 
 
-    :param source_ckpt_folder_name: The folder where the checkpoint is saved. When set to None- uses the
-    experiment_name.
     :param experiment_name: experiment name attr in trainer :param ckpt_name: checkpoint filename
     :param external_checkpoint_path: full path to checkpoint file (that might be located outside of
     super_gradients/checkpoints directory)
@@ -84,6 +82,5 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
     if external_checkpoint_path:
         return external_checkpoint_path
     else:
-        checkpoints_folder_name = source_ckpt_folder_name or experiment_name
-        checkpoints_dir_path = get_checkpoints_dir_path(checkpoints_folder_name, ckpt_root_dir)
+        checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
         return os.path.join(checkpoints_dir_path, ckpt_name)
