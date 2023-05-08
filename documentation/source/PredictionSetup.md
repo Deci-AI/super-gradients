@@ -8,7 +8,7 @@ To make accurate predictions on images, several parameters must be provided:
 SuperGradients manages all of these within its `model.predict()` method, but in certain scenarios, you might need to set these parameters explicitly first.
 
 ### 1. Training your model on a custom dataset
-In this situation, the model is not aware of your processing parameters, so you need to set them all by using `model.set_dataset_processing_params()`. After that, you can run `model.predict()`.
+If you trained a model on a dataset that **does not** inherit from any of the SuperGradients datasets, you will need to set the processing parameters explicitly. To do this, use the `model.set_dataset_processing_params()` method. Once you've set the parameters, you can run `model.predict()`.
 
 ### 2. Using pretrained weights or training on a SuperGradient's dataset
 All necessary information is automatically saved during training within the model checkpoint, so you can run `model.predict()` **without** calling `model.set_dataset_processing_params()`.

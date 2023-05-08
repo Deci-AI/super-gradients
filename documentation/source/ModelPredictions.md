@@ -4,8 +4,7 @@ In this tutorial, we will demonstrate how to use the `model.predict()` method fo
 
 The model used in this tutorial is [YOLO-NAS](YoloNASQuickstart.md), pre-trained on the [COCO dataset](https://cocodataset.org/#home), which contains 80 object categories.
 
-
-**Warning**: If your model was trained on your own custom dataset, make sure to follow these [steps first](DetectionPredictionCustom.md).
+**Warning**: If you trained your model on a dataset that does not inherit from any of the SuperGradients dataset, you will need to follow some additional steps before running the model. You can find these steps in the [following tutorial](PredictionSetup.md).
 
 *Note that the  `model.predict()` method is currently only available for detection tasks.*
 
@@ -39,8 +38,8 @@ You can use the default IoU and Confidence threshold or override them like this:
 ```python
 images_predictions = model.predict(IMAGES, iou=0.5, conf=0.7)
 ```
-- `iou`: IoU threshold for the non-maximum suppression (NMS) algorithm. If None, the default value associated with training is used.
-- `conf`: Confidence threshold. Predictions below this threshold are discarded. If None, the default value associated with training is used.
+- `iou`: IoU threshold for the non-maximum suppression (NMS) algorithm. If None, the default value associated with the model used.
+- `conf`: Confidence threshold. Predictions below this threshold are discarded. If None, the default value associated with the model used.
 
 ### Display the Detected Objects
 To display the detected objects and their bounding boxes on the images, call `images_predictions.show()`.
