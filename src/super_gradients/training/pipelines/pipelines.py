@@ -267,7 +267,7 @@ class DetectionPipeline(Pipeline):
     ) -> ImagesDetectionPrediction:
         if n_images is not None and n_images == 1:
             # Do not show tqdm progress bar if there is only one image
-            pass
+            images_predictions = [next(iter(images_predictions))]
         else:
             images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
 
