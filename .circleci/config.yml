@@ -168,7 +168,7 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            python3 -m pip install pip==22.0.4
+            python3 -m pip install pip==23.1.2
             cat requirements.txt | cut -f1 -d"#" | xargs -n 1 -L 1 pip install --progress-bar off
       - run:
           name: edit package version
@@ -453,7 +453,7 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
+            python3.8 -m pip install torch torchvision torchaudio
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32_no_dc experiment_name=shortened_coco2017_pose_dekr_w32_ap_test batch_size=4 val_batch_size=8 epochs=1 training_hyperparams.lr_warmup_steps=0 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=1000 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=shortened_cifar10_resnet_accuracy_test epochs=100 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
             python3.8 src/super_gradients/examples/convert_recipe_example/convert_recipe_example.py --config-name=cifar10_conversion_params experiment_name=shortened_cifar10_resnet_accuracy_test
@@ -491,7 +491,7 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
+            python3.8 -m pip install torch torchvision torchaudio
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY600 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY800 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
@@ -527,7 +527,7 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
+            python3.8 -m pip install torch torchvision torchaudio
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_large batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
@@ -563,7 +563,7 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
+            python3.8 -m pip install torch torchvision torchaudio
             wget  -O $(pwd)/checkpoints/ddrnet23_slim_bb_imagenet.pth https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_slim_bb_imagenet.pth
             wget  -O $(pwd)/checkpoints/ddrnet23_bb_imagenet.pth https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_bb_imagenet.pth
             wget  -O $(pwd)/checkpoints/ddrnet39_imagenet_pretrained.pth https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet39_bb_imagenet.pth
@@ -609,7 +609,7 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
+            python3.8 -m pip install torch torchvision torchaudio
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
@@ -646,7 +646,7 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
+            python3.8 -m pip install torch torchvision torchaudio
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32_no_dc experiment_name=shortened_coco2017_pose_dekr_w32_ap_test batch_size=4 val_batch_size=8 epochs=1 training_hyperparams.lr_warmup_steps=0 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=1000 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
 
       - run:
@@ -717,8 +717,8 @@ workflows:
           repo_name: "deci-packages"
           <<: *release_tag_filter
       - build:
-          name: "build3.7"
-          py_version: "3.7"
+          name: "build3.8"
+          py_version: "3.8"
           package_name: "super-gradients"
           requires:
             - deci-common/persist_version_info
@@ -737,9 +737,9 @@ workflows:
       - recipe_accuracy_tests:
           <<: *release_tag_filter
       - release_version:
-          py_version: "3.7"
+          py_version: "3.8"
           requires:
-            - "build3.7"
+            - "build3.8"
             - recipe_accuracy_tests
             - recipe_sanity_tests_classification_pt1
             - recipe_sanity_tests_classification_pt2
@@ -770,8 +770,8 @@ workflows:
           version_override: ""
 
       - build:
-          name: "build3.7"
-          py_version: "3.7"
+          name: "build3.8"
+          py_version: "3.8"
           package_name: "super-gradients"
           requires:
             - deci-common/persist_version_info
@@ -781,9 +781,9 @@ workflows:
           <<: *release_candidate_filter
 
       - release_candidate: # happens on merge
-          py_version: "3.7"
+          py_version: "3.8"
           requires:
-            - "build3.7"
+            - "build3.8"
             - deci-common/codeartifact_login
           <<: *release_candidate_filter
 
