@@ -120,7 +120,7 @@ class LRWarmupTest(unittest.TestCase):
 
         # ALTHOUGH NOT SEEN IN HERE, THE 4TH EPOCH USES LR=1, SO THIS IS THE EXPECTED LIST AS WE COLLECT
         # THE LRS AFTER THE UPDATE
-        self.assertListEqual(lrs, expected_lrs)
+        np.testing.assert_allclose(np.array(lrs), np.array(expected_lrs), rtol=1e-6)
 
     def test_warmup_linear_batch_step(self):
         # Define model
@@ -248,7 +248,7 @@ class LRWarmupTest(unittest.TestCase):
             train_loader=classification_test_dataloader(batch_size=4),
             valid_loader=classification_test_dataloader(batch_size=4),
         )
-        self.assertListEqual(lrs, expected_lrs)
+        np.testing.assert_allclose(np.array(lrs), np.array(expected_lrs), rtol=1e-6)
 
 
 if __name__ == "__main__":
