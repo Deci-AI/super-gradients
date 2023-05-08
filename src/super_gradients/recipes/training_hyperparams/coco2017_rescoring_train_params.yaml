@@ -1,0 +1,36 @@
+defaults:
+  - default_train_params
+
+ema: True
+ema_params:
+  decay: 0.9997
+  decay_type: exp
+  beta: 20
+
+max_epochs: 50
+lr_mode: cosine
+cosine_final_lr_ratio: 0.1
+batch_accumulate: 1
+initial_lr: 0.001
+loss: rescoring_loss
+criterion_params: {}
+
+mixed_precision: False
+
+optimizer: AdamW
+optimizer_params:
+  weight_decay: 0.0001
+lr_warmup_steps: 256
+warmup_initial_lr: 1e-06
+
+valid_metrics_list:
+  - PoseEstimationMetrics:
+      num_joints: ${dataset_params.num_joints}
+      oks_sigmas: ${dataset_params.oks_sigmas}
+      max_objects_per_image: 30
+      post_prediction_callback:
+        _target_: super_gradients.training.utils.pose_estimation.RescoringPoseEstimationDecodeCallback
+        apply_sigmoid: True
+
+metric_to_watch: 'AP'
+greater_metric_to_watch_is_better: True

@@ -46,7 +46,7 @@ class TestWithoutTrainTest(unittest.TestCase):
     def test_test_without_train(self):
         trainer, model = self.get_classification_trainer(self.folder_names[0])
         assert isinstance(
-            trainer.test(model=model, silent_mode=True, test_metrics_list=[Accuracy(), Top5()], test_loader=classification_test_dataloader()), tuple
+            trainer.test(model=model, silent_mode=True, test_metrics_list=[Accuracy(), Top5()], test_loader=classification_test_dataloader()), dict
         )
 
         trainer, model = self.get_detection_trainer(self.folder_names[1])
@@ -54,12 +54,12 @@ class TestWithoutTrainTest(unittest.TestCase):
         test_metrics = [DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=5)]
 
         assert isinstance(
-            trainer.test(model=model, silent_mode=True, test_metrics_list=test_metrics, test_loader=detection_test_dataloader(image_size=320)), tuple
+            trainer.test(model=model, silent_mode=True, test_metrics_list=test_metrics, test_loader=detection_test_dataloader(image_size=320)), dict
         )
 
         trainer, model = self.get_segmentation_trainer(self.folder_names[2])
         assert isinstance(
-            trainer.test(model=model, silent_mode=True, test_metrics_list=[IoU(21), PixelAccuracy()], test_loader=segmentation_test_dataloader()), tuple
+            trainer.test(model=model, silent_mode=True, test_metrics_list=[IoU(21), PixelAccuracy()], test_loader=segmentation_test_dataloader()), dict
         )
 
 

@@ -2,7 +2,8 @@
 
 We appreciate all contributions. If you are planning to contribute back bug-fixes, please do so without any further discussion. If you plan to contribute new features, utility functions or extensions, please first open an issue and discuss the feature with us.
 
-Here are a few more things to know:
+Here are a few more things to know
+
 - [How to Contirbute](#how-to-contribute)
 - [Jupyter Notebooks Contribution](#jupyter-notebooks-contribution)
 - [Code Style Guidelines](#code-style-guidelines)
@@ -77,12 +78,10 @@ We follow the Google docstring guidelines outlined on this [styleguide](https://
 
 ## Documentation
 
-We use  GitHub Pages for technical documentation hosting on https://deci-ai.github.io/super-gradients/welcome.html <br>
+We use  GitHub Pages for technical documentation hosting on https://docs.deci.ai/super-gradients/documentation/source/welcome.html <br>
 To generate the docs based on the current work tree, run: <br>
 <code>./scripts/generate_docs.sh</code> <br><br>
 And the documentation will automatically update, based on <code>documentation/</code>. <br>
 The new documentation HTML will be generated to <code>docs/</code>. <br> 
 Once <code>docs/</code> is committed and pushed, GitHub Pages will use it.<br>
 The step of documentation update is currently manual.
-
-

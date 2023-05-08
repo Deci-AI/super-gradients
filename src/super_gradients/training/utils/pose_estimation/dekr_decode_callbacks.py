@@ -176,10 +176,11 @@ def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_
     pose_score = torch.cat([pose[:, :, 2:] for pose in poses], dim=0)
     pose_coord = torch.cat([pose[:, :, :2] for pose in poses], dim=0)
 
-    if pose_coord.shape[0] == 0:
-        return [], []
-
     num_people, num_joints, _ = pose_coord.shape
+
+    if num_people == 0:
+        return np.zeros((0, num_joints, 3), dtype=np.float32), np.zeros((0,), dtype=np.float32)
+
     heatval = _get_heat_value(pose_coord, heatmap_avg[0])
     heat_score = (torch.sum(heatval, dim=1) / num_joints)[:, 0]
 
@@ -198,21 +199,24 @@ def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_
     if len(poses):
         scores = poses[:, :, 2].mean(axis=1)
     else:
-        scores = []
+        return np.zeros((0, num_joints, 3), dtype=np.float32), np.zeros((0,), dtype=np.float32)
     return poses, scores
 
 
-def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keypoint_threshold: float, max_num_people: int):
+def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keypoint_threshold: float, max_num_people: int) -> Tuple[Tensor, List[Tensor]]:
     """
     Get initial pose proposals and aggregate the results of all scale.
     Not this implementation works only for batch size of 1.
 
-    Args:
-        heatmap_sum (Tensor): Sum of the heatmaps (1, 1+num_joints, w, h)
-        poses (List): Gather of the pose proposals [B, (num_people, num_joints, 3)]
-        heatmap (Tensor): Heatmap at this scale (B, 1+num_joints, w, h)
-        posemap (Tensor): Posemap at this scale (B, 2*num_joints, w, h)
-        output_stride: Ratio of input size / predictions size
+    :param heatmap: Heatmap at this scale (B, 1+num_joints, w, h)
+    :param posemap: Posemap at this scale (B, 2*num_joints, w, h)
+    :param output_stride: Ratio of input size / predictions size
+    :param keypoint_threshold: (float)
+    :param max_num_people: (int)
+
+    :return:
+        - heatmap_sum: Sum of the heatmaps (1, 1+num_joints, w, h)
+        - poses (List): Gather of the pose proposals [B, (num_people, num_joints, 3)]
     """
 
     poses = []

@@ -2,16 +2,18 @@ import collections
 from typing import Type, Tuple, List
 
 import torch
+from torch import nn, Tensor
+
+from super_gradients.common.registry.registry import register_detection_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
-from torch import nn, Tensor
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBasicBlock
 from super_gradients.modules import ConvBNAct
 
-__all__ = ["CustomCSPPAN"]
+__all__ = ["PPYoloECSPPAN"]
 
 
-class SPP(nn.Module):
+class PPYoloESPP(nn.Module):
     def __init__(
         self,
         in_channels: int,
@@ -50,7 +52,7 @@ class CSPStage(nn.Module):
         for i in range(n):
             convs.append((str(i), CSPResNetBasicBlock(next_ch_in, ch_mid, activation_type=activation_type, use_residual_connection=False)))
             if i == (n - 1) // 2 and spp:
-                convs.append(("spp", SPP(ch_mid, ch_mid, 1, (5, 9, 13), activation_type=activation_type)))
+                convs.append(("spp", PPYoloESPP(ch_mid, ch_mid, 1, (5, 9, 13), activation_type=activation_type)))
             next_ch_in = ch_mid
 
         self.convs = nn.Sequential(collections.OrderedDict(convs))
@@ -65,7 +67,8 @@ class CSPStage(nn.Module):
         return y
 
 
-class CustomCSPPAN(nn.Module):
+@register_detection_module()
+class PPYoloECSPPAN(nn.Module):
     @resolve_param("activation", ActivationsTypeFactory())
     def __init__(
         self,

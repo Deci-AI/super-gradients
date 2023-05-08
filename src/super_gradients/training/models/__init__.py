@@ -62,12 +62,26 @@ from super_gradients.training.models.classification_models.vgg import VGG
 from super_gradients.training.models.classification_models.vit import ViT, ViTBase, ViTLarge, ViTHuge
 
 # Detection models
-from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
-from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_e import PPYoloE, PPYoloE_S, PPYoloE_M, PPYoloE_L, PPYoloE_X
+from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53, SPP
+from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloE, PPYoloE_S, PPYoloE_M, PPYoloE_L, PPYoloE_X
 from super_gradients.training.models.detection_models.darknet53 import Darknet53, Darknet53Base
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolo_base import YoloBase, YoloPostPredictionCallback
+from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
+from super_gradients.training.models.detection_models.yolo_nas import (
+    YoloNASStage,
+    YoloNASStem,
+    YoloNASDownStage,
+    YoloNASUpStage,
+    YoloNASBottleneck,
+    YoloNASDFLHead,
+    NDFLHeads,
+    YoloNASPANNeckWithC2,
+    YoloNAS_S,
+    YoloNAS_M,
+    YoloNAS_L,
+)
 
 # Segmentation models
 from super_gradients.training.models.segmentation_models.shelfnet import (
@@ -95,22 +109,39 @@ from super_gradients.training.models.segmentation_models.stdc import (
     STDCSegmentationBase,
     CustomSTDCSegmentation,
 )
+from super_gradients.training.models.segmentation_models.segformer import SegFormerB0, SegFormerB1, SegFormerB2, SegFormerB3, SegFormerB4, SegFormerB5
+from super_gradients.training.models.segmentation_models.ddrnet_backbones import DDRNet39Backbone
 
 # Pose estimation
 from super_gradients.training.models.pose_estimation_models.pose_ppyolo import PosePPYoloL
 from super_gradients.training.models.pose_estimation_models.pose_ddrnet39 import PoseDDRNet39
-from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRPoseEstimationModel, DEKRW32
+from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRPoseEstimationModel, DEKRW32NODC
 
 # KD
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 
 import super_gradients.training.models.user_models as user_models
-from super_gradients.training.models.model_factory import get
+from super_gradients.training.models.model_factory import get, get_model_name
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.conversion import convert_to_onnx, convert_from_config
-from super_gradients.training.models.all_architectures import ARCHITECTURES, Models
+
+
+from super_gradients.common.object_names import Models
+from super_gradients.common.registry.registry import ARCHITECTURES
 
 __all__ = [
+    "SPP",
+    "YoloNAS_S",
+    "YoloNAS_M",
+    "YoloNAS_L",
+    "YoloNASStage",
+    "YoloNASUpStage",
+    "YoloNASStem",
+    "YoloNASDownStage",
+    "YoloNASDFLHead",
+    "YoloNASBottleneck",
+    "NDFLHeads",
+    "YoloNASPANNeckWithC2",
     "SgModule",
     "Beit",
     "BeitLargePatch16_224",
@@ -198,6 +229,13 @@ __all__ = [
     "SSDMobileNetV1",
     "SSDLiteMobileNetV2",
     "YoloBase",
+    "YoloX_N",
+    "YoloX_T",
+    "YoloX_S",
+    "YoloX_M",
+    "YoloX_L",
+    "YoloX_X",
+    "CustomYoloX",
     "YoloPostPredictionCallback",
     "CustomizableDetector",
     "ShelfNet50",
@@ -237,13 +275,21 @@ __all__ = [
     "PosePPYoloL",
     "PoseDDRNet39",
     "DEKRPoseEstimationModel",
-    "DEKRW32",
+    "DEKRW32NODC",
     "KDModule",
     "get",
+    "get_model_name",
     "get_arch_params",
     "convert_to_onnx",
     "convert_from_config",
     "ARCHITECTURES",
     "Models",
     "user_models",
+    "SegFormerB0",
+    "SegFormerB1",
+    "SegFormerB2",
+    "SegFormerB3",
+    "SegFormerB4",
+    "SegFormerB5",
+    "DDRNet39Backbone",
 ]

@@ -9,6 +9,8 @@ from tqdm import tqdm
 
 import numpy as np
 
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.transforms.transforms import DetectionTransform
 from super_gradients.training.utils.utils import download_and_untar_from_url, get_image_size_from_path
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
@@ -19,6 +21,7 @@ from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLAS
 logger = get_logger(__name__)
 
 
+@register_dataset(Datasets.PASCAL_VOC_DETECTION_DATASET)
 class PascalVOCDetectionDataset(DetectionDataset):
     """Dataset for Pascal VOC object detection
 
@@ -79,7 +82,7 @@ class PascalVOCDetectionDataset(DetectionDataset):
         kwargs["all_classes_list"] = PASCAL_VOC_2012_CLASSES_LIST
         super().__init__(*args, **kwargs)
 
-    def _setup_data_source(self):
+    def _setup_data_source(self) -> int:
         """Initialize img_and_target_path_list and warn if label file is missing
 
         :return: List of tuples made of (img_path,target_path)
@@ -131,13 +134,13 @@ class PascalVOCDetectionDataset(DetectionDataset):
         return {"img_path": img_path, "target": target, "resized_img_shape": resized_img_shape}
 
     @staticmethod
-    def download(data_dir: str):
+    def download(data_dir: str) -> None:
         """Download Pascal dataset in XYXY_LABEL format.
 
         Data extracted form http://host.robots.ox.ac.uk/pascal/VOC/
         """
 
-        def _parse_and_save_labels(path, new_label_path, year, image_id):
+        def _parse_and_save_labels(path: str, new_label_path: str, year: str, image_id: str) -> None:
             """Parse and save the labels of an image in XYXY_LABEL format."""
 
             with open(f"{path}/VOC{year}/Annotations/{image_id}.xml") as f:
@@ -229,7 +232,7 @@ class PascalVOCUnifiedDetectionTrainDataset(ConcatDataset):
 
     def __init__(
         self,
-        data_dir,
+        data_dir: str,
         input_dim: tuple,
         cache: bool = False,
         cache_dir: str = None,

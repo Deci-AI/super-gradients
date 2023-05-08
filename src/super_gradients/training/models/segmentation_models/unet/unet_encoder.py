@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 import torch
 import torch.nn as nn
 
+from super_gradients.common.registry.registry import register_model, register_unet_backbone_stage, BACKBONE_STAGES
+from super_gradients.common.object_names import Models
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
 from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
 from super_gradients.training.utils.utils import get_param, HpmStruct
@@ -19,7 +21,7 @@ from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.type_factory import TypeFactory
 from super_gradients.common.data_types.enum import DownSampleMode
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.module_utils import make_downsample_module
+from super_gradients.modules.sampling import make_downsample_module
 
 logger = get_logger(__name__)
 
@@ -68,6 +70,7 @@ class BackboneStage(nn.Module, ABC):
         return self.blocks(x)
 
 
+@register_unet_backbone_stage()
 class STDCStage(BackboneStage):
     """
     STDC stage with STDCBlock as building block.
@@ -149,6 +152,7 @@ class ConvBaseStage(BackboneStage, ABC):
         raise NotImplementedError()
 
 
+@register_unet_backbone_stage()
 class RepVGGStage(ConvBaseStage):
     """
     RepVGG stage with RepVGGBlock as building block.
@@ -158,6 +162,7 @@ class RepVGGStage(ConvBaseStage):
         return RepVGGBlock(in_channels, out_channels, stride=stride)
 
 
+@register_unet_backbone_stage()
 class QARepVGGStage(ConvBaseStage):
     """
     QARepVGG stage with QARepVGGBlock as building block.
@@ -167,6 +172,7 @@ class QARepVGGStage(ConvBaseStage):
         return QARepVGGBlock(in_channels, out_channels, stride=stride, use_residual_connection=(out_channels == in_channels and stride == 1))
 
 
+@register_unet_backbone_stage()
 class RegnetXStage(BackboneStage):
     """
     RegNetX stage with XBlock as building block.
@@ -206,6 +212,7 @@ class RegnetXStage(BackboneStage):
         return 1
 
 
+@register_unet_backbone_stage()
 class ConvStage(ConvBaseStage):
     """
     Conv stage with ConvBNReLU as building block.
@@ -213,15 +220,6 @@ class ConvStage(ConvBaseStage):
 
     def build_conv_block(self, in_channels: int, out_channels: int, stride: int):
         return ConvBNReLU(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
-
-
-BACKBONE_STAGES = dict(
-    RepVGGStage=RepVGGStage,
-    QARepVGGStage=QARepVGGStage,
-    STDCStage=STDCStage,
-    RegnetXStage=RegnetXStage,
-    ConvStage=ConvStage,
-)
 
 
 class UNetBackboneBase(AbstractUNetBackbone):
@@ -329,6 +327,7 @@ class UnetClassification(SgModule):
         return self.classifier_head(x)
 
 
+@register_model(Models.UNET_CUSTOM_CLS)
 class UnetClassificationCustom(UnetClassification):
     def __init__(self, arch_params: HpmStruct):
         arch_params = HpmStruct(**models.get_arch_params("unet_default_arch_params.yaml", overriding_params=arch_params.to_dict()))

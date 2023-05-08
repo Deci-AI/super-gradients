@@ -33,8 +33,7 @@ SPEC:
     NUM_BLOCKS: 1
     NUM_CHANNELS: 32
     DILATION_RATE: 1
-    # We do also apply sigmoid to the heatmap output to restrict the output to [0, 1] range (Original paper does not apply sigmoid).
-    HEATMAP_APPLY_SIGMOID: True
+    HEATMAP_APPLY_SIGMOID: False
 
   HEAD_OFFSET:
     # Note we replace ADAPTIVE conv with BASIC conv since deformable conv is not supported in TensorRT,

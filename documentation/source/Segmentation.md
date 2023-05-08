@@ -60,7 +60,8 @@ model = models.get(
     pretrained_weights="cityscapes"         # Drop this line to train from scratch
 )
 ```
-Notes:
+Notes
+
 - SG includes implementations of 
 [many different architectures](https://github.com/Deci-AI/super-gradients#implemented-model-architectures).
 - Most of these architectures have [pretrained checkpoints](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) so feel free to experiment!

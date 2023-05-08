@@ -8,6 +8,8 @@ from pycocotools.coco import COCO
 from torch import Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.object_names import Datasets
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.target_generator_factory import TargetGeneratorsFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
@@ -17,6 +19,7 @@ from super_gradients.training.transforms.keypoint_transforms import KeypointTran
 logger = get_logger(__name__)
 
 
+@register_dataset(Datasets.COCO_KEY_POINTS_DATASET)
 class COCOKeypointsDataset(BaseKeypointsDataset):
     """
     Dataset class for training pose estimation models on COCO Keypoints dataset.
@@ -76,7 +79,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.filter_joints(image_shape, gt_joints, gt_areas, gt_bboxes, gt_iscrowd)
 
         targets = self.target_generator(img, gt_joints, mask)
-        return img, targets, {"gt_joints": gt_joints, "gt_bboxes": gt_bboxes, "gt_iscrowd": gt_iscrowd}
+        return img, targets, {"gt_joints": gt_joints, "gt_bboxes": gt_bboxes, "gt_iscrowd": gt_iscrowd, "gt_areas": gt_areas}
 
     def load_sample(self, index):
         img_id = self.ids[index]

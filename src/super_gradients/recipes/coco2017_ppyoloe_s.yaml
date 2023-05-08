@@ -6,16 +6,16 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command you want:
-#         ppyoloe_s: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_s
-#         ppyoloe_m: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_m
-#         ppyoloe_l: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_l
-#         ppyoloe_x: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_x
+#         ppyoloe_s: python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_s
+#         ppyoloe_m: python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_m
+#         ppyoloe_l: python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_l
+#         ppyoloe_x: python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_x
 #
 # Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images):
-#         ppyoloe_s: 37h on 8 NVIDIA GeForce RTX 3090, mAP: 42.52 (val)
-#         ppyoloe_m: 58h on 8 NVIDIA GeForce RTX 3090, mAP: 47.11 (val)
-#         ppyoloe_l: COMING SOON
-#         ppyoloe_x: COMING SOON
+#         ppyoloe_s: 37h  on 8 NVIDIA GeForce RTX 3090, mAP: 42.52 (val)
+#         ppyoloe_m: 58h  on 8 NVIDIA GeForce RTX 3090, mAP: 47.11 (val)
+#         ppyoloe_l: 115h on 8 NVIDIA GeForce RTX 3090, mAP: 49.48 (val)
+#         ppyoloe_x: 240h on 8 NVIDIA GeForce RTX 3090, mAP: 51.15 (val)
 #
 
 defaults:
@@ -24,6 +24,7 @@ defaults:
   - arch_params: ppyoloe_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 train_dataloader: coco2017_train_ppyoloe
 val_dataloader: coco2017_val_ppyoloe
@@ -46,12 +47,3 @@ num_gpus: 8
 
 experiment_suffix: ""
 experiment_name: coco2017_${architecture}${experiment_suffix}
-
-ckpt_root_dir:
-
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

@@ -18,19 +18,21 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
+from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 
+from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
-from super_gradients.common.sg_loggers import SG_LOGGERS
-from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
-from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
+
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
+from super_gradients.training.datasets.samplers import RepeatAugSampler
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
@@ -39,9 +41,8 @@ from super_gradients.training.metrics.metric_utils import (
     get_metrics_dict,
     get_train_loop_description_dict,
 )
-from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import ARCHITECTURES
-from super_gradients.training.params import TrainingParams
+from super_gradients.training.models import SgModule, get_model_name
+from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.distributed_training_utils import (
@@ -74,17 +75,17 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import (
     CallbackHandler,
     Phase,
-    LR_SCHEDULERS_CLS_DICT,
     PhaseContext,
     MetricsUpdateCallback,
-    LR_WARMUP_CLS_DICT,
     ContextSgMethods,
     LRCallbackBase,
 )
+from super_gradients.common.registry.registry import LR_SCHEDULERS_CLS_DICT, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
+from super_gradients.training.params import TrainingParams
 
 logger = get_logger(__name__)
 
@@ -159,7 +160,6 @@ class Trainer:
         self.strict_load = StrictLoad.ON
         self.load_ema_as_net = False
         self.ckpt_best_name = "ckpt_best.pth"
-        self._infinite_train_loader = False
         self._first_backward = True
 
         # METRICS
@@ -194,6 +194,8 @@ class Trainer:
         self.max_train_batches = None
         self.max_valid_batches = None
 
+        self._epoch_start_logging_values = {}
+
     @property
     def device(self) -> str:
         return device_config.device
@@ -203,8 +205,8 @@ class Trainer:
         """
         Trains according to cfg recipe configuration.
 
-        @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
-        @return: the model and the output of trainer.train(...) (i.e results tuple)
+        :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
+        :return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
         setup_device(
@@ -326,14 +328,13 @@ class Trainer:
         )
 
         # TEST
-        val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
+        valid_metrics_dict = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
 
-        valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
         results = ["Validate Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
 
-        return model, val_results_tuple
+        return model, valid_metrics_dict
 
     @classmethod
     def evaluate_checkpoint(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
@@ -397,79 +398,75 @@ class Trainer:
         """
         # SET THE MODEL IN training STATE
         self.net.train()
+
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
-        progress_bar_train_loader = tqdm(self.train_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode)
-        progress_bar_train_loader.set_description(f"Train epoch {epoch}")
+        with tqdm(self.train_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_train_loader:
+            progress_bar_train_loader.set_description(f"Train epoch {epoch}")
 
-        # RESET/INIT THE METRIC LOGGERS
-        self._reset_metrics()
+            # RESET/INIT THE METRIC LOGGERS
+            self._reset_metrics()
 
-        self.train_metrics.to(device_config.device)
-        loss_avg_meter = core_utils.utils.AverageMeter()
+            self.train_metrics.to(device_config.device)
+            loss_avg_meter = core_utils.utils.AverageMeter()
 
-        context = PhaseContext(
-            epoch=epoch,
-            optimizer=self.optimizer,
-            metrics_compute_fn=self.train_metrics,
-            loss_avg_meter=loss_avg_meter,
-            criterion=self.criterion,
-            device=device_config.device,
-            lr_warmup_epochs=self.training_params.lr_warmup_epochs,
-            sg_logger=self.sg_logger,
-            train_loader=self.train_loader,
-            context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
-            ddp_silent_mode=self.ddp_silent_mode,
-        )
-
-        for batch_idx, batch_items in enumerate(progress_bar_train_loader):
-            batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
-            inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
-
-            if self.pre_prediction_callback is not None:
-                inputs, targets = self.pre_prediction_callback(inputs, targets, batch_idx)
-
-            context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
-            self.phase_callback_handler.on_train_batch_start(context)
-
-            # AUTOCAST IS ENABLED ONLY IF self.training_params.mixed_precision - IF enabled=False AUTOCAST HAS NO EFFECT
-            with autocast(enabled=self.training_params.mixed_precision):
-                # FORWARD PASS TO GET NETWORK'S PREDICTIONS
-                outputs = self.net(inputs)
-
-                # COMPUTE THE LOSS FOR BACK PROP + EXTRA METRICS COMPUTED DURING THE LOSS FORWARD PASS
-                loss, loss_log_items = self._get_losses(outputs, targets)
-
-            context.update_context(preds=outputs, loss_log_items=loss_log_items)
-            self.phase_callback_handler.on_train_batch_loss_end(context)
-
-            # LOG LR THAT WILL BE USED IN CURRENT EPOCH AND AFTER FIRST WARMUP/LR_SCHEDULER UPDATE BEFORE WEIGHT UPDATE
-            if not self.ddp_silent_mode and batch_idx == 0:
-                self._write_lrs(epoch)
-
-            self._backward_step(loss, epoch, batch_idx, context)
-
-            # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-            logging_values = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
-            gpu_memory_utilization = get_gpu_mem_utilization() / 1e9 if torch.cuda.is_available() else 0
-
-            # RENDER METRICS PROGRESS
-            pbar_message_dict = get_train_loop_description_dict(
-                logging_values, self.train_metrics, self.loss_logging_items_names, gpu_mem=gpu_memory_utilization
+            context = PhaseContext(
+                epoch=epoch,
+                optimizer=self.optimizer,
+                metrics_compute_fn=self.train_metrics,
+                loss_avg_meter=loss_avg_meter,
+                criterion=self.criterion,
+                device=device_config.device,
+                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
+                sg_logger=self.sg_logger,
+                train_loader=self.train_loader,
+                context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
+                ddp_silent_mode=self.ddp_silent_mode,
             )
 
-            progress_bar_train_loader.set_postfix(**pbar_message_dict)
-            self.phase_callback_handler.on_train_batch_end(context)
+            for batch_idx, batch_items in enumerate(progress_bar_train_loader):
+                batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
+                inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
-            # TODO: ITERATE BY MAX ITERS
-            # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if (self._infinite_train_loader and batch_idx == len(self.train_loader) - 1) or (
-                self.max_train_batches is not None and self.max_train_batches - 1 <= batch_idx
-            ):
-                break
+                if self.pre_prediction_callback is not None:
+                    inputs, targets = self.pre_prediction_callback(inputs, targets, batch_idx)
 
-        self.train_monitored_values = sg_trainer_utils.update_monitored_values_dict(
-            monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict
-        )
+                context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
+                self.phase_callback_handler.on_train_batch_start(context)
+
+                # AUTOCAST IS ENABLED ONLY IF self.training_params.mixed_precision - IF enabled=False AUTOCAST HAS NO EFFECT
+                with autocast(enabled=self.training_params.mixed_precision):
+                    # FORWARD PASS TO GET NETWORK'S PREDICTIONS
+                    outputs = self.net(inputs)
+
+                    # COMPUTE THE LOSS FOR BACK PROP + EXTRA METRICS COMPUTED DURING THE LOSS FORWARD PASS
+                    loss, loss_log_items = self._get_losses(outputs, targets)
+
+                context.update_context(preds=outputs, loss_log_items=loss_log_items)
+                self.phase_callback_handler.on_train_batch_loss_end(context)
+
+                if not self.ddp_silent_mode and batch_idx == 0:
+                    self._epoch_start_logging_values = self._get_epoch_start_logging_values()
+
+                self._backward_step(loss, epoch, batch_idx, context)
+
+                # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
+                logging_values = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
+                gpu_memory_utilization = get_gpu_mem_utilization() / 1e9 if torch.cuda.is_available() else 0
+
+                # RENDER METRICS PROGRESS
+                pbar_message_dict = get_train_loop_description_dict(
+                    logging_values, self.train_metrics, self.loss_logging_items_names, gpu_mem=gpu_memory_utilization
+                )
+
+                progress_bar_train_loader.set_postfix(**pbar_message_dict)
+                self.phase_callback_handler.on_train_batch_end(context)
+
+                if self.max_train_batches is not None and self.max_train_batches - 1 <= batch_idx:
+                    break
+
+            self.train_monitored_values = sg_trainer_utils.update_monitored_values_dict(
+                monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict
+            )
 
         return logging_values
 
@@ -526,7 +523,7 @@ class Trainer:
                 load_checkpoint=self.load_checkpoint,
             )
 
-    def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
+    def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs) -> None:
         """
         Run backprop on the loss and perform a step
         :param loss: The value computed by the loss function
@@ -564,7 +561,13 @@ class Trainer:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_train_batch_gradient_step_end(context)
 
-    def _save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None):
+    def _save_checkpoint(
+        self,
+        optimizer: torch.optim.Optimizer = None,
+        epoch: int = None,
+        validation_results_tuple: tuple = None,
+        context: PhaseContext = None,
+    ) -> None:
         """
         Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
         params)
@@ -592,6 +595,10 @@ class Trainer:
 
         if self.ema:
             state["ema_net"] = self.ema_model.ema.state_dict()
+
+        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
+            state["processing_params"] = self.valid_loader.dataset.get_dataset_preprocessing_params()
+
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
 
@@ -617,7 +624,7 @@ class Trainer:
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
-    def _prep_net_for_train(self):
+    def _prep_net_for_train(self) -> None:
         if self.arch_params is None:
             self._init_arch_params()
 
@@ -639,7 +646,7 @@ class Trainer:
         self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
         self._load_checkpoint_to_model()
 
-    def _init_arch_params(self):
+    def _init_arch_params(self) -> None:
         default_arch_params = HpmStruct()
         arch_params = getattr(self.net, "arch_params", default_arch_params)
         self.arch_params = default_arch_params
@@ -1011,10 +1018,10 @@ class Trainer:
                     "You are using a SequentialSampler on you training dataloader, while working on DDP. "
                     "This cancels the DDP benefits since it makes each process iterate through the entire dataset"
                 )
-            if not isinstance(train_sampler, (DistributedSampler, InfiniteSampler, RepeatAugSampler)):
+            if not isinstance(train_sampler, (DistributedSampler, RepeatAugSampler)):
                 logger.warning(
                     "The training sampler you are using might not support DDP. "
-                    "If it doesnt, please use one of the following sampler: DistributedSampler, InfiniteSampler, RepeatAugSampler"
+                    "If it doesnt, please use one of the following sampler: DistributedSampler, RepeatAugSampler"
                 )
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
@@ -1153,10 +1160,6 @@ class Trainer:
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
-        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or (
-            hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler)
-        )
-
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
         if self.training_params.max_train_batches is not None:
@@ -1207,9 +1210,11 @@ class Trainer:
             num_gpus=get_world_size(),
             batch_size=len(inputs),
             batch_accumulate=self.batch_accumulate,
-            len_train_set=len(self.train_loader.dataset),
+            train_dataset_length=len(self.train_loader.dataset),
+            train_dataloader_len=len(self.train_loader),
         )
 
+        self._set_net_preprocessing_from_valid_loader()
         try:
             # HEADERS OF THE TRAINING PROGRESS
             if not silent_mode:
@@ -1281,7 +1286,14 @@ class Trainer:
 
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch, context)
+                    self._write_to_disk_operations(
+                        train_metrics=train_metrics_tuple,
+                        validation_results=validation_results_tuple,
+                        lr_dict=self._epoch_start_logging_values,
+                        inf_time=inf_time,
+                        epoch=epoch,
+                        context=context,
+                    )
                     self.sg_logger.upload()
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
@@ -1306,6 +1318,16 @@ class Trainer:
 
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
+
+    def _set_net_preprocessing_from_valid_loader(self):
+        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
+            try:
+                self.net.module.set_dataset_processing_params(**self.valid_loader.dataset.get_dataset_preprocessing_params())
+            except Exception as e:
+                logger.warning(
+                    f"Could not set preprocessing pipeline from the validation dataset:\n {e}.\n Before calling"
+                    "predict make sure to call set_dataset_processing_params."
+                )
 
     def _reset_best_metric(self):
         self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
@@ -1563,13 +1585,29 @@ class Trainer:
         if isinstance(sg_logger, AbstractSGLogger):
             self.sg_logger = sg_logger
         elif isinstance(sg_logger, str):
-            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
-            if issubclass(SG_LOGGERS[sg_logger], BaseSGLogger):
-                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
-            if sg_logger not in SG_LOGGERS:
-                raise RuntimeError("sg_logger not defined in SG_LOGGERS")
 
-            self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
+            sg_logger_cls = SG_LOGGERS.get(sg_logger)
+            if sg_logger_cls is None:
+                raise RuntimeError(f"sg_logger={sg_logger} not registered in SuperGradients. Available {list(SG_LOGGERS.keys())}")
+
+            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
+            if issubclass(sg_logger_cls, BaseSGLogger):
+                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
+
+            # Some sg_logger require model_name, but not all of them.
+            if "model_name" in get_callable_param_names(sg_logger_cls.__init__):
+                if sg_logger_params.get("model_name") is None:
+                    # Use the model name used in `models.get(...)` if relevant
+                    sg_logger_params["model_name"] = get_model_name(self.net.module)
+
+                if sg_logger_params["model_name"] is None:
+                    raise ValueError(
+                        f'`model_name` is required to use `training_hyperparams.sg_logger="{sg_logger}"`.\n'
+                        'Please set `training_hyperparams.sg_logger_params.model_name="<your-model-name>"`.\n'
+                        "Note that specifying `model_name` is not required when the model was loaded using `models.get(...)`."
+                    )
+
+            self.sg_logger = sg_logger_cls(**sg_logger_params)
         else:
             raise RuntimeError("sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger")
 
@@ -1610,7 +1648,7 @@ class Trainer:
         }
         return hyper_param_config
 
-    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int, context: PhaseContext):
+    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, lr_dict: dict, inf_time: float, epoch: int, context: PhaseContext):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         # STORE VALUES IN A TENSORBOARD FILE
         train_results = list(train_metrics) + list(validation_results) + [inf_time]
@@ -1618,16 +1656,19 @@ class Trainer:
 
         result_dict = {all_titles[i]: train_results[i] for i in range(len(train_results))}
         self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
+        self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
         # SAVE THE CHECKPOINT
         if self.training_params.save_model:
             self._save_checkpoint(self.optimizer, epoch + 1, validation_results, context)
 
-    def _write_lrs(self, epoch):
+    def _get_epoch_start_logging_values(self) -> dict:
+        """Get all the values that should be logged at the start of each epoch.
+        This is useful for values like Learning Rate that can change over an epoch."""
         lrs = [self.optimizer.param_groups[i]["lr"] for i in range(len(self.optimizer.param_groups))]
         lr_titles = ["LR/Param_group_" + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ["LR"]
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
-        self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
+        return lr_dict
 
     def test(
         self,
@@ -1698,6 +1739,8 @@ class Trainer:
 
         self._first_backward = True
 
+        test_results = get_metrics_dict(test_results, self.test_metrics, self.loss_logging_items_names)
+
         return test_results
 
     def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
@@ -1743,10 +1786,9 @@ class Trainer:
         """
 
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
-        progress_bar_data_loader = tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode)
         loss_avg_meter = core_utils.utils.AverageMeter()
         logging_values = None
-        loss_tuple = None
+
         lr_warmup_epochs = self.training_params.lr_warmup_epochs if self.training_params else None
         context = PhaseContext(
             epoch=epoch,
@@ -1759,76 +1801,78 @@ class Trainer:
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
 
-        if not silent_mode:
-            # PRINT TITLES
-            pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
-            progress_bar_data_loader.set_description(pbar_start_msg)
+        with tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_data_loader:
 
-        with torch.no_grad():
-            for batch_idx, batch_items in enumerate(progress_bar_data_loader):
-                batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
-                inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
+            if not silent_mode:
+                # PRINT TITLES
+                pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
+                progress_bar_data_loader.set_description(pbar_start_msg)
 
-                # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
-                context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
-                if evaluation_type == EvaluationType.VALIDATION:
-                    self.phase_callback_handler.on_validation_batch_start(context)
-                else:
-                    self.phase_callback_handler.on_test_batch_start(context)
+            with torch.no_grad():
+                for batch_idx, batch_items in enumerate(progress_bar_data_loader):
+                    batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
+                    inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
-                output = self.net(inputs)
-                context.update_context(preds=output)
+                    # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
+                    context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
+                    if evaluation_type == EvaluationType.VALIDATION:
+                        self.phase_callback_handler.on_validation_batch_start(context)
+                    else:
+                        self.phase_callback_handler.on_test_batch_start(context)
 
-                if self.criterion is not None:
-                    # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
-                    loss_tuple = self._get_losses(output, targets)[1].cpu()
-                    context.update_context(loss_log_items=loss_tuple)
+                    output = self.net(inputs)
+                    context.update_context(preds=output)
 
-                # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
-                if evaluation_type == EvaluationType.VALIDATION:
-                    self.phase_callback_handler.on_validation_batch_end(context)
-                else:
-                    self.phase_callback_handler.on_test_batch_end(context)
+                    if self.criterion is not None:
+                        # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
+                        loss_tuple = self._get_losses(output, targets)[1].cpu()
+                        context.update_context(loss_log_items=loss_tuple)
 
-                # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
-                if metrics_progress_verbose and not silent_mode:
-                    # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                    logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
-                    pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+                    # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
+                    if evaluation_type == EvaluationType.VALIDATION:
+                        self.phase_callback_handler.on_validation_batch_end(context)
+                    else:
+                        self.phase_callback_handler.on_test_batch_end(context)
 
-                    progress_bar_data_loader.set_postfix(**pbar_message_dict)
+                    # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
+                    if metrics_progress_verbose and not silent_mode:
+                        # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
+                        logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                        pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
-                if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
-                    break
+                        progress_bar_data_loader.set_postfix(**pbar_message_dict)
 
-        # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
-        if not metrics_progress_verbose:
-            # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-            logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                    if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
+                        break
+
+            # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
+            if not metrics_progress_verbose:
+                # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
+                logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+
+                progress_bar_data_loader.set_postfix(**pbar_message_dict)
+
+            # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
+            #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
+            #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
+            #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
+
+            if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+                logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
+
             pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
-            progress_bar_data_loader.set_postfix(**pbar_message_dict)
-
-        # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
-        #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
-        #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
-        #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
-
-        if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-            logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
-
-        pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
-
-        self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
-            monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict
-        )
-
-        if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
-            progress_bar_data_loader.write("===========================================================")
-            sg_trainer_utils.display_epoch_summary(
-                epoch=context.epoch, n_digits=4, train_monitored_values=self.train_monitored_values, valid_monitored_values=self.valid_monitored_values
+            self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
+                monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict
             )
-            progress_bar_data_loader.write("===========================================================")
+
+            if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
+                progress_bar_data_loader.write("===========================================================")
+                sg_trainer_utils.display_epoch_summary(
+                    epoch=context.epoch, n_digits=4, train_monitored_values=self.train_monitored_values, valid_monitored_values=self.valid_monitored_values
+                )
+                progress_bar_data_loader.write("===========================================================")
 
         return logging_values
 

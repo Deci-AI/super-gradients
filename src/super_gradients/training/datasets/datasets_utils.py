@@ -13,13 +13,14 @@ import torch.distributed as dist
 import torch.nn.functional as F
 import torchvision
 from PIL import Image
-from deprecate import deprecated
 from matplotlib.patches import Rectangle
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import transforms, InterpolationMode, RandomResizedCrop
 from tqdm import tqdm
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.object_names import Callbacks, Transforms
+from super_gradients.common.registry.registry import register_collate_function, register_callback, register_transform
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from super_gradients.training.utils.detection_utils import DetectionVisualization, Anchors
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
@@ -72,26 +73,6 @@ def get_mean_and_std_torch(data_dir=None, dataloader=None, num_workers=4, Random
     return mean.view(-1).cpu().numpy().tolist(), std.view(-1).cpu().numpy().tolist()
 
 
-@deprecated(target=get_mean_and_std_torch, deprecated_in="2.1.0", remove_in="3.0.0")
-def get_mean_and_std(dataset):
-    """Compute the mean and std value of dataset."""
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1)
-    mean = torch.zeros(3)
-    std = torch.zeros(3)
-    print("==> Computing mean and std..")
-    j = 0
-    for inputs, targets in dataloader:
-        if j % 10 == 0:
-            print(j)
-        j += 1
-        for i in range(3):
-            mean[i] += inputs[:, i, :, :].mean()
-            std[i] += inputs[:, i, :, :].std()
-    mean.div_(len(dataset))
-    std.div_(len(dataset))
-    return mean, std
-
-
 class AbstractCollateFunction(ABC):
     """
     A collate function (for torch DataLoader)
@@ -102,6 +83,7 @@ class AbstractCollateFunction(ABC):
         pass
 
 
+@register_collate_function()
 class ComposedCollateFunction(AbstractCollateFunction):
     """
     A function (for torch DataLoader) which executes a sequence of sub collate functions
@@ -127,6 +109,7 @@ class AtomicInteger:
         return self._value.value
 
 
+@register_collate_function()
 class MultiScaleCollateFunction(AbstractCollateFunction):
     """
     a collate function to implement multi-scale data augmentation
@@ -214,10 +197,9 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
      ...input_size+self.multiscale_range*self.image_size_steps)
 
 
-    Attributes:
-        multiscale_range: (int) Range of values for resize sizes as discussed above (default=5)
-        image_size_steps: (int) Image step sizes as discussed abov (default=32)
-        change_frequency: (int) The frequency to apply change in input size.
+    :param multiscale_range: Range of values for resize sizes as discussed above (default=5)
+    :param image_size_steps: Image step sizes as discussed abov (default=32)
+    :param change_frequency: The frequency to apply change in input size.
     """
 
     def __init__(self, multiscale_range: int = 5, image_size_steps: int = 32, change_frequency: int = 10):
@@ -269,6 +251,7 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
         return inputs, targets
 
 
+@register_callback(Callbacks.DETECTION_MULTISCALE_PREPREDICTION)
 class DetectionMultiscalePrePredictionCallback(MultiscalePrePredictionCallback):
     """
     Mutiscalepre-prediction callback for object detection.
@@ -281,11 +264,9 @@ class DetectionMultiscalePrePredictionCallback(MultiscalePrePredictionCallback):
      ...input_size+self.multiscale_range*self.image_size_steps) and apply the same rescaling to the box coordinates.
 
 
-
-    Attributes:
-        multiscale_range: (int) Range of values for resize sizes as discussed above (default=5)
-        image_size_steps: (int) Image step sizes as discussed abov (default=32)
-        change_frequency: (int) The frequency to apply change in input size.
+    :param multiscale_range: Range of values for resize sizes as discussed above (default=5)
+    :param image_size_steps: Image step sizes as discussed abov (default=32)
+    :param change_frequency: The frequency to apply change in input size.
 
     """
 
@@ -335,6 +316,7 @@ def _pil_interp(method):
 _RANDOM_INTERPOLATION = (InterpolationMode.BILINEAR, InterpolationMode.BICUBIC)
 
 
+@register_transform(Transforms.RandomResizedCropAndInterpolation)
 class RandomResizedCropAndInterpolation(RandomResizedCrop):
     """
     Crop the given PIL Image to random size and aspect ratio with explicitly chosen or random interpolation.
@@ -344,11 +326,10 @@ class RandomResizedCropAndInterpolation(RandomResizedCrop):
     is finally resized to given size.
     This is popularly used to train the Inception networks.
 
-    Args:
-        size: expected output size of each edge
-        scale: range of size of the origin size cropped
-        ratio: range of aspect ratio of the origin aspect ratio cropped
-        interpolation: Default: PIL.Image.BILINEAR
+    :param size: Expected output size of each edge
+    :param scale: Range of size of the origin size cropped
+    :param ratio: Range of aspect ratio of the origin aspect ratio cropped
+    :param interpolation: Default: PIL.Image.BILINEAR
     """
 
     def __init__(self, size, scale=(0.08, 1.0), ratio=(3.0 / 4.0, 4.0 / 3.0), interpolation="default"):
@@ -360,13 +341,10 @@ class RandomResizedCropAndInterpolation(RandomResizedCrop):
         else:
             self.interpolation = _pil_interp(interpolation)
 
-    def forward(self, img):
+    def forward(self, img: Image) -> Image:
         """
-        Args:
-            img (PIL Image): Image to be cropped and resized.
-
-        Returns:
-            PIL Image: Randomly cropped and resized image.
+        :param img: Image to be cropped and resized.
+        :return: Image: Randomly cropped and resized image.
         """
         i, j, h, w = self.get_params(img, self.scale, self.ratio)
         if isinstance(self.interpolation, (tuple, list)):
