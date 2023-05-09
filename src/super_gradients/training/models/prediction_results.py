@@ -85,7 +85,7 @@ class ImageDetectionPrediction(ImagePrediction):
             )
 
         return image
-    
+
     def visualize_on_wandb(self, show_confidence: bool = True):
         boxes = []
         image = self.image.copy()
@@ -93,7 +93,7 @@ class ImageDetectionPrediction(ImagePrediction):
         class_id_to_labels = {
             int(_id): str(_class_name) for _id, _class_name in enumerate(self.class_names)
         }
-        
+
         for pred_i in range(len(self.prediction)):
             class_id = int(self.prediction.labels[pred_i])
             box = {
@@ -111,17 +111,23 @@ class ImageDetectionPrediction(ImagePrediction):
                     "confidence": float(round(self.prediction.confidence[pred_i], 2))
                 }
             boxes.append(box)
-        
+
         wandb_image = wandb.Image(image, boxes={
             "predictions": {
                 "box_data": boxes,
                 "class_labels": class_id_to_labels
             }
         })
-        
+
         return wandb_image, class_id_to_labels
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None, visualize_on_wandb: bool = False) -> None:
+    def show(
+        self,
+        box_thickness: int = 2,
+        show_confidence: bool = True,
+        color_mapping: Optional[List[Tuple[int, int, int]]] = None,
+        visualize_on_wandb: bool = False
+    ) -> None:
         """Display the image with predicted bboxes.
 
         :param box_thickness:   Thickness of bounding boxes.
