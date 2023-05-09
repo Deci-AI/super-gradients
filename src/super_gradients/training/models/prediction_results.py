@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+import wandb
+
 from super_gradients.training.models.predictions import Prediction, DetectionPrediction
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.media.image import show_image, save_image
@@ -83,8 +85,41 @@ class ImageDetectionPrediction(ImagePrediction):
             )
 
         return image
+    
+    def visualize_on_wandb(self, show_confidence: bool = True):
+        boxes = []
+        image = self.image.copy()
+        height, width, _ = image.shape
+        class_id_to_labels = {int(_id): str(_class_name) for _id, _class_name in enumerate(self.class_names)}
+        
+        for pred_i in range(len(self.prediction)):
+            class_id = int(self.prediction.labels[pred_i])
+            box = {
+                "position": {
+                    "minX": float(int(self.prediction.bboxes_xyxy[pred_i, 0]) / width),
+                    "maxX": float(int(self.prediction.bboxes_xyxy[pred_i, 2]) / width),
+                    "minY": float(int(self.prediction.bboxes_xyxy[pred_i, 1]) / height),
+                    "maxY": float(int(self.prediction.bboxes_xyxy[pred_i, 3]) / height),
+                },
+                "class_id": int(class_id),
+                "box_caption": str(self.class_names[class_id])
+            }
+            if show_confidence:
+                box["scores"] = {
+                    "confidence": float(round(self.prediction.confidence[pred_i], 2))
+                }
+            boxes.append(box)
+        
+        wandb_image = wandb.Image(image, boxes={
+            "predictions": {
+                "box_data": boxes,
+                "class_labels": class_id_to_labels
+            }
+        })
+        
+        return wandb_image, class_id_to_labels
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None, visualize_on_wandb: bool = False) -> None:
         """Display the image with predicted bboxes.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -94,6 +129,12 @@ class ImageDetectionPrediction(ImagePrediction):
         """
         image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
         show_image(image)
+        
+        if visualize_on_wandb:
+            if wandb.run is None:
+                raise wandb.Error("You must call `wandb.init()` before calling `ImageDetectionPrediction.show(visualize_on_wandb=True)`")
+            wandb_image, class_id_to_labels = self.visualize_on_wandb(show_confidence=show_confidence)
+            wandb.log({"Predictions": wandb_image})
 
     def save(self, output_path: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
         """Save the predicted bboxes on the images.
@@ -168,7 +209,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
 
     _images_prediction_lst: List[ImageDetectionPrediction]
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None, visualize_on_wandb: bool = False) -> None:
         """Display the predicted bboxes on the images.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -177,7 +218,7 @@ class ImagesDetectionPrediction(ImagesPredictions):
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
         for prediction in self._images_prediction_lst:
-            prediction.show(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
+            prediction.show(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping, visualize_on_wandb=visualize_on_wandb)
 
     def save(
         self, output_folder: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None
