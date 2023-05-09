@@ -90,7 +90,9 @@ class ImageDetectionPrediction(ImagePrediction):
         boxes = []
         image = self.image.copy()
         height, width, _ = image.shape
-        class_id_to_labels = {int(_id): str(_class_name) for _id, _class_name in enumerate(self.class_names)}
+        class_id_to_labels = {
+            int(_id): str(_class_name) for _id, _class_name in enumerate(self.class_names)
+        }
         
         for pred_i in range(len(self.prediction)):
             class_id = int(self.prediction.labels[pred_i])
