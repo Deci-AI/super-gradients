@@ -184,6 +184,8 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
 
         yolo_format_target, invalid_labels = self._parse_yolo_label_file(
             label_file_path=label_path,
+            class_names=self.classes,
+            class_ids_to_ignore=self.class_ids_to_ignore,
             ignore_invalid_labels=self.ignore_invalid_labels,
             show_warnings=self.show_all_warnings,
         )
@@ -210,11 +212,15 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         return annotation
 
     @staticmethod
-    def _parse_yolo_label_file(label_file_path: str, ignore_invalid_labels: bool = True, show_warnings: bool = True) -> Tuple[np.ndarray, List[str]]:
+    def _parse_yolo_label_file(
+        label_file_path: str, class_names: List[str], class_ids_to_ignore: List[str], ignore_invalid_labels: bool = True, show_warnings: bool = True
+    ) -> Tuple[np.ndarray, List[str]]:
         """Parse a single label file in yolo format.
 
         #TODO: Add support for additional fields (with ConcatenatedTensorFormat)
         :param label_file_path:         Path to the label file in yolo format.
+        :param class_names:             List of class names.
+        :param class_ids_to_ignore:     List of class ids to ignore.
         :param ignore_invalid_labels:   Whether to ignore labels that fail to be parsed. If True ignores and logs a warning, otherwise raise an error.
         :param show_warnings:           Whether to show the warnings or not.
 
@@ -229,7 +235,9 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         for line in filter(lambda x: x != "\n", lines):
             try:
                 label_id, cx, cw, w, h = line.split(" ")
-                labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
+                if label_id in class_ids_to_ignore:
+                    continue
+                labels_yolo_format.append([class_names.index(label_id), float(cx), float(cw), float(w), float(h)])
             except Exception as e:
                 if ignore_invalid_labels:
                     invalid_labels.append(line)
