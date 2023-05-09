@@ -137,7 +137,7 @@ class ImageDetectionPrediction(ImagePrediction):
         """
         image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
         show_image(image)
-        
+
         if visualize_on_wandb:
             if wandb.run is None:
                 raise wandb.Error("You must call `wandb.init()` before calling `ImageDetectionPrediction.show(visualize_on_wandb=True)`")
@@ -217,7 +217,13 @@ class ImagesDetectionPrediction(ImagesPredictions):
 
     _images_prediction_lst: List[ImageDetectionPrediction]
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None, visualize_on_wandb: bool = False) -> None:
+    def show(
+        self,
+        box_thickness: int = 2,
+        show_confidence: bool = True,
+        color_mapping: Optional[List[Tuple[int, int, int]]] = None,
+        visualize_on_wandb: bool = False
+    ) -> None:
         """Display the predicted bboxes on the images.
 
         :param box_thickness:   Thickness of bounding boxes.
