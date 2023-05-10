@@ -30,6 +30,7 @@ class DetectionMetrics(Metric):
     :param dist_sync_on_step:               Synchronize metric state across processes at each ``forward()`` before returning the value at the step.
     :param accumulate_on_cpu:               Run on CPU regardless of device used in other parts.
                                             This is to avoid "CUDA out of memory" that might happen on GPU.
+    :param calc_best_score_thresholds       Whether to calculate the best score threshold per class
     """
 
     def __init__(
@@ -43,6 +44,7 @@ class DetectionMetrics(Metric):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
+        calc_best_score_thresholds: bool = False,
     ):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.num_cls = num_cls
@@ -61,6 +63,9 @@ class DetectionMetrics(Metric):
             f"F1{self._get_range_str()}": True,
         }
         self.component_names = list(self.greater_component_is_better.keys())
+        self.calc_best_score_thresholds = calc_best_score_thresholds
+        if self.calc_best_score_thresholds:
+            self.component_names += [f"Best_score_threshold_cls_{i}" for i in range(self.num_cls)]
         self.components = len(self.component_names)
 
         self.post_prediction_callback = post_prediction_callback
@@ -115,18 +120,19 @@ class DetectionMetrics(Metric):
         """Compute the metrics for all the accumulated results.
         :return: Metrics of interest
         """
-        mean_ap, mean_precision, mean_recall, mean_f1 = -1.0, -1.0, -1.0, -1.0
+        mean_ap, mean_precision, mean_recall, mean_f1, best_score_thresholds = -1.0, -1.0, -1.0, -1.0, None
         accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
 
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
 
             # shape (n_class, nb_iou_thresh)
-            ap, precision, recall, f1, unique_classes = compute_detection_metrics(
+            ap, precision, recall, f1, unique_classes, best_score_thresholds = compute_detection_metrics(
                 *matching_info_tensors,
                 recall_thresholds=self.recall_thresholds,
                 score_threshold=self.score_threshold,
                 device="cpu" if self.accumulate_on_cpu else self.device,
+                calc_best_score_thresholds=self.calc_best_score_thresholds,
             )
 
             # Precision, recall and f1 are computed for IoU threshold range, averaged over classes
@@ -136,12 +142,15 @@ class DetectionMetrics(Metric):
             # MaP is averaged over IoU thresholds and over classes
             mean_ap = ap.mean()
 
-        return {
+        output_dict = {
             f"Precision{self._get_range_str()}": mean_precision,
             f"Recall{self._get_range_str()}": mean_recall,
             f"mAP{self._get_range_str()}": mean_ap,
             f"F1{self._get_range_str()}": mean_f1,
         }
+        if self.calc_best_score_thresholds:
+            output_dict.update(best_score_thresholds)
+        return output_dict
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
         """

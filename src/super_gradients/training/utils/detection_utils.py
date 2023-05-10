@@ -1058,6 +1058,7 @@ def compute_detection_metrics(
     device: str,
     recall_thresholds: Optional[torch.Tensor] = None,
     score_threshold: Optional[float] = 0.1,
+    calc_best_score_thresholds: bool = False,
 ) -> Tuple:
     """
     Compute the list of precision, recall, MaP and f1 for every recall IoU threshold and for every class.
@@ -1073,10 +1074,14 @@ def compute_detection_metrics(
     :param score_threshold:    Minimum confidence score to consider a prediction for the computation of
                                     precision, recall and f1 (not MaP)
     :param device:             Device
+    :param calc_best_score_thresholds: If True, the best confidence score threshold is computed for each class
 
     :return:
         :ap, precision, recall, f1: Tensors of shape (n_class, nb_iou_thrs)
         :unique_classes:            Vector with all unique target classes
+        :best_score_thresholds:     dict that stores for each class the best score threshold, if
+                                    calc_best_score_thresholds is True else None
+
     """
     preds_matched, preds_to_ignore = preds_matched.to(device), preds_to_ignore.to(device)
     preds_scores, preds_cls, targets_cls = preds_scores.to(device), preds_cls.to(device), targets_cls.to(device)
@@ -1089,10 +1094,11 @@ def compute_detection_metrics(
     ap = torch.zeros((n_class, nb_iou_thrs), device=device)
     precision = torch.zeros((n_class, nb_iou_thrs), device=device)
     recall = torch.zeros((n_class, nb_iou_thrs), device=device)
+    best_score_thresholds = dict() if calc_best_score_thresholds else None
 
     for cls_i, cls in enumerate(unique_classes):
         cls_preds_idx, cls_targets_idx = (preds_cls == cls), (targets_cls == cls)
-        cls_ap, cls_precision, cls_recall = compute_detection_metrics_per_cls(
+        cls_ap, cls_precision, cls_recall, cls_best_score_threshold = compute_detection_metrics_per_cls(
             preds_matched=preds_matched[cls_preds_idx],
             preds_to_ignore=preds_to_ignore[cls_preds_idx],
             preds_scores=preds_scores[cls_preds_idx],
@@ -1100,14 +1106,17 @@ def compute_detection_metrics(
             recall_thresholds=recall_thresholds,
             score_threshold=score_threshold,
             device=device,
+            calc_best_score_threshold=calc_best_score_thresholds,
         )
         ap[cls_i, :] = cls_ap
         precision[cls_i, :] = cls_precision
         recall[cls_i, :] = cls_recall
+        if calc_best_score_thresholds:
+            best_score_thresholds[f"Best_score_threshold_cls_{int(cls)}"] = cls_best_score_threshold
 
     f1 = 2 * precision * recall / (precision + recall + 1e-16)
 
-    return ap, precision, recall, f1, unique_classes
+    return ap, precision, recall, f1, unique_classes, best_score_thresholds
 
 
 def compute_detection_metrics_per_cls(
@@ -1118,6 +1127,7 @@ def compute_detection_metrics_per_cls(
     recall_thresholds: torch.Tensor,
     score_threshold: float,
     device: str,
+    calc_best_score_threshold: bool = False,
 ):
     """
     Compute the list of precision, recall and MaP of a given class for every recall IoU threshold.
@@ -1134,16 +1144,20 @@ def compute_detection_metrics_per_cls(
         :param score_threshold:    Minimum confidence score to consider a prediction for the computation of
                                         precision and recall (not MaP)
         :param device:             Device
+        :param calc_best_score_threshold: If True, the best confidence score threshold is computed for this class
 
-        :return ap, precision, recall:  Tensors of shape (nb_iou_thrs)
+        :return
+            :ap, precision, recall:     Tensors of shape (nb_iou_thrs)
+            :best_score_threshold:      torch.float if calc_best_score_threshold is True else None
     """
     nb_iou_thrs = preds_matched.shape[-1]
+    best_score_threshold = torch.tensor(0.0, dtype=torch.float, device=device) if calc_best_score_threshold else None
 
     tps = preds_matched
     fps = torch.logical_and(torch.logical_not(preds_matched), torch.logical_not(preds_to_ignore))
 
     if len(tps) == 0:
-        return torch.zeros(nb_iou_thrs, device=device), torch.zeros(nb_iou_thrs, device=device), torch.zeros(nb_iou_thrs, device=device)
+        return torch.zeros(nb_iou_thrs, device=device), torch.zeros(nb_iou_thrs, device=device), torch.zeros(nb_iou_thrs, device=device), best_score_threshold
 
     # Sort by decreasing score
     dtype = torch.uint8 if preds_scores.is_cuda and preds_scores.dtype is torch.bool else preds_scores.dtype
@@ -1167,7 +1181,8 @@ def compute_detection_metrics_per_cls(
 
     # We want the rolling precision/recall at index i so that: preds_scores[i-1] >= score_threshold > preds_scores[i]
     # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
-    lowest_score_above_threshold = torch.searchsorted(-preds_scores, -score_threshold, right=False)
+    # Note2: right=True due to negation
+    lowest_score_above_threshold = torch.searchsorted(-preds_scores, -score_threshold, right=True)
 
     if lowest_score_above_threshold == 0:  # Here score_threshold > preds_scores[0], so no pred is above the threshold
         recall = torch.zeros(nb_iou_thrs, device=device)
@@ -1175,6 +1190,28 @@ def compute_detection_metrics_per_cls(
     else:
         recall = rolling_recalls[lowest_score_above_threshold - 1]
         precision = rolling_precisions[lowest_score_above_threshold - 1]
+
+    # ==================
+    # BEST CONFIDENCE SCORE THRESHOLD PER CLASS
+    if calc_best_score_threshold:
+        all_score_thresholds = torch.linspace(0, 1, 101, device=device)
+
+        # We want the rolling precision/recall at index i so that: preds_scores[i-1] > score_threshold >= preds_scores[i]
+        # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
+        lowest_scores_above_thresholds = torch.searchsorted(-preds_scores, -all_score_thresholds, right=True)
+
+        # When score_threshold > preds_scores[0], then no pred is above the threshold, so we pad with zeros
+        rolling_recalls_padded = torch.cat((torch.zeros(1, nb_iou_thrs, device=device), rolling_recalls), dim=0)
+        rolling_precisions_padded = torch.cat((torch.zeros(1, nb_iou_thrs, device=device), rolling_precisions), dim=0)
+
+        # shape = (n_score_thresholds, nb_iou_thrs)
+        recalls_per_threshold = torch.index_select(input=rolling_recalls_padded, dim=0, index=lowest_scores_above_thresholds)
+        precisions_per_threshold = torch.index_select(input=rolling_precisions_padded, dim=0, index=lowest_scores_above_thresholds)
+
+        # shape (101, 10)
+        f1 = 2 * recalls_per_threshold * precisions_per_threshold / (recalls_per_threshold + precisions_per_threshold + 1e-16)
+        mean_f1 = torch.mean(f1, dim=1)  # average over iou thresholds
+        best_score_threshold = all_score_thresholds[torch.argmax(mean_f1)]
 
     # ==================
     # AVERAGE PRECISION
@@ -1196,4 +1233,4 @@ def compute_detection_metrics_per_cls(
     # Average over the recall_thresholds
     ap = sampled_precision_points.mean(0)
 
-    return ap, precision, recall
+    return ap, precision, recall, best_score_threshold
