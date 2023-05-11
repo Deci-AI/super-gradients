@@ -24,7 +24,7 @@ class TestDetectionUtils(unittest.TestCase):
     def test_visualization(self):
 
         valid_loader = coco2017_val(dataloader_params={"batch_size": 16})
-        trainer = Trainer("visualization_test", device=self.device)
+        trainer = Trainer("visualization_test")
         post_prediction_callback = YoloPostPredictionCallback()
 
         # Simulate one iteration of validation subset

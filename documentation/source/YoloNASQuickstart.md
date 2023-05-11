@@ -17,7 +17,7 @@ In this tutorial, we will go over the basic functionality of the YOLO-NAS model.
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
 
-net = models.get(Models.YoloNAS_S, pretrained_weights="coco")
+net = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
 ```
 
 ## Predict
@@ -68,3 +68,13 @@ python -m super_gradients.train_from_recipe --config-name=roboflow_yolo_nas_s  d
 ```
 
 Replace <DATASET_NAME> with any of the [RF100 datasets](https://github.com/roboflow/roboflow-100-benchmark/blob/8587f81ef282d529fe5707c0eede74fe91d472d0/metadata/datasets_stats.csv) that you wish to train on.
+
+
+## Creating a model for a non-RGB image
+
+You can create a model taking arbitrary number of channels by passing the number of channels to the arch_params argument.
+Important thing to keep in mind that in this case you cannot use the available pretrained weights and have to provde `num_classes` parameter explicitly.
+
+```python
+model = models.get(Models.YOLO_NAS_S, arch_params=dict(in_channels=2), num_classes=15)
+```

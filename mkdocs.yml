@@ -11,6 +11,9 @@ nav:
   - Segmentation: ./documentation/source/Segmentation.md
   - Pose Estimation: ./documentation/source/PoseEstimation.md
   - Training an external model: ./documentation/source/Example_Training-an-external-model.md
+  - Pretrained Model Prediction:
+    - Prediction: ./documentation/source/ModelPredictions.md
+    - Custom training Setup: ./documentation/source/PredictionSetup.md
 - Tutorials:
   - Models: ./documentation/source/models.md
   - Dataset:
