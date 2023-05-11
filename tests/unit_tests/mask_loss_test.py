@@ -162,6 +162,34 @@ class MaskAttentionLossTest(unittest.TestCase):
         mask = torch.zeros(self.batch, 2, self.img_size, self.img_size).float()
         self.failUnlessRaises(AssertionError, mask_ce_crit, *(predict, target, mask))
 
+    def test_with_cross_entropy_loss_maskless(self):
+        """
+        Test case with mask filled with zeros, corresponding to a scenario without
+        attention. It's expected that the mask doesn't contribute to the loss.
+
+        This scenario may happen when using edge masks on an image without
+        edges - there's only one semantic region in the whole image.
+
+        Shapes: predict [BxCxHxW], target [BxHxW], mask [Bx1xHxW]
+        """
+        predict = torch.randn(self.batch, self.num_classes, self.img_size, self.img_size)
+        target = self._get_default_target_tensor()
+        # Create a mask filled with zeros to disable the attention component
+        mask = self._get_default_mask_tensor() * 0.0
+
+        loss_weigths = [1.0, 0.5]
+        ce_crit = nn.CrossEntropyLoss(reduction="none")
+        mask_ce_crit = MaskAttentionLoss(criterion=ce_crit, loss_weights=loss_weigths)
+
+        # expected result - no contribution from mask
+        ce_loss = ce_crit(predict, target)
+        expected_loss = ce_loss.mean() * loss_weigths[0]
+
+        # mask ce loss result
+        loss = mask_ce_crit(predict, target, mask)
+
+        self._assertion_torch_values(expected_loss, loss)
+
 
 if __name__ == "__main__":
     unittest.main()
