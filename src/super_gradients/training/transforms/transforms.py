@@ -850,7 +850,7 @@ class DetectionRescale(DetectionTransform):
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
-        return [{Processings.DetectionRescale: {"output_shape": self.output_size}}]
+        return [{Processings.DetectionRescale: {"output_shape": self.output_shape}}]
 
 
 @register_transform(Transforms.DetectionRandomRotate90)
