@@ -999,7 +999,7 @@ class Trainer:
             training_params = dict()
 
         self.train_loader = train_loader if train_loader is not None else self.train_loader
-        self.valid_loader = valid_loader if train_loader is not None else self.valid_loader
+        self.valid_loader = valid_loader if valid_loader is not None else self.valid_loader
 
         if self.train_loader is None:
             raise ValueError("No `train_loader` found. Please provide a value `train_loader`")
