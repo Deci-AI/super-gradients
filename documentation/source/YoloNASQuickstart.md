@@ -17,7 +17,7 @@ In this tutorial, we will go over the basic functionality of the YOLO-NAS model.
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
 
-net = models.get(Models.YoloNAS_S, pretrained_weights="coco")
+net = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
 ```
 
 ## Predict
