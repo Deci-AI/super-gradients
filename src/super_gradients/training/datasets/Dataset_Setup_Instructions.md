@@ -203,7 +203,8 @@ data_set = YoloDarknetFormatDetectionDataset(data_dir='<path-to>/data_dir', imag
       ├── test.lst
       ├── train.lst
       ├── trainval.lst
-      └── val.lst
+      ├── val.lst
+      └── auto_labelling.lst
 ```
 
 2. c. Move Metadata folder to the Cityscapes folder
@@ -224,6 +225,45 @@ from super_gradients.training.datasets import CityscapesDataset
 train_set = CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.lst', labels_csv_path='lists/labels.csv', ...)
 ```
 
+4. AutoLabelling dataset [Optional]
+
+Cityscapes AutoLabelled dataset were introduced by NVIDIA research group
+in the [paper](https://arxiv.org/abs/2005.10821):
+"Hierarchical Multi-Scale Attention for Semantic Segmentation".
+
+AutoLabelled refer to the refinement of the Cityscapes coarse data and pseudo
+labels generation using their suggested Hierarchical multi-scale attention model.
+
+* To download the AutoLabelled labels please refer to the original 
+[repo](https://github.com/NVIDIA/semantic-segmentation#downloadprepare-data).
+Unzip and rename the folder to `AutoLabelling` as described bellow.
+
+* Download the coarse RGB images from cityscapes official site, 
+leftImg8bit_train_extra: https://www.cityscapes-dataset.com/file-handling/?packageID=4
+
+```
+  root_dir (in recipe default to /data/cityscapes)
+      ├─── gtFine
+      │       ├── test
+      │       │     └── ...
+      │       ├─── train
+      │       │     └── ...
+      │       └─── val
+      │             └── ...
+      ├─── leftImg8bit
+      │       ├── test
+      │       │     └── ...
+      │       ├─── train
+      │       │     └── ...
+      │       └─── val
+      │             └── ...
+      ├─── AutoLabelling
+      │       └─── train_extra
+      │             └── ...
+      └─── leftImg8bit
+              └─── train_extra
+                    └── ...
+```
 
  </details>
 
