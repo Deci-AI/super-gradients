@@ -17,6 +17,10 @@ from super_gradients.training.models.prediction_results import ImagesDetectionPr
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
+
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
     [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]
@@ -418,6 +422,7 @@ class YoloBase(SgModule):
             self._head = YoloHead(self.arch_params)
             self._initialize_module()
 
+        self._fused_model: Optional[SgModule] = None
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
         self._default_nms_iou: Optional[float] = None
@@ -447,12 +452,13 @@ class YoloBase(SgModule):
         self._default_nms_iou = iou or self._default_nms_iou
         self._default_nms_conf = conf or self._default_nms_conf
 
-    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPipeline:
+    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
@@ -461,35 +467,52 @@ class YoloBase(SgModule):
 
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
+        import copy
+
+        if fuse_model and self._fused_model is None:
+            logger.info("Fusing some of the model's layers. If this takes too much memory, you can deactivate it by setting `fuse_model=False`")
+
+            model = copy.deepcopy(self)
+            model.eval()
+            model.prep_model_for_conversion(input_size=(3, 640, 640))
+            self._fused_model = model
+
+        model = self._fused_model if fuse_model else self
 
         pipeline = DetectionPipeline(
-            model=self,
+            model=model,
             image_processor=self._image_processor,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
         )
         return pipeline
 
-    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> ImagesDetectionPrediction:
+    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
         :param images:  Images to predict.
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
         return pipeline(images)  # type: ignore
 
-    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None):
+    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
         """Predict using webcam.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
         pipeline.predict_webcam()
+
+    def train(self, mode: bool = True):
+        self._fused_model = None  # Making sure that we don't use old fused model after training.
+        super().train(mode=mode)
 
     def forward(self, x):
         out = self._backbone(x)
