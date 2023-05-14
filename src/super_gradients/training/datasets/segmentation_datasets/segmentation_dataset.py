@@ -155,16 +155,16 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             # CREATE AN EMPTY LIST FOR THE LABELS
             self.imgs = len(self) * [None]
             cached_images_mem_in_gb = 0.0
-            pbar = tqdm(image_files, desc="Caching images")
-            for i, img_path in enumerate(pbar):
-                img = self.sample_loader(img_path)
-                if img is None:
-                    image_indices_to_remove.append(i)
+            with tqdm(image_files, desc="Caching images") as pbar:
+                for i, img_path in enumerate(pbar):
+                    img = self.sample_loader(img_path)
+                    if img is None:
+                        image_indices_to_remove.append(i)
 
-                cached_images_mem_in_gb += os.path.getsize(image_files[i]) / 1024.0**3.0
+                    cached_images_mem_in_gb += os.path.getsize(image_files[i]) / 1024.0**3.0
 
-                self.imgs[i] = img
-                pbar.desc = "Caching images (%.1fGB)" % (cached_images_mem_in_gb)
+                    self.imgs[i] = img
+                    pbar.desc = "Caching images (%.1fGB)" % (cached_images_mem_in_gb)
             self.img_files = [e for i, e in enumerate(image_files) if i not in image_indices_to_remove]
             self.imgs = [e for i, e in enumerate(self.imgs) if i not in image_indices_to_remove]
 
@@ -172,26 +172,26 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         if self.cache_labels:
             # CREATE AN EMPTY LIST FOR THE LABELS
             self.labels = len(self) * [None]
-            pbar = tqdm(label_files, desc="Caching labels")
-            missing_labels, found_labels, duplicate_labels = 0, 0, 0
+            with tqdm(label_files, desc="Caching labels") as pbar:
+                missing_labels, found_labels, duplicate_labels = 0, 0, 0
 
-            for i, file in enumerate(pbar):
-                labels = self.target_loader(file)
+                for i, file in enumerate(pbar):
+                    labels = self.target_loader(file)
 
-                if labels is None:
-                    missing_labels += 1
-                    image_indices_to_remove.append(i)
-                    continue
+                    if labels is None:
+                        missing_labels += 1
+                        image_indices_to_remove.append(i)
+                        continue
 
-                self.labels[i] = labels
-                found_labels += 1
+                    self.labels[i] = labels
+                    found_labels += 1
 
-                pbar.desc = "Caching labels (%g found, %g missing, %g duplicate, for %g images)" % (
-                    found_labels,
-                    missing_labels,
-                    duplicate_labels,
-                    len(image_files),
-                )
+                    pbar.desc = "Caching labels (%g found, %g missing, %g duplicate, for %g images)" % (
+                        found_labels,
+                        missing_labels,
+                        duplicate_labels,
+                        len(image_files),
+                    )
             assert found_labels > 0, "No labels found."
 
             #  REMOVE THE IRRELEVANT ENTRIES FROM THE DATA

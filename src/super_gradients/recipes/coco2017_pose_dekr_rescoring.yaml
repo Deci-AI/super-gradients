@@ -1,0 +1,41 @@
+# This file contains the recipe to train rescoring model for DERK pose estimation model.
+# See documentation/source/PoseEstimation.md#Rescoring for a detailed explanation of the rescoring model.
+#
+# Important:
+#   If you want to train your own rescoring model, you need to generate the rescoring data first:
+#    python -m super_gradients.scripts.generate_rescoring_training_data --config-name=script_generate_rescoring_data_dekr_coco2017 rescoring_data_dir=OUTPUT_DATA_DIR  checkpoint=PATH_TO_TRAINED_MODEL_CHECKPOINT`
+#
+# Usage:
+#   python -m super_gradients.train_from_recipe --config-name coco2017_pose_dekr_rescoring \
+#     dataset_params.train_dataset_params.pkl_file=OUTPUT_DATA_DIR/rescoring_data_train.pkl \
+#     dataset_params.val_dataset_params.pkl_file=OUTPUT_DATA_DIR/rescoring_data_valid.pkl
+defaults:
+  - training_hyperparams: coco2017_rescoring_train_params
+  - dataset_params: coco_pose_estimation_rescoring_dataset_params
+  - arch_params: pose_dekr_coco_rescoring_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+resume: False
+
+architecture: pose_rescoring_coco
+
+multi_gpu: Off
+num_gpus: 1
+
+experiment_suffix: ""
+experiment_name: coco2017_pose_dekr_rescoring_${architecture}_${experiment_suffix}
+
+ckpt_root_dir:
+
+train_dataloader: coco2017_rescoring_train
+val_dataloader: coco2017_rescoring_val
+
+training_hyperparams:
+  resume: ${resume}
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

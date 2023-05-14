@@ -11,17 +11,26 @@ from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.object_names import Transforms
+from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
+from super_gradients.training.transforms.utils import (
+    _rescale_and_pad_to_size,
+    _rescale_image,
+    _rescale_bboxes,
+    _get_center_padding_coordinates,
+    _pad_image,
+    _shift_bboxes,
+    _rescale_xyxy_bboxes,
+)
 
-image_resample = Image.BILINEAR
-mask_resample = Image.NEAREST
+IMAGE_RESAMPLE_MODE = Image.BILINEAR
+MASK_RESAMPLE_MODE = Image.NEAREST
 
 logger = get_logger(__name__)
 
@@ -43,8 +52,8 @@ class SegResize(SegmentationTransform):
     def __call__(self, sample):
         image = sample["image"]
         mask = sample["mask"]
-        sample["image"] = image.resize((self.w, self.h), image_resample)
-        sample["mask"] = mask.resize((self.w, self.h), mask_resample)
+        sample["image"] = image.resize((self.w, self.h), IMAGE_RESAMPLE_MODE)
+        sample["mask"] = mask.resize((self.w, self.h), MASK_RESAMPLE_MODE)
         return sample
 
 
@@ -106,8 +115,8 @@ class SegRescale(SegmentationTransform):
 
         out_size = int(scale * w), int(scale * h)
 
-        image = image.resize(out_size, image_resample)
-        mask = mask.resize(out_size, mask_resample)
+        image = image.resize(out_size, IMAGE_RESAMPLE_MODE)
+        mask = mask.resize(out_size, MASK_RESAMPLE_MODE)
 
         sample["image"] = image
         sample["mask"] = mask
@@ -149,8 +158,8 @@ class SegRandomRescale:
         scale = random.uniform(self.scales[0], self.scales[1])
         out_size = int(scale * w), int(scale * h)
 
-        image = image.resize(out_size, image_resample)
-        mask = mask.resize(out_size, mask_resample)
+        image = image.resize(out_size, IMAGE_RESAMPLE_MODE)
+        mask = mask.resize(out_size, MASK_RESAMPLE_MODE)
 
         sample["image"] = image
         sample["mask"] = mask
@@ -194,8 +203,8 @@ class SegRandomRotate(SegmentationTransform):
         mask = sample["mask"]
 
         deg = random.uniform(self.min_deg, self.max_deg)
-        image = image.rotate(deg, resample=image_resample, fillcolor=self.fill_image)
-        mask = mask.rotate(deg, resample=mask_resample, fillcolor=self.fill_mask)
+        image = image.rotate(deg, resample=IMAGE_RESAMPLE_MODE, fillcolor=self.fill_image)
+        mask = mask.rotate(deg, resample=MASK_RESAMPLE_MODE, fillcolor=self.fill_mask)
 
         sample["image"] = image
         sample["mask"] = mask
@@ -290,10 +299,9 @@ class SegPadShortToCropSize(SegmentationTransform):
 
     def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
         """
-        :param crop_size: tuple of (width, height) for the final crop size, if is scalar size is a
-            square (crop_size, crop_size)
-        :param fill_mask: value to fill mask labels background.
-        :param fill_image: grey value to fill image padded background.
+        :param crop_size:   Tuple of (width, height) for the final crop size, if is scalar size is a square (crop_size, crop_size)
+        :param fill_mask:   Value to fill mask labels background.
+        :param fill_image:  Grey value to fill image padded background.
         """
         # CHECK IF CROP SIZE IS A ITERABLE OR SCALAR
         self.crop_size = crop_size
@@ -416,6 +424,9 @@ class DetectionTransform:
     def __repr__(self):
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
+    def get_equivalent_preprocessing(self) -> List:
+        raise NotImplementedError
+
 
 @register_transform(Transforms.DetectionStandardize)
 class DetectionStandardize(DetectionTransform):
@@ -432,6 +443,9 @@ class DetectionStandardize(DetectionTransform):
     def __call__(self, sample: dict) -> dict:
         sample["image"] = (sample["image"] / self.max_value).astype(np.float32)
         return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.StandardizeImage: {"max_value": self.max_value}}]
 
 
 @register_transform(Transforms.DetectionMosaic)
@@ -709,6 +723,9 @@ class DetectionImagePermute(DetectionTransform):
         sample["image"] = np.ascontiguousarray(sample["image"].transpose(*self.dims))
         return sample
 
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.ImagePermute: {"permutation": self.dims}}]
+
 
 @register_transform(Transforms.DetectionPadToSize)
 class DetectionPadToSize(DetectionTransform):
@@ -731,45 +748,17 @@ class DetectionPadToSize(DetectionTransform):
         self.pad_value = pad_value
 
     def __call__(self, sample: dict) -> dict:
-        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        img, shift_w, shift_h = self._apply_to_image(img, final_shape=self.output_size, pad_value=self.pad_value)
-        sample["image"] = img
-        sample["target"] = self._apply_to_bboxes(targets, shift_w, shift_h)
+        image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+        padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=self.output_size)
+
+        sample["image"] = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
+        sample["target"] = _shift_bboxes(targets=targets, shift_w=padding_coordinates.left, shift_h=padding_coordinates.top)
         if crowd_targets is not None:
-            sample["crowd_target"] = self._apply_to_bboxes(crowd_targets, shift_w, shift_h)
+            sample["crowd_target"] = _shift_bboxes(targets=crowd_targets, shift_w=padding_coordinates.left, shift_h=padding_coordinates.top)
         return sample
 
-    def _apply_to_bboxes(self, targets: np.array, shift_w: float, shift_h: float) -> np.array:
-        """Translate bboxes with respect to padding values.
-
-        :param targets:  Bboxes to transform of shape (N, 5).
-                         Bboxes expected to have format [x1, y1, x2, y2, class_id, ...]
-        :param shift_w:  shift width in pixels
-        :param shift_h:  shift height in pixels
-        :return:         Bboxes to transform of shape (N, 5)
-                         Bboxes will have same format [x1, y1, x2, y2, class_id, ...]
-        """
-        targets = targets.copy() if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
-        boxes, labels = targets[:, :4], targets[:, 4:]
-        boxes[:, [0, 2]] += shift_w
-        boxes[:, [1, 3]] += shift_h
-        return np.concatenate((boxes, labels), 1)
-
-    def _apply_to_image(self, image, final_shape: Tuple[int, int], pad_value: int):
-        """
-        Pad image to final_shape.
-        :param image:
-        :param final_shape: Output image size (rows, cols).
-        :param pad_value:
-        :return:
-        """
-        pad_h, pad_w = final_shape[0] - image.shape[0], final_shape[1] - image.shape[1]
-        shift_h, shift_w = pad_h // 2, pad_w // 2
-        pad_h = (shift_h, pad_h - shift_h)
-        pad_w = (shift_w, pad_w - shift_w)
-
-        image = np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
-        return image, shift_w, shift_h
+    def get_equivalent_preprocessing(self) -> List:
+        return [{Processings.DetectionCenterPadding: {"output_shape": self.output_size, "pad_value": self.pad_value}}]
 
 
 @register_transform(Transforms.DetectionPaddedRescale)
@@ -794,29 +783,20 @@ class DetectionPaddedRescale(DetectionTransform):
 
     def __call__(self, sample: dict) -> dict:
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap, self.pad_value)
+        img, r = _rescale_and_pad_to_size(img, self.input_dim, self.swap, self.pad_value)
 
         sample["image"] = img
-        sample["target"] = self._rescale_target(targets, r)
+        sample["target"] = _rescale_xyxy_bboxes(targets, r)
         if crowd_targets is not None:
-            sample["crowd_target"] = self._rescale_target(crowd_targets, r)
+            sample["crowd_target"] = _rescale_xyxy_bboxes(crowd_targets, r)
         return sample
 
-    def _rescale_target(self, targets: np.array, r: float) -> np.array:
-        """SegRescale the target according to a coefficient used to rescale the image.
-        This is done to have images and targets at the same scale.
-
-        :param targets:  Targets to rescale, shape (batch_size, 6)
-        :param r:        SegRescale coefficient that was applied to the image
-
-        :return:         Rescaled targets, shape (batch_size, 6)
-        """
-        targets = targets.copy() if len(targets) > 0 else np.zeros((self.max_targets, 5), dtype=np.float32)
-        boxes, labels = targets[:, :4], targets[:, 4]
-        boxes = xyxy2cxcywh(boxes)
-        boxes *= r
-        boxes = cxcywh2xyxy(boxes)
-        return np.concatenate((boxes, labels[:, np.newaxis]), 1)
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [
+            {Processings.DetectionLongestMaxSizeRescale: {"output_shape": self.input_dim}},
+            {Processings.DetectionBottomRightPadding: {"output_shape": self.input_dim, "pad_value": self.pad_value}},
+            {Processings.ImagePermute: {"permutation": self.swap}},
+        ]
 
 
 @register_transform(Transforms.DetectionHorizontalFlip)
@@ -859,39 +839,18 @@ class DetectionRescale(DetectionTransform):
         self.output_shape = output_shape
 
     def __call__(self, sample: dict) -> dict:
-        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+        image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
 
-        img_resized, scale_factors = self._rescale_image(img)
+        sy, sx = (self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1])
 
-        sample["image"] = img_resized
-        sample["target"] = self._rescale_target(targets, scale_factors)
+        sample["image"] = _rescale_image(image=image, target_shape=self.output_shape)
+        sample["target"] = _rescale_bboxes(targets, scale_factors=(sy, sx))
         if crowd_targets is not None:
-            sample["crowd_target"] = self._rescale_target(crowd_targets, scale_factors)
+            sample["crowd_target"] = _rescale_bboxes(crowd_targets, scale_factors=(sy, sx))
         return sample
 
-    def _rescale_image(self, image):
-        sy, sx = self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1]
-        resized_img = cv2.resize(
-            image,
-            dsize=(int(self.output_shape[1]), int(self.output_shape[0])),
-            interpolation=cv2.INTER_LINEAR,
-        )
-        scale_factors = sy, sx
-        return resized_img, scale_factors
-
-    def _rescale_target(self, targets: np.array, scale_factors: Tuple[float, float]) -> np.array:
-        """SegRescale the target according to a coefficient used to rescale the image.
-        This is done to have images and targets at the same scale.
-
-        :param targets:  Target XYXY bboxes to rescale, shape (num_boxes, 5)
-        :param r:        SegRescale coefficient that was applied to the image
-
-        :return:         Rescaled targets, shape (num_boxes, 5)
-        """
-        sy, sx = scale_factors
-        targets = targets.astype(np.float32, copy=True) if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
-        targets[:, 0:4] *= np.array([[sx, sy, sx, sy]], dtype=targets.dtype)
-        return targets
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.DetectionRescale: {"output_shape": self.output_shape}}]
 
 
 @register_transform(Transforms.DetectionRandomRotate90)
@@ -970,6 +929,11 @@ class DetectionRGB2BGR(DetectionTransform):
             sample["image"] = sample["image"][..., ::-1]
         return sample
 
+    def get_equivalent_preprocessing(self) -> List:
+        if self.prob < 1:
+            raise RuntimeError("Cannot set preprocessing pipeline with randomness. Set prob to 1.")
+        return [{Processings.ReverseImageChannels}]
+
 
 @register_transform(Transforms.DetectionHSV)
 class DetectionHSV(DetectionTransform):
@@ -1023,6 +987,9 @@ class DetectionNormalize(DetectionTransform):
     def __call__(self, sample: dict) -> dict:
         sample["image"] = (sample["image"] - self.mean) / self.std
         return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.NormalizeImage: {"mean": self.mean, "std": self.std}}]
 
 
 @register_transform(Transforms.DetectionTargetsFormatTransform)
@@ -1107,6 +1074,9 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         padded_targets[range(len(targets))[: self.max_targets]] = targets[: self.max_targets]
         padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
         return padded_targets
+
+    def get_equivalent_preprocessing(self) -> List:
+        return []
 
 
 def get_aug_params(value: Union[tuple, float], center: float = 0) -> float:
@@ -1196,7 +1166,7 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
         corner_ys = corner_points[:, 1::2]
         new_bboxes = np.concatenate((np.min(corner_xs, 1), np.min(corner_ys, 1), np.max(corner_xs, 1), np.max(corner_ys, 1))).reshape(4, -1).T
     else:
-        new_bboxes = np.ones((0, 4), dtype=np.float)
+        new_bboxes = np.ones((0, 4), dtype=np.float32)
 
     if num_gts_masks:
         # warp segmentation points
@@ -1215,7 +1185,7 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
             .T
         )
     else:
-        new_tight_bboxes = np.ones((0, 4), dtype=np.float)
+        new_tight_bboxes = np.ones((0, 4), dtype=np.float32)
 
     targets[~seg_is_present_mask, :4] = new_bboxes
     targets[seg_is_present_mask, :4] = new_tight_bboxes
@@ -1333,34 +1303,6 @@ def augment_hsv(img: np.array, hgain: float, sgain: float, vgain: float, bgr_cha
     img_hsv[..., 2] = np.clip(img_hsv[..., 2] + hsv_augs[2], 0, 255)
 
     img[..., bgr_channels] = cv2.cvtColor(img_hsv.astype(img.dtype), cv2.COLOR_HSV2BGR)  # no return needed
-
-
-def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
-    """
-    Rescales image according to minimum ratio between the target height /image height, target width / image width,
-    and pads the image to the target size.
-
-    :param img: Image to be rescaled
-    :param input_size: Target size
-    :param swap: Axis's to be rearranged.
-    :return: rescaled image, ratio
-    """
-    if len(img.shape) == 3:
-        padded_img = np.ones((input_size[0], input_size[1], img.shape[-1]), dtype=np.uint8) * pad_val
-    else:
-        padded_img = np.ones(input_size, dtype=np.uint8) * pad_val
-
-    r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
-    resized_img = cv2.resize(
-        img,
-        (int(img.shape[1] * r), int(img.shape[0] * r)),
-        interpolation=cv2.INTER_LINEAR,
-    ).astype(np.uint8)
-    padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
-
-    padded_img = padded_img.transpose(swap)
-    padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
-    return padded_img, r
 
 
 @register_transform(Transforms.Standardize)

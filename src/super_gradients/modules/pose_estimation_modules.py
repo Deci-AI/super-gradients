@@ -5,7 +5,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from torch import nn, Tensor
 
-from super_gradients.modules.detection_modules import BaseDetectionModule
+from super_gradients.modules.base_modules import BaseDetectionModule
 from super_gradients.common.registry.registry import register_detection_module
 
 
@@ -58,7 +58,6 @@ class LightweightDEKRHead(BaseDetectionModule):
             activation(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=upscale_factor) if upscale_factor > 1 else nn.Identity(),
             nn.Conv2d(heatmap_channels, self.num_joints + 1, kernel_size=1, padding=0),
-            nn.Sigmoid(),
         )
 
         self.transition_offset = nn.Sequential(

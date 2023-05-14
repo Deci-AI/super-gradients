@@ -1,4 +1,4 @@
-<div align="center">
+<div align="center" markdown="1">
   <img src="docs/assets/SG_img/SG - Horizontal Glow 2.png" width="600"/>
  <br/><br/>
   
@@ -7,10 +7,11 @@
 
 #### Version 3 is out! Notebooks have been updated!
 ______________________________________________________________________
-  
-  <p align="center">
+</div>  
+<div align="center">
+<p align="center">
   <a href="https://www.supergradients.com/">Website</a> •
-  <a href="https://deci-ai.github.io/super-gradients/welcome.html">Docs</a> •
+  <a href="https://docs.deci.ai/super-gradients/documentation/source/welcome.html">Docs</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#implemented-model-architectures">Pretrained Models</a> •
   <a href="#community">Community</a> •
@@ -25,9 +26,11 @@ ______________________________________________________________________
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
-  <a href="https://deci-ai.github.io/super-gradients/welcome.html"><img src="https://img.shields.io/badge/docs-sphinx-brightgreen" />
+  <a href="https://docs.deci.ai/super-gradients/documentation/source/welcome.html"><img src="https://img.shields.io/badge/docs-mkdocs-brightgreen" /></a>
 </p>    
 </div>
+
+______________________________________________________________________
 
 ## Build with SuperGradients
 __________________________________________________________________________________________________________
@@ -41,14 +44,22 @@ ________________________________________________________________________________
 
 
 ### Ready to deploy pre-trained SOTA models
+
+YOLO-NAS architecture is out! The new YOLO-NAS delivers state-of-the-art performance with the unparalleled accuracy-speed performance, outperforming other models such as YOLOv5, YOLOv6, YOLOv7 and YOLOv8.
+Check it out here: [YOLO-NAS](YOLONAS.md).
+
+<div align="center">
+<img src="./documentation/source/images/yolo_nas_frontier.png" width="800px">
+</div>
+
 ```python
 # Load model with pretrained weights
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
 
-model = models.get(Models.YOLOX_S, pretrained_weights="coco")
+model = models.get(Models.YOLO_NAS_M, pretrained_weights="coco")
 ```
-#### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/model_zoo.md)
+#### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/41dkt89)
 
 #### Classification
 <div align="center">
@@ -73,8 +84,8 @@ For more information on how to do it go to [Getting Started](#getting-started)
     
 
 #### Plug and play recipes
-```python
-python -m super_gradients.examples.train_from_recipe_example.train_from_recipe architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+```bash
+python -m super_gradients.train_from_recipe architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 More example on how and why to use recipes can be found in [Recipes](#recipes)
 
@@ -86,17 +97,17 @@ All SuperGradients models’ are production ready in the sense that they are com
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
 
-model = models.get(Models.YOLOX_S, pretrained_weights="coco")
+model = models.get(Models.YOLO_NAS_M, pretrained_weights="coco")
 
 # Prepare model for conversion
-# Input size is in format of [Batch x Channels x Width x Height] where 640 is the standart COCO dataset dimensions
+# Input size is in format of [Batch x Channels x Width x Height] where 640 is the standard COCO dataset dimensions
 model.eval()
 model.prep_model_for_conversion(input_size=[1, 3, 640, 640])
     
 # Create dummy_input
 
 # Convert model to onnx
-torch.onnx.export(model, dummy_input,  "yolox_s.onnx")
+torch.onnx.export(model, dummy_input,  "yolo_nas_m.onnx")
 ```
 More information on how to take your model to production can be found in [Getting Started](#getting-started) notebooks
 
@@ -109,23 +120,27 @@ ________________________________________________________________________________
 pip install super-gradients
 ```
 
-## What's New
+## What's New - Version 3.1.1 (May 3rd)
 __________________________________________________________________________________________________________
-* 【17/11/2022】 Integration with ClearML
-* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
-* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
-* 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
-* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](http://bit.ly/3gfLw07) and pre-trained [checkpoints](http://bit.ly/3EGfKD4) on COCO - Tailored for edge devices! 📱
-* 【07/07/2022】 STDC  - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
+* [YOLO-NAS](https://bit.ly/41WeNPZ)
+* New [predict function](https://bit.ly/3oZfaea) (predict on any image, video, url, path, stream)
+* [RoboFlow100](https://bit.ly/40YOJ5z) datasets integration 
+* A new [Documentation Hub](https://docs.deci.ai/super-gradients/documentation/source/welcome.html)
+* Integration with [DagsHub for experiment monitoring](https://bit.ly/3ALFUkQ)
+* Support [Darknet/Yolo format detection dataset](https://bit.ly/41VX6Qu) (used by Yolo v5, v6, v7, v8) 
+* [Segformer](https://bit.ly/3oYu6Jp) model and recipe 
+* Post Training Quantization and Quantization Aware Training - [notebooks](http://bit.ly/3KrN6an)
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Coming soon
 __________________________________________________________________________________________________________
-- [ ] PP-Yolo-E implementation
-- [ ] Quantization aware training (QAT)
-- [ ] Tools for faster training 
-- [ ] Integration with more professional tools.
+- [ ] Pre-trained pose estimation model
+- [ ] Test Time Augmentations (TTA)
+- [ ] Recipe to train DEKR model(convertable to TRT) 
+- [ ] Key-points Rescoring for Pose estimation 
+- [ ] LR finder
+- [ ] Data analysis tools
 
 
 ## Table of Content
@@ -155,10 +170,10 @@ The most simple and straightforward way to start training SOTA performance model
 Just make sure that you [setup your dataset](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md) according to the data dir specified in the recipe.
 
 ```bash
-python -m super_gradients.examples.train_from_recipe_example.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
-Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](http://bit.ly/3EGfKD4)
+Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](http://bit.ly/41dkt89)
 
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
@@ -266,6 +281,17 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ## Advanced Features
 __________________________________________________________________________________________________________
+### Post Training Quantization and Quantization Aware Training
+Quantization involves representing weights and biases in lower precision, resulting in reduced memory and computational requirements, making it useful for deploying models on devices with limited resources. The process can be done during training, called Quantization aware training, or after training, called post-training quantization. A full tutorial can be found [here](http://bit.ly/41hC8uI).
+  <table class=“tfo-notebook-buttons” align=“left”>
+ <td width=“500”>
+   <a target="_blank" href="http://bit.ly/3KrN6an"><img src="./docs/assets/SG_img/colab_logo.png" /> Post Training Quantization and Quantization Aware Training</a>
+  </td>
+ <td width=“200”>
+<a target="_blank" href="http://bit.ly/3nUGzxb"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
+ </td>
+</table>
+
 ### Knowledge Distillation Training
 Knowledge Distillation is a training technique that uses a large model, teacher model, to improve the performance of a smaller model, the student model.
 Learn more about SuperGradients knowledge distillation training with our pre-trained BEiT base teacher model and Resnet18 student model on CIFAR10 example notebook on Google Colab for an easy to use tutorial using free GPU hardware
@@ -296,7 +322,7 @@ Recipes support out of the box every model, metric or loss that is implemented i
  </br></br>
 
  </br>
-<details>
+<details markdown="1">
   <summary><h3>Using Distributed Data Parallel (DDP) </h3></summary>
 
 #### Why use DDP ?
@@ -349,6 +375,7 @@ Please note that if you work with `torch<1.9.0` (deprecated), you will have to l
 ```bash
 python -m torch.distributed.launch --nproc_per_node=4 main.py
 ```
+
 ```bash
 torchrun --nproc_per_node=4 main.py
 ```
@@ -407,7 +434,7 @@ There is no clear rule, but a rule of thumb seems to be to [linearly increase th
 
 </details>
 
-<details>
+<details markdown="1">
 <summary><h3> Easily change architectures parameters </h3></summary>
 
 ```python
@@ -425,7 +452,7 @@ backbone_resnet18 = models.get(model_name="resnet18", arch_params={"backbone_mod
 
 </details>
 
-<details>
+<details markdown="1">
 
 <summary><h3> Using phase callbacks </h3></summary>  
   
@@ -450,6 +477,33 @@ trainer = Trainer("experiment_name")
 
 # define phase_callbacks as part of the training parameters
 train_params = {"phase_callbacks": phase_callbacks}
+```
+
+</details>
+
+<details markdown="1">
+
+<summary><h3> Integration to DagsHub </h3></summary>    
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/11fW56pMpwOMHQSbQW6xxMRYvw1mEC-t-?usp=sharing) 
+
+```python
+from super_gradients import Trainer
+
+trainer = Trainer("experiment_name")
+model = ...
+
+training_params = { ...  # Your training params
+                   "sg_logger": "dagshub_sg_logger",  # DagsHub Logger, see class super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger for details
+                   "sg_logger_params":  # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger
+                     {
+                       "dagshub_repository": "<REPO_OWNER>/<REPO_NAME>", # Optional: Your DagsHub project name, consisting of the owner name, followed by '/', and the repo name. If this is left empty, you'll be prompted in your run to fill it in manually.
+                       "log_mlflow_only": False, # Optional: Change to true to bypass logging to DVC, and log all artifacts only to MLflow  
+                       "save_checkpoints_remote": True,
+                       "save_tensorboard_remote": True,
+                       "save_logs_remote": True,
+                     }
+                   }
 ```
 
 </details>
@@ -479,7 +533,7 @@ train_params = { ... # training parameters
 
 </details>
 
-<details>
+<details markdown="1">
 
 <summary><h3> Integration to ClearML </h3></summary>    
     
@@ -507,7 +561,7 @@ train_params = { ... # training parameters
 ## Installation Methods
 __________________________________________________________________________________________________________
 ### Prerequisites
-<details>
+<details markdown="1">
   
 <summary>General requirements</summary>
   
@@ -518,7 +572,7 @@ ________________________________________________________________________________
 
 </details>
     
-<details>
+<details markdown="1">
   
 <summary>To train on nvidia GPUs</summary>
   
@@ -530,7 +584,7 @@ ________________________________________________________________________________
     
 ### Quick Installation
 
-<details>
+<details markdown="1">
   
 <summary>Install stable version using PyPi</summary>
 
@@ -543,7 +597,7 @@ That's it !
 
 </details>
     
-<details>
+<details markdown="1">
   
 <summary>Install using GitHub</summary>
 
@@ -558,7 +612,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ## Implemented Model Architectures 
 __________________________________________________________________________________________________________
 
-All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
+All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/41dkt89)
 
 Detailed list can be found [here](http://bit.ly/3GnJwgZ) 
 
@@ -620,6 +674,7 @@ Deci provides implementation for various datasets. If you need to download any o
 - [Coco](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/coco_segmentation.py) 
 - [PascalVOC 2012 / PascalAUG 2012](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/pascal_voc_segmentation.py)
 - [SuperviselyPersons](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/supervisely_persons_segmentation.py)
+- [Mapillary Vistas Dataset](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/segmentation_datasets/mapillary_dataset.py)
 
 
 ### Object Detection
@@ -634,7 +689,7 @@ ________________________________________________________________________________
 
 ## Documentation
 
-Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.html) for full documentation, user guide, and examples.
+Check SuperGradients [Docs](https://docs.deci.ai/super-gradients/documentation/source/welcome.html) for full documentation, user guide, and examples.
   
 ## Contributing
 
@@ -658,20 +713,40 @@ If you are using SuperGradients library or benchmarks in your research, please c
 If you want to be a part of SuperGradients growing community, hear about all the exciting news and updates, need help, request for advanced features,
     or want to file a bug or issue report, we would love to welcome you aboard!
 
-* Slack is the place to be and ask questions about SuperGradients and get support. [Click here to join our Slack](
-  https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q)
+* Discord is the place to be and ask questions about SuperGradients and get support. [Click here to join our Discord Community](
+  https://discord.gg/2v6cEGMREN)
     
 * To report a bug, [file an issue](https://github.com/Deci-AI/super-gradients/issues) on GitHub.
 
 * Join the [SG Newsletter](https://www.supergradients.com/#Newsletter)
   for staying up to date with new features and models, important announcements, and upcoming events.
-    
+
 * For a short meeting with us, use this [link](https://calendly.com/ofer-baratz-deci/15min) and choose your preferred time.
 
 ## License
 
 This project is released under the [Apache 2.0 license](LICENSE).
     
+## Citing
+
+### BibTeX
+
+```bibtex
+
+@misc{supergradients,
+  doi = {10.5281/ZENODO.7789328},
+  url = {https://zenodo.org/record/7789328},
+  author = {Aharon,  Shay and {Louis-Dupont} and {Ofri Masad} and Yurkova,  Kate and {Lotem Fridman} and {Lkdci} and Khvedchenya,  Eugene and Rubin,  Ran and Bagrov,  Natan and Tymchenko,  Borys and Keren,  Tomer and Zhilko,  Alexander and {Eran-Deci}},
+  title = {Super-Gradients},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  year = {2021},
+}
+```
+
+### Latest DOI
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7789328.svg)](https://doi.org/10.5281/zenodo.7789328)
 
     
 __________________________________________________________________________________________________________
@@ -683,7 +758,8 @@ Deci Platform is our end to end platform for building, optimizing and deploying 
 
 [Request free trial](https://bit.ly/3qO3icq) to enjoy immediate improvement in throughput, latency, memory footprint and model size.
 
-Features:
+Features
+
 - Automatically compile and quantize your models with just a few clicks (TensorRT, OpenVINO).
 - Gain up to 10X improvement in throughput, latency, memory and model size. 
 - Easily benchmark your models’ performance on different hardware and batch sizes.

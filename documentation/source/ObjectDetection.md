@@ -23,7 +23,7 @@ The easiest way to start training any mode in SuperGradients is to use a pre-def
 
 ### Prerequisites
 
-1. You have to install SuperGradients first. Please refer to the [Installation](https://docs.deci.ai/super-gradients/documentation/source/installation/) section for more details.
+1. You have to install SuperGradients first. Please refer to the [Installation](installation.md) section for more details.
 2. Prepare the COCO dataset as described in the [Computer Vision Datasets Setup](https://docs.deci.ai/super-gradients/src/super_gradients/training/datasets/Dataset_Setup_Instructions/) under Detection Datasets section. 
 
 After you meet the prerequisites, you can start training the model by running from the root of the repository:
@@ -31,12 +31,12 @@ After you meet the prerequisites, you can start training the model by running fr
 ### Training from recipe
 
 ```bash
-python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox multi_gpu=Off num_gpus=1
+python -m super_gradients.train_from_recipe --config-name=coco2017_yolox multi_gpu=Off num_gpus=1
 ```
 
 Note, the default configuration for this recipe is to use 8 GPUs in DDP mode. This hardware configuration may not be for everyone, so in the example above we override GPU settings to use a single GPU.
 It is highly recommended to read through the recipe file [coco2017_yolox](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_yolox.yaml) to get better understanding of the hyperparameters we use here.
-If you're unfamiliar with config files, we recommend you to read the [Configuration Files](https://docs.deci.ai/super-gradients/documentation/source/configuration_files/) part first.
+If you're unfamiliar with config files, we recommend you to read the [Configuration Files](configuration_files.md) part first.
 
 ### Datasets
 
@@ -139,7 +139,7 @@ defaults:
   - _self_
 ```
 These are the actual components of [coco2017_yolox.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_yolox.yaml)
-The dataset parameters are defined in `dataset_params:` and are eventually passed into coco2017_train/val dataset mentioned above in the [Datasets](https://github.com/Deci-AI/super-gradients/blob/feature/ALG-1132_od-md/documentation/source/ObjectDetection.md#datasets) section 
+The dataset parameters are defined in `dataset_params:` and are eventually passed into coco2017_train/val dataset mentioned above in the [Datasets](ObjectDetection.md#datasets) section 
 
 The metric is part of `training_hyperparams` and so it's stated in the [coco2017_yolox_train_params.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/coco2017_yolox_train_params.yaml) with:
 
@@ -413,7 +413,9 @@ To implement a new model, you need to add the following parts:
 - Model architecture itself
 - Postprocessing Callback
 
-For a custom model, a good starting point would be a [CustomizableDetector](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.customizable_detector.CustomizableDetector) class since it allows to configure a backbone, a neck and a head separately. See an example yaml of a model that uses it:
-- [ssd_lite_mobilenetv2_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ssd_lite_mobilenetv2_arch_params.yaml)
+For a custom model, a good starting point would be a 
+[CustomizableDetector](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.customizable_detector.CustomizableDetector) 
+class since it allows to configure a backbone, a neck and a head separately. See an example yaml of 
+a model that uses it: [ssd_lite_mobilenetv2_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ssd_lite_mobilenetv2_arch_params.yaml)
 
 It is strongly advised to use the existing callbacks and to define your model's head such that it returns the same outputs. 

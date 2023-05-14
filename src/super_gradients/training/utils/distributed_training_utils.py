@@ -232,7 +232,7 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = No
 
     if device == "cuda" and not torch.cuda.is_available():
         logger.warning("CUDA device is not available on your device... Moving to CPU.")
-        device = "cpu"
+        multi_gpu, num_gpus, device = MultiGPUMode.OFF, 0, "cpu"
 
     if device == "cpu":
         setup_cpu(multi_gpu, num_gpus)

@@ -188,6 +188,8 @@ class DEKRTargetsGenerator(KeypointsTargetsGenerator):
                     ignored_hms[idx, aa:bb, cc:dd] = 1.0
 
         for person_id, p in enumerate(joints):
+            person_area = area[person_id]
+            offset_weight_factor = 1.0 / np.clip(np.sqrt(person_area), a_min=1, a_max=None)
             ct_x = int(p[-1, 0])
             ct_y = int(p[-1, 1])
             ct_v = int(p[-1, 2])
@@ -212,8 +214,8 @@ class DEKRTargetsGenerator(KeypointsTargetsGenerator):
 
                             offset_map[idx * 2, pos_y, pos_x] = offset_x
                             offset_map[idx * 2 + 1, pos_y, pos_x] = offset_y
-                            offset_weight[idx * 2, pos_y, pos_x] = 1.0 / np.sqrt(area[person_id])
-                            offset_weight[idx * 2 + 1, pos_y, pos_x] = 1.0 / np.sqrt(area[person_id])
+                            offset_weight[idx * 2, pos_y, pos_x] = offset_weight_factor
+                            offset_weight[idx * 2 + 1, pos_y, pos_x] = offset_weight_factor
 
         ignored_hms[ignored_hms == 2] = self.bg_weight
 

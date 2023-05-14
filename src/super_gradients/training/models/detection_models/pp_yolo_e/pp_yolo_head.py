@@ -175,11 +175,12 @@ class PPYOLOEHead(nn.Module):
     @torch.jit.ignore
     def replace_num_classes(self, num_classes: int):
         bias_cls = bias_init_with_prob(0.01)
+        device = self.pred_cls[0].weight.device
         self.pred_cls = nn.ModuleList()
         self.num_classes = num_classes
 
         for in_c in self.in_channels:
-            predict_layer = nn.Conv2d(in_c, num_classes, 3, padding=1)
+            predict_layer = nn.Conv2d(in_c, num_classes, 3, padding=1, device=device)
             torch.nn.init.constant_(predict_layer.weight, 0.0)
             torch.nn.init.constant_(predict_layer.bias, bias_cls)
             self.pred_cls.append(predict_layer)

@@ -1,0 +1,64 @@
+# Checkout the datasets at https://universe.roboflow.com/roboflow-100?ref=blog.roboflow.com
+#
+# `dataset_name` refers to the official name of the dataset.
+# You can find it in the url of the dataset: https://universe.roboflow.com/roboflow-100/digits-t2eg6 -> digits-t2eg6
+#
+# Example: python -m super_gradients.train_from_recipe --config-name=roboflow_yolox dataset_name=digits-t2eg6
+
+defaults:
+  - training_hyperparams: coco2017_yolox_train_params
+  - dataset_params: roboflow_detection_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+dataset_name: ??? # Placeholder for the name of the dataset you want to use (e.g. "digits-t2eg6")
+dataset_params:
+  dataset_name: ${dataset_name}
+num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
+
+
+architecture: yolox_m
+arch_params:
+  num_classes: ${num_classes}
+  yolo_type: 'yoloX'
+  depth_mult_factor: 0.67
+  width_mult_factor: 0.75
+
+
+train_dataloader: roboflow_train_yolox
+val_dataloader: roboflow_val_yolox
+
+
+load_checkpoint: False
+checkpoint_params:
+  pretrained_weights: coco
+
+result_path: # By defaults saves results in checkpoints directory
+resume: False
+training_hyperparams:
+  max_epochs: 100
+  resume: ${resume}
+  criterion_params:
+    num_classes: ${num_classes}
+  train_metrics_list:
+    - DetectionMetrics:
+        normalize_targets: True
+        post_prediction_callback:
+          _target_: super_gradients.training.models.detection_models.yolo_base.YoloPostPredictionCallback
+          iou: 0.65
+          conf: 0.01
+        num_cls: 80
+  valid_metrics_list:
+    - DetectionMetrics:
+        normalize_targets: True
+        post_prediction_callback:
+          _target_: super_gradients.training.models.detection_models.yolo_base.YoloPostPredictionCallback
+          iou: 0.65
+          conf: 0.01
+        num_cls: 80
+
+
+multi_gpu: DDP
+num_gpus: 3
+experiment_name: ${architecture}_roboflow_${dataset_name}

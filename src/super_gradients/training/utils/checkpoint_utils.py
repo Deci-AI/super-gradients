@@ -7,6 +7,7 @@ import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
+from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.common.data_types import StrictLoad
 
@@ -186,16 +187,20 @@ def load_checkpoint_to_model(
     strict: Union[str, StrictLoad] = StrictLoad.NO_KEY_MATCHING,
     load_weights_only: bool = False,
     load_ema_as_net: bool = False,
+    load_processing_params: bool = False,
 ):
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
+
 
     :param load_ema_as_net: Will load the EMA inside the checkpoint file to the network when set
     :param ckpt_local_path: local path to the checkpoint file
     :param load_backbone: whether to load the checkpoint as a backbone
     :param net: network to load the checkpoint to
     :param strict:
-    :param load_weights_only:
+    :param load_weights_only: Whether to ignore all other entries other then "net".
+    :param load_processing_params: Whether to call set_dataset_processing_params on "processing_params" entry inside the
+     checkpoint file (default=False).
     :return:
     """
     if isinstance(strict, str):
@@ -226,6 +231,17 @@ def load_checkpoint_to_model(
     message_suffix = " checkpoint." if not load_ema_as_net else " EMA checkpoint."
     message_model = "model" if not load_backbone else "model's backbone"
     logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
+
+    if (isinstance(net, HasPredict) or (hasattr(net, "module") and isinstance(net.module, HasPredict))) and load_processing_params:
+        if "processing_params" not in checkpoint.keys():
+            raise ValueError("Can't load processing params - could not find any stored in checkpoint file.")
+        try:
+            net.set_dataset_processing_params(**checkpoint["processing_params"])
+        except Exception as e:
+            logger.warning(
+                f"Could not set preprocessing pipeline from the checkpoint dataset: {e}. Before calling"
+                "predict make sure to call set_dataset_processing_params."
+            )
 
     if load_weights_only or load_backbone:
         # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS
@@ -275,12 +291,22 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     :param pretrained_weights: name for the pretrianed weights (i.e imagenet)
     :return: None
     """
+    from super_gradients.common.object_names import Models
+
     model_url_key = architecture + "_" + str(pretrained_weights)
     if model_url_key not in MODEL_URLS.keys():
         raise MissingPretrainedWeightsException(model_url_key)
 
     url = MODEL_URLS[model_url_key]
-    unique_filename = url.split("https://deci-pretrained-models.s3.amazonaws.com/")[1].replace("/", "_").replace(" ", "_")
+
+    if architecture in {Models.YOLO_NAS_S, Models.YOLO_NAS_M, Models.YOLO_NAS_L}:
+        logger.info(
+            "License Notification: YOLO-NAS pre-trained weights are subjected to the specific license terms and conditions detailed in \n"
+            "https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.YOLONAS.md\n"
+            "By downloading the pre-trained weight files you agree to comply with these terms."
+        )
+
+    unique_filename = url.split("https://sghub.deci.ai/models/")[1].replace("/", "_").replace(" ", "_")
     map_location = torch.device("cpu")
     pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
     _load_weights(architecture, model, pretrained_state_dict)

@@ -176,10 +176,11 @@ def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_
     pose_score = torch.cat([pose[:, :, 2:] for pose in poses], dim=0)
     pose_coord = torch.cat([pose[:, :, :2] for pose in poses], dim=0)
 
-    if pose_coord.shape[0] == 0:
-        return [], []
-
     num_people, num_joints, _ = pose_coord.shape
+
+    if num_people == 0:
+        return np.zeros((0, num_joints, 3), dtype=np.float32), np.zeros((0,), dtype=np.float32)
+
     heatval = _get_heat_value(pose_coord, heatmap_avg[0])
     heat_score = (torch.sum(heatval, dim=1) / num_joints)[:, 0]
 
@@ -198,7 +199,7 @@ def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_
     if len(poses):
         scores = poses[:, :, 2].mean(axis=1)
     else:
-        scores = []
+        return np.zeros((0, num_joints, 3), dtype=np.float32), np.zeros((0,), dtype=np.float32)
     return poses, scores
 
 

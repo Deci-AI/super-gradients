@@ -15,6 +15,7 @@ class Losses:
     KD_LOSS = "kd_loss"
     DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
     DEKR_LOSS = "dekr_loss"
+    RESCORING_LOSS = "rescoring_loss"
 
 
 class Metrics:
@@ -143,6 +144,7 @@ class Callbacks:
     PPYOLOE_TRAINING_STAGE_SWITCH = "PPYoloETrainingStageSwitchCallback"
     DETECTION_VISUALIZATION_CALLBACK = "DetectionVisualizationCallback"
     DEKR_VISUALIZATION = "DEKRVisualizationCallback"
+    ROBOFLOW_RESULT_CALLBACK = "RoboflowResultCallback"
 
 
 class LRSchedulers:
@@ -166,7 +168,6 @@ class LRWarmups:
 class Samplers:
     """Static class to hold all the supported Samplers names"""
 
-    INFINITE = "InfiniteSampler"
     REPEAT_AUG = "RepeatAugSampler"
     DISTRIBUTED = "DistributedSampler"
     SEQUENTIAL = "SequentialSampler"
@@ -292,11 +293,22 @@ class Models:
     PP_YOLOE_M = "ppyoloe_m"
     PP_YOLOE_L = "ppyoloe_l"
     PP_YOLOE_X = "ppyoloe_x"
+    SEGFORMER_B0 = "segformer_b0"
+    SEGFORMER_B1 = "segformer_b1"
+    SEGFORMER_B2 = "segformer_b2"
+    SEGFORMER_B3 = "segformer_b3"
+    SEGFORMER_B4 = "segformer_b4"
+    SEGFORMER_B5 = "segformer_b5"
 
     DEKR_CUSTOM = "dekr_custom"
     DEKR_W32_NO_DC = "dekr_w32_no_dc"
     POSE_PP_YOLO_L = "pose_ppyolo_l"
     POSE_DDRNET_39 = "pose_ddrnet39"
+    YOLO_NAS_S = "yolo_nas_s"
+    YOLO_NAS_M = "yolo_nas_m"
+    YOLO_NAS_L = "yolo_nas_l"
+    POSE_RESCORING = "pose_rescoring_custom"
+    POSE_RESCORING_COCO = "pose_rescoring_coco"
 
 
 class ConcatenatedTensorFormats:
@@ -319,14 +331,18 @@ class Dataloaders:
     COCO2017_VAL = "coco2017_val"
     COCO2017_TRAIN_YOLOX = "coco2017_train_yolox"
     COCO2017_VAL_YOLOX = "coco2017_val_yolox"
-    COCO2017_TRAIN_DECIYOLO = "coco2017_train_deci_yolo"
-    COCO2017_VAL_DECIYOLO = "coco2017_val_deci_yolo"
+    COCO2017_TRAIN_YOLO_NAS = "coco2017_train_yolo_nas"
+    COCO2017_VAL_YOLO_NAS = "coco2017_val_yolo_nas"
     COCO2017_TRAIN_PPYOLOE = "coco2017_train_ppyoloe"
     COCO2017_VAL_PPYOLOE = "coco2017_val_ppyoloe"
     COCO2017_TRAIN_SSD_LITE_MOBILENET_V2 = "coco2017_train_ssd_lite_mobilenet_v2"
     COCO2017_VAL_SSD_LITE_MOBILENET_V2 = "coco2017_val_ssd_lite_mobilenet_v2"
     COCO2017_POSE_TRAIN = "coco2017_pose_train"
     COCO2017_POSE_VAL = "coco2017_pose_val"
+    COCO_DETECTION_YOLO_FORMAT_TRAIN = "coco_detection_yolo_format_train"
+    COCO_DETECTION_YOLO_FORMAT_VAL = "coco_detection_yolo_format_val"
+    COCO2017_RESCORING_TRAIN = "coco2017_rescoring_train"
+    COCO2017_RESCORING_VAL = "coco2017_rescoring_val"
     IMAGENET_TRAIN = "imagenet_train"
     IMAGENET_VAL = "imagenet_val"
     IMAGENET_EFFICIENTNET_TRAIN = "imagenet_efficientnet_train"
@@ -371,6 +387,8 @@ class Dataloaders:
     SUPERVISELY_PERSONS_VAL = "supervisely_persons_val"
     PASCAL_VOC_DETECTION_TRAIN = "pascal_voc_detection_train"
     PASCAL_VOC_DETECTION_VAL = "pascal_voc_detection_val"
+    ROBOFLOW_TRAIN_BASE = "roboflow_train_yolox"
+    ROBOFLOW_VAL_BASE = "roboflow_val_yolox"
 
 
 class Datasets:
@@ -389,3 +407,15 @@ class Datasets:
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
+
+
+class Processings:
+    StandardizeImage = "StandardizeImage"
+    DetectionCenterPadding = "DetectionCenterPadding"
+    DetectionLongestMaxSizeRescale = "DetectionLongestMaxSizeRescale"
+    DetectionBottomRightPadding = "DetectionBottomRightPadding"
+    ImagePermute = "ImagePermute"
+    DetectionRescale = "DetectionRescale"
+    ReverseImageChannels = "ReverseImageChannels"
+    NormalizeImage = "NormalizeImage"
+    ComposeProcessing = "ComposeProcessing"

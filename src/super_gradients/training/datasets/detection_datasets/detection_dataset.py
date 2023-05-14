@@ -13,7 +13,7 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset
 
-from super_gradients.common.object_names import Datasets
+from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.training.utils.detection_utils import get_cls_posx_in_target
@@ -72,11 +72,11 @@ class DetectionDataset(Dataset):
     def __init__(
         self,
         data_dir: str,
-        input_dim: Optional[Tuple[int, int]],
         original_target_format: Union[ConcatenatedTensorFormat, DetectionTargetsFormat],
         max_num_samples: int = None,
         cache: bool = False,
         cache_dir: str = None,
+        input_dim: Optional[Tuple[int, int]] = None,
         transforms: List[DetectionTransform] = [],
         all_classes_list: Optional[List[str]] = [],
         class_inclusion_list: Optional[List[str]] = None,
@@ -84,6 +84,7 @@ class DetectionDataset(Dataset):
         target_fields: List[str] = None,
         output_fields: List[str] = None,
         verbose: bool = True,
+        show_all_warnings: bool = False,
     ):
         """Detection dataset.
 
@@ -106,10 +107,12 @@ class DetectionDataset(Dataset):
                                                 It has to include at least "target" but can include other.
         :param output_fields:                   Fields that will be outputed by __getitem__.
                                                 It has to include at least "image" and "target" but can include other.
-        :param verbose:                 Whether to show additional information or not, such as loading progress.
+        :param verbose:                 Whether to show additional information or not, such as loading progress. (doesnt include warnings)
+        :param show_all_warnings:       Whether to show all warnings or not.
         """
         super().__init__()
         self.verbose = verbose
+        self.show_all_warnings = show_all_warnings
 
         if isinstance(original_target_format, DetectionTargetsFormat):
             logger.warning(
@@ -119,7 +122,7 @@ class DetectionDataset(Dataset):
 
         self.data_dir = data_dir
         if not Path(data_dir).exists():
-            raise FileNotFoundError(f"data_dir={data_dir} not found. Please make sure that data_dir points toward your dataset.")
+            raise RuntimeError(f"data_dir={data_dir} not found. Please make sure that data_dir points toward your dataset.")
 
         # Number of images that are available (regardless of ignored images)
         self.n_available_samples = self._setup_data_source()
@@ -186,6 +189,7 @@ class DetectionDataset(Dataset):
         """Load all the annotations to memory to avoid opening files back and forth.
         :return: List of annotations
         """
+        n_invalid_bbox = 0
         annotations = []
         for sample_id, img_id in enumerate(tqdm(range(self.n_available_samples), desc="Caching annotations", disable=not self.verbose)):
 
@@ -193,6 +197,8 @@ class DetectionDataset(Dataset):
                 break
 
             img_annotation = self._load_annotation(img_id)
+            n_invalid_bbox += img_annotation.get("n_invalid_labels", 0)
+
             if not self._required_annotation_fields.issubset(set(img_annotation.keys())):
                 raise KeyError(
                     f"_load_annotation is expected to return at least the fields {self._required_annotation_fields} " f"but got {set(img_annotation.keys())}"
@@ -208,8 +214,12 @@ class DetectionDataset(Dataset):
 
         if len(annotations) == 0:
             raise EmptyDatasetException(
-                f"Out of {self.n_available_samples} images, not a single one was found with" f"any of these classes: {self.class_inclusion_list}"
+                f"Out of {self.n_available_samples} images, not a single one was found with any of these classes: {self.class_inclusion_list}"
             )
+
+        if n_invalid_bbox > 0:
+            logger.warning(f"Found {n_invalid_bbox} invalid bbox that were ignored. For more information, please set `show_all_warnings=True`.")
+
         return annotations
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
@@ -258,6 +268,8 @@ class DetectionDataset(Dataset):
             "********************************************************************************"
         )
 
+        if self.input_dim is None:
+            raise RuntimeError("caching is not possible without input_dim is not set")
         max_h, max_w = self.input_dim[0], self.input_dim[1]
 
         # The cache should be the same as long as the images and their sizes are the same
@@ -279,11 +291,10 @@ class DetectionDataset(Dataset):
             cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="w+")
 
             # Store images in the placeholder
-            loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self), disable=not self.verbose)
-            for i, image in loaded_images_pbar:
-                cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
-            cached_imgs.flush()
-            loaded_images_pbar.close()
+            with tqdm(enumerate(loaded_images), total=len(self), disable=not self.verbose) as loaded_images_pbar:
+                for i, image in loaded_images_pbar:
+                    cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
+                cached_imgs.flush()
         else:
             logger.warning("You are using cached imgs!")
 
@@ -471,3 +482,22 @@ class DetectionDataset(Dataset):
             plot_counter += 1
             if plot_counter == n_plots:
                 return
+
+    def get_dataset_preprocessing_params(self):
+        """
+        Return any hardcoded preprocessing + adaptation for PIL.Image image reading (RGB).
+         image_processor as returned as as list of dicts to be resolved by processing factory.
+        :return:
+        """
+        pipeline = [Processings.ReverseImageChannels]
+        if self.input_dim is not None:
+            pipeline += [{Processings.DetectionLongestMaxSizeRescale: {"output_shape": self.input_dim}}]
+        for t in self.transforms:
+            pipeline += t.get_equivalent_preprocessing()
+        params = dict(
+            class_names=self.classes,
+            image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
+            iou=0.65,
+            conf=0.5,
+        )
+        return params

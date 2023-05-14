@@ -1,0 +1,70 @@
+# Checkout the datasets at https://universe.roboflow.com/roboflow-100?ref=blog.roboflow.com
+#
+# `dataset_name` refers to the official name of the dataset.
+# You can find it in the url of the dataset: https://universe.roboflow.com/roboflow-100/digits-t2eg6 -> digits-t2eg6
+#
+# Example: python -m super_gradients.train_from_recipe --config-name=roboflow_ppyoloe dataset_name=digits-t2eg6
+
+
+defaults:
+  - training_hyperparams: coco2017_ppyoloe_train_params
+  - dataset_params: roboflow_detection_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - arch_params: ppyoloe_m_arch_params
+  - _self_
+  - variable_setup
+
+dataset_name: ??? # Placeholder for the name of the dataset you want to use (e.g. "digits-t2eg6")
+dataset_params:
+  dataset_name: ${dataset_name}
+num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
+
+
+architecture: ppyoloe_m
+arch_params:
+  num_classes: ${num_classes}
+
+
+train_dataloader: roboflow_train_yolox
+val_dataloader: roboflow_val_yolox
+
+
+load_checkpoint: False
+checkpoint_params:
+  pretrained_weights: coco
+
+
+result_path: # By defaults saves results in checkpoints directory
+resume: False
+training_hyperparams:
+  resume: ${resume}
+  max_epochs: 100
+  mixed_precision: True
+  criterion_params:
+    num_classes: ${num_classes}
+  phase_callbacks:
+    - RoboflowResultCallback:
+        dataset_name: ${dataset_name}
+        output_path: ${result_path}
+  loss:
+    ppyoloe_loss:
+      num_classes: ${num_classes}
+      reg_max: ${arch_params.head.reg_max}
+
+  valid_metrics_list:
+    - DetectionMetrics:
+        score_thres: 0.1
+        top_k_predictions: 300
+        num_cls: ${num_classes}
+        normalize_targets: True
+        post_prediction_callback:
+          _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
+          score_threshold: 0.01
+          nms_top_k: 1000
+          max_predictions: 300
+          nms_threshold: 0.7
+
+
+multi_gpu: DDP
+num_gpus:
+experiment_name: ${architecture}_roboflow_${dataset_name}

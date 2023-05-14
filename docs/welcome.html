@@ -304,7 +304,7 @@ For more information on how to do it go to <span class="xref myst">Getting Start
 <div class="section" id="start-training-with-just-1-command-line">
 <h2>Start Training with Just 1 Command Line<a class="headerlink" href="#start-training-with-just-1-command-line" title="Permalink to this heading"></a></h2>
 <p>The most simple and straightforward way to start training SOTA performance models with SuperGradients reproducible recipes. Just define your dataset path and where you want your checkpoints to be saved and you are good to go from your terminal!</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m super_gradients.examples.train_from_recipe_example.train_from_recipe --config-name<span class="o">=</span>imagenet_regnetY <span class="nv">architecture</span><span class="o">=</span>regnetY800 dataset_interface.data_dir<span class="o">=</span>&lt;YOUR_Imagenet_LOCAL_PATH&gt; <span class="nv">ckpt_root_dir</span><span class="o">=</span>&lt;CHEKPOINT_DIRECTORY&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m super_gradients.train_from_recipe --config-name<span class="o">=</span>imagenet_regnetY <span class="nv">architecture</span><span class="o">=</span>regnetY800 dataset_interface.data_dir<span class="o">=</span>&lt;YOUR_Imagenet_LOCAL_PATH&gt; <span class="nv">ckpt_root_dir</span><span class="o">=</span>&lt;CHEKPOINT_DIRECTORY&gt;
 </pre></div>
 </div>
 </div>
@@ -603,7 +603,7 @@ There is no clear rule, but a rule of thumb seems to be to <a class="reference e
 
 <span class="n">train_params</span> <span class="o">=</span> <span class="p">{</span> <span class="o">...</span> <span class="c1"># training parameters</span>
                 <span class="s2">&quot;sg_logger&quot;</span><span class="p">:</span> <span class="s2">&quot;wandb_sg_logger&quot;</span><span class="p">,</span> <span class="c1"># Weights&amp;Biases Logger, see class WandBSGLogger for details</span>
-                <span class="s2">&quot;sg_logger_params&quot;</span><span class="p">:</span> <span class="c1"># paramenters that will be passes to __init__ of the logger </span>
+                <span class="s2">&quot;sg_logger_params&quot;</span><span class="p">:</span> <span class="c1"># parameters that will be passes to __init__ of the logger </span>
                   <span class="p">{</span>
                     <span class="s2">&quot;project_name&quot;</span><span class="p">:</span> <span class="s2">&quot;project_name&quot;</span><span class="p">,</span> <span class="c1"># W&amp;B project name</span>
                     <span class="s2">&quot;save_checkpoints_remote&quot;</span><span class="p">:</span> <span class="kc">True</span>
@@ -623,7 +623,7 @@ There is no clear rule, but a rule of thumb seems to be to <a class="reference e
 
 <span class="n">train_params</span> <span class="o">=</span> <span class="p">{</span> <span class="o">...</span> <span class="c1"># training parameters</span>
                 <span class="s2">&quot;sg_logger&quot;</span><span class="p">:</span> <span class="s2">&quot;clearml_sg_logger&quot;</span><span class="p">,</span> <span class="c1"># ClearML Logger, see class ClearMLSGLogger for details</span>
-                <span class="s2">&quot;sg_logger_params&quot;</span><span class="p">:</span> <span class="c1"># paramenters that will be passes to __init__ of the logger </span>
+                <span class="s2">&quot;sg_logger_params&quot;</span><span class="p">:</span> <span class="c1"># parameters that will be passes to __init__ of the logger </span>
                   <span class="p">{</span>
                     <span class="s2">&quot;project_name&quot;</span><span class="p">:</span> <span class="s2">&quot;project_name&quot;</span><span class="p">,</span> <span class="c1"># ClearML project name</span>
                     <span class="s2">&quot;save_checkpoints_remote&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
