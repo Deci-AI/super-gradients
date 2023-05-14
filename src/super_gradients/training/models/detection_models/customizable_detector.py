@@ -80,7 +80,6 @@ class CustomizableDetector(SgModule):
         self._image_processor: Optional[Processing] = None
         self._default_nms_iou: Optional[float] = None
         self._default_nms_conf: Optional[float] = None
-        self._pipeline_cache: Optional[DetectionPipeline] = None
 
     def forward(self, x):
         x = self.backbone(x)
