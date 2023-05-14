@@ -4,6 +4,7 @@ defaults:
   - _self_
 
 checkpoint_params:
+  checkpoint_path: ???
   strict_load: no_key_matching
 
 pre_launch_callbacks_list:
