@@ -23,9 +23,6 @@ from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.media.image import ImageSource
-from super_gradients.common.abstractions.abstract_logger import get_logger
-
-logger = get_logger(__name__)
 
 
 class CustomizableDetector(SgModule):
@@ -188,7 +185,3 @@ class CustomizableDetector(SgModule):
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
         pipeline.predict_webcam()
-
-    def train(self, mode: bool = True):
-        self._fused_model = None  # Making sure that we don't use old fused model after training.
-        super().train(mode=mode)

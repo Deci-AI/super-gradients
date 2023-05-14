@@ -18,9 +18,6 @@ from super_gradients.training.models.prediction_results import ImagesDetectionPr
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
-from super_gradients.common.abstractions.abstract_logger import get_logger
-
-logger = get_logger(__name__)
 
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
@@ -423,7 +420,6 @@ class YoloBase(SgModule):
             self._head = YoloHead(self.arch_params)
             self._initialize_module()
 
-        self._fused_model: Optional[SgModule] = None
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
         self._default_nms_iou: Optional[float] = None
@@ -501,10 +497,6 @@ class YoloBase(SgModule):
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
         pipeline.predict_webcam()
-
-    def train(self, mode: bool = True):
-        self._fused_model = None  # Making sure that we don't use old fused model after training.
-        super().train(mode=mode)
 
     def forward(self, x):
         out = self._backbone(x)

@@ -19,9 +19,6 @@ from super_gradients.training.models.prediction_results import ImagesDetectionPr
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
-from super_gradients.common.abstractions.abstract_logger import get_logger
-
-logger = get_logger(__name__)
 
 
 class PPYoloE(SgModule):
@@ -34,7 +31,6 @@ class PPYoloE(SgModule):
         self.neck = PPYoloECSPPAN(**arch_params["neck"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
         self.head = PPYOLOEHead(**arch_params["head"], width_mult=arch_params["width_mult"], num_classes=arch_params["num_classes"])
 
-        self._fused_model: Optional[SgModule] = None
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
         self._default_nms_iou: Optional[float] = None
@@ -111,10 +107,6 @@ class PPYoloE(SgModule):
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
         pipeline.predict_webcam()
-
-    def train(self, mode: bool = True):
-        self._fused_model = None  # Making sure that we don't use old fused model after training.
-        super().train(mode=mode)
 
     def forward(self, x: Tensor):
         features = self.backbone(x)
