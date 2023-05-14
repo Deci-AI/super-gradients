@@ -21,6 +21,7 @@ from tests.unit_tests import (
     CallTrainAfterTestTest,
     CrashTipTest,
     TestTransforms,
+    TestPostPredictionCallback,
 )
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.detection_utils_test import TestDetectionUtils
@@ -137,6 +138,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ReplaceHeadUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PreprocessingUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestYOLONAS))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPostPredictionCallback))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
