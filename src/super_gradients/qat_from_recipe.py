@@ -14,7 +14,7 @@ from super_gradients.training.qat_trainer.qat_trainer import QATTrainer
 
 @hydra.main(config_path="recipes", version_base="1.2")
 def _main(cfg: DictConfig) -> None:
-    QATTrainer.train_from_config(cfg)
+    QATTrainer.quantize_from_config(cfg)
 
 
 def main():
