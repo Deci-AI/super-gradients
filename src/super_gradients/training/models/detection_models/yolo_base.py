@@ -1,5 +1,6 @@
 import math
 from typing import Union, Type, List, Tuple, Optional
+from functools import lru_cache
 
 import torch
 import torch.nn as nn
@@ -452,6 +453,7 @@ class YoloBase(SgModule):
         self._default_nms_iou = iou or self._default_nms_iou
         self._default_nms_conf = conf or self._default_nms_conf
 
+    @lru_cache(maxsize=1)
     def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
@@ -467,23 +469,13 @@ class YoloBase(SgModule):
 
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
-        import copy
-
-        if fuse_model and self._fused_model is None:
-            logger.info("Fusing some of the model's layers. If this takes too much memory, you can deactivate it by setting `fuse_model=False`")
-
-            model = copy.deepcopy(self)
-            model.eval()
-            model.prep_model_for_conversion(input_size=(3, 640, 640))
-            self._fused_model = model
-
-        model = self._fused_model if fuse_model else self
 
         pipeline = DetectionPipeline(
-            model=model,
+            model=self,
             image_processor=self._image_processor,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
+            fuse_model=fuse_model,
         )
         return pipeline
 

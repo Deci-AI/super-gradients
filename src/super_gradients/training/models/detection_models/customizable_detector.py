@@ -6,6 +6,7 @@ A base for a detection network built according to the following scheme:
  * each module defines out_channels property on construction
 """
 from typing import Union, Optional, List
+from functools import lru_cache
 
 from torch import nn
 from omegaconf import DictConfig
@@ -78,11 +79,11 @@ class CustomizableDetector(SgModule):
         self._initialize_weights(bn_eps, bn_momentum, inplace_act)
 
         # Processing params
-        self._fused_model: Optional[SgModule] = None
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
         self._default_nms_iou: Optional[float] = None
         self._default_nms_conf: Optional[float] = None
+        self._pipeline_cache: Optional[DetectionPipeline] = None
 
     def forward(self, x):
         x = self.backbone(x)
@@ -101,7 +102,7 @@ class CustomizableDetector(SgModule):
     def prep_model_for_conversion(self, input_size: Optional[Union[tuple, list]] = None, **kwargs):
         for module in self.modules():
             if module != self and hasattr(module, "prep_model_for_conversion"):
-                module.prep_model_for_conversion(input_size, **kwargs)
+                module.prep_model_for_conversion(input_size, full_fusion=True, **kwargs)  # FIXME: Where should we set `full_fusion` ?
 
     def replace_head(self, new_num_classes: Optional[int] = None, new_head: Optional[nn.Module] = None):
         if new_num_classes is None and new_head is None:
@@ -140,6 +141,7 @@ class CustomizableDetector(SgModule):
         self._default_nms_iou = iou or self._default_nms_iou
         self._default_nms_conf = conf or self._default_nms_conf
 
+    @lru_cache(maxsize=1)
     def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
@@ -155,23 +157,12 @@ class CustomizableDetector(SgModule):
 
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
-        import copy
-
-        if fuse_model and self._fused_model is None:
-            logger.info("Fusing some of the model's layers. If this takes too much memory, you can deactivate it by setting `fuse_model=False`")
-
-            model = copy.deepcopy(self)
-            model.eval()
-            model.prep_model_for_conversion(full_fusion=True, input_size=(3, 640, 640))
-            self._fused_model = model
-
-        model = self._fused_model if fuse_model else self
-
         pipeline = DetectionPipeline(
-            model=model,
+            model=self,
             image_processor=self._image_processor,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
+            fuse_model=fuse_model,
         )
         return pipeline
 
