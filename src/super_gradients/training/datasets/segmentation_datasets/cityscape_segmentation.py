@@ -1,14 +1,14 @@
+from typing import List
 import os
 import cv2
 import numpy as np
 from PIL import Image, ImageColor
+from torch.utils.data import ConcatDataset
 
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
-# TODO - ADD COARSE DATA - right now cityscapes dataset includes fine annotations. It's optional to use extra coarse
-#  annotations.
 
 # label for background and labels to ignore during training and evaluation.
 CITYSCAPES_IGNORE_LABEL = 19
@@ -148,3 +148,32 @@ class CityscapesDataset(SegmentationDataSet):
         out = SegmentationDataSet.target_transform(target)
         out[out == 255] = CITYSCAPES_IGNORE_LABEL
         return out
+
+
+@register_dataset(Datasets.CITYSCAPES_CONCAT_DATASET)
+class CityscapesConcatDataset(ConcatDataset):
+    """
+    Support building a Cityscapes dataset which includes multiple group of samples from several list files.
+    i.e to initiate a trainval dataset:
+    >>> trainval_set = CityscapesConcatDataset(
+    >>>    root_dir='/data', list_files=['lists/train.lst', 'lists/val.lst'], labels_csv_path='lists/labels.csv', ...
+    >>> )
+
+    i.e to initiate a combination of the train-set with AutoLabelling-set:
+    >>> train_al_set = CityscapesConcatDataset(
+    >>>    root_dir='/data', list_files=['lists/train.lst', 'lists/auto_labelling.lst'], labels_csv_path='lists/labels.csv', ...
+    >>> )
+    """
+
+    def __init__(self, root_dir: str, list_files: List[str], labels_csv_path: str, **kwargs):
+        super().__init__(
+            datasets=[
+                CityscapesDataset(
+                    root_dir=root_dir,
+                    list_file=list_file,
+                    labels_csv_path=labels_csv_path,
+                    **kwargs,
+                )
+                for list_file in list_files
+            ]
+        )
