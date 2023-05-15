@@ -165,8 +165,9 @@ class QATTrainer(Trainer):
 
         :param calib_dataloader: DataLoader, data loader for calibration.
 
-        :param model: torch.nn.Module, Model to perform QAT/PTQ on. When None, will try to use self.net which is set
-        in previous self.train(..) call (default=None).
+        :param model: torch.nn.Module, Model to perform QAT/PTQ on. When None, will try to use the network from
+        previous self.train call(that is, if there was one - will try to use self.ema_model.ema if EMA was used,
+        otherwise self.net)................................
 
 
         :param val_dataloader: DataLoader, data loader for validation. Used both for validating the calibrated model after PTQ and during QAT.
@@ -213,7 +214,7 @@ class QATTrainer(Trainer):
         valid_metrics_list = valid_metrics_list or get_param(training_params, "valid_metrics_list")
         train_dataloader = train_dataloader or self.train_loader
         val_dataloader = val_dataloader or self.valid_loader
-        model = model or self.net
+        model = model or get_param(self.ema_model, "ema") or self.net
 
         res = self.calibrate_model(
             calib_dataloader=calib_dataloader,
@@ -289,7 +290,7 @@ class QATTrainer(Trainer):
         """
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
         calib_params = get_param(quantization_params, "calib_params")
-        model = model or self.net
+        model = model or get_param(self.ema_model, "ema") or self.net
         model.to(device_config.device)
         # QUANTIZE MODEL
         model.eval()
