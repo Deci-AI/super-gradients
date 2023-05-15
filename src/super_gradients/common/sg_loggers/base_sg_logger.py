@@ -17,7 +17,7 @@ from super_gradients.common.decorators.code_save_decorator import saved_codes
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.params import TrainingParams
-from super_gradients.training.utils import sg_trainer_utils
+from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.common.environment.monitoring import SystemMonitor
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
@@ -101,6 +101,7 @@ class BaseSGLogger(AbstractSGLogger):
         self._init_system_monitor(monitor_system)
 
         self._save_code()
+        self._resume_from_remote_sg_logger = get_param(training_params, "resume_from_remote_sg_logger")
 
     @multi_process_safe
     def _launch_tensorboard(self, port):
