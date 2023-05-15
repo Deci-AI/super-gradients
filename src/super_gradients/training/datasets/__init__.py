@@ -16,7 +16,7 @@ from super_gradients.training.datasets.segmentation_datasets.pascal_voc_segmenta
     PascalAUG2012SegmentationDataSet,
     PascalVOCAndAUGUnifiedDataset,
 )
-from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
+from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset, CityscapesConcatDataset
 from super_gradients.training.datasets.segmentation_datasets.coco_segmentation import CoCoSegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
 from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
@@ -30,6 +30,7 @@ __all__ = [
     "DirectoryDataSet",
     "SegmentationDataSet",
     "CityscapesDataset",
+    "CityscapesConcatDataset",
     "PascalVOC2012SegmentationDataSet",
     "PascalAUG2012SegmentationDataSet",
     "PascalVOCAndAUGUnifiedDataset",

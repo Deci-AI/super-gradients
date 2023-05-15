@@ -403,6 +403,7 @@ class Datasets:
     PASCAL_AUG_2012_SEGMENTATION_DATASET = "PascalAUG2012SegmentationDataSet"
     PASCAL_VOC_2012_SEGMENTATION_DATASET = "PascalVOC2012SegmentationDataSet"
     CITYSCAPES_DATASET = "CityscapesDataset"
+    CITYSCAPES_CONCAT_DATASET = "CityscapesConcatDataset"
     MAPILLARY_DATASET = "MapillaryDataset"
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"

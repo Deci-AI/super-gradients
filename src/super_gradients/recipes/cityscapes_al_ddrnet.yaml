@@ -1,0 +1,89 @@
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Prepare the Cityscapes AutoLabelling dataset as described in `src/super_gradients/training/datasets/Dataset_Setup_Instructions.md`.
+#   2. Move to the project root (where you will find the ReadMe and src folder)
+#   3. Run the command:
+#      DDRNet39:        python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet architecture=ddrnet_39
+# Note: add "checkpoint_params.checkpoint_path=<ddrnet39-backbone-pretrained-path>" to use pretrained backbone
+#
+#  Validation mIoU - Cityscapes, training time:
+#      DDRNet39:        input-size: [1024, 2048]     mIoU: 85.17    4 X RTX A5000, 38 H
+#
+#  Pretrained checkpoints:
+#      Backbones- downloaded from the author's official repo.
+#       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet39_bb_imagenet.pth
+#
+#      Network checkpoints:
+#       DDRNet39:       https://sghub.deci.ai/models/ddrnet_39_cityscapes.pth
+#
+#  Learning rate and batch size parameters, using 4 RTX A5000 with DDP:
+#      DDRNet39:        input-size: [1024, 1024]     initial_lr: 0.0075    batch-size: 6 * 4gpus = 24
+#
+#  Comments:
+#      * Pretrained backbones were used.
+
+defaults:
+  - training_hyperparams: cityscapes_default_train_params
+  - dataset_params: cityscapes_al_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+architecture: ddrnet_39
+
+dataset_params:
+  train_dataloader_params:
+    batch_size: 6
+  val_dataloader_params:
+    batch_size: 3
+  train_dataset_params:
+    transforms:
+      - SegColorJitter:
+          brightness: 0.5
+          contrast: 0.5
+          saturation: 0.5
+
+      - SegRandomFlip:
+          prob: 0.5
+
+      - SegRandomRescale:
+          scales: [ 0.5, 2. ]
+
+      - SegPadShortToCropSize:
+          crop_size: [ 1024, 1024 ]
+          fill_mask: 19
+
+      - SegCropImageAndMask:
+          crop_size: [ 1024, 1024 ]
+          mode: random
+
+training_hyperparams:
+  max_epochs: 200
+  initial_lr: 0.0075   # batch size 24
+  loss:
+    dice_ce_edge_loss:
+      num_classes: 19
+      ignore_index: 19
+      num_aux_heads: 1
+      num_detail_heads: 0
+      weights: [ 1., 0.4 ]
+      dice_ce_weights: [ 1., 1. ]
+      ce_edge_weights: [ .5, .5 ]
+      edge_kernel: 5
+  sync_bn: True
+
+arch_params:
+  num_classes: 19
+  use_aux_heads: True
+
+load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
+  checkpoint_path: ???
+  load_backbone: True
+  strict_load: no_key_matching
+
+experiment_name: ${architecture}_cityscapes_al
+
+multi_gpu: DDP
+num_gpus: 4
