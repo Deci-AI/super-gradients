@@ -13,6 +13,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
+from super_gradients.wandb.artifacts import save_artifact
 
 logger = get_logger(__name__)
 
@@ -239,14 +240,9 @@ class WandBSGLogger(BaseSGLogger):
         torch.save(state_dict, path)
 
         if self.save_checkpoints_wandb:
-            artifact = wandb.Artifact(f"{wandb.run.id}-checkpoint", type="model")
-            if os.path.isdir(path):
-                artifact.add_dir(path)
-            elif os.path.isfile(path):
-                artifact.add_file(path)
-            wandb.log_artifact(artifact)
             if self.s3_location_available:
                 self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
+            save_artifact(path)
 
     def _get_tensorboard_file_name(self):
         try:
