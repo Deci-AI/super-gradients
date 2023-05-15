@@ -265,7 +265,41 @@ For this reason, SG also offers a safer option for resuming interrupted training
 Note that resuming training this way requires the interrupted training to be launched with configuration files (i.e., `Trainer.train_from_config`), which outputs the Hydra final config to the `.hydra` directory inside the checkpoints directory.
 See usage in our [resume_experiment_example](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/resume_experiment_example/resume_experiment.py).
 
+## Resuming Training from SG Logger's Remote Storage (WandB only)
 
+SG supports saving checkpoints throughout the training process in the remote storage defined by `SG Logger` (more info about this object and it's role during training in SG at [Third-party experiment monitoring](experiment_monitoring.md).)
+Suppose we run an experiment with a `WandB` SG logger, then our `training_hyperparams` should hold:
+```yaml
+sg_logger: wandb_sg_logger, # Weights&Biases Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger for details
+sg_logger_params:             # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger
+  project_name: project_name, # W&B project name
+  save_checkpoints_remote: True,
+  save_tensorboard_remote: True,
+  save_logs_remote: True,
+  entity: <YOUR-ENTITY-NAME>,         # username or team name where you're sending runs
+  api_server: <OPTIONAL-WANDB-URL>    # Optional: In case your experiment tracking is not hosted at wandb servers
+```
+
+The `save_checkpoints_remote` flag is set which will result in saving checkpoints in WandB throughout training.
+Now, in case the training was interrupted, we can resume it from the checkpoint located in the WandB run storage by setting 2 training hyperparameters:
+1. Set `resume_from_remote_sg_logger`:
+```yaml
+resume_from_remote_sg_logger: True
+```
+2. Pass `run_id` through  `wandb_id` to `sg_logger_params`:
+```yaml
+sg_logger: wandb_sg_logger, # Weights&Biases Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger for details
+sg_logger_params:             # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger
+  wandb_id: <YOUR_RUN_ID>
+  project_name: project_name, # W&B project name
+  save_checkpoints_remote: True,
+  save_tensorboard_remote: True,
+  save_logs_remote: True,
+  entity: <YOUR-ENTITY-NAME>,         # username or team name where you're sending runs
+  api_server: <OPTIONAL-WANDB-URL>    # Optional: In case your experiment tracking is not hosted at wandb servers
+```
+
+And that's it! Once you re-launch your training, `ckpt_latest.pth` (by default) will be downloaded to the checkpoints directory, and the training will resume from it just as if it was locally stored.
 
 ## Evaluating Checkpoints
 
