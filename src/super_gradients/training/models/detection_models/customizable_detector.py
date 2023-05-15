@@ -98,7 +98,7 @@ class CustomizableDetector(SgModule):
     def prep_model_for_conversion(self, input_size: Optional[Union[tuple, list]] = None, **kwargs):
         for module in self.modules():
             if module != self and hasattr(module, "prep_model_for_conversion"):
-                module.prep_model_for_conversion(input_size, full_fusion=True, **kwargs)  # FIXME: Where should we set `full_fusion` ?
+                module.prep_model_for_conversion(input_size, **kwargs)
 
     def replace_head(self, new_num_classes: Optional[int] = None, new_head: Optional[nn.Module] = None):
         if new_num_classes is None and new_head is None:
