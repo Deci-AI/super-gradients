@@ -85,7 +85,7 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         self.max_pred = max_predictions
         self.with_confidence = with_confidence
 
-    def forward(self, x, device: str = None):
+    def forward(self, x: Union[torch.Tensor, Tuple[torch.Tensor, List[torch.Tensor]]], device: str = None):
         """Apply NMS to the raw output of the model and keep only top `max_predictions` results.
 
         :param x: Raw output of the model, with x[0] expected to be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
