@@ -47,6 +47,7 @@ class WandBSGLogger(BaseSGLogger):
         api_server: Optional[str] = None,
         save_code: bool = False,
         monitor_system: bool = None,
+        sync_tensorboard: bool = True,
         **kwargs,
     ):
         """
@@ -64,6 +65,7 @@ class WandBSGLogger(BaseSGLogger):
         :param save_logs_remote:        Saves log files in s3.
         :param monitor_system:          Not Available for WandB logger. Save the system statistics (GPU utilization, CPU, ...) in the tensorboard
         :param save_code:               Save current code to wandb
+        :param sync_tensorboard:        Sync tensorboard to wandb
         """
         if monitor_system is not None:
             logger.warning("monitor_system not available on WandBSGLogger. To remove this warning, please don't set monitor_system in your logger parameters")
@@ -98,7 +100,11 @@ class WandBSGLogger(BaseSGLogger):
                 logger.warning("Resuming the run with a previous WandB ID instead of the one from logger params")
             wandb_id = self._get_wandb_id()
 
-        run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs) if wandb.run is None else wandb.run
+        run = (
+            wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, sync_tensorboard=sync_tensorboard, **kwargs)
+            if wandb.run is None
+            else wandb.run
+        )
         if save_code:
             self._save_code_lines()
 
