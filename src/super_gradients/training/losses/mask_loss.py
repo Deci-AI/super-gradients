@@ -43,6 +43,9 @@ class MaskAttentionLoss(_Loss):
         if self.reduction == LossReduction.NONE.value:
             return criterion_loss * self.loss_weights[0] + mask_loss * self.loss_weights[1]
         mask_loss = mask_loss[mask == 1]  # consider only mask samples for mask loss computing
+        # If mask doesn't include foreground values, set mask_loss as 0.
+        if mask_loss.numel() == 0:
+            mask_loss = torch.tensor(0.0)
 
         mask_loss = apply_reduce(mask_loss, self.reduction)
         criterion_loss = apply_reduce(criterion_loss, self.reduction)
