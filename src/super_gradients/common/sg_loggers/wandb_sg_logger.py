@@ -239,14 +239,14 @@ class WandBSGLogger(BaseSGLogger):
         torch.save(state_dict, path)
 
         if self.save_checkpoints_wandb:
-            if self.s3_location_available:
-                self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
             artifact = wandb.Artifact(f"{wandb.run.id}-checkpoint", type="model")
             if os.path.isdir(path):
                 artifact.add_dir(path)
             elif os.path.isfile(path):
                 artifact.add_file(path)
             wandb.log_artifact(artifact)
+            if self.s3_location_available:
+                self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
 
     def _get_tensorboard_file_name(self):
         try:
