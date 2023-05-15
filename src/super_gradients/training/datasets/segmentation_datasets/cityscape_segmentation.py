@@ -75,7 +75,7 @@ class CityscapesDataset(SegmentationDataSet):
 
     def __init__(self, root_dir: str, list_file: str, labels_csv_path: str, **kwargs):
         """
-        :param root:            Absolute path to root directory of the dataset.
+        :param root_dir:        Absolute path to root directory of the dataset.
         :param list_file:       List file that contains names of images to load, line format: <image_path> <label_path>. The path is relative to root.
         :param labels_csv_path: Path to csv file, with labels metadata and mapping. The path is relative to root.
         :param kwargs:          Any hyper params required for the dataset, i.e img_size, crop_size, cache_images
@@ -166,6 +166,13 @@ class CityscapesConcatDataset(ConcatDataset):
     """
 
     def __init__(self, root_dir: str, list_files: List[str], labels_csv_path: str, **kwargs):
+        """
+        :param root_dir:        Absolute path to root directory of the dataset.
+        :param list_files:      List of list files that contains names of images to load,
+                                line format: <image_path> <label_path>. The path is relative to root.
+        :param labels_csv_path: Path to csv file, with labels metadata and mapping. The path is relative to root.
+        :param kwargs:          Any hyper params required for the dataset, i.e img_size, crop_size, cache_images
+        """
         super().__init__(
             datasets=[
                 CityscapesDataset(
