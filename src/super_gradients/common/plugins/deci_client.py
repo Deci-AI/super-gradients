@@ -2,10 +2,15 @@ import os
 import json
 import sys
 import shutil
+import urllib
 from zipfile import ZipFile
 from typing import List, Optional, Any
-
+import socket
+import urllib.error
+from urllib.request import urlretrieve
 import importlib.util
+
+import torch.hub
 from omegaconf import DictConfig
 from torch import nn
 
@@ -21,12 +26,14 @@ try:
     from deci_lab_client.client import DeciPlatformClient
     from deci_lab_client.types import S3SignedUrl
     from deci_lab_client.models import ModelBenchmarkState
-    from deci_common.data_interfaces.files_data_interface import FilesDataInterface
+    from deci_common.data_interfaces.files_data_interface import FileDownloadFailedException
     from deci_lab_client.models import AutoNACFileName
     from deci_lab_client import ApiException, BodyRegisterUserArchitecture
 
 except (ImportError, NameError):
     client_enabled = False
+
+DOWNLOAD_MODEL_TIMEOUT_SECONDS = 5 * 60
 
 
 class DeciClient:
@@ -54,9 +61,10 @@ class DeciClient:
         :return:            Path were the downloaded file was saved to. None if not found.
         """
         try:
-            response = self.lab_client.get_autonac_model_file_link(
+            response, status, response_headers = self.lab_client.get_autonac_model_file_link_with_http_info(
                 model_name=model_name, file_name=file_name, super_gradients_version=super_gradients.__version__
             )
+            etag = response_headers.get("etag", "")
             download_link = response.data
         except ApiException as e:
             if e.status == 401:
@@ -69,8 +77,35 @@ class DeciClient:
                 logger.debug(e.body)
             return None
 
-        file_path = FilesDataInterface.download_temporary_file(file_url=download_link)
+        cache_dir = os.path.join(torch.hub.get_dir(), "deci")
+        file_path = os.path.join(cache_dir, etag, os.path.basename(file_name))
 
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        if os.path.isfile(file_path):
+            return file_path
+
+        file_path = self._download_file_to_cache_dir(
+            file_url=download_link,
+            file_path=file_path,
+        )
+        return file_path
+
+    def _download_file_to_cache_dir(self, file_url: str, file_path: str, timeout_seconds: Optional[int] = DOWNLOAD_MODEL_TIMEOUT_SECONDS):
+        """
+        Download a file from a url to a cache dir. The file will be saved in a subfolder named by the etag.
+        This allow us to save multiple versions of the same file and cache them, so when a file with the same etag is
+        requested, we can return the cached file.
+
+        :param file_url:  Url to download the file from.
+        :param file_path: Path to save the file to.
+        :return:        Path were the downloaded file was saved to. (same as file_path)
+        """
+        # TODO: Use requests with stream and limit the file size and timeouts.
+        socket.setdefaulttimeout(timeout_seconds)
+        try:
+            urlretrieve(file_url, file_path)
+        except urllib.error.ContentTooShortError as ex:
+            raise FileDownloadFailedException("File download did not finish correctly " + str(ex))
         return file_path
 
     def get_model_arch_params(self, model_name: str) -> Optional[DictConfig]:
