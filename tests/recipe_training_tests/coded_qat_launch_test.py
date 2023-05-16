@@ -2,7 +2,7 @@ import unittest
 
 from torchvision.transforms import Normalize, ToTensor, RandomHorizontalFlip, RandomCrop
 
-from super_gradients import QATTrainer
+from super_gradients import Trainer
 from super_gradients.training import modify_params_for_qat
 from super_gradients.training.dataloaders.dataloaders import cifar10_train, cifar10_val
 from super_gradients.training.metrics import Accuracy, Top5
@@ -11,7 +11,7 @@ from super_gradients.training.models import ResNet18
 
 class CodedQATLuanchTest(unittest.TestCase):
     def test_qat_launch(self):
-        trainer = QATTrainer("test_launch_qat_with_minimal_changes")
+        trainer = Trainer("test_launch_qat_with_minimal_changes")
         net = ResNet18(num_classes=10, arch_params={})
         train_params = {
             "max_epochs": 10,
@@ -72,7 +72,7 @@ class CodedQATLuanchTest(unittest.TestCase):
         )
 
     def test_ptq_launch(self):
-        trainer = QATTrainer("test_launch_qat_with_minimal_changes")
+        trainer = Trainer("test_launch_ptq_with_minimal_changes")
         net = ResNet18(num_classes=10, arch_params={})
         train_params = {
             "max_epochs": 10,

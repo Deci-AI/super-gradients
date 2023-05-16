@@ -203,7 +203,45 @@ def modify_params_for_qat(
     This method modifies the recipe for QAT to implement rules of thumb based on the regular non-qat recipe.
     It does so by manipulating the training_hyperparams, train_dataloader_params, val_dataloader_params, train_dataset_params, val_dataset_params.
     Usage:
-    train_dataloader_params = {'batch_size':32
+        trainer = Trainer("test_launch_qat_with_minimal_changes")
+        net = ResNet18(num_classes=10, arch_params={})
+        train_params = {...}
+
+        train_dataset_params = {
+            "transforms": [...
+            ]
+        }
+
+        train_dataloader_params = {"batch_size": 256}
+
+        val_dataset_params = {"transforms": [ToTensor(), Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])]}
+
+        val_dataloader_params = {"batch_size": 256}
+
+        train_loader = cifar10_train(dataset_params=train_dataset_params, dataloader_params=train_dataloader_params)
+        valid_loader = cifar10_val(dataset_params=val_dataset_params, dataloader_params=val_dataloader_params)
+
+        trainer.train(
+            model=net,
+            training_params=train_params,
+            train_loader=train_loader,
+            valid_loader=valid_loader,
+        )
+
+        train_params, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params = modify_params_for_qat(
+            train_params, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params
+        )
+
+        train_loader = cifar10_train(dataset_params=train_dataset_params, dataloader_params=train_dataloader_params)
+        valid_loader = cifar10_val(dataset_params=val_dataset_params, dataloader_params=val_dataloader_params)
+
+        trainer.qat(
+            model=net,
+            training_params=train_params,
+            train_loader=train_loader,
+            valid_loader=valid_loader,
+            calib_loader=train_loader,
+        )
 
     :param val_dataset_params: Dict, validation dataset_params to be passed to dataloaders.get(...) when instantiating the train dataloader.
     :param train_dataset_params: Dict, train dataset_params to be passed to dataloaders.get(...) when instantiating the validation dataloader.
