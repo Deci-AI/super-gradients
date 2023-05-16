@@ -32,7 +32,7 @@ class CodedQATLuanchTest(unittest.TestCase):
             train_loader=classification_test_dataloader(batch_size=10),
             valid_loader=classification_test_dataloader(batch_size=10),
         )
-        trainer.quantize(calib_dataloader=classification_test_dataloader(batch_size=10))
+        trainer.qat(calib_dataloader=classification_test_dataloader(batch_size=10))
 
 
 if __name__ == "__main__":
