@@ -110,10 +110,9 @@ class PPYoloE(SgModule):
         pipeline.predict_webcam()
 
     def train(self, mode: bool = True):
-        super().train(mode)
-
         self._get_pipeline.cache_clear()
         torch.cuda.empty_cache()
+        return super().train(mode)
 
     def forward(self, x: Tensor):
         features = self.backbone(x)
