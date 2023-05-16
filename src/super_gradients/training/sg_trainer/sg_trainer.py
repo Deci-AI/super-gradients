@@ -2138,11 +2138,11 @@ class Trainer:
     def qat(
         self,
         calib_dataloader: DataLoader,
-        model: torch.nn.Module = None,
-        val_dataloader: DataLoader = None,
-        train_dataloader: DataLoader = None,
-        quantization_params: Mapping = None,
+        model: torch.nn.Module,
+        val_dataloader: DataLoader,
+        train_dataloader: DataLoader,
         training_params: Mapping = None,
+        quantization_params: Mapping = None,
         additional_qat_configs_to_log: Dict = None,
         valid_metrics_list: List[Metric] = None,
     ):
@@ -2163,7 +2163,6 @@ class Trainer:
         :param train_dataloader: DataLoader, data loader for QA training, can be ignored when quantization_params["ptq_only"]=True (default=None).
 
         :param quantization_params: Mapping, with the following entries:defaults-
-            ptq_only: False              # whether to launch QAT, or leave PTQ only
             selective_quantizer_params:
               calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
               calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
@@ -2199,39 +2198,33 @@ class Trainer:
         if quantization_params is None:
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             logger.info(f"Using default quantization params: {quantization_params}")
-        training_params = training_params or self.training_params.to_dict()
         valid_metrics_list = valid_metrics_list or get_param(training_params, "valid_metrics_list")
-        train_dataloader = train_dataloader or self.train_loader
-        val_dataloader = val_dataloader or self.valid_loader
         model = model or get_param(self.ema_model, "ema") or self.net
 
-        res = self.ptq(
+        _ = self.ptq(
             calib_dataloader=calib_dataloader,
             model=model,
             quantization_params=quantization_params,
             val_dataloader=val_dataloader,
             valid_metrics_list=valid_metrics_list,
+            deepcopy_model_for_export=True,
         )
         # TRAIN
-        if get_param(quantization_params, "ptq_only", False):
-            logger.info("quantization_params.ptq_only=True. Performing PTQ only!")
-            suffix = "ptq"
-        else:
-            model.train()
-            torch.cuda.empty_cache()
+        model.train()
+        torch.cuda.empty_cache()
 
-            res = self.train(
-                model=model,
-                train_loader=train_dataloader,
-                valid_loader=val_dataloader,
-                training_params=training_params,
-                additional_configs_to_log=additional_qat_configs_to_log,
-            )
-            suffix = "qat"
+        res = self.train(
+            model=model,
+            train_loader=train_dataloader,
+            valid_loader=val_dataloader,
+            training_params=training_params,
+            additional_configs_to_log=additional_qat_configs_to_log,
+        )
+
         # EXPORT QUANTIZED MODEL TO ONNX
         input_shape = next(iter(val_dataloader))[0].shape
         os.makedirs(self.checkpoints_dir_path, exist_ok=True)
-        qdq_onnx_path = os.path.join(self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape))}_{suffix}.onnx")
+        qdq_onnx_path = os.path.join(self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape))}_qat.onnx")
 
         # TODO: modify SG's convert_to_onnx for quantized models and use it instead
         export_quantized_module_to_onnx(
@@ -2241,10 +2234,10 @@ class Trainer:
             input_size=input_shape,
             train=False,
         )
-        logger.info(f"Exported {suffix.upper()} ONNX to {qdq_onnx_path}")
+        logger.info(f"Exported QAT ONNX to {qdq_onnx_path}")
         return res
 
-    def ptq(self, calib_dataloader, model, quantization_params, val_dataloader, valid_metrics_list):
+    def ptq(self, calib_dataloader, model, quantization_params, val_dataloader, valid_metrics_list, deepcopy_model_for_export=False):
         """
         Performs calibration.
 
@@ -2279,6 +2272,9 @@ class Trainer:
 
 
         :param valid_metrics_list:  (list(torchmetrics.Metric)) metrics list for evaluation of the calibrated model.
+
+        :param deepcopy_model_for_export: bool, Whether to export deepcopy(model). Necessary in case further training is
+            performed and prep_model_for_conversion makes the network un-trainable (i.e RepVGG blocks).
 
         :return: Validation results of the calibrated model.
         """
@@ -2318,5 +2314,19 @@ class Trainer:
         results = ["PTQ Model Validation Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
+
+        input_shape = next(iter(val_dataloader))[0].shape
+        os.makedirs(self.checkpoints_dir_path, exist_ok=True)
+        qdq_onnx_path = os.path.join(self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape))}_ptq.onnx")
+
+        # TODO: modify SG's convert_to_onnx for quantized models and use it instead
+        export_quantized_module_to_onnx(
+            model=model.cpu(),
+            onnx_filename=qdq_onnx_path,
+            input_shape=input_shape,
+            input_size=input_shape,
+            train=False,
+            deepcopy_model=deepcopy_model_for_export,
+        )
 
         return valid_metrics_dict

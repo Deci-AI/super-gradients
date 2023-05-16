@@ -354,9 +354,17 @@ class QATRecipeModificationCallback(PreLaunchCallback):
         ) = modify_params_for_qat(
             training_hyperparams=cfg.training_hyperparams,
             train_dataset_params=cfg.dataset_params.train_dataset_params,
+            train_dataloader_params=cfg.dataset_params.train_dataloader_params,
             val_dataset_params=cfg.dataset_params.val_dataset_params,
             val_dataloader_params=cfg.dataset_params.train_dataloader_params,
             quantization_params=cfg.quantization_params,
+            batch_size_divisor=self.batch_size_divisor,
+            disable_phase_callbacks=self.disable_phase_callbacks,
+            cosine_final_lr_ratio=self.cosine_final_lr_ratio,
+            warmup_epochs_divisor=self.warmup_epochs_divisor,
+            lr_decay_factor=self.lr_decay_factor,
+            max_epochs_divisor=self.max_epochs_divisor,
+            disable_augmentations=self.disable_augmentations,
         )
 
         if cfg.multi_gpu != "OFF" or cfg.num_gpus != 1:
