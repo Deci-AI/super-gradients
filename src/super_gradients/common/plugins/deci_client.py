@@ -25,10 +25,9 @@ client_enabled = True
 try:
     from deci_lab_client.client import DeciPlatformClient
     from deci_lab_client.types import S3SignedUrl
-    from deci_lab_client.models import ModelBenchmarkState
+    from deci_lab_client.models import ModelBenchmarkState, AutoNACFileName, BodyRegisterUserArchitecture
     from deci_common.data_interfaces.files_data_interface import FileDownloadFailedException
-    from deci_lab_client.models import AutoNACFileName
-    from deci_lab_client import ApiException, BodyRegisterUserArchitecture
+    from deci_lab_client import ApiException
 
 except (ImportError, NameError):
     client_enabled = False
