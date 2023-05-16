@@ -6,6 +6,7 @@ body:
   attributes:
     value: >
       #### Before submitting a bug, please make sure the issue hasn't been already addressed by searching through [the existing and past issues](https://github.com/Deci-AI/super-gradients/issues?q=is%3Aissue+sort%3Acreated-desc+).
+
 - type: textarea
   attributes:
     label: 🐛 Describe the bug
@@ -37,6 +38,7 @@ body:
       ```
   validations:
     required: true
+
 - type: textarea
   attributes:
     label: Versions
@@ -49,6 +51,7 @@ body:
       ```
   validations:
     required: true
+
 - type: markdown
   attributes:
     value: >

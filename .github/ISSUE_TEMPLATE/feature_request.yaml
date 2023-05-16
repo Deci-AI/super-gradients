@@ -16,7 +16,12 @@ body:
       Explain the problem or need that the feature aims to address. Provide as much detail as possible to help others understand the value and feasibility of the requested feature.
 
       If applicable, you can include code snippets, examples, or any other relevant information to support your feature request.
+    placeholder: |
+      Clear and concise description of the new feature.
 
+      ```python
+      # How you would like to use this feature
+      ```
   validations:
     required: true
 
@@ -25,7 +30,12 @@ body:
     label: Proposed Solution (Optional)
     description: |
       If you have any ideas or suggestions for how the requested feature could be implemented, you can provide them here. This can include high-level approaches, specific implementation details, or any other relevant information.
+    placeholder: |
+      Clear and concise proposed solution.
 
+      ```python
+      # How you think this feature could be implemented
+      ```
   validations:
     required: false
 
