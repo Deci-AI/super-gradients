@@ -91,6 +91,9 @@ from super_gradients.common.environment.cfg_utils import load_experiment_cfg, ad
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
 
+logger = get_logger(__name__)
+
+
 try:
     from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
     from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
@@ -102,7 +105,6 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.debug("Failed to import pytorch_quantization:")
     logger.debug(import_err)
     _imported_pytorch_quantization_failure = import_err
-logger = get_logger(__name__)
 
 
 class Trainer:
