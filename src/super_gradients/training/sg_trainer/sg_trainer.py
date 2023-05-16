@@ -658,9 +658,9 @@ class Trainer:
         self.load_ema_as_net = False
         self.load_checkpoint = core_utils.get_param(self.training_params, "resume", False)
         self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
-        self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None
         self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
-        self._load_checkpoint_to_model()
+        self.resume_from_remote_sg_logger = core_utils.get_param(self.training_params, "resume_from_remote_sg_logger", False)
+        self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None or self.resume_from_remote_sg_logger
 
     def _init_arch_params(self) -> None:
         default_arch_params = HpmStruct()
@@ -1007,6 +1007,14 @@ class Trainer:
                 -   `max_valid_batches`: int, for debug- when not None- will break out of inner valid loop (i.e iterating over
                       valid_loader) when reaching this number of batches. Usefull for debugging (default=None).
 
+                -   `resume_from_remote_sg_logger`: bool (default=False),  bool (default=False), When true, ckpt_name (checkpoint filename
+                       to resume i.e ckpt_latest.pth bydefault) will be downloaded into the experiment checkpoints directory
+                       prior to loading weights, then training is resumed from that checkpoint. The source is unique to
+                       every logger, and currently supported for WandB loggers only.
+
+                       IMPORTANT: Only works for experiments that were ran with sg_logger_params.save_checkpoints_remote=True.
+                       IMPORTANT: For WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
+
 
 
         :return:
@@ -1051,6 +1059,9 @@ class Trainer:
 
         self.net = model
         self._prep_net_for_train()
+        if not self.ddp_silent_mode:
+            self._initialize_sg_logger_objects(additional_configs_to_log)
+        self._load_checkpoint_to_model()
 
         # SET RANDOM SEED
         random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
@@ -1148,8 +1159,6 @@ class Trainer:
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
         if not self.ddp_silent_mode:
-            self._initialize_sg_logger_objects(additional_configs_to_log)
-
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
                 dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes, title="Train-set", anchors=self.net.module.arch_params.anchors)
@@ -1508,6 +1517,9 @@ class Trainer:
         NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params
          is True
         """
+        with wait_for_the_master(get_local_rank()):
+            if self.resume_from_remote_sg_logger and not self.ddp_silent_mode:
+                self.sg_logger.download_remote_ckpt(ckpt_name=self.ckpt_name)
 
         if self.load_checkpoint or self.external_checkpoint_path:
             # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST

@@ -170,3 +170,7 @@ class AbstractSGLogger(ABC):
         :return:
         """
         raise NotImplementedError
+
+    def download_remote_ckpt(self, ckpt_name: str, *args, **kwargs):
+
+        raise NotImplementedError
