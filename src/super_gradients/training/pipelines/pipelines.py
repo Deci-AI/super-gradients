@@ -30,14 +30,13 @@ logger = get_logger(__name__)
 
 @contextmanager
 def eval_mode(model: SgModule) -> None:
-    """Set a model in evaluation mode and deactivate gradient computation, undo at the end.
+    """Set a model in evaluation mode, undo at the end.
 
     :param model: The model to set in evaluation mode.
     """
     _starting_mode = model.training
     model.eval()
-    with torch.no_grad():
-        yield
+    yield
     model.train(mode=_starting_mode)
 
 
@@ -170,8 +169,8 @@ class Pipeline(ABC):
             processing_metadatas.append(processing_metadata)
 
         # Predict
-        with eval_mode(self.model):
-            torch_inputs = torch.Tensor(np.array(preprocessed_images)).to(self.device)
+        with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast():
+            torch_inputs = torch.from_numpy(np.array(preprocessed_images)).to(self.device)
             if self.fuse_model:
                 self._fuse_model(torch_inputs)
             model_output = self.model(torch_inputs)
