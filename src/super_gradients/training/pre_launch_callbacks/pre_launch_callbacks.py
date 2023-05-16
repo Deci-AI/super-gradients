@@ -219,7 +219,7 @@ def modify_params_for_qat(
     :param float cosine_final_lr_ratio: Ratio used to determine the final learning rate in a cosine annealing schedule. Default value is 0.01.
     :param bool disable_phase_callbacks: Flag to control to disable phase callbacks, which can interfere with QAT. Default value is True.
     :param bool disable_augmentations: Flag to control to disable phase augmentations, which can interfere with QAT. Default value is False.
-    :return: modified (copy) quantization_params, training_hyperparams, train_dataloader_params, val_dataloader_params, train_dataset_params, val_dataset_params
+    :return: modified (copy) training_hyperparams, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params
     """
     if quantization_params is None:
         quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
@@ -287,7 +287,7 @@ def modify_params_for_qat(
         logger.warning("Augmentations will be disabled for QAT run. Using validation transforms instead.")
         train_dataset_params["transforms"] = val_dataset_params["transforms"]
 
-    return quantization_params, training_hyperparams, train_dataloader_params, val_dataloader_params, train_dataset_params, val_dataset_params
+    return training_hyperparams, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params
 
 
 @register_pre_launch_callback()
@@ -344,11 +344,20 @@ class QATRecipeModificationCallback(PreLaunchCallback):
         logger.info("Modifying recipe to suit QAT rules of thumb. Remove QATRecipeModificationCallback to disable.")
 
         cfg = copy.deepcopy(cfg)
-        quantization_params = cfg.quantization_params
-        dataset_params = cfg.dataset_params
-        training_hyperparams = cfg.training_hyperparams
 
-        cfg.dataset_params, cfg.quantization_params, cfg.training_hyperparams = modify_params_for_qat(dataset_params, quantization_params, training_hyperparams)
+        (
+            cfg.training_hyperparams,
+            cfg.dataset_params.train_dataset_params,
+            cfg.dataset_params.val_dataset_params,
+            cfg.dataset_params.train_dataloader_params,
+            cfg.dataset_params.val_dataloader_params,
+        ) = modify_params_for_qat(
+            training_hyperparams=cfg.training_hyperparams,
+            train_dataset_params=cfg.dataset_params.train_dataset_params,
+            val_dataset_params=cfg.dataset_params.val_dataset_params,
+            val_dataloader_params=cfg.dataset_params.train_dataloader_params,
+            quantization_params=cfg.quantization_params,
+        )
 
         if cfg.multi_gpu != "OFF" or cfg.num_gpus != 1:
             logger.warning(f"Recipe requests multi_gpu={cfg.multi_gpu} and num_gpus={cfg.num_gpus}. Changing to multi_gpu=OFF and num_gpus=1")
