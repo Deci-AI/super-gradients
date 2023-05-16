@@ -43,7 +43,7 @@ setup_device(num_gpus=-1)
 
 ```
 
-3. Instantiate a <a href="trainer.md">Trainer</a> object:
+3. Instantiate a Trainer object:
 
 ```python
 trainer = Trainer(experiment_name="my_cifar_experiment", ckpt_root_dir="/path/to/checkpoints_directory/")
@@ -55,7 +55,7 @@ trainer = Trainer(experiment_name="my_cifar_experiment", ckpt_root_dir="/path/to
 model = models.get(Models.RESNET18, num_classes=10)
 ```
 
-5. Define <a href="metrics.md">metrics</a> and other <a href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml">training parameters</a>:
+5. Define <a href="Metrics.md">metrics</a> and other <a href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml">training parameters</a>:
 
 ```python
 training_params = {
@@ -121,7 +121,7 @@ It is also possible to launch the test with whatever available hardware there is
 setup_device(num_gpus=-1)
 ```
 
-3. Instantiate a <a href="trainer.md">Trainer</a> object:
+3. Instantiate a Trainer object:
 
 ```python
 trainer = Trainer(experiment_name="test_my_cifar_experiment", ckpt_root_dir="/path/to/checkpoints_directory/")
@@ -133,7 +133,7 @@ trainer = Trainer(experiment_name="test_my_cifar_experiment", ckpt_root_dir="/pa
 model = models.get(Models.RESNET18, num_classes=10, checkpoint_path="/path/to/checkpoints_directory/my_cifar_experiment/ckpt_best.pth")
 ```
 
-5. Define <a href="metrics.md">metrics</a> for test:
+5. Define <a href="Metrics.md">metrics</a> for test:
 
 ```python
 test_metrics = [Accuracy(), Top5()]
