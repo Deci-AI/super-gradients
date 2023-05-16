@@ -13,21 +13,11 @@ body:
     description: |
       Please provide a clear and concise question about the project. Be as specific as possible to facilitate effective responses.
 
-      Include any relevant code snippets or examples to support your question. For instance:
-
-      ```python
-      from super_gradients.common.object_names import Models
-      from super_gradients.training import models
-
-      model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
-      yolo_nas.predict("https://deci-pretrained-models.s3.amazonaws.com/sample_images/beatles-abbeyroad.jpg").show()
-      ```
-
-      This example will help us understand the context of your question better.
+      Include any relevant code snippets or examples to support your question. This will help us understand the context of your question better.
     placeholder: |
       Your clear and concise question here.
 
-      ```python
+      ``` python
       # Relevant code snippet (if applicable)
       ```
 

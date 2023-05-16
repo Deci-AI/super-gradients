@@ -19,7 +19,7 @@ body:
     placeholder: |
       Clear and concise description of the new feature.
 
-      ```python
+      ``` python
       # How you would like to use this feature
       ```
   validations:
@@ -33,7 +33,7 @@ body:
     placeholder: |
       Clear and concise proposed solution.
 
-      ```python
+      ``` python
       # How you think this feature could be implemented
       ```
   validations:
