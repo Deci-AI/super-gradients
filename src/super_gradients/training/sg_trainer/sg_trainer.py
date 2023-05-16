@@ -10,6 +10,7 @@ import numpy as np
 import torch
 import torch.cuda
 import torch.nn
+import torchmetrics
 from omegaconf import DictConfig, OmegaConf
 from piptools.scripts.sync import _get_installed_distributions
 from torch import nn
@@ -2123,24 +2124,33 @@ class Trainer:
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=get_param(cfg, "ckpt_root_dir"))
 
-        res = trainer.qat(
-            model=model,
-            quantization_params=quantization_params,
-            calib_dataloader=calib_dataloader,
-            val_dataloader=val_dataloader,
-            train_dataloader=train_dataloader,
-            training_params=cfg.training_hyperparams,
-            additional_qat_configs_to_log=recipe_logged_cfg,
-        )
+        if quantization_params.ptq_only:
+            res = trainer.ptq(
+                calib_loader=calib_dataloader,
+                model=model,
+                quantization_params=quantization_params,
+                valid_loader=val_dataloader,
+                valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
+            )
+        else:
+            res = trainer.qat(
+                model=model,
+                quantization_params=quantization_params,
+                calib_loader=calib_dataloader,
+                valid_loader=val_dataloader,
+                train_loader=train_dataloader,
+                training_params=cfg.training_hyperparams,
+                additional_qat_configs_to_log=recipe_logged_cfg,
+            )
 
         return model, res
 
     def qat(
         self,
-        calib_dataloader: DataLoader,
+        calib_loader: DataLoader,
         model: torch.nn.Module,
-        val_dataloader: DataLoader,
-        train_dataloader: DataLoader,
+        valid_loader: DataLoader,
+        train_loader: DataLoader,
         training_params: Mapping = None,
         quantization_params: Mapping = None,
         additional_qat_configs_to_log: Dict = None,
@@ -2150,17 +2160,17 @@ class Trainer:
         Performs post-training quantization (PTQ), and then quantization-aware training (QAT).
         Exports the ONNX models (ckpt_best.pth of QAT and the calibrated model) to the checkpoints directory.
 
-        :param calib_dataloader: DataLoader, data loader for calibration.
+        :param calib_loader: DataLoader, data loader for calibration.
 
         :param model: torch.nn.Module, Model to perform QAT/PTQ on. When None, will try to use the network from
         previous self.train call(that is, if there was one - will try to use self.ema_model.ema if EMA was used,
         otherwise self.net)
 
 
-        :param val_dataloader: DataLoader, data loader for validation. Used both for validating the calibrated model after PTQ and during QAT.
+        :param valid_loader: DataLoader, data loader for validation. Used both for validating the calibrated model after PTQ and during QAT.
             When None, will try to use self.valid_loader if it was set in previous self.train(..) call (default=None).
 
-        :param train_dataloader: DataLoader, data loader for QA training, can be ignored when quantization_params["ptq_only"]=True (default=None).
+        :param train_loader: DataLoader, data loader for QA training, can be ignored when quantization_params["ptq_only"]=True (default=None).
 
         :param quantization_params: Mapping, with the following entries:defaults-
             selective_quantizer_params:
@@ -2180,6 +2190,9 @@ class Trainer:
 
               num_calib_batches:                    # number of batches to use for calibration, if None, 512 / batch_size will be used
               verbose: False                        # if calibrator should be verbose
+
+
+              When None, the above default config is used (default=None)
 
 
         :param training_params: Mapping, training hyper parameters for QAT, same as in super.train(...). When None, will try to use self.training_params
@@ -2202,10 +2215,10 @@ class Trainer:
         model = model or get_param(self.ema_model, "ema") or self.net
 
         _ = self.ptq(
-            calib_dataloader=calib_dataloader,
+            calib_loader=calib_loader,
             model=model,
             quantization_params=quantization_params,
-            val_dataloader=val_dataloader,
+            valid_loader=valid_loader,
             valid_metrics_list=valid_metrics_list,
             deepcopy_model_for_export=True,
         )
@@ -2215,14 +2228,14 @@ class Trainer:
 
         res = self.train(
             model=model,
-            train_loader=train_dataloader,
-            valid_loader=val_dataloader,
+            train_loader=train_loader,
+            valid_loader=valid_loader,
             training_params=training_params,
             additional_configs_to_log=additional_qat_configs_to_log,
         )
 
         # EXPORT QUANTIZED MODEL TO ONNX
-        input_shape = next(iter(val_dataloader))[0].shape
+        input_shape = next(iter(valid_loader))[0].shape
         os.makedirs(self.checkpoints_dir_path, exist_ok=True)
         qdq_onnx_path = os.path.join(self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape))}_qat.onnx")
 
@@ -2237,17 +2250,25 @@ class Trainer:
         logger.info(f"Exported QAT ONNX to {qdq_onnx_path}")
         return res
 
-    def ptq(self, calib_dataloader, model, quantization_params, val_dataloader, valid_metrics_list, deepcopy_model_for_export=False):
+    def ptq(
+        self,
+        calib_loader: DataLoader,
+        model: nn.Module,
+        valid_loader: DataLoader,
+        valid_metrics_list: List[torchmetrics.Metric],
+        quantization_params: Dict = None,
+        deepcopy_model_for_export: bool = False,
+    ):
         """
         Performs calibration.
 
 
-        :param calib_dataloader: DataLoader, data loader for calibration.
+        :param calib_loader: DataLoader, data loader for calibration.
 
         :param model: torch.nn.Module, Model to perform calibration on. When None, will try to use self.net which is
         set in previous self.train(..) call (default=None).
 
-        :param val_dataloader: DataLoader, data loader for validation. Used both for validating the calibrated model.
+        :param valid_loader: DataLoader, data loader for validation. Used both for validating the calibrated model.
             When None, will try to use self.valid_loader if it was set in previous self.train(..) call (default=None).
 
         :param quantization_params: Mapping, with the following entries:defaults-
@@ -2270,6 +2291,9 @@ class Trainer:
               verbose: False                        # if calibrator should be verbose
 
 
+              When None, the above default config is used (default=None)
+
+
 
         :param valid_metrics_list:  (list(torchmetrics.Metric)) metrics list for evaluation of the calibrated model.
 
@@ -2278,6 +2302,11 @@ class Trainer:
 
         :return: Validation results of the calibrated model.
         """
+
+        if quantization_params is None:
+            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+            logger.info(f"Using default quantization params: {quantization_params}")
+
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
         calib_params = get_param(quantization_params, "calib_params")
         model = model or get_param(self.ema_model, "ema") or self.net
@@ -2303,19 +2332,19 @@ class Trainer:
         calibrator.calibrate_model(
             model,
             method=get_param(calib_params, "histogram_calib_method"),
-            calib_data_loader=calib_dataloader,
-            num_calib_batches=get_param(calib_params, "num_calib_batches") or len(calib_dataloader),
+            calib_data_loader=calib_loader,
+            num_calib_batches=get_param(calib_params, "num_calib_batches") or len(calib_loader),
             percentile=get_param(calib_params, "percentile", 99.99),
         )
         calibrator.reset_calibrators(model)  # release memory taken by calibrators
         # VALIDATE PTQ MODEL AND PRINT SUMMARY
         logger.info("Validating PTQ model...")
-        valid_metrics_dict = self.test(model=model, test_loader=val_dataloader, test_metrics_list=valid_metrics_list)
+        valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
         results = ["PTQ Model Validation Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
 
-        input_shape = next(iter(val_dataloader))[0].shape
+        input_shape = next(iter(valid_loader))[0].shape
         os.makedirs(self.checkpoints_dir_path, exist_ok=True)
         qdq_onnx_path = os.path.join(self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape))}_ptq.onnx")
 
