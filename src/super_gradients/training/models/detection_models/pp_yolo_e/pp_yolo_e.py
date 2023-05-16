@@ -1,6 +1,7 @@
 from typing import Union, Optional, List
 from functools import lru_cache
 
+import torch
 from torch import Tensor
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -107,6 +108,12 @@ class PPYoloE(SgModule):
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
         pipeline.predict_webcam()
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+
+        self._get_pipeline.cache_clear()
+        torch.cuda.empty_cache()
 
     def forward(self, x: Tensor):
         features = self.backbone(x)

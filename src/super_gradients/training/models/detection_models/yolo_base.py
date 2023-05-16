@@ -498,6 +498,12 @@ class YoloBase(SgModule):
         pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
         pipeline.predict_webcam()
 
+    def train(self, mode: bool = True):
+        super().train(mode)
+
+        self._get_pipeline.cache_clear()
+        torch.cuda.empty_cache()
+
     def forward(self, x):
         out = self._backbone(x)
         out = self._head(out)
