@@ -127,7 +127,7 @@ setup_device(num_gpus=-1)
 trainer = Trainer(experiment_name="test_my_cifar_experiment", ckpt_root_dir="/path/to/checkpoints_directory/")
 ```
 
-4. <a href="models.md">Instantiate a model</a> and load weights to it. Learn more about the different options for loading model weights from our <a href="checkpoints.md">checkpoints tutorial</a>:
+4. <a href="models.md">Instantiate a model</a> and load weights to it. Learn more about the different options for loading model weights from our <a href="Checkpoints.md">checkpoints tutorial</a>:
 
 ```python
 model = models.get(Models.RESNET18, num_classes=10, checkpoint_path="/path/to/checkpoints_directory/my_cifar_experiment/ckpt_best.pth")
