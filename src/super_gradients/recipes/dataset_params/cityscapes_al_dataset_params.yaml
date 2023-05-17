@@ -1,0 +1,42 @@
+# Cityscapes AutoLabelled dataset were introduced by NVIDIA research group.
+#   paper:
+#     Hierarchical Multi-Scale Attention for Semantic Segmentation", https://arxiv.org/abs/2005.10821
+#   Official repo:
+#     https://github.com/NVIDIA/semantic-segmentation
+#
+# AutoLabelled refer to the refinement of the Cityscapes coarse data and pseudo labels generation using their suggested
+# Hierarchical multi-scale attention model.
+#
+# For dataset preparation instruction please follow:
+#   https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md
+
+train_dataset_params:
+  root_dir: /data/cityscapes
+  labels_csv_path: lists/labels.csv
+  list_files:
+    - lists/train.lst
+    - lists/auto_labelling.lst
+  cache_labels: False
+  cache_images: False
+  transforms:
+
+val_dataset_params:
+  root_dir: /data/cityscapes
+  list_file: lists/val.lst
+  labels_csv_path: lists/labels.csv
+  cache_labels: False
+  cache_images: False
+  transforms:
+
+train_dataloader_params:
+  dataset: CityscapesConcatDataset
+  shuffle: True
+  batch_size: 8
+  num_workers: 8
+  drop_last: True                 # drop the last incomplete batch, if dataset size is not divisible by the batch size
+
+val_dataloader_params:
+  dataset: CityscapesDataset
+  batch_size: 8
+  num_workers: 8
+  drop_last: False
