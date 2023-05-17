@@ -1,3 +1,4 @@
+import copy
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union, Iterable
 from contextlib import contextmanager
@@ -29,14 +30,13 @@ logger = get_logger(__name__)
 
 @contextmanager
 def eval_mode(model: SgModule) -> None:
-    """Set a model in evaluation mode and deactivate gradient computation, undo at the end.
+    """Set a model in evaluation mode, undo at the end.
 
     :param model: The model to set in evaluation mode.
     """
     _starting_mode = model.training
     model.eval()
-    with torch.no_grad():
-        yield
+    yield
     model.train(mode=_starting_mode)
 
 
@@ -47,10 +47,17 @@ class Pipeline(ABC):
     :param model:           The model used for making predictions.
     :param image_processor: A single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:          The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
+    :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
     """
 
-    def __init__(self, model: SgModule, image_processor: Union[Processing, List[Processing]], class_names: List[str], device: Optional[str] = None):
-        super().__init__()
+    def __init__(
+        self,
+        model: SgModule,
+        image_processor: Union[Processing, List[Processing]],
+        class_names: List[str],
+        device: Optional[str] = None,
+        fuse_model: bool = True,
+    ):
         self.device = device or next(model.parameters()).device
         self.model = model.to(self.device)
         self.class_names = class_names
@@ -58,6 +65,15 @@ class Pipeline(ABC):
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
         self.image_processor = image_processor
+
+        self.fuse_model = fuse_model  # If True, the model will be fused in the first forward pass, to make sure it gets the right input_size
+
+    def _fuse_model(self, input_example: torch.Tensor):
+        logger.info("Fusing some of the model's layers. If this takes too much memory, you can deactivate it by setting `fuse_model=False`")
+        self.model = copy.deepcopy(self.model)
+        self.model.eval()
+        self.model.prep_model_for_conversion(input_size=input_example.shape[-2:])
+        self.fuse_model = False
 
     def __call__(self, inputs: Union[str, ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> ImagesPredictions:
         """Predict an image or a list of images.
@@ -153,8 +169,10 @@ class Pipeline(ABC):
             processing_metadatas.append(processing_metadata)
 
         # Predict
-        with eval_mode(self.model):
-            torch_inputs = torch.Tensor(np.array(preprocessed_images)).to(self.device)
+        with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast():
+            torch_inputs = torch.from_numpy(np.array(preprocessed_images)).to(self.device)
+            if self.fuse_model:
+                self._fuse_model(torch_inputs)
             model_output = self.model(torch_inputs)
             predictions = self._decode_model_output(model_output, model_input=torch_inputs)
 
@@ -221,6 +239,7 @@ class DetectionPipeline(Pipeline):
     :param post_prediction_callback:    Callback function to process raw predictions from the model.
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
+    :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
     """
 
     def __init__(
@@ -230,8 +249,9 @@ class DetectionPipeline(Pipeline):
         post_prediction_callback: DetectionPostPredictionCallback,
         device: Optional[str] = None,
         image_processor: Optional[Processing] = None,
+        fuse_model: bool = True,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names)
+        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
         self.post_prediction_callback = post_prediction_callback
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
