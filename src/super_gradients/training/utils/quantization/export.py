@@ -22,13 +22,13 @@ def export_quantized_module_to_onnx(
     """
     Method for exporting onnx after QAT.
 
-    :param deepcopy_model: Whether to export deepcopy(model). Necessary in case further training is performed and
-     prep_model_for_conversion makes the network un-trainable (i.e RepVGG blocks).
     :param to_cpu: transfer model to CPU before converting to ONNX, dirty workaround when model's tensors are on different devices
     :param train: export model in training mode
     :param model: torch.nn.Module, model to export
     :param onnx_filename: str, target path for the onnx file,
     :param input_shape: tuple, input shape (usually BCHW)
+    :param deepcopy_model: Whether to export deepcopy(model). Necessary in case further training is performed and
+     prep_model_for_conversion makes the network un-trainable (i.e RepVGG blocks).
     """
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure

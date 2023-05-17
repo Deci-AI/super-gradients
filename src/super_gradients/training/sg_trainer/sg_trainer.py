@@ -2053,7 +2053,6 @@ class Trainer:
 
         :param cfg: The parsed DictConfig object from yaml recipe files or a dictionary.
         :return: A tuple containing the quantized model and the output of trainer.train() method.
-        :rtype: Tuple[nn.Module, Tuple]
 
         :raises ValueError: If the recipe does not have the required key `quantization_params` or
         `checkpoint_params.checkpoint_path` in it.
@@ -2226,7 +2225,6 @@ class Trainer:
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             logger.info(f"Using default quantization params: {quantization_params}")
         valid_metrics_list = valid_metrics_list or get_param(training_params, "valid_metrics_list")
-        model = model or get_param(self.ema_model, "ema") or self.net
 
         _ = self.ptq(
             calib_loader=calib_loader,
@@ -2274,8 +2272,7 @@ class Trainer:
         deepcopy_model_for_export: bool = False,
     ):
         """
-        Performs calibration.
-
+        Performs post-training quantization (calibration of the model)..
 
         :param calib_loader: DataLoader, data loader for calibration.
 
@@ -2323,7 +2320,6 @@ class Trainer:
 
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
         calib_params = get_param(quantization_params, "calib_params")
-        model = model or get_param(self.ema_model, "ema") or self.net
         model.to(device_config.device)
         # QUANTIZE MODEL
         model.eval()
