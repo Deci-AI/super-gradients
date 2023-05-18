@@ -15,6 +15,7 @@ class TestModelsONNXExport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdirname:
             out_path = os.path.join(tmpdirname, "resnet18.onnx")
             models.convert_to_onnx(model=pretrained_model, out_path=out_path, input_shape=(3, 256, 256), pre_process=preprocess)
+            self.assertTrue(os.path.exists(out_path))
 
     def test_models_onnx_export(self):
         pretrained_model = models.get(Models.RESNET18, num_classes=1000, pretrained_weights="imagenet")
@@ -24,6 +25,7 @@ class TestModelsONNXExport(unittest.TestCase):
             models.convert_to_onnx(
                 model=pretrained_model, out_path=out_path, pre_process=preprocess, prep_model_for_conversion_kwargs=dict(input_size=(1, 3, 640, 640))
             )
+            self.assertTrue(os.path.exists(out_path))
 
 
 if __name__ == "__main__":
