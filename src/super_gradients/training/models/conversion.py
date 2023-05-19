@@ -65,11 +65,13 @@ def convert_to_onnx(
 
     :param model: torch.nn.Module, model to export to ONNX.
     :param out_path: str, destination path for the .onnx file.
-    :param input_shape: DEPRECATED USE input_size KWARG IN prep_model_for_conversion_kwargs INSTEAD.
+    :param input_shape: Input shape without batch dimensions ([C,H,W]). Batch size assumed to be 1.
+    DEPRECATED USE input_size KWARG IN prep_model_for_conversion_kwargs INSTEAD.
     :param pre_process: torch.nn.Module, preprocessing pipeline, will be resolved by TransformsFactory()
     :param post_process: torch.nn.Module, postprocessing pipeline, will be resolved by TransformsFactory()
     :param prep_model_for_conversion_kwargs: dict, for SgModules- args to be passed to model.prep_model_for_conversion
-     prior to torch.onnx.export call.
+     prior to torch.onnx.export call. Supported keys are:
+    - input_size - Shape of inputs with batch dimension, [C,H,W] for image inputs.
     :param torch_onnx_export_kwargs: kwargs (EXCLUDING: FIRST 3 KWARGS- MODEL, F, ARGS). to be unpacked in torch.onnx.export call
     :param simplify: bool,whether to apply onnx simplifier method, same as `python -m onnxsim onnx_path onnx_sim_path.
      When true, the simplified model will be saved in out_path (default=True).
@@ -82,13 +84,19 @@ def convert_to_onnx(
     prep_model_for_conversion_kwargs = prep_model_for_conversion_kwargs or dict()
 
     if input_shape is not None:
+        input_size = (1, *input_shape)
         logger.warning(
-            "input_shape is deprecated and will be removed in the next major release." " Use the input_size kwarg in prep_model_for_conversion_kwargs instead"
+            f"input_shape is deprecated and will be removed in the next major release."
+            f"Use the convert_to_onnx(..., prep_model_for_conversion_kwargs(input_size={input_size})) instead"
         )
+        prep_model_for_conversion_kwargs["input_size"] = input_size
 
-    prep_model_for_conversion_kwargs["input_size"] = (1, *input_shape)
+    if "input_size" not in prep_model_for_conversion_kwargs:
+        raise KeyError("input_size must be provided in prep_model_for_conversion_kwargs")
 
-    onnx_input = torch.Tensor(np.zeros([1, *input_shape]))
+    input_size = prep_model_for_conversion_kwargs["input_size"]
+
+    onnx_input = torch.Tensor(np.zeros(input_size))
     if not out_path.endswith(".onnx"):
         out_path = out_path + ".onnx"
     complete_model = ConvertableCompletePipelineModel(model, pre_process, post_process, **prep_model_for_conversion_kwargs)
