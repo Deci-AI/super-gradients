@@ -3,7 +3,7 @@ import math
 import os
 import signal
 import time
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Sequence
 
 import csv
 import cv2
@@ -44,9 +44,11 @@ class ModelConversionCheckCallback(PhaseCallback):
 
     The model is converted, then inference is applied with onnx runtime.
 
-    Use this callback wit hthe same args as DeciPlatformCallback to prevent conversion fails at the end of training.
+    Use this callback with the same args as DeciPlatformCallback to prevent conversion fails at the end of training.
 
-    :param model_meta_data:         Model's meta-data object. Type: ModelMetadata/
+    :param model_name:              Model's name
+    :param input_dimensions:        Model's input dimensions
+    :param primary_batch_size:      Model's primary batch size
     :param opset_version:           (default=11)
     :param do_constant_folding:     (default=True)
     :param dynamic_axes:            (default={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}})
@@ -56,12 +58,16 @@ class ModelConversionCheckCallback(PhaseCallback):
     :param atol:                    (default=1e-05)
     """
 
-    def __init__(self, model_meta_data, **kwargs):
+    def __init__(self, model_name: str, input_dimensions: Sequence[int], primary_batch_size: int, **kwargs):
         super(ModelConversionCheckCallback, self).__init__(phase=Phase.PRE_TRAINING)
-        self.model_meta_data = model_meta_data
+        self.model_name = model_name
+        self.input_dimensions = input_dimensions
+        self.primary_batch_size = primary_batch_size
 
         self.opset_version = kwargs.get("opset_version", 10)
-        self.do_constant_folding = kwargs.get("do_constant_folding", None) if kwargs.get("do_constant_folding", None) else True
+        self.do_constant_folding = (
+            kwargs.get("do_constant_folding", None) if kwargs.get("do_constant_folding", None) else True
+        )
         self.input_names = kwargs.get("input_names") or ["input"]
         self.output_names = kwargs.get("output_names") or ["output"]
         self.dynamic_axes = kwargs.get("dynamic_axes") or {"input": {0: "batch_size"}, "output": {0: "batch_size"}}
@@ -75,11 +81,11 @@ class ModelConversionCheckCallback(PhaseCallback):
         model.eval()  # Put model into eval mode
 
         if hasattr(model, "prep_model_for_conversion"):
-            model.prep_model_for_conversion(input_size=self.model_meta_data.input_dimensions)
+            model.prep_model_for_conversion(input_size=self.input_dimensions)
 
-        x = torch.randn(self.model_meta_data.primary_batch_size, *self.model_meta_data.input_dimensions, requires_grad=False)
+        x = torch.randn(self.primary_batch_size, *self.input_dimensions, requires_grad=False)
 
-        tmp_model_path = os.path.join(context.ckpt_dir, self.model_meta_data.name + "_tmp.onnx")
+        tmp_model_path = os.path.join(context.ckpt_dir, self.model_name + "_tmp.onnx")
 
         with torch.no_grad():
             torch_out = model(x)
@@ -99,7 +105,9 @@ class ModelConversionCheckCallback(PhaseCallback):
         onnx_model = onnx.load(tmp_model_path)
         onnx.checker.check_model(onnx_model)
 
-        ort_session = onnxruntime.InferenceSession(tmp_model_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+        ort_session = onnxruntime.InferenceSession(
+            tmp_model_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+        )
 
         # compute ONNX Runtime output prediction
         ort_inputs = {ort_session.get_inputs()[0].name: x.cpu().numpy()}
@@ -126,10 +134,22 @@ class DeciLabUploadCallback(PhaseCallback):
     :param ckpt_name:                   Checkpoint filename, inside the checkpoint directory.
     """
 
-    def __init__(self, model_meta_data, optimization_request_form, ckpt_name: str = "ckpt_best.pth", **kwargs):
+    def __init__(
+        self,
+        model_name: str,
+        input_dimensions: Sequence[int],
+        target_hardware_types: "Optional[List[str]]" = None,
+        target_batch_size: "Optional[int]" = None,
+        target_quantization_level: "Optional[str]" = None,
+        ckpt_name: str = "ckpt_best.pth",
+        **kwargs,
+    ):
         super().__init__(phase=Phase.POST_TRAINING)
-        self.model_meta_data = model_meta_data
-        self.optimization_request_form = optimization_request_form
+        self.input_dimensions = input_dimensions
+        self.model_name = model_name
+        self.target_hardware_types = target_hardware_types
+        self.target_batch_size = target_batch_size
+        self.target_quantization_level = target_quantization_level
         self.ckpt_name = ckpt_name
         self.platform_client = DeciClient()
 
@@ -143,7 +163,14 @@ class DeciLabUploadCallback(PhaseCallback):
 
         :param model: The resulting model from the training process
         """
-        self.platform_client.upload_model(model=model, model_meta_data=self.model_meta_data, optimization_request_form=self.optimization_request_form)
+        self.platform_client.upload_model(
+            model=model,
+            name=self.model_name,
+            input_dimensions=self.input_dimensions,
+            target_hardware_types=self.target_hardware_types,
+            target_batch_size=self.target_batch_size,
+            target_quantization_level=self.target_quantization_level,
+        )
 
     def get_optimization_status(self, optimized_model_name: str):
         """
@@ -187,10 +214,10 @@ class DeciLabUploadCallback(PhaseCallback):
 
             model = model.module.cpu()
             if hasattr(model, "prep_model_for_conversion"):
-                model.prep_model_for_conversion(input_size=self.model_meta_data.input_dimensions)
+                model.prep_model_for_conversion(input_size=self.input_dimensions)
 
             self.upload_model(model=model)
-            model_name = self.model_meta_data.name
+            model_name = self.model_name
             logger.info(f"Successfully added {model_name} to the model repository")
 
             optimized_model_name = f"{model_name}_1_1"
