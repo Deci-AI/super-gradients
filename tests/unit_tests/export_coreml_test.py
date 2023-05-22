@@ -45,8 +45,8 @@ class TestModelsCoreMLExport(unittest.TestCase):
 
             if export_kwargs.get("export_as_ml_program"):
                 # Expecting a directory
-                self.assertTrue(os.path.exists(model_path))
-                self.assertTrue(model_path.endswith(".mlprogram"))
+                self.assertTrue(os.path.isdir(model_path))
+                self.assertTrue(model_path.endswith(".mlpackage"))
             else:
                 # Expecting a single file
                 self.assertTrue(os.path.isfile(model_path))
