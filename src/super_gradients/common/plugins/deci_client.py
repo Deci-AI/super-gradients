@@ -2,16 +2,23 @@ import os
 import json
 import sys
 import shutil
+import urllib
 from zipfile import ZipFile
+import socket
+import urllib.error
+from urllib.request import urlretrieve
 from typing import List, Optional, Sequence
 
 import importlib.util
+
+import torch.hub
 from omegaconf import DictConfig
 from torch import nn
 
 import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.cfg_utils import load_arch_params, load_recipe
+from super_gradients.common.environment.path_utils import normalize_path
 
 logger = get_logger(__name__)
 
@@ -21,18 +28,19 @@ try:
     from deci_platform_client.types import S3SignedUrl
     from deci_platform_client.models import (
         ModelBenchmarkState,
-        BodyRegisterUserArchitecture,
         SentryLevel,
         FrameworkType,
         HardwareType,
         QuantizationLevel,
     )
-    from deci_common.data_interfaces.files_data_interface import FilesDataInterface
+    from deci_common.data_interfaces.files_data_interface import FileDownloadFailedException
     from deci_platform_client.models import AutoNACFileName
     from deci_platform_client.exceptions import ApiException
 
 except (ImportError, NameError):
     client_enabled = False
+
+DOWNLOAD_MODEL_TIMEOUT_SECONDS = 5 * 60
 
 
 class DeciClient:
@@ -74,9 +82,37 @@ class DeciClient:
             else:
                 logger.debug(e.body)
             return None
+        etag = "123"
+        cache_dir = os.path.join(torch.hub.get_dir(), "deci")
+        file_path = os.path.join(cache_dir, etag, os.path.basename(file_name))
+        file_path = normalize_path(file_path)
 
-        file_path = FilesDataInterface.download_temporary_file(file_url=download_link)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        if os.path.isfile(file_path):
+            return file_path
 
+        file_path = self._download_file_to_cache_dir(
+            file_url=download_link,
+            file_path=file_path,
+        )
+        return file_path
+
+    def _download_file_to_cache_dir(self, file_url: str, file_path: str, timeout_seconds: Optional[int] = DOWNLOAD_MODEL_TIMEOUT_SECONDS):
+        """
+        Download a file from a url to a cache dir. The file will be saved in a subfolder named by the etag.
+        This allow us to save multiple versions of the same file and cache them, so when a file with the same etag is
+        requested, we can return the cached file.
+
+        :param file_url:  Url to download the file from.
+        :param file_path: Path to save the file to.
+        :return:        Path were the downloaded file was saved to. (same as file_path)
+        """
+        # TODO: Use requests with stream and limit the file size and timeouts.
+        socket.setdefaulttimeout(timeout_seconds)
+        try:
+            urlretrieve(file_url, file_path)
+        except urllib.error.ContentTooShortError as ex:
+            raise FileDownloadFailedException("File download did not finish correctly " + str(ex))
         return file_path
 
     def get_model_arch_params(self, model_name: str) -> Optional[DictConfig]:
@@ -114,9 +150,7 @@ class DeciClient:
         :return:            model_weights path. None if weights were not found for this specific model on this SG version."""
         return self._get_file(model_name=model_name, file_name=AutoNACFileName.WEIGHTS_PTH)
 
-    def download_and_load_model_additional_code(
-        self, model_name: str, target_path: str, package_name: str = "deci_model_code"
-    ) -> None:
+    def download_and_load_model_additional_code(self, model_name: str, target_path: str, package_name: str = "deci_model_code") -> None:
         """
         try to download code files for this model.
         if found, code files will be placed in the target_path/package_name and imported dynamically
