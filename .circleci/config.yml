@@ -23,7 +23,7 @@ parameters:
     type: boolean
     description: If true will run sanity_test flow
     default: false
-  not_nightly:
+  skip_md_files:
     type: boolean
     default: true
   orb_version:
@@ -151,8 +151,7 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
-          skip_md_files: true
-          not_nightly: << pipeline.parameters.not_nightly >>
+          skip_md_files: << pipeline.parameters.skip_md_files >>
       - deci-common/get_persisted_version_info
       - unless:
           condition:
@@ -478,6 +477,11 @@ jobs:
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
 
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
   recipe_sanity_tests_classification_pt1:
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
@@ -515,6 +519,13 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
+
   recipe_sanity_tests_classification_pt2:
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
@@ -550,6 +561,10 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
   recipe_sanity_tests_segmentation:
     docker:
@@ -597,6 +612,11 @@ jobs:
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
 
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
   recipe_sanity_tests_detection:
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
@@ -633,6 +653,10 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
   recipe_sanity_tests_pose_estimation:
     docker:
@@ -665,6 +689,10 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
   docker-build-and-publish-branch:
     docker:
@@ -718,13 +746,24 @@ workflows:
   sanity_tests:
     when:  << pipeline.parameters.run_sanity_tests_flow >>
     jobs:
-      - recipe_sanity_tests_classification_pt1
-      - recipe_sanity_tests_classification_pt2
-      - recipe_sanity_tests_segmentation
-      - recipe_sanity_tests_detection
-      - recipe_sanity_tests_pose_estimation
-      - recipe_accuracy_tests
-
+      - recipe_sanity_tests_classification_pt1:
+          context:
+            - slack
+      - recipe_sanity_tests_classification_pt2:
+          context:
+            - slack
+      - recipe_sanity_tests_segmentation:
+          context:
+            - slack
+      - recipe_sanity_tests_detection:
+          context:
+            - slack
+      - recipe_sanity_tests_pose_estimation:
+          context:
+            - slack
+      - recipe_accuracy_tests:
+          context:
+            - slack
 
   release:
     unless:
