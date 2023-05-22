@@ -15,6 +15,10 @@ parameters:
     type: string
     description: the version of super gradients docker image
     default: "2.0.0"
+  build_py_version:
+    type: string
+    description: Python version
+    default: "3.8"
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
@@ -770,8 +774,8 @@ workflows:
           version_override: ""
 
       - build:
-          name: "build3.8"
-          py_version: "3.8"
+          name: "build<< pipeline.parameters.build_py_version >>"
+          py_version:  << pipeline.parameters.build_py_version >>
           package_name: "super-gradients"
           requires:
             - deci-common/persist_version_info
