@@ -16,7 +16,7 @@ class TestModelsCoreMLExport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdirname:
             out_path = os.path.join(tmpdirname, "resnet18.mlmodel")
             models.convert_to_coreml(model=pretrained_model, out_path=out_path, input_shape=(3, 256, 256), pre_process=preprocess)
-            self.assertTrue(os.path.exists(out_path))
+            self.assertTrue(os.path.isfile(out_path))
 
     def test_models_coreml_export(self, **export_kwargs):
         pretrained_model = models.get(Models.YOLO_NAS_S, num_classes=1000, pretrained_weights="coco")
@@ -32,7 +32,7 @@ class TestModelsCoreMLExport(unittest.TestCase):
                 prep_model_for_conversion_kwargs=dict(input_size=(1, 3, 640, 640)),
                 **export_kwargs,
             )
-            self.assertTrue(os.path.exists(model_path))
+            self.assertTrue(os.path.isfile(model_path))
             self.assertTrue(model_path.endswith(".mlprogram" if export_kwargs.get("export_as_ml_program") else ".mlmodel"))
 
     def test_models_coreml_export_as_mlprogram(self):
