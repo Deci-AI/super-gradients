@@ -23,6 +23,9 @@ parameters:
     type: boolean
     description: If true will run sanity_test flow
     default: false
+  not_nightly:
+    type: boolean
+    default: true
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
@@ -149,6 +152,7 @@ jobs:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
           skip_md_files: true
+          not_nightly: << pipeline.parameters.not_nightly >>
       - deci-common/get_persisted_version_info
       - unless:
           condition:
