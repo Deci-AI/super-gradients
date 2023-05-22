@@ -14,7 +14,7 @@ nav:
   - Pretrained Model Prediction:
     - Prediction: ./documentation/source/ModelPredictions.md
     - Custom training Setup: ./documentation/source/PredictionSetup.md
-- Tutorials:
+- Main Components:
   - Models: ./documentation/source/models.md
   - Dataset:
     - Data: ./documentation/source/Data.md
