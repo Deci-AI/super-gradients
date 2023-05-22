@@ -61,7 +61,7 @@ class ConvertableCompletePipelineModel(torch.nn.Module):
 def convert_to_coreml(
     model: torch.nn.Module,
     out_path: str,
-    input_shape: tuple = None,
+    input_size: tuple = None,
     pre_process: torch.nn.Module = None,
     post_process: torch.nn.Module = None,
     prep_model_for_conversion_kwargs=None,
@@ -73,8 +73,7 @@ def convert_to_coreml(
 
         :param model: torch.nn.Module, model to export to ONNX.
         :param out_path: str, destination path for the .onnx file.
-        :param input_shape: Input shape without batch dimensions ([C,H,W]). Batch size assumed to be 1.
-        DEPRECATED USE input_size KWARG IN prep_model_for_conversion_kwargs INSTEAD.
+        :param input_size: Input shape without batch dimensions ([C,H,W]). Batch size assumed to be 1.
         :param pre_process: torch.nn.Module, preprocessing pipeline, will be resolved by TransformsFactory()
         :param post_process: torch.nn.Module, postprocessing pipeline, will be resolved by TransformsFactory()
         :param prep_model_for_conversion_kwargs: dict, for SgModules- args to be passed to model.prep_model_for_conversion
@@ -102,11 +101,11 @@ def convert_to_coreml(
     torch_trace_kwargs = torch_trace_kwargs or dict()
     prep_model_for_conversion_kwargs = prep_model_for_conversion_kwargs or dict()
 
-    if input_shape is not None:
-        input_size = (1, *input_shape)
+    if input_size is not None:
+        input_size = (1, *input_size)
         logger.warning(
             f"input_shape is deprecated and will be removed in the next major release."
-            f"Use the convert_to_onnx(..., prep_model_for_conversion_kwargs(input_size={input_size})) instead"
+            f"Use the convert_to_coreml(..., prep_model_for_conversion_kwargs(input_size={input_size})) instead"
         )
         prep_model_for_conversion_kwargs["input_size"] = input_size
 
