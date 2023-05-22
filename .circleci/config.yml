@@ -19,6 +19,10 @@ parameters:
     type: string
     description: Python version
     default: "3.8"
+  run_sanity_tests_flow:
+    type: boolean
+    description: If true will run sanity_test flow
+    default: false
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
@@ -707,6 +711,17 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
+  sanity_tests:
+    when:  << pipeline.parameters.run_sanity_tests_flow >>
+    jobs:
+      - recipe_sanity_tests_classification_pt1
+      - recipe_sanity_tests_classification_pt2
+      - recipe_sanity_tests_segmentation
+      - recipe_sanity_tests_detection
+      - recipe_sanity_tests_pose_estimation
+      - recipe_accuracy_tests
+
+
   release:
     unless:
       or:
@@ -785,9 +800,9 @@ workflows:
           <<: *release_candidate_filter
 
       - release_candidate: # happens on merge
-          py_version: "3.8"
+          py_version: "<< pipeline.parameters.build_py_version >>"
           requires:
-            - "build3.8"
+            - "build<< pipeline.parameters.build_py_version >>"
             - deci-common/codeartifact_login
           <<: *release_candidate_filter
 
