@@ -787,16 +787,28 @@ workflows:
             - login_to_codeartifact_release
           <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt1:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt2:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_segmentation:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_detection:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_pose_estimation:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_accuracy_tests:
+          context:
+            - slack
           <<: *release_tag_filter
       - release_version:
           py_version: "3.8"
