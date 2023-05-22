@@ -65,9 +65,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         self.primary_batch_size = primary_batch_size
 
         self.opset_version = kwargs.get("opset_version", 10)
-        self.do_constant_folding = (
-            kwargs.get("do_constant_folding", None) if kwargs.get("do_constant_folding", None) else True
-        )
+        self.do_constant_folding = kwargs.get("do_constant_folding", None) if kwargs.get("do_constant_folding", None) else True
         self.input_names = kwargs.get("input_names") or ["input"]
         self.output_names = kwargs.get("output_names") or ["output"]
         self.dynamic_axes = kwargs.get("dynamic_axes") or {"input": {0: "batch_size"}, "output": {0: "batch_size"}}
@@ -105,9 +103,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         onnx_model = onnx.load(tmp_model_path)
         onnx.checker.check_model(onnx_model)
 
-        ort_session = onnxruntime.InferenceSession(
-            tmp_model_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
-        )
+        ort_session = onnxruntime.InferenceSession(tmp_model_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 
         # compute ONNX Runtime output prediction
         ort_inputs = {ort_session.get_inputs()[0].name: x.cpu().numpy()}

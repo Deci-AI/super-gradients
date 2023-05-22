@@ -96,9 +96,7 @@ class DeciClient:
         )
         return file_path
 
-    def _download_file_to_cache_dir(
-        self, file_url: str, file_path: str, timeout_seconds: Optional[int] = DOWNLOAD_MODEL_TIMEOUT_SECONDS
-    ):
+    def _download_file_to_cache_dir(self, file_url: str, file_path: str, timeout_seconds: Optional[int] = DOWNLOAD_MODEL_TIMEOUT_SECONDS):
         """
         Download a file from a url to a cache dir. The file will be saved in a subfolder named by the etag.
         This allow us to save multiple versions of the same file and cache them, so when a file with the same etag is
@@ -151,9 +149,7 @@ class DeciClient:
         :return:            model_weights path. None if weights were not found for this specific model on this SG version."""
         return self._get_file(model_name=model_name, file_name=AutoNACFileName.WEIGHTS_PTH)
 
-    def download_and_load_model_additional_code(
-        self, model_name: str, target_path: str, package_name: str = "deci_model_code"
-    ) -> None:
+    def download_and_load_model_additional_code(self, model_name: str, target_path: str, package_name: str = "deci_model_code") -> None:
         """
         try to download code files for this model.
         if found, code files will be placed in the target_path/package_name and imported dynamically

@@ -18,9 +18,9 @@ def main(architecture_name: str):
     # Empty on purpose so that it can be fit to the trainer use case
     checkpoint_dir = ""
 
-    os.environ[
-        "DECI_PLATFORM_TOKEN"
-    ] = "YOUR_API_TOKEN_HERE"  # You can also set your token as environment variable using the commandline or your IDE.
+    # You can also set your token as environment variable using the commandline or your IDE.
+    os.environ["DECI_CLIENT_ID"] = "YOUR_CLIENT_ID_HERE"
+    os.environ["DECI_CLIENT_SECRET"] = "YOUR_SECRET_KEY_HERE"
     trainer = Trainer(
         f"lab_optimization_{architecture_name}_example",
         model_checkpoints_location="local",
