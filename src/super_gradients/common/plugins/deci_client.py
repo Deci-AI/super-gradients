@@ -234,7 +234,7 @@ class DeciClient:
         """
         try:
             self.lab_client.register_user_architecture(name=model_name)
-        except ApiTypeError as e:
+        except (ApiException, ApiTypeError) as e:
             logger.debug(f"The model was already registered, or validation error: {e}")
 
         self.lab_client.register_experiment(name=name, model_name=model_name, resume=resume)
