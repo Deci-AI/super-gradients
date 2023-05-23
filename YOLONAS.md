@@ -51,43 +51,13 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
 
 ![YOLO-NAS-RF-100](documentation/source/images/yolo_nas_rf100.png)
 
-
-
-
-
 ## Additional resources
-<table>
-<tr>
-    <td>   
-        <a target="_blank" href="https://bit.ly/yolo-nas-starter-notebook">
-            <img src="./docs/assets/SG_img/colab_logo.png" /> Fine-Tuning Notebook 
-        </a>
-    </td>
-</tr>
-<tr>
-    <td>   
-        <a target="_blank" href="documentation/source/YoloNASQuickstart.md"> 
-            Documentation: YOLO-NAS Quickstart 
-        </a>
-    </td>
-</tr>
-<tr>
-    <td>
-        <a target="_blank" href="documentation/source/qat_ptq_yolo_nas.md"> 
-            Documentation: YOLO-NAS Quantization-Aware training and post-training Quantization 
-        </a>
-    </td>
-</tr>
 
-<tr>
-    <td>   
-        Join our <a target="_blank" href="https://discord.gg/2v6cEGMREN">
-             Discord Community
-        </a>
-    </td>
-</tr>
-</table>
-
+- [Fine-Tuning Notebook](https://bit.ly/yolo-nas-starter-notebook)
+- [Documentation: YOLO-NAS Quickstart](documentation/source/YoloNASQuickstart.md)
+- [Documentation: YOLO-NAS Quantization-Aware training and post-training Quantization](documentation/source/qat_ptq_yolo_nas.md)
+- [YouTube Tutorial: Train YOLO-NAS on Custom Dataset](https://youtu.be/V-H3eoPUnA8)
+- [Discord Community](https://discord.gg/2v6cEGMREN)
 
 ## LICENSE
 
