@@ -5,6 +5,7 @@ from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.kd_trainer import KDTrainer
 from super_gradients.training.qat_trainer import QATTrainer
 from super_gradients.common import MultiGPUMode, StrictLoad, EvaluationType
+from super_gradients.training.pre_launch_callbacks import modify_params_for_qat
 
 __all__ = [
     "distributed_training_utils",
@@ -16,4 +17,5 @@ __all__ = [
     "MultiGPUMode",
     "StrictLoad",
     "EvaluationType",
+    "modify_params_for_qat",
 ]
