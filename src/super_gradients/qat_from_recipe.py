@@ -8,13 +8,12 @@ For recipe's specific instructions and details refer to the recipe's configurati
 import hydra
 from omegaconf import DictConfig
 
-from super_gradients import init_trainer
-from super_gradients.training.qat_trainer.qat_trainer import QATTrainer
+from super_gradients import init_trainer, Trainer
 
 
 @hydra.main(config_path="recipes", version_base="1.2")
 def _main(cfg: DictConfig) -> None:
-    QATTrainer.train_from_config(cfg)
+    Trainer.quantize_from_config(cfg)
 
 
 def main():
