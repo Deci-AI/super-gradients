@@ -1101,7 +1101,7 @@ class DetectionRandomSideCrop(DetectionTransform):
     Note: It assumes the targets are in (X,Y,X,Y,label) format.
     """    
 
-    def __init__(self, max_rel_x: float = 0.5, p_side_right: float = 0.5, prob: float = 1.0):
+    def __init__(self, max_rel_x: float = 0.5, min_rel_x:float = 0.1, p_side_right: float = 0.5, prob: float = 1.0):
         """_summary_
 
         :param max_rel_x: _description_, defaults to 0.5
@@ -1109,11 +1109,13 @@ class DetectionRandomSideCrop(DetectionTransform):
         :param p: _description_, defaults to 1.0
         :raises AssertionError: _description_
         """        
-        assert 0 <= max_rel_x <= 1, f"rel_min_x value must be between 0 and 1, found {max_rel_x}"
+        assert 0 <= max_rel_x <= 1, f"`max_rel_x` value must be between 0 and 1, found {max_rel_x}"
+        assert 0 <= max_rel_x <= 1, f"`min_rel_x` value must be between 0 and 1, found {min_rel_x}"
         assert 0.0 <= prob <= 1.0, f"Probability value must be between 0 and 1, found {prob}"
         assert 0.0 <= p_side_right <= 1.0, f"Probability of side value must be between 0 and 1, found {p_side_right}"
         super(DetectionRandomSideCrop, self).__init__()
         self.max_rel_x = max_rel_x
+        self.min_rel_x = min_rel_x
         self.p_side_right = p_side_right
         self.p = prob
 
@@ -1122,7 +1124,7 @@ class DetectionRandomSideCrop(DetectionTransform):
             return sample
 
         side = "right" if random.random() > self.p_side_right else "left"
-        random_rel_x = random.uniform(0, self.max_rel_x)
+        random_rel_x = random.uniform(self.min_rel_x, self.max_rel_x)
 
         image, targets = sample["image"], sample["target"]
         abs_x = int(random_rel_x * image.shape[0])
