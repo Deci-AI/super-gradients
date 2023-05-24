@@ -1096,26 +1096,27 @@ class DetectionTargetsFormatTransform(DetectionTransform):
 
 @register_transform(Transforms.DetectionRandomSideCrop)
 class DetectionRandomSideCrop(DetectionTransform):
-    """Preprocessing transform to crop image and bboxes from the border only along the horizontal axis.
+    """Preprocessing transform to crop in width an image and bboxes from the border.
     
     Note: It assumes the targets are in (X,Y,X,Y,label) format.
     """    
 
-    def __init__(self, max_rel_x: float = 0.5, min_rel_x:float = 0.1, p_side_right: float = 0.5, prob: float = 1.0):
+    def __init__(self, min_rel_width:float = 0.1, max_rel_width: float = 0.5,  p_side_right: float = 0.5, prob: float = 1.0):
         """_summary_
 
-        :param max_rel_x: _description_, defaults to 0.5
-        :param p_side_right: probability of croping keeping the right side, defaults to 0.5
-        :param p: _description_, defaults to 1.0
+        :param min_rel_width: maximum relative width of the resulting crop, defaults to 0.1
+        :param max_rel_width: minimum relative width of the resulting crop, defaults to 0.5
+        :param p_side_right: probability of keeping the right side when croping, defaults to 0.5
+        :param prob: probability of applying the transformation, defaults to 1.0
         :raises AssertionError: _description_
         """        
-        assert 0 <= max_rel_x <= 1, f"`max_rel_x` value must be between 0 and 1, found {max_rel_x}"
-        assert 0 <= max_rel_x <= 1, f"`min_rel_x` value must be between 0 and 1, found {min_rel_x}"
+        assert 0 <= max_rel_width <= 1, f"`max_rel_x` value must be between 0 and 1, found {max_rel_width}"
+        assert 0 <= max_rel_width <= 1, f"`min_rel_x` value must be between 0 and 1, found {min_rel_width}"
         assert 0.0 <= prob <= 1.0, f"Probability value must be between 0 and 1, found {prob}"
         assert 0.0 <= p_side_right <= 1.0, f"Probability of side value must be between 0 and 1, found {p_side_right}"
         super(DetectionRandomSideCrop, self).__init__()
-        self.max_rel_x = max_rel_x
-        self.min_rel_x = min_rel_x
+        self.max_rel_width = max_rel_width
+        self.min_rel_width = min_rel_width
         self.p_side_right = p_side_right
         self.p = prob
 
@@ -1124,7 +1125,7 @@ class DetectionRandomSideCrop(DetectionTransform):
             return sample
 
         side = "right" if random.random() > self.p_side_right else "left"
-        random_rel_x = random.uniform(self.min_rel_x, self.max_rel_x)
+        random_rel_x = random.uniform(self.min_rel_width, self.max_rel_width)
 
         image, targets = sample["image"], sample["target"]
         abs_x = int(random_rel_x * image.shape[0])
@@ -1147,17 +1148,17 @@ class DetectionRandomSideCrop(DetectionTransform):
     
 
     def apply(self, img: np.ndarray, bboxes: np.ndarray) -> tuple(np.ndarray, np.ndarray):
-        """_summary_
+        """Apply the transformation to the image and bounding boxes in (X,Y,X,Y) format.
 
-        :param img: _description_
-        :param bboxes: Bounding boxes in 
-        :return: _description_
+        :param img: Numpy array of image
+        :param bboxes: Numpy array of bounding boxes in (X,Y,X,Y) format. Shape (N,4)
+        :return: Tuple of Numpy array of cropped image and Numpy array of cropped bounding boxes
         """        
         if random.random() > self.p:
             return img, bboxes
 
         side = "right" if random.random() > self.p_side_right else "left"
-        random_rel_x = random.uniform(0, self.max_rel_x)
+        random_rel_x = random.uniform(0, self.max_rel_width)
 
         abs_x = int(random_rel_x * img.shape[0])
 
@@ -1167,12 +1168,12 @@ class DetectionRandomSideCrop(DetectionTransform):
         return img, bboxes
     
     def _crop_image(self, img: np.ndarray, abs_x: int, side: str) -> np.ndarray:
-        """_summary_
+        """Return the cropped image.
 
-        :param img: _description_
-        :param abs_x: _description_
-        :param side: _description_
-        :return: _description_
+        :param img: Numpy array of image
+        :param abx_x: Absolute value of the x coordinate to crop
+        :param side: Side of the resulting crop. Either "right" or "left"
+        :return: Numpy array of cropped image
         """        
         if side == "right":
             output_img = img[abs_x:]
@@ -1181,12 +1182,12 @@ class DetectionRandomSideCrop(DetectionTransform):
         return output_img
         
     def _crop_bboxes(self, bboxes: np.ndarray, abs_x: int, side:str) -> np.ndarray:
-        """_summary_
+        """Return the bboxes that are inside the crop. In the case of intersection, the bbox is cropped.
 
-        :param bboxes: _description_
-        :param abx_x: _description_
-        :param side: _description_
-        :return: _description_
+        :param bboxes: Numpy array of bounding boxes in (X,Y,X,Y) format. Shape (N,4)
+        :param abx_x: Absolute value of the x coordinate to crop
+        :param side: Side of the resulting crop. Either "right" or "left"
+        :return: Numpy array of cropped bounding boxes in (X,Y,X,Y) format. Shape (N',4)
         """
         fixed_bboxes = []
         if side == "right":
