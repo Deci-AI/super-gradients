@@ -1,6 +1,9 @@
 import random
+from typing import Optional
+import numpy as np
 
-class RandomCrop():
+
+class DetectionRandomSideCrop:
     """Crop a random part of the input.
 
     Args:
@@ -15,27 +18,55 @@ class RandomCrop():
         uint8, float32
     """
 
-    def __init__(self, min_crop_rel_x = 0.0, max_crop_rel_x = 0.5, side = None, p = 1.0):
+    def __init__(self, rel_min_x: float = 0, rel_max_x: float = 0.5, side: Optional[str] = None, p: float = 1.0):
         if side is not None:
             assert side in ["left", "right"], "side must be left or right"
-        else:
-            side = random.choice(["left", "right"])
 
+        assert rel_min_x >= 0 and rel_min_x <= 0.5, "rel_min_x must be between 0 and 0.5"
+
+        self.rel_min_x = rel_min_x
+        self.rel_max_x = rel_max_x
         self.side = side
-        self.min_crop_rel_x = min_crop_rel_x
-        self.max_crop_rel_x = max_crop_rel_x
         self.p = p
 
-
-    def apply(self, img, bboxes, **params):
+    def apply(self, img: np.ndarray, bboxes: np.ndarray, **params):
         if random.random() > self.p:
             return img, bboxes
-        
-        crop_rel_x = random.uniform(self.min_crop_rel_x, self.max_crop_rel_x)
+
+        if self.side is None:
+            self.side = random.choice(["left", "right"])
+
+        rel_x = random.uniform(self.rel_min_x, self.rel_max_x)
+        abs_x = int(rel_x * img.shape[0])
 
         if self.side == "left":
-            return img[:, :int(img.shape[1]*self.crop_rel_x)]
+            img = img[abs_x:]
+            bboxes = self._crop_left_bboxes(bboxes, abs_x)
+
         elif self.side == "right":
-            return img[:, int(img.shape[1]*(1-self.crop_rel_x)):]
-        
-    
+            img = img[:abs_x]
+            bboxes = self._crop_right_bboxes(bboxes, abs_x)
+
+        return img, bboxes
+
+    def _crop_right_bboxes(self, bboxes: np.ndarray, abs_x: int):
+        fixed_bboxes = []
+
+        for bbox in bboxes:
+            if bbox[0] < abs_x:
+                fixed_bboxes.append([bbox[0], bbox[1], min(bbox[2], abs_x), bbox[3]])
+
+        return np.array(fixed_bboxes)
+
+    def _crop_left_bboxes(self, bboxes: np.ndarray, abs_x: int):
+        fixed_bboxes = []
+
+        for bbox in bboxes:
+            if bbox[2] > abs_x:
+                fixed_bboxes.append([max(bbox[0], abs_x), bbox[1], bbox[2], bbox[3]])
+
+        return np.array(fixed_bboxes)
+
+
+if __name__ == "__main__":
+    pass
