@@ -71,15 +71,14 @@ def convert_to_coreml(
     """
         Exports a given SG model to CoreML mlprogram or package.
 
-        :param model: torch.nn.Module, model to export to ONNX.
-        :param out_path: str, destination path for the .onnx file.
+        :param model: torch.nn.Module, model to export to CoreML.
+        :param out_path: str, destination path for the .mlmodel file.
         :param input_size: Input shape without batch dimensions ([C,H,W]). Batch size assumed to be 1.
         :param pre_process: torch.nn.Module, preprocessing pipeline, will be resolved by TransformsFactory()
         :param post_process: torch.nn.Module, postprocessing pipeline, will be resolved by TransformsFactory()
         :param prep_model_for_conversion_kwargs: dict, for SgModules- args to be passed to model.prep_model_for_conversion
-         prior to torch.onnx.export call. Supported keys are:
+         prior to ct.convert call. Supported keys are:
         - input_size - Shape of inputs with batch dimension, [C,H,W] for image inputs.
-         When true, the simplified model will be saved in out_path (default=True).
         :param export_as_ml_program: Whether to convert to the new program format (better) or legacy coreml proto file
                             (Supports more iOS versions and devices, but this format will be deprecated at some point).
         :param torch_trace_kwargs: kwargs for torch.jit.trace
@@ -97,7 +96,7 @@ def convert_to_coreml(
     logger.debug(next(model.named_children()))
 
     if not os.path.isdir(pathlib.Path(out_path).parent.resolve()):
-        raise FileNotFoundError(f"Could not find destination directory {out_path} for the ONNX file.")
+        raise FileNotFoundError(f"Could not find destination directory {out_path} for the CoreML file.")
     torch_trace_kwargs = torch_trace_kwargs or dict()
     prep_model_for_conversion_kwargs = prep_model_for_conversion_kwargs or dict()
 
