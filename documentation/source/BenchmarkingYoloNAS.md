@@ -10,8 +10,8 @@ Doing so teaches us how to properly benchmark YoloNAS and understand its full po
 
 The first step is to export our YoloNAS model to ONNX correctly. Two actions must be taken before we export our model to onnx:
 1. We need to replace our layers with "fake quantized" ones - this happens when we perform post-training quantization or quantization-aware training with SG.
-So nothing to worry about if you performed PTQ/QAT with SG and hold your newly exported ONNX checkpoint.
-2. We must call model.prep_model_for_conversion - this is essential as YoloNAS incorporates QARepVGG blocks. Without this call, the RepVGG branches will not be fused, and our model's speed will decrease significantly!
+So nothing to worry about if you performed PTQ/QAT with SG and hold your newly exported ONNX checkpoint. Beware that inference time in Pytorch is slower with such blocks - but will be faster once converted to the TRT Engine.
+2. We must call `model.prep_model_for_conversion` - this is essential as YoloNAS incorporates QARepVGG blocks. Without this call, the RepVGG branches will not be fused, and our model's speed will decrease significantly! This is true for the Pytorch model as well as the compiled TRT Engine!
 Again, nothing to worry about if you have quantized your model with PTQ/QAT with SG, as this is done under the hood before exporting the ONNX checkpoints.
    
 There are plenty of guides on how to perform PTQ/QAT with SG:
@@ -20,12 +20,14 @@ There are plenty of guides on how to perform PTQ/QAT with SG:
 - [QA/PTQ](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/ptq_qat.md)
 
 Suppose we ran PTQ/QAT, then our PTQ/QAT checkpoints have been exported to our checkpoints directory.
-If we plug them into [netron.app](https://netron.app), we can see that new blocks that were not a part of the original network were introduced: the **Quantize/Dequantize** layers - 
+If we plug them into [netron](https://netron.app), we can see that new blocks that were not a part of the original network were introduced: the **Quantize/Dequantize** layers - 
 
 <div>
 <img src="images/qdq_yolonas_netron.png" width="750">
 </div>
+
 This is expected and an excellent way to verify that our model is ready to be converted to Int8 using Nvidia's TesnorRT.
+As stated earlier - that inference time in Pytorch is slower with such blocks - but will be faster once converted to the TRT Engine.
 
 ## Step 2: Create TRT Engine
 First, please make sure to [install Nvidia's TensorRT](https://developer.nvidia.com/tensorrt-getting-started).
@@ -33,11 +35,22 @@ TensorRT version >= 8.4 is required.
 We can now use these ONNX files to deploy our newly trained YoloNAS models to production. When building the TRT engine, it is essential to specify that we convert to Int8 (the fake quantized layers in our models will be adapted accordingly); this can be done by running: `trtexec --fp16 --int8 --onnx=your_yolonas_qat_model. onnx.
 ## Step 3: View Model Benchmark Results
 
-Once running, `trtexec --fp16 --int8 --onnx=your_yolonas_qat_model.onnx.` your screen will look somewhat similar to the screenshot below: 
+Once running:
+```commandline
+trtexec --fp16 --int8 --avgRuns=100 --onnx=your_yolonas_qat_model.onnx.
+```
+your screen will look somewhat similar to the screenshot below: 
 <div>
 <img src="images/trtexec.png" width="750">
 </div>
 
+Command notes:
+- Note that this process might take some time, depending on the GPU, the model, and the size of the input (up to 40 minutes is reasonable on smaller devices).
+- Also notice the `--avgRuns=100` which means that this command runs the model 100 times, so that we get more "robust" results that are less affected by noise.
+- Note that since we ran PTQ/QAT we need the --int8 flag flag. But if we did not do so, then the --int8 flag will dramatically degrade the accuracy of our compiled model.
+- By passing --fp16 and --int together, we allow the hybrid quantization (that is, some layers are quantized while others are not).
+
+Benchmark breakdown:
 - The actual throughput and latency of your model are in blue. This tells you how your model is actually performing.
 - Note that trtexec shows the minimum, maximum, mean, and median values. Significant differences between these values can indicate that your measurements are noisy. It might be that some other process uses the GPU while benchmarking or that the GPU needs to be adequately cooled.
 - The end-to-end latency is marked in yellow. This includes the time it takes to prepare the input and pass it to the GPU, the GPU compute time, and the time it takes to move the output from the GPU back to the host (for the full batch size). If you plan on running batches one by one synchronously, this is the time that affects you. But if you use an async inference engine, you will be affected by the numbers in blue.
