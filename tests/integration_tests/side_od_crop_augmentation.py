@@ -18,14 +18,13 @@ class DetectionRandomSideCrop:
         uint8, float32
     """
 
-    def __init__(self, rel_min_x: float = 0, rel_max_x: float = 0.5, side: Optional[str] = None, p: float = 1.0):
+    def __init__(self, rel_x: float = 0.5, side: Optional[str] = None, p: float = 1.0):
         if side is not None:
             assert side in ["left", "right"], "side must be left or right"
 
-        assert rel_min_x >= 0 and rel_min_x <= 0.5, "rel_min_x must be between 0 and 0.5"
+        assert rel_x >= 0 and rel_x <= 0.5, "rel_min_x must be between 0 and 0.5"
 
-        self.rel_min_x = rel_min_x
-        self.rel_max_x = rel_max_x
+        self.rel_x = rel_x
         self.side = side
         self.p = p
 
@@ -36,8 +35,8 @@ class DetectionRandomSideCrop:
         if self.side is None:
             self.side = random.choice(["left", "right"])
 
-        rel_x = random.uniform(self.rel_min_x, self.rel_max_x)
-        abs_x = int(rel_x * img.shape[0])
+        random_rel_x = random.uniform(0, self.rel_x)
+        abs_x = int(random_rel_x * img.shape[0])
 
         if self.side == "left":
             img = img[abs_x:]
