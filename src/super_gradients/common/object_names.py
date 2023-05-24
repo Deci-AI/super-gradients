@@ -333,6 +333,8 @@ class Dataloaders:
     COCO2017_VAL_YOLOX = "coco2017_val_yolox"
     COCO2017_TRAIN_YOLO_NAS = "coco2017_train_yolo_nas"
     COCO2017_VAL_YOLO_NAS = "coco2017_val_yolo_nas"
+    COCO2017_TRAIN_YOLO_NAS_CUSTOM = "coco2017_train_yolo_nas_custom"
+    COCO2017_VAL_YOLO_NAS_CUSTOM = "coco2017_val_yolo_nas_custom"
     COCO2017_TRAIN_PPYOLOE = "coco2017_train_ppyoloe"
     COCO2017_VAL_PPYOLOE = "coco2017_val_ppyoloe"
     COCO2017_TRAIN_SSD_LITE_MOBILENET_V2 = "coco2017_train_ssd_lite_mobilenet_v2"

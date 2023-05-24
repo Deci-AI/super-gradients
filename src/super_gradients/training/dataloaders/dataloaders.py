@@ -3,43 +3,56 @@ from typing import Dict, Mapping
 import hydra
 import numpy as np
 import torch
-from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSampler
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, TensorDataset
 
 import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.registry.registry import register_dataloader, ALL_DATALOADERS
-from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
+from super_gradients.common.environment.cfg_utils import load_dataset_params
+from super_gradients.common.factories.collate_functions_factory import (
+    CollateFunctionsFactory,
+)
 from super_gradients.common.factories.datasets_factory import DatasetsFactory
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.common.object_names import Dataloaders
+from super_gradients.common.registry.registry import (
+    ALL_DATALOADERS,
+    register_dataloader,
+)
 from super_gradients.training.datasets import ImageNetDataset
 from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar10,
     Cifar100,
 )
-from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, RoboflowDetectionDataset, YoloDarknetFormatDetectionDataset
-from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
-    PascalVOCUnifiedDetectionTrainDataset,
-    PascalVOCDetectionDataset,
+from super_gradients.training.datasets.detection_datasets import (
+    COCODetectionDataset,
+    RoboflowDetectionDataset,
+    YoloDarknetFormatDetectionDataset,
 )
-from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
-from super_gradients.training.datasets.pose_estimation_datasets.rescoring_dataset import TrainRescoringDataset, ValTrainRescoringDataset
+from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
+    PascalVOCDetectionDataset,
+    PascalVOCUnifiedDetectionTrainDataset,
+)
+from super_gradients.training.datasets.pose_estimation_datasets import (
+    COCOKeypointsDataset,
+)
+from super_gradients.training.datasets.pose_estimation_datasets.rescoring_dataset import (
+    TrainRescoringDataset,
+    ValTrainRescoringDataset,
+)
 from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     CoCoSegmentationDataSet,
+    MapillaryDataset,
     PascalVOC2012SegmentationDataSet,
     PascalVOCAndAUGUnifiedDataset,
     SuperviselyPersonsDataset,
-    MapillaryDataset,
 )
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import (
-    wait_for_the_master,
     get_local_rank,
+    wait_for_the_master,
 )
 from super_gradients.training.utils.utils import override_default_params_without_nones
-from super_gradients.common.environment.cfg_utils import load_dataset_params
-
 
 logger = get_logger(__name__)
 
@@ -190,6 +203,28 @@ def coco2017_val_yolo_nas(dataset_params: Dict = None, dataloader_params: Dict =
         config_name="coco_detection_yolo_nas_dataset_params",
         dataset_cls=COCODetectionDataset,
         train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader(Dataloaders.COCO2017_VAL_YOLO_NAS_CUSTOM)
+def coco2017_val_yolo_nas_custom(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
+    return get_data_loader(
+        config_name="coco_detection_yolo_nas_dataset_params_custom",
+        dataset_cls=COCODetectionDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader(Dataloaders.COCO2017_TRAIN_YOLO_NAS_CUSTOM)
+def coco2017_train_yolo_nas_custom(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
+    return get_data_loader(
+        config_name="coco_detection_yolo_nas_dataset_params_custom",
+        dataset_cls=COCODetectionDataset,
+        train=True,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
     )
