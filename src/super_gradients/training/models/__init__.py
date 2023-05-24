@@ -123,7 +123,7 @@ from super_gradients.training.models.kd_modules.kd_module import KDModule
 import super_gradients.training.models.user_models as user_models
 from super_gradients.training.models.model_factory import get, get_model_name
 from super_gradients.training.models.arch_params_factory import get_arch_params
-from super_gradients.training.models.conversion import convert_to_onnx, convert_from_config
+from super_gradients.training.models.conversion import convert_to_coreml, convert_to_onnx, convert_from_config
 
 
 from super_gradients.common.object_names import Models
@@ -280,6 +280,7 @@ __all__ = [
     "get",
     "get_model_name",
     "get_arch_params",
+    "convert_to_coreml",
     "convert_to_onnx",
     "convert_from_config",
     "ARCHITECTURES",
