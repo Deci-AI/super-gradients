@@ -41,8 +41,13 @@ dataset_params:
 training_hyperparams:
   sg_logger: wandb_sg_logger
   sg_logger_params:
-    project_name: project_name, # W&B project name
-    save_checkpoints_remote: True,
-    save_tensorboard_remote: True,
-    save_logs_remote: True,
-    entity: <YOUR-ENTITY-NAME>,         # username or team name where you're sending runs
+    api_server: https://wandb.research.deci.ai
+    entity: super-gradients
+    launch_tensorboard: false
+    monitor_system: true
+    project_name: PoseEstimation
+    save_checkpoints_remote: true
+    save_logs_remote: true
+    save_tensorboard_remote: true
+    tb_files_user_prompt: false
+    tensorboard_port: null
