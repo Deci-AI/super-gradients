@@ -99,10 +99,10 @@ def arch_params_deprecated(func):
         _args = []
         if "arch_params" in kwargs:
             _arch_params = kwargs.get("arch_params", kwargs).to_dict()
-        elif isinstance(args[1], HpmStruct):
+        elif len(args) > 1 and isinstance(args[1], HpmStruct):
             _arch_params = args[1].to_dict()  # when called from inheritance
             _args.append(args[0])
-        elif isinstance(args[0], HpmStruct):
+        elif len(args) > 0 and isinstance(args[0], HpmStruct):
             _arch_params = args[0].to_dict()
         else:
             return func(*args, **kwargs)
@@ -115,8 +115,9 @@ def arch_params_deprecated(func):
                 _kwargs[param_name] = kwargs[param_name]
 
         logger.warning(
-            f"The function {func.__name__} with arch_params is deprecated and will be removed. "
-            f"Please use the same function but open the parameters from arch_params instead."
+            f"The {func.__qualname__} received `arch_params` argument which is deprecated and will be removed in next versions. "
+            f"Please change the signature of the __init__ method to take explicit list arguments instead: "
+            f"{func.__qualname__}({', '.join(_kwargs.keys())})"
         )
         return func(*_args, **_kwargs)
 
