@@ -239,12 +239,12 @@ class WandBSGLogger(BaseSGLogger):
 
         if self.save_logs_wandb:
             wandb.save(glob_str=self.experiment_log_path, base_path=self._local_dir, policy="now")
-    
+
     def _save_wandb_artifact(self, path):
         """Upload a file or a directory as a Weights & Biases Artifact.
         Note that this function can be called only after wandb.init()
-        
-        :param path: the local full path to the pth file to be uploaded 
+
+        :param path: the local full path to the pth file to be uploaded
         """
         if wandb.run is None:
             raise wandb.Error("An artifact cannot be uploaded without initializing a run using `wandb.init()`")
