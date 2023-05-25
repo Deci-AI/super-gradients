@@ -240,7 +240,7 @@ class WandBSGLogger(BaseSGLogger):
         if self.save_logs_wandb:
             wandb.save(glob_str=self.experiment_log_path, base_path=self._local_dir, policy="now")
     
-    def _save_artifact(self, path):
+    def _save_wandb_artifact(self, path):
         if wandb.run is None:
             raise wandb.Error("An artifact cannot be uploaded without initializing a run using `wandb.init()`")
         artifact = wandb.Artifact(f"{wandb.run.id}-checkpoint", type="model")
@@ -262,7 +262,7 @@ class WandBSGLogger(BaseSGLogger):
         if self.save_checkpoints_wandb:
             if self.s3_location_available:
                 self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
-            self._save_artifact(path)
+            self._save_wandb_artifact(path)
 
     def _get_tensorboard_file_name(self):
         try:
