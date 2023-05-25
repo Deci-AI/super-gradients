@@ -2,7 +2,7 @@ import collections
 import math
 import random
 from numbers import Number
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Optional, Union, Tuple, List, Sequence, Dict
 
 import cv2
 import numpy as np
@@ -11,36 +11,22 @@ from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories.data_formats_factory import (
-    ConcatenatedTensorFormatFactory,
-)
-from super_gradients.common.object_names import Processings, Transforms
+from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
-from super_gradients.training.datasets.data_formats import (
-    ConcatenatedTensorFormatConverter,
-)
-from super_gradients.training.datasets.data_formats.default_formats import (
-    LABEL_CXCYWH,
-    XYXY_LABEL,
-)
-from super_gradients.training.datasets.data_formats.formats import (
-    ConcatenatedTensorFormat,
-    filter_on_bboxes,
-)
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
+from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
+from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
+from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.transforms.utils import (
+    _rescale_and_pad_to_size,
+    _rescale_image,
+    _rescale_bboxes,
     _get_center_padding_coordinates,
     _pad_image,
-    _rescale_and_pad_to_size,
-    _rescale_bboxes,
-    _rescale_image,
-    _rescale_xyxy_bboxes,
     _shift_bboxes,
-)
-from super_gradients.training.utils.detection_utils import (
-    DetectionTargetsFormat,
-    adjust_box_anns,
-    get_mosaic_coordinate,
+    _rescale_xyxy_bboxes,
 )
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
@@ -1056,7 +1042,6 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         )
 
     def __call__(self, sample: dict) -> dict:
-
         # if self.input_dim not set yet, it will be set with first batch
         if self.input_dim is None:
             self._setup_input_dim_related_params(input_dim=sample["image"].shape[1:])
@@ -1093,15 +1078,14 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         return []
 
 
-
 @register_transform(Transforms.DetectionRandomSideCrop)
 class DetectionRandomSideCrop(DetectionTransform):
     """Preprocessing transform to crop in width an image and bboxes from the border.
-    
-    Note: It assumes the targets are in (X,Y,X,Y,label) format.
-    """    
 
-    def __init__(self, min_rel_width:float = 0.1, max_rel_width: float = 0.5,  p_side_right: float = 0.5, prob: float = 1.0):
+    Note: It assumes the targets are in (X,Y,X,Y,label) format.
+    """
+
+    def __init__(self, min_rel_width: float = 0.1, max_rel_width: float = 0.5, p_side_right: float = 0.5, prob: float = 1.0):
         """_summary_
 
         :param min_rel_width: maximum relative width of the resulting crop, defaults to 0.1
@@ -1109,7 +1093,7 @@ class DetectionRandomSideCrop(DetectionTransform):
         :param p_side_right: probability of keeping the right side when croping, defaults to 0.5
         :param prob: probability of applying the transformation, defaults to 1.0
         :raises AssertionError: _description_
-        """        
+        """
         assert 0 <= max_rel_width <= 1, f"`max_rel_x` value must be between 0 and 1, found {max_rel_width}"
         assert 0 <= max_rel_width <= 1, f"`min_rel_x` value must be between 0 and 1, found {min_rel_width}"
         assert 0.0 <= prob <= 1.0, f"Probability value must be between 0 and 1, found {prob}"
@@ -1120,7 +1104,7 @@ class DetectionRandomSideCrop(DetectionTransform):
         self.p_side_right = p_side_right
         self.p = prob
 
-    def __call__(self, sample: dict[str, np.array]) ->  dict[str, np.array]:
+    def __call__(self, sample: dict[str, np.array]) -> dict[str, np.array]:
         if random.random() > self.p:
             return sample
 
@@ -1145,7 +1129,6 @@ class DetectionRandomSideCrop(DetectionTransform):
             sample["crowd_target"] = crowd_targets
 
         return sample
-    
 
     def apply(self, img: np.ndarray, bboxes: np.ndarray) -> tuple(np.ndarray, np.ndarray):
         """Apply the transformation to the image and bounding boxes in (X,Y,X,Y) format.
@@ -1153,7 +1136,7 @@ class DetectionRandomSideCrop(DetectionTransform):
         :param img: Numpy array of image
         :param bboxes: Numpy array of bounding boxes in (X,Y,X,Y) format. Shape (N,4)
         :return: Tuple of Numpy array of cropped image and Numpy array of cropped bounding boxes
-        """        
+        """
         if random.random() > self.p:
             return img, bboxes
 
@@ -1164,9 +1147,9 @@ class DetectionRandomSideCrop(DetectionTransform):
 
         img = self._crop_image(img, abs_x, side)
         bboxes = self._crop_bboxes(bboxes, abs_x, side)
-  
+
         return img, bboxes
-    
+
     def _crop_image(self, img: np.ndarray, abs_x: int, side: str) -> np.ndarray:
         """Return the cropped image.
 
@@ -1174,14 +1157,14 @@ class DetectionRandomSideCrop(DetectionTransform):
         :param abx_x: Absolute value of the x coordinate to crop
         :param side: Side of the resulting crop. Either "right" or "left"
         :return: Numpy array of cropped image
-        """        
+        """
         if side == "right":
             output_img = img[abs_x:]
         else:
-            output_img =  img[:abs_x]
+            output_img = img[:abs_x]
         return output_img
-        
-    def _crop_bboxes(self, bboxes: np.ndarray, abs_x: int, side:str) -> np.ndarray:
+
+    def _crop_bboxes(self, bboxes: np.ndarray, abs_x: int, side: str) -> np.ndarray:
         """Return the bboxes that are inside the crop. In the case of intersection, the bbox is cropped.
 
         :param bboxes: Numpy array of bounding boxes in (X,Y,X,Y) format. Shape (N,4)
@@ -1199,10 +1182,10 @@ class DetectionRandomSideCrop(DetectionTransform):
             for bbox in bboxes:
                 # upper left corner is inside the crop (left side of the image)
                 if bbox[0] < abs_x:
-                    fixed_bboxes.append([bbox[0], bbox[1], min(bbox[2], abs_x), bbox[3] ])
+                    fixed_bboxes.append([bbox[0], bbox[1], min(bbox[2], abs_x), bbox[3]])
 
         return np.array(fixed_bboxes)
-    
+
 
 def get_aug_params(value: Union[tuple, float], center: float = 0) -> float:
     """
