@@ -310,6 +310,10 @@ class Models:
     POSE_RESCORING = "pose_rescoring_custom"
     POSE_RESCORING_COCO = "pose_rescoring_coco"
 
+    YOLO_NAS_POSE_S = "yolo_nas_pose_s"
+    YOLO_NAS_POSE_M = "yolo_nas_pose_m"
+    YOLO_NAS_POSE_L = "yolo_nas_pose_l"
+
 
 class ConcatenatedTensorFormats:
     XYXY_LABEL = "XYXY_LABEL"

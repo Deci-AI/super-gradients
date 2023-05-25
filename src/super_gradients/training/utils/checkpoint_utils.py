@@ -38,7 +38,9 @@ def transfer_weights(model: nn.Module, model_state_dict: Mapping[str, Tensor]) -
     for name, value in model_state_dict.items():
         try:
             model.load_state_dict(collections.OrderedDict([(name, value)]), strict=False)
+            logger.debug(f"Transferred weights for layer {name}")
         except RuntimeError:
+            logger.debug(f"Skipped layer {name}")
             pass
 
 
@@ -316,7 +318,8 @@ def _load_weights(architecture, model, pretrained_state_dict):
     if "ema_net" in pretrained_state_dict.keys():
         pretrained_state_dict["net"] = pretrained_state_dict["ema_net"]
     solver = _yolox_ckpt_solver if "yolox" in architecture else None
-    adaptive_load_state_dict(net=model, state_dict=pretrained_state_dict, strict=StrictLoad.NO_KEY_MATCHING, solver=solver)
+    # TODO: Set strict=StrictLoad.KEY_MATCHING to HACK THE SYSTEM AND FORCE LOAD THE WEIGHTS PARTIALLY
+    adaptive_load_state_dict(net=model, state_dict=pretrained_state_dict, strict=StrictLoad.KEY_MATCHING, solver=solver)
 
 
 def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pretrained_weights: str):

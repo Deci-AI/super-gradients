@@ -49,6 +49,11 @@ MODEL_URLS = {
     "yolo_nas_l_coco": "https://sghub.deci.ai/models/yolo_nas_l_coco.pth",
     "dekr_w32_no_dc_coco_pose": "https://sghub.deci.ai/models/coco2017_pose_dekr_w32_no_dc.pth",
     "pose_rescoring_coco_coco_pose": "https://sghub.deci.ai/models/pose_rescoring_coco_coco_pose.pth",
+    # These weights are here for transfer learning purpose for YOLO-NAS pose training
+    # We use detection weights as initialization for pose estimation model
+    "yolo_nas_pose_s_coco": "https://sghub.deci.ai/models/yolo_nas_s_coco.pth",
+    "yolo_nas_pose_m_coco": "https://sghub.deci.ai/models/yolo_nas_m_coco.pth",
+    "yolo_nas_pose_l_coco": "https://sghub.deci.ai/models/yolo_nas_l_coco.pth",
 }
 
 
