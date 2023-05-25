@@ -143,14 +143,3 @@ class YoloNASPose_L(YoloNASPose):
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(merged_arch_params)
-
-
-if __name__ == "__main__":
-    model = YoloNASPose_S(arch_params=HpmStruct())
-    outputs = model(torch.randn((1, 3, 640, 640)))
-
-    model = YoloNASPose_M(arch_params=HpmStruct())
-    outputs = model(torch.randn((1, 3, 640, 640)))
-
-    model = YoloNASPose_L(arch_params=HpmStruct())
-    outputs = model(torch.randn((1, 3, 640, 640)))
