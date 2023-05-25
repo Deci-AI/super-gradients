@@ -1042,6 +1042,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         )
 
     def __call__(self, sample: dict) -> dict:
+
         # if self.input_dim not set yet, it will be set with first batch
         if self.input_dim is None:
             self._setup_input_dim_related_params(input_dim=sample["image"].shape[1:])
