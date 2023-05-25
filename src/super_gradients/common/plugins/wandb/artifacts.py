@@ -7,8 +7,9 @@ except (ModuleNotFoundError, ImportError, NameError):
 
 
 def save_wandb_artifact(self, path):
-    """ upload and wandb Artifact.
+    """Upload a file or a directory as a Weights & Biases Artifact.
     Note that this function can be called only after wandb.init()
+    
     :param path: the local full path to the pth file to be uploaded 
     """
     if wandb.run is None:
