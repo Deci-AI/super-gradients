@@ -1,4 +1,7 @@
-import wandb
+try:
+    import wandb
+except (ModuleNotFoundError, ImportError, NameError):
+    pass  # no action or logging - this is normal in most cases
 
 from super_gradients.training.models.prediction_results import ImageDetectionPrediction, ImagesDetectionPrediction
 
