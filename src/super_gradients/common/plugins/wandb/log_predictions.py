@@ -39,5 +39,7 @@ def log_detection_results_to_wandb(prediction: ImagesDetectionPrediction, show_c
     :param prediction:        The model predictions (a `super_gradients.training.models.prediction_results.ImagesDetectionPrediction` object)
     :param show_confidence:   Whether to log confidence scores to Weights & Biases or not.
     """
+    if wandb.run is None:
+        raise wandb.Error("Images and bounding boxes cannot be visualized on Weights & Biases without initializing a run using `wandb.init()`")
     for prediction in prediction._images_prediction_lst:
         _visualize_image_detection_prediction_on_wandb(prediction=prediction, show_confidence=show_confidence)
