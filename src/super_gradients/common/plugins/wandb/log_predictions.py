@@ -6,7 +6,7 @@ except (ModuleNotFoundError, ImportError, NameError):
 from super_gradients.training.models.prediction_results import ImageDetectionPrediction, ImagesDetectionPrediction
 
 
-def visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPrediction, show_confidence: bool):
+def _visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPrediction, show_confidence: bool):
     boxes = []
     image = prediction.image.copy()
     height, width, _ = image.shape
@@ -40,4 +40,4 @@ def log_detection_results_to_wandb(prediction: ImagesDetectionPrediction, show_c
     :param show_confidence:   Whether to log confidence scores to Weights & Biases or not.
     """
     for prediction in prediction._images_prediction_lst:
-        visualize_image_detection_prediction_on_wandb(prediction=prediction, show_confidence=show_confidence)
+        _visualize_image_detection_prediction_on_wandb(prediction=prediction, show_confidence=show_confidence)
