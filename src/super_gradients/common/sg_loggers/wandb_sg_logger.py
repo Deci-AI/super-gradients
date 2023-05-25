@@ -240,8 +240,6 @@ class WandBSGLogger(BaseSGLogger):
 
         :param path: the local full path to the pth file to be uploaded
         """
-        if wandb.run is None:
-            raise wandb.Error("An artifact cannot be uploaded without initializing a run using `wandb.init()`")
         artifact = wandb.Artifact(f"{wandb.run.id}-checkpoint", type="model")
         if os.path.isdir(path):
             artifact.add_dir(path)
