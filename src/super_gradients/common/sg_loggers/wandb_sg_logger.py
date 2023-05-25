@@ -14,8 +14,6 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 
-from super_gradients.common.plugins.wandb import save_wandb_artifact
-
 logger = get_logger(__name__)
 
 try:
@@ -241,6 +239,21 @@ class WandBSGLogger(BaseSGLogger):
 
         if self.save_logs_wandb:
             wandb.save(glob_str=self.experiment_log_path, base_path=self._local_dir, policy="now")
+    
+    def _save_wandb_artifact(self, path):
+        """Upload a file or a directory as a Weights & Biases Artifact.
+        Note that this function can be called only after wandb.init()
+        
+        :param path: the local full path to the pth file to be uploaded 
+        """
+        if wandb.run is None:
+            raise wandb.Error("An artifact cannot be uploaded without initializing a run using `wandb.init()`")
+        artifact = wandb.Artifact(f"{wandb.run.id}-checkpoint", type="model")
+        if os.path.isdir(path):
+            artifact.add_dir(path)
+        elif os.path.isfile(path):
+            artifact.add_file(path)
+        wandb.log_artifact(artifact)
 
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = 0):
@@ -254,7 +267,7 @@ class WandBSGLogger(BaseSGLogger):
         if self.save_checkpoints_wandb:
             if self.s3_location_available:
                 self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
-            save_wandb_artifact(path)
+            self._save_wandb_artifact(path)
 
     def _get_tensorboard_file_name(self):
         try:
