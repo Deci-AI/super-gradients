@@ -62,7 +62,9 @@ class TestDetectionUtils(unittest.TestCase):
 
         for met, ref_val in zip(metrics, ref_values):
             met.reset()
-            for i, (imgs, targets) in enumerate(valid_loader):
+            for i, batch in enumerate(valid_loader):
+                # Batch may contain extra data (crowd targets) that are not used
+                imgs, targets = batch[:2]
                 if i > 5:
                     break
                 imgs = core_utils.tensor_container_to_device(imgs, self.device)
