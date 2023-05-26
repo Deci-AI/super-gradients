@@ -28,7 +28,8 @@ class TestDetectionUtils(unittest.TestCase):
         post_prediction_callback = YoloPostPredictionCallback()
 
         # Simulate one iteration of validation subset
-        batch_i, (imgs, targets) = 0, next(iter(valid_loader))
+        batch_i, batch = 0, next(iter(valid_loader))
+        imgs, targets = batch[:2]
         imgs = core_utils.tensor_container_to_device(imgs, self.device)
         targets = core_utils.tensor_container_to_device(targets, self.device)
         output = self.model(imgs)
