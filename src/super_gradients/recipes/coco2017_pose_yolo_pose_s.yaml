@@ -33,12 +33,14 @@ checkpoint_params:
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 32
+    batch_size: 48
 
   val_dataloader_params:
-    batch_size: 32
+    batch_size: 48
 
 training_hyperparams:
+  max_epochs: 350
+
   sg_logger: wandb_sg_logger
   sg_logger_params:
     api_server: https://wandb.research.deci.ai
