@@ -3,6 +3,7 @@ from typing import Dict, Mapping
 import hydra
 import numpy as np
 import torch
+from omegaconf import OmegaConf
 from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSampler
 
 import super_gradients
@@ -81,14 +82,24 @@ def get_data_loader(config_name: str, dataset_cls: object, train: bool, dataset_
     return dataloader
 
 
-def _process_dataset_params(cfg, dataset_params, train):
-    default_dataset_params = cfg.train_dataset_params if train else cfg.val_dataset_params
-    default_dataset_params = hydra.utils.instantiate(default_dataset_params)
-    for key, val in default_dataset_params.items():
-        if key not in dataset_params.keys() or dataset_params[key] is None:
-            dataset_params[key] = val
+def _process_dataset_params(cfg, dataset_params, train: bool):
+    # Due to some internal details of Hydra, we need to merge the dataset_params with the default dataset params while retaining the
+    # top-level config structure.
+    # We can't do:
+    # >>> default_dataset_params = cfg.train_dataset_params if train else cfg.val_dataset_params
+    # because it will break interpolation down the road.
+    if train:
+        cfg.train_dataset_params = OmegaConf.merge(cfg.train_dataset_params, dataset_params)
+    else:
+        cfg.val_dataset_params = OmegaConf.merge(cfg.val_dataset_params, dataset_params)
 
-    return dataset_params
+    # default_dataset_params = cfg.train_dataset_params if train else cfg.val_dataset_params
+    # default_dataset_params = hydra.utils.instantiate(default_dataset_params)
+    # for key, val in default_dataset_params.items():
+    #     if key not in dataset_params.keys() or dataset_params[key] is None:
+    #         dataset_params[key] = val
+
+    return hydra.utils.instantiate(cfg.train_dataset_params if train else cfg.val_dataset_params)
 
 
 def _process_dataloader_params(cfg, dataloader_params, dataset, train):
