@@ -72,8 +72,7 @@ class TestDetectionUtils(unittest.TestCase):
                 met.update(output, targets, device=self.device, inputs=imgs)
             results = met.compute()
             values = np.array([x.item() for x in list(results.values())])
-            print(values)
-            # self.assertTrue(np.allclose(values, ref_val))
+            self.assertTrue(np.allclose(values, ref_val, rtol=1e-3, atol=1e-4))
 
 
 if __name__ == "__main__":
