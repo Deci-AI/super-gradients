@@ -23,7 +23,7 @@ class TestDetectionUtils(unittest.TestCase):
     @unittest.skipIf(not is_data_available(), "run only when /data is available")
     def test_visualization(self):
 
-        valid_loader = coco2017_val(dataloader_params={"batch_size": 16})
+        valid_loader = coco2017_val(dataloader_params={"batch_size": 16, "num_workers": 0})
         trainer = Trainer("visualization_test")
         post_prediction_callback = YoloPostPredictionCallback()
 
@@ -47,7 +47,7 @@ class TestDetectionUtils(unittest.TestCase):
     @unittest.skipIf(not is_data_available(), "run only when /data is available")
     def test_detection_metrics(self):
 
-        valid_loader = coco2017_val(dataset_params={"with_crowd": False}, dataloader_params={"batch_size": 16})
+        valid_loader = coco2017_val(dataloader_params={"batch_size": 16, "num_workers": 0})
 
         metrics = [
             DetectionMetrics(num_cls=80, post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True),
@@ -56,16 +56,14 @@ class TestDetectionUtils(unittest.TestCase):
         ]
 
         ref_values = [
-            np.array([0.24662896, 0.4024832, 0.34590888, 0.28435066]),
-            np.array([0.34606069, 0.56745648, 0.50594932, 0.40323338]),
+            np.array([0.2465609, 0.40292838, 0.34644768, 0.28437626]),
+            np.array([0.34623039, 0.56854934, 0.50769645, 0.40367964]),
             np.array([0.0, 0.0, 0.0, 0.0]),
         ]
 
         for met, ref_val in zip(metrics, ref_values):
             met.reset()
-            for i, batch in enumerate(valid_loader):
-                # Batch may contain extra data (crowd targets) that are not used
-                imgs, targets = batch[:2]
+            for i, (imgs, targets, extras) in enumerate(valid_loader):
                 if i > 5:
                     break
                 imgs = core_utils.tensor_container_to_device(imgs, self.device)
