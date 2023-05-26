@@ -47,7 +47,7 @@ class TestDetectionUtils(unittest.TestCase):
     @unittest.skipIf(not is_data_available(), "run only when /data is available")
     def test_detection_metrics(self):
 
-        valid_loader = coco2017_val(dataloader_params={"batch_size": 16})
+        valid_loader = coco2017_val(dataset_params={"with_crowd": False}, dataloader_params={"batch_size": 16})
 
         metrics = [
             DetectionMetrics(num_cls=80, post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True),
