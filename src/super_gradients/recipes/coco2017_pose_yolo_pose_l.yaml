@@ -40,6 +40,10 @@ dataset_params:
 
 training_hyperparams:
   max_epochs: 350
+  initial_lr: 5e-3
+  zero_weight_decay_on_bias_and_bn: True
+  optimizer_params:
+    weight_decay: 0.00001
 
   sg_logger: wandb_sg_logger
   sg_logger_params:
