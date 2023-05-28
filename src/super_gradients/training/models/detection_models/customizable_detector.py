@@ -6,7 +6,9 @@ A base for a detection network built according to the following scheme:
  * each module defines out_channels property on construction
 """
 from typing import Union, Optional, List
+from functools import lru_cache
 
+import torch
 from torch import nn
 from omegaconf import DictConfig
 
@@ -14,7 +16,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.module_interfaces import SupportsReplaceNumClasses
 from super_gradients.modules.head_replacement_utils import replace_num_classes_with_random_weights
-from super_gradients.training.utils.utils import HpmStruct
+from super_gradients.training.utils.utils import HpmStruct, arch_params_deprecated
 from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
 from super_gradients.training.models.prediction_results import ImagesDetectionPrediction
@@ -31,6 +33,7 @@ class CustomizableDetector(SgModule):
     Modules should follow the interface of BaseDetectionModule
     """
 
+    @arch_params_deprecated
     def __init__(
         self,
         backbone: Union[str, dict, HpmStruct, DictConfig],
@@ -136,12 +139,14 @@ class CustomizableDetector(SgModule):
         self._default_nms_iou = iou or self._default_nms_iou
         self._default_nms_conf = conf or self._default_nms_conf
 
-    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None) -> DetectionPipeline:
+    @lru_cache(maxsize=1)
+    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
@@ -150,32 +155,39 @@ class CustomizableDetector(SgModule):
 
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
-
         pipeline = DetectionPipeline(
             model=self,
             image_processor=self._image_processor,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
+            fuse_model=fuse_model,
         )
         return pipeline
 
-    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> ImagesDetectionPrediction:
+    def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
         :param images:  Images to predict.
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
         return pipeline(images)  # type: ignore
 
-    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None):
+    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
         """Predict using webcam.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf)
+        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
         pipeline.predict_webcam()
+
+    def train(self, mode: bool = True):
+        self._get_pipeline.cache_clear()
+        torch.cuda.empty_cache()
+        return super().train(mode)

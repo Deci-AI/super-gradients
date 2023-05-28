@@ -66,7 +66,7 @@ class ImageDetectionPrediction(ImagePrediction):
         image = self.image.copy()
         color_mapping = color_mapping or generate_color_mapping(len(self.class_names))
 
-        for pred_i in range(len(self.prediction)):
+        for pred_i in np.argsort(self.prediction.confidence):
 
             class_id = int(self.prediction.labels[pred_i])
             score = "" if not show_confidence else str(round(self.prediction.confidence[pred_i], 2))
