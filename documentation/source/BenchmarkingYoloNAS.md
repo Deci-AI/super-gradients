@@ -41,7 +41,7 @@ trtexec --fp16 --int8 --onnx=your_yolonas_qat_model. onnx.
 ```
 ## Step 3: View Model Benchmark Results
 
-Once running:
+After running:
 ```commandline
 trtexec --fp16 --int8 --avgRuns=100 --onnx=your_yolonas_qat_model.onnx
 ```
