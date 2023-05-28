@@ -1,9 +1,10 @@
 # Benchmarking YoloNAS
 ## Introduction:
 
-YoloNAS is a leading object detection architecture that combines accuracy and efficiency. Using quantization-aware training (QAT), YoloNAS models can be optimized for resource-constrained devices.
+YoloNAS is a leading object detection architecture that combines accuracy and efficiency. Using [post training quantization (PTQ) and quantization-aware training (QAT)](ptq_qat.md) YoloNAS models can be optimized for resource-constrained devices.
 However, to fully tap into its potential, it is crucial to know how to export the quantized model to the INT8 TensorRT (TRT) engine.
-In this blog, we emphasize the significance of this step and provide a concise guide to efficiently exporting a quantized YoloNAS model to the INT8 TRT engine.
+
+In this tutorial, we emphasize the significance of this step and provide a concise guide to efficiently exporting a quantized YoloNAS model to the INT8 TRT engine.
 Doing so teaches us how to properly benchmark YoloNAS and understand its full potential.
 
 ## Step 1: Export YoloNAS to ONNX
@@ -16,8 +17,8 @@ Again, nothing to worry about if you have quantized your model with PTQ/QAT with
    
 There are plenty of guides on how to perform PTQ/QAT with SG:
 - [Quantization-aware fine-tuning YoloNAS on custom dataset notebook](https://colab.research.google.com/drive/1yHrHkUR1X2u2FjjvNMfUbSXTkUul6o1P?usp=sharing)
-- [QA/PTQ YoloNAS with configuration files](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/qat_ptq_yolo_nas.md)
-- [QA/PTQ](https://github.com/Deci-AI/super-gradients/blob/master/documentation/source/ptq_qat.md)
+- [QA/PTQ YoloNAS with configuration files](qat_ptq_yolo_nas.md)
+- [QA/PTQ](ptq_qat.md)
 
 Suppose we ran PTQ/QAT, then our PTQ/QAT checkpoints have been exported to our checkpoints directory.
 If we plug them into [netron](https://netron.app), we can see that new blocks that were not a part of the original network were introduced: the **Quantize/Dequantize** layers - 
@@ -27,11 +28,11 @@ If we plug them into [netron](https://netron.app), we can see that new blocks th
 </div>
 
 This is expected and an excellent way to verify that our model is ready to be converted to Int8 using Nvidia's TesnorRT.
-As stated earlier - that inference time in Pytorch is slower with such blocks - but will be faster once converted to the TRT Engine.
+As stated earlier - inference time in Pytorch is slower with such blocks - but will be faster once converted to the TRT Engine.
 
 ## Step 2: Create TRT Engine
 First, please make sure to [install Nvidia's TensorRT](https://developer.nvidia.com/tensorrt-getting-started).
-TensorRT version >= 8.4 is required.
+TensorRT version `>= 8.4` is required.
 We can now use these ONNX files to deploy our newly trained YoloNAS models to production. When building the TRT engine, it is essential to specify that we convert to Int8 (the fake quantized layers in our models will be adapted accordingly); this can be done by running: `trtexec --fp16 --int8 --onnx=your_yolonas_qat_model. onnx.
 ## Step 3: View Model Benchmark Results
 
