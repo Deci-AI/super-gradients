@@ -15,7 +15,7 @@ architecture: yolo_nas_pose_l
 multi_gpu: DDP
 num_gpus: 8
 
-experiment_suffix: ""
+experiment_suffix: "_interpolate"
 experiment_name: coco2017_${architecture}${experiment_suffix}
 
 ckpt_root_dir:

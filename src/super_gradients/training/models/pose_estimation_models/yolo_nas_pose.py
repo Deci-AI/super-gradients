@@ -34,7 +34,8 @@ class YoloNASHead(BaseDetectionModule):
         self.num_classes_with_center = num_classes + 1
         self.channels_per_kpt = channels_per_kpt
         self.stem = ConvBNAct(sum(in_channels), inter_channels, kernel_size=1, stride=1, padding=0, bias=False, activation_type=activation_type)
-        self.heatmap = self.build_heatmap_path(inter_channels, activation_type, num_blocks, self.num_classes_with_center, upsample_factor)
+        self.heatmap = self.build_heatmap_path(inter_channels, activation_type, num_blocks, self.num_classes_with_center)
+        self.upsample_factor = upsample_factor
 
         self.offset_transition = ConvBNAct(
             inter_channels, channels_per_kpt * num_classes, kernel_size=3, stride=1, padding=1, bias=False, activation_type=activation_type
@@ -42,7 +43,7 @@ class YoloNASHead(BaseDetectionModule):
 
         offset_modules = []
         for _ in range(num_classes):
-            offset_modules.append(self.build_offset_path(inter_channels, activation_type, num_blocks, channels_per_kpt, upsample_factor))
+            offset_modules.append(self.build_offset_path(inter_channels, activation_type, num_blocks, channels_per_kpt))
         self.offset_modules = nn.ModuleList(offset_modules)
 
     def forward(self, feats: Tuple[Tensor]):
@@ -50,6 +51,7 @@ class YoloNASHead(BaseDetectionModule):
         feats = [feats[0]] + [torch.nn.functional.interpolate(x, size=biggest_size, mode="bilinear", align_corners=False) for x in feats[1:]]
         feats = torch.cat(feats, dim=1)
         feats = self.stem(feats)
+        feats = torch.nn.functional.interpolate(feats, scale_factor=self.upsample_factor, mode="bilinear", align_corners=False)
 
         heatmap = self.heatmap(feats)
         offset_features = self.offset_transition(feats)
@@ -63,7 +65,7 @@ class YoloNASHead(BaseDetectionModule):
         offsets = torch.cat(final_offset, dim=1)
         return heatmap, offsets
 
-    def build_heatmap_path(self, inter_channels, activation_type, num_blocks, num_joints, upsample_factor):
+    def build_heatmap_path(self, inter_channels, activation_type, num_blocks, num_joints):
         blocks = [
             (
                 f"conv_bn_act_{block_index:02d}",
@@ -71,10 +73,10 @@ class YoloNASHead(BaseDetectionModule):
             )
             for block_index in range(num_blocks)
         ]
-        blocks += [("final", nn.Conv2d(inter_channels, num_joints * (2**upsample_factor), kernel_size=1)), ("shuffle", nn.PixelShuffle(upsample_factor))]
+        blocks += [("final", nn.Conv2d(inter_channels, num_joints, kernel_size=1))]
         return nn.Sequential(collections.OrderedDict(blocks))
 
-    def build_offset_path(self, inter_channels, activation_type, num_blocks, channels_per_kpt, upsample_factor):
+    def build_offset_path(self, inter_channels, activation_type, num_blocks, channels_per_kpt):
         blocks = []
         blocks.extend(
             [
@@ -86,7 +88,7 @@ class YoloNASHead(BaseDetectionModule):
             ]
         )
 
-        blocks += [("final", nn.Conv2d(channels_per_kpt, 2 * (2**upsample_factor), kernel_size=1)), ("shuffle", nn.PixelShuffle(upsample_factor))]
+        blocks += [("final", nn.Conv2d(channels_per_kpt, 2, kernel_size=1))]
         return nn.Sequential(collections.OrderedDict(blocks))
 
     @property
