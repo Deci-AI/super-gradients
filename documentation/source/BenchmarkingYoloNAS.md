@@ -1,4 +1,5 @@
 # Benchmarking YoloNAS
+TLDR: Getting 10FPS for YoloNAS on your 4090 and feeling cheated? Read this carefully!
 ## Introduction:
 
 YoloNAS is a leading object detection architecture that combines accuracy and efficiency. Using [post training quantization (PTQ) and quantization-aware training (QAT)](ptq_qat.md) YoloNAS models can be optimized for resource-constrained devices.
