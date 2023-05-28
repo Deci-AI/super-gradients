@@ -35,7 +35,10 @@ As stated earlier - inference time in Pytorch is slower with such blocks - but w
 ## Step 2: Create TRT Engine
 First, please make sure to [install Nvidia's TensorRT](https://developer.nvidia.com/tensorrt-getting-started).
 TensorRT version `>= 8.4` is required.
-We can now use these ONNX files to deploy our newly trained YoloNAS models to production. When building the TRT engine, it is essential to specify that we convert to Int8 (the fake quantized layers in our models will be adapted accordingly); this can be done by running: `trtexec --fp16 --int8 --onnx=your_yolonas_qat_model. onnx.
+We can now use these ONNX files to deploy our newly trained YoloNAS models to production. When building the TRT engine, it is essential to specify that we convert to Int8 (the fake quantized layers in our models will be adapted accordingly); this can be done by running:
+```commandline
+trtexec --fp16 --int8 --onnx=your_yolonas_qat_model. onnx.
+```
 ## Step 3: View Model Benchmark Results
 
 Once running:
