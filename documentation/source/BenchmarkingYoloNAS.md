@@ -10,11 +10,13 @@ Doing so teaches us how to properly benchmark YoloNAS and understand its full po
 ## Step 1: Export YoloNAS to ONNX
 
 The first step is to export our YoloNAS model to ONNX correctly. Two actions must be taken before we export our model to onnx:
-1. We need to replace our layers with "fake quantized" ones - this happens when we perform post-training quantization or quantization-aware training with SG.
-So nothing to worry about if you performed PTQ/QAT with SG and hold your newly exported ONNX checkpoint. Beware that inference time in Pytorch is slower with such blocks - but will be faster once converted to the TRT Engine.
-2. We must call `model.prep_model_for_conversion` - this is essential as YoloNAS incorporates QARepVGG blocks. Without this call, the RepVGG branches will not be fused, and our model's speed will decrease significantly! This is true for the Pytorch model as well as the compiled TRT Engine!
-Again, nothing to worry about if you have quantized your model with PTQ/QAT with SG, as this is done under the hood before exporting the ONNX checkpoints.
-   
+1. We must call `model.prep_model_for_conversion` - this is essential as YoloNAS incorporates QARepVGG blocks. Without this call, the RepVGG branches will not be fused, and our model's speed will decrease significantly! This is true for the Pytorch model as well as the compiled TRT Engine!
+Nothing to worry about if you have quantized your model with PTQ/QAT with SG, as this is done under the hood before exporting the ONNX checkpoints.
+  
+
+2. We need to replace our layers with "fake quantized" ones - this happens when we perform post-training quantization or quantization-aware training with SG.
+Again, nothing to worry about if you performed PTQ/QAT with SG and hold your newly exported ONNX checkpoint. Beware that inference time in Pytorch is slower with such blocks - but will be faster once converted to the TRT Engine.
+ 
 There are plenty of guides on how to perform PTQ/QAT with SG:
 - [Quantization-aware fine-tuning YoloNAS on custom dataset notebook](https://colab.research.google.com/drive/1yHrHkUR1X2u2FjjvNMfUbSXTkUul6o1P?usp=sharing)
 - [QA/PTQ YoloNAS with configuration files](qat_ptq_yolo_nas.md)
@@ -38,7 +40,7 @@ We can now use these ONNX files to deploy our newly trained YoloNAS models to pr
 
 Once running:
 ```commandline
-trtexec --fp16 --int8 --avgRuns=100 --onnx=your_yolonas_qat_model.onnx.
+trtexec --fp16 --int8 --avgRuns=100 --onnx=your_yolonas_qat_model.onnx
 ```
 your screen will look somewhat similar to the screenshot below: 
 <div>
