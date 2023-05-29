@@ -46,6 +46,7 @@ class WandBSGLogger(BaseSGLogger):
         api_server: Optional[str] = None,
         save_code: bool = False,
         monitor_system: bool = None,
+        save_checkpoint_as_artifact: bool = False,
         **kwargs,
     ):
         """
@@ -63,6 +64,7 @@ class WandBSGLogger(BaseSGLogger):
         :param save_logs_remote:        Saves log files in s3.
         :param monitor_system:          Not Available for WandB logger. Save the system statistics (GPU utilization, CPU, ...) in the tensorboard
         :param save_code:               Save current code to wandb
+        :save_checkpoint_as_artifact:   Save model checkpoint using Weights & Biases Artifact. Note that setting this option to True would save model checkpoints every epoch as a versioned artifact, which will result in use of increased storage usage on Weights & Biases.
         """
         if monitor_system is not None:
             logger.warning("monitor_system not available on WandBSGLogger. To remove this warning, please don't set monitor_system in your logger parameters")
@@ -110,6 +112,7 @@ class WandBSGLogger(BaseSGLogger):
         self.save_checkpoints_wandb = save_checkpoints_remote
         self.save_tensorboard_wandb = save_tensorboard_remote
         self.save_logs_wandb = save_logs_remote
+        self.save_checkpoint_as_artifact = save_checkpoint_as_artifact
 
     @multi_process_safe
     def _save_code_lines(self):
@@ -259,7 +262,10 @@ class WandBSGLogger(BaseSGLogger):
         if self.save_checkpoints_wandb:
             if self.s3_location_available:
                 self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
-            self._save_wandb_artifact(path)
+            if self.save_checkpoint_as_artifact:
+                self._save_wandb_artifact(path)
+            else:
+                wandb.save(glob_str=path, base_path=self._local_dir, policy="now")
 
     def _get_tensorboard_file_name(self):
         try:
