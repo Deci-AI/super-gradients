@@ -57,6 +57,18 @@ class DetectionDatasetTest(unittest.TestCase):
         self.assertEqual(batch[0].shape[2], 512)
         self.assertEqual(batch[0].shape[3], 512)
 
+    def test_coco_detection_dataset_override_image_size_single_scalar(self):
+        train_dataset_params = {
+            "data_dir": self.mini_coco_data_dir,
+            "input_dim": 384,
+        }
+        train_dataloader_params = {"num_workers": 0}
+        dataloader = coco2017_train_yolo_nas(dataset_params=train_dataset_params, dataloader_params=train_dataloader_params)
+        batch = next(iter(dataloader))
+        print(batch[0].shape)
+        self.assertEqual(batch[0].shape[2], 384)
+        self.assertEqual(batch[0].shape[3], 384)
+
 
 if __name__ == "__main__":
     unittest.main()
