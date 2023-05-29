@@ -3,7 +3,9 @@ import tarfile
 import re
 import math
 import time
-from functools import lru_cache
+
+import inspect
+from functools import lru_cache, wraps
 from pathlib import Path
 from typing import Mapping, Optional, Tuple, Union, List, Dict, Any, Iterable
 from zipfile import ZipFile
@@ -82,6 +84,44 @@ class WrappedModel(nn.Module):
 
     def forward(self, x):
         return self.module(x)
+
+
+def arch_params_deprecated(func):
+    """
+    Since initialization of arch_params is deprecated and will be removed, this decorator will be used to wrap the _init_
+    function of some models. It will unwrap the parameters of the function and will log a warning.
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        func_args = inspect.getfullargspec(func).args
+        _args = []
+        if "arch_params" in kwargs:
+            _arch_params = kwargs.get("arch_params", kwargs).to_dict()
+        elif len(args) > 1 and isinstance(args[1], HpmStruct):
+            _arch_params = args[1].to_dict()  # when called from inheritance
+            _args.append(args[0])
+        elif len(args) > 0 and isinstance(args[0], HpmStruct):
+            _arch_params = args[0].to_dict()
+        else:
+            return func(*args, **kwargs)
+
+        _kwargs = dict()
+        for param_name in func_args:
+            if param_name in _arch_params:
+                _kwargs[param_name] = _arch_params[param_name]
+            if param_name in kwargs:
+                _kwargs[param_name] = kwargs[param_name]
+
+        logger.warning(
+            f"The {func.__qualname__} received `arch_params` argument which is deprecated and will be removed in next versions. "
+            f"Please change the signature of the __init__ method to take explicit list arguments instead: "
+            f"{func.__qualname__}({', '.join(_kwargs.keys())})"
+        )
+        return func(*_args, **_kwargs)
+
+    return wrapper
 
 
 class Timer:
