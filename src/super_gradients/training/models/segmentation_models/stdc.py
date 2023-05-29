@@ -584,6 +584,7 @@ class STDCSegmentationBase(SgModule):
 
 
 @register_model(Models.STDC_CUSTOM)
+@register_model("custom_stdc")  # deprecated naming convention. will be dropped in v4
 class CustomSTDCSegmentation(STDCSegmentationBase):
     """
     Fully customized STDC Segmentation factory module.
