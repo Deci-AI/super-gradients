@@ -120,8 +120,12 @@ ________________________________________________________________________________
 pip install super-gradients
 ```
 
-## What's New - Version 3.1.1 (May 3rd)
+## What's New
 __________________________________________________________________________________________________________
+30th of May
+* [Quantization Aware Training YoloNAS on Custom Dataset](https://colab.research.google.com/drive/1yHrHkUR1X2u2FjjvNMfUbSXTkUul6o1P?usp=sharing)
+
+Version 3.1.1 (May 3rd)
 * [YOLO-NAS](https://bit.ly/41WeNPZ)
 * New [predict function](https://bit.ly/3oZfaea) (predict on any image, video, url, path, stream)
 * [RoboFlow100](https://bit.ly/40YOJ5z) datasets integration 
@@ -204,9 +208,6 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
  <td width="500">
 <a target="_blank" href="https://bit.ly/3qKx9m8"><img src="./docs/assets/SG_img/colab_logo.png" /> Segmentation Quick Start</a>
  </td>
- <td width="200">
-<a target="_blank" href="https://bit.ly/3qJjxYq"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source </a>
- </td>
 </table>
  </br></br>
 
@@ -216,9 +217,6 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 <table class="tfo-notebook-buttons" align="left">
  <td width="500">
 <a target="_blank" href="https://bit.ly/3qKwMbe"><img src="./docs/assets/SG_img/colab_logo.png" /> Segmentation Transfer Learning</a>
- </td>
- <td width="200">
-<a target="_blank" href="https://bit.ly/3ShJlXn"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
  </br></br>
@@ -230,9 +228,6 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
  <td width="500"> 
 <a target="_blank" href="https://bit.ly/3QQBVJp"><img src="./docs/assets/SG_img/colab_logo.png" /> Segmentation How to Connect Custom Dataset</a>
    </td>
- <td width="200">
- <a target="_blank" href="https://bit.ly/3Us2WGi"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
- </td>
 </table>
  </br></br>
 
@@ -246,9 +241,6 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
  <td width="500">   
 <a target="_blank" href="https://bit.ly/3SkMohx"><img src="./docs/assets/SG_img/colab_logo.png" /> Detection Transfer Learning</a>
    </td>
- <td width="200">   
-<a target="_blank" href="https://bit.ly/3DF8siG"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
- </td>
 </table>
  </br></br>
 
@@ -257,9 +249,6 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
  <td width="500">  
   <a target="_blank" href="https://bit.ly/3dqDlg3"><img src="./docs/assets/SG_img/colab_logo.png" /> Detection How to Connect Custom Dataset</a>
   </td>
- <td width="200">      
-<a target="_blank" href="https://bit.ly/3xBlcmq"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
- </td>
 </table>
  </br></br>
 
@@ -272,9 +261,6 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
  <td width="500">    
 <a target="_blank" href="https://bit.ly/3f4mssd"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Predict Using Pre-trained Model</a>
   </td>
- <td width="200">   
-<a target="_blank" href="https://bit.ly/3Sf59Tr"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
- </td>
 </table>
  </br></br>
 
@@ -287,9 +273,14 @@ Quantization involves representing weights and biases in lower precision, result
  <td width=“500”>
    <a target="_blank" href="http://bit.ly/3KrN6an"><img src="./docs/assets/SG_img/colab_logo.png" /> Post Training Quantization and Quantization Aware Training</a>
   </td>
- <td width=“200”>
-<a target="_blank" href="http://bit.ly/3nUGzxb"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
- </td>
+</table>
+
+### Quantization Aware Training YoloNAS on Custom Dataset
+This tutorial provides a comprehensive guide on how to fine-tune a YoloNAS model using a custom dataset. It also demonstrates how to utilize SG's QAT (Quantization-Aware Training) support. Additionally, it offers step-by-step instructions on deploying the model and performing benchmarking.
+  <table class=“tfo-notebook-buttons” align=“left”>
+ <td width=“500”>
+   <a target="_blank" href="https://bit.ly/434ozAd"><img src="./docs/assets/SG_img/colab_logo.png" /> Quantization Aware Training YoloNAS on Custom Dataset</a>
+  </td>
 </table>
 
 ### Knowledge Distillation Training
@@ -299,9 +290,6 @@ Learn more about SuperGradients knowledge distillation training with our pre-tra
  <td width="500">   
    <a target="_blank" href="https://bit.ly/3BLA5oR"><img src="./docs/assets/SG_img/colab_logo.png" /> Knowledge Distillation Training</a>
   </td>
- <td width="200">   
-<a target="_blank" href="https://bit.ly/3S9UlG4"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
- </td>
 </table>
  </br></br>
 
@@ -315,9 +303,6 @@ Recipes support out of the box every model, metric or loss that is implemented i
  <td width="500">   
    <a target="_blank" href="https://bit.ly/3UiY5ab"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Use Recipes</a>
   </td>
- <td width="200">  
-<a target="_blank" href="https://bit.ly/3QSrHbm"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
- </td>
 </table>
  </br></br>
 
