@@ -113,7 +113,7 @@ class WandBSGLogger(BaseSGLogger):
                 "A Weights & Biases run was initialized before initializing `WandBSGLogger`. "
                 "This means that `super-gradients` cannot control the run ID to which this session will be logged."
             )
-            logger.warning(f"In order to resume this run please call `wand.init(id={wandb.run.id}, resume='must')` before reinitializing `WandBSGLogger`.")
+            logger.warning(f"In order to resume this run please call `wandb.init(id={wandb.run.id}, resume='must')` before reinitializing `WandBSGLogger`.")
             run = wandb.run
 
         if save_code:
