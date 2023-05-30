@@ -112,7 +112,7 @@ class WandBSGLogger(BaseSGLogger):
             )
             wandb.termward(f"In order to resume this run please call `wand.init(id={wandb.run.id}, resume='must')` before reinitializing `WandBSGLogger`.")
             run = wandb.run
-        
+
         if save_code:
             self._save_code_lines()
 
