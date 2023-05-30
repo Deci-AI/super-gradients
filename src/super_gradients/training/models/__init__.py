@@ -1,3 +1,5 @@
+import warnings
+
 from .sg_module import SgModule
 
 # Classification models
@@ -33,6 +35,7 @@ from super_gradients.training.models.classification_models.preact_resnet import 
     PreActResNet152,
 )
 from super_gradients.training.models.classification_models.resnet import (
+    BasicResNetBlock,
     ResNet,
     ResNet18,
     ResNet34,
@@ -128,6 +131,38 @@ from super_gradients.training.models.conversion import convert_to_coreml, conver
 
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import ARCHITECTURES
+
+from super_gradients.training.utils import make_divisible as _make_divisible_current_version
+
+
+def make_deprecated(func, reason):
+    def inner(*args, **kwargs):
+        with warnings.catch_warnings():
+            warnings.simplefilter("once", DeprecationWarning)
+            warnings.warn(reason, category=DeprecationWarning, stacklevel=2)
+        warnings.warn(reason, DeprecationWarning)
+        return func(*args, **kwargs)
+
+    return inner
+
+
+make_divisible = make_deprecated(
+    func=_make_divisible_current_version,
+    reason="You're importing `make_divisible` from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
+    "Please update your code to import it as follows:\n"
+    "[-] from super_gradients.training.models import make_divisible\n"
+    "[+] from super_gradients.training.utils import make_divisible\n",
+)
+
+
+BasicBlock = make_deprecated(
+    func=BasicResNetBlock,
+    reason="You're importing `BasicBlock` class from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
+    "This block was renamed to BasicResNetBlock for better clarity.\n"
+    "Please update your code to import it as follows:\n"
+    "[-] from super_gradients.training.models import BasicBlock\n"
+    "[+] from super_gradients.training.models import BasicResNetBlock\n",
+)
 
 __all__ = [
     "SPP",
@@ -293,4 +328,7 @@ __all__ = [
     "SegFormerB4",
     "SegFormerB5",
     "DDRNet39Backbone",
+    "make_divisible",
+    "BasicResNetBlock",
+    "BasicBlock",
 ]
