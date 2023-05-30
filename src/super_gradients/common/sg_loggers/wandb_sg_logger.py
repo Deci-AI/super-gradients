@@ -64,7 +64,8 @@ class WandBSGLogger(BaseSGLogger):
         :param save_logs_remote:        Saves log files in s3.
         :param monitor_system:          Not Available for WandB logger. Save the system statistics (GPU utilization, CPU, ...) in the tensorboard
         :param save_code:               Save current code to wandb
-        :save_checkpoint_as_artifact:   Save model checkpoint using Weights & Biases Artifact. Note that setting this option to True would save model checkpoints every epoch as a versioned artifact, which will result in use of increased storage usage on Weights & Biases.
+        :save_checkpoint_as_artifact:   Save model checkpoint using Weights & Biases Artifact. Note that setting this option to True would save model checkpoints
+                                        every epoch as a versioned artifact, which will result in use of increased storage usage on Weights & Biases.
         """
         if monitor_system is not None:
             logger.warning("monitor_system not available on WandBSGLogger. To remove this warning, please don't set monitor_system in your logger parameters")
@@ -108,7 +109,8 @@ class WandBSGLogger(BaseSGLogger):
             run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
         else:
             logger.warning(
-                "A Weights & Biases run was initialized before initializing `WandBSGLogger`. This means that `super-gradients` cannot control the run ID to which this session will be logged."
+                "A Weights & Biases run was initialized before initializing `WandBSGLogger`. "
+                "This means that `super-gradients` cannot control the run ID to which this session will be logged."
             )
             logger.warning(f"In order to resume this run please call `wand.init(id={wandb.run.id}, resume='must')` before reinitializing `WandBSGLogger`.")
             run = wandb.run
