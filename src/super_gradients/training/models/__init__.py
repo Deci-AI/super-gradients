@@ -129,6 +129,26 @@ from super_gradients.training.models.conversion import convert_to_coreml, conver
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import ARCHITECTURES
 
+from deprecated import deprecated
+
+# @deprecated(version='3.1.0', reason="You're importing make_divisible as super_gradients.training.models.make_divisible,
+#                                     "this is deprecated since SuperGradients 3.1.0."
+#                                     "Please update your code to import it like so: "
+#                                     "from super_gradients.training.utils import make_divisible")
+# def make_divisible(x: int, divisor: int, ceil: bool = True) -> int:
+#     """
+#     Returns x evenly divisible by divisor.
+#     If ceil=True it will return the closest larger number to the original x, and ceil=False the closest smaller number.
+#     """
+#     from super_gradients.training.utils import make_divisible
+#     return make_divisible(x, divisor, ceil)
+
+from super_gradients.training.utils import make_divisible as make_divisible_current_version
+
+make_divisible = deprecated(
+    version="3.1.0", reason="You're importing make_divisible as super_gradients.training.models.make_divisible, this is deprecated since SuperGradients 3.1.0."
+)(make_divisible_current_version)
+
 __all__ = [
     "SPP",
     "YoloNAS_S",
@@ -293,4 +313,5 @@ __all__ = [
     "SegFormerB4",
     "SegFormerB5",
     "DDRNet39Backbone",
+    "make_divisible",
 ]
