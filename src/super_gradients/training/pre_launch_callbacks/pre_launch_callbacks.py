@@ -73,7 +73,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
     :param max_batch_size: int, optional, upper limit of the batch sizes to try. When None, the search will continue until
      the maximal batch size that does not raise CUDA OUT OF MEMORY is found (deafult=None).
 
-    :param scale_lr: bool, whether to linearly scale cfg.training_hyperparamsinitial_lr, i.e multiply by
+    :param scale_lr: bool, whether to linearly scale cfg.training_hyperparams.initial_lr, i.e multiply by
      FOUND_BATCH_SIZE/cfg.dataset_params.train_datalaoder_params.batch_size (default=True)
     :param mode: str, one of ["fastest","largest"], whether to select the largest batch size that fits memory or the one
      that the resulted in overall fastest execution.
@@ -106,14 +106,14 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
             load_backbone=cfg.checkpoint_params.load_backbone,
         )
         tmp_cfg = deepcopy(cfg)
-        tmp_cfg.training_hyperparamsbatch_accumulate = 1
-        tmp_cfg.training_hyperparamsmax_train_batches = self.num_forward_passes
-        tmp_cfg.training_hyperparamsrun_validation_freq = 2
-        tmp_cfg.training_hyperparamssilent_mode = True
-        tmp_cfg.training_hyperparamssave_model = False
-        tmp_cfg.training_hyperparamsmax_epochs = 1
-        tmp_cfg.training_hyperparamsaverage_best_models = False
-        tmp_cfg.training_hyperparamskill_ddp_pgroup_on_end = False
+        tmp_cfg.training_hyperparams.batch_accumulate = 1
+        tmp_cfg.training_hyperparams.max_train_batches = self.num_forward_passes
+        tmp_cfg.training_hyperparams.run_validation_freq = 2
+        tmp_cfg.training_hyperparams.silent_mode = True
+        tmp_cfg.training_hyperparams.save_model = False
+        tmp_cfg.training_hyperparams.max_epochs = 1
+        tmp_cfg.training_hyperparams.average_best_models = False
+        tmp_cfg.training_hyperparams.kill_ddp_pgroup_on_end = False
         tmp_cfg.pre_launch_callbacks_list = []
 
         fastest_batch_time = np.inf
@@ -169,7 +169,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
     def _adapt_lr_if_needed(self, cfg: DictConfig, found_batch_size: int) -> DictConfig:
         if self.scale_lr:
             scale_factor = found_batch_size / cfg.dataset_params.train_dataloader_params.batch_size
-            cfg.training_hyperparamsinitial_lr = cfg.training_hyperparamsinitial_lr * scale_factor
+            cfg.training_hyperparams.initial_lr = cfg.training_hyperparams.initial_lr * scale_factor
         return cfg
 
     @classmethod
