@@ -15,6 +15,17 @@ parameters:
     type: string
     description: the version of super gradients docker image
     default: "2.0.0"
+  build_py_version:
+    type: string
+    description: Python version
+    default: "3.8"
+  run_sanity_tests_flow:
+    type: boolean
+    description: If true will run sanity_test flow
+    default: false
+  skip_md_files:
+    type: boolean
+    default: true
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
@@ -140,7 +151,7 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
-          skip_md_files: true
+          skip_md_files: << pipeline.parameters.skip_md_files >>
       - deci-common/get_persisted_version_info
       - unless:
           condition:
@@ -454,6 +465,8 @@ jobs:
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
             python3.8 -m pip install torch torchvision torchaudio
+            python3.8 -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
+
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_pose_dekr_w32_no_dc experiment_name=shortened_coco2017_pose_dekr_w32_ap_test batch_size=4 val_batch_size=8 epochs=1 training_hyperparams.lr_warmup_steps=0 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=1000 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
             python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=shortened_cifar10_resnet_accuracy_test epochs=100 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
             python3.8 src/super_gradients/examples/convert_recipe_example/convert_recipe_example.py --config-name=cifar10_conversion_params experiment_name=shortened_cifar10_resnet_accuracy_test
@@ -465,6 +478,11 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
   recipe_sanity_tests_classification_pt1:
     docker:
@@ -503,6 +521,13 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
+
   recipe_sanity_tests_classification_pt2:
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
@@ -538,6 +563,10 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
   recipe_sanity_tests_segmentation:
     docker:
@@ -585,6 +614,11 @@ jobs:
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
 
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
   recipe_sanity_tests_detection:
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
@@ -621,6 +655,10 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
   recipe_sanity_tests_pose_estimation:
     docker:
@@ -653,6 +691,10 @@ jobs:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
   docker-build-and-publish-branch:
     docker:
@@ -703,6 +745,28 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
+  sanity_tests:
+    when:  << pipeline.parameters.run_sanity_tests_flow >>
+    jobs:
+      - recipe_sanity_tests_classification_pt1:
+          context:
+            - slack
+      - recipe_sanity_tests_classification_pt2:
+          context:
+            - slack
+      - recipe_sanity_tests_segmentation:
+          context:
+            - slack
+      - recipe_sanity_tests_detection:
+          context:
+            - slack
+      - recipe_sanity_tests_pose_estimation:
+          context:
+            - slack
+      - recipe_accuracy_tests:
+          context:
+            - slack
+
   release:
     unless:
       or:
@@ -725,16 +789,28 @@ workflows:
             - login_to_codeartifact_release
           <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt1:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt2:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_segmentation:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_detection:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_pose_estimation:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_accuracy_tests:
+          context:
+            - slack
           <<: *release_tag_filter
       - release_version:
           py_version: "3.8"
@@ -770,8 +846,8 @@ workflows:
           version_override: ""
 
       - build:
-          name: "build3.8"
-          py_version: "3.8"
+          name: "build<< pipeline.parameters.build_py_version >>"
+          py_version:  << pipeline.parameters.build_py_version >>
           package_name: "super-gradients"
           requires:
             - deci-common/persist_version_info
@@ -781,9 +857,9 @@ workflows:
           <<: *release_candidate_filter
 
       - release_candidate: # happens on merge
-          py_version: "3.8"
+          py_version: "<< pipeline.parameters.build_py_version >>"
           requires:
-            - "build3.8"
+            - "build<< pipeline.parameters.build_py_version >>"
             - deci-common/codeartifact_login
           <<: *release_candidate_filter
 
