@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.training.models.classification_models.resnet import BasicBlock, Bottleneck
+from super_gradients.training.models.classification_models.resnet import BasicResNetBlock, Bottleneck
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import get_param, HpmStruct
 
@@ -530,8 +530,8 @@ class DDRNetCustom(DDRNet):
 
 DEFAULT_DDRNET_23_PARAMS = {
     "input_channels": 3,
-    "block": BasicBlock,
-    "skip_block": BasicBlock,
+    "block": BasicResNetBlock,
+    "skip_block": BasicResNetBlock,
     "layer5_block": Bottleneck,
     "layer5_bottleneck_expansion": 2,
     "layers": [2, 2, 2, 2, 1, 2, 2, 1],

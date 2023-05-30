@@ -46,6 +46,24 @@ class DeprecationsUnitTest(unittest.TestCase):
         model = models.get("DummyModelV2", arch_params=arch_params, num_classes=80)
         assert isinstance(model, DummyModelV2)
 
+    def test_deprecated_make_divisible(self):
+        try:
+            with self.assertWarns(DeprecationWarning):
+                from super_gradients.training.models import make_divisible  # noqa
+
+                assert make_divisible(1, 1) == 1
+        except ImportError:
+            self.fail("ImportError raised unexpectedly for make_divisible")
+
+    def test_deprecated_BasicBlock(self):
+        try:
+            with self.assertWarns(DeprecationWarning):
+                from super_gradients.training.models import BasicBlock, BasicResNetBlock  # noqa
+
+                assert isinstance(BasicBlock(1, 1, 1), BasicResNetBlock)
+        except ImportError:
+            self.fail("ImportError raised unexpectedly for BasicBlock")
+
 
 if __name__ == "__main__":
     unittest.main()
