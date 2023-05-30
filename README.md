@@ -123,7 +123,7 @@ pip install super-gradients
 ## What's New
 __________________________________________________________________________________________________________
 30th of May
-* [Quantization Aware Training YoloNAS on Custom Dataset](https://colab.research.google.com/drive/1yHrHkUR1X2u2FjjvNMfUbSXTkUul6o1P?usp=sharing)
+* [Quantization Aware Training YoloNAS on Custom Dataset](https://bit.ly/3MIKdTy)
 
 Version 3.1.1 (May 3rd)
 * [YOLO-NAS](https://bit.ly/41WeNPZ)
@@ -279,7 +279,7 @@ Quantization involves representing weights and biases in lower precision, result
 This tutorial provides a comprehensive guide on how to fine-tune a YoloNAS model using a custom dataset. It also demonstrates how to utilize SG's QAT (Quantization-Aware Training) support. Additionally, it offers step-by-step instructions on deploying the model and performing benchmarking.
   <table class=“tfo-notebook-buttons” align=“left”>
  <td width=“500”>
-   <a target="_blank" href="https://bit.ly/434ozAd"><img src="./docs/assets/SG_img/colab_logo.png" /> Quantization Aware Training YoloNAS on Custom Dataset</a>
+   <a target="_blank" href="https://bit.ly/3MIKdTy"><img src="./docs/assets/SG_img/colab_logo.png" /> Quantization Aware Training YoloNAS on Custom Dataset</a>
   </td>
 </table>
 
