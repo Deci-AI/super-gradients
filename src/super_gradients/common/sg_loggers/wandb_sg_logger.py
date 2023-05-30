@@ -104,7 +104,15 @@ class WandBSGLogger(BaseSGLogger):
                     )
                 wandb_id = self._get_wandb_id()
 
-        run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs) if wandb.run is None else wandb.run
+        if wandb.run is None:
+            run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
+        else:
+            wandb.termwarn(
+                "A Weights & Biases run was initialized before initializing `WandBSGLogger`. This means that `super-gradients` cannot control the run ID to which this session will be logged."
+            )
+            wandb.termward(f"In order to resume this run please call `wand.init(id={wandb.run.id}, resume='must')` before reinitializing `WandBSGLogger`.")
+            run = wandb.run
+        
         if save_code:
             self._save_code_lines()
 
