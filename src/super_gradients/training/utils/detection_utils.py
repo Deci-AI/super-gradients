@@ -13,7 +13,6 @@ import torch
 import torchvision
 from omegaconf import ListConfig
 from torch import nn
-from torch.utils.data.dataloader import default_collate
 
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.training.utils.visualization.detection import draw_bbox
@@ -665,8 +664,14 @@ class DetectionCollateFN:
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         images_batch, labels_batch = list(zip(*data))
+        return self._format_images(images_batch), self._format_targets(labels_batch)
+
+    def _format_images(self, images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
         images_batch = [torch.tensor(img) for img in images_batch]
-        return torch.stack(images_batch, 0), self._format_targets(labels_batch)
+        images_batch_stack = torch.stack(images_batch, 0)
+        if images_batch_stack.shape[3] == 3:
+            images_batch_stack = torch.moveaxis(images_batch_stack, -1, 1).float()
+        return images_batch_stack
 
     def _format_targets(self, labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
         """
@@ -684,16 +689,16 @@ class DetectionCollateFN:
         return torch.cat(labels_batch_indexed, 0)
 
 
-class PPYoloECollateFN:
+class PPYoloECollateFN(DetectionCollateFN):
     """
     Collate function for PPYoloE training
     """
 
     def __init__(self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None):
         """
-
         :param random_resize_sizes: (rows, cols)
         """
+        super().__init__()
         self.random_resize_sizes = random_resize_sizes
         self.random_resize_modes = random_resize_modes
 
@@ -707,12 +712,8 @@ class PPYoloECollateFN:
         if self.random_resize_sizes is not None:
             data = self.random_resize(data)
 
-        batch = default_collate(data)
-        ims, targets = batch
-        targets = self._format_targets(targets)
-        ims = torch.moveaxis(ims, -1, 1).float()
-
-        return ims, targets
+        images_batch, labels_batch = list(zip(*data))
+        return self._format_images(images_batch), self._format_targets(labels_batch)
 
     def random_resize(self, batch):
         target_size = random.choice(self.random_resize_sizes)
@@ -747,22 +748,6 @@ class PPYoloECollateFN:
 
         return image, targets
 
-    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
-        """
-
-        :param targets:
-        :return: Tensor of shape [B, N, 6], where 6 elements are (index, c, cx, cy, w, h)
-        """
-        # Same collate as in YoloX. We convert to PPYoloTargets in the loss
-        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
-        targets_merged = []
-        for i in range(targets.shape[0]):
-            targets_im = targets[i, : nlabel[i]]
-            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
-            targets_merged.append(torch.cat((batch_column, targets_im), 1))
-
-        return torch.cat(targets_merged, 0)
-
 
 class CrowdDetectionPPYoloECollateFN(PPYoloECollateFN):
     """
@@ -774,12 +759,8 @@ class CrowdDetectionPPYoloECollateFN(PPYoloECollateFN):
         if self.random_resize_sizes is not None:
             data = self.random_resize(data)
 
-        batch = default_collate(data)
-        ims, targets, crowd_targets = batch
-        if ims.shape[3] == 3:
-            ims = torch.moveaxis(ims, -1, 1).float()
-
-        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+        images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
+        return self._format_images(images_batch), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
 
 
 @register_collate_function()
@@ -790,8 +771,7 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
         images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
-        images_batch = [torch.tensor(img) for img in images_batch]
-        return torch.stack(images_batch, 0), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
+        return self._format_images(images_batch), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
 
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:
