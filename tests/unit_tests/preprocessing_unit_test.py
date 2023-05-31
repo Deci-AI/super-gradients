@@ -37,7 +37,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "input_dim": [512, 512],
             "transforms": [
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
-                {"DetectionTargetsFormatTransform": {"max_targets": 50, "input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
         }
         dataset = COCODetectionDataset(**train_dataset_params)
@@ -56,7 +56,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "input_dim": [329, 320],
             "transforms": [
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
-                {"DetectionTargetsFormatTransform": {"max_targets": 50, "input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
         }
 
@@ -68,7 +68,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "input_dim": [329, 320],
             "transforms": [
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
-                {"DetectionTargetsFormatTransform": {"max_targets": 50, "input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
         }
         trainset = COCODetectionDataset(**train_dataset_params)
@@ -122,7 +122,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "input_dim": [329, 320],
             "transforms": [
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
-                {"DetectionTargetsFormatTransform": {"max_targets": 50, "input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
         }
 
@@ -134,7 +134,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "input_dim": [329, 320],
             "transforms": [
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
-                {"DetectionTargetsFormatTransform": {"max_targets": 50, "input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
         }
         trainset = COCODetectionDataset(**train_dataset_params)
