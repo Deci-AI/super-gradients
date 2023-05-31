@@ -17,7 +17,7 @@ defaults:
 train_dataloader: roboflow_train_yolox
 val_dataloader: roboflow_val_yolox
 
-dataset_name: ??? # Placeholder for the name of the dataset you want to use (e.g. "digits-t2eg6")
+dataset_name: cables-nl42k # Placeholder for the name of the dataset you want to use (e.g. "digits-t2eg6")
 dataset_params:
   dataset_name: ${dataset_name}
 
@@ -63,6 +63,18 @@ training_hyperparams:
   criterion_params:
     num_classes: ${num_classes}
 
+  sg_logger: wandb_sg_logger
+  sg_logger_params:
+    api_server: https://wandb.research.deci.ai
+    entity: super-gradients
+    launch_tensorboard: false
+    monitor_system: true
+    project_name: DeciYolo-S-RF100
+    save_checkpoints_remote: true
+    save_logs_remote: true
+    save_tensorboard_remote: true
+    tb_files_user_prompt: false
+    tensorboard_port: null
 
   phase_callbacks: []
   loss:
@@ -88,5 +100,5 @@ training_hyperparams:
 multi_gpu: Off
 num_gpus: 1
 
-experiment_suffix: ""
+experiment_suffix: "_for_shani"
 experiment_name: ${architecture}_roboflow_${dataset_name}${experiment_suffix}
