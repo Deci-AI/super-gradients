@@ -767,18 +767,17 @@ class DetectionPaddedRescale(DetectionTransform):
     Preprocessing transform to be applied last of all transforms for validation.
 
     Image- Rescales and pads to self.input_dim.
-    Targets- pads targets to max_targets, moves the class label to first index, converts boxes format- xyxy -> cxcywh.
+    Targets- moves the class label to first index, converts boxes format- xyxy -> cxcywh.
 
     :param input_dim:   Final input dimension (default=(640,640))
     :param swap:        Image axis's to be rearranged.
-    :param max_targets:
     :param pad_value:   Padding value for image.
     """
 
-    def __init__(self, input_dim: Tuple, swap: Tuple[int, ...] = (2, 0, 1), max_targets: int = 50, pad_value: int = 114):
+    def __init__(self, input_dim: Tuple, swap: Tuple[int, ...] = (2, 0, 1), pad_value: int = 114):
+        super().__init__()
         self.swap = swap
         self.input_dim = input_dim
-        self.max_targets = max_targets
         self.pad_value = pad_value
 
     def __call__(self, sample: dict) -> dict:
@@ -805,20 +804,17 @@ class DetectionHorizontalFlip(DetectionTransform):
     Horizontal Flip for Detection
 
     :param prob:        Probability of applying horizontal flip
-    :param max_targets: Max objects in single image, padding target to this size in case of empty image.
     """
 
-    def __init__(self, prob: float, max_targets: int = 120):
+    def __init__(self, prob: float):
         super(DetectionHorizontalFlip, self).__init__()
         self.prob = prob
-        self.max_targets = max_targets
 
     def __call__(self, sample):
         image, targets = sample["image"], sample["target"]
+        if len(targets) == 0:
+            targets = np.zeros((0, 5), dtype=np.float32)
         boxes = targets[:, :4]
-        if len(boxes) == 0:
-            targets = np.zeros((self.max_targets, 5), dtype=np.float32)
-            boxes = targets[:, :4]
         image, boxes = _mirror(image, boxes, self.prob)
         targets[:, :4] = boxes
         sample["target"] = targets
@@ -1003,7 +999,6 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     :param input_format:       Format of the input targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL.
     :param output_format:      Format of the output targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL
     :param min_bbox_edge_size: bboxes with edge size lower then this values will be removed.
-    :param max_targets:        Max objects in single image, padding target to this size.
     """
 
     @resolve_param("input_format", ConcatenatedTensorFormatFactory())
@@ -1014,7 +1009,6 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         input_format: ConcatenatedTensorFormat = XYXY_LABEL,
         output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
-        max_targets: int = 120,
     ):
         super(DetectionTargetsFormatTransform, self).__init__()
         if isinstance(input_format, DetectionTargetsFormat) or isinstance(output_format, DetectionTargetsFormat):
@@ -1026,7 +1020,6 @@ class DetectionTargetsFormatTransform(DetectionTransform):
             )
         self.input_format = input_format
         self.output_format = output_format
-        self.max_targets = max_targets
         self.min_bbox_edge_size = min_bbox_edge_size
         self.input_dim = None
 
@@ -1056,8 +1049,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         """Convert targets in input_format to output_format, filter small bboxes and pad targets"""
         targets = self.targets_format_converter(targets)
         targets = self.filter_small_bboxes(targets)
-        targets = self.pad_targets(targets)
-        return targets
+        return np.ascontiguousarray(targets, dtype=np.float32)
 
     def filter_small_bboxes(self, targets: np.ndarray) -> np.ndarray:
         """Filter bboxes smaller than specified threshold."""
@@ -1067,13 +1059,6 @@ class DetectionTargetsFormatTransform(DetectionTransform):
 
         targets = filter_on_bboxes(fn=_is_big_enough, tensor=targets, tensor_format=self.output_format)
         return targets
-
-    def pad_targets(self, targets: np.ndarray) -> np.ndarray:
-        """Pad targets."""
-        padded_targets = np.zeros((self.max_targets, targets.shape[-1]))
-        padded_targets[range(len(targets))[: self.max_targets]] = targets[: self.max_targets]
-        padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
-        return padded_targets
 
     def get_equivalent_preprocessing(self) -> List:
         return []

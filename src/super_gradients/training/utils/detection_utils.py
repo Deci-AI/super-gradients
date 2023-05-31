@@ -664,18 +664,24 @@ class DetectionCollateFN:
     """
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
-        batch = default_collate(data)
-        ims, targets = batch[0:2]
-        return ims, self._format_targets(targets)
+        images_batch, labels_batch = list(zip(*data))
+        images_batch = [torch.tensor(img) for img in images_batch]
+        return torch.stack(images_batch, 0), self._format_targets(labels_batch)
 
-    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
-        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
-        targets_merged = []
-        for i in range(targets.shape[0]):
-            targets_im = targets[i, : nlabel[i]]
-            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
-            targets_merged.append(torch.cat((batch_column, targets_im), 1))
-        return torch.cat(targets_merged, 0)
+    def _format_targets(self, labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+        """
+        Stack a batch id column to targets and concatenate
+        :param labels_batch: a list of targets per image (each of arbitrary length)
+        :return: one tensor of targets of all imahes of shape [N, 6], where N is the total number of targets in a batch
+                 and the 1st column is batch item index
+        """
+        labels_batch = [torch.tensor(labels) for labels in labels_batch]
+        labels_batch_indexed = []
+        for i, labels in enumerate(labels_batch):
+            batch_column = labels.new_ones((labels.shape[0], 1)) * i
+            labels = torch.cat((batch_column, labels), dim=-1)
+            labels_batch_indexed.append(labels)
+        return torch.cat(labels_batch_indexed, 0)
 
 
 class PPYoloECollateFN:
@@ -783,9 +789,9 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
     """
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
-        batch = default_collate(data)
-        ims, targets, crowd_targets = batch[0:3]
-        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+        images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
+        images_batch = [torch.tensor(img) for img in images_batch]
+        return torch.stack(images_batch, 0), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
 
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:
