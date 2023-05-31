@@ -8,7 +8,7 @@ from super_gradients.training.datasets import COCODetectionDataset
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.models import YoloPostPredictionCallback
 from super_gradients.training.processing import ReverseImageChannels, DetectionLongestMaxSizeRescale, DetectionBottomRightPadding, ImagePermute
-from super_gradients.training.utils.detection_utils import DetectionCollateFN
+from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
 from super_gradients.training import dataloaders
 
 
@@ -58,6 +58,7 @@ class PreprocessingUnitTest(unittest.TestCase):
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
                 {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
+            "with_crowd": False,
         }
 
         val_dataset_params = {
@@ -75,7 +76,7 @@ class PreprocessingUnitTest(unittest.TestCase):
         train_loader = dataloaders.get(dataset=trainset, dataloader_params={"collate_fn": DetectionCollateFN()})
 
         valset = COCODetectionDataset(**val_dataset_params)
-        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": DetectionCollateFN()})
+        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": CrowdDetectionCollateFN()})
 
         trainer = Trainer("test_setting_preprocessing_params_from_validation_set")
 
@@ -124,6 +125,7 @@ class PreprocessingUnitTest(unittest.TestCase):
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
                 {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
+            "with_crowd": False,
         }
 
         val_dataset_params = {
@@ -141,7 +143,7 @@ class PreprocessingUnitTest(unittest.TestCase):
         train_loader = dataloaders.get(dataset=trainset, dataloader_params={"collate_fn": DetectionCollateFN()})
 
         valset = COCODetectionDataset(**val_dataset_params)
-        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": DetectionCollateFN()})
+        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": CrowdDetectionCollateFN()})
 
         trainer = Trainer("save_ckpt_for")
 
