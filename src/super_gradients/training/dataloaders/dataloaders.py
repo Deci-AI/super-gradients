@@ -3,7 +3,7 @@ from typing import Dict, Mapping
 import hydra
 import numpy as np
 import torch
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, UnsupportedValueType
 from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSampler
 
 import super_gradients
@@ -83,23 +83,39 @@ def get_data_loader(config_name: str, dataset_cls: object, train: bool, dataset_
 
 
 def _process_dataset_params(cfg, dataset_params, train: bool):
-    # Due to some internal details of Hydra, we need to merge the dataset_params with the default dataset params while retaining the
-    # top-level config structure.
-    # We can't do:
-    # >>> default_dataset_params = cfg.train_dataset_params if train else cfg.val_dataset_params
-    # because it will break interpolation down the road.
-    if train:
-        cfg.train_dataset_params = OmegaConf.merge(cfg.train_dataset_params, dataset_params)
-    else:
-        cfg.val_dataset_params = OmegaConf.merge(cfg.val_dataset_params, dataset_params)
+    """
+    Merge the default dataset config with the user-provided overrides.
+    This function handles variable interpolation in the dataset config.
 
-    # default_dataset_params = cfg.train_dataset_params if train else cfg.val_dataset_params
-    # default_dataset_params = hydra.utils.instantiate(default_dataset_params)
-    # for key, val in default_dataset_params.items():
-    #     if key not in dataset_params.keys() or dataset_params[key] is None:
-    #         dataset_params[key] = val
+    :param cfg: Default dataset config
+    :param dataset_params: User-provided overrides
+    :param train: boolean flag indicating whether we are processing train or val dataset params
+    :return: New dataset params (merged defaults and overrides, where overrides take precedence)
+    """
 
-    return hydra.utils.instantiate(cfg.train_dataset_params if train else cfg.val_dataset_params)
+    try:
+        # No, we can't simplify the following lines to:
+        # >>> default_dataset_params = cfg.train_dataset_params if train else cfg.val_dataset_params
+        # >>> dataset_params = OmegaConf.merge(default_dataset_params, dataset_params)
+        # >>> return hydra.utils.instantiate(dataset_params)
+        # For some reason this breaks interpolation :shrug:
+
+        if train:
+            cfg.train_dataset_params = OmegaConf.merge(cfg.train_dataset_params, dataset_params)
+            return hydra.utils.instantiate(cfg.train_dataset_params)
+        else:
+            cfg.val_dataset_params = OmegaConf.merge(cfg.val_dataset_params, dataset_params)
+            return hydra.utils.instantiate(cfg.val_dataset_params)
+
+    except UnsupportedValueType:
+        # This is somewhat ugly fallback for the case when the user provides overrides for the dataset params
+        # that contains non-primitive types (E.g instantiated transforms).
+        # In this case interpolation is not possible so we just override the default params with the user-provided ones.
+        default_dataset_params = hydra.utils.instantiate(cfg.train_dataset_params if train else cfg.val_dataset_params)
+        for key, val in default_dataset_params.items():
+            if key not in dataset_params.keys() or dataset_params[key] is None:
+                dataset_params[key] = val
+        return dataset_params
 
 
 def _process_dataloader_params(cfg, dataloader_params, dataset, train):
