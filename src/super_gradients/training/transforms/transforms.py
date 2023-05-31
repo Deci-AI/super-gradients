@@ -1,6 +1,7 @@
 import collections
 import math
 import random
+import warnings
 from numbers import Number
 from typing import Optional, Union, Tuple, List, Sequence, Dict
 
@@ -774,8 +775,9 @@ class DetectionPaddedRescale(DetectionTransform):
     :param pad_value:   Padding value for image.
     """
 
-    def __init__(self, input_dim: Tuple, swap: Tuple[int, ...] = (2, 0, 1), pad_value: int = 114):
+    def __init__(self, input_dim: Tuple, swap: Tuple[int, ...] = (2, 0, 1), max_targets: Optional[int] = None, pad_value: int = 114):
         super().__init__()
+        _max_targets_deprication(max_targets)
         self.swap = swap
         self.input_dim = input_dim
         self.pad_value = pad_value
@@ -806,8 +808,9 @@ class DetectionHorizontalFlip(DetectionTransform):
     :param prob:        Probability of applying horizontal flip
     """
 
-    def __init__(self, prob: float):
+    def __init__(self, prob: float, max_targets: Optional[int] = None):
         super(DetectionHorizontalFlip, self).__init__()
+        _max_targets_deprication(max_targets)
         self.prob = prob
 
     def __call__(self, sample):
@@ -1009,8 +1012,10 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         input_format: ConcatenatedTensorFormat = XYXY_LABEL,
         output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
+        max_targets: Optional[int] = None,
     ):
         super(DetectionTargetsFormatTransform, self).__init__()
+        _max_targets_deprication(max_targets)
         if isinstance(input_format, DetectionTargetsFormat) or isinstance(output_format, DetectionTargetsFormat):
             raise TypeError(
                 "DetectionTargetsFormat is not supported for input_format and output_format starting from super_gradients==3.0.7.\n"
@@ -1306,3 +1311,12 @@ class Standardize(torch.nn.Module):
 
     def forward(self, img):
         return img / self.max_val
+
+
+def _max_targets_deprication(max_targets: Optional[int] = None):
+    if max_targets is not None:
+        warnings.warn(
+            "max_targets is deprecated and will be removed in the future, targets are not padded to the max length anymore. "
+            "If you are using collate_fn provided by SG, it is safe to simply drop this argument.",
+            DeprecationWarning,
+        )
