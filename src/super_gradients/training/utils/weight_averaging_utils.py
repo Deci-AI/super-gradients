@@ -49,7 +49,7 @@ class ModelWeightAveraging:
             else:
                 averaging_snapshots_dict["snapshots_metric"] = np.inf * np.ones(self.number_of_models_to_average)
 
-        torch.save(averaging_snapshots_dict, self.averaging_snapshots_file)
+            torch.save(averaging_snapshots_dict, self.averaging_snapshots_file)
 
     def update_snapshots_dict(self, model, validation_results_tuple):
         """
