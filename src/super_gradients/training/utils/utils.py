@@ -1,28 +1,28 @@
-import os
-import tarfile
-import re
+import collections
 import math
+import os
+import random
+import re
+import tarfile
 import time
-
 import inspect
 from functools import lru_cache, wraps
+from importlib import import_module
+from itertools import islice
+
 from pathlib import Path
 from typing import Mapping, Optional, Tuple, Union, List, Dict, Any, Iterable
 from zipfile import ZipFile
-from jsonschema import validate
-from itertools import islice
 
-from PIL import Image, ExifTags
+import numpy as np
 import torch
 import torch.nn as nn
-
-# These functions changed from torch 1.2 to torch 1.3
-
-import random
-import numpy as np
-from importlib import import_module
+from PIL import Image, ExifTags
+from jsonschema import validate
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+
+# These functions changed from torch 1.2 to torch 1.3
 
 logger = get_logger(__name__)
 
@@ -581,3 +581,19 @@ def generate_batch(iterable: Iterable, batch_size: int) -> Iterable:
             yield batch
         else:
             return
+
+
+def ensure_is_tuple_of_two(inputs: Union[Any, Iterable[Any], None]) -> Union[Tuple[Any, Any], None]:
+    """
+    Checks input and converts it to a tuple of length two. If input is None returns None.
+    :param inputs: Input argument, either a number or a tuple of two numbers.
+    :return: Tuple of two numbers if input is not None, otherwise - None.
+    """
+    if inputs is None:
+        return None
+
+    if isinstance(inputs, collections.Iterable) and not isinstance(inputs, str):
+        a, b = inputs
+        return a, b
+
+    return inputs, inputs
