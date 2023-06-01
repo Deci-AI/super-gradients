@@ -21,9 +21,9 @@ class PreprocessingUnitTest(unittest.TestCase):
             "ComposeProcessing": {
                 "processings": [
                     "ReverseImageChannels",
-                    {"DetectionLongestMaxSizeRescale": {"output_shape": [512, 512]}},
-                    {"DetectionLongestMaxSizeRescale": {"output_shape": [512, 512]}},
-                    {"DetectionBottomRightPadding": {"output_shape": [512, 512], "pad_value": 114}},
+                    {"DetectionLongestMaxSizeRescale": {"output_shape": (512, 512)}},
+                    {"DetectionLongestMaxSizeRescale": {"output_shape": (512, 512)}},
+                    {"DetectionBottomRightPadding": {"output_shape": (512, 512), "pad_value": 114}},
                     {"ImagePermute": {"permutation": (2, 0, 1)}},
                 ]
             }
