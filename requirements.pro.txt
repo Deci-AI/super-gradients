@@ -1,2 +1,1 @@
-deci-lab-client==4.29.2
-deci-common==12.3.0
+deci-platform-client>=5.0.0

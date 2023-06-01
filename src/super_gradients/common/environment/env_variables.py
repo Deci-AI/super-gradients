@@ -5,9 +5,6 @@ class EnvironmentVariables:
     """Class to dynamically get any environment variables."""
 
     # Infra
-    @property
-    def DECI_PLATFORM_TOKEN(self) -> str:
-        return os.getenv("DECI_PLATFORM_TOKEN")
 
     @property
     def WANDB_BASE_URL(self) -> str:
@@ -30,10 +27,6 @@ class EnvironmentVariables:
     @property
     def UPLOAD_LOGS(self) -> bool:
         return os.getenv("UPLOAD_LOGS", "TRUE") == "TRUE"
-
-    @property
-    def DECI_API_HOST(self) -> str:
-        return os.getenv("DECI_API_HOST", default="api.deci.ai")
 
     @property
     def FILE_LOG_LEVEL(self) -> str:
