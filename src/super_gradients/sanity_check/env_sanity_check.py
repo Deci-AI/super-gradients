@@ -78,7 +78,7 @@ def check_packages():
     test_name = "installed packages"
 
     installed_packages = {package.key.lower(): package.version for package in pkg_resources.working_set}
-    requirements = get_requirements(use_pro_requirements="deci-lab-client" in installed_packages)
+    requirements = get_requirements(use_pro_requirements="deci-platform-client" in installed_packages)
 
     if requirements is None:
         logger.info(msg='Library check is not supported when super_gradients installed through "git+https://github.com/..." command')
