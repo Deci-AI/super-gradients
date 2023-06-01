@@ -24,6 +24,7 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
 )
 from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets.rescoring_dataset import TrainRescoringDataset, ValTrainRescoringDataset
+from super_gradients.training.datasets.samplers import RepeatAugSampler
 from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     CoCoSegmentationDataSet,
@@ -123,6 +124,10 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     elif is_dist:
         dataloader_params["sampler"] = {"DistributedSampler": {}}
         dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+        if get_param(dataloader_params, "min_samples") is not None:
+            min_samples = dataloader_params.pop("min_samples")
+            if len(dataset) < min_samples:
+                dataloader_params["sampler"] = RepeatAugSampler(dataset=dataset, num_repeats=5)
     elif get_param(dataloader_params, "min_samples") is not None:
         min_samples = dataloader_params.pop("min_samples")
         if len(dataset) < min_samples:
