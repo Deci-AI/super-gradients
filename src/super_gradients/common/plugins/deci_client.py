@@ -4,10 +4,11 @@ import sys
 import shutil
 import urllib
 from zipfile import ZipFile
-from typing import List, Optional, Any
 import socket
 import urllib.error
 from urllib.request import urlretrieve
+from typing import List, Optional, Sequence
+
 import importlib.util
 
 import torch.hub
@@ -15,7 +16,6 @@ from omegaconf import DictConfig
 from torch import nn
 
 import super_gradients
-from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.cfg_utils import load_arch_params, load_recipe
 from super_gradients.common.environment.path_utils import normalize_path
@@ -24,11 +24,18 @@ logger = get_logger(__name__)
 
 client_enabled = True
 try:
-    from deci_lab_client.client import DeciPlatformClient
-    from deci_lab_client.types import S3SignedUrl
-    from deci_lab_client.models import ModelBenchmarkState, AutoNACFileName, BodyRegisterUserArchitecture
+    from deci_platform_client import DeciPlatformClient
+    from deci_platform_client.types import S3SignedUrl
+    from deci_platform_client.models import (
+        ModelBenchmarkState,
+        SentryLevel,
+        FrameworkType,
+        HardwareType,
+        QuantizationLevel,
+    )
     from deci_common.data_interfaces.files_data_interface import FileDownloadFailedException
-    from deci_lab_client import ApiException
+    from deci_platform_client.models import AutoNACFileName
+    from deci_platform_client.exceptions import ApiException, ApiTypeError
 
 except (ImportError, NameError):
     client_enabled = False
@@ -45,40 +52,38 @@ class DeciClient:
     def __init__(self):
         if not client_enabled:
             logger.error(
-                "deci-lab-client or deci-common are not installed. Model cannot be loaded from deci lab."
-                "Please install deci-lab-client>=2.55.0 and deci-common>=3.4.1"
+                "deci-platform-client or deci-common are not installed. Model cannot be loaded from deci lab."
+                "Please install deci-platform-client>=5.0.0 and deci-common>=12.0.0"
             )
             return
 
-        self.api_host = env_variables.DECI_API_HOST
-        self.lab_client = DeciPlatformClient(api_host=self.api_host)
-        self.lab_client.login(token=env_variables.DECI_PLATFORM_TOKEN)
+        self.lab_client = DeciPlatformClient()
 
-    def _get_file(self, model_name: str, file_name: str) -> Optional[str]:
+    def _get_file(self, model_name: str, file_name: "AutoNACFileName") -> Optional[str]:
         """Get a file from the DeciPlatform if it exists, otherwise returns None
         :param model_name:      Name of the model to download from, as saved in the platform.
         :param file_name:       Name of the file to download
         :return:            Path were the downloaded file was saved to. None if not found.
         """
         try:
-            response, status, response_headers = self.lab_client.get_autonac_model_file_link_with_http_info(
-                model_name=model_name, file_name=file_name, super_gradients_version=super_gradients.__version__
+            download_link, etag = self.lab_client.get_autonac_model_file_link(
+                model_name=model_name,
+                file_name=file_name,
+                super_gradients_version=super_gradients.__version__,
             )
-            etag = response_headers.get("etag", "")
-            download_link = response.data
         except ApiException as e:
             if e.status == 401:
                 logger.error(
-                    "Unauthorized. wrong token or token was not defined. please login to deci-lab-client " "by calling DeciPlatformClient().login(<token>)"
+                    "Unauthorized. wrong credentials or credentials not defined. "
+                    "Please provide credentials via environment variables (DECI_CLIENT_ID, DECI_CLIENT_SECRET)"
                 )
             elif e.status == 400 and e.body is not None and "message" in e.body:
                 logger.error(f"Deci client: {json.loads(e.body)['message']}")
             else:
                 logger.debug(e.body)
             return None
-
         cache_dir = os.path.join(torch.hub.get_dir(), "deci")
-        file_path = os.path.join(cache_dir, etag, os.path.basename(file_name))
+        file_path = os.path.join(cache_dir, etag or "", os.path.basename(file_name))
         file_path = normalize_path(file_path)
 
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -182,25 +187,44 @@ class DeciClient:
                 f"you can override this by passing models.get(... download_required_code=False) and importing the files yourself"
             )
 
-    def upload_model(self, model: nn.Module, model_meta_data, optimization_request_form):
+    def upload_model(
+        self,
+        model: nn.Module,
+        name: str,
+        input_dimensions: "Sequence[int]",
+        target_hardware_types: "Optional[List[HardwareType]]" = None,
+        target_quantization_level: "Optional[QuantizationLevel]" = None,
+        target_batch_size: "Optional[int]" = None,
+    ):
         """
         This function will upload the trained model to the Deci Lab
 
-        :param model:                     The resulting model from the training process
-        :param model_meta_data:           Metadata to accompany the model
-        :param optimization_request_form: The optimization parameters
+        :param model:                            The resulting model from the training process
+        :param name:                             The model's name
+        :param input_dimensions:                 The model's input dimensions
+        :param target_hardware_types:            List of hardware types to optimize the model for
+        :param target_quantization_level:        The quantization level to optimize the model for
+        :param target_batch_size:                The batch size to optimize the model for
         """
-        self.lab_client.add_model(
-            add_model_request=model_meta_data,
-            optimization_request=optimization_request_form,
-            local_loaded_model=model,
+        model_id = self.lab_client.register_model(
+            model=model,
+            name=name,
+            framework=FrameworkType.PYTORCH,
+            input_dimensions=input_dimensions,
         )
+        if target_hardware_types:
+            kwargs = {}
+            if target_quantization_level:
+                kwargs["quantization_level"] = target_quantization_level
+            if target_batch_size:
+                kwargs["batch_size"] = target_batch_size
+            self.lab_client.optimize_model(model_id=model_id, hardware_types=target_hardware_types, **kwargs)
 
     def is_model_benchmarking(self, name: str) -> bool:
         """Check if a given model is still benchmarking or not.
         :param name: The mode name.
         """
-        benchmark_state = self.lab_client.get_model_by_name(name=name).data.benchmark_state
+        benchmark_state = self.lab_client.get_model(name=name)[0]["benchmarkState"]
         return benchmark_state in [ModelBenchmarkState.IN_PROGRESS, ModelBenchmarkState.PENDING]
 
     def register_experiment(self, name: str, model_name: str, resume: bool):
@@ -209,12 +233,9 @@ class DeciClient:
         :param model_name:  Name of the model architecture to connect the experiment to
         """
         try:
-            self.lab_client.register_user_architecture(BodyRegisterUserArchitecture(architecture_name=model_name))
-        except ApiException as e:
-            if e.status == 422:
-                logger.debug(f"The model was already registered, or validation error: {e.body}")
-            else:
-                raise e
+            self.lab_client.register_user_architecture(name=model_name)
+        except (ApiException, ApiTypeError) as e:
+            logger.debug(f"The model was already registered, or validation error: {e}")
 
         self.lab_client.register_experiment(name=name, model_name=model_name, resume=resume)
 
@@ -225,7 +246,7 @@ class DeciClient:
         """
         self.lab_client.save_experiment_file(file_path=file_path)
 
-    def upload_file_to_s3(self, tag: str, level: str, from_path: str):
+    def upload_file_to_s3(self, tag: str, level: "SentryLevel", from_path: str):
         """Upload a file to the platform S3 bucket.
 
         :param tag:         Tag that will be associated to the file.
@@ -233,32 +254,8 @@ class DeciClient:
         :param from_path:   Path of the file to upload.
         """
         data = self.lab_client.upload_log_url(tag=tag, level=level)
-        signed_url = S3SignedUrl(**data.data)
+        signed_url = S3SignedUrl(**data)
         self.lab_client.upload_file_to_s3(from_path=from_path, s3_signed_url=signed_url)
-
-    def add_model(
-        self,
-        model_metadata,
-        hardware_types: List[str],
-        model_path: Optional[str] = None,
-        model: Optional[nn.Module] = None,
-        **kwargs: Any,
-    ):
-        """Adds a new model to the company's model repository.
-        :param model_metadata: The model metadata.
-        :param hardware_types: The hardware types you want to benchmark the model on.
-        :param model_path:      The path of the model on the local operating system.
-        :param model:           Pytorch loaded model object.
-                                If your model's framework is pytorch you may pass the following parameters as kwargs in order to control the conversion to onnx
-        :param kwargs: Extra arguments to be passed to the PyTorch to ONNX conversion, for example:
-            opset_version
-            do_constant_folding
-            dynamic_axes
-            input_names
-            output_names
-        """
-
-        self.lab_client.add_model_v2(model_metadata=model_metadata, hardware_types=hardware_types, model_path=model_path, model=model, **kwargs)
 
 
 def _move_file_to_folder(src_file_path: str, dest_dir_name: str) -> str:
