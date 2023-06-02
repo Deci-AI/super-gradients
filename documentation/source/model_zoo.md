@@ -97,6 +97,7 @@ All the available models are listed in the column `Model name`.
 | DEKR_W32_NO_DC  | dekr_w32_no_dc  | COCO2017 PE | 640x640    | 63.08 / 64.96 / 67.32                           |                         |                                      |                                                   |
 | POSE_PP_YOLO_L  | pose_ppyolo_l   | COCO2017 PE | 640x640    |                                                 |                         |                                      |                                                   |
 | POSE_DDRNET_39  | pose_ddrnet39   | COCO2017 PE | 640x640    |                                                 |                         |                                      |                                                   |
+| Yolo-NAS Pose L | yolo_nas_pose_l | COCO2017 PE | 640x640    | 63.33 / 64.96 / 67.33                           |                         |                                      |                     49.53 ms                      | 
 
 
 ## Implemented Model Architectures 
