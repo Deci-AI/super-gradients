@@ -61,6 +61,14 @@ class KeypointsCompose(KeypointTransform):
             image, mask, joints, areas, bboxes = t(image, mask, joints, areas, bboxes)
         return image, mask, joints, areas, bboxes
 
+    def __repr__(self):
+        format_string = self.__class__.__name__ + "("
+        for t in self.transforms:
+            format_string += "\n"
+            format_string += "    {0}".format(repr(t))
+        format_string += "\n)"
+        return format_string
+
 
 @register_transform(Transforms.KeypointsImageToTensor)
 class KeypointsImageToTensor(KeypointTransform):
@@ -71,6 +79,9 @@ class KeypointsImageToTensor(KeypointTransform):
 
     def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         return F.to_tensor(image), mask, joints, areas, bboxes
+
+    def __repr__(self):
+        return self.__class__.__name__ + "()"
 
 
 @register_transform(Transforms.KeypointsImageNormalize)
@@ -87,6 +98,9 @@ class KeypointsImageNormalize(KeypointTransform):
     def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         image = F.normalize(image, mean=self.mean, std=self.std)
         return image, mask, joints, areas, bboxes
+
+    def __repr__(self):
+        return self.__class__.__name__ + "(mean={0}, std={1})".format(self.mean, self.std)
 
 
 @register_transform(Transforms.KeypointsRandomHorizontalFlip)
@@ -105,6 +119,9 @@ class KeypointsRandomHorizontalFlip(KeypointTransform):
         """
         self.flip_index = flip_index
         self.prob = prob
+
+    def __repr__(self):
+        return self.__class__.__name__ + "(flip_index={0}, prob={1})".format(self.flip_index, self.prob)
 
     def __call__(self, image, mask, joints, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         if image.shape[:2] != mask.shape[:2]:
@@ -175,6 +192,9 @@ class KeypointsRandomVerticalFlip(KeypointTransform):
         bboxes[:, 1] = rows - (bboxes[:, 1] + bboxes[:, 3]) - 1
         return bboxes
 
+    def __repr__(self):
+        return self.__class__.__name__ + "(prob={0})".format(self.prob)
+
 
 @register_transform(Transforms.KeypointsLongestMaxSize)
 class KeypointsLongestMaxSize(KeypointTransform):
@@ -235,6 +255,11 @@ class KeypointsLongestMaxSize(KeypointTransform):
     def apply_to_bboxes(cls, bboxes, scale):
         return bboxes * scale
 
+    def __repr__(self):
+        return self.__class__.__name__ + "(max_height={0}, max_width={1}, interpolation={2}, prob={3})".format(
+            self.max_height, self.max_width, self.interpolation, self.prob
+        )
+
 
 @register_transform(Transforms.KeypointsPadIfNeeded)
 class KeypointsPadIfNeeded(KeypointTransform):
@@ -271,6 +296,11 @@ class KeypointsPadIfNeeded(KeypointTransform):
 
         return image, mask, joints, areas, bboxes
 
+    def __repr__(self):
+        return self.__class__.__name__ + "(min_height={0}, min_width={1}, image_pad_value={2}, mask_pad_value={3})".format(
+            self.min_height, self.min_width, self.image_pad_value, self.mask_pad_value
+        )
+
 
 @register_transform(Transforms.KeypointsRandomAffineTransform)
 class KeypointsRandomAffineTransform(KeypointTransform):
@@ -302,6 +332,14 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
         self.mask_pad_value = mask_pad_value
         self.prob = prob
+
+    def __repr__(self):
+        return (
+            self.__class__.__name__
+            + "(max_rotation={0}, min_scale={1}, max_scale={2}, max_translate={3}, image_pad_value={4}, mask_pad_value={5}, prob={6})".format(
+                self.max_rotation, self.min_scale, self.max_scale, self.max_translate, self.image_pad_value, self.mask_pad_value, self.prob
+            )
+        )
 
     def _get_affine_matrix(self, img, angle, scale, dx, dy):
         """
