@@ -1,5 +1,6 @@
+from typing import Optional
+
 from deprecated import deprecated
-from pyparsing import Optional
 from torch.utils.data import DistributedSampler, Dataset
 from super_gradients.common.registry.registry import register_sampler
 

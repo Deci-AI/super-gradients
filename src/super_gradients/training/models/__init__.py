@@ -35,6 +35,7 @@ from super_gradients.training.models.classification_models.preact_resnet import 
     PreActResNet152,
 )
 from super_gradients.training.models.classification_models.resnet import (
+    Bottleneck,
     BasicResNetBlock,
     ResNet,
     ResNet18,
@@ -132,7 +133,7 @@ from super_gradients.training.models.conversion import convert_to_coreml, conver
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import ARCHITECTURES
 
-from super_gradients.training.utils import make_divisible as _make_divisible_current_version
+from super_gradients.training.utils import make_divisible as _make_divisible_current_version, HpmStruct as CurrVersionHpmStruct
 
 
 def make_deprecated(func, reason):
@@ -163,8 +164,18 @@ BasicBlock = make_deprecated(
     "[-] from super_gradients.training.models import BasicBlock\n"
     "[+] from super_gradients.training.models import BasicResNetBlock\n",
 )
+HpmStruct = make_deprecated(
+    func=CurrVersionHpmStruct,
+    reason="You're importing `HpmStruct` class from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
+    "Please update your code to import it as follows:\n"
+    "[-] from super_gradients.training.models import HpmStruct\n"
+    "[+] from super_gradients.training.utils import HpmStruct\n",
+)
+
 
 __all__ = [
+    "HpmStruct",
+    "Bottleneck",
     "SPP",
     "YoloNAS_S",
     "YoloNAS_M",
