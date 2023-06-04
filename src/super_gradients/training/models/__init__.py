@@ -35,7 +35,7 @@ from super_gradients.training.models.classification_models.preact_resnet import 
     PreActResNet152,
 )
 from super_gradients.training.models.classification_models.resnet import (
-    Bottleneck,
+    Bottleneck as NewBottleneck,
     BasicResNetBlock,
     ResNet,
     ResNet18,
@@ -164,6 +164,16 @@ BasicBlock = make_deprecated(
     "[-] from super_gradients.training.models import BasicBlock\n"
     "[+] from super_gradients.training.models import BasicResNetBlock\n",
 )
+
+Bottleneck = make_deprecated(
+    func=NewBottleneck,
+    reason="You're importing `Bottleneck` class from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
+    "This block was renamed to BasicResNetBlock for better clarity.\n"
+    "Please update your code to import it as follows:\n"
+    "[-] from super_gradients.training.models import Bottleneck\n"
+    "[+] from super_gradients.training.models.classification_models.resnet import Bottleneck\n",
+)
+
 HpmStruct = make_deprecated(
     func=CurrVersionHpmStruct,
     reason="You're importing `HpmStruct` class from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"

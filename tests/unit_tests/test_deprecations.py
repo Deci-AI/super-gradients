@@ -65,10 +65,14 @@ class DeprecationsUnitTest(unittest.TestCase):
             self.fail("ImportError raised unexpectedly for BasicBlock")
 
     def test_moved_Bottleneck_import(self):
-        from super_gradients.training.models import Bottleneck as OldBottleneck  # noqa
-        from super_gradients.training.models.classification_models.resnet import Bottleneck
+        try:
+            with self.assertWarns(DeprecationWarning):
+                from super_gradients.training.models import Bottleneck as OldBottleneck  # noqa
+                from super_gradients.training.models.classification_models.resnet import Bottleneck
 
-        assert isinstance(Bottleneck(1, 1, 1), OldBottleneck)
+                assert isinstance(OldBottleneck(1, 1, 1), Bottleneck)
+        except ImportError:
+            self.fail("ImportError raised unexpectedly for Bottleneck")
 
     def test_deprecated_optimizers_dict(self):
         try:
