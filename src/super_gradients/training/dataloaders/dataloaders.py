@@ -40,6 +40,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 from super_gradients.training.utils.utils import override_default_params_without_nones
 from super_gradients.common.environment.cfg_utils import load_dataset_params
+import torch.distributed as dist
 
 
 logger = get_logger(__name__)
@@ -127,7 +128,15 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
         if get_param(dataloader_params, "min_samples") is not None:
             min_samples = dataloader_params.pop("min_samples")
             if len(dataset) < min_samples:
-                dataloader_params["sampler"] = RepeatAugSampler(dataset=dataset, num_repeats=5)
+                world_size = dist.get_world_size()
+                num_repeats = min_samples / len(dataset)
+                selected_ratio = world_size / num_repeats
+
+                # WE SET selected_ratio = world_size / num_repeats SO THAT IN RepeatAugSampler THE NUMBER OF SAMPLES
+                # PER EPOCH PER RANK WILL BE DETERMINED BY
+                # int(math.ceil(len(self.dataset) / selected_ratio)) =  min_samples / world_size
+
+                dataloader_params["sampler"] = RepeatAugSampler(dataset=dataset, num_repeats=num_repeats, selected_round=0, selected_ratio=selected_ratio)
     elif get_param(dataloader_params, "min_samples") is not None:
         min_samples = dataloader_params.pop("min_samples")
         if len(dataset) < min_samples:
