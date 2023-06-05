@@ -302,8 +302,6 @@ class Models:
 
     DEKR_CUSTOM = "dekr_custom"
     DEKR_W32_NO_DC = "dekr_w32_no_dc"
-    POSE_PP_YOLO_L = "pose_ppyolo_l"
-    POSE_DDRNET_39 = "pose_ddrnet39"
     YOLO_NAS_S = "yolo_nas_s"
     YOLO_NAS_M = "yolo_nas_m"
     YOLO_NAS_L = "yolo_nas_l"
