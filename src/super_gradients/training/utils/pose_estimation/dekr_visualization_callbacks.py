@@ -74,7 +74,7 @@ class DEKRVisualizationCallback(PhaseCallback):
         real_max = heatmap.max()
 
         heatmap = np.max(heatmap, axis=0)
-        heatmap = (heatmap - min_value) / (1e-8 + max_value - min_value)
+        heatmap = (heatmap - min_value) / (max_value - min_value + 1e-5)
         heatmap = np.clip(heatmap, 0, 1)
         heatmap_8u = (heatmap * 255).astype(np.uint8)
         heatmap_bgr = cv2.applyColorMap(heatmap_8u, colormap)
