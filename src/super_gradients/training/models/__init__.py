@@ -117,8 +117,6 @@ from super_gradients.training.models.segmentation_models.segformer import SegFor
 from super_gradients.training.models.segmentation_models.ddrnet_backbones import DDRNet39Backbone
 
 # Pose estimation
-from super_gradients.training.models.pose_estimation_models.pose_ppyolo import PosePPYoloL
-from super_gradients.training.models.pose_estimation_models.pose_ddrnet39 import PoseDDRNet39
 from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRPoseEstimationModel, DEKRW32NODC
 
 # KD
@@ -328,8 +326,6 @@ __all__ = [
     "STDC2Classification",
     "STDCSegmentationBase",
     "CustomSTDCSegmentation",
-    "PosePPYoloL",
-    "PoseDDRNet39",
     "DEKRPoseEstimationModel",
     "DEKRW32NODC",
     "KDModule",
