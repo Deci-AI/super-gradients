@@ -301,7 +301,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
 
     url = MODEL_URLS[model_url_key]
 
-    if architecture in {Models.YOLO_NAS_S, Models.YOLO_NAS_M, Models.YOLO_NAS_L}:
+    if architecture in {Models.YOLO_NAS_S, Models.YOLO_NAS_M, Models.YOLO_NAS_L, Models.YOLO_NAS_POSE_S, Models.YOLO_NAS_POSE_M, Models.YOLO_NAS_POSE_L}:
         logger.info(
             "License Notification: YOLO-NAS pre-trained weights are subjected to the specific license terms and conditions detailed in \n"
             "https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.YOLONAS.md\n"

@@ -28,7 +28,7 @@ arch_params:
 
 checkpoint_params:
   # We start training by loading the weights of the pretrained model for detection task
-  pretrained_weights: "coco"
+  pretrained_weights: "https://sghub.deci.ai/models/yolo_nas_s_coco.pth"
   strict_load: key_matching
 
 dataset_params:
