@@ -12,34 +12,34 @@ class TestYOLOX(unittest.TestCase):
     def setUp(self) -> None:
         self.arch_params = HpmStruct(num_classes=10)
         self.yolo_classes = [YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X]
+        self.devices = ["cpu", "cuda"] if torch.cuda.is_available() else ["cpu"]
 
     def test_yolox_creation(self):
         """
         test_yolox_creation - Tests the creation of the models
             :return:
         """
-        dummy_input = torch.randn(1, 3, 320, 320)
+        for device in self.devices:
+            dummy_input = torch.randn(1, 3, 320, 320).to(device)
+            with torch.no_grad():
+                for yolo_cls in self.yolo_classes:
+                    yolo_model = yolo_cls(self.arch_params).to(device)
+                    # THIS SHOULD RUN THE FORWARD ONCE
+                    yolo_model.eval()
+                    output_standard = yolo_model(dummy_input)
+                    self.assertIsNotNone(output_standard)
 
-        with torch.no_grad():
+                    # THIS SHOULD RUN A TRAINING FORWARD
+                    yolo_model.train()
+                    output_train = yolo_model(dummy_input)
 
-            for yolo_cls in self.yolo_classes:
-                yolo_model = yolo_cls(self.arch_params)
-                # THIS SHOULD RUN THE FORWARD ONCE
-                yolo_model.eval()
-                output_standard = yolo_model(dummy_input)
-                self.assertIsNotNone(output_standard)
+                    self.assertIsNotNone(output_train)
 
-                # THIS SHOULD RUN A TRAINING FORWARD
-                yolo_model.train()
-                output_train = yolo_model(dummy_input)
-
-                self.assertIsNotNone(output_train)
-
-                # THIS SHOULD RUN THE FORWARD AUGMENT
-                yolo_model.eval()
-                yolo_model.augmented_inference = True
-                output_augment = yolo_model(dummy_input)
-                self.assertIsNotNone(output_augment)
+                    # THIS SHOULD RUN THE FORWARD AUGMENT
+                    yolo_model.eval()
+                    yolo_model.augmented_inference = True
+                    output_augment = yolo_model(dummy_input)
+                    self.assertIsNotNone(output_augment)
 
     def test_yolox_loss(self):
         samples = [
@@ -52,21 +52,22 @@ class TestYOLOX(unittest.TestCase):
         collate = DetectionCollateFN()
         _, targets = collate(samples)
 
-        predictions = [
-            torch.randn((5, 1, 256 // 8, 256 // 8, 4 + 1 + 10)),
-            torch.randn((5, 1, 256 // 16, 256 // 16, 4 + 1 + 10)),
-            torch.randn((5, 1, 256 // 32, 256 // 32, 4 + 1 + 10)),
-        ]
+        for device in self.devices:
+            predictions = [
+                torch.randn((5, 1, 256 // 8, 256 // 8, 4 + 1 + 10)).to(device),
+                torch.randn((5, 1, 256 // 16, 256 // 16, 4 + 1 + 10)).to(device),
+                torch.randn((5, 1, 256 // 32, 256 // 32, 4 + 1 + 10)).to(device),
+            ]
 
-        for loss in [
-            YoloXDetectionLoss(strides=[8, 16, 32], num_classes=10, use_l1=True, iou_type="giou"),
-            YoloXDetectionLoss(strides=[8, 16, 32], num_classes=10, use_l1=True, iou_type="iou"),
-            YoloXDetectionLoss(strides=[8, 16, 32], num_classes=10, use_l1=False),
-            YoloXFastDetectionLoss(strides=[8, 16, 32], num_classes=10, use_l1=True),
-            YoloXFastDetectionLoss(strides=[8, 16, 32], num_classes=10, use_l1=False),
-        ]:
-            result = loss(predictions, targets)
-            print(result)
+            for loss in [
+                YoloXDetectionLoss(strides=[8, 16, 32], num_classes=10, use_l1=True, iou_type="giou"),
+                YoloXDetectionLoss(strides=[8, 16, 32], num_classes=10, use_l1=True, iou_type="iou"),
+                YoloXDetectionLoss(strides=[8, 16, 32], num_classes=10, use_l1=False),
+                YoloXFastDetectionLoss(strides=[8, 16, 32], num_classes=10, use_l1=True),
+                YoloXFastDetectionLoss(strides=[8, 16, 32], num_classes=10, use_l1=False),
+            ]:
+                result = loss(predictions, targets.to(device))
+                print(result)
 
 
 if __name__ == "__main__":
