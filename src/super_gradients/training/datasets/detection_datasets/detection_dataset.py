@@ -24,6 +24,7 @@ from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
+from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 logger = get_logger(__name__)
 
@@ -76,7 +77,7 @@ class DetectionDataset(Dataset):
         max_num_samples: int = None,
         cache: bool = False,
         cache_dir: str = None,
-        input_dim: Optional[Tuple[int, int]] = None,
+        input_dim: Union[int, Tuple[int, int], None] = None,
         transforms: List[DetectionTransform] = [],
         all_classes_list: Optional[List[str]] = [],
         class_inclusion_list: Optional[List[str]] = None,
@@ -89,7 +90,10 @@ class DetectionDataset(Dataset):
         """Detection dataset.
 
         :param data_dir:                Where the data is stored
-        :param input_dim:               Image size (when loaded, before transforms).
+        :param input_dim:               Image size (when loaded, before transforms). Can be None, scalar or tuple (rows, cols).
+                                        None means that the image will be loaded as is.
+                                        Scalar (size) - Image will be resized to (size, size)
+                                        Tuple (rows,cols) - Image will be resized to (rows, cols)
         :param original_target_format:  Format of targets stored on disk. raw data format, the output format might
                                         differ based on transforms.
         :param max_num_samples:         If not None, set the maximum size of the dataset by only indexing the first n annotations/images.
@@ -129,7 +133,7 @@ class DetectionDataset(Dataset):
         if not isinstance(self.n_available_samples, int) or self.n_available_samples < 1:
             raise ValueError(f"_setup_data_source() should return the number of available samples but got {self.n_available_samples}")
 
-        self.input_dim = input_dim
+        self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.original_target_format = original_target_format
         self.max_num_samples = max_num_samples
 
