@@ -711,9 +711,7 @@ class PPYoloECollateFN(DetectionCollateFN):
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         if self.random_resize_sizes is not None:
             data = self.random_resize(data)
-
-        images_batch, labels_batch = list(zip(*data))
-        return self._format_images(images_batch), self._format_targets(labels_batch)
+        return super().__call__(data)
 
     def random_resize(self, batch):
         target_size = random.choice(self.random_resize_sizes)
