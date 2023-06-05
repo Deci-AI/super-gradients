@@ -394,7 +394,7 @@ class QATRecipeModificationCallback(PreLaunchCallback):
             train_dataset_params=cfg.dataset_params.train_dataset_params,
             train_dataloader_params=cfg.dataset_params.train_dataloader_params,
             val_dataset_params=cfg.dataset_params.val_dataset_params,
-            val_dataloader_params=cfg.dataset_params.train_dataloader_params,
+            val_dataloader_params=cfg.dataset_params.val_dataloader_params,
             quantization_params=cfg.quantization_params,
             batch_size_divisor=self.batch_size_divisor,
             disable_phase_callbacks=self.disable_phase_callbacks,
