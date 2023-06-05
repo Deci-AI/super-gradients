@@ -64,6 +64,33 @@ class DeprecationsUnitTest(unittest.TestCase):
         except ImportError:
             self.fail("ImportError raised unexpectedly for BasicBlock")
 
+    def test_moved_Bottleneck_import(self):
+        try:
+            with self.assertWarns(DeprecationWarning):
+                from super_gradients.training.models import Bottleneck as OldBottleneck  # noqa
+                from super_gradients.training.models.classification_models.resnet import Bottleneck
+
+                assert isinstance(OldBottleneck(1, 1, 1), Bottleneck)
+        except ImportError:
+            self.fail("ImportError raised unexpectedly for Bottleneck")
+
+    def test_deprecated_optimizers_dict(self):
+        try:
+            with self.assertWarns(DeprecationWarning):
+                from super_gradients.training.utils.optimizers.all_optimizers import OPTIMIZERS  # noqa
+        except ImportError:
+            self.fail("ImportError raised unexpectedly for OPTIMIZERS")
+
+    def test_deprecated_HpmStruct_import(self):
+        try:
+            with self.assertWarns(DeprecationWarning):
+                from super_gradients.training.models import HpmStruct as OldHpmStruct
+                from super_gradients.training.utils import HpmStruct
+
+                assert isinstance(OldHpmStruct(a=1), HpmStruct)
+        except ImportError:
+            self.fail("ImportError raised unexpectedly for HpmStruct")
+
 
 if __name__ == "__main__":
     unittest.main()

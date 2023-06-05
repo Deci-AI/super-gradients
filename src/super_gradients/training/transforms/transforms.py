@@ -28,6 +28,7 @@ from super_gradients.training.transforms.utils import (
     _shift_bboxes,
     _rescale_xyxy_bboxes,
 )
+from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
 MASK_RESAMPLE_MODE = Image.NEAREST
@@ -459,10 +460,10 @@ class DetectionMosaic(DetectionTransform):
     :param border_value:    Value for filling borders after applying transforms.
     """
 
-    def __init__(self, input_dim: tuple, prob: float = 1.0, enable_mosaic: bool = True, border_value=114):
+    def __init__(self, input_dim: Union[int, Tuple[int, int]], prob: float = 1.0, enable_mosaic: bool = True, border_value=114):
         super(DetectionMosaic, self).__init__(additional_samples_count=3)
         self.prob = prob
-        self.input_dim = input_dim
+        self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.enable_mosaic = enable_mosaic
         self.border_value = border_value
 
@@ -566,7 +567,7 @@ class DetectionRandomAffine(DetectionTransform):
         translate: Union[tuple, float] = 0.1,
         scales: Union[tuple, float] = 0.1,
         shear: Union[tuple, float] = 10,
-        target_size: Optional[Tuple[int, int]] = (640, 640),
+        target_size: Union[int, Tuple[int, int], None] = (640, 640),
         filter_box_candidates: bool = False,
         wh_thr: float = 2,
         ar_thr: float = 20,
@@ -578,7 +579,7 @@ class DetectionRandomAffine(DetectionTransform):
         self.translate = translate
         self.scale = scales
         self.shear = shear
-        self.target_size = target_size
+        self.target_size = ensure_is_tuple_of_two(target_size)
         self.enable = True
         self.filter_box_candidates = filter_box_candidates
         self.wh_thr = wh_thr
@@ -624,9 +625,17 @@ class DetectionMixup(DetectionTransform):
     :param border_value:     Value for filling borders after applying transform.
     """
 
-    def __init__(self, input_dim: tuple, mixup_scale: tuple, prob: float = 1.0, enable_mixup: bool = True, flip_prob: float = 0.5, border_value: int = 114):
+    def __init__(
+        self,
+        input_dim: Union[int, Tuple[int, int], None],
+        mixup_scale: tuple,
+        prob: float = 1.0,
+        enable_mixup: bool = True,
+        flip_prob: float = 0.5,
+        border_value: int = 114,
+    ):
         super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
-        self.input_dim = input_dim
+        self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.mixup_scale = mixup_scale
         self.prob = prob
         self.enable_mixup = enable_mixup
@@ -736,7 +745,7 @@ class DetectionPadToSize(DetectionTransform):
     Note: This transformation assume that dimensions of input image is equal or less than `output_size`.
     """
 
-    def __init__(self, output_size: Tuple[int, int], pad_value: int):
+    def __init__(self, output_size: Union[int, Tuple[int, int], None], pad_value: int):
         """
         Constructor for DetectionPadToSize transform.
 
@@ -744,7 +753,7 @@ class DetectionPadToSize(DetectionTransform):
         :param pad_value: Padding value for image
         """
         super().__init__()
-        self.output_size = output_size
+        self.output_size = ensure_is_tuple_of_two(output_size)
         self.pad_value = pad_value
 
     def __call__(self, sample: dict) -> dict:
@@ -775,9 +784,9 @@ class DetectionPaddedRescale(DetectionTransform):
     :param pad_value:   Padding value for image.
     """
 
-    def __init__(self, input_dim: Tuple, swap: Tuple[int, ...] = (2, 0, 1), max_targets: int = 50, pad_value: int = 114):
+    def __init__(self, input_dim: Union[int, Tuple[int, int], None], swap: Tuple[int, ...] = (2, 0, 1), max_targets: int = 50, pad_value: int = 114):
         self.swap = swap
-        self.input_dim = input_dim
+        self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.max_targets = max_targets
         self.pad_value = pad_value
 
@@ -834,14 +843,14 @@ class DetectionRescale(DetectionTransform):
     :param output_shape: (rows, cols)
     """
 
-    def __init__(self, output_shape: Tuple[int, int]):
+    def __init__(self, output_shape: Union[int, Tuple[int, int]]):
         super().__init__()
-        self.output_shape = output_shape
+        self.output_shape = ensure_is_tuple_of_two(output_shape)
 
     def __call__(self, sample: dict) -> dict:
         image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
 
-        sy, sx = (self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1])
+        sy, sx = float(self.output_shape[0]) / float(image.shape[0]), float(self.output_shape[1]) / float(image.shape[1])
 
         sample["image"] = _rescale_image(image=image, target_shape=self.output_shape)
         sample["target"] = _rescale_bboxes(targets, scale_factors=(sy, sx))
@@ -1010,7 +1019,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     @resolve_param("output_format", ConcatenatedTensorFormatFactory())
     def __init__(
         self,
-        input_dim: Optional[tuple] = None,
+        input_dim: Union[int, Tuple[int, int], None] = None,
         input_format: ConcatenatedTensorFormat = XYXY_LABEL,
         output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
@@ -1031,6 +1040,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         self.input_dim = None
 
         if input_dim is not None:
+            input_dim = ensure_is_tuple_of_two(input_dim)
             self._setup_input_dim_related_params(input_dim)
 
     def _setup_input_dim_related_params(self, input_dim: tuple):

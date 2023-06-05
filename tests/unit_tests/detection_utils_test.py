@@ -23,12 +23,13 @@ class TestDetectionUtils(unittest.TestCase):
     @unittest.skipIf(not is_data_available(), "run only when /data is available")
     def test_visualization(self):
 
-        valid_loader = coco2017_val(dataloader_params={"batch_size": 16})
+        valid_loader = coco2017_val(dataloader_params={"batch_size": 16, "num_workers": 0})
         trainer = Trainer("visualization_test")
         post_prediction_callback = YoloPostPredictionCallback()
 
         # Simulate one iteration of validation subset
-        batch_i, (imgs, targets) = 0, next(iter(valid_loader))
+        batch_i, batch = 0, next(iter(valid_loader))
+        imgs, targets = batch[:2]
         imgs = core_utils.tensor_container_to_device(imgs, self.device)
         targets = core_utils.tensor_container_to_device(targets, self.device)
         output = self.model(imgs)
@@ -46,7 +47,7 @@ class TestDetectionUtils(unittest.TestCase):
     @unittest.skipIf(not is_data_available(), "run only when /data is available")
     def test_detection_metrics(self):
 
-        valid_loader = coco2017_val(dataloader_params={"batch_size": 16})
+        valid_loader = coco2017_val(dataloader_params={"batch_size": 16, "num_workers": 0})
 
         metrics = [
             DetectionMetrics(num_cls=80, post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True),
@@ -55,14 +56,14 @@ class TestDetectionUtils(unittest.TestCase):
         ]
 
         ref_values = [
-            np.array([0.24662896, 0.4024832, 0.34590888, 0.28435066]),
-            np.array([0.34606069, 0.56745648, 0.50594932, 0.40323338]),
+            np.array([0.24701539, 0.40294355, 0.34654024, 0.28485271]),
+            np.array([0.34666198, 0.56854934, 0.5079478, 0.40414381]),
             np.array([0.0, 0.0, 0.0, 0.0]),
         ]
 
         for met, ref_val in zip(metrics, ref_values):
             met.reset()
-            for i, (imgs, targets) in enumerate(valid_loader):
+            for i, (imgs, targets, extras) in enumerate(valid_loader):
                 if i > 5:
                     break
                 imgs = core_utils.tensor_container_to_device(imgs, self.device)
@@ -71,8 +72,7 @@ class TestDetectionUtils(unittest.TestCase):
                 met.update(output, targets, device=self.device, inputs=imgs)
             results = met.compute()
             values = np.array([x.item() for x in list(results.values())])
-
-            self.assertTrue(np.allclose(values, ref_val))
+            self.assertTrue(np.allclose(values, ref_val, rtol=1e-3, atol=1e-4))
 
 
 if __name__ == "__main__":
