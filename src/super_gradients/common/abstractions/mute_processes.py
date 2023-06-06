@@ -27,7 +27,7 @@ def mute_current_process():
     # Ignore prints
     import sys
 
-    sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    sys.stdout = open(os.devnull, "w")
 
     # Only show ERRORS
     process_loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
