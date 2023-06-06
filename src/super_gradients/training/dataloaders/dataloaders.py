@@ -3,7 +3,7 @@ from typing import Dict, Mapping
 import hydra
 import numpy as np
 import torch
-from omegaconf import OmegaConf, UnsupportedValueType
+from omegaconf import OmegaConf
 from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSampler
 
 import super_gradients
@@ -109,7 +109,7 @@ def _process_dataset_params(cfg, dataset_params, train: bool):
             cfg.val_dataset_params = OmegaConf.merge(cfg.val_dataset_params, dataset_params)
             return hydra.utils.instantiate(cfg.val_dataset_params)
 
-    except UnsupportedValueType:
+    except Exception:  # noqa: F401
         # This is somewhat ugly fallback for the case when the user provides overrides for the dataset params
         # that contains non-primitive types (E.g instantiated transforms).
         # In this case interpolation is not possible so we just override the default params with the user-provided ones.
