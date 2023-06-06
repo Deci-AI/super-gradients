@@ -20,7 +20,7 @@ from super_gradients.training.models.prediction_results import (
     ImagesPredictions,
     VideoPredictions,
 )
-from super_gradients.training.models.predictions import Prediction, DetectionPrediction
+from super_gradients.training.models.predictions import Prediction, DetectionPrediction, PoseEstimationPrediction
 from super_gradients.training.processing.processing import Processing, ComposeProcessing
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -273,6 +273,72 @@ class DetectionPipeline(Pipeline):
                     confidence=prediction[:, 4],
                     labels=prediction[:, 5],
                     bbox_format="xyxy",
+                    image_shape=image.shape,
+                )
+            )
+
+        return predictions
+
+    def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
+        return ImageDetectionPrediction(image=image, prediction=prediction, class_names=self.class_names)
+
+    def _combine_image_prediction_to_images(
+        self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
+    ) -> ImagesDetectionPrediction:
+        if n_images is not None and n_images == 1:
+            # Do not show tqdm progress bar if there is only one image
+            images_predictions = [next(iter(images_predictions))]
+        else:
+            images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+
+        return ImagesDetectionPrediction(_images_prediction_lst=images_predictions)
+
+    def _combine_image_prediction_to_video(
+        self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
+    ) -> VideoDetectionPrediction:
+        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
+        return VideoDetectionPrediction(_images_prediction_lst=images_predictions, fps=fps)
+
+
+class PoseEstimationPipeline(Pipeline):
+    """Pipeline specifically designed for pose estimation tasks.
+    The pipeline includes loading images, preprocessing, prediction, and postprocessing.
+
+    :param model:                       The object detection model (instance of SgModule) used for making predictions.
+    :param class_names:                 List of class names corresponding to the model's output classes.
+    :param post_prediction_callback:    Callback function to process raw predictions from the model.
+    :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
+    :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
+    :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    """
+
+    def __init__(
+        self,
+        model: SgModule,
+        class_names: List[str],
+        post_prediction_callback,
+        device: Optional[str] = None,
+        image_processor: Optional[Processing] = None,
+        fuse_model: bool = True,
+    ):
+        super().__init__(model=model, device=device, image_processor=image_processor, class_names=None, fuse_model=fuse_model)
+        self.post_prediction_callback = post_prediction_callback
+
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
+        """Decode the model output, by applying post prediction callback. This includes NMS.
+
+        :param model_output:    Direct output of the model, without any post-processing.
+        :param model_input:     Model input (i.e. images after preprocessing).
+        :return:                Predicted Bboxes.
+        """
+        all_poses, all_scores = self.post_prediction_callback(model_output, device=self.device)
+
+        predictions = []
+        for poses, scores, image in zip(all_poses, all_scores, model_input):
+            predictions.append(
+                PoseEstimationPrediction(
+                    poses=poses,
+                    scores=scores,
                     image_shape=image.shape,
                 )
             )

@@ -53,3 +53,37 @@ class DetectionPrediction(Prediction):
 
     def __len__(self):
         return len(self.bboxes_xyxy)
+
+
+@dataclass
+class PoseEstimationPrediction(Prediction):
+    """Represents a pose estimation prediction.
+
+    :attr poses: Numpy array of [Num Poses, Num Joints, 2] shape
+    :attr scores: Numpy array of [Num Poses] shape
+    """
+
+    poses: np.ndarray
+    scores: np.ndarray
+
+    def __init__(self, poses: np.ndarray, scores: np.ndarray, image_shape: Tuple[int, int]):
+        """
+        :param poses:
+        :param scores:
+        :param image_shape: Shape of the image the prediction is made on, (H, W). This is used to convert bboxes to xyxy format
+        """
+        self._validate_input(poses, scores)
+        self.poses = poses
+        self.scores = scores
+        self.image_shape = image_shape
+
+    def _validate_input(self, poses: np.ndarray, scores: np.ndarray) -> None:
+        if not isinstance(poses, np.ndarray):
+            raise ValueError(f"Poses must be a numpy array, not {type(poses)}")
+        if not isinstance(scores, np.ndarray):
+            raise ValueError(f"Scores must be a numpy array, not {type(scores)}")
+        if len(poses) != len(scores):
+            raise ValueError(f"The number of poses ({len(poses)}) does not match the number of scores ({len(scores)}).")
+
+    def __len__(self):
+        return len(self.poses)

@@ -7,7 +7,7 @@ import numpy as np
 from torch import Tensor
 from torchvision.transforms import functional as F
 
-from super_gradients.common.object_names import Transforms
+from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 
 __all__ = [
@@ -28,7 +28,7 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyw
 @register_transform(Transforms.KeypointTransform)
 class KeypointTransform(object):
     """
-    Base class for all transforms for keypoints augmnetation.
+    Base class for all transforms for keypoints augmentation.
     All transforms subclassing it should implement __call__ method which takes image, mask and keypoints as input and
     returns transformed image, mask and keypoints.
     """
@@ -49,6 +49,9 @@ class KeypointTransform(object):
         """
         raise NotImplementedError
 
+    def get_equivalent_preprocessing(self) -> List:
+        raise NotImplementedError
+
 
 class KeypointsCompose(KeypointTransform):
     def __init__(self, transforms: List[KeypointTransform]):
@@ -61,6 +64,12 @@ class KeypointsCompose(KeypointTransform):
             image, mask, joints, areas, bboxes = t(image, mask, joints, areas, bboxes)
         return image, mask, joints, areas, bboxes
 
+    def get_equivalent_preprocessing(self) -> List:
+        preprocessing = []
+        for t in self.transforms:
+            preprocessing += t.get_equivalent_preprocessing()
+        return preprocessing
+
 
 @register_transform(Transforms.KeypointsImageToTensor)
 class KeypointsImageToTensor(KeypointTransform):
@@ -71,6 +80,12 @@ class KeypointsImageToTensor(KeypointTransform):
 
     def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         return F.to_tensor(image), mask, joints, areas, bboxes
+
+    def get_equivalent_preprocessing(self) -> List:
+        return [
+            {Processings.StandardizeImage: {"max_value": 255}},
+            {Processings.ImagePermute: {"permutation": (2, 0, 1)}},
+        ]
 
 
 @register_transform(Transforms.KeypointsImageNormalize)
@@ -87,6 +102,9 @@ class KeypointsImageNormalize(KeypointTransform):
     def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         image = F.normalize(image, mean=self.mean, std=self.std)
         return image, mask, joints, areas, bboxes
+
+    def get_equivalent_preprocessing(self) -> List:
+        return [{Processings.NormalizeImage: {"mean": self.mean, "std": self.std}}]
 
 
 @register_transform(Transforms.KeypointsRandomHorizontalFlip)
@@ -136,6 +154,9 @@ class KeypointsRandomHorizontalFlip(KeypointTransform):
         bboxes[:, 0] = cols - (bboxes[:, 0] + bboxes[:, 2])
         return bboxes
 
+    def get_equivalent_preprocessing(self) -> List:
+        raise RuntimeError("KeypointsRandomHorizontalFlip does not have equivalent preprocessing.")
+
 
 @register_transform(Transforms.KeypointsRandomVerticalFlip)
 class KeypointsRandomVerticalFlip(KeypointTransform):
@@ -174,6 +195,9 @@ class KeypointsRandomVerticalFlip(KeypointTransform):
         bboxes = bboxes.copy()
         bboxes[:, 1] = rows - (bboxes[:, 1] + bboxes[:, 3]) - 1
         return bboxes
+
+    def get_equivalent_preprocessing(self) -> List:
+        raise RuntimeError("KeypointsRandomHorizontalFlip does not have equivalent preprocessing.")
 
 
 @register_transform(Transforms.KeypointsLongestMaxSize)
@@ -235,6 +259,9 @@ class KeypointsLongestMaxSize(KeypointTransform):
     def apply_to_bboxes(cls, bboxes, scale):
         return bboxes * scale
 
+    def get_equivalent_preprocessing(self) -> List:
+        return [{Processings.KeypointsLongestMaxSizeRescale: {"output_shape": (self.max_height, self.max_width)}}]
+
 
 @register_transform(Transforms.KeypointsPadIfNeeded)
 class KeypointsPadIfNeeded(KeypointTransform):
@@ -270,6 +297,9 @@ class KeypointsPadIfNeeded(KeypointTransform):
         mask = mask.astype(original_dtype)
 
         return image, mask, joints, areas, bboxes
+
+    def get_equivalent_preprocessing(self) -> List:
+        return [{Processings.KeypointsBottomRightPadding: {"output_shape": (self.min_height, self.min_width), "pad_value": self.image_pad_value}}]
 
 
 @register_transform(Transforms.KeypointsRandomAffineTransform)
@@ -403,3 +433,6 @@ class KeypointsRandomAffineTransform(KeypointTransform):
             borderValue=padding_value,
             borderMode=padding_mode,
         )
+
+    def get_equivalent_preprocessing(self) -> List:
+        raise RuntimeError(f"{self.__class__} does not have equivalent preprocessing.")
