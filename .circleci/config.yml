@@ -808,6 +808,7 @@ workflows:
       - recipe_sanity_tests_pose_estimation:
           context:
             - slack
+          <<: *release_tag_filter
       - recipe_accuracy_tests:
           context:
             - slack
