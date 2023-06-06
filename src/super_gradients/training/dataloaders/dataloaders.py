@@ -101,13 +101,14 @@ def _process_dataset_params(cfg, dataset_params, train: bool):
         # >>> dataset_params = OmegaConf.merge(default_dataset_params, dataset_params)
         # >>> return hydra.utils.instantiate(dataset_params)
         # For some reason this breaks interpolation :shrug:
+        OmegaConf.set_struct(dataset_params, False)
 
         if train:
-            OmegaConf.set_struct(dataset_params, False)
             OmegaConf.set_struct(cfg.train_dataset_params, False)
             cfg.train_dataset_params = OmegaConf.merge(cfg.train_dataset_params, dataset_params)
             return hydra.utils.instantiate(cfg.train_dataset_params)
         else:
+            OmegaConf.set_struct(cfg.val_dataset_params, False)
             cfg.val_dataset_params = OmegaConf.merge(cfg.val_dataset_params, dataset_params)
             return hydra.utils.instantiate(cfg.val_dataset_params)
 
