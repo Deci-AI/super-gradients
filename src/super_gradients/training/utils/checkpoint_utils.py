@@ -127,7 +127,7 @@ def copy_ckpt_to_local_folder(
     return ckpt_file_full_local_path
 
 
-def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> collections.OrderedDict[str, torch.Tensor]:
+def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> collections.OrderedDict:
     """
     Reads a checkpoint state dict from a given path or url
 
