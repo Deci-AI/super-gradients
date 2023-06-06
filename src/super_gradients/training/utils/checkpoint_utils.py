@@ -10,6 +10,7 @@ from super_gradients.common.decorators.explicit_params_validator import explicit
 from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.common.data_types import StrictLoad
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 
 from torch import nn, Tensor
 from typing import Union, Mapping
@@ -122,21 +123,31 @@ def copy_ckpt_to_local_folder(
     if path_src == "url":
         ckpt_file_full_local_path = download_ckpt_destination_dir + os.path.sep + ckpt_filename
         # DOWNLOAD THE FILE FROM URL TO THE DESTINATION FOLDER
-        download_url_to_file(remote_ckpt_source_dir, ckpt_file_full_local_path, progress=True)
+        with wait_for_the_master(get_local_rank()):
+            download_url_to_file(remote_ckpt_source_dir, ckpt_file_full_local_path, progress=True)
 
     return ckpt_file_full_local_path
 
 
-def read_ckpt_state_dict(ckpt_path: str, device="cpu"):
-    if not os.path.exists(ckpt_path):
-        raise FileNotFoundError(f"Incorrect Checkpoint path: {ckpt_path} (This should be an absolute path)")
+def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> collections.OrderedDict[str, torch.Tensor]:
+    """
+    Reads a checkpoint state dict from a given path or url
 
-    if device == "cuda":
-        state_dict = torch.load(ckpt_path)
+    :param ckpt_path: Checkpoint path or url
+    :param device: Target devide where tensors should be loaded
+    :return: Checkpoint state dict object
+    """
 
+    if ckpt_path.startswith("https://"):
+        with wait_for_the_master(get_local_rank()):
+            state_dict = load_state_dict_from_url(ckpt_path, progress=False, map_location=device)
+        return state_dict
     else:
-        state_dict = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
-    return state_dict
+        if not os.path.exists(ckpt_path):
+            raise FileNotFoundError(f"Incorrect Checkpoint path: {ckpt_path} (This should be an absolute path)")
+
+        state_dict = torch.load(ckpt_path, map_location=device)
+        return state_dict
 
 
 def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckpt: dict, exclude: list = [], solver: callable = None):
@@ -207,10 +218,6 @@ def load_checkpoint_to_model(
     """
     if isinstance(strict, str):
         strict = StrictLoad(strict)
-
-    if ckpt_local_path is None or not os.path.exists(ckpt_local_path):
-        error_msg = "Error - loading Model Checkpoint: Path {} does not exist".format(ckpt_local_path)
-        raise RuntimeError(error_msg)
 
     if load_backbone and not hasattr(net, "backbone"):
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
@@ -310,7 +317,8 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
 
     unique_filename = url.split("https://sghub.deci.ai/models/")[1].replace("/", "_").replace(" ", "_")
     map_location = torch.device("cpu")
-    pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
+    with wait_for_the_master(get_local_rank()):
+        pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
     _load_weights(architecture, model, pretrained_state_dict)
 
 
