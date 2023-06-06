@@ -387,50 +387,52 @@ def default_dekr_coco_processing_params() -> dict:
         ]
     )
 
+    # Taken from COCO annotation file, subtract 1 to make it 0-based
     joint_links = [
-        [0, 1],
-        [0, 2],
-        [1, 2],
-        [1, 3],
-        [2, 4],
-        [3, 5],
-        [4, 6],
-        [5, 6],
-        [5, 7],
-        [5, 11],
-        [6, 8],
-        [6, 12],
-        [7, 9],
-        [8, 10],
-        [11, 12],
-        [11, 13],
-        [12, 14],
-        [13, 15],
-        [14, 16],
+        [15, 13],  # Left Knee -> Left Ankle
+        [13, 11],  # Left Hip -> Left Knee
+        [16, 14],  # Right leg
+        [14, 12],  # Right hip
+        [11, 12],  # Waist
+        [5, 11],  # LeftTorso
+        [6, 12],  # RightTorso
+        [5, 6],  # Shoulders
+        [5, 7],  # LeftShoulder -> LeftElbow
+        [6, 8],  # RightShoulder -> RightElbow
+        [7, 9],  # LeftElbow -> LeftArm
+        [8, 10],  # RightElbow -> RightArm
+        [1, 2],  # LeftEye -> RightEye
+        [0, 1],  # Nose -> LeftEye
+        [0, 2],  # Nose -> RightEye
+        [1, 3],  # LeftEye -> LeftEar
+        [2, 4],  # RightEye -> RightEar
+        [3, 5],  # LeftEar -> LeftShoulder
+        [4, 6],  # RightEar -> RightShoulder
     ]
 
     joint_colors = [
-        (255, 0, 0),  # 0-1 (Red)
-        (255, 85, 0),  # 0-2 (Orange)
-        (255, 170, 0),  # 1-2 (Yellow-Orange)
-        (255, 255, 0),  # 1-3 (Yellow)
-        (170, 255, 0),  # 2-4 (Green-Yellow)
-        (0, 255, 0),  # 3-5 (Green)
-        (0, 255, 85),  # 4-6 (Green-Cyan)
-        (0, 255, 170),  # 5-6 (Cyan)
-        (0, 255, 255),  # 5-7 (Cyan-Blue)
-        (0, 170, 255),  # 5-11 (Blue-Cyan)
-        (0, 0, 255),  # 6-8 (Blue)
-        (85, 0, 255),  # 6-12 (Purple-Blue)
-        (170, 0, 255),  # 7-9 (Purple)
-        (255, 0, 255),  # 8-10 (Magenta)
-        (255, 0, 170),  # 11-12 (Magenta-Red)
-        (255, 0, 85),  # 11-13 (Red-Magenta)
-        (170, 85, 0),  # 12-14 (Brown-Orange)
-        (85, 170, 0),  # 13-15 (Yellow-Green)
-        (0, 255, 85),  # 14-16 (Green-Cyan)
+        (31, 119, 180),  # Left Knee -> Left Ankle
+        (255, 127, 14),  # Left Hip -> Left Knee
+        (44, 160, 44),  # Right Knee -> Right Ankle
+        (214, 39, 40),  # Right Hip -> Right Knee
+        (148, 103, 189),  # Waist
+        (140, 86, 75),  # LeftTorso
+        (227, 119, 194),  # RightTorso
+        (127, 127, 127),  # Shoulders
+        (188, 189, 34),  # LeftShoulder -> LeftElbow
+        (23, 190, 207),  # RightShoulder -> RightElbow
+        (31, 119, 180),  # LeftElbow -> LeftArm
+        (255, 127, 14),  # RightElbow -> RightArm
+        (44, 160, 44),  # LeftEye -> RightEye
+        (214, 39, 40),  # Nose -> LeftEye
+        (148, 103, 189),  # Nose -> RightEye
+        (140, 86, 75),  # LeftEye -> LeftEar
+        (227, 119, 194),  # RightEye -> RightEar
+        (127, 127, 127),  # LeftEar -> LeftShoulder
+        (188, 189, 34),  # RightEar -> RightShoulder
     ]
-    params = dict(image_processor=image_processor, conf=0.05, iou=0.05, joint_links=joint_links, joint_colors=joint_colors)
+
+    params = dict(image_processor=image_processor, conf=0.05, joint_links=joint_links, joint_colors=joint_colors)
     return params
 
 

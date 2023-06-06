@@ -159,7 +159,7 @@ def _get_heat_value(pose_coord, heatmap):
     return heatval
 
 
-def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_num_threshold: int) -> Tuple[np.ndarray, np.ndarray]:
+def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_num_threshold: int, min_confidence: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     NMS for the regressed poses results.
 
@@ -198,6 +198,10 @@ def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_
     poses = poses.numpy()
     if len(poses):
         scores = poses[:, :, 2].mean(axis=1)
+
+        mask = scores >= min_confidence
+        poses = poses[mask]
+        scores = scores[mask]
     else:
         return np.zeros((0, num_joints, 3), dtype=np.float32), np.zeros((0,), dtype=np.float32)
     return poses, scores
@@ -239,7 +243,16 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
     Class that implements decoding logic of DEKR's model predictions into poses.
     """
 
-    def __init__(self, output_stride: int, max_num_people: int, keypoint_threshold: float, nms_threshold: float, nms_num_threshold: int, apply_sigmoid: bool):
+    def __init__(
+        self,
+        output_stride: int,
+        max_num_people: int,
+        keypoint_threshold: float,
+        nms_threshold: float,
+        nms_num_threshold: int,
+        apply_sigmoid: bool,
+        min_confidence: float = 0.0,
+    ):
         """
 
         :param output_stride:
@@ -257,6 +270,7 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
         self.nms_threshold = nms_threshold
         self.nms_num_threshold = nms_num_threshold
         self.apply_sigmoid = apply_sigmoid
+        self.min_confidence = min_confidence
 
     @torch.no_grad()
     def forward(self, predictions: Union[Tensor, Tuple[Tensor, Tensor]]) -> Tuple[List[np.ndarray], List[np.ndarray]]:
@@ -298,7 +312,12 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
         )
 
         poses, scores = pose_nms(
-            heatmap_sum, poses_sum, max_num_people=self.max_num_people, nms_threshold=self.nms_threshold, nms_num_threshold=self.nms_num_threshold
+            heatmap_sum,
+            poses_sum,
+            max_num_people=self.max_num_people,
+            nms_threshold=self.nms_threshold,
+            nms_num_threshold=self.nms_num_threshold,
+            min_confidence=self.min_confidence,
         )
 
         if len(poses) != len(scores):

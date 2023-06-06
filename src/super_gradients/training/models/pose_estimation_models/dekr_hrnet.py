@@ -531,10 +531,11 @@ class DEKRPoseEstimationModel(SgModule):
                     nn.init.constant_(m.translation_conv.bias, 0)
 
     @staticmethod
-    def get_post_prediction_callback(conf: float = 0.05, iou: float = 0.05):
+    def get_post_prediction_callback(conf: float = 0.05):
         return DEKRPoseEstimationDecodeCallback(
-            keypoint_threshold=conf,
-            nms_threshold=iou,
+            min_confidence=conf,
+            keypoint_threshold=0.05,
+            nms_threshold=0.05,
             apply_sigmoid=True,
             max_num_people=30,
             nms_num_threshold=8,
@@ -547,7 +548,6 @@ class DEKRPoseEstimationModel(SgModule):
         joint_links: Union[np.ndarray, List[Tuple[int, int]]],
         joint_colors: Union[np.ndarray, List[Tuple[int, int]]],
         image_processor: Optional[Processing] = None,
-        iou: Optional[float] = None,
         conf: Optional[float] = None,
     ) -> None:
         """Set the processing parameters for the dataset.
@@ -560,7 +560,6 @@ class DEKRPoseEstimationModel(SgModule):
         self._joint_links = joint_links or self._joint_links
         self._joint_colors = joint_colors or self._joint_colors
         self._image_processor = image_processor or self._image_processor
-        self._default_nms_iou = iou or self._default_nms_iou
         self._default_nms_conf = conf or self._default_nms_conf
 
     @lru_cache(maxsize=1)
@@ -572,26 +571,23 @@ class DEKRPoseEstimationModel(SgModule):
                         If None, the default value associated to the training is used.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
-        if None in (self._joint_links, self._image_processor, self._default_nms_iou, self._default_nms_conf):
+        if None in (self._joint_links, self._image_processor, self._default_nms_conf):
             raise RuntimeError(
                 "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
             )
 
-        iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
         pipeline = PoseEstimationPipeline(
             model=self,
             image_processor=self._image_processor,
             joint_links=self._joint_links,
             joint_colors=self._joint_colors,
-            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            post_prediction_callback=self.get_post_prediction_callback(conf=conf),
             fuse_model=fuse_model,
         )
         return pipeline
 
-    def predict(
-        self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True
-    ) -> ImagesPoseEstimationPrediction:
+    def predict(self, images: ImageSource, conf: Optional[float] = None, fuse_model: bool = True) -> ImagesPoseEstimationPrediction:
         """Predict an image or a list of images.
 
         :param images:  Images to predict.
@@ -600,10 +596,10 @@ class DEKRPoseEstimationModel(SgModule):
                         If None, the default value associated to the training is used.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model)
         return pipeline(images)  # type: ignore
 
-    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
+    def predict_webcam(self, conf: Optional[float] = None, fuse_model: bool = True):
         """Predict using webcam.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
@@ -611,7 +607,7 @@ class DEKRPoseEstimationModel(SgModule):
                         If None, the default value associated to the training is used.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model)
         pipeline.predict_webcam()
 
     def train(self, mode: bool = True):

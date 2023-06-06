@@ -23,7 +23,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
     image: np.ndarray
     prediction: PoseEstimationPrediction
 
-    def draw(self, box_thickness: int = 2, show_confidence: bool = True, joint_colors=None, keypoint_color=None) -> np.ndarray:
+    def draw(self, box_thickness: int = 2, show_confidence: bool = True, joint_colors=None, keypoint_color=None, keypoint_radius: int = 5) -> np.ndarray:
         """Draw the predicted bboxes on the image.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -42,11 +42,12 @@ class ImagePoseEstimationPrediction(ImagePrediction):
                 joint_links=self.prediction.joint_links,
                 joint_colors=self.prediction.joint_colors,
                 show_confidence=show_confidence,
+                keypoint_radius=keypoint_radius,
             )
 
         return image
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, keypoint_radius: int = 3) -> None:
         """Display the image with predicted bboxes.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -79,7 +80,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
 
     _images_prediction_lst: List[ImagePoseEstimationPrediction]
 
-    def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+    def show(self, box_thickness: int = 2, show_confidence: bool = True, keypoint_radius: int = 4) -> None:
         """Display the predicted bboxes on the images.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -88,7 +89,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
         for prediction in self._images_prediction_lst:
-            prediction.show(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
+            prediction.show(box_thickness=box_thickness, show_confidence=show_confidence, keypoint_radius=keypoint_radius)
 
     def save(
         self, output_folder: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None
