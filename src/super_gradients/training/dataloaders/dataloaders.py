@@ -3,7 +3,7 @@ from typing import Dict, Mapping
 import hydra
 import numpy as np
 import torch
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, UnsupportedValueType
 from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSampler
 
 import super_gradients
@@ -103,13 +103,15 @@ def _process_dataset_params(cfg, dataset_params, train: bool):
         # For some reason this breaks interpolation :shrug:
 
         if train:
+            OmegaConf.set_struct(dataset_params, False)
+            OmegaConf.set_struct(cfg.train_dataset_params, False)
             cfg.train_dataset_params = OmegaConf.merge(cfg.train_dataset_params, dataset_params)
             return hydra.utils.instantiate(cfg.train_dataset_params)
         else:
             cfg.val_dataset_params = OmegaConf.merge(cfg.val_dataset_params, dataset_params)
             return hydra.utils.instantiate(cfg.val_dataset_params)
 
-    except Exception:  # noqa: F401
+    except UnsupportedValueType:
         # This is somewhat ugly fallback for the case when the user provides overrides for the dataset params
         # that contains non-primitive types (E.g instantiated transforms).
         # In this case interpolation is not possible so we just override the default params with the user-provided ones.
