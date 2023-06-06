@@ -65,8 +65,9 @@ class PoseEstimationPrediction(Prediction):
 
     poses: np.ndarray
     scores: np.ndarray
+    joint_links: np.ndarray
 
-    def __init__(self, poses: np.ndarray, scores: np.ndarray, image_shape: Tuple[int, int]):
+    def __init__(self, poses: np.ndarray, scores: np.ndarray, joint_links: np.ndarray, image_shape: Tuple[int, int]):
         """
         :param poses:
         :param scores:
@@ -76,6 +77,7 @@ class PoseEstimationPrediction(Prediction):
         self.poses = poses
         self.scores = scores
         self.image_shape = image_shape
+        self.joint_links = joint_links
 
     def _validate_input(self, poses: np.ndarray, scores: np.ndarray) -> None:
         if not isinstance(poses, np.ndarray):

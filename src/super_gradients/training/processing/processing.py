@@ -412,6 +412,7 @@ def default_dekr_coco_processing_params() -> dict:
     params = dict(
         image_processor=image_processor,
         conf=0.05,
+        iou=0.05,
         joint_links=joint_links,
     )
     return params
@@ -428,6 +429,8 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
             return default_ppyoloe_coco_processing_params()
         elif "yolo_nas" in model_name:
             return default_yolo_nas_coco_processing_params()
-        elif model_name in ("dekr_w32_no_dc", "dekr_custom"):
-            return default_dekr_coco_processing_params()
+
+    if pretrained_weights == "coco_pose" and model_name in ("dekr_w32_no_dc", "dekr_custom"):
+        return default_dekr_coco_processing_params()
+
     return dict()

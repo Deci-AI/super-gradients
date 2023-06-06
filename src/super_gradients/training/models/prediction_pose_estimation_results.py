@@ -37,11 +37,10 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         for pred_i in np.argsort(self.prediction.scores):
             image = draw_skeleton(
                 image=image,
-                joints=self.prediction.poses[pred_i],
+                keypoints=self.prediction.poses[pred_i],
                 score=self.prediction.scores[pred_i],
-                box_thickness=box_thickness,
-                joint_colors=joint_colors,
-                keypoint_color=keypoint_color,
+                joint_links=self.prediction.joint_links,
+                show_confidence=show_confidence,
             )
 
         return image
@@ -54,10 +53,10 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
-        image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
+        image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence)
         show_image(image)
 
-    def save(self, output_path: str, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+    def save(self, output_path: str, box_thickness: int = 2, show_confidence: bool = True) -> None:
         """Save the predicted bboxes on the images.
 
         :param output_path:     Path to the output video file.
@@ -66,7 +65,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
-        image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
+        image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence)
         save_image(image=image, path=output_path)
 
 

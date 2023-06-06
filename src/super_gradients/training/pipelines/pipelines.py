@@ -6,6 +6,12 @@ from tqdm import tqdm
 
 import numpy as np
 import torch
+
+from super_gradients.training.models.prediction_pose_estimation_results import (
+    ImagePoseEstimationPrediction,
+    ImagesPoseEstimationPrediction,
+    VideoPoseEstimationPrediction,
+)
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, includes_video_extension
 from super_gradients.training.utils.media.image import ImageSource, check_image_typing
@@ -315,7 +321,7 @@ class PoseEstimationPipeline(Pipeline):
     def __init__(
         self,
         model: SgModule,
-        class_names: List[str],
+        joint_links: Union[np.ndarray, List[Tuple[int, int]]],
         post_prediction_callback,
         device: Optional[str] = None,
         image_processor: Optional[Processing] = None,
@@ -323,44 +329,39 @@ class PoseEstimationPipeline(Pipeline):
     ):
         super().__init__(model=model, device=device, image_processor=image_processor, class_names=None, fuse_model=fuse_model)
         self.post_prediction_callback = post_prediction_callback
+        self.joint_links = np.asarray(joint_links)
 
-    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[PoseEstimationPrediction]:
         """Decode the model output, by applying post prediction callback. This includes NMS.
 
         :param model_output:    Direct output of the model, without any post-processing.
         :param model_input:     Model input (i.e. images after preprocessing).
         :return:                Predicted Bboxes.
         """
-        all_poses, all_scores = self.post_prediction_callback(model_output, device=self.device)
+        all_poses, all_scores = self.post_prediction_callback(model_output)
 
         predictions = []
         for poses, scores, image in zip(all_poses, all_scores, model_input):
-            predictions.append(
-                PoseEstimationPrediction(
-                    poses=poses,
-                    scores=scores,
-                    image_shape=image.shape,
-                )
-            )
+            predictions.append(PoseEstimationPrediction(poses=poses, scores=scores, image_shape=image.shape, joint_links=self.joint_links))
 
         return predictions
 
-    def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
-        return ImageDetectionPrediction(image=image, prediction=prediction, class_names=self.class_names)
+    def _instantiate_image_prediction(self, image: np.ndarray, prediction: PoseEstimationPrediction) -> ImagePrediction:
+        return ImagePoseEstimationPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
-        self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
-    ) -> ImagesDetectionPrediction:
+        self, images_predictions: Iterable[PoseEstimationPrediction], n_images: Optional[int] = None
+    ) -> ImagesPoseEstimationPrediction:
         if n_images is not None and n_images == 1:
             # Do not show tqdm progress bar if there is only one image
             images_predictions = [next(iter(images_predictions))]
         else:
             images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
 
-        return ImagesDetectionPrediction(_images_prediction_lst=images_predictions)
+        return ImagesPoseEstimationPrediction(_images_prediction_lst=images_predictions)
 
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
-    ) -> VideoDetectionPrediction:
+    ) -> VideoPoseEstimationPrediction:
         images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
-        return VideoDetectionPrediction(_images_prediction_lst=images_predictions, fps=fps)
+        return VideoPoseEstimationPrediction(_images_prediction_lst=images_predictions, fps=fps)

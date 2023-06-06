@@ -570,7 +570,7 @@ class DEKRPoseEstimationModel(SgModule):
                         If None, the default value associated to the training is used.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
-        if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
+        if None in (self._joint_links, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
                 "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
             )
@@ -580,8 +580,8 @@ class DEKRPoseEstimationModel(SgModule):
         pipeline = PoseEstimationPipeline(
             model=self,
             image_processor=self._image_processor,
+            joint_links=self._joint_links,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
-            class_names=self._class_names,
             fuse_model=fuse_model,
         )
         return pipeline
