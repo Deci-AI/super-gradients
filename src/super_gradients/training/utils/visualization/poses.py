@@ -11,14 +11,18 @@ def draw_skeleton(image, keypoints, score, joint_links, joint_colors=None, keypo
     if keypoint_colors is None:
         keypoint_colors = [(0, 255, 0)] * len(keypoints)
 
+    if len(joint_links) != len(joint_colors):
+        raise ValueError("joint_colors and joint_links must have the same length")
+
     keypoints = keypoints.astype(int)
     for joint, color in zip(joint_links, joint_colors):
         p1 = tuple(keypoints[joint[0]][:2])
         p2 = tuple(keypoints[joint[1]][:2])
-        cv2.line(image, p1, p2, color, thickness=2, lineType=cv2.LINE_AA)
+        color_t = tuple(map(int, color))
+        cv2.line(image, p1, p2, color=color_t, thickness=3, lineType=cv2.LINE_AA)
 
     for keypoint, color in zip(keypoints, keypoint_colors):
-        cv2.circle(image, tuple(keypoint[:2]), radius=3, color=color, thickness=-1, lineType=cv2.LINE_AA)
+        cv2.circle(image, tuple(keypoint[:2]), radius=3, color=tuple(color), thickness=-1, lineType=cv2.LINE_AA)
 
     if show_confidence:
         x, y, w, h = cv2.boundingRect(keypoints[..., 0:2])

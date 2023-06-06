@@ -322,6 +322,7 @@ class PoseEstimationPipeline(Pipeline):
         self,
         model: SgModule,
         joint_links: Union[np.ndarray, List[Tuple[int, int]]],
+        joint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
         post_prediction_callback,
         device: Optional[str] = None,
         image_processor: Optional[Processing] = None,
@@ -329,7 +330,8 @@ class PoseEstimationPipeline(Pipeline):
     ):
         super().__init__(model=model, device=device, image_processor=image_processor, class_names=None, fuse_model=fuse_model)
         self.post_prediction_callback = post_prediction_callback
-        self.joint_links = np.asarray(joint_links)
+        self.joint_links = np.asarray(joint_links, dtype=int)
+        self.joint_colors = np.asarray(joint_colors, dtype=int)
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[PoseEstimationPrediction]:
         """Decode the model output, by applying post prediction callback. This includes NMS.
@@ -342,7 +344,9 @@ class PoseEstimationPipeline(Pipeline):
 
         predictions = []
         for poses, scores, image in zip(all_poses, all_scores, model_input):
-            predictions.append(PoseEstimationPrediction(poses=poses, scores=scores, image_shape=image.shape, joint_links=self.joint_links))
+            predictions.append(
+                PoseEstimationPrediction(poses=poses, scores=scores, image_shape=image.shape, joint_links=self.joint_links, joint_colors=self.joint_colors)
+            )
 
         return predictions
 

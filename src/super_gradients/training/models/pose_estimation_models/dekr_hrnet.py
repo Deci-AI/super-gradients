@@ -545,6 +545,7 @@ class DEKRPoseEstimationModel(SgModule):
     def set_dataset_processing_params(
         self,
         joint_links: Union[np.ndarray, List[Tuple[int, int]]],
+        joint_colors: Union[np.ndarray, List[Tuple[int, int]]],
         image_processor: Optional[Processing] = None,
         iou: Optional[float] = None,
         conf: Optional[float] = None,
@@ -557,6 +558,7 @@ class DEKRPoseEstimationModel(SgModule):
         :param conf:            (Optional) Below the confidence threshold, prediction are discarded
         """
         self._joint_links = joint_links or self._joint_links
+        self._joint_colors = joint_colors or self._joint_colors
         self._image_processor = image_processor or self._image_processor
         self._default_nms_iou = iou or self._default_nms_iou
         self._default_nms_conf = conf or self._default_nms_conf
@@ -581,6 +583,7 @@ class DEKRPoseEstimationModel(SgModule):
             model=self,
             image_processor=self._image_processor,
             joint_links=self._joint_links,
+            joint_colors=self._joint_colors,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             fuse_model=fuse_model,
         )

@@ -409,12 +409,28 @@ def default_dekr_coco_processing_params() -> dict:
         [14, 16],
     ]
 
-    params = dict(
-        image_processor=image_processor,
-        conf=0.05,
-        iou=0.05,
-        joint_links=joint_links,
-    )
+    joint_colors = [
+        (255, 0, 0),  # 0-1 (Red)
+        (255, 85, 0),  # 0-2 (Orange)
+        (255, 170, 0),  # 1-2 (Yellow-Orange)
+        (255, 255, 0),  # 1-3 (Yellow)
+        (170, 255, 0),  # 2-4 (Green-Yellow)
+        (0, 255, 0),  # 3-5 (Green)
+        (0, 255, 85),  # 4-6 (Green-Cyan)
+        (0, 255, 170),  # 5-6 (Cyan)
+        (0, 255, 255),  # 5-7 (Cyan-Blue)
+        (0, 170, 255),  # 5-11 (Blue-Cyan)
+        (0, 0, 255),  # 6-8 (Blue)
+        (85, 0, 255),  # 6-12 (Purple-Blue)
+        (170, 0, 255),  # 7-9 (Purple)
+        (255, 0, 255),  # 8-10 (Magenta)
+        (255, 0, 170),  # 11-12 (Magenta-Red)
+        (255, 0, 85),  # 11-13 (Red-Magenta)
+        (170, 85, 0),  # 12-14 (Brown-Orange)
+        (85, 170, 0),  # 13-15 (Yellow-Green)
+        (0, 255, 85),  # 14-16 (Green-Cyan)
+    ]
+    params = dict(image_processor=image_processor, conf=0.05, iou=0.05, joint_links=joint_links, joint_colors=joint_colors)
     return params
 
 

@@ -40,6 +40,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
                 keypoints=self.prediction.poses[pred_i],
                 score=self.prediction.scores[pred_i],
                 joint_links=self.prediction.joint_links,
+                joint_colors=self.prediction.joint_colors,
                 show_confidence=show_confidence,
             )
 

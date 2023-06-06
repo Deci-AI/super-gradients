@@ -66,26 +66,31 @@ class PoseEstimationPrediction(Prediction):
     poses: np.ndarray
     scores: np.ndarray
     joint_links: np.ndarray
+    joint_colors: np.ndarray
+    image_shape: Tuple[int, int]
 
-    def __init__(self, poses: np.ndarray, scores: np.ndarray, joint_links: np.ndarray, image_shape: Tuple[int, int]):
+    def __init__(self, poses: np.ndarray, scores: np.ndarray, joint_links: np.ndarray, joint_colors: np.ndarray, image_shape: Tuple[int, int]):
         """
         :param poses:
         :param scores:
         :param image_shape: Shape of the image the prediction is made on, (H, W). This is used to convert bboxes to xyxy format
         """
-        self._validate_input(poses, scores)
+        self._validate_input(poses, scores, joint_links, joint_colors)
         self.poses = poses
         self.scores = scores
-        self.image_shape = image_shape
         self.joint_links = joint_links
+        self.joint_colors = joint_colors
+        self.image_shape = image_shape
 
-    def _validate_input(self, poses: np.ndarray, scores: np.ndarray) -> None:
+    def _validate_input(self, poses: np.ndarray, scores: np.ndarray, joint_links, joint_colors) -> None:
         if not isinstance(poses, np.ndarray):
             raise ValueError(f"Poses must be a numpy array, not {type(poses)}")
         if not isinstance(scores, np.ndarray):
             raise ValueError(f"Scores must be a numpy array, not {type(scores)}")
         if len(poses) != len(scores):
             raise ValueError(f"The number of poses ({len(poses)}) does not match the number of scores ({len(scores)}).")
+        if len(joint_links) != len(joint_colors):
+            raise ValueError(f"The number of joint links ({len(joint_links)}) does not match the number of joint colors ({len(joint_colors)}).")
 
     def __len__(self):
         return len(self.poses)
