@@ -3,7 +3,7 @@ from typing import Dict, Mapping
 import hydra
 import numpy as np
 import torch
-from omegaconf import OmegaConf, UnsupportedValueType
+from omegaconf import OmegaConf, UnsupportedValueType, DictConfig, open_dict
 from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSampler
 
 import super_gradients
@@ -101,15 +101,19 @@ def _process_dataset_params(cfg, dataset_params, train: bool):
         # >>> dataset_params = OmegaConf.merge(default_dataset_params, dataset_params)
         # >>> return hydra.utils.instantiate(dataset_params)
         # For some reason this breaks interpolation :shrug:
-        OmegaConf.set_struct(dataset_params, False)
-
+        if not isinstance(dataset_params, DictConfig):
+            dataset_params = OmegaConf.create(dataset_params)
         if train:
-            OmegaConf.set_struct(cfg.train_dataset_params, False)
-            cfg.train_dataset_params = OmegaConf.merge(cfg.train_dataset_params, dataset_params)
+            train_dataset_params = cfg.train_dataset_params
+            with open_dict(train_dataset_params):
+                train_dataset_params.merge_with(dataset_params)
+            cfg.train_dataset_params = train_dataset_params
             return hydra.utils.instantiate(cfg.train_dataset_params)
         else:
-            OmegaConf.set_struct(cfg.val_dataset_params, False)
-            cfg.val_dataset_params = OmegaConf.merge(cfg.val_dataset_params, dataset_params)
+            val_dataset_params = cfg.val_dataset_params
+            with open_dict(val_dataset_params):
+                val_dataset_params.merge_with(dataset_params)
+            cfg.val_dataset_params = val_dataset_params
             return hydra.utils.instantiate(cfg.val_dataset_params)
 
     except UnsupportedValueType:
