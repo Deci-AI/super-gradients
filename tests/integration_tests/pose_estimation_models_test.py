@@ -15,7 +15,6 @@ from super_gradients.training.utils.pose_estimation import RescoringPoseEstimati
 class PoseEstimationModelsIntegrationTest(unittest.TestCase):
     def setUp(self):
         self.oks_sigmas = [0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 1.007, 1.007, 0.087, 0.087, 0.089, 0.089]
-        self.flip_indexes_heatmap = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 17]
         self.flip_indexes_offset = [
             0,
             2,
@@ -77,7 +76,7 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
         )
 
         model = models.get("dekr_w32_no_dc", pretrained_weights="coco_pose")
-        model = DEKRHorisontalFlipWrapper(model, self.flip_indexes_heatmap, self.flip_indexes_offset, apply_sigmoid=True).cuda().eval()
+        model = DEKRHorisontalFlipWrapper(model, self.flip_indexes_offset, apply_sigmoid=True).cuda().eval()
 
         post_prediction_callback = DEKRPoseEstimationDecodeCallback(
             output_stride=4, max_num_people=30, apply_sigmoid=False, keypoint_threshold=0.05, nms_threshold=0.05, nms_num_threshold=8
@@ -107,7 +106,7 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
         )
 
         model = models.get("dekr_w32_no_dc", pretrained_weights="coco_pose")
-        model = DEKRHorisontalFlipWrapper(model, self.flip_indexes_heatmap, self.flip_indexes_offset, apply_sigmoid=True).cuda().eval()
+        model = DEKRHorisontalFlipWrapper(model, self.flip_indexes_offset, apply_sigmoid=True).cuda().eval()
 
         rescoring = models.get("pose_rescoring_coco", pretrained_weights="coco_pose").cuda().eval()
 

@@ -578,6 +578,16 @@ class DEKRPoseEstimationModel(SgModule):
             )
 
         conf = conf or self._default_nms_conf
+
+        if len(self._keypoint_colors) != self.num_joints:
+            raise RuntimeError(
+                "The number of colors for the keypoints ({}) does not match the number of joints ({})".format(len(self._keypoint_colors), self.num_joints)
+            )
+        if len(self._joint_colors) != len(self._joint_links):
+            raise RuntimeError(
+                "The number of colors for the joints ({}) does not match the number of joint links ({})".format(len(self._joint_colors), len(self._joint_links))
+            )
+
         pipeline = PoseEstimationPipeline(
             model=self,
             image_processor=self._image_processor,
@@ -648,10 +658,11 @@ class DEKRWrapper(nn.Module):
 
 
 class DEKRHorisontalFlipWrapper(nn.Module):
-    def __init__(self, model: DEKRPoseEstimationModel, flip_indexes_heatmap, flip_indexes_offset, apply_sigmoid=False):
+    def __init__(self, model: DEKRPoseEstimationModel, flip_indexes_offset, apply_sigmoid=False):
         super().__init__()
         self.model = model
-        self.flip_indexes_heatmap = torch.tensor(flip_indexes_heatmap).long()
+        # In DEKR the heatmap has one more channel for the center point of the pose, which is the last channel and it is not flipped
+        self.flip_indexes_heatmap = torch.tensor(list(flip_indexes_offset) + [len(flip_indexes_offset)]).long()
         self.flip_indexes_offset = torch.tensor(flip_indexes_offset).long()
         self.apply_sigmoid = apply_sigmoid
 

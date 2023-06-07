@@ -387,49 +387,48 @@ def default_dekr_coco_processing_params() -> dict:
         ]
     )
 
-    # Taken from COCO annotation file, subtract 1 to make it 0-based
     joint_links = [
-        [15, 13],  # Left Knee -> Left Ankle
-        [13, 11],  # Left Hip -> Left Knee
-        [16, 14],  # Right leg
-        [14, 12],  # Right hip
-        [11, 12],  # Waist
-        [5, 11],  # LeftTorso
-        [6, 12],  # RightTorso
-        [5, 6],  # Shoulders
-        [5, 7],  # LeftShoulder -> LeftElbow
-        [6, 8],  # RightShoulder -> RightElbow
-        [7, 9],  # LeftElbow -> LeftArm
-        [8, 10],  # RightElbow -> RightArm
-        [1, 2],  # LeftEye -> RightEye
-        [0, 1],  # Nose -> LeftEye
-        [0, 2],  # Nose -> RightEye
-        [1, 3],  # LeftEye -> LeftEar
-        [2, 4],  # RightEye -> RightEar
-        [3, 5],  # LeftEar -> LeftShoulder
-        [4, 6],  # RightEar -> RightShoulder
+        [0, 1],
+        [0, 2],
+        [1, 2],
+        [1, 3],
+        [2, 4],
+        [3, 5],
+        [4, 6],
+        [5, 6],
+        [5, 7],
+        [5, 11],
+        [6, 8],
+        [6, 12],
+        [7, 9],
+        [8, 10],
+        [11, 12],
+        [11, 13],
+        [12, 14],
+        [13, 15],
+        [14, 16],
     ]
 
     joint_colors = [
-        (31, 119, 180),  # Left Knee -> Left Ankle
-        (255, 127, 14),  # Left Hip -> Left Knee
-        (44, 160, 44),  # Right Knee -> Right Ankle
-        (214, 39, 40),  # Right Hip -> Right Knee
-        (148, 103, 189),  # Waist
-        (140, 86, 75),  # LeftTorso
-        (227, 119, 194),  # RightTorso
-        (127, 127, 127),  # Shoulders
-        (188, 189, 34),  # LeftShoulder -> LeftElbow
-        (23, 190, 207),  # RightShoulder -> RightElbow
-        (31, 119, 180),  # LeftElbow -> LeftArm
-        (255, 127, 14),  # RightElbow -> RightArm
-        (44, 160, 44),  # LeftEye -> RightEye
         (214, 39, 40),  # Nose -> LeftEye
         (148, 103, 189),  # Nose -> RightEye
+        (44, 160, 44),  # LeftEye -> RightEye
         (140, 86, 75),  # LeftEye -> LeftEar
         (227, 119, 194),  # RightEye -> RightEar
         (127, 127, 127),  # LeftEar -> LeftShoulder
         (188, 189, 34),  # RightEar -> RightShoulder
+        (127, 127, 127),  # Shoulders
+        (188, 189, 34),  # LeftShoulder -> LeftElbow
+        (140, 86, 75),  # LeftTorso
+        (23, 190, 207),  # RightShoulder -> RightElbow
+        (227, 119, 194),  # RightTorso
+        (31, 119, 180),  # LeftElbow -> LeftArm
+        (255, 127, 14),  # RightElbow -> RightArm
+        (148, 103, 189),  # Waist
+        (255, 127, 14),  # Left Hip -> Left Knee
+        (214, 39, 40),  # Right Hip -> Right Knee
+        (31, 119, 180),  # Left Knee -> Left Ankle
+        (44, 160, 44),  # Right Knee -> Right Ankle
     ]
 
     keypoint_colors = [
@@ -449,6 +448,7 @@ def default_dekr_coco_processing_params() -> dict:
         (31, 119, 180),
         (148, 103, 189),
         (31, 119, 180),
+        (148, 103, 189),
     ]
     params = dict(image_processor=image_processor, conf=0.05, joint_links=joint_links, joint_colors=joint_colors, keypoint_colors=keypoint_colors)
     return params

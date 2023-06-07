@@ -39,6 +39,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         min_instance_area: float,
         joint_links: Union[List[Tuple[int, int]], np.ndarray],
         joint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
+        keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
     ):
         """
 
@@ -55,7 +56,12 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         :param joint_colors: List of colors for each joint link
         """
         super().__init__(
-            transforms=transforms, target_generator=target_generator, min_instance_area=min_instance_area, joint_links=joint_links, joint_colors=joint_colors
+            transforms=transforms,
+            target_generator=target_generator,
+            min_instance_area=min_instance_area,
+            joint_links=joint_links,
+            joint_colors=joint_colors,
+            keypoint_colors=keypoint_colors,
         )
         self.root = data_dir
         self.images_dir = os.path.join(data_dir, images_dir)

@@ -27,6 +27,47 @@ joint_links:
   - [13, 15]
   - [14, 16]
 
+joint_colors:
+ - [214, 39, 40]  # Nose -> LeftEye
+ - [148, 103, 189]  # Nose -> RightEye
+ - [44, 160, 44]  # LeftEye -> RightEye
+ - [140, 86, 75]  # LeftEye -> LeftEar
+ - [227, 119, 194]  # RightEye -> RightEar
+ - [127, 127, 127]  # LeftEar -> LeftShoulder
+ - [188, 189, 34]  # RightEar -> RightShoulder
+ - [127, 127, 127]  # Shoulders
+ - [188, 189, 34]  # LeftShoulder -> LeftElbow
+ - [140, 86, 75]  # LeftTorso
+ - [23, 190, 207]  # RightShoulder -> RightElbow
+ - [227, 119, 194]  # RightTorso
+ - [31, 119, 180]  # LeftElbow -> LeftArm
+ - [255, 127, 14]  # RightElbow -> RightArm
+ - [148, 103, 189]  # Waist
+ - [255, 127, 14]  # Left Hip -> Left Knee
+ - [214, 39, 40]  # Right Hip -> Right Knee
+ - [31, 119, 180]  # Left Knee -> Left Ankle
+ - [44, 160, 44]  # Right Knee -> Right Ankle
+
+
+keypoint_colors:
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+
 
 train_dataset_params:
   data_dir: /data/coco # root path to coco data
@@ -35,6 +76,10 @@ train_dataset_params:
 
   include_empty_samples: False
   min_instance_area: 64
+
+  joint_links: ${dataset_params.joint_links}
+  joint_colors: ${dataset_params.joint_colors}
+  keypoint_colors: ${dataset_params.keypoint_colors}
 
   transforms:
     - KeypointsLongestMaxSize:
@@ -49,7 +94,7 @@ train_dataset_params:
 
     - KeypointsRandomHorizontalFlip:
         # Note these indexes are COCO-specific. If you're using a different dataset, you'll need to change these accordingly.
-        flip_index: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15 ]
+        flip_index: ${dataset_params.flip_indexes_offset}
         prob: 0.5
 
     - KeypointsRandomAffineTransform:
@@ -75,6 +120,11 @@ val_dataset_params:
   json_file: annotations/person_keypoints_val2017.json
   include_empty_samples: True
   min_instance_area: 128
+
+  joint_links: ${dataset_params.joint_links}
+  joint_colors: ${dataset_params.joint_colors}
+  keypoint_colors: ${dataset_params.keypoint_colors}
+
   transforms:
     - KeypointsLongestMaxSize:
         max_height: 640
