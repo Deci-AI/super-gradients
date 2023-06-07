@@ -73,7 +73,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
     :param max_batch_size: int, optional, upper limit of the batch sizes to try. When None, the search will continue until
      the maximal batch size that does not raise CUDA OUT OF MEMORY is found (deafult=None).
 
-    :param scale_lr: bool, whether to linearly scale cfg.training_hyperparamsinitial_lr, i.e multiply by
+    :param scale_lr: bool, whether to linearly scale cfg.training_hyperparams.initial_lr, i.e multiply by
      FOUND_BATCH_SIZE/cfg.dataset_params.train_datalaoder_params.batch_size (default=True)
     :param mode: str, one of ["fastest","largest"], whether to select the largest batch size that fits memory or the one
      that the resulted in overall fastest execution.
@@ -169,7 +169,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
     def _adapt_lr_if_needed(self, cfg: DictConfig, found_batch_size: int) -> DictConfig:
         if self.scale_lr:
             scale_factor = found_batch_size / cfg.dataset_params.train_dataloader_params.batch_size
-            cfg.training_hyperparamsinitial_lr = cfg.training_hyperparamsinitial_lr * scale_factor
+            cfg.training_hyperparams.initial_lr = cfg.training_hyperparams.initial_lr * scale_factor
         return cfg
 
     @classmethod
@@ -394,7 +394,7 @@ class QATRecipeModificationCallback(PreLaunchCallback):
             train_dataset_params=cfg.dataset_params.train_dataset_params,
             train_dataloader_params=cfg.dataset_params.train_dataloader_params,
             val_dataset_params=cfg.dataset_params.val_dataset_params,
-            val_dataloader_params=cfg.dataset_params.train_dataloader_params,
+            val_dataloader_params=cfg.dataset_params.val_dataloader_params,
             quantization_params=cfg.quantization_params,
             batch_size_divisor=self.batch_size_divisor,
             disable_phase_callbacks=self.disable_phase_callbacks,

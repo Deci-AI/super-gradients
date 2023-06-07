@@ -36,6 +36,8 @@ from tests.unit_tests.quantization_utility_tests import QuantizationUtilityTest
 from tests.unit_tests.random_erase_test import RandomEraseTest
 from tests.unit_tests.replace_head_test import ReplaceHeadUnitTest
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
+from tests.unit_tests.test_deprecations import DeprecationsUnitTest
+from tests.unit_tests.test_min_samples_single_node import TestMinSamplesSingleNode
 from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
 from tests.unit_tests.lr_warmup_test import LRWarmupTest
@@ -137,6 +139,8 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ReplaceHeadUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PreprocessingUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestYOLONAS))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DeprecationsUnitTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestMinSamplesSingleNode))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

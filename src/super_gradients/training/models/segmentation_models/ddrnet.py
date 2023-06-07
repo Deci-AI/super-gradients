@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -5,7 +7,7 @@ from collections import OrderedDict
 
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.training.models.classification_models.resnet import BasicBlock, Bottleneck
+from super_gradients.training.models.classification_models.resnet import BasicResNetBlock, Bottleneck
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import get_param, HpmStruct
 
@@ -212,7 +214,7 @@ class DDRBackBoneBase(nn.Module):
 
 
 class BasicDDRBackBone(DDRBackBoneBase):
-    def __init__(self, block: nn.Module.__class__, width: int, layers: list, input_channels: int, layer3_repeats: int):
+    def __init__(self, block: nn.Module.__class__, width: int, layers: list, input_channels: int, layer3_repeats: int = 1):
         super().__init__()
         self.input_channels = input_channels
         self.stem = nn.Sequential(
@@ -507,6 +509,17 @@ class DDRNet(SegmentationModule):
 class DDRNetCustom(DDRNet):
     def __init__(self, arch_params: HpmStruct):
         """Parse arch_params and translate the parameters to build the original DDRNet architecture"""
+        if get_param(arch_params, "aux_heads") is not None:
+            message = "arch_params.aux_heads is deprecated in 3.1.1 and will be removed in 3.2.0."
+            if get_param(arch_params, "use_aux_heads") is not None:
+                message += "\n using arch_params.use_aux_heads instead."
+
+            else:
+                message += "\n use arch_params.use_aux_heads instead."
+            warnings.warn(message, DeprecationWarning)
+            use_aux_heads = get_param(arch_params, "aux_heads")
+        else:
+            use_aux_heads = get_param(arch_params, "use_aux_heads")
         super().__init__(
             backbone=arch_params.backbone,
             additional_layers=arch_params.additional_layers,
@@ -515,7 +528,7 @@ class DDRNetCustom(DDRNet):
             highres_planes=arch_params.highres_planes,
             spp_width=arch_params.spp_planes,
             head_width=arch_params.head_planes,
-            use_aux_heads=arch_params.use_aux_heads,
+            use_aux_heads=use_aux_heads,
             ssp_inter_mode=arch_params.ssp_inter_mode,
             segmentation_inter_mode=arch_params.segmentation_inter_mode,
             skip_block=arch_params.skip_block,
@@ -530,8 +543,8 @@ class DDRNetCustom(DDRNet):
 
 DEFAULT_DDRNET_23_PARAMS = {
     "input_channels": 3,
-    "block": BasicBlock,
-    "skip_block": BasicBlock,
+    "block": BasicResNetBlock,
+    "skip_block": BasicResNetBlock,
     "layer5_block": Bottleneck,
     "layer5_bottleneck_expansion": 2,
     "layers": [2, 2, 2, 2, 1, 2, 2, 1],
