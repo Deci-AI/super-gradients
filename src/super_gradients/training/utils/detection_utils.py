@@ -4,7 +4,7 @@ import pathlib
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, List, Union, Tuple, Optional, Dict
+from typing import Callable, List, Union, Tuple, Optional, Dict, Type
 
 import cv2
 
@@ -656,14 +656,34 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     return bbox
 
 
+class DatasetItemsException(Exception):
+    def __init__(self, data_sample: Tuple, collate_type: Type, expected_item_names: Tuple):
+        """
+        :param data_sample: item(s) returned by a dataset
+        :param collate_type: type of the collate that caused the exception
+        :param expected_item_names: tuple of names of items that are expected by the collate to be returned from the dataset
+        """
+        collate_type_name = collate_type.__name__
+        num_sample_items = len(data_sample) if isinstance(data_sample, tuple) else 1
+        error_msg = f"`{collate_type_name}` only supports Datasets that return a tuple {expected_item_names}, but got a tuple of len={num_sample_items}"
+        super().__init__(error_msg)
+
+
 @register_collate_function()
 class DetectionCollateFN:
     """
     Collate function for Yolox training
     """
 
+    def __init__(self):
+        self.expected_item_names = ("image", "targets")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
-        images_batch, labels_batch = list(zip(*data))
+        try:
+            images_batch, labels_batch = list(zip(*data))
+        except (ValueError, TypeError):
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
+
         return self._format_images(images_batch), self._format_targets(labels_batch)
 
     def _format_images(self, images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
@@ -723,11 +743,11 @@ class PPYoloECollateFN(DetectionCollateFN):
         if len(sample) == 2:
             image, targets = sample  # TARGETS ARE IN LABEL_CXCYWH
             with_crowd = False
-        elif len(sample == 3):
+        elif len(sample) == 3:
             image, targets, crowd_targets = sample
             with_crowd = True
         else:
-            raise RuntimeError()
+            raise DatasetItemsException(data_sample=sample, collate_type=type(self), expected_item_names=self.expected_item_names)
 
         dsize = int(target_size), int(target_size)
         scale_factors = target_size / image.shape[0], target_size / image.shape[1]
@@ -752,12 +772,20 @@ class CrowdDetectionPPYoloECollateFN(PPYoloECollateFN):
     Collate function for Yolox training with additional_batch_items that includes crowd targets
     """
 
+    def __init__(self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None):
+        super().__init__(random_resize_sizes, random_resize_modes)
+        self.expected_item_names = ("image", "targets", "crowd_targets")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
 
         if self.random_resize_sizes is not None:
             data = self.random_resize(data)
 
-        images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
+        try:
+            images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
+        except (ValueError, TypeError):
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
+
         return self._format_images(images_batch), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
 
 
@@ -767,8 +795,16 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
     Collate function for Yolox training with additional_batch_items that includes crowd targets
     """
 
+    def __init__(self):
+        super().__init__()
+        self.expected_item_names = ("image", "targets", "crowd_targets")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
-        images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
+        try:
+            images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
+        except (ValueError, TypeError):
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
+
         return self._format_images(images_batch), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
 
 
