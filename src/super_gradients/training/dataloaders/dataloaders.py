@@ -3,7 +3,7 @@ from typing import Dict, Mapping
 import hydra
 import numpy as np
 import torch
-from omegaconf import OmegaConf, UnsupportedValueType
+from omegaconf import OmegaConf, UnsupportedValueType, DictConfig, open_dict
 from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSampler
 
 import super_gradients
@@ -25,6 +25,7 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
 )
 from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets.rescoring_dataset import TrainRescoringDataset, ValTrainRescoringDataset
+from super_gradients.training.datasets.samplers import RepeatAugSampler
 from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     CoCoSegmentationDataSet,
@@ -40,6 +41,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 from super_gradients.training.utils.utils import override_default_params_without_nones
 from super_gradients.common.environment.cfg_utils import load_dataset_params
+import torch.distributed as dist
 
 
 logger = get_logger(__name__)
@@ -99,12 +101,19 @@ def _process_dataset_params(cfg, dataset_params, train: bool):
         # >>> dataset_params = OmegaConf.merge(default_dataset_params, dataset_params)
         # >>> return hydra.utils.instantiate(dataset_params)
         # For some reason this breaks interpolation :shrug:
-
+        if not isinstance(dataset_params, DictConfig):
+            dataset_params = OmegaConf.create(dataset_params)
         if train:
-            cfg.train_dataset_params = OmegaConf.merge(cfg.train_dataset_params, dataset_params)
+            train_dataset_params = cfg.train_dataset_params
+            with open_dict(train_dataset_params):
+                train_dataset_params.merge_with(dataset_params)
+            cfg.train_dataset_params = train_dataset_params
             return hydra.utils.instantiate(cfg.train_dataset_params)
         else:
-            cfg.val_dataset_params = OmegaConf.merge(cfg.val_dataset_params, dataset_params)
+            val_dataset_params = cfg.val_dataset_params
+            with open_dict(val_dataset_params):
+                val_dataset_params.merge_with(dataset_params)
+            cfg.val_dataset_params = val_dataset_params
             return hydra.utils.instantiate(cfg.val_dataset_params)
 
     except UnsupportedValueType:
@@ -150,6 +159,18 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     elif is_dist:
         dataloader_params["sampler"] = {"DistributedSampler": {}}
         dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+        if get_param(dataloader_params, "min_samples") is not None:
+            min_samples = dataloader_params.pop("min_samples")
+            if len(dataset) < min_samples:
+                world_size = dist.get_world_size()
+                num_repeats = min_samples / len(dataset)
+                selected_ratio = world_size / num_repeats
+
+                # WE SET selected_ratio = world_size / num_repeats SO THAT IN RepeatAugSampler THE NUMBER OF SAMPLES
+                # PER EPOCH PER RANK WILL BE DETERMINED BY
+                # int(math.ceil(len(self.dataset) / selected_ratio)) =  min_samples / world_size
+
+                dataloader_params["sampler"] = RepeatAugSampler(dataset=dataset, num_repeats=num_repeats, selected_round=0, selected_ratio=selected_ratio)
     elif get_param(dataloader_params, "min_samples") is not None:
         min_samples = dataloader_params.pop("min_samples")
         if len(dataset) < min_samples:
