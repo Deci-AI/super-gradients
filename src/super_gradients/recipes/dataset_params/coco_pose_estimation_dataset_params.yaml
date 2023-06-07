@@ -5,7 +5,7 @@ oks_sigmas: [0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.06
 
 flip_indexes: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15,]
 
-joint_links:
+edge_links:
   - [0, 1]
   - [0, 2]
   - [1, 2]
@@ -26,7 +26,7 @@ joint_links:
   - [13, 15]
   - [14, 16]
 
-joint_colors:
+edge_colors:
  - [214, 39, 40]  # Nose -> LeftEye
  - [148, 103, 189]  # Nose -> RightEye
  - [44, 160, 44]  # LeftEye -> RightEye
@@ -76,8 +76,8 @@ train_dataset_params:
   include_empty_samples: False
   min_instance_area: 64
 
-  joint_links: ${dataset_params.joint_links}
-  joint_colors: ${dataset_params.joint_colors}
+  edge_links: ${dataset_params.edge_links}
+  edge_colors: ${dataset_params.edge_colors}
   keypoint_colors: ${dataset_params.keypoint_colors}
 
   transforms:
@@ -120,8 +120,8 @@ val_dataset_params:
   include_empty_samples: True
   min_instance_area: 128
 
-  joint_links: ${dataset_params.joint_links}
-  joint_colors: ${dataset_params.joint_colors}
+  edge_links: ${dataset_params.edge_links}
+  edge_colors: ${dataset_params.edge_colors}
   keypoint_colors: ${dataset_params.keypoint_colors}
 
   transforms:

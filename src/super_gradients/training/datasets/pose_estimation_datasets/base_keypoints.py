@@ -25,8 +25,8 @@ class BaseKeypointsDataset(Dataset):
         target_generator: KeypointsTargetsGenerator,
         transforms: List[KeypointTransform],
         min_instance_area: float,
-        joint_links: Union[List[Tuple[int, int]], np.ndarray],
-        joint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
+        edge_links: Union[List[Tuple[int, int]], np.ndarray],
+        edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
     ):
         """
@@ -40,8 +40,8 @@ class BaseKeypointsDataset(Dataset):
         self.target_generator = target_generator
         self.transforms = KeypointsCompose(transforms)
         self.min_instance_area = min_instance_area
-        self.joint_links = joint_links
-        self.joint_colors = joint_colors
+        self.edge_links = edge_links
+        self.edge_colors = edge_colors
         self.keypoint_colors = keypoint_colors
 
     @abc.abstractmethod
@@ -111,8 +111,8 @@ class BaseKeypointsDataset(Dataset):
         params = dict(
             conf=0.25,
             image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
-            joint_links=self.joint_links,
-            joint_names=self.joint_colors,
+            edge_links=self.edge_links,
+            joint_names=self.edge_colors,
             keypoint_colors=self.keypoint_colors,
         )
         return params

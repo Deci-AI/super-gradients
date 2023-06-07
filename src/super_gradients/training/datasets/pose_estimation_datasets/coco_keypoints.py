@@ -37,8 +37,8 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         target_generator,
         transforms: List[KeypointTransform],
         min_instance_area: float,
-        joint_links: Union[List[Tuple[int, int]], np.ndarray],
-        joint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
+        edge_links: Union[List[Tuple[int, int]], np.ndarray],
+        edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
     ):
         """
@@ -52,15 +52,15 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
             See DEKRTargetsGenerator for an example.
         :param transforms: Transforms to be applied to the image & keypoints
         :param min_instance_area: Minimum area of an instance to be included in the dataset
-        :param joint_links: List of joint links to be visualized on the image
-        :param joint_colors: List of colors for each joint link
+        :param edge_links: List of joint links to be visualized on the image
+        :param edge_colors: List of colors for each joint link
         """
         super().__init__(
             transforms=transforms,
             target_generator=target_generator,
             min_instance_area=min_instance_area,
-            joint_links=joint_links,
-            joint_colors=joint_colors,
+            edge_links=edge_links,
+            edge_colors=edge_colors,
             keypoint_colors=keypoint_colors,
         )
         self.root = data_dir
@@ -212,7 +212,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         params = dict(
             conf=0.25,
             image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
-            joint_links=self.joint_links,
-            joint_names=self.joint_colors,
+            edge_links=self.edge_links,
+            joint_names=self.edge_colors,
         )
         return params

@@ -24,7 +24,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
 
     def draw(
         self,
-        joint_colors=None,
+        edge_colors=None,
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
@@ -33,7 +33,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
     ) -> np.ndarray:
         """Draw the predicted bboxes on the image.
 
-        :param joint_colors:    Optional list of tuples representing the colors for each joint.
+        :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
         :param joint_thickness: Thickness of the joint links  (in pixels).
@@ -53,8 +53,8 @@ class ImagePoseEstimationPrediction(ImagePrediction):
                 keypoints=self.prediction.poses[pred_i],
                 score=self.prediction.scores[pred_i],
                 show_confidence=show_confidence,
-                joint_links=self.prediction.joint_links,
-                joint_colors=joint_colors or self.prediction.joint_colors,
+                edge_links=self.prediction.edge_links,
+                edge_colors=edge_colors or self.prediction.edge_colors,
                 joint_thickness=joint_thickness,
                 keypoint_colors=keypoint_colors or self.prediction.keypoint_colors,
                 keypoint_radius=keypoint_radius,
@@ -65,7 +65,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
 
     def show(
         self,
-        joint_colors=None,
+        edge_colors=None,
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
@@ -74,7 +74,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
     ) -> None:
         """Display the image with predicted bboxes.
 
-        :param joint_colors:    Optional list of tuples representing the colors for each joint.
+        :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
         :param joint_thickness: Thickness of the joint links  (in pixels).
@@ -86,7 +86,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param box_thickness:   Thickness of bounding boxes.
         """
         image = self.draw(
-            joint_colors=joint_colors,
+            edge_colors=edge_colors,
             joint_thickness=joint_thickness,
             keypoint_colors=keypoint_colors,
             keypoint_radius=keypoint_radius,
@@ -98,7 +98,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
     def save(
         self,
         output_path: str,
-        joint_colors=None,
+        edge_colors=None,
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
@@ -108,7 +108,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         """Save the predicted bboxes on the images.
 
         :param output_path:     Path to the output video file.
-        :param joint_colors:    Optional list of tuples representing the colors for each joint.
+        :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
         :param joint_thickness: Thickness of the joint links  (in pixels).
@@ -134,7 +134,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
 
     def show(
         self,
-        joint_colors=None,
+        edge_colors=None,
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
@@ -143,7 +143,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
     ) -> None:
         """Display the predicted bboxes on the images.
 
-        :param joint_colors:    Optional list of tuples representing the colors for each joint.
+        :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
         :param joint_thickness: Thickness of the joint links  (in pixels).
@@ -156,7 +156,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
         """
         for prediction in self._images_prediction_lst:
             prediction.show(
-                joint_colors=joint_colors,
+                edge_colors=edge_colors,
                 joint_thickness=joint_thickness,
                 keypoint_colors=keypoint_colors,
                 keypoint_radius=keypoint_radius,
@@ -167,7 +167,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
     def save(
         self,
         output_folder: str,
-        joint_colors=None,
+        edge_colors=None,
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
@@ -177,7 +177,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
         """Save the predicted bboxes on the images.
 
         :param output_folder:   Folder path, where the images will be saved.
-        :param joint_colors:    Optional list of tuples representing the colors for each joint.
+        :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
         :param joint_thickness: Thickness of the joint links  (in pixels).
@@ -195,7 +195,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
             image_output_path = os.path.join(output_folder, f"pred_{i}.jpg")
             prediction.save(
                 output_path=image_output_path,
-                joint_colors=joint_colors,
+                edge_colors=edge_colors,
                 joint_thickness=joint_thickness,
                 keypoint_colors=keypoint_colors,
                 keypoint_radius=keypoint_radius,
@@ -217,7 +217,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
 
     def draw(
         self,
-        joint_colors=None,
+        edge_colors=None,
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
@@ -227,7 +227,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         """Draw the predicted bboxes on the images.
 
         :param output_folder:   Folder path, where the images will be saved.
-        :param joint_colors:    Optional list of tuples representing the colors for each joint.
+        :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
         :param joint_thickness: Thickness of the joint links  (in pixels).
@@ -242,7 +242,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         """
         frames_with_bbox = [
             result.draw(
-                joint_colors=joint_colors,
+                edge_colors=edge_colors,
                 joint_thickness=joint_thickness,
                 keypoint_colors=keypoint_colors,
                 keypoint_radius=keypoint_radius,
@@ -255,7 +255,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
 
     def show(
         self,
-        joint_colors=None,
+        edge_colors=None,
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
@@ -264,7 +264,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
     ) -> None:
         """Display the predicted bboxes on the images.
 
-        :param joint_colors:    Optional list of tuples representing the colors for each joint.
+        :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
         :param joint_thickness: Thickness of the joint links  (in pixels).
@@ -276,7 +276,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         :param box_thickness:   Thickness of bounding boxes.
         """
         frames = self.draw(
-            joint_colors=joint_colors,
+            edge_colors=edge_colors,
             joint_thickness=joint_thickness,
             keypoint_colors=keypoint_colors,
             keypoint_radius=keypoint_radius,
@@ -288,7 +288,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
     def save(
         self,
         output_path: str,
-        joint_colors=None,
+        edge_colors=None,
         joint_thickness: int = 2,
         keypoint_colors=None,
         keypoint_radius: int = 5,
@@ -298,7 +298,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         """Save the predicted bboxes on the images.
 
         :param output_path:     Path to the output video file.
-        :param joint_colors:    Optional list of tuples representing the colors for each joint.
+        :param edge_colors:    Optional list of tuples representing the colors for each joint.
                                 If None, default colors are used.
                                 If not None the length must be equal to the number of joint links in the skeleton.
         :param joint_thickness: Thickness of the joint links  (in pixels).
@@ -310,7 +310,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         :param box_thickness:   Thickness of bounding boxes.
         """
         frames = self.draw(
-            joint_colors=joint_colors,
+            edge_colors=edge_colors,
             joint_thickness=joint_thickness,
             keypoint_colors=keypoint_colors,
             keypoint_radius=keypoint_radius,

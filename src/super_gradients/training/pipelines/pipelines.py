@@ -320,8 +320,8 @@ class PoseEstimationPipeline(Pipeline):
     def __init__(
         self,
         model: SgModule,
-        joint_links: Union[np.ndarray, List[Tuple[int, int]]],
-        joint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
+        edge_links: Union[np.ndarray, List[Tuple[int, int]]],
+        edge_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
         keypoint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
         post_prediction_callback,
         device: Optional[str] = None,
@@ -330,8 +330,8 @@ class PoseEstimationPipeline(Pipeline):
     ):
         super().__init__(model=model, device=device, image_processor=image_processor, class_names=None, fuse_model=fuse_model)
         self.post_prediction_callback = post_prediction_callback
-        self.joint_links = np.asarray(joint_links, dtype=int)
-        self.joint_colors = np.asarray(joint_colors, dtype=int)
+        self.edge_links = np.asarray(edge_links, dtype=int)
+        self.edge_colors = np.asarray(edge_colors, dtype=int)
         self.keypoint_colors = np.asarray(keypoint_colors, dtype=int)
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[PoseEstimationPrediction]:
@@ -350,8 +350,8 @@ class PoseEstimationPipeline(Pipeline):
                     poses=poses,
                     scores=scores,
                     image_shape=image.shape,
-                    joint_links=self.joint_links,
-                    joint_colors=self.joint_colors,
+                    edge_links=self.edge_links,
+                    edge_colors=self.edge_colors,
                     keypoint_colors=self.keypoint_colors,
                 )
             )

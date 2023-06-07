@@ -545,8 +545,8 @@ class DEKRPoseEstimationModel(SgModule):
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(
         self,
-        joint_links: Union[np.ndarray, List[Tuple[int, int]]],
-        joint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
+        edge_links: Union[np.ndarray, List[Tuple[int, int]]],
+        edge_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
         keypoint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
         image_processor: Optional[Processing] = None,
         conf: Optional[float] = None,
@@ -556,8 +556,8 @@ class DEKRPoseEstimationModel(SgModule):
         :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
         :param conf:            (Optional) Below the confidence threshold, prediction are discarded
         """
-        self._joint_links = joint_links or self._joint_links
-        self._joint_colors = joint_colors or self._joint_colors
+        self._edge_links = edge_links or self._edge_links
+        self._edge_colors = edge_colors or self._edge_colors
         self._keypoint_colors = keypoint_colors or self._keypoint_colors
         self._image_processor = image_processor or self._image_processor
         self._default_nms_conf = conf or self._default_nms_conf
@@ -570,7 +570,7 @@ class DEKRPoseEstimationModel(SgModule):
                         If None, the default value associated to the training is used.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
-        if None in (self._joint_links, self._image_processor, self._default_nms_conf):
+        if None in (self._edge_links, self._image_processor, self._default_nms_conf):
             raise RuntimeError(
                 "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
             )
@@ -581,16 +581,16 @@ class DEKRPoseEstimationModel(SgModule):
             raise RuntimeError(
                 "The number of colors for the keypoints ({}) does not match the number of joints ({})".format(len(self._keypoint_colors), self.num_joints)
             )
-        if len(self._joint_colors) != len(self._joint_links):
+        if len(self._edge_colors) != len(self._edge_links):
             raise RuntimeError(
-                "The number of colors for the joints ({}) does not match the number of joint links ({})".format(len(self._joint_colors), len(self._joint_links))
+                "The number of colors for the joints ({}) does not match the number of joint links ({})".format(len(self._edge_colors), len(self._edge_links))
             )
 
         pipeline = PoseEstimationPipeline(
             model=self,
             image_processor=self._image_processor,
-            joint_links=self._joint_links,
-            joint_colors=self._joint_colors,
+            edge_links=self._edge_links,
+            edge_colors=self._edge_colors,
             keypoint_colors=self._keypoint_colors,
             post_prediction_callback=self.get_post_prediction_callback(conf=conf),
             fuse_model=fuse_model,

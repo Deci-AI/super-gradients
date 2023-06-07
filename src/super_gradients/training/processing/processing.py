@@ -387,7 +387,7 @@ def default_dekr_coco_processing_params() -> dict:
         ]
     )
 
-    joint_links = [
+    edge_links = [
         [0, 1],
         [0, 2],
         [1, 2],
@@ -409,7 +409,7 @@ def default_dekr_coco_processing_params() -> dict:
         [14, 16],
     ]
 
-    joint_colors = [
+    edge_colors = [
         (214, 39, 40),  # Nose -> LeftEye
         (148, 103, 189),  # Nose -> RightEye
         (44, 160, 44),  # LeftEye -> RightEye
@@ -450,7 +450,7 @@ def default_dekr_coco_processing_params() -> dict:
         (31, 119, 180),
         (148, 103, 189),
     ]
-    params = dict(image_processor=image_processor, conf=0.05, joint_links=joint_links, joint_colors=joint_colors, keypoint_colors=keypoint_colors)
+    params = dict(image_processor=image_processor, conf=0.05, edge_links=edge_links, edge_colors=edge_colors, keypoint_colors=keypoint_colors)
     return params
 
 
