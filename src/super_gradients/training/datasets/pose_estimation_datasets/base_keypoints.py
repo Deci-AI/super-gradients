@@ -1,11 +1,12 @@
 import abc
-from typing import Tuple, List, Mapping, Any, Dict
+from typing import Tuple, List, Mapping, Any, Dict, Union
 
 import numpy as np
 import torch
 from torch.utils.data.dataloader import default_collate, Dataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.training.datasets.pose_estimation_datasets.target_generators import KeypointsTargetsGenerator
 from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointTransform
@@ -24,6 +25,8 @@ class BaseKeypointsDataset(Dataset):
         target_generator: KeypointsTargetsGenerator,
         transforms: List[KeypointTransform],
         min_instance_area: float,
+        joint_links: Union[List[Tuple[int, int]], np.ndarray],
+        joint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
     ):
         """
 
@@ -36,6 +39,8 @@ class BaseKeypointsDataset(Dataset):
         self.target_generator = target_generator
         self.transforms = KeypointsCompose(transforms)
         self.min_instance_area = min_instance_area
+        self.joint_links = joint_links
+        self.joint_colors = joint_colors
 
     @abc.abstractmethod
     def __len__(self) -> int:
@@ -94,6 +99,20 @@ class BaseKeypointsDataset(Dataset):
         joints = joints[areas > self.min_instance_area]
 
         return joints
+
+    def get_dataset_preprocessing_params(self):
+        """
+
+        :return:
+        """
+        pipeline = self.transforms.get_equivalent_preprocessing()
+        params = dict(
+            conf=0.25,
+            image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
+            joint_links=self.joint_links,
+            joint_names=self.joint_colors,
+        )
+        return params
 
 
 @register_collate_function()

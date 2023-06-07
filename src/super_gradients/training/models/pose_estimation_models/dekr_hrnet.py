@@ -546,7 +546,8 @@ class DEKRPoseEstimationModel(SgModule):
     def set_dataset_processing_params(
         self,
         joint_links: Union[np.ndarray, List[Tuple[int, int]]],
-        joint_colors: Union[np.ndarray, List[Tuple[int, int]]],
+        joint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
+        keypoint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
         image_processor: Optional[Processing] = None,
         conf: Optional[float] = None,
     ) -> None:
@@ -559,14 +560,14 @@ class DEKRPoseEstimationModel(SgModule):
         """
         self._joint_links = joint_links or self._joint_links
         self._joint_colors = joint_colors or self._joint_colors
+        self._keypoint_colors = keypoint_colors or self._keypoint_colors
         self._image_processor = image_processor or self._image_processor
         self._default_nms_conf = conf or self._default_nms_conf
 
     @lru_cache(maxsize=1)
-    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> PoseEstimationPipeline:
+    def _get_pipeline(self, conf: Optional[float] = None, fuse_model: bool = True) -> PoseEstimationPipeline:
         """Instantiate the prediction pipeline of this model.
 
-        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
@@ -582,6 +583,7 @@ class DEKRPoseEstimationModel(SgModule):
             image_processor=self._image_processor,
             joint_links=self._joint_links,
             joint_colors=self._joint_colors,
+            keypoint_colors=self._keypoint_colors,
             post_prediction_callback=self.get_post_prediction_callback(conf=conf),
             fuse_model=fuse_model,
         )

@@ -1,5 +1,5 @@
 import os
-from typing import Tuple, List, Mapping, Any
+from typing import Tuple, List, Mapping, Any, Union
 
 import cv2
 import numpy as np
@@ -8,7 +8,7 @@ from pycocotools.coco import COCO
 from torch import Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.object_names import Datasets
+from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.target_generator_factory import TargetGeneratorsFactory
@@ -37,6 +37,8 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         target_generator,
         transforms: List[KeypointTransform],
         min_instance_area: float,
+        joint_links: Union[List[Tuple[int, int]], np.ndarray],
+        joint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
     ):
         """
 
@@ -49,8 +51,12 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
             See DEKRTargetsGenerator for an example.
         :param transforms: Transforms to be applied to the image & keypoints
         :param min_instance_area: Minimum area of an instance to be included in the dataset
+        :param joint_links: List of joint links to be visualized on the image
+        :param joint_colors: List of colors for each joint link
         """
-        super().__init__(transforms=transforms, target_generator=target_generator, min_instance_area=min_instance_area)
+        super().__init__(
+            transforms=transforms, target_generator=target_generator, min_instance_area=min_instance_area, joint_links=joint_links, joint_colors=joint_colors
+        )
         self.root = data_dir
         self.images_dir = os.path.join(data_dir, images_dir)
         self.json_file = os.path.join(data_dir, json_file)
@@ -190,3 +196,17 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
                     m += mask
 
         return (m < 0.5).astype(np.float32)
+
+    def get_dataset_preprocessing_params(self):
+        """
+
+        :return:
+        """
+        pipeline = [Processings.ReverseImageChannels] + self.transforms.get_equivalent_preprocessing()
+        params = dict(
+            conf=0.25,
+            image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
+            joint_links=self.joint_links,
+            joint_names=self.joint_colors,
+        )
+        return params
