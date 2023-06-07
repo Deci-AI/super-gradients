@@ -4,8 +4,7 @@ from typing import List
 
 import numpy as np
 
-from super_gradients.training.models.prediction_results import ImagePrediction, ImagesPredictions, VideoPredictions
-from super_gradients.training.models.predictions import PoseEstimationPrediction
+from super_gradients.training.utils.predict import ImagePrediction, ImagesPredictions, VideoPredictions, PoseEstimationPrediction
 from super_gradients.training.utils.media.image import show_image, save_image
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.visualization.poses import draw_skeleton

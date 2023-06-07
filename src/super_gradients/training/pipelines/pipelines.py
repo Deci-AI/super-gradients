@@ -7,10 +7,19 @@ from tqdm import tqdm
 import numpy as np
 import torch
 
-from super_gradients.training.models.prediction_pose_estimation_results import (
+from super_gradients.training.utils.predict import (
     ImagePoseEstimationPrediction,
     ImagesPoseEstimationPrediction,
     VideoPoseEstimationPrediction,
+    ImagesDetectionPrediction,
+    VideoDetectionPrediction,
+    ImagePrediction,
+    ImageDetectionPrediction,
+    ImagesPredictions,
+    VideoPredictions,
+    Prediction,
+    DetectionPrediction,
+    PoseEstimationPrediction,
 )
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, includes_video_extension
@@ -18,15 +27,6 @@ from super_gradients.training.utils.media.image import ImageSource, check_image_
 from super_gradients.training.utils.media.stream import WebcamStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.models.prediction_results import (
-    ImagesDetectionPrediction,
-    VideoDetectionPrediction,
-    ImagePrediction,
-    ImageDetectionPrediction,
-    ImagesPredictions,
-    VideoPredictions,
-)
-from super_gradients.training.models.predictions import Prediction, DetectionPrediction, PoseEstimationPrediction
 from super_gradients.training.processing.processing import Processing, ComposeProcessing
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -311,7 +311,6 @@ class PoseEstimationPipeline(Pipeline):
     The pipeline includes loading images, preprocessing, prediction, and postprocessing.
 
     :param model:                       The object detection model (instance of SgModule) used for making predictions.
-    :param class_names:                 List of class names corresponding to the model's output classes.
     :param post_prediction_callback:    Callback function to process raw predictions from the model.
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.

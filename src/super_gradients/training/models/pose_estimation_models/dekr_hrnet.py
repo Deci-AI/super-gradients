@@ -25,7 +25,7 @@ from super_gradients.common.factories.processing_factory import ProcessingFactor
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.models.prediction_pose_estimation_results import ImagesPoseEstimationPrediction
+from super_gradients.training.utils.predict import ImagesPoseEstimationPrediction
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.arch_params_factory import get_arch_params
 
@@ -553,9 +553,7 @@ class DEKRPoseEstimationModel(SgModule):
     ) -> None:
         """Set the processing parameters for the dataset.
 
-        :param class_names:     (Optional) Names of the dataset the model was trained on.
         :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
-        :param iou:             (Optional) IoU threshold for the nms algorithm
         :param conf:            (Optional) Below the confidence threshold, prediction are discarded
         """
         self._joint_links = joint_links or self._joint_links
@@ -603,7 +601,6 @@ class DEKRPoseEstimationModel(SgModule):
         """Predict an image or a list of images.
 
         :param images:  Images to predict.
-        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
@@ -614,7 +611,6 @@ class DEKRPoseEstimationModel(SgModule):
     def predict_webcam(self, conf: Optional[float] = None, fuse_model: bool = True):
         """Predict using webcam.
 
-        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.

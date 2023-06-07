@@ -6,7 +6,7 @@ import numpy as np
 
 from super_gradients.common.registry.registry import register_processing
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
-from super_gradients.training.models.predictions import Prediction, DetectionPrediction, PoseEstimationPrediction
+from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
 from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
