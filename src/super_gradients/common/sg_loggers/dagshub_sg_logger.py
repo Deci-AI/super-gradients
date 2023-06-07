@@ -170,7 +170,7 @@ class DagsHubSGLogger(BaseSGLogger):
         items = []
         for k, v in d.items():
             new_key = parent_key + sep + k if parent_key else k
-            if isinstance(v, dict):
+            if isinstance(v, Mapping):
                 items.extend(self._get_nested_dict_values(v, new_key, sep=sep))
             else:
                 items.append((new_key, v))
