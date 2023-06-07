@@ -29,7 +29,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         keypoint_colors=None,
         keypoint_radius: int = 5,
         box_thickness: int = 2,
-        show_confidence: bool = True,
+        show_confidence: bool = False,
     ) -> np.ndarray:
         """Draw the predicted bboxes on the image.
 
@@ -70,7 +70,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         keypoint_colors=None,
         keypoint_radius: int = 5,
         box_thickness: int = 2,
-        show_confidence: bool = True,
+        show_confidence: bool = False,
     ) -> None:
         """Display the image with predicted bboxes.
 
@@ -103,7 +103,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         keypoint_colors=None,
         keypoint_radius: int = 5,
         box_thickness: int = 2,
-        show_confidence: bool = True,
+        show_confidence: bool = False,
     ) -> None:
         """Save the predicted bboxes on the images.
 
@@ -139,7 +139,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
         keypoint_colors=None,
         keypoint_radius: int = 5,
         box_thickness: int = 2,
-        show_confidence: bool = True,
+        show_confidence: bool = False,
     ) -> None:
         """Display the predicted bboxes on the images.
 
@@ -172,7 +172,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
         keypoint_colors=None,
         keypoint_radius: int = 5,
         box_thickness: int = 2,
-        show_confidence: bool = True,
+        show_confidence: bool = False,
     ) -> None:
         """Save the predicted bboxes on the images.
 
@@ -222,7 +222,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         keypoint_colors=None,
         keypoint_radius: int = 5,
         box_thickness: int = 2,
-        show_confidence: bool = True,
+        show_confidence: bool = False,
     ) -> List[np.ndarray]:
         """Draw the predicted bboxes on the images.
 
@@ -260,7 +260,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         keypoint_colors=None,
         keypoint_radius: int = 5,
         box_thickness: int = 2,
-        show_confidence: bool = True,
+        show_confidence: bool = False,
     ) -> None:
         """Display the predicted bboxes on the images.
 
@@ -293,7 +293,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         keypoint_colors=None,
         keypoint_radius: int = 5,
         box_thickness: int = 2,
-        show_confidence: bool = True,
+        show_confidence: bool = False,
     ) -> None:
         """Save the predicted bboxes on the images.
 
