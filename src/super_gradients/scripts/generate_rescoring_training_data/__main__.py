@@ -115,7 +115,7 @@ def main(cfg: DictConfig) -> None:
     )
 
     # model = DEKRWrapper(model, apply_sigmoid=True).cuda().eval()
-    model = DEKRHorisontalFlipWrapper(model, cfg.dataset_params.flip_indexes_offset, apply_sigmoid=True).cuda().eval()
+    model = DEKRHorisontalFlipWrapper(model, cfg.dataset_params.flip_indexes, apply_sigmoid=True).cuda().eval()
 
     post_prediction_callback = cfg.post_prediction_callback
 

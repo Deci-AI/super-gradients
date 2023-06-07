@@ -658,12 +658,12 @@ class DEKRWrapper(nn.Module):
 
 
 class DEKRHorisontalFlipWrapper(nn.Module):
-    def __init__(self, model: DEKRPoseEstimationModel, flip_indexes_offset, apply_sigmoid=False):
+    def __init__(self, model: DEKRPoseEstimationModel, flip_indexes, apply_sigmoid=False):
         super().__init__()
         self.model = model
         # In DEKR the heatmap has one more channel for the center point of the pose, which is the last channel and it is not flipped
-        self.flip_indexes_heatmap = torch.tensor(list(flip_indexes_offset) + [len(flip_indexes_offset)]).long()
-        self.flip_indexes_offset = torch.tensor(flip_indexes_offset).long()
+        self.flip_indexes_heatmap = torch.tensor(list(flip_indexes) + [len(flip_indexes)]).long()
+        self.flip_indexes_offset = torch.tensor(flip_indexes).long()
         self.apply_sigmoid = apply_sigmoid
 
     def forward(self, inputs):
