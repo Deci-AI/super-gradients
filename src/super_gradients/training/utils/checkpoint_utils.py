@@ -1,19 +1,19 @@
+import collections
 import os
 import tempfile
+from typing import Union, Mapping
+
 import pkg_resources
-import collections
 import torch
+from torch import nn, Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
+from super_gradients.common.data_types import StrictLoad
 from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
 from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.pretrained_models import MODEL_URLS
-from super_gradients.common.data_types import StrictLoad
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
-
-from torch import nn, Tensor
-from typing import Union, Mapping
 
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
@@ -129,7 +129,7 @@ def copy_ckpt_to_local_folder(
     return ckpt_file_full_local_path
 
 
-def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> collections.OrderedDict[str, torch.Tensor]:
+def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> Mapping[str, torch.Tensor]:
     """
     Reads a checkpoint state dict from a given path or url
 
