@@ -32,6 +32,6 @@ class TestPoseEstimationDataset(unittest.TestCase):
         self.assertEqual(offset_weight.shape, (34, 64, 64))
 
     def test_get_dataset_preprocessing_params(self):
-        loader = coco2017_pose_val()
+        loader = coco2017_pose_val(dataset_params={"target_generator": None})
         preprocessing_params = loader.dataset.get_dataset_preprocessing_params()
         self.assertIsNotNone(preprocessing_params)
