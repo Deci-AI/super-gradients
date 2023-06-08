@@ -1,0 +1,26 @@
+name: 📚 Documentation Improvement
+description: Suggest an improvement or provide feedback on the project's documentation
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      #### Before submitting a documentation improvement, please make sure it hasn't been already addressed by searching through [existing documentation](https://docs.deci.ai/super-gradients/documentation/source/welcome.html) or in an [open issues](https://github.com/Deci-AI/super-gradients/issues?q=is%3Aissue+sort%3Acreated-desc+).
+
+- type: textarea
+  attributes:
+    label: 📚 Documentation Improvement
+    description: |
+      Please provide a clear and concise description of the improvement you'd like to suggest or the feedback you have regarding the project's documentation.
+
+      If relevant, you can include specific sections, pages, or examples that need improvement, along with your suggestions or ideas for enhancement.
+      
+      If applicable, you can include any relevant code snippets.
+
+  validations:
+    required: true
+
+- type: markdown
+  attributes:
+    value: >
+      Thank you for your contribution to improving the documentation! 🚀 

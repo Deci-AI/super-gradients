@@ -259,12 +259,11 @@ MY_CLASSES = ['cat', 'dog', 'donut']
 @register_dataset("MyNewDetectionDataset")
 class MyNewDetectionDataset(DetectionDataset):
     def __init__(self, data_dir: str, samples_dir: str, targets_dir: str, input_dim: Tuple[int, int],
-                 transforms: List[DetectionTransform], max_targets: int = 100, max_num_samples: int = None, 
+                 transforms: List[DetectionTransform], max_num_samples: int = None, 
                  class_inclusion_list: Optional[List[str]] = None, **kwargs):
         self.sample_paths = None
         self.samples_sub_directory = samples_dir
         self.targets_sub_directory = targets_dir
-        self.max_targets = max_targets
 
         # setting cache as False to be able to load non-resized images and crop in one of transforms
         super().__init__(data_dir=data_dir, input_dim=input_dim,
@@ -310,9 +309,7 @@ class MyNewDetectionDataset(DetectionDataset):
             lines = targets_file.read().splitlines()
             target = np.array([x.strip().strip(',').split(',') for x in lines], dtype=np.float32)
 
-        res_target = np.zeros((self.max_targets, 5))  # cls, cx, cy, w, h
-        if len(target) != 0:
-            res_target[:len(target)] = target
+        res_target = np.array(target) if len(target) != 0 else np.zeros((0, 5))  # cls, cx, cy, w, h
         annotation = {
             'img_path': os.path.join(self.data_dir, sample_path),
             'target': res_target,

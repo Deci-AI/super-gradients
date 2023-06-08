@@ -13,7 +13,7 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import HpmStruct
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.training.models.classification_models.resnet import BasicBlock, ResNet, Bottleneck
+from super_gradients.training.models.classification_models.resnet import BasicResNetBlock, ResNet, Bottleneck
 
 
 class FCNHead(nn.Module):
@@ -93,12 +93,12 @@ class ShelfResNetBackBone(ResNet):
 
 class ShelfResNetBackBone18(ShelfResNetBackBone):
     def __init__(self, num_classes: int):
-        super().__init__(BasicBlock, [2, 2, 2, 2], num_classes=num_classes)
+        super().__init__(BasicResNetBlock, [2, 2, 2, 2], num_classes=num_classes)
 
 
 class ShelfResNetBackBone34(ShelfResNetBackBone):
     def __init__(self, num_classes: int):
-        super().__init__(BasicBlock, [3, 4, 6, 3], num_classes=num_classes)
+        super().__init__(BasicResNetBlock, [3, 4, 6, 3], num_classes=num_classes)
 
 
 class ShelfResNetBackBone503343(ShelfResNetBackBone):
