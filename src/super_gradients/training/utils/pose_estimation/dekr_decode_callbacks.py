@@ -79,13 +79,13 @@ def _hierarchical_pool(heatmap, pool_threshold1=300, pool_threshold2=200):
     return maxm
 
 
-def _get_maximum_from_heatmap(heatmap, max_num_people: int, keypoint_threshold: float):
+def _get_maximum_from_heatmap(heatmap, max_num_people: int, pose_center_score_threshold: float) -> Tuple[Tensor, Tensor]:
     """
 
     :param heatmap: [1, H, W] Single-channel heatmap
-    :param max_num_people: (int)
-    :param keypoint_threshold: (float)
-    :return:
+    :param max_num_people: (int) Maximum number of poses to return
+    :param pose_center_score_threshold: (float) A minimum score of a pose center keypoint for pose to be considered as a potential candidate
+    :return: Tuple of (indexes of poses, scores)
     """
     maxm = _hierarchical_pool(heatmap)
     maxm = torch.eq(maxm, heatmap).float()
@@ -93,7 +93,7 @@ def _get_maximum_from_heatmap(heatmap, max_num_people: int, keypoint_threshold: 
     scores = heatmap.view(-1)
     scores, pos_ind = scores.topk(max_num_people)
 
-    select_ind = (scores > (keypoint_threshold)).nonzero()
+    select_ind = (scores > pose_center_score_threshold).nonzero()
     scores = scores[select_ind][:, 0]
     pos_ind = pos_ind[select_ind][:, 0]
 
@@ -117,6 +117,17 @@ def _cal_area_2_torch(v):
 
 
 def _nms_core(pose_coord, heat_score, nms_threshold: float, nms_num_threshold: int):
+    """
+    Non-maximum suppression for predicted poses.
+    Removes poses that has certain number of joints that are too close to each other.
+
+    :param pose_coord: Array of shape [num_people, num_joints, 2] with pose coordinates
+    :param heat_score: Scores of each joint
+    :param float nms_threshold: The maximum distance between two joints for them to be considered as belonging to the same pose.
+                          Given in terms of a percentage of a square root of the area of the pose bounding box.
+    :param int nms_num_threshold: Number of joints that must pass the NMS check for the pose to be considered as a valid one.
+    :return: Indexes of poses that should be kept
+    """
     num_people, num_joints, _ = pose_coord.shape
     pose_area = _cal_area_2_torch(pose_coord)[:, None].repeat(1, num_people * num_joints)
     pose_area = pose_area.reshape(num_people, num_people, num_joints)
@@ -159,15 +170,19 @@ def _get_heat_value(pose_coord, heatmap):
     return heatval
 
 
-def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_num_threshold: int, min_confidence: float) -> Tuple[np.ndarray, np.ndarray]:
+def pose_nms(
+    heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_num_threshold: int, pose_score_threshold: float
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     NMS for the regressed poses results.
 
-    :param heatmap_avg (Tensor): Avg of the heatmaps at all scales (1, 1+num_joints, w, h)
-    :param poses (List): Gather of the pose proposals [(num_people, num_joints, 3)]
-    :param max_num_people (int): Maximum number of decoded poses
-    :param nms_threshold (float) Minimum confidence threshold for joint
-    :param nms_num_threshold (int): Minimum number of joints per pose above the nms_threshold for pose to be considered a valid candidate
+    :param Tensor heatmap_avg: Avg of the heatmaps at all scales (1, 1+num_joints, w, h)
+    :param List poses: Gather of the pose proposals [(num_people, num_joints, 3)]
+    :param int max_num_people: Maximum number of decoded poses
+    :param float nms_threshold: The maximum distance between two joints for them to be considered as belonging to the same pose.
+                          Given in terms of a percentage of a square root of the area of the pose bounding box.
+    :param int nms_num_threshold: Number of joints that must pass the NMS check for the pose to be considered as a valid one.
+    :param float pose_score_threshold: Minimum confidence threshold for pose. Pose with confidence lower than this threshold will be discarded.
 
     :return Tuple of (poses, scores)
     """
@@ -199,7 +214,7 @@ def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_
     if len(poses):
         scores = poses[:, :, 2].mean(axis=1)
 
-        mask = scores >= min_confidence
+        mask = scores >= pose_score_threshold
         poses = poses[mask]
         scores = scores[mask]
     else:
@@ -207,7 +222,9 @@ def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_
     return poses, scores
 
 
-def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keypoint_threshold: float, max_num_people: int) -> Tuple[Tensor, List[Tensor]]:
+def aggregate_results(
+    heatmap: Tensor, posemap: Tensor, output_stride: int, pose_center_score_threshold: float, max_num_people: int
+) -> Tuple[Tensor, List[Tensor]]:
     """
     Get initial pose proposals and aggregate the results of all scale.
     Not this implementation works only for batch size of 1.
@@ -215,7 +232,7 @@ def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keyp
     :param heatmap: Heatmap at this scale (B, 1+num_joints, w, h)
     :param posemap: Posemap at this scale (B, 2*num_joints, w, h)
     :param output_stride: Ratio of input size / predictions size
-    :param keypoint_threshold: (float)
+    :param pose_center_score_threshold: (float) A minimum score of a pose center keypoint for pose to be considered as a potential candidate
     :param max_num_people: (int)
 
     :return:
@@ -229,7 +246,7 @@ def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keyp
 
     heatmap_sum = _up_interpolate(heatmap, size=(int(output_stride * w), int(output_stride * h)))
     center_heatmap = heatmap[0, -1:]
-    pose_ind, ctr_score = _get_maximum_from_heatmap(center_heatmap, keypoint_threshold=keypoint_threshold, max_num_people=max_num_people)
+    pose_ind, ctr_score = _get_maximum_from_heatmap(center_heatmap, pose_center_score_threshold=pose_center_score_threshold, max_num_people=max_num_people)
     posemap = posemap[0].permute(1, 2, 0).view(h * w, -1, 2)
     pose = output_stride * posemap[pose_ind]
     ctr_score = ctr_score[:, None].expand(-1, pose.shape[-2])[:, :, None]
@@ -255,13 +272,15 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
     ):
         """
 
-        :param output_stride:
-        :param max_num_people:
-        :param keypoint_threshold:
-        :param nms_threshold:
-        :param nms_num_threshold:
-        :param apply_sigmoid: If True, apply the sigmoid activation on heatmap. This is needed when heatmap is not
+        :param output_stride: Output stride of the model
+        :param int max_num_people: Maximum number of decoded poses
+        :param float keypoint_threshold: (float) A minimum score of a pose center keypoint for pose to be considered as a potential candidate
+        :param float nms_threshold: The maximum distance between two joints for them to be considered as belonging to the same pose.
+                              Given in terms of a percentage of a square root of the area of the pose bounding box.
+        :param int nms_num_threshold: Number of joints that must pass the NMS check for the pose to be considered as a valid one.
+        :param bool apply_sigmoid: If True, apply the sigmoid activation on heatmap. This is needed when heatmap is not
                               bound to [0..1] range and trained with logits (E.g focal loss)
+        :param float min_confidence: Minimum confidence threshold for pose
         """
         super().__init__()
         self.keypoint_threshold = keypoint_threshold
@@ -276,9 +295,9 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
     def forward(self, predictions: Union[Tensor, Tuple[Tensor, Tensor]]) -> Tuple[List[np.ndarray], List[np.ndarray]]:
         """
 
-        :param predictions: Either tuple (heatmap, offset):
-            heatmap - [1, NumJoints+1,H,W]
-            offset - [1, NumJoints*2,H,W]
+        :param predictions: Tuple (heatmap, offset):
+            heatmap - [BatchSize, NumJoints+1,H,W]
+            offset - [BatchSize, NumJoints*2,H,W]
 
         :return: Tuple
         """
@@ -306,7 +325,7 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
         heatmap_sum, poses_sum = aggregate_results(
             heatmap,
             posemap,
-            keypoint_threshold=self.keypoint_threshold,
+            pose_center_score_threshold=self.keypoint_threshold,
             max_num_people=self.max_num_people,
             output_stride=self.output_stride,
         )
@@ -317,7 +336,7 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
             max_num_people=self.max_num_people,
             nms_threshold=self.nms_threshold,
             nms_num_threshold=self.nms_num_threshold,
-            min_confidence=self.min_confidence,
+            pose_score_threshold=self.min_confidence,
         )
 
         if len(poses) != len(scores):
