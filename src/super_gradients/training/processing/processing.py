@@ -379,6 +379,7 @@ def default_dekr_coco_processing_params() -> dict:
 
     image_processor = ComposeProcessing(
         [
+            ReverseImageChannels(),
             KeypointsLongestMaxSizeRescale(output_shape=(640, 640)),
             KeypointsBottomRightPadding(output_shape=(640, 640), pad_value=114),
             StandardizeImage(max_value=255.0),

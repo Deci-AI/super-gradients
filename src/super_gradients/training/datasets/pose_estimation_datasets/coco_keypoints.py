@@ -52,29 +52,32 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
             See DEKRTargetsGenerator for an example.
         :param transforms: Transforms to be applied to the image & keypoints
         :param min_instance_area: Minimum area of an instance to be included in the dataset
-        :param edge_links: List of joint links to be visualized on the image
-        :param edge_colors: List of colors for each joint link
+        :param edge_links: Edge links between joints
+        :param edge_colors: Color of the edge links. If None, the color will be generated randomly.
+        :param keypoint_colors: Color of the keypoints. If None, the color will be generated randomly.
         """
+
+        json_file = os.path.join(data_dir, json_file)
+        coco = COCO(json_file)
+        if len(coco.dataset["categories"]) != 1:
+            raise ValueError("Dataset must contain exactly one category")
+        joints = coco.dataset["categories"][0]["keypoints"]
+        num_joints = len(self.joints)
+
         super().__init__(
             transforms=transforms,
             target_generator=target_generator,
             min_instance_area=min_instance_area,
+            num_joints=num_joints,
             edge_links=edge_links,
             edge_colors=edge_colors,
             keypoint_colors=keypoint_colors,
         )
         self.root = data_dir
         self.images_dir = os.path.join(data_dir, images_dir)
-        self.json_file = os.path.join(data_dir, json_file)
-
-        coco = COCO(self.json_file)
-        if len(coco.dataset["categories"]) != 1:
-            raise ValueError("Dataset must contain exactly one category")
-
         self.coco = coco
         self.ids = list(self.coco.imgs.keys())
-        self.joints = coco.dataset["categories"][0]["keypoints"]
-        self.num_joints = len(self.joints)
+        self.joints = joints
 
         if not include_empty_samples:
             subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id, iscrowd=None)) > 0]
@@ -213,6 +216,6 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
             conf=0.25,
             image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
             edge_links=self.edge_links,
-            joint_names=self.edge_colors,
+            edge_colors=self.edge_colors,
         )
         return params
