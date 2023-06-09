@@ -161,9 +161,9 @@ class YoloNASPose(CustomizableDetector):
 
         conf = conf or self._default_nms_conf
 
-        if len(self._keypoint_colors) != self.num_joints:
+        if len(self._keypoint_colors) != self.num_classes:
             raise RuntimeError(
-                "The number of colors for the keypoints ({}) does not match the number of joints ({})".format(len(self._keypoint_colors), self.num_joints)
+                "The number of colors for the keypoints ({}) does not match the number of joints ({})".format(len(self._keypoint_colors), self.num_classes)
             )
         if len(self._edge_colors) != len(self._edge_links):
             raise RuntimeError(
