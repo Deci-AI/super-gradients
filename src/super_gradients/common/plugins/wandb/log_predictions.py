@@ -14,7 +14,7 @@ from super_gradients.training.datasets.detection_datasets import DetectionDatase
 
 def visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPrediction, show_confidence: bool):
     """Visualize detection results on a single image.
-    
+
     :param prediction:      Prediction results of a single image (a `super_gradients.training.models.prediction_results.ImageDetectionPrediction` object)
     :param show_confidence: Whether to log confidence scores to Weights & Biases or not.
     """
