@@ -95,6 +95,9 @@ class KeypointsImageToTensor(KeypointTransform):
             {Processings.ImagePermute: {"permutation": (2, 0, 1)}},
         ]
 
+    def __repr__(self):
+        return self.__class__.__name__ + "()"
+
 
 @register_transform(Transforms.KeypointsImageStandardize)
 class KeypointsImageStandardize(KeypointTransform):
