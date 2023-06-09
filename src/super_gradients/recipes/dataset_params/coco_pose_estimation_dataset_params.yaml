@@ -88,7 +88,7 @@ train_dataset_params:
     - KeypointsPadIfNeeded:
         min_height: 640
         min_width: 640
-        image_pad_value: [ 127, 127, 127 ]
+        image_pad_value: 127
         mask_pad_value: 1
 
     - KeypointsRandomHorizontalFlip:
@@ -101,7 +101,7 @@ train_dataset_params:
         min_scale: 0.5
         max_scale: 2
         max_translate: 0.2
-        image_pad_value: [ 127, 127, 127 ]
+        image_pad_value: 127
         mask_pad_value: 1
         prob: 0.75
 
@@ -134,7 +134,7 @@ val_dataset_params:
     - KeypointsPadIfNeeded:
         min_height: 640
         min_width: 640
-        image_pad_value: [ 127, 127, 127 ]
+        image_pad_value: 127
         mask_pad_value: 1
 
     - KeypointsImageStandardize:

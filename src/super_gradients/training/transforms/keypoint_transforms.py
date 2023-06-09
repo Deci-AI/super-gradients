@@ -327,7 +327,7 @@ class KeypointsPadIfNeeded(KeypointTransform):
         """
         self.min_height = min_height
         self.min_width = min_width
-        self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
+        self.image_pad_value = image_pad_value
         self.mask_pad_value = mask_pad_value
 
     def __call__(self, image, mask, joints, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
@@ -336,7 +336,8 @@ class KeypointsPadIfNeeded(KeypointTransform):
         pad_bottom = max(0, self.min_height - height)
         pad_right = max(0, self.min_width - width)
 
-        image = cv2.copyMakeBorder(image, top=0, bottom=pad_bottom, left=0, right=pad_right, value=self.image_pad_value, borderType=cv2.BORDER_CONSTANT)
+        image_pad_value = tuple(self.image_pad_value) if isinstance(self.image_pad_value, Iterable) else int(self.image_pad_value)
+        image = cv2.copyMakeBorder(image, top=0, bottom=pad_bottom, left=0, right=pad_right, value=image_pad_value, borderType=cv2.BORDER_CONSTANT)
 
         original_dtype = mask.dtype
         mask = cv2.copyMakeBorder(

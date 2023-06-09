@@ -95,17 +95,11 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
     :param image:       Image to shift. (H, W, C) or (H, W).
     :param pad_h:       Tuple of (padding_top, padding_bottom).
     :param pad_w:       Tuple of (padding_left, padding_right).
-    :param pad_value:   Padding value
+    :param pad_value:   Padding value.
     :return:            Image shifted according to padding coordinates.
     """
     pad_h = (padding_coordinates.top, padding_coordinates.bottom)
     pad_w = (padding_coordinates.left, padding_coordinates.right)
-
-    # If computed padding are zero, we do early quit, since np.pad fails to do no-op with somewhat cryptic message
-    # ValueError: operands could not be broadcast together with
-    # remapped shapes [original->remapped]: (3,)  and requested shape (3,2)
-    if pad_h == (0, 0) and pad_w == (0, 0):
-        return image
 
     if len(image.shape) == 3:
         return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)

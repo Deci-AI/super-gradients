@@ -462,7 +462,7 @@ def default_yolo_nas_pose_coco_processing_params() -> dict:
         [
             ReverseImageChannels(),
             KeypointsLongestMaxSizeRescale(output_shape=(640, 640)),
-            KeypointsBottomRightPadding(output_shape=(640, 640), pad_value=114),
+            KeypointsBottomRightPadding(output_shape=(640, 640), pad_value=127),
             StandardizeImage(max_value=255.0),
             NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ImagePermute(permutation=(2, 0, 1)),
