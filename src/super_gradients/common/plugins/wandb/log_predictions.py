@@ -12,7 +12,12 @@ from super_gradients.training.datasets.data_formats.default_formats import XYXY_
 from super_gradients.training.datasets.detection_datasets import DetectionDataset
 
 
-def _visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPrediction, show_confidence: bool):
+def visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPrediction, show_confidence: bool):
+    """Visualize detection results on a single image.
+    
+    :param prediction:      Prediction results of a single image (a `super_gradients.training.models.prediction_results.ImageDetectionPrediction` object)
+    :param show_confidence: Whether to log confidence scores to Weights & Biases or not.
+    """
     boxes = []
     image = prediction.image.copy()
     height, width, _ = image.shape
@@ -34,9 +39,7 @@ def _visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPre
             box["scores"] = {"confidence": float(round(prediction.prediction.confidence[pred_i], 2))}
         boxes.append(box)
 
-    wandb_image = wandb.Image(image, boxes={"predictions": {"box_data": boxes, "class_labels": class_id_to_labels}})
-
-    wandb.log({"Predictions": wandb_image})
+    return wandb.Image(image, boxes={"predictions": {"box_data": boxes, "class_labels": class_id_to_labels}})
 
 
 def log_detection_results_to_wandb(prediction: ImagesDetectionPrediction, show_confidence: bool = True):
@@ -48,7 +51,8 @@ def log_detection_results_to_wandb(prediction: ImagesDetectionPrediction, show_c
     if wandb.run is None:
         raise wandb.Error("Images and bounding boxes cannot be visualized on Weights & Biases without initializing a run using `wandb.init()`")
     for prediction in prediction._images_prediction_lst:
-        _visualize_image_detection_prediction_on_wandb(prediction=prediction, show_confidence=show_confidence)
+        wandb_image = visualize_image_detection_prediction_on_wandb(prediction=prediction, show_confidence=show_confidence)
+        wandb.log({"Predictions": wandb_image})
 
 
 def plot_detection_dataset_on_wandb(detection_dataset: DetectionDataset, max_examples: int = None, dataset_name: str = None):
