@@ -62,7 +62,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         if len(coco.dataset["categories"]) != 1:
             raise ValueError("Dataset must contain exactly one category")
         joints = coco.dataset["categories"][0]["keypoints"]
-        num_joints = len(self.joints)
+        num_joints = len(joints)
 
         super().__init__(
             transforms=transforms,
@@ -211,11 +211,15 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
 
         :return:
         """
+        # Since we are using cv2.imread to read images, our model in fact is trained on BGR images.
+        # In our pipelines the convention that input images are RGB, so we need to reverse the channels to get BGR
+        # to match with the expected input of the model.
         pipeline = [Processings.ReverseImageChannels] + self.transforms.get_equivalent_preprocessing()
         params = dict(
             conf=0.25,
             image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,
+            keypoint_colors=self.keypoint_colors,
         )
         return params
