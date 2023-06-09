@@ -6,7 +6,7 @@ import numpy as np
 
 from super_gradients.common.registry.registry import register_processing
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
-from super_gradients.training.models.predictions import Prediction, DetectionPrediction
+from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
 from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
@@ -15,6 +15,8 @@ from super_gradients.training.transforms.utils import (
     _pad_image,
     _shift_bboxes,
     PaddingCoordinates,
+    _rescale_keypoints,
+    _shift_keypoints,
 )
 from super_gradients.common.object_names import Processings
 
@@ -196,6 +198,37 @@ class _DetectionPadding(Processing, ABC):
         pass
 
 
+class _KeypointsPadding(Processing, ABC):
+    """Base class for keypoints padding methods. One should implement the `_get_padding_params` method to work with a custom padding method.
+
+    Note: This transformation assume that dimensions of input image is equal or less than `output_shape`.
+
+    :param output_shape: Output image shape (H, W)
+    :param pad_value:   Padding value for image
+    """
+
+    def __init__(self, output_shape: Tuple[int, int], pad_value: int):
+        self.output_shape = output_shape
+        self.pad_value = pad_value
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
+        padding_coordinates = self._get_padding_params(input_shape=image.shape)
+        processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
+        return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
+
+    def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: DetectionPadToSizeMetadata) -> PoseEstimationPrediction:
+        predictions.poses = _shift_keypoints(
+            targets=predictions.poses,
+            shift_h=-metadata.padding_coordinates.top,
+            shift_w=-metadata.padding_coordinates.left,
+        )
+        return predictions
+
+    @abstractmethod
+    def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
+        pass
+
+
 @register_processing(Processings.DetectionCenterPadding)
 class DetectionCenterPadding(_DetectionPadding):
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
@@ -204,6 +237,12 @@ class DetectionCenterPadding(_DetectionPadding):
 
 @register_processing(Processings.DetectionBottomRightPadding)
 class DetectionBottomRightPadding(_DetectionPadding):
+    def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
+        return _get_bottom_right_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
+
+
+@register_processing(Processings.KeypointsBottomRightPadding)
+class KeypointsBottomRightPadding(_KeypointsPadding):
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
         return _get_bottom_right_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
 
@@ -256,6 +295,13 @@ class DetectionRescale(_Rescale):
 class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
     def postprocess_predictions(self, predictions: DetectionPrediction, metadata: RescaleMetadata) -> DetectionPrediction:
         predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+        return predictions
+
+
+@register_processing(Processings.KeypointsLongestMaxSizeRescale)
+class KeypointsLongestMaxSizeRescale(_LongestMaxSizeRescale):
+    def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: RescaleMetadata) -> PoseEstimationPrediction:
+        predictions.poses = _rescale_keypoints(targets=predictions.poses, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
 
 
@@ -328,6 +374,87 @@ def default_yolo_nas_coco_processing_params() -> dict:
     return params
 
 
+def default_dekr_coco_processing_params() -> dict:
+    """Processing parameters commonly used for training DEKR on COCO dataset."""
+
+    image_processor = ComposeProcessing(
+        [
+            ReverseImageChannels(),
+            KeypointsLongestMaxSizeRescale(output_shape=(640, 640)),
+            KeypointsBottomRightPadding(output_shape=(640, 640), pad_value=114),
+            StandardizeImage(max_value=255.0),
+            NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ImagePermute(permutation=(2, 0, 1)),
+        ]
+    )
+
+    edge_links = [
+        [0, 1],
+        [0, 2],
+        [1, 2],
+        [1, 3],
+        [2, 4],
+        [3, 5],
+        [4, 6],
+        [5, 6],
+        [5, 7],
+        [5, 11],
+        [6, 8],
+        [6, 12],
+        [7, 9],
+        [8, 10],
+        [11, 12],
+        [11, 13],
+        [12, 14],
+        [13, 15],
+        [14, 16],
+    ]
+
+    edge_colors = [
+        (214, 39, 40),  # Nose -> LeftEye
+        (148, 103, 189),  # Nose -> RightEye
+        (44, 160, 44),  # LeftEye -> RightEye
+        (140, 86, 75),  # LeftEye -> LeftEar
+        (227, 119, 194),  # RightEye -> RightEar
+        (127, 127, 127),  # LeftEar -> LeftShoulder
+        (188, 189, 34),  # RightEar -> RightShoulder
+        (127, 127, 127),  # Shoulders
+        (188, 189, 34),  # LeftShoulder -> LeftElbow
+        (140, 86, 75),  # LeftTorso
+        (23, 190, 207),  # RightShoulder -> RightElbow
+        (227, 119, 194),  # RightTorso
+        (31, 119, 180),  # LeftElbow -> LeftArm
+        (255, 127, 14),  # RightElbow -> RightArm
+        (148, 103, 189),  # Waist
+        (255, 127, 14),  # Left Hip -> Left Knee
+        (214, 39, 40),  # Right Hip -> Right Knee
+        (31, 119, 180),  # Left Knee -> Left Ankle
+        (44, 160, 44),  # Right Knee -> Right Ankle
+    ]
+
+    keypoint_colors = [
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+    ]
+    params = dict(image_processor=image_processor, conf=0.05, edge_links=edge_links, edge_colors=edge_colors, keypoint_colors=keypoint_colors)
+    return params
+
+
 def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -> dict:
     """Get the processing parameters for a pretrained model.
     TODO: remove once we load it from the checkpoint
@@ -339,4 +466,8 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
             return default_ppyoloe_coco_processing_params()
         elif "yolo_nas" in model_name:
             return default_yolo_nas_coco_processing_params()
+
+    if pretrained_weights == "coco_pose" and model_name in ("dekr_w32_no_dc", "dekr_custom"):
+        return default_dekr_coco_processing_params()
+
     return dict()

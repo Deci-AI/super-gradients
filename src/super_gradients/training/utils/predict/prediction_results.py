@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from super_gradients.training.models.predictions import Prediction, DetectionPrediction
+from .predictions import Prediction, DetectionPrediction
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.media.image import show_image, save_image
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
