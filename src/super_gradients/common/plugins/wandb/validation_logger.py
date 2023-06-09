@@ -21,11 +21,11 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
     ) -> None:
         """A callback for logging object detection predictions to Weights & Biases during training.
 
-        :param class_names:             A list of class names.
-        :param score_threshold: Predictions confidence threshold. Predictions with score lower than score_threshold will not participate in Top-K & NMS
-        :param iou: IoU threshold for NMS step.
-        :param nms_top_k: Number of predictions participating in NMS step
-        :param max_predictions: maximum number of boxes to return after NMS step
+        :param class_names:         A list of class names.
+        :param score_threshold:     Predictions confidence threshold. Predictions with score lower than score_threshold will not participate in Top-K & NMS
+        :param iou:                 IoU threshold for NMS step.
+        :param nms_top_k:           Number of predictions participating in NMS step
+        :param max_predictions:     maximum number of boxes to return after NMS step
         """
         super().__init__()
         self.class_names = class_names
