@@ -52,11 +52,16 @@ def log_detection_results_to_wandb(prediction: ImagesDetectionPrediction, show_c
 
 
 def plot_detection_dataset_on_wandb(detection_dataset: DetectionDataset, max_examples: int = None, dataset_name: str = None):
-    """Log a detection dataset"""
+    """Log a detection dataset to Weights & Biases Table.
+
+    :param detection_dataset:       The Detection Dataset (a `super_gradients.training.datasets.detection_datasets.DetectionDataset` object)
+    :param max_examples:            Maximum number of examples from the detection dataset to plot (an `int`).
+    :param dataset_name:            Name of the dataset (a `str`).
+    """
+    wandb_table = wandb.Table(columns=["Images", "Class-Frequencies"])
     input_format = detection_dataset.output_target_format
     target_format_transform = DetectionTargetsFormatTransform(input_format=input_format, output_format=XYXY_LABEL)
     class_id_to_labels = {int(_id): str(_class_name) for _id, _class_name in enumerate(detection_dataset.classes)}
-    wandb_images = []
     for data_idx in tqdm(range(max_examples), desc="Plotting Examples on Weights & Biases"):
         image, targets, *_ = detection_dataset[data_idx]
         image = image.transpose(1, 2, 0).astype(np.int32)
@@ -65,6 +70,7 @@ def plot_detection_dataset_on_wandb(detection_dataset: DetectionDataset, max_exa
         boxes = boxes[(boxes != 0).any(axis=1)]
         classes = targets[:, 0].tolist()
         wandb_boxes = []
+        class_frequencies = {str(_class_name): 0 for _id, _class_name in enumerate(detection_dataset.classes)}
         for idx in range(boxes.shape[0]):
             wandb_boxes.append(
                 {
@@ -78,6 +84,7 @@ def plot_detection_dataset_on_wandb(detection_dataset: DetectionDataset, max_exa
                     "box_caption": str(class_id_to_labels[int(classes[idx])]),
                 }
             )
-        wandb_images.append(wandb.Image(image, boxes={"predictions": {"box_data": wandb_boxes, "class_labels": class_id_to_labels}}))
+            class_frequencies[str(class_id_to_labels[int(classes[idx])])] += 1
+        wandb_table.add_data(wandb.Image(image, boxes={"predictions": {"box_data": wandb_boxes, "class_labels": class_id_to_labels}}), class_frequencies)
     dataset_name = "Dataset" if dataset_name is None else dataset_name
-    wandb.log({dataset_name: wandb_images})
+    wandb.log({dataset_name: wandb_table})
