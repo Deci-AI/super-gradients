@@ -85,6 +85,6 @@ def plot_detection_dataset_on_wandb(detection_dataset: DetectionDataset, max_exa
                 }
             )
             class_frequencies[str(class_id_to_labels[int(classes[idx])])] += 1
-        wandb_table.add_data(wandb.Image(image, boxes={"predictions": {"box_data": wandb_boxes, "class_labels": class_id_to_labels}}), class_frequencies)
+        wandb_table.add_data(wandb.Image(image, boxes={"ground_truth": {"box_data": wandb_boxes, "class_labels": class_id_to_labels}}), class_frequencies)
     dataset_name = "Dataset" if dataset_name is None else dataset_name
     wandb.log({dataset_name: wandb_table})
