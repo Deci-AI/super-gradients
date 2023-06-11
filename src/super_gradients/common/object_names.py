@@ -302,8 +302,6 @@ class Models:
 
     DEKR_CUSTOM = "dekr_custom"
     DEKR_W32_NO_DC = "dekr_w32_no_dc"
-    POSE_PP_YOLO_L = "pose_ppyolo_l"
-    POSE_DDRNET_39 = "pose_ddrnet39"
     YOLO_NAS_S = "yolo_nas_s"
     YOLO_NAS_M = "yolo_nas_m"
     YOLO_NAS_L = "yolo_nas_l"
@@ -403,6 +401,7 @@ class Datasets:
     PASCAL_AUG_2012_SEGMENTATION_DATASET = "PascalAUG2012SegmentationDataSet"
     PASCAL_VOC_2012_SEGMENTATION_DATASET = "PascalVOC2012SegmentationDataSet"
     CITYSCAPES_DATASET = "CityscapesDataset"
+    CITYSCAPES_CONCAT_DATASET = "CityscapesConcatDataset"
     MAPILLARY_DATASET = "MapillaryDataset"
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"

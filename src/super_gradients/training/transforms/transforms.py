@@ -1,6 +1,7 @@
 import collections
 import math
 import random
+import warnings
 from numbers import Number
 from typing import Optional, Union, Tuple, List, Sequence, Dict
 
@@ -28,6 +29,7 @@ from super_gradients.training.transforms.utils import (
     _shift_bboxes,
     _rescale_xyxy_bboxes,
 )
+from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
 MASK_RESAMPLE_MODE = Image.NEAREST
@@ -459,10 +461,10 @@ class DetectionMosaic(DetectionTransform):
     :param border_value:    Value for filling borders after applying transforms.
     """
 
-    def __init__(self, input_dim: tuple, prob: float = 1.0, enable_mosaic: bool = True, border_value=114):
+    def __init__(self, input_dim: Union[int, Tuple[int, int]], prob: float = 1.0, enable_mosaic: bool = True, border_value=114):
         super(DetectionMosaic, self).__init__(additional_samples_count=3)
         self.prob = prob
-        self.input_dim = input_dim
+        self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.enable_mosaic = enable_mosaic
         self.border_value = border_value
 
@@ -566,7 +568,7 @@ class DetectionRandomAffine(DetectionTransform):
         translate: Union[tuple, float] = 0.1,
         scales: Union[tuple, float] = 0.1,
         shear: Union[tuple, float] = 10,
-        target_size: Optional[Tuple[int, int]] = (640, 640),
+        target_size: Union[int, Tuple[int, int], None] = (640, 640),
         filter_box_candidates: bool = False,
         wh_thr: float = 2,
         ar_thr: float = 20,
@@ -578,7 +580,7 @@ class DetectionRandomAffine(DetectionTransform):
         self.translate = translate
         self.scale = scales
         self.shear = shear
-        self.target_size = target_size
+        self.target_size = ensure_is_tuple_of_two(target_size)
         self.enable = True
         self.filter_box_candidates = filter_box_candidates
         self.wh_thr = wh_thr
@@ -624,9 +626,17 @@ class DetectionMixup(DetectionTransform):
     :param border_value:     Value for filling borders after applying transform.
     """
 
-    def __init__(self, input_dim: tuple, mixup_scale: tuple, prob: float = 1.0, enable_mixup: bool = True, flip_prob: float = 0.5, border_value: int = 114):
+    def __init__(
+        self,
+        input_dim: Union[int, Tuple[int, int], None],
+        mixup_scale: tuple,
+        prob: float = 1.0,
+        enable_mixup: bool = True,
+        flip_prob: float = 0.5,
+        border_value: int = 114,
+    ):
         super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
-        self.input_dim = input_dim
+        self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.mixup_scale = mixup_scale
         self.prob = prob
         self.enable_mixup = enable_mixup
@@ -736,7 +746,7 @@ class DetectionPadToSize(DetectionTransform):
     Note: This transformation assume that dimensions of input image is equal or less than `output_size`.
     """
 
-    def __init__(self, output_size: Tuple[int, int], pad_value: int):
+    def __init__(self, output_size: Union[int, Tuple[int, int], None], pad_value: int):
         """
         Constructor for DetectionPadToSize transform.
 
@@ -744,7 +754,7 @@ class DetectionPadToSize(DetectionTransform):
         :param pad_value: Padding value for image
         """
         super().__init__()
-        self.output_size = output_size
+        self.output_size = ensure_is_tuple_of_two(output_size)
         self.pad_value = pad_value
 
     def __call__(self, sample: dict) -> dict:
@@ -767,18 +777,20 @@ class DetectionPaddedRescale(DetectionTransform):
     Preprocessing transform to be applied last of all transforms for validation.
 
     Image- Rescales and pads to self.input_dim.
-    Targets- pads targets to max_targets, moves the class label to first index, converts boxes format- xyxy -> cxcywh.
+    Targets- moves the class label to first index, converts boxes format- xyxy -> cxcywh.
 
     :param input_dim:   Final input dimension (default=(640,640))
     :param swap:        Image axis's to be rearranged.
-    :param max_targets:
     :param pad_value:   Padding value for image.
     """
 
-    def __init__(self, input_dim: Tuple, swap: Tuple[int, ...] = (2, 0, 1), max_targets: int = 50, pad_value: int = 114):
+    def __init__(
+        self, input_dim: Union[int, Tuple[int, int], None], swap: Tuple[int, ...] = (2, 0, 1), max_targets: Optional[int] = None, pad_value: int = 114
+    ):
+        super().__init__()
+        _max_targets_deprication(max_targets)
         self.swap = swap
-        self.input_dim = input_dim
-        self.max_targets = max_targets
+        self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.pad_value = pad_value
 
     def __call__(self, sample: dict) -> dict:
@@ -805,20 +817,18 @@ class DetectionHorizontalFlip(DetectionTransform):
     Horizontal Flip for Detection
 
     :param prob:        Probability of applying horizontal flip
-    :param max_targets: Max objects in single image, padding target to this size in case of empty image.
     """
 
-    def __init__(self, prob: float, max_targets: int = 120):
+    def __init__(self, prob: float, max_targets: Optional[int] = None):
         super(DetectionHorizontalFlip, self).__init__()
+        _max_targets_deprication(max_targets)
         self.prob = prob
-        self.max_targets = max_targets
 
     def __call__(self, sample):
         image, targets = sample["image"], sample["target"]
+        if len(targets) == 0:
+            targets = np.zeros((0, 5), dtype=np.float32)
         boxes = targets[:, :4]
-        if len(boxes) == 0:
-            targets = np.zeros((self.max_targets, 5), dtype=np.float32)
-            boxes = targets[:, :4]
         image, boxes = _mirror(image, boxes, self.prob)
         targets[:, :4] = boxes
         sample["target"] = targets
@@ -834,14 +844,14 @@ class DetectionRescale(DetectionTransform):
     :param output_shape: (rows, cols)
     """
 
-    def __init__(self, output_shape: Tuple[int, int]):
+    def __init__(self, output_shape: Union[int, Tuple[int, int]]):
         super().__init__()
-        self.output_shape = output_shape
+        self.output_shape = ensure_is_tuple_of_two(output_shape)
 
     def __call__(self, sample: dict) -> dict:
         image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
 
-        sy, sx = (self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1])
+        sy, sx = float(self.output_shape[0]) / float(image.shape[0]), float(self.output_shape[1]) / float(image.shape[1])
 
         sample["image"] = _rescale_image(image=image, target_shape=self.output_shape)
         sample["target"] = _rescale_bboxes(targets, scale_factors=(sy, sx))
@@ -1003,20 +1013,20 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     :param input_format:       Format of the input targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL.
     :param output_format:      Format of the output targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL
     :param min_bbox_edge_size: bboxes with edge size lower then this values will be removed.
-    :param max_targets:        Max objects in single image, padding target to this size.
     """
 
     @resolve_param("input_format", ConcatenatedTensorFormatFactory())
     @resolve_param("output_format", ConcatenatedTensorFormatFactory())
     def __init__(
         self,
-        input_dim: Optional[tuple] = None,
+        input_dim: Union[int, Tuple[int, int], None] = None,
         input_format: ConcatenatedTensorFormat = XYXY_LABEL,
         output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
-        max_targets: int = 120,
+        max_targets: Optional[int] = None,
     ):
         super(DetectionTargetsFormatTransform, self).__init__()
+        _max_targets_deprication(max_targets)
         if isinstance(input_format, DetectionTargetsFormat) or isinstance(output_format, DetectionTargetsFormat):
             raise TypeError(
                 "DetectionTargetsFormat is not supported for input_format and output_format starting from super_gradients==3.0.7.\n"
@@ -1026,11 +1036,11 @@ class DetectionTargetsFormatTransform(DetectionTransform):
             )
         self.input_format = input_format
         self.output_format = output_format
-        self.max_targets = max_targets
         self.min_bbox_edge_size = min_bbox_edge_size
         self.input_dim = None
 
         if input_dim is not None:
+            input_dim = ensure_is_tuple_of_two(input_dim)
             self._setup_input_dim_related_params(input_dim)
 
     def _setup_input_dim_related_params(self, input_dim: tuple):
@@ -1056,8 +1066,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         """Convert targets in input_format to output_format, filter small bboxes and pad targets"""
         targets = self.targets_format_converter(targets)
         targets = self.filter_small_bboxes(targets)
-        targets = self.pad_targets(targets)
-        return targets
+        return np.ascontiguousarray(targets, dtype=np.float32)
 
     def filter_small_bboxes(self, targets: np.ndarray) -> np.ndarray:
         """Filter bboxes smaller than specified threshold."""
@@ -1067,13 +1076,6 @@ class DetectionTargetsFormatTransform(DetectionTransform):
 
         targets = filter_on_bboxes(fn=_is_big_enough, tensor=targets, tensor_format=self.output_format)
         return targets
-
-    def pad_targets(self, targets: np.ndarray) -> np.ndarray:
-        """Pad targets."""
-        padded_targets = np.zeros((self.max_targets, targets.shape[-1]))
-        padded_targets[range(len(targets))[: self.max_targets]] = targets[: self.max_targets]
-        padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
-        return padded_targets
 
     def get_equivalent_preprocessing(self) -> List:
         return []
@@ -1321,3 +1323,12 @@ class Standardize(torch.nn.Module):
 
     def forward(self, img):
         return img / self.max_val
+
+
+def _max_targets_deprication(max_targets: Optional[int] = None):
+    if max_targets is not None:
+        warnings.warn(
+            "max_targets is deprecated and will be removed in the future, targets are not padded to the max length anymore. "
+            "If you are using collate_fn provided by SG, it is safe to simply drop this argument.",
+            DeprecationWarning,
+        )

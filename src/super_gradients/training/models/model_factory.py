@@ -177,7 +177,7 @@ def get(
                                     If None is given, will try to derrive from pretrained_weight's corresponding dataset.
     :param strict_load:         See super_gradients.common.data_types.enum.strict_load.StrictLoad class documentation for details
                                     (default=NO_KEY_MATCHING to suport SG trained checkpoints)
-    :param checkpoint_path:     The path to the external checkpoint to be loaded. Can be absolute or relative (ie: path/to/checkpoint.pth).
+    :param checkpoint_path:     The path to the external checkpoint to be loaded. Can be absolute or relative (ie: path/to/checkpoint.pth) path or URL.
                                     If provided, will automatically attempt to load the checkpoint.
     :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent").
     :param load_backbone:       Load the provided checkpoint to model.backbone instead of model.

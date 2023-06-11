@@ -4,7 +4,7 @@ import pathlib
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, List, Union, Tuple, Optional, Dict
+from typing import Callable, List, Union, Tuple, Optional, Dict, Type
 
 import cv2
 
@@ -13,7 +13,6 @@ import torch
 import torchvision
 from omegaconf import ListConfig
 from torch import nn
-from torch.utils.data.dataloader import default_collate
 
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.training.utils.visualization.detection import draw_bbox
@@ -391,7 +390,7 @@ class DetectionVisualization:
         else:
             title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
 
-        draw_bbox(image=image_np, title=title, x1=x1, y1=y1, x2=x2, y2=y2, box_thickness=box_thickness, color=color)
+        image_np = draw_bbox(image=image_np, title=title, x1=x1, y1=y1, x2=x2, y2=y2, box_thickness=box_thickness, color=color)
         return image_np
 
     @staticmethod
@@ -657,37 +656,69 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     return bbox
 
 
+class DatasetItemsException(Exception):
+    def __init__(self, data_sample: Tuple, collate_type: Type, expected_item_names: Tuple):
+        """
+        :param data_sample: item(s) returned by a dataset
+        :param collate_type: type of the collate that caused the exception
+        :param expected_item_names: tuple of names of items that are expected by the collate to be returned from the dataset
+        """
+        collate_type_name = collate_type.__name__
+        num_sample_items = len(data_sample) if isinstance(data_sample, tuple) else 1
+        error_msg = f"`{collate_type_name}` only supports Datasets that return a tuple {expected_item_names}, but got a tuple of len={num_sample_items}"
+        super().__init__(error_msg)
+
+
 @register_collate_function()
 class DetectionCollateFN:
     """
     Collate function for Yolox training
     """
 
+    def __init__(self):
+        self.expected_item_names = ("image", "targets")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
-        batch = default_collate(data)
-        ims, targets = batch[0:2]
-        return ims, self._format_targets(targets)
+        try:
+            images_batch, labels_batch = list(zip(*data))
+        except (ValueError, TypeError):
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
 
-    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
-        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
-        targets_merged = []
-        for i in range(targets.shape[0]):
-            targets_im = targets[i, : nlabel[i]]
-            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
-            targets_merged.append(torch.cat((batch_column, targets_im), 1))
-        return torch.cat(targets_merged, 0)
+        return self._format_images(images_batch), self._format_targets(labels_batch)
+
+    def _format_images(self, images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+        images_batch = [torch.tensor(img) for img in images_batch]
+        images_batch_stack = torch.stack(images_batch, 0)
+        if images_batch_stack.shape[3] == 3:
+            images_batch_stack = torch.moveaxis(images_batch_stack, -1, 1).float()
+        return images_batch_stack
+
+    def _format_targets(self, labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+        """
+        Stack a batch id column to targets and concatenate
+        :param labels_batch: a list of targets per image (each of arbitrary length)
+        :return: one tensor of targets of all imahes of shape [N, 6], where N is the total number of targets in a batch
+                 and the 1st column is batch item index
+        """
+        labels_batch = [torch.tensor(labels) for labels in labels_batch]
+        labels_batch_indexed = []
+        for i, labels in enumerate(labels_batch):
+            batch_column = labels.new_ones((labels.shape[0], 1)) * i
+            labels = torch.cat((batch_column, labels), dim=-1)
+            labels_batch_indexed.append(labels)
+        return torch.cat(labels_batch_indexed, 0)
 
 
-class PPYoloECollateFN:
+class PPYoloECollateFN(DetectionCollateFN):
     """
     Collate function for PPYoloE training
     """
 
     def __init__(self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None):
         """
-
         :param random_resize_sizes: (rows, cols)
         """
+        super().__init__()
         self.random_resize_sizes = random_resize_sizes
         self.random_resize_modes = random_resize_modes
 
@@ -700,13 +731,7 @@ class PPYoloECollateFN:
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         if self.random_resize_sizes is not None:
             data = self.random_resize(data)
-
-        batch = default_collate(data)
-        ims, targets = batch
-        targets = self._format_targets(targets)
-        ims = torch.moveaxis(ims, -1, 1).float()
-
-        return ims, targets
+        return super().__call__(data)
 
     def random_resize(self, batch):
         target_size = random.choice(self.random_resize_sizes)
@@ -718,11 +743,11 @@ class PPYoloECollateFN:
         if len(sample) == 2:
             image, targets = sample  # TARGETS ARE IN LABEL_CXCYWH
             with_crowd = False
-        elif len(sample == 3):
+        elif len(sample) == 3:
             image, targets, crowd_targets = sample
             with_crowd = True
         else:
-            raise RuntimeError()
+            raise DatasetItemsException(data_sample=sample, collate_type=type(self), expected_item_names=self.expected_item_names)
 
         dsize = int(target_size), int(target_size)
         scale_factors = target_size / image.shape[0], target_size / image.shape[1]
@@ -741,39 +766,27 @@ class PPYoloECollateFN:
 
         return image, targets
 
-    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
-        """
-
-        :param targets:
-        :return: Tensor of shape [B, N, 6], where 6 elements are (index, c, cx, cy, w, h)
-        """
-        # Same collate as in YoloX. We convert to PPYoloTargets in the loss
-        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
-        targets_merged = []
-        for i in range(targets.shape[0]):
-            targets_im = targets[i, : nlabel[i]]
-            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
-            targets_merged.append(torch.cat((batch_column, targets_im), 1))
-
-        return torch.cat(targets_merged, 0)
-
 
 class CrowdDetectionPPYoloECollateFN(PPYoloECollateFN):
     """
     Collate function for Yolox training with additional_batch_items that includes crowd targets
     """
 
+    def __init__(self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None):
+        super().__init__(random_resize_sizes, random_resize_modes)
+        self.expected_item_names = ("image", "targets", "crowd_targets")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
 
         if self.random_resize_sizes is not None:
             data = self.random_resize(data)
 
-        batch = default_collate(data)
-        ims, targets, crowd_targets = batch
-        if ims.shape[3] == 3:
-            ims = torch.moveaxis(ims, -1, 1).float()
+        try:
+            images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
+        except (ValueError, TypeError):
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
 
-        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+        return self._format_images(images_batch), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
 
 
 @register_collate_function()
@@ -782,10 +795,17 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
     Collate function for Yolox training with additional_batch_items that includes crowd targets
     """
 
+    def __init__(self):
+        super().__init__()
+        self.expected_item_names = ("image", "targets", "crowd_targets")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
-        batch = default_collate(data)
-        ims, targets, crowd_targets = batch[0:3]
-        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+        try:
+            images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
+        except (ValueError, TypeError):
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
+
+        return self._format_images(images_batch), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
 
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:

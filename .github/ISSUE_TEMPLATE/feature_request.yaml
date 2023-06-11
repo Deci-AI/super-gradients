@@ -1,0 +1,47 @@
+name: 🚀 Feature Request
+description: Suggest a new feature or enhancement for the project
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      #### Before submitting a feature request, please make sure it hasn't already been suggested or discussed by searching through [existing issues](https://github.com/your-repository/issues?q=is%3Aissue+sort%3Acreated-desc+).
+
+- type: textarea
+  attributes:
+    label: 🚀 Feature Request
+    description: |
+      Please provide a clear and concise description of the new feature or enhancement you'd like to suggest for the project.
+
+      Explain the problem or need that the feature aims to address. Provide as much detail as possible to help others understand the value and feasibility of the requested feature.
+
+      If applicable, you can include code snippets, examples, or any other relevant information to support your feature request.
+    placeholder: |
+      Clear and concise description of the new feature.
+
+      ``` python
+      # How you would like to use this feature
+      ```
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Proposed Solution (Optional)
+    description: |
+      If you have any ideas or suggestions for how the requested feature could be implemented, you can provide them here. This can include high-level approaches, specific implementation details, or any other relevant information.
+    placeholder: |
+      Clear and concise proposed solution.
+
+      ``` python
+      # How you think this feature could be implemented
+      ```
+  validations:
+    required: false
+
+- type: markdown
+  attributes:
+    value: |
+      Thank you for suggesting a new feature! Your contribution is appreciated, and we will consider your request. We also encourage you and other community members to actively contribute to the project by addressing the features you suggest. 
+      Feel free to open a pull request and help us bring these ideas to life! If you're new to contributing, check out our [contributing guidelines](https://github.com/Deci-AI/super-gradients/blob/master/CONTRIBUTING.md) 
+      for guidance on getting started. 🌟

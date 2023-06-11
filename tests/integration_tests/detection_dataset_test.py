@@ -34,7 +34,7 @@ class DatasetIntegrationTest(unittest.TestCase):
         self.n_plot = 1
         transforms = [
             DetectionMosaic(input_dim=(640, 640), prob=0.8),
-            DetectionPaddedRescale(input_dim=(640, 640), max_targets=120),
+            DetectionPaddedRescale(input_dim=(640, 640)),
             DetectionTargetsFormatTransform(input_dim=(640, 640), output_format=XYXY_LABEL),
         ]
 

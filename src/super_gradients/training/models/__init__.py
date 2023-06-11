@@ -1,3 +1,5 @@
+import warnings
+
 from .sg_module import SgModule
 
 # Classification models
@@ -33,6 +35,8 @@ from super_gradients.training.models.classification_models.preact_resnet import 
     PreActResNet152,
 )
 from super_gradients.training.models.classification_models.resnet import (
+    Bottleneck as NewBottleneck,
+    BasicResNetBlock,
     ResNet,
     ResNet18,
     ResNet34,
@@ -113,8 +117,6 @@ from super_gradients.training.models.segmentation_models.segformer import SegFor
 from super_gradients.training.models.segmentation_models.ddrnet_backbones import DDRNet39Backbone
 
 # Pose estimation
-from super_gradients.training.models.pose_estimation_models.pose_ppyolo import PosePPYoloL
-from super_gradients.training.models.pose_estimation_models.pose_ddrnet39 import PoseDDRNet39
 from super_gradients.training.models.pose_estimation_models.dekr_hrnet import DEKRPoseEstimationModel, DEKRW32NODC
 
 # KD
@@ -123,13 +125,65 @@ from super_gradients.training.models.kd_modules.kd_module import KDModule
 import super_gradients.training.models.user_models as user_models
 from super_gradients.training.models.model_factory import get, get_model_name
 from super_gradients.training.models.arch_params_factory import get_arch_params
-from super_gradients.training.models.conversion import convert_to_onnx, convert_from_config
+from super_gradients.training.models.conversion import convert_to_coreml, convert_to_onnx, convert_from_config
 
 
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import ARCHITECTURES
 
+from super_gradients.training.utils import make_divisible as _make_divisible_current_version, HpmStruct as CurrVersionHpmStruct
+
+
+def make_deprecated(func, reason):
+    def inner(*args, **kwargs):
+        with warnings.catch_warnings():
+            warnings.simplefilter("once", DeprecationWarning)
+            warnings.warn(reason, category=DeprecationWarning, stacklevel=2)
+        warnings.warn(reason, DeprecationWarning)
+        return func(*args, **kwargs)
+
+    return inner
+
+
+make_divisible = make_deprecated(
+    func=_make_divisible_current_version,
+    reason="You're importing `make_divisible` from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
+    "Please update your code to import it as follows:\n"
+    "[-] from super_gradients.training.models import make_divisible\n"
+    "[+] from super_gradients.training.utils import make_divisible\n",
+)
+
+
+BasicBlock = make_deprecated(
+    func=BasicResNetBlock,
+    reason="You're importing `BasicBlock` class from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
+    "This block was renamed to BasicResNetBlock for better clarity.\n"
+    "Please update your code to import it as follows:\n"
+    "[-] from super_gradients.training.models import BasicBlock\n"
+    "[+] from super_gradients.training.models import BasicResNetBlock\n",
+)
+
+Bottleneck = make_deprecated(
+    func=NewBottleneck,
+    reason="You're importing `Bottleneck` class from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
+    "This block was renamed to BasicResNetBlock for better clarity.\n"
+    "Please update your code to import it as follows:\n"
+    "[-] from super_gradients.training.models import Bottleneck\n"
+    "[+] from super_gradients.training.models.classification_models.resnet import Bottleneck\n",
+)
+
+HpmStruct = make_deprecated(
+    func=CurrVersionHpmStruct,
+    reason="You're importing `HpmStruct` class from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
+    "Please update your code to import it as follows:\n"
+    "[-] from super_gradients.training.models import HpmStruct\n"
+    "[+] from super_gradients.training.utils import HpmStruct\n",
+)
+
+
 __all__ = [
+    "HpmStruct",
+    "Bottleneck",
     "SPP",
     "YoloNAS_S",
     "YoloNAS_M",
@@ -272,14 +326,13 @@ __all__ = [
     "STDC2Classification",
     "STDCSegmentationBase",
     "CustomSTDCSegmentation",
-    "PosePPYoloL",
-    "PoseDDRNet39",
     "DEKRPoseEstimationModel",
     "DEKRW32NODC",
     "KDModule",
     "get",
     "get_model_name",
     "get_arch_params",
+    "convert_to_coreml",
     "convert_to_onnx",
     "convert_from_config",
     "ARCHITECTURES",
@@ -292,4 +345,7 @@ __all__ = [
     "SegFormerB4",
     "SegFormerB5",
     "DDRNet39Backbone",
+    "make_divisible",
+    "BasicResNetBlock",
+    "BasicBlock",
 ]

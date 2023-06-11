@@ -1,0 +1,43 @@
+name: 💡 Question
+description: Ask a question to get help or clarification
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      ### Before submitting a question, please make sure it hasn't been already addressed by searching through [existing documentation](https://docs.deci.ai/super-gradients/documentation/source/welcome.html) or in ah [open issues](https://github.com/Deci-AI/super-gradients/issues?q=is%3Aissue+sort%3Acreated-desc+).
+
+- type: textarea
+  attributes:
+    label: 💡 Your Question
+    description: |
+      Please provide a clear and concise question about the project. Be as specific as possible to facilitate effective responses.
+
+      Include any relevant code snippets or examples to support your question. This will help us understand the context of your question better.
+    placeholder: |
+      Your clear and concise question here.
+
+      ``` python
+      # Relevant code snippet (if applicable)
+      ```
+
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Versions
+    description: |
+      To help us understand the context better, you can run the following and paste the output below.
+      ```sh
+      wget https://raw.githubusercontent.com/pytorch/pytorch/main/torch/utils/collect_env.py
+      # For security purposes, please check the contents of collect_env.py before running it.
+      python collect_env.py
+      ```
+  validations:
+    required: false
+
+- type: markdown
+  attributes:
+    value: >
+      Thanks for asking your question! Our community will do their best to help you. 🙌
