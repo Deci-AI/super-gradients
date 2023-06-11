@@ -3,10 +3,9 @@ num_joints: 17
 # OKs sigma values take from https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocotools/cocoeval.py#L523
 oks_sigmas: [0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 1.007, 1.007, 0.087, 0.087, 0.089, 0.089]
 
-flip_indexes_heatmap: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15, 17]
-flip_indexes_offset: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15,]
+flip_indexes: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15,]
 
-joint_links:
+edge_links:
   - [0, 1]
   - [0, 2]
   - [1, 2]
@@ -27,6 +26,47 @@ joint_links:
   - [13, 15]
   - [14, 16]
 
+edge_colors:
+ - [214, 39, 40]  # Nose -> LeftEye
+ - [148, 103, 189]  # Nose -> RightEye
+ - [44, 160, 44]  # LeftEye -> RightEye
+ - [140, 86, 75]  # LeftEye -> LeftEar
+ - [227, 119, 194]  # RightEye -> RightEar
+ - [127, 127, 127]  # LeftEar -> LeftShoulder
+ - [188, 189, 34]  # RightEar -> RightShoulder
+ - [127, 127, 127]  # Shoulders
+ - [188, 189, 34]  # LeftShoulder -> LeftElbow
+ - [140, 86, 75]  # LeftTorso
+ - [23, 190, 207]  # RightShoulder -> RightElbow
+ - [227, 119, 194]  # RightTorso
+ - [31, 119, 180]  # LeftElbow -> LeftArm
+ - [255, 127, 14]  # RightElbow -> RightArm
+ - [148, 103, 189]  # Waist
+ - [255, 127, 14]  # Left Hip -> Left Knee
+ - [214, 39, 40]  # Right Hip -> Right Knee
+ - [31, 119, 180]  # Left Knee -> Left Ankle
+ - [44, 160, 44]  # Right Knee -> Right Ankle
+
+
+keypoint_colors:
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+  - [31, 119, 180]
+  - [148, 103, 189]
+
 
 train_dataset_params:
   data_dir: /data/coco # root path to coco data
@@ -36,6 +76,10 @@ train_dataset_params:
   include_empty_samples: False
   min_instance_area: 64
 
+  edge_links: ${dataset_params.edge_links}
+  edge_colors: ${dataset_params.edge_colors}
+  keypoint_colors: ${dataset_params.keypoint_colors}
+
   transforms:
     - KeypointsLongestMaxSize:
         max_height: 640
@@ -44,12 +88,12 @@ train_dataset_params:
     - KeypointsPadIfNeeded:
         min_height: 640
         min_width: 640
-        image_pad_value: [ 127, 127, 127 ]
+        image_pad_value: 127
         mask_pad_value: 1
 
     - KeypointsRandomHorizontalFlip:
         # Note these indexes are COCO-specific. If you're using a different dataset, you'll need to change these accordingly.
-        flip_index: [ 0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15 ]
+        flip_index: ${dataset_params.flip_indexes}
         prob: 0.5
 
     - KeypointsRandomAffineTransform:
@@ -57,16 +101,18 @@ train_dataset_params:
         min_scale: 0.5
         max_scale: 2
         max_translate: 0.2
-        image_pad_value: [ 127, 127, 127 ]
+        image_pad_value: 127
         mask_pad_value: 1
         prob: 0.75
 
-    - KeypointsImageToTensor
+    - KeypointsImageStandardize:
+        max_value: 255
 
     - KeypointsImageNormalize:
         mean: [ 0.485, 0.456, 0.406 ]
         std: [ 0.229, 0.224, 0.225 ]
 
+    - KeypointsImageToTensor
 
 val_dataset_params:
   data_dir: /data/coco/
@@ -75,6 +121,11 @@ val_dataset_params:
   json_file: annotations/person_keypoints_val2017.json
   include_empty_samples: True
   min_instance_area: 128
+
+  edge_links: ${dataset_params.edge_links}
+  edge_colors: ${dataset_params.edge_colors}
+  keypoint_colors: ${dataset_params.keypoint_colors}
+
   transforms:
     - KeypointsLongestMaxSize:
         max_height: 640
@@ -83,15 +134,17 @@ val_dataset_params:
     - KeypointsPadIfNeeded:
         min_height: 640
         min_width: 640
-        image_pad_value: [ 127, 127, 127 ]
+        image_pad_value: 127
         mask_pad_value: 1
 
-    - KeypointsImageToTensor
+    - KeypointsImageStandardize:
+        max_value: 255
 
     - KeypointsImageNormalize:
-        mean: [0.485, 0.456, 0.406]
-        std: [0.229, 0.224, 0.225]
+        mean: [ 0.485, 0.456, 0.406 ]
+        std: [ 0.229, 0.224, 0.225 ]
 
+    - KeypointsImageToTensor
 
 train_dataloader_params:
   shuffle: True
