@@ -298,7 +298,7 @@ class KeypointsPadIfNeeded(KeypointTransform):
         """
         self.min_height = min_height
         self.min_width = min_width
-        self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
+        self.image_pad_value = image_pad_value
         self.mask_pad_value = mask_pad_value
 
     def __call__(self, image, mask, joints, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
@@ -307,7 +307,8 @@ class KeypointsPadIfNeeded(KeypointTransform):
         pad_bottom = max(0, self.min_height - height)
         pad_right = max(0, self.min_width - width)
 
-        image = cv2.copyMakeBorder(image, top=0, bottom=pad_bottom, left=0, right=pad_right, value=self.image_pad_value, borderType=cv2.BORDER_CONSTANT)
+        image_pad_value = tuple(self.image_pad_value) if isinstance(self.image_pad_value, Iterable) else tuple([self.image_pad_value] * image.shape[-1])
+        image = cv2.copyMakeBorder(image, top=0, bottom=pad_bottom, left=0, right=pad_right, value=image_pad_value, borderType=cv2.BORDER_CONSTANT)
 
         original_dtype = mask.dtype
         mask = cv2.copyMakeBorder(
@@ -348,7 +349,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         self.min_scale = min_scale
         self.max_scale = max_scale
         self.max_translate = max_translate
-        self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
+        self.image_pad_value = image_pad_value
         self.mask_pad_value = mask_pad_value
         self.prob = prob
 
@@ -386,8 +387,10 @@ class KeypointsRandomAffineTransform(KeypointTransform):
             mat_output = self._get_affine_matrix(image, angle, scale, dx, dy)
             mat_output = mat_output[:2]
 
+            image_pad_value = tuple(self.image_pad_value) if isinstance(self.image_pad_value, Iterable) else tuple([self.image_pad_value] * image.shape[-1])
+
             mask = self.apply_to_image(mask, mat_output, cv2.INTER_NEAREST, self.mask_pad_value, cv2.BORDER_CONSTANT)
-            image = self.apply_to_image(image, mat_output, cv2.INTER_LINEAR, self.image_pad_value, cv2.BORDER_CONSTANT)
+            image = self.apply_to_image(image, mat_output, cv2.INTER_LINEAR, image_pad_value, cv2.BORDER_CONSTANT)
 
             joints = self.apply_to_keypoints(joints, mat_output, image.shape)
 
