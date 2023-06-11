@@ -134,7 +134,6 @@ class KeypointsImageNormalize(KeypointTransform):
 
     def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         image = (image - self.mean) / self.std
-
         return image, mask, joints, areas, bboxes
 
     def __repr__(self):
