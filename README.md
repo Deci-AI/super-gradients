@@ -37,9 +37,9 @@ ________________________________________________________________________________
 
 ### Support various computer vision tasks
 <div align="center">
-<img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Segmentation 1500x900 .png" width="250px">
-<img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Object detection 1500X900.png" width="250px">
-<img src="https://github.com/Deci-AI/super-gradients/raw/master/docs/assets/SG_img/Classification 1500x900.png" width="250px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Segmentation 1500x900 .png" width="250px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Object detection 1500X900.png" width="250px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Classification 1500x900.png" width="250px">
 </div>
 
 

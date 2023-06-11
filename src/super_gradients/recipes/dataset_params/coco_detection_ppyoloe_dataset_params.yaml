@@ -36,7 +36,6 @@ train_dataset_params:
         mean: [ 123.675, 116.28, 103.53 ]
         std: [ 58.395,  57.12,  57.375 ]
     - DetectionTargetsFormatTransform:
-        max_targets: 256
         output_format: LABEL_CXCYWH
 
   tight_box_rotation: False
@@ -78,7 +77,6 @@ val_dataset_params:
         mean: [ 123.675, 116.28, 103.53 ]
         std: [ 58.395,  57.12,  57.375 ]
     - DetectionTargetsFormatTransform:
-        max_targets: 256
         output_format: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
