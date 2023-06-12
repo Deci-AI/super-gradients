@@ -656,7 +656,7 @@ class DetectionMixup(DetectionTransform):
             img, cp_labels = cp_sample["image"], cp_sample["target"]
             cp_boxes = cp_labels[:, :4]
 
-            img, cp_boxes = _mirror(img, cp_boxes, self.flip_prob)
+            img, cp_boxes = _horizontal_mirror(img, cp_boxes, self.flip_prob)
             # PLUG IN TARGET THE FLIPPED BOXES
             cp_labels[:, :4] = cp_boxes
 
@@ -829,7 +829,31 @@ class DetectionHorizontalFlip(DetectionTransform):
         if len(targets) == 0:
             targets = np.zeros((0, 5), dtype=np.float32)
         boxes = targets[:, :4]
-        image, boxes = _mirror(image, boxes, self.prob)
+        image, boxes = _horizontal_mirror(image, boxes, self.prob)
+        targets[:, :4] = boxes
+        sample["target"] = targets
+        sample["image"] = image
+        return sample
+
+@register_transform(Transforms.DetectionVerticalFlip)
+class DetectionVerticalFlip(DetectionTransform):
+    """
+    Vertical Flip for Detection
+
+    :param prob:        Probability of applying vertical flip
+    """
+
+    def __init__(self, prob: float, max_targets: Optional[int] = None):
+        super(DetectionVerticalFlip, self).__init__()
+        _max_targets_deprication(max_targets)
+        self.prob = prob
+
+    def __call__(self, sample):
+        image, targets = sample["image"], sample["target"]
+        if len(targets) == 0:
+            targets = np.zeros((0, 5), dtype=np.float32)
+        boxes = targets[:, :4]
+        image, boxes = _vertical_mirror(image, boxes, self.prob)
         targets[:, :4] = boxes
         sample["target"] = targets
         sample["image"] = image
@@ -1277,12 +1301,12 @@ def _filter_box_candidates(box1, box2, wh_thr=2, ar_thr=20, area_thr=0.1):
     return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + 1e-16) > area_thr) & (ar < ar_thr)  # candidates
 
 
-def _mirror(image, boxes, prob=0.5):
+def _horizontal_mirror(image, boxes, prob=0.5):
     """
-    Horizontal flips image and bboxes with probability prob.
+    Horizontally flips image and bboxes with probability prob.
 
     :param image: (np.array) image to be flipped.
-    :param boxes: (np.array) bboxes to be modified.
+    :param boxes: (np.array) bboxes to be modified. (xyxy format)
     :param prob: probability to perform flipping.
     :return: flipped_image, flipped_bboxes
     """
@@ -1290,7 +1314,24 @@ def _mirror(image, boxes, prob=0.5):
     _, width, _ = image.shape
     if random.random() < prob:
         image = image[:, ::-1]
-        flipped_boxes[:, 0::2] = width - boxes[:, 2::-2]
+        flipped_boxes[:, [0,2]] = width - boxes[:, [2,0]]
+    return image, flipped_boxes
+
+
+def _vertical_mirror(image, boxes, prob=0.5):
+    """
+    Vertically flips image and bboxes with probability prob.
+
+    :param image: (np.array) image to be flipped.
+    :param boxes: (np.array) bboxes to be modified. (xyxy format)
+    :param prob: probability to perform flipping.
+    :return: flipped_image, flipped_bboxes
+    """
+    flipped_boxes = boxes.copy()
+    height, _, _ = image.shape
+    if random.random() < prob:
+        image = image[::-1, :]
+        flipped_boxes[:, [1,3]] = height - boxes[:, [3,1]]
     return image, flipped_boxes
 
 
