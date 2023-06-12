@@ -18,7 +18,7 @@ from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 from super_gradients.training.pipelines.pipelines import PoseEstimationPipeline
 from super_gradients.training.processing.processing import Processing
-from super_gradients.training.utils import HpmStruct, get_param, DEKRPoseEstimationDecodeCallback
+from super_gradients.training.utils import HpmStruct, DEKRPoseEstimationDecodeCallback
 from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.predict import ImagesPoseEstimationPrediction
 
@@ -102,16 +102,16 @@ class YoloNASHead(BaseDetectionModule):
 
 
 class YoloNASPose(CustomizableDetector):
-    def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
+    def __init__(self, backbone, neck, heads, num_classes, in_channels, bn_momentum, bn_eps, inplace_act):
         super().__init__(
-            backbone=arch_params.backbone,
-            neck=arch_params.neck,
-            heads=arch_params.heads,
-            num_classes=get_param(arch_params, "num_classes", None),
-            in_channels=get_param(arch_params, "in_channels", 3),
-            bn_momentum=get_param(arch_params, "bn_momentum", None),
-            bn_eps=get_param(arch_params, "bn_eps", None),
-            inplace_act=get_param(arch_params, "inplace_act", None),
+            backbone=backbone,
+            neck=neck,
+            heads=heads,
+            num_classes=num_classes,
+            in_channels=in_channels,
+            bn_momentum=bn_momentum,
+            bn_eps=bn_eps,
+            inplace_act=inplace_act,
         )
 
     @staticmethod
@@ -218,7 +218,16 @@ class YoloNASPose_S(YoloNASPose):
         default_arch_params = get_arch_params("yolo_nas_pose_s_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
-        super().__init__(merged_arch_params)
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=merged_arch_params.num_classes,
+            in_channels=merged_arch_params.in_channels,
+            bn_momentum=merged_arch_params.bn_momentum,
+            bn_eps=merged_arch_params.bn_eps,
+            inplace_act=merged_arch_params.inplace_act,
+        )
 
 
 @register_model(Models.YOLO_NAS_POSE_M)
@@ -227,7 +236,16 @@ class YoloNASPose_M(YoloNASPose):
         default_arch_params = get_arch_params("yolo_nas_pose_m_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
-        super().__init__(merged_arch_params)
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=merged_arch_params.num_classes,
+            in_channels=merged_arch_params.in_channels,
+            bn_momentum=merged_arch_params.bn_momentum,
+            bn_eps=merged_arch_params.bn_eps,
+            inplace_act=merged_arch_params.inplace_act,
+        )
 
 
 @register_model(Models.YOLO_NAS_POSE_L)
@@ -236,4 +254,13 @@ class YoloNASPose_L(YoloNASPose):
         default_arch_params = get_arch_params("yolo_nas_pose_l_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
-        super().__init__(merged_arch_params)
+        super().__init__(
+            backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
+            heads=merged_arch_params.heads,
+            num_classes=merged_arch_params.num_classes,
+            in_channels=merged_arch_params.in_channels,
+            bn_momentum=merged_arch_params.bn_momentum,
+            bn_eps=merged_arch_params.bn_eps,
+            inplace_act=merged_arch_params.inplace_act,
+        )

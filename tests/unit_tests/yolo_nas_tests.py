@@ -21,6 +21,14 @@ class TestYOLONAS(unittest.TestCase):
         """
         Validate that we can create a YOLO-NAS model with custom in_channels.
         """
+        model = models.get(Models.YOLO_NAS_POSE_L, pretrained_weights="coco_pose")
+        output = model(torch.rand(1, 3, 640, 640))
+        assert len(output) == 2
+
+        model = models.get(Models.YOLO_NAS_POSE_M, num_classes=17)
+        output = model(torch.rand(1, 3, 640, 640))
+        assert len(output) == 2
+
         model = models.get(Models.YOLO_NAS_POSE_S, num_classes=17)
         output = model(torch.rand(1, 3, 640, 640))
         assert len(output) == 2
