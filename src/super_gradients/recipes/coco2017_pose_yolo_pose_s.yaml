@@ -1,30 +1,29 @@
+# YOLO-NAS-POSE training on COCO2017 Human Pose Estimation Dataset:
+# YOLO-NAS-POSE-L trained in 640x640
+# Recipe runs with batch size = 48 X 8 gpus = 384.
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.train_dataset_params.data_dir or
+#      set "dataset_params.train_dataset_params.data_dir" at the end of the command below:
+#      python -m super_gradients.train_from_recipe --config-name=... \
+#                 dataset_params.train_dataset_params.data_dir=<PATH_TO_DATASET> \
+#                 dataset_params.val_dataset_params.data_dir=<PATH_TO_DATASET>
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command you want:
+#         yolo_nas_pose_s: python -m super_gradients.train_from_recipe --config-name=coco2017_pose_yolo_pose_s
+#         yolo_nas_pose_m: python -m super_gradients.train_from_recipe --config-name=coco2017_pose_yolo_pose_m
+#         yolo_nas_pose_l: python -m super_gradients.train_from_recipe --config-name=coco2017_pose_yolo_pose_l
 #
-# python -m super_gradients.train_from_recipe --config-name=coco2017_pose_yolo_pose_s
+# Training times and accuracies (mAP@0.5-0.95):
+#         yolo_nas_pose_s: 38h on 8 NVIDIA GeForce RTX 3090, mAP: 58.1 (val)
+#         yolo_nas_pose_m: 72h on 8 NVIDIA GeForce RTX 3090, mAP: 60.52 (val)
+#         yolo_nas_pose_l: 141h on 8 NVIDIA GeForce RTX 3090, mAP: 63.33 (val)
 #
 
 defaults:
-  - training_hyperparams: coco2017_dekr_pose_train_params
-  - dataset_params: coco_pose_estimation_dekr_dataset_params
-  - arch_params: yolo_nas_pose_s_arch_params
-  - checkpoint_params: default_checkpoint_params
-  - _self_
-  - variable_setup
+  - coco2017_pose_yolo_pose_l
 
 architecture: yolo_nas_pose_s
-
-multi_gpu: DDP
-num_gpus: 8
-
-experiment_suffix: ""
-experiment_name: coco2017_${architecture}${experiment_suffix}
-
-ckpt_root_dir:
-
-train_dataloader: coco2017_pose_train
-val_dataloader: coco2017_pose_val
-
-arch_params:
-  num_classes: ${dataset_params.num_joints}
 
 checkpoint_params:
   # We start training by loading the weights of the pretrained model for detection task
@@ -37,23 +36,3 @@ dataset_params:
 
   val_dataloader_params:
     batch_size: 48
-
-training_hyperparams:
-  max_epochs: 350
-  initial_lr: 5e-4
-  zero_weight_decay_on_bias_and_bn: True
-  optimizer_params:
-    weight_decay: 0.000001
-
-  sg_logger: wandb_sg_logger
-  sg_logger_params:
-    api_server: https://wandb.research.deci.ai
-    entity: super-gradients
-    launch_tensorboard: false
-    monitor_system: true
-    project_name: PoseEstimation
-    save_checkpoints_remote: true
-    save_logs_remote: true
-    save_tensorboard_remote: true
-    tb_files_user_prompt: false
-    tensorboard_port: null
