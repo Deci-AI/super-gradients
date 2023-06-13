@@ -9,14 +9,23 @@ Pre-trained CIFAR10 models: 'deci-model-repository/CIFAR_NAS_#?_????_?/ckpt_best
 
 Code adapted from https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 """
+from functools import lru_cache
+from typing import Optional, List
 
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
 
+
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.modules.utils import width_multiplier
 from super_gradients.training.models import SgModule
+from super_gradients.training.pipelines.pipelines import ClassificationPipeline
+from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils import get_param
+from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.training.utils.predict import ImagesDetectionPrediction, ImagesPredictions
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
@@ -36,7 +45,8 @@ class BasicResNetBlock(nn.Module):
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False), nn.BatchNorm2d(self.expansion * planes)
+                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(self.expansion * planes)
             )
 
     def forward(self, x):
@@ -65,7 +75,8 @@ class Bottleneck(nn.Module):
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False), nn.BatchNorm2d(self.expansion * planes)
+                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(self.expansion * planes)
             )
 
     def forward(self, x):
@@ -105,7 +116,9 @@ class CifarResNet(SgModule):
             # When the number of blocks is zero but spatial dimension and/or number of filters about to change we put 1
             # 3X3 conv layer to make this change to the new dimensions.
             if stride != 1 or self.in_planes != planes:
-                layers.append(nn.Sequential(nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1), nn.BatchNorm2d(planes)))
+                layers.append(nn.Sequential(
+                    nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1),
+                    nn.BatchNorm2d(planes)))
                 self.in_planes = planes
 
         else:
@@ -128,15 +141,15 @@ class CifarResNet(SgModule):
 
 class ResNet(SgModule):
     def __init__(
-        self,
-        block,
-        num_blocks: list,
-        num_classes: int = 10,
-        width_mult: float = 1,
-        expansion: int = 1,
-        droppath_prob=0.0,
-        input_batchnorm: bool = False,
-        backbone_mode: bool = False,
+            self,
+            block,
+            num_blocks: list,
+            num_classes: int = 10,
+            width_mult: float = 1,
+            expansion: int = 1,
+            droppath_prob=0.0,
+            input_batchnorm: bool = False,
+            backbone_mode: bool = False,
     ):
         super(ResNet, self).__init__()
         self.expansion = expansion
@@ -151,10 +164,14 @@ class ResNet(SgModule):
         self.bn1 = nn.BatchNorm2d(width_multiplier(64, width_mult))
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.layer1 = self._make_layer(block, width_multiplier(64, width_mult), num_blocks[0], stride=1, droppath_prob=droppath_prob)
-        self.layer2 = self._make_layer(block, width_multiplier(128, width_mult), num_blocks[1], stride=2, droppath_prob=droppath_prob)
-        self.layer3 = self._make_layer(block, width_multiplier(256, width_mult), num_blocks[2], stride=2, droppath_prob=droppath_prob)
-        self.layer4 = self._make_layer(block, width_multiplier(512, width_mult), num_blocks[3], stride=2, droppath_prob=droppath_prob)
+        self.layer1 = self._make_layer(block, width_multiplier(64, width_mult), num_blocks[0], stride=1,
+                                       droppath_prob=droppath_prob)
+        self.layer2 = self._make_layer(block, width_multiplier(128, width_mult), num_blocks[1], stride=2,
+                                       droppath_prob=droppath_prob)
+        self.layer3 = self._make_layer(block, width_multiplier(256, width_mult), num_blocks[2], stride=2,
+                                       droppath_prob=droppath_prob)
+        self.layer4 = self._make_layer(block, width_multiplier(512, width_mult), num_blocks[3], stride=2,
+                                       droppath_prob=droppath_prob)
 
         if not self.backbone_mode:
             # IF RESNET IS IN BACK_BONE MODE WE DON'T NEED THE FINAL CLASSIFIER LAYERS, BUT ONLY THE NET BLOCK STRUCTURE
@@ -170,7 +187,9 @@ class ResNet(SgModule):
             # When the number of blocks is zero but spatial dimension and/or number of filters about to change we put 1
             # 3X3 conv layer to make this change to the new dimensions.
             if stride != 1 or self.in_planes != planes:
-                layers.append(nn.Sequential(nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1), nn.BatchNorm2d(planes)))
+                layers.append(nn.Sequential(
+                    nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1),
+                    nn.BatchNorm2d(planes)))
                 self.in_planes = planes
 
         else:
@@ -230,6 +249,65 @@ class ResNet(SgModule):
             self.linear = new_head
         else:
             self.linear = nn.Linear(width_multiplier(512, self.width_mult) * self.expansion, new_num_classes)
+
+    @resolve_param("image_processor", ProcessingFactory())
+    def set_dataset_processing_params(
+            self,
+            class_names: Optional[List[str]] = None,
+            image_processor: Optional[Processing] = None,
+    ) -> None:
+        """Set the processing parameters for the dataset.
+
+        :param class_names:     (Optional) Names of the dataset the model was trained on.
+        :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
+        :param iou:             (Optional) IoU threshold for the nms algorithm
+        :param conf:            (Optional) Below the confidence threshold, prediction are discarded
+        """
+        self._class_names = class_names or self._class_names
+        self._image_processor = image_processor or self._image_processor
+
+    @lru_cache(maxsize=1)
+    def _get_pipeline(self, fuse_model: bool = True) -> ClassificationPipeline:
+        """Instantiate the prediction pipeline of this model.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        """
+        # todo look for more attributes in resnet
+        if None in (self._class_names, self._image_processor):
+            raise RuntimeError(
+                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
+            )
+
+        pipeline = ClassificationPipeline(
+            model=self,
+            image_processor=self._image_processor,
+            class_names=self._class_names,
+            fuse_model=fuse_model,
+        )
+        return pipeline
+
+    def predict(self, images: ImageSource, fuse_model: bool = True) -> ImagesPredictions:
+        # todo check if the import of ImagesPredictions is ok? (there are 2 places we can find this)
+        """Predict an image or a list of images.
+
+        :param images:  Images to predict.
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        """
+        pipeline = self._get_pipeline(fuse_model=fuse_model)
+        return pipeline(images)  # type: ignore
+
+    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
+        """Predict using webcam.
+
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        """
+        pipeline = self._get_pipeline(fuse_model=fuse_model)
+        pipeline.predict_webcam()
 
 
 @register_model(Models.RESNET18)
@@ -317,13 +395,15 @@ class ResNet152(ResNet):
 @register_model(Models.CUSTOM_RESNET_CIFAR)
 class CustomizedResnetCifar(CifarResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(BasicResNetBlock, arch_params.structure, width_mult=arch_params.width_mult, num_classes=num_classes or arch_params.num_classes)
+        super().__init__(BasicResNetBlock, arch_params.structure, width_mult=arch_params.width_mult,
+                         num_classes=num_classes or arch_params.num_classes)
 
 
 @register_model(Models.CUSTOM_RESNET50_CIFAR)
 class CustomizedResnet50Cifar(CifarResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(Bottleneck, arch_params.structure, width_mult=arch_params.width_mult, num_classes=num_classes or arch_params.num_classes, expansion=4)
+        super().__init__(Bottleneck, arch_params.structure, width_mult=arch_params.width_mult,
+                         num_classes=num_classes or arch_params.num_classes, expansion=4)
 
 
 @register_model(Models.CUSTOM_RESNET)

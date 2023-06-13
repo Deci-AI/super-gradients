@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from super_gradients.common.registry.registry import register_processing
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST, IMAGENET_CLASSES
 from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
 from super_gradients.training.transforms.utils import (
     _rescale_image,
@@ -17,8 +17,11 @@ from super_gradients.training.transforms.utils import (
     PaddingCoordinates,
     _rescale_keypoints,
     _shift_keypoints,
+
 )
 from super_gradients.common.object_names import Processings
+
+from torchvision.transforms import CenterCrop
 
 
 @dataclass
@@ -185,7 +188,8 @@ class _DetectionPadding(Processing, ABC):
         processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
         return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
 
-    def postprocess_predictions(self, predictions: DetectionPrediction, metadata: DetectionPadToSizeMetadata) -> DetectionPrediction:
+    def postprocess_predictions(self, predictions: DetectionPrediction,
+                                metadata: DetectionPadToSizeMetadata) -> DetectionPrediction:
         predictions.bboxes_xyxy = _shift_bboxes(
             targets=predictions.bboxes_xyxy,
             shift_h=-metadata.padding_coordinates.top,
@@ -216,7 +220,8 @@ class _KeypointsPadding(Processing, ABC):
         processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
         return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
 
-    def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: DetectionPadToSizeMetadata) -> PoseEstimationPrediction:
+    def postprocess_predictions(self, predictions: PoseEstimationPrediction,
+                                metadata: DetectionPadToSizeMetadata) -> PoseEstimationPrediction:
         predictions.poses = _shift_keypoints(
             targets=predictions.poses,
             shift_h=-metadata.padding_coordinates.top,
@@ -257,11 +262,11 @@ class _Rescale(Processing, ABC):
         self.output_shape = output_shape
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
-
         scale_factor_h, scale_factor_w = self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1]
         rescaled_image = _rescale_image(image, target_shape=self.output_shape)
 
-        return rescaled_image, RescaleMetadata(original_shape=image.shape[:2], scale_factor_h=scale_factor_h, scale_factor_w=scale_factor_w)
+        return rescaled_image, RescaleMetadata(original_shape=image.shape[:2], scale_factor_h=scale_factor_h,
+                                               scale_factor_w=scale_factor_w)
 
 
 class _LongestMaxSizeRescale(Processing, ABC):
@@ -281,28 +286,88 @@ class _LongestMaxSizeRescale(Processing, ABC):
             new_height, new_width = round(height * scale_factor), round(width * scale_factor)
             image = _rescale_image(image, target_shape=(new_height, new_width))
 
-        return image, RescaleMetadata(original_shape=(height, width), scale_factor_h=scale_factor, scale_factor_w=scale_factor)
+        return image, RescaleMetadata(original_shape=(height, width), scale_factor_h=scale_factor,
+                                      scale_factor_w=scale_factor)
 
 
 @register_processing(Processings.DetectionRescale)
 class DetectionRescale(_Rescale):
-    def postprocess_predictions(self, predictions: DetectionPrediction, metadata: RescaleMetadata) -> DetectionPrediction:
-        predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+    def postprocess_predictions(self, predictions: DetectionPrediction,
+                                metadata: RescaleMetadata) -> DetectionPrediction:
+        predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(
+            1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
 
 
 @register_processing(Processings.DetectionLongestMaxSizeRescale)
 class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
-    def postprocess_predictions(self, predictions: DetectionPrediction, metadata: RescaleMetadata) -> DetectionPrediction:
-        predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+    def postprocess_predictions(self, predictions: DetectionPrediction,
+                                metadata: RescaleMetadata) -> DetectionPrediction:
+        predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(
+            1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
 
 
 @register_processing(Processings.KeypointsLongestMaxSizeRescale)
 class KeypointsLongestMaxSizeRescale(_LongestMaxSizeRescale):
-    def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: RescaleMetadata) -> PoseEstimationPrediction:
-        predictions.poses = _rescale_keypoints(targets=predictions.poses, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+    def postprocess_predictions(self, predictions: PoseEstimationPrediction,
+                                metadata: RescaleMetadata) -> PoseEstimationPrediction:
+        predictions.poses = _rescale_keypoints(targets=predictions.poses,
+                                               scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
+
+
+class ClassificationProcess(Processing, ABC):
+    def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
+        return predictions
+
+
+@register_processing(Processings.Resize)
+class Resize(ClassificationProcess):
+    def __init__(self, size: int = 224):
+        super().__init__()
+        self.size = size
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
+        """Resize an image.
+
+        :param image: Image, in (H, W, C) format.
+        :return:      The resized image.
+        """
+        from PIL import Image
+        image = Image.fromarray(image)
+        resized_image = image.resize((self.size, self.size))
+        resized_image = np.array(resized_image)
+
+        return resized_image, None
+
+
+@register_processing(Processings.CenterCrop)
+class CenterCrop(ClassificationProcess):
+    """
+    :param size: Desired output size of the crop.
+    """
+
+    def __init__(self, size: int = 224):
+        super().__init__()
+        self.size = size
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
+        """Reverse the channel order of an image.
+
+        :param image: Image, in (H, W, C) format.
+        :return:      The center cropped image.
+        """
+        height, width = image.shape[0], image.shape[1]
+
+        # Calculate the start and end coordinates of the crop.
+        start_x = (width - self.size) // 2
+        start_y = (height - self.size) // 2
+        end_x = start_x + self.size
+        end_y = start_y + self.size
+
+        cropped_image = image[start_y:end_y, start_x:end_x]
+        return cropped_image, None
 
 
 def default_yolox_coco_processing_params() -> dict:
@@ -451,7 +516,23 @@ def default_dekr_coco_processing_params() -> dict:
         (31, 119, 180),
         (148, 103, 189),
     ]
-    params = dict(image_processor=image_processor, conf=0.05, edge_links=edge_links, edge_colors=edge_colors, keypoint_colors=keypoint_colors)
+    params = dict(image_processor=image_processor, conf=0.05, edge_links=edge_links, edge_colors=edge_colors,
+                  keypoint_colors=keypoint_colors)
+    return params
+
+
+def default_resnet_imagenet_processing_params() -> dict:
+    image_processor = ComposeProcessing(
+        [
+            Resize(size=256),
+            CenterCrop(size=224),
+            NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
+    params = dict(
+        class_names=IMAGENET_CLASSES,
+        image_processor=image_processor,
+    )
     return params
 
 
@@ -469,5 +550,8 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
 
     if pretrained_weights == "coco_pose" and model_name in ("dekr_w32_no_dc", "dekr_custom"):
         return default_dekr_coco_processing_params()
+
+    if pretrained_weights == "imagenet" and model_name == "resnet18":
+        return default_resnet_imagenet_processing_params()
 
     return dict()
