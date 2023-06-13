@@ -19,7 +19,7 @@ import hydra
 import pkg_resources
 from omegaconf import DictConfig
 
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+from super_gradients.training.dataloaders import dataloaders
 from super_gradients.common.environment.cfg_utils import add_params_to_cfg
 from super_gradients import Trainer, init_trainer
 
@@ -29,7 +29,9 @@ def main(cfg: DictConfig) -> None:
     add_params_to_cfg(cfg.training_hyperparams.valid_metrics_list[0].DetectionMetrics, params=["calc_best_score_thresholds=True"])
     _, valid_metrics_dict = Trainer.evaluate_from_recipe(cfg)
 
-    class_names = COCO_DETECTION_CLASSES_LIST  # change this line to use a different dataset
+    # INSTANTIATE DATA LOADERS
+    val_dataloader = dataloaders.get(name=cfg.val_dataloader, dataset_params={}, dataloader_params={"num_workers": 2})
+    class_names = val_dataloader.dataset.classes
     prefix = "Best_score_threshold_cls_"
     best_thresholds = {int(k[len(prefix) :]): v for k, v in valid_metrics_dict.items() if k.startswith(prefix)}
     assert len(best_thresholds) == len(class_names)
