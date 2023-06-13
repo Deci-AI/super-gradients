@@ -30,7 +30,10 @@ class DetectionMetrics(Metric):
     :param dist_sync_on_step:               Synchronize metric state across processes at each ``forward()`` before returning the value at the step.
     :param accumulate_on_cpu:               Run on CPU regardless of device used in other parts.
                                             This is to avoid "CUDA out of memory" that might happen on GPU.
-    :param calc_best_score_thresholds       Whether to calculate the best score threshold per class
+    :param calc_best_score_thresholds       Whether to calculate the best score threshold overall and per class
+                                            If True, the compute() function will return a metrics dictionary that not
+                                            only includes the average metrics calculated across all classes,
+                                            but also the optimal score threshold overall and for each individual class.
     """
 
     def __init__(
@@ -65,6 +68,7 @@ class DetectionMetrics(Metric):
         self.component_names = list(self.greater_component_is_better.keys())
         self.calc_best_score_thresholds = calc_best_score_thresholds
         if self.calc_best_score_thresholds:
+            self.component_names.append("Best_score_threshold")
             self.component_names += [f"Best_score_threshold_cls_{i}" for i in range(self.num_cls)]
         self.components = len(self.component_names)
 
@@ -120,14 +124,14 @@ class DetectionMetrics(Metric):
         """Compute the metrics for all the accumulated results.
         :return: Metrics of interest
         """
-        mean_ap, mean_precision, mean_recall, mean_f1, best_score_thresholds = -1.0, -1.0, -1.0, -1.0, None
+        mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold, best_score_threshold_per_cls = -1.0, -1.0, -1.0, -1.0, -1.0, None
         accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
 
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
 
             # shape (n_class, nb_iou_thresh)
-            ap, precision, recall, f1, unique_classes, best_score_thresholds = compute_detection_metrics(
+            ap, precision, recall, f1, unique_classes, best_score_threshold, best_score_threshold_per_cls = compute_detection_metrics(
                 *matching_info_tensors,
                 recall_thresholds=self.recall_thresholds,
                 score_threshold=self.score_threshold,
@@ -149,7 +153,8 @@ class DetectionMetrics(Metric):
             f"F1{self._get_range_str()}": mean_f1,
         }
         if self.calc_best_score_thresholds:
-            output_dict.update(best_score_thresholds)
+            output_dict["Best_score_threshold"] = best_score_threshold
+            output_dict.update(best_score_threshold_per_cls)
         return output_dict
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):

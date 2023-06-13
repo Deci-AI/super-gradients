@@ -278,7 +278,7 @@ class PoseEstimationMetrics(Metric):
             preds_scores = torch.cat([x[2].cpu() for x in predictions], dim=0)
             n_targets = sum([x[3] for x in predictions])
 
-            cls_precision, _, cls_recall, _ = compute_detection_metrics_per_cls(
+            cls_precision, _, cls_recall, _, _ = compute_detection_metrics_per_cls(
                 preds_matched=preds_matched,
                 preds_to_ignore=preds_to_ignore,
                 preds_scores=preds_scores,

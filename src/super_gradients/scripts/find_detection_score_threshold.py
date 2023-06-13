@@ -36,6 +36,8 @@ def main(cfg: DictConfig) -> None:
     best_thresholds = {int(k[len(prefix) :]): v for k, v in valid_metrics_dict.items() if k.startswith(prefix)}
     assert len(best_thresholds) == len(class_names)
     print("-----Best_score_thresholds-----")
+    print(f"Best score threshold overall: {valid_metrics_dict['Best_score_threshold']:.2f}")
+    print("Best score thresholds per class:")
     max_class_name = max(len(class_name) for class_name in class_names)
     for k, v in best_thresholds.items():
         print(f"{class_names[k]:<{max_class_name}} (class {k}):\t{v:.2f}")
