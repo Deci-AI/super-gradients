@@ -47,7 +47,7 @@ MODEL_URLS = {
     "yolo_nas_s_coco": "https://sghub.deci.ai/models/yolo_nas_s_coco.pth",
     "yolo_nas_m_coco": "https://sghub.deci.ai/models/yolo_nas_m_coco.pth",
     "yolo_nas_l_coco": "https://sghub.deci.ai/models/yolo_nas_l_coco.pth",
-    "dekr_w32_no_dc_coco_pose": "https://sghub.deci.ai/models/coco2017_pose_dekr_w32_no_dc.pth",
+    "dekr_w32_no_dc_coco_pose": "https://sghub.deci.ai/models/dekr_w32_no_dc_coco_pose.pth",
     "pose_rescoring_coco_coco_pose": "https://sghub.deci.ai/models/pose_rescoring_coco_coco_pose.pth",
 }
 

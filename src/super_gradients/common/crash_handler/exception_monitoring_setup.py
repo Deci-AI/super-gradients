@@ -32,8 +32,10 @@ def setup_pro_user_monitoring() -> bool:
     """Setup the pro user environment for error logging and monitoring"""
     if client_enabled:
         if env_variables.UPLOAD_LOGS:
-            logger.info("deci-lab-client package detected. activating automatic log uploading")
-            logger.info("If you do not have a deci-lab-client credentials or you wish to disable this feature, please set the env variable UPLOAD_LOGS=FALSE")
+            logger.info("deci-platform-client package detected. activating automatic log uploading")
+            logger.info(
+                "If you do not have a deci-platform-client credentials or you wish to disable this feature, please set the env variable UPLOAD_LOGS=FALSE"
+            )
 
             # This prevents hydra.main to catch errors that happen in the decorated function
             # (which leads sys.excepthook to never be called)

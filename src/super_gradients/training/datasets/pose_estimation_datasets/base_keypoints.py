@@ -1,14 +1,16 @@
 import abc
-from typing import Tuple, List, Mapping, Any, Dict
+from typing import Tuple, List, Mapping, Any, Dict, Union
 
 import numpy as np
 import torch
 from torch.utils.data.dataloader import default_collate, Dataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.training.datasets.pose_estimation_datasets.target_generators import KeypointsTargetsGenerator
 from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointTransform
+from super_gradients.training.utils.visualization.utils import generate_color_mapping
 
 logger = get_logger(__name__)
 
@@ -24,6 +26,10 @@ class BaseKeypointsDataset(Dataset):
         target_generator: KeypointsTargetsGenerator,
         transforms: List[KeypointTransform],
         min_instance_area: float,
+        num_joints: int,
+        edge_links: Union[List[Tuple[int, int]], np.ndarray],
+        edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
+        keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
     ):
         """
 
@@ -31,11 +37,19 @@ class BaseKeypointsDataset(Dataset):
             See DEKRTargetsGenerator for an example.
         :param transforms: Transforms to be applied to the image & keypoints
         :param min_instance_area: Minimum area of an instance to be included in the dataset
+        :param num_joints: Number of joints to be predicted
+        :param edge_links: Edge links between joints
+        :param edge_colors: Color of the edge links. If None, the color will be generated randomly.
+        :param keypoint_colors: Color of the keypoints. If None, the color will be generated randomly.
         """
         super().__init__()
         self.target_generator = target_generator
         self.transforms = KeypointsCompose(transforms)
         self.min_instance_area = min_instance_area
+        self.num_joints = num_joints
+        self.edge_links = edge_links
+        self.edge_colors = edge_colors or generate_color_mapping(len(edge_links))
+        self.keypoint_colors = keypoint_colors or generate_color_mapping(num_joints)
 
     @abc.abstractmethod
     def __len__(self) -> int:
@@ -94,6 +108,21 @@ class BaseKeypointsDataset(Dataset):
         joints = joints[areas > self.min_instance_area]
 
         return joints
+
+    def get_dataset_preprocessing_params(self):
+        """
+
+        :return:
+        """
+        pipeline = self.transforms.get_equivalent_preprocessing()
+        params = dict(
+            conf=0.25,
+            image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
+            edge_links=self.edge_links,
+            edge_colors=self.edge_colors,
+            keypoint_colors=self.keypoint_colors,
+        )
+        return params
 
 
 @register_collate_function()

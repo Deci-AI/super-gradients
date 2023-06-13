@@ -1,7 +1,7 @@
 num_classes: 17
 hidden_channels: 256
 num_layers: 2
-joint_links:
+edge_links:
   - [ 0, 1 ]
   - [ 0, 2 ]
   - [ 1, 2 ]

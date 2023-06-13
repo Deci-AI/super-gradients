@@ -31,13 +31,11 @@ train_dataset_params:
         prob: 0.5                       # probability to apply per-sample mixup
         flip_prob: 0.5                  # probability to apply horizontal flip
     - DetectionPaddedRescale:
-        input_dim: [640, 640]
-        max_targets: 120
+        input_dim: ${dataset_params.train_dataset_params.input_dim}
         pad_value: 114
     - DetectionStandardize:
         max_value: 255.
     - DetectionTargetsFormatTransform:
-        max_targets: 256
         output_format: LABEL_CXCYWH
 
   tight_box_rotation: False
@@ -71,7 +69,6 @@ val_dataset_params:
         max_value: 255.
     - DetectionImagePermute
     - DetectionTargetsFormatTransform:
-        max_targets: 50
         input_dim: [640, 640]
         output_format: LABEL_CXCYWH
   tight_box_rotation: False

@@ -20,7 +20,9 @@ dataset = Cifar10(..., download=True)
 <summary>Imagenet</summary>
 
 1. Download imagenet dataset:
-   - https://image-net.org/download.php
+
+- https://image-net.org/download.php
+
 
 2. Unzip:
 
@@ -54,9 +56,11 @@ valid_set = ImageNetDataset(root='.../Imagenet/val', ...)
 <summary>Coco</summary>
 
 1. Download coco dataset:
-    - annotations: http://images.cocodataset.org/annotations/annotations_trainval2017.zip
-    - train2017: http://images.cocodataset.org/zips/train2017.zip
-    - val2017: http://images.cocodataset.org/zips/val2017.zip
+
+- annotations: http://images.cocodataset.org/annotations/annotations_trainval2017.zip
+- train2017: http://images.cocodataset.org/zips/train2017.zip
+- val2017: http://images.cocodataset.org/zips/val2017.zip
+
 
 2. Unzip and organize it as below:
 ```
@@ -136,6 +140,7 @@ Dataset Structure:
 
 1. Download your dataset (can be from https://roboflow.com/universe)
 
+
 2. You should have a structure similar to this.
 ```
      data_dir
@@ -151,12 +156,15 @@ Dataset Structure:
 ```
 *Note: train/test/val folders are not required, any folder structure is supported.*
 
+
 3. Instantiate the dataset:
 ```python
 from super_gradients.training.datasets import YoloDarknetFormatDetectionDataset
 data_set = YoloDarknetFormatDetectionDataset(data_dir='<path-to>/data_dir', images_dir="<train/test/val>/images", labels_dir="<train/test/val>/labels", classes=["<to-fill>"])
 ```
 </details>
+
+
 
 ### Segmentation Datasets
 
@@ -165,10 +173,11 @@ data_set = YoloDarknetFormatDetectionDataset(data_dir='<path-to>/data_dir', imag
 <summary>Cityscapes</summary>
 
 1. Download dataset:
-   - a. Cityscapes dataset:
-     - gtFine: https://www.cityscapes-dataset.com/file-handling/?packageID=1
-     - leftImg8bit: https://www.cityscapes-dataset.com/file-handling/?packageID=3
-   - b. metadata folder: https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip
+
+- a. Cityscapes dataset:
+  - gtFine: https://www.cityscapes-dataset.com/file-handling/?packageID=1
+  - leftImg8bit: https://www.cityscapes-dataset.com/file-handling/?packageID=3
+- b. metadata folder: https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip
 
 
 2. a. Unzip and organize cityscapes dataset as below:
@@ -203,7 +212,8 @@ data_set = YoloDarknetFormatDetectionDataset(data_dir='<path-to>/data_dir', imag
       ├── test.lst
       ├── train.lst
       ├── trainval.lst
-      └── val.lst
+      ├── val.lst
+      └── auto_labelling.lst
 ```
 
 2. c. Move Metadata folder to the Cityscapes folder
@@ -225,6 +235,46 @@ train_set = CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.ls
 ```
 
 
+4. AutoLabelling dataset [Optional]
+
+Cityscapes AutoLabelled dataset were introduced by NVIDIA research group
+in the [paper](https://arxiv.org/abs/2005.10821):
+"Hierarchical Multi-Scale Attention for Semantic Segmentation".
+
+AutoLabelled refer to the refinement of the Cityscapes coarse data and pseudo
+labels generation using their suggested Hierarchical multi-scale attention model.
+
+* To download the AutoLabelled labels please refer to the original 
+[repo](https://github.com/NVIDIA/semantic-segmentation#downloadprepare-data).
+Unzip and rename the folder to `AutoLabelling` as described bellow.
+
+* Download the coarse RGB images from cityscapes official site, 
+leftImg8bit_train_extra: https://www.cityscapes-dataset.com/file-handling/?packageID=4
+
+```
+  root_dir (in recipe default to /data/cityscapes)
+      ├─── gtFine
+      │       ├── test
+      │       │     └── ...
+      │       ├─── train
+      │       │     └── ...
+      │       └─── val
+      │             └── ...
+      ├─── leftImg8bit
+      │       ├── test
+      │       │     └── ...
+      │       ├─── train
+      │       │     └── ...
+      │       └─── val
+      │             └── ...
+      ├─── AutoLabelling
+      │       └─── train_extra
+      │             └── ...
+      └─── leftImg8bit
+              └─── train_extra
+                    └── ...
+```
+
  </details>
 
 
@@ -232,9 +282,11 @@ train_set = CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.ls
 <summary>Coco</summary>
 
 1. Download coco dataset:
-    - annotations: http://images.cocodataset.org/annotations/annotations_trainval2017.zip
-    - train2017: http://images.cocodataset.org/zips/train2017.zip
-    - val2017: http://images.cocodataset.org/zips/val2017.zip
+
+- annotations: http://images.cocodataset.org/annotations/annotations_trainval2017.zip
+- train2017: http://images.cocodataset.org/zips/train2017.zip
+- val2017: http://images.cocodataset.org/zips/val2017.zip
+
 
 2. Unzip and organize it as below:
 ```
@@ -251,6 +303,7 @@ train_set = CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.ls
             └─ ...
 ```
 
+
 3. Instantiate the dataset:
 ```python
 from super_gradients.training.datasets import CoCoSegmentationDataSet
@@ -264,7 +317,9 @@ valid_set = CoCoSegmentationDataSet(data_dir='.../coco', subdir='images/val2017'
 <summary>Pascal VOC 2012</summary>
 
 1. Download pascal datasets:
-   - VOC 2012: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
+
+- VOC 2012: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
+
 
 2. Unzip and organize it as below:
 ```
@@ -282,6 +337,7 @@ valid_set = CoCoSegmentationDataSet(data_dir='.../coco', subdir='images/val2017'
                 ├──Annotations
                 └──SegmentationObject
 ```
+
 
 3. Instantiate the dataset:
 ```python
@@ -308,8 +364,9 @@ valid_set = PascalVOC2012SegmentationDataSet(
 <details>
 <summary>Pascal AUG 2012</summary>
 
-1. Download pascal datasets:
-   - AUG 2012: https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz
+1. Download pascal dataset
+
+- AUG 2012: https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz
 
 2. Unzip and organize it as below:
 ```
@@ -345,8 +402,10 @@ NOTE: this dataset is only available for training. To test, please use PascalVOC
 <summary>Pascal AUG & VOC 2012</summary>
 
 1. Download pascal datasets:
-   - VOC 2012: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
-   - AUG 2012: https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz
+
+- VOC 2012: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
+- AUG 2012: https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz
+
 
 2. Unzip and organize it as below:
 ```
@@ -386,7 +445,9 @@ train_set = PascalVOCAndAUGUnifiedDataset(root='.../pascal_voc_2012', ...)
 <summary>Supervisely Persons</summary>
 
 1. Download supervisely dataset:
-   - https://deci-pretrained-models.s3.amazonaws.com/supervisely-persons.zip)
+
+- https://deci-pretrained-models.s3.amazonaws.com/supervisely-persons.zip
+
 
 2. Unzip:
 ```
@@ -421,9 +482,11 @@ NOTE: this dataset is only available for training. To test, please use PascalVOC
 <summary>COCO 2017</summary>
 
 1. Download coco dataset:
-    - annotations: http://images.cocodataset.org/annotations/annotations_trainval2017.zip
-    - train2017: http://images.cocodataset.org/zips/train2017.zip
-    - val2017: http://images.cocodataset.org/zips/val2017.zip
+
+- annotations: http://images.cocodataset.org/annotations/annotations_trainval2017.zip
+- train2017: http://images.cocodataset.org/zips/train2017.zip
+- val2017: http://images.cocodataset.org/zips/val2017.zip
+
 
 2. Unzip and organize it as below:
 ```
@@ -439,6 +502,7 @@ NOTE: this dataset is only available for training. To test, please use PascalVOC
         └── val2017
             └─ ...
 ```
+
 
 3. Instantiate the dataset:
 ```python

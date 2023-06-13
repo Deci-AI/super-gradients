@@ -8,7 +8,7 @@ from super_gradients.training.datasets import COCODetectionDataset
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.models import YoloPostPredictionCallback
 from super_gradients.training.processing import ReverseImageChannels, DetectionLongestMaxSizeRescale, DetectionBottomRightPadding, ImagePermute
-from super_gradients.training.utils.detection_utils import DetectionCollateFN
+from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
 from super_gradients.training import dataloaders
 
 
@@ -21,9 +21,9 @@ class PreprocessingUnitTest(unittest.TestCase):
             "ComposeProcessing": {
                 "processings": [
                     "ReverseImageChannels",
-                    {"DetectionLongestMaxSizeRescale": {"output_shape": [512, 512]}},
-                    {"DetectionLongestMaxSizeRescale": {"output_shape": [512, 512]}},
-                    {"DetectionBottomRightPadding": {"output_shape": [512, 512], "pad_value": 114}},
+                    {"DetectionLongestMaxSizeRescale": {"output_shape": (512, 512)}},
+                    {"DetectionLongestMaxSizeRescale": {"output_shape": (512, 512)}},
+                    {"DetectionBottomRightPadding": {"output_shape": (512, 512), "pad_value": 114}},
                     {"ImagePermute": {"permutation": (2, 0, 1)}},
                 ]
             }
@@ -37,7 +37,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "input_dim": [512, 512],
             "transforms": [
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
-                {"DetectionTargetsFormatTransform": {"max_targets": 50, "input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
         }
         dataset = COCODetectionDataset(**train_dataset_params)
@@ -56,8 +56,9 @@ class PreprocessingUnitTest(unittest.TestCase):
             "input_dim": [329, 320],
             "transforms": [
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
-                {"DetectionTargetsFormatTransform": {"max_targets": 50, "input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
+            "with_crowd": False,
         }
 
         val_dataset_params = {
@@ -68,14 +69,14 @@ class PreprocessingUnitTest(unittest.TestCase):
             "input_dim": [329, 320],
             "transforms": [
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
-                {"DetectionTargetsFormatTransform": {"max_targets": 50, "input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
         }
         trainset = COCODetectionDataset(**train_dataset_params)
         train_loader = dataloaders.get(dataset=trainset, dataloader_params={"collate_fn": DetectionCollateFN()})
 
         valset = COCODetectionDataset(**val_dataset_params)
-        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": DetectionCollateFN()})
+        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": CrowdDetectionCollateFN()})
 
         trainer = Trainer("test_setting_preprocessing_params_from_validation_set")
 
@@ -122,8 +123,9 @@ class PreprocessingUnitTest(unittest.TestCase):
             "input_dim": [329, 320],
             "transforms": [
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
-                {"DetectionTargetsFormatTransform": {"max_targets": 50, "input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
+            "with_crowd": False,
         }
 
         val_dataset_params = {
@@ -134,14 +136,14 @@ class PreprocessingUnitTest(unittest.TestCase):
             "input_dim": [329, 320],
             "transforms": [
                 {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
-                {"DetectionTargetsFormatTransform": {"max_targets": 50, "input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
             ],
         }
         trainset = COCODetectionDataset(**train_dataset_params)
         train_loader = dataloaders.get(dataset=trainset, dataloader_params={"collate_fn": DetectionCollateFN()})
 
         valset = COCODetectionDataset(**val_dataset_params)
-        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": DetectionCollateFN()})
+        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": CrowdDetectionCollateFN()})
 
         trainer = Trainer("save_ckpt_for")
 

@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import torch
 from torch.onnx import TrainingMode
 
@@ -14,7 +16,9 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     _imported_pytorch_quantization_failure = import_err
 
 
-def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple, train: bool = False, to_cpu: bool = True, **kwargs):
+def export_quantized_module_to_onnx(
+    model: torch.nn.Module, onnx_filename: str, input_shape: tuple, train: bool = False, to_cpu: bool = True, deepcopy_model=False, **kwargs
+):
     """
     Method for exporting onnx after QAT.
 
@@ -23,9 +27,14 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
     :param model: torch.nn.Module, model to export
     :param onnx_filename: str, target path for the onnx file,
     :param input_shape: tuple, input shape (usually BCHW)
+    :param deepcopy_model: Whether to export deepcopy(model). Necessary in case further training is performed and
+     prep_model_for_conversion makes the network un-trainable (i.e RepVGG blocks).
     """
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
+
+    if deepcopy_model:
+        model = deepcopy(model)
 
     use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
     quant_nn.TensorQuantizer.use_fb_fake_quant = True
