@@ -2,22 +2,21 @@
 Find the best confidence score threshold for each class in object detection tasks
 Use this script when you have a trained model and want to analyze / optimize its performance
 The thresholds can be used later when performing NMS
-Usage is similar to src/super_gradients/examples/evaluate_from_recipe_example/evaluate_from_recipe.py
+Usage is similar to src/super_gradients/evaluate_from_recipe.py
 
 Notes:
     This script does NOT run TRAINING, so make sure in the recipe that you load a PRETRAINED MODEL
     either from one of your checkpoint or from a pretrained model.
 
-General use: python find_detection_score_threshold.py --config-name="DESIRED_RECIPE" architecture="DESIRED_ARCH"
+General use: python -m super_gradients.scripts.find_detection_score_threshold --config-name="DESIRED_RECIPE" architecture="DESIRED_ARCH"
             checkpoint_params.pretrained_weights="DESIRED_DATASET"
 
-Example: python find_detection_score_threshold.py --config-name=coco2017_yolox architecture=yolox_n
+Example: python -m super_gradients.scripts.find_detection_score_threshold --config-name=coco2017_yolox architecture=yolox_n
             checkpoint_params.pretrained_weights=coco
 """
 
 import hydra
 import pkg_resources
-
 from omegaconf import DictConfig
 
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
