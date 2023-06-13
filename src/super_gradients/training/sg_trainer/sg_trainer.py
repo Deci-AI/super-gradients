@@ -90,6 +90,7 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
+from super_gradients.training.utils.optimizers.sophia import SophiaG
 
 logger = get_logger(__name__)
 
@@ -567,10 +568,26 @@ class Trainer:
                 torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
 
             # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+            if isinstance(self.optimizer, SophiaG):
+                if batch_idx % 10 != 9:
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
+                    # todo check this
+                    self.optimizer.zero_grad()
+                else:
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
 
-            self.optimizer.zero_grad()
+                    self.optimizer.zero_grad()
+                    # RuntimeError: step() has already been called since the last update().
+                    self.optimizer.update_hessian()
+                    self.optimizer.zero_grad()
+
+            else:
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+
+                self.optimizer.zero_grad()
             if self.ema:
                 self.ema_model.update(self.net, step=global_step, total_steps=total_steps)
 
@@ -842,7 +859,7 @@ class Trainer:
                     loss_items are detached from their computational graph for memory efficiency.
 
                 - `optimizer` : Union[str, torch.optim.Optimizer]
-
+                    # todo add more optimizers?
                     Optimization algorithm. One of ['Adam','SGD','RMSProp'] corresponding to the torch.optim
                     optimzers implementations, or any object that implements torch.optim.Optimizer.
 

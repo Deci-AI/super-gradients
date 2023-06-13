@@ -128,6 +128,7 @@ class Optimizers:
     RMS_PROP_TF = "RMSpropTF"
     LAMB = "Lamb"
     LION = "Lion"
+    SOPHIAG = 'SophiaG'
 
 
 class Callbacks:
