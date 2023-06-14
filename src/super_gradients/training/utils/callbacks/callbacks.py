@@ -761,6 +761,7 @@ class TestLRCallback(PhaseCallback):
         self.lr_placeholder.append(context.optimizer.param_groups[0]["lr"])
 
 
+@register_callback(Callbacks.TIMER)
 class TimerCallback(Callback):
     def __init__(self):
         self.events = {}
