@@ -33,7 +33,6 @@ train_dataset_params:
         prob: 0.5                       # probability to apply horizontal flip
     - DetectionPaddedRescale:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
-        max_targets: 120
     - DetectionTargetsFormatTransform:
         input_dim: ${dataset_params.train_dataset_params.input_dim}
         output_format: LABEL_CXCYWH
@@ -46,11 +45,7 @@ train_dataloader_params:
   shuffle: True
   batch_size: 16
   num_workers: 8
-  batch_sampler: True
-  sampler:
-    InfiniteSampler:
-      seed: 0
-  drop_last: False
+  drop_last: True
   pin_memory: True
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
@@ -69,7 +64,6 @@ val_dataset_params:
   - DetectionPaddedRescale:
       input_dim: ${dataset_params.val_dataset_params.input_dim}
   - DetectionTargetsFormatTransform:
-      max_targets: 50
       input_dim: ${dataset_params.val_dataset_params.input_dim}
       output_format: LABEL_CXCYWH
   tight_box_rotation: False

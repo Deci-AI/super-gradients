@@ -18,7 +18,7 @@ from super_gradients.training.exceptions.kd_trainer_exceptions import (
     UndefinedNumClassesException,
 )
 from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
+from super_gradients.common.registry.registry import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.sg_trainer import Trainer
@@ -44,8 +44,8 @@ class KDTrainer(Trainer):
         """
         Trains according to cfg recipe configuration.
 
-        @param cfg: The parsed DictConfig from yaml recipe files
-        @return: output of kd_trainer.train(...) (i.e results tuple)
+        :param cfg: The parsed DictConfig from yaml recipe files
+        :return: output of kd_trainer.train(...) (i.e results tuple)
         """
         # INSTANTIATE ALL OBJECTS IN CFG
         setup_device(

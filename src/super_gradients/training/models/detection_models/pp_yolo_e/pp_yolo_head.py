@@ -1,4 +1,4 @@
-from typing import Tuple, Type
+from typing import Tuple, Type, List
 
 import numpy as np
 import torch
@@ -18,19 +18,27 @@ def bias_init_with_prob(prior_prob=0.01):
 
 
 @torch.no_grad()
-def generate_anchors_for_grid_cell(feats: Tuple[Tensor, ...], fpn_strides: Tuple[int, ...], grid_cell_size=5.0, grid_cell_offset=0.5, dtype=torch.float):
-    r"""
+def generate_anchors_for_grid_cell(
+    feats: Tuple[Tensor, ...],
+    fpn_strides: Tuple[int, ...],
+    grid_cell_size: float = 5.0,
+    grid_cell_offset: float = 0.5,
+    dtype: torch.dtype = torch.float,
+) -> Tuple[Tensor, Tensor, List[int], Tensor]:
+    """
     Like ATSS, generate anchors based on grid size.
-    Args:
-        feats (List[Tensor]): shape[s, (b, c, h, w)]
-        fpn_strides (tuple|list): shape[s], stride for each scale feature
-        grid_cell_size (float): anchor size
-        grid_cell_offset (float): The range is between 0 and 1.
-    Returns:
-        anchors (Tensor): shape[l, 4], "xmin, ymin, xmax, ymax" format.
-        anchor_points (Tensor): shape[l, 2], "x, y" format.
-        num_anchors_list (List[int]): shape[s], contains [s_1, s_2, ...].
-        stride_tensor (Tensor): shape[l, 1], contains the stride for each scale.
+
+    :param feats: shape[s, (b, c, h, w)]
+    :param fpn_strides: shape[s], stride for each scale feature
+    :param grid_cell_size: anchor size
+    :param grid_cell_offset: The range is between 0 and 1.
+    :param dtype: Type of the anchors.
+
+    :return:
+        - anchors: shape[l, 4], "xmin, ymin, xmax, ymax" format.
+        - anchor_points: shape[l, 2], "x, y" format.
+        - num_anchors_list: shape[s], contains [s_1, s_2, ...].
+        - stride_tensor: shape[l, 1], contains the stride for each scale.
     """
     assert len(feats) == len(fpn_strides)
     device = feats[0].device
@@ -143,6 +151,14 @@ class PPYOLOEHead(nn.Module):
 
         self._init_weights()
 
+    @torch.jit.ignore
+    def cache_anchors(self, input_size: Tuple[int, int]):
+        self.eval_size = input_size
+        anchor_points, stride_tensor = self._generate_anchors()
+        self.anchor_points = anchor_points
+        self.stride_tensor = stride_tensor
+
+    @torch.jit.ignore
     def _init_weights(self):
         bias_cls = bias_init_with_prob(0.01)
         for cls_, reg_ in zip(self.pred_cls, self.pred_reg):
@@ -156,17 +172,20 @@ class PPYOLOEHead(nn.Module):
             self.anchor_points = anchor_points
             self.stride_tensor = stride_tensor
 
+    @torch.jit.ignore
     def replace_num_classes(self, num_classes: int):
         bias_cls = bias_init_with_prob(0.01)
+        device = self.pred_cls[0].weight.device
         self.pred_cls = nn.ModuleList()
         self.num_classes = num_classes
 
         for in_c in self.in_channels:
-            predict_layer = nn.Conv2d(in_c, num_classes, 3, padding=1)
+            predict_layer = nn.Conv2d(in_c, num_classes, 3, padding=1, device=device)
             torch.nn.init.constant_(predict_layer.weight, 0.0)
             torch.nn.init.constant_(predict_layer.bias, bias_cls)
             self.pred_cls.append(predict_layer)
 
+    @torch.jit.ignore
     def forward_train(self, feats: Tuple[Tensor, ...]):
         anchors, anchor_points, num_anchors_list, stride_tensor = generate_anchors_for_grid_cell(
             feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset
@@ -187,9 +206,6 @@ class PPYOLOEHead(nn.Module):
         return cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor
 
     def forward_eval(self, feats: Tuple[Tensor, ...]) -> Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]:
-        anchors, anchor_points, num_anchors_list, stride_tensor = generate_anchors_for_grid_cell(
-            feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset
-        )
 
         cls_score_list, reg_distri_list, reg_dist_reduced_list = [], [], []
 
@@ -217,17 +233,21 @@ class PPYOLOEHead(nn.Module):
         # Decode bboxes
         # Note in eval mode, anchor_points_inference is different from anchor_points computed on train
         if self.eval_size:
-            anchor_points_inference, _ = self.anchor_points, self.stride_tensor
+            anchor_points_inference, stride_tensor = self.anchor_points, self.stride_tensor
         else:
-            anchor_points_inference, _ = self._generate_anchors(feats)
+            anchor_points_inference, stride_tensor = self._generate_anchors(feats)
 
         pred_scores = cls_score_list.sigmoid()
         pred_bboxes = batch_distance2bbox(anchor_points_inference, reg_dist_reduced_list) * stride_tensor  # [B, Anchors, 4]
 
         decoded_predictions = pred_bboxes, pred_scores
 
-        raw_predictions = cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor
+        if torch.jit.is_tracing():
+            return decoded_predictions
 
+        anchors, anchor_points, num_anchors_list, _ = generate_anchors_for_grid_cell(feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset)
+
+        raw_predictions = cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor
         return decoded_predictions, raw_predictions
 
     def _generate_anchors(self, feats=None, dtype=torch.float):

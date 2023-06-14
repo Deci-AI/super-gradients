@@ -14,18 +14,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
 
+from super_gradients.modules.utils import width_multiplier
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.regularization_utils import DropPath
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 
 
-def width_multiplier(original, factor):
-    return int(original * factor)
-
-
-class BasicBlock(nn.Module):
+class BasicResNetBlock(nn.Module):
     def __init__(self, in_planes, planes, stride=1, expansion=1, final_relu=True, droppath_prob=0.0):
-        super(BasicBlock, self).__init__()
+        super(BasicResNetBlock, self).__init__()
         self.expansion = expansion
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
@@ -233,10 +232,11 @@ class ResNet(SgModule):
             self.linear = nn.Linear(width_multiplier(512, self.width_mult) * self.expansion, new_num_classes)
 
 
+@register_model(Models.RESNET18)
 class ResNet18(ResNet):
     def __init__(self, arch_params, num_classes=None):
         super().__init__(
-            BasicBlock,
+            BasicResNetBlock,
             [2, 2, 2, 2],
             num_classes=num_classes or arch_params.num_classes,
             droppath_prob=get_param(arch_params, "droppath_prob", 0),
@@ -244,15 +244,17 @@ class ResNet18(ResNet):
         )
 
 
+@register_model(Models.RESNET18_CIFAR)
 class ResNet18Cifar(CifarResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(BasicBlock, [2, 2, 2, 2], num_classes=num_classes or arch_params.num_classes)
+        super().__init__(BasicResNetBlock, [2, 2, 2, 2], num_classes=num_classes or arch_params.num_classes)
 
 
+@register_model(Models.RESNET34)
 class ResNet34(ResNet):
     def __init__(self, arch_params, num_classes=None):
         super().__init__(
-            BasicBlock,
+            BasicResNetBlock,
             [3, 4, 6, 3],
             num_classes=num_classes or arch_params.num_classes,
             droppath_prob=get_param(arch_params, "droppath_prob", 0),
@@ -260,6 +262,7 @@ class ResNet34(ResNet):
         )
 
 
+@register_model(Models.RESNET50)
 class ResNet50(ResNet):
     def __init__(self, arch_params, num_classes=None):
         super().__init__(
@@ -272,6 +275,7 @@ class ResNet50(ResNet):
         )
 
 
+@register_model(Models.RESNET50_3343)
 class ResNet50_3343(ResNet):
     def __init__(self, arch_params, num_classes=None):
         super().__init__(
@@ -284,6 +288,7 @@ class ResNet50_3343(ResNet):
         )
 
 
+@register_model(Models.RESNET101)
 class ResNet101(ResNet):
     def __init__(self, arch_params, num_classes=None):
         super().__init__(
@@ -296,6 +301,7 @@ class ResNet101(ResNet):
         )
 
 
+@register_model(Models.RESNET152)
 class ResNet152(ResNet):
     def __init__(self, arch_params, num_classes=None):
         super().__init__(
@@ -308,20 +314,23 @@ class ResNet152(ResNet):
         )
 
 
+@register_model(Models.CUSTOM_RESNET_CIFAR)
 class CustomizedResnetCifar(CifarResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(BasicBlock, arch_params.structure, width_mult=arch_params.width_mult, num_classes=num_classes or arch_params.num_classes)
+        super().__init__(BasicResNetBlock, arch_params.structure, width_mult=arch_params.width_mult, num_classes=num_classes or arch_params.num_classes)
 
 
+@register_model(Models.CUSTOM_RESNET50_CIFAR)
 class CustomizedResnet50Cifar(CifarResNet):
     def __init__(self, arch_params, num_classes=None):
         super().__init__(Bottleneck, arch_params.structure, width_mult=arch_params.width_mult, num_classes=num_classes or arch_params.num_classes, expansion=4)
 
 
+@register_model(Models.CUSTOM_RESNET)
 class CustomizedResnet(ResNet):
     def __init__(self, arch_params, num_classes=None):
         super().__init__(
-            BasicBlock,
+            BasicResNetBlock,
             arch_params.structure,
             width_mult=arch_params.width_mult,
             num_classes=num_classes or arch_params.num_classes,
@@ -330,6 +339,7 @@ class CustomizedResnet(ResNet):
         )
 
 
+@register_model(Models.CUSTOM_RESNET50)
 class CustomizedResnet50(ResNet):
     def __init__(self, arch_params, num_classes=None):
         super().__init__(

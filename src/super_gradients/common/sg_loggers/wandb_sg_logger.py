@@ -7,6 +7,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import torch
 
+from super_gradients.common.registry.registry import register_sg_logger
 from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -25,6 +26,7 @@ WANDB_ID_PREFIX = "wandb_id."
 WANDB_INCLUDE_FILE_NAME = ".wandbinclude"
 
 
+@register_sg_logger("wandb_sg_logger")
 class WandBSGLogger(BaseSGLogger):
     def __init__(
         self,
@@ -44,21 +46,27 @@ class WandBSGLogger(BaseSGLogger):
         api_server: Optional[str] = None,
         save_code: bool = False,
         monitor_system: bool = None,
+        save_checkpoint_as_artifact: bool = False,
         **kwargs,
     ):
         """
 
-        :param experiment_name:         Used for logging and loading purposes
-        :param s3_path:                 If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
-        :param checkpoint_loaded:       If true, then old tensorboard files will *not* be deleted when tb_files_user_prompt=True
-        :param max_epochs:              Number of epochs planned for this training
+        :param experiment_name:         Name used for logging and loading purposes
+        :param storage_location:        If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
+        :param resumed:                 If true, then old tensorboard files will **NOT** be deleted when tb_files_user_prompt=True
+        :param training_params:         training_params for the experiment.
+        :param checkpoints_dir_path:    Local root directory path where all experiment logging directories will reside.
         :param tb_files_user_prompt:    Asks user for Tensorboard deletion prompt.
         :param launch_tensorboard:      Whether to launch a TensorBoard process.
         :param tensorboard_port:        Specific port number for the tensorboard to use when launched (when set to None, some free port number will be used)
         :param save_checkpoints_remote: Saves checkpoints in s3.
         :param save_tensorboard_remote: Saves tensorboard in s3.
         :param save_logs_remote:        Saves log files in s3.
+        :param monitor_system:          Not Available for WandB logger. Save the system statistics (GPU utilization, CPU, ...) in the tensorboard
         :param save_code:               Save current code to wandb
+        :save_checkpoint_as_artifact:   Save model checkpoint using Weights & Biases Artifact. Note that setting this option to True would save model
+                                        checkpoints every epoch as a versioned artifact, which will result in use of increased storage usage on
+                                        Weights & Biases.
         """
         if monitor_system is not None:
             logger.warning("monitor_system not available on WandBSGLogger. To remove this warning, please don't set monitor_system in your logger parameters")
@@ -87,13 +95,27 @@ class WandBSGLogger(BaseSGLogger):
 
         # allow passing an arbitrary pre-defined wandb_id
         wandb_id = kwargs.pop("wandb_id", None)
+
         self.resumed = resumed
         if self.resumed:
-            if wandb_id is not None:
-                logger.warning("Resuming the run with a previous WandB ID instead of the one from logger params")
-            wandb_id = self._get_wandb_id()
+            if wandb_id is None:
+                if self._resume_from_remote_sg_logger:
+                    raise RuntimeError(
+                        "For WandB loggers, when training_params.resume_from_remote_sg_logger=True "
+                        "pass the run id through the wandb_id arg in sg_logger_params"
+                    )
+                wandb_id = self._get_wandb_id()
 
-        run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
+        if wandb.run is None:
+            run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
+        else:
+            logger.warning(
+                "A Weights & Biases run was initialized before initializing `WandBSGLogger`. "
+                "This means that `super-gradients` cannot control the run ID to which this session will be logged."
+            )
+            logger.warning(f"In order to resume this run please call `wandb.init(id={wandb.run.id}, resume='must')` before reinitializing `WandBSGLogger`.")
+            run = wandb.run
+
         if save_code:
             self._save_code_lines()
 
@@ -101,6 +123,7 @@ class WandBSGLogger(BaseSGLogger):
         self.save_checkpoints_wandb = save_checkpoints_remote
         self.save_tensorboard_wandb = save_tensorboard_remote
         self.save_logs_wandb = save_logs_remote
+        self.save_checkpoint_as_artifact = save_checkpoint_as_artifact
 
     @multi_process_safe
     def _save_code_lines(self):
@@ -228,6 +251,19 @@ class WandBSGLogger(BaseSGLogger):
         if self.save_logs_wandb:
             wandb.save(glob_str=self.experiment_log_path, base_path=self._local_dir, policy="now")
 
+    def _save_wandb_artifact(self, path):
+        """Upload a file or a directory as a Weights & Biases Artifact.
+        Note that this function can be called only after wandb.init()
+
+        :param path: the local full path to the pth file to be uploaded
+        """
+        artifact = wandb.Artifact(f"{wandb.run.id}-checkpoint", type="model")
+        if os.path.isdir(path):
+            artifact.add_dir(path)
+        elif os.path.isfile(path):
+            artifact.add_file(path)
+        wandb.log_artifact(artifact)
+
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = 0):
         name = f"ckpt_{global_step}.pth" if tag is None else tag
@@ -240,7 +276,10 @@ class WandBSGLogger(BaseSGLogger):
         if self.save_checkpoints_wandb:
             if self.s3_location_available:
                 self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
-            wandb.save(glob_str=path, base_path=self._local_dir, policy="now")
+            if self.save_checkpoint_as_artifact:
+                self._save_wandb_artifact(path)
+            else:
+                wandb.save(glob_str=path, base_path=self._local_dir, policy="now")
 
     def _get_tensorboard_file_name(self):
         try:
@@ -315,3 +354,6 @@ class WandBSGLogger(BaseSGLogger):
             return None
 
         return None
+
+    def download_remote_ckpt(self, *args, **kwargs):
+        wandb.restore("ckpt_latest.pth", replace=True, root=self.local_dir())

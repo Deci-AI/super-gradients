@@ -27,6 +27,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 from torch import Tensor
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.models.classification_models.vit import PatchEmbed
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -99,12 +102,12 @@ def trunc_normal_(tensor, mean=0.0, std=1.0, a=-2.0, b=2.0):
     with values outside :math:`[a, b]` redrawn until they are within
     the bounds. The method used for generating the random values works
     best when :math:`a \leq \text{mean} \leq b`.
-    Args:
-        tensor: an n-dimensional `torch.Tensor`
-        mean: the mean of the normal distribution
-        std: the standard deviation of the normal distribution
-        a: the minimum cutoff value
-        b: the maximum cutoff value
+
+    :param tensor: an n-dimensional `torch.Tensor`
+    :param mean: the mean of the normal distribution
+    :param std: the standard deviation of the normal distribution
+    :param a: the minimum cutoff value
+    :param b: the maximum cutoff value
     Examples:
         >>> w = torch.empty(3, 5)
         >>> nn.init.trunc_normal_(w)
@@ -451,6 +454,7 @@ class Beit(SgModule):
             self.head = nn.Linear(self.head.in_features, new_num_classes)
 
 
+@register_model(Models.BEIT_BASE_PATCH16_224)
 class BeitBasePatch16_224(Beit):
     def __init__(self, arch_params: HpmStruct):
         model_kwargs = HpmStruct(
@@ -460,6 +464,7 @@ class BeitBasePatch16_224(Beit):
         super(BeitBasePatch16_224, self).__init__(**model_kwargs.to_dict())
 
 
+@register_model(Models.BEIT_LARGE_PATCH16_224)
 class BeitLargePatch16_224(Beit):
     def __init__(self, arch_params: HpmStruct):
         model_kwargs = HpmStruct(

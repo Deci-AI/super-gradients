@@ -1,0 +1,92 @@
+# A recipe to fine-tune YoloNAS on Roboflow datasets.
+# Checkout the datasets at https://universe.roboflow.com/roboflow-100?ref=blog.roboflow.com
+#
+# `dataset_name` refers to the official name of the dataset.
+# You can find it in the url of the dataset: https://universe.roboflow.com/roboflow-100/digits-t2eg6 -> digits-t2eg6
+#
+# Example: python -m super_gradients.train_from_recipe --config-name=roboflow_yolo_nas_s dataset_name=digits-t2eg6
+
+defaults:
+  - training_hyperparams: coco2017_yolo_nas_train_params
+  - dataset_params: roboflow_detection_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - arch_params: yolo_nas_s_arch_params
+  - _self_
+  - variable_setup
+
+train_dataloader: roboflow_train_yolox
+val_dataloader: roboflow_val_yolox
+
+dataset_name: ??? # Placeholder for the name of the dataset you want to use (e.g. "digits-t2eg6")
+dataset_params:
+  dataset_name: ${dataset_name}
+
+  train_dataloader_params:
+    batch_size: 16
+
+  val_dataloader_params:
+    batch_size: 16
+
+num_classes: ${roboflow_dataset_num_classes:${dataset_name}}
+
+architecture: yolo_nas_s
+arch_params:
+  num_classes: ${num_classes}
+
+
+load_checkpoint: False
+checkpoint_params:
+  pretrained_weights: coco
+
+
+result_path: # By defaults saves results in checkpoints directory
+resume: False
+training_hyperparams:
+  resume: ${resume}
+  zero_weight_decay_on_bias_and_bn: True
+
+  lr_warmup_epochs: 3
+  warmup_mode: linear_epoch_step
+
+  initial_lr: 5e-4
+  cosine_final_lr_ratio: 0.1
+
+  optimizer_params:
+    weight_decay: 0.0001
+
+  ema: True
+  ema_params:
+    decay: 0.9
+
+  max_epochs: 100
+  mixed_precision: True
+  criterion_params:
+    num_classes: ${num_classes}
+
+
+  phase_callbacks: []
+  loss:
+    ppyoloe_loss:
+      num_classes: ${num_classes}
+      reg_max: 16
+
+  valid_metrics_list:
+    - DetectionMetrics_050:
+        score_thres: 0.1
+        top_k_predictions: 300
+        num_cls: ${num_classes}
+        normalize_targets: True
+        post_prediction_callback:
+          _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
+          score_threshold: 0.01
+          nms_top_k: 1000
+          max_predictions: 300
+          nms_threshold: 0.7
+
+  metric_to_watch: 'mAP@0.50'
+
+multi_gpu: Off
+num_gpus: 1
+
+experiment_suffix: ""
+experiment_name: ${architecture}_roboflow_${dataset_name}${experiment_suffix}

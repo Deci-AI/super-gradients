@@ -1,5 +1,5 @@
 import warnings
-from typing import Tuple
+from typing import Any, Tuple, Union
 
 import numpy as np
 import torch
@@ -56,6 +56,10 @@ def cxcywh_to_xyxy(bboxes, image_shape: Tuple[int, int]):
             raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
 
 
+def is_floating_point_array(array: Union[np.ndarray, Any]) -> bool:
+    return isinstance(array, np.ndarray) and np.issubdtype(array.dtype, np.floating)
+
+
 def cxcywh_to_xyxy_inplace(bboxes, image_shape: Tuple[int, int]):
     """
     Not that bboxes dtype is preserved, and it may lead to unwanted rounding errors when computing a center of bbox.
@@ -69,7 +73,7 @@ def cxcywh_to_xyxy_inplace(bboxes, image_shape: Tuple[int, int]):
                 f"Detected non floating-point ({bboxes.dtype}) input to cxcywh_to_xyxy_inplace function. "
                 f"This may cause rounding errors and lose of precision. You may want to convert your array to floating-point precision first."
             )
-        if isinstance(bboxes, np.ndarray) and not np.issubdtype(bboxes.dtype, np.floating):
+        if not is_floating_point_array(bboxes):
             warnings.warn(
                 f"Detected non floating-point input ({bboxes.dtype}) to cxcywh_to_xyxy_inplace function. "
                 f"This may cause rounding errors and lose of precision. You may want to convert your array to floating-point precision first."
@@ -94,7 +98,7 @@ def xyxy_to_cxcywh_inplace(bboxes, image_shape: Tuple[int, int]):
                 f"Detected non floating-point ({bboxes.dtype}) input to xyxy_to_cxcywh_inplace function. This may cause rounding errors and lose of precision. "
                 "You may want to convert your array to floating-point precision first."
             )
-        if isinstance(bboxes, np.ndarray) and not isinstance(bboxes.dtype, np.floating):
+        elif isinstance(bboxes, np.ndarray) and not is_floating_point_array(bboxes):
             warnings.warn(
                 f"Detected non floating-point input ({bboxes.dtype}) to xyxy_to_cxcywh_inplace function. This may cause rounding errors and lose of precision. "
                 "You may want to convert your array to floating-point precision first."

@@ -1,4 +1,4 @@
-from typing import Type, Union, Mapping, Any
+from typing import Type, Union, Mapping, Any, Optional
 
 import numpy as np
 import torch
@@ -202,3 +202,21 @@ class RepVGGBlock(nn.Module):
         )
         result.add_module("bn", nn.BatchNorm2d(num_features=out_channels))
         return result
+
+    def prep_model_for_conversion(self, input_size: Optional[Union[tuple, list]] = None, **kwargs):
+        self.fuse_block_residual_branches()
+
+
+def fuse_repvgg_blocks_residual_branches(model: nn.Module):
+    """
+    Call fuse_block_residual_branches for all repvgg blocks in the model
+    :param model: torch.nn.Module with repvgg blocks. Doesn't have to be entirely consists of repvgg.
+    :type model: torch.nn.Module
+    """
+    assert not model.training, "To fuse RepVGG block residual branches, model must be on eval mode"
+    device = next(model.parameters()).device
+    for module in model.modules():
+        if hasattr(module, "fuse_block_residual_branches"):
+            module.fuse_block_residual_branches()
+    model.build_residual_branches = False
+    model.to(device)

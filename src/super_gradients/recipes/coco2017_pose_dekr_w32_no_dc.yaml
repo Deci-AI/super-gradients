@@ -1,0 +1,76 @@
+#  DEKR training example with COCO dataset.
+#  Reproduction and refinement of paper: Bottom-Up Human Pose Estimation Via Disentangled Keypoint Regression.
+#
+#  Note: Original DEKR architecture using deformable convolutions. This recipe uses standard convolutions to enable
+#  model be exportable to ONNX.
+#
+#  Recipe runs with batch size = 24 X 8 gpus = 192.
+#
+#  Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Make sure you've downloaded pretrained backbone weights from https://1drv.ms/u/s!Aus8VCZ_C_33dYBMemi9xOUFR0w to project root (See line 55).
+#   3. Run the command:
+#       DEKR-W32-NO-DC: python -m super_gradients.train_from_recipe --config-name=coco2017_pose_dekr_w32_no_dc checkpoint_params.checkpoint_path=hrnetv2_w32_imagenet_pretrained.pth
+#
+#
+#  Validation AP (Without flip augmentation and rescoring) - COCO, training time:
+#      DEKR-W32-NO-DC:    input-size: [640, 640]     AP: 63.08 (Regular training)   8 X RTX A5000 - 21h
+#
+#  Scores with flip TTA and rescoring (Using best model from above):
+#      DEKR-W32-NO-DC:    input-size: [640, 640]     AP: 64.96 (With Flip TTA)
+#      DEKR-W32-NO-DC:    input-size: [640, 640]     AP: 67.34 (With Flip TTA and Rescoring)
+#
+#  Rescoring:
+#      See `coco2017_pose_dekr_rescoring.yaml` recipe and `documentation/source/PoseEstimation.md#Rescoring` section of the documentation.
+#
+#  Official git repo:
+#      https://github.com/HRNet/DEKR
+#  Paper:
+#      https://arxiv.org/abs/2104.02300
+#
+#
+#  Comments:
+#      * Pretrained backbones were used.
+#      * In DEKR-W32-NO-DC A suffix "NO-DC" stands for "No deformable convolutions".
+
+defaults:
+  - training_hyperparams: coco2017_dekr_pose_train_params
+  - dataset_params: coco_pose_estimation_dekr_dataset_params
+  - arch_params: pose_dekr_w32_no_dc_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+architecture: dekr_w32_no_dc
+
+multi_gpu: DDP
+num_gpus: 8
+
+experiment_suffix: ""
+experiment_name: coco2017_pose_${architecture}${experiment_suffix}
+
+ckpt_root_dir:
+
+train_dataloader: coco2017_pose_train
+val_dataloader: coco2017_pose_val
+
+arch_params:
+  num_classes: ${dataset_params.num_joints}
+
+checkpoint_params:
+  # Original training recipe uses pretrained weights for HRNet on ImageNet.
+  # You will need to download the pretrained weights from the original repo and place
+  # them in `external_checkpoint_path` param.
+  # Download weights from this url https://1drv.ms/u/s!Aus8VCZ_C_33dYBMemi9xOUFR0w
+  checkpoint_path: # <location of the downloaded hrnetv2_w32_imagenet_pretrained.pth>
+  strict_load:
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: key_matching
+
+dataset_params:
+  train_dataloader_params:
+    batch_size: 24
+
+  val_dataloader_params:
+    batch_size: 32

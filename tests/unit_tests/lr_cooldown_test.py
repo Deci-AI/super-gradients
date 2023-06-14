@@ -4,6 +4,7 @@ from super_gradients.training.dataloaders.dataloaders import classification_test
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models import LeNet
 from super_gradients.training.utils.callbacks import TestLRCallback
+import numpy as np
 
 
 class LRCooldownTest(unittest.TestCase):
@@ -44,4 +45,4 @@ class LRCooldownTest(unittest.TestCase):
 
         # ALTHOUGH NOT SEEN IN HERE, THE 4TH EPOCH USES LR=1, SO THIS IS THE EXPECTED LIST AS WE COLLECT
         # THE LRS AFTER THE UPDATE
-        self.assertListEqual(lrs, expected_lrs)
+        np.testing.assert_allclose(np.array(lrs), np.array(expected_lrs), rtol=1e-6)

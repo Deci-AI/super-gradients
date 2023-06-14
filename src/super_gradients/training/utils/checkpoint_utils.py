@@ -1,17 +1,19 @@
+import collections
 import os
 import tempfile
+from typing import Union, Mapping
+
 import pkg_resources
-import collections
 import torch
+from torch import nn, Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
-from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
-from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.common.data_types import StrictLoad
-
-from torch import nn, Tensor
-from typing import Union, Mapping
+from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
+from super_gradients.module_interfaces import HasPredict
+from super_gradients.training.pretrained_models import MODEL_URLS
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
@@ -49,7 +51,7 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Uni
     :param strict: (StrictLoad) key matching strictness
     :param solver: callable with signature (ckpt_key, ckpt_val, model_key, model_val)
                      that returns a desired weight for ckpt_val.
-    @return:
+    :return:
     """
     state_dict = state_dict["net"] if "net" in state_dict else state_dict
     try:
@@ -119,21 +121,31 @@ def copy_ckpt_to_local_folder(
     if path_src == "url":
         ckpt_file_full_local_path = download_ckpt_destination_dir + os.path.sep + ckpt_filename
         # DOWNLOAD THE FILE FROM URL TO THE DESTINATION FOLDER
-        download_url_to_file(remote_ckpt_source_dir, ckpt_file_full_local_path, progress=True)
+        with wait_for_the_master(get_local_rank()):
+            download_url_to_file(remote_ckpt_source_dir, ckpt_file_full_local_path, progress=True)
 
     return ckpt_file_full_local_path
 
 
-def read_ckpt_state_dict(ckpt_path: str, device="cpu"):
-    if not os.path.exists(ckpt_path):
-        raise FileNotFoundError(f"Incorrect Checkpoint path: {ckpt_path} (This should be an absolute path)")
+def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> Mapping[str, torch.Tensor]:
+    """
+    Reads a checkpoint state dict from a given path or url
 
-    if device == "cuda":
-        state_dict = torch.load(ckpt_path)
+    :param ckpt_path: Checkpoint path or url
+    :param device: Target devide where tensors should be loaded
+    :return: Checkpoint state dict object
+    """
 
+    if ckpt_path.startswith("https://"):
+        with wait_for_the_master(get_local_rank()):
+            state_dict = load_state_dict_from_url(ckpt_path, progress=False, map_location=device)
+        return state_dict
     else:
-        state_dict = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
-    return state_dict
+        if not os.path.exists(ckpt_path):
+            raise FileNotFoundError(f"Incorrect Checkpoint path: {ckpt_path} (This should be an absolute path)")
+
+        state_dict = torch.load(ckpt_path, map_location=device)
+        return state_dict
 
 
 def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckpt: dict, exclude: list = [], solver: callable = None):
@@ -186,24 +198,24 @@ def load_checkpoint_to_model(
     strict: Union[str, StrictLoad] = StrictLoad.NO_KEY_MATCHING,
     load_weights_only: bool = False,
     load_ema_as_net: bool = False,
+    load_processing_params: bool = False,
 ):
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
 
-    @param load_ema_as_net: Will load the EMA inside the checkpoint file to the network when set
-    @param ckpt_local_path: local path to the checkpoint file
-    @param load_backbone: whether to load the checkpoint as a backbone
-    @param net: network to load the checkpoint to
-    @param strict:
-    @param load_weights_only:
-    @return:
+
+    :param load_ema_as_net: Will load the EMA inside the checkpoint file to the network when set
+    :param ckpt_local_path: local path to the checkpoint file
+    :param load_backbone: whether to load the checkpoint as a backbone
+    :param net: network to load the checkpoint to
+    :param strict:
+    :param load_weights_only: Whether to ignore all other entries other then "net".
+    :param load_processing_params: Whether to call set_dataset_processing_params on "processing_params" entry inside the
+     checkpoint file (default=False).
+    :return:
     """
     if isinstance(strict, str):
         strict = StrictLoad(strict)
-
-    if ckpt_local_path is None or not os.path.exists(ckpt_local_path):
-        error_msg = "Error - loading Model Checkpoint: Path {} does not exist".format(ckpt_local_path)
-        raise RuntimeError(error_msg)
 
     if load_backbone and not hasattr(net, "backbone"):
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
@@ -227,6 +239,17 @@ def load_checkpoint_to_model(
     message_model = "model" if not load_backbone else "model's backbone"
     logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
 
+    if (isinstance(net, HasPredict) or (hasattr(net, "module") and isinstance(net.module, HasPredict))) and load_processing_params:
+        if "processing_params" not in checkpoint.keys():
+            raise ValueError("Can't load processing params - could not find any stored in checkpoint file.")
+        try:
+            net.set_dataset_processing_params(**checkpoint["processing_params"])
+        except Exception as e:
+            logger.warning(
+                f"Could not set preprocessing pipeline from the checkpoint dataset: {e}. Before calling"
+                "predict make sure to call set_dataset_processing_params."
+            )
+
     if load_weights_only or load_backbone:
         # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS
         [checkpoint.pop(key) for key in list(checkpoint.keys()) if key != "net"]
@@ -237,8 +260,7 @@ def load_checkpoint_to_model(
 class MissingPretrainedWeightsException(Exception):
     """Exception raised by unsupported pretrianed model.
 
-    Attributes:
-        message -- explanation of the error
+    :param desc: explanation of the error
     """
 
     def __init__(self, desc):
@@ -271,19 +293,30 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
 
     """
     Loads pretrained weights from the MODEL_URLS dictionary to model
-    @param architecture: name of the model's architecture
-    @param model: model to load pretrinaed weights for
-    @param pretrained_weights: name for the pretrianed weights (i.e imagenet)
-    @return: None
+    :param architecture: name of the model's architecture
+    :param model: model to load pretrinaed weights for
+    :param pretrained_weights: name for the pretrianed weights (i.e imagenet)
+    :return: None
     """
+    from super_gradients.common.object_names import Models
+
     model_url_key = architecture + "_" + str(pretrained_weights)
     if model_url_key not in MODEL_URLS.keys():
         raise MissingPretrainedWeightsException(model_url_key)
 
     url = MODEL_URLS[model_url_key]
-    unique_filename = url.split("https://deci-pretrained-models.s3.amazonaws.com/")[1].replace("/", "_").replace(" ", "_")
+
+    if architecture in {Models.YOLO_NAS_S, Models.YOLO_NAS_M, Models.YOLO_NAS_L}:
+        logger.info(
+            "License Notification: YOLO-NAS pre-trained weights are subjected to the specific license terms and conditions detailed in \n"
+            "https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.YOLONAS.md\n"
+            "By downloading the pre-trained weight files you agree to comply with these terms."
+        )
+
+    unique_filename = url.split("https://sghub.deci.ai/models/")[1].replace("/", "_").replace(" ", "_")
     map_location = torch.device("cpu")
-    pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
+    with wait_for_the_master(get_local_rank()):
+        pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
     _load_weights(architecture, model, pretrained_state_dict)
 
 
@@ -298,10 +331,10 @@ def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pre
 
     """
     Loads pretrained weights from the MODEL_URLS dictionary to model
-    @param architecture: name of the model's architecture
-    @param model: model to load pretrinaed weights for
-    @param pretrained_weights: path tp pretrained weights
-    @return: None
+    :param architecture: name of the model's architecture
+    :param model: model to load pretrinaed weights for
+    :param pretrained_weights: path tp pretrained weights
+    :return: None
     """
 
     map_location = torch.device("cpu")

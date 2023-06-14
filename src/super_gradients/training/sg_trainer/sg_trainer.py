@@ -1,37 +1,43 @@
+import copy
 import inspect
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Union, Tuple, Mapping, Dict, Any
+from typing import Union, Tuple, Mapping, Dict, Any, List
 
 import hydra
 import numpy as np
 import torch
-from omegaconf import DictConfig
-from omegaconf import OmegaConf
+import torch.cuda
+import torch.nn
+import torchmetrics
+from omegaconf import DictConfig, OmegaConf
 from piptools.scripts.sync import _get_installed_distributions
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
-from torchmetrics import MetricCollection
+from torchmetrics import MetricCollection, Metric
 from tqdm import tqdm
 
 from super_gradients import is_distributed
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
+from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
+from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 
+from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
-from super_gradients.common.sg_loggers import SG_LOGGERS
-from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
-from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
+
 from super_gradients.training import utils as core_utils, models, dataloaders
-from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
+from super_gradients.training.datasets.samplers import RepeatAugSampler
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
@@ -40,9 +46,8 @@ from super_gradients.training.metrics.metric_utils import (
     get_metrics_dict,
     get_train_loop_description_dict,
 )
-from super_gradients.training.models import SgModule
-from super_gradients.training.models.all_architectures import ARCHITECTURES
-from super_gradients.training.params import TrainingParams
+from super_gradients.training.models import SgModule, get_model_name
+from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.distributed_training_utils import (
@@ -75,19 +80,32 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import (
     CallbackHandler,
     Phase,
-    LR_SCHEDULERS_CLS_DICT,
     PhaseContext,
     MetricsUpdateCallback,
-    LR_WARMUP_CLS_DICT,
     ContextSgMethods,
     LRCallbackBase,
 )
+from super_gradients.common.registry.registry import LR_SCHEDULERS_CLS_DICT, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
-from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg
+from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
+from super_gradients.training.params import TrainingParams
 
 logger = get_logger(__name__)
+
+
+try:
+    from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
+    from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
+    from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
+
+    _imported_pytorch_quantization_failure = None
+
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    logger.debug("Failed to import pytorch_quantization:")
+    logger.debug(import_err)
+    _imported_pytorch_quantization_failure = import_err
 
 
 class Trainer:
@@ -133,6 +151,7 @@ class Trainer:
 
         # SET THE EMPTY PROPERTIES
         self.net, self.architecture, self.arch_params, self.dataset_interface = None, None, None, None
+        self.train_loader, self.valid_loader = None, None
         self.ema = None
         self.ema_model = None
         self.sg_logger = None
@@ -151,7 +170,6 @@ class Trainer:
         self.load_weights_only = False
         self.ddp_silent_mode = is_ddp_subprocess()
 
-        self.source_ckpt_folder_name = None
         self.model_weight_averaging = None
         self.average_model_checkpoint_filename = "average_model.pth"
         self.start_epoch = 0
@@ -160,7 +178,6 @@ class Trainer:
         self.strict_load = StrictLoad.ON
         self.load_ema_as_net = False
         self.ckpt_best_name = "ckpt_best.pth"
-        self._infinite_train_loader = False
         self._first_backward = True
 
         # METRICS
@@ -195,6 +212,8 @@ class Trainer:
         self.max_train_batches = None
         self.max_valid_batches = None
 
+        self._epoch_start_logging_values = {}
+
     @property
     def device(self) -> str:
         return device_config.device
@@ -204,8 +223,8 @@ class Trainer:
         """
         Trains according to cfg recipe configuration.
 
-        @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
-        @return: the model and the output of trainer.train(...) (i.e results tuple)
+        :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
+        :return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
         setup_device(
@@ -306,12 +325,14 @@ class Trainer:
             name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
         )
 
-        if cfg.checkpoint_params.pretrained_weights is None and cfg.checkpoint_params.checkpoint_path is None:
+        if cfg.checkpoint_params.checkpoint_path is None:
             logger.info(
                 "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
             )
-            checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-            cfg.checkpoint_params.checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
+            checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+            checkpoint_path = os.path.join(checkpoints_dir, cfg.training_hyperparams.ckpt_name)
+            if os.path.exists(checkpoint_path):
+                cfg.checkpoint_params.checkpoint_path = checkpoint_path
 
         logger.info(f"Evaluating checkpoint: {cfg.checkpoint_params.checkpoint_path}")
 
@@ -320,20 +341,20 @@ class Trainer:
             model_name=cfg.architecture,
             num_classes=cfg.arch_params.num_classes,
             arch_params=cfg.arch_params,
+            strict_load=cfg.checkpoint_params.strict_load,
             pretrained_weights=cfg.checkpoint_params.pretrained_weights,
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
         )
 
         # TEST
-        val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
+        valid_metrics_dict = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
 
-        valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
         results = ["Validate Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
 
-        return model, val_results_tuple
+        return model, valid_metrics_dict
 
     @classmethod
     def evaluate_checkpoint(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
@@ -397,80 +418,76 @@ class Trainer:
         """
         # SET THE MODEL IN training STATE
         self.net.train()
+
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
-        progress_bar_train_loader = tqdm(self.train_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode)
-        progress_bar_train_loader.set_description(f"Train epoch {epoch}")
+        with tqdm(self.train_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_train_loader:
+            progress_bar_train_loader.set_description(f"Train epoch {epoch}")
 
-        # RESET/INIT THE METRIC LOGGERS
-        self._reset_metrics()
+            # RESET/INIT THE METRIC LOGGERS
+            self._reset_metrics()
 
-        self.train_metrics.to(device_config.device)
-        loss_avg_meter = core_utils.utils.AverageMeter()
+            self.train_metrics.to(device_config.device)
+            loss_avg_meter = core_utils.utils.AverageMeter()
 
-        context = PhaseContext(
-            epoch=epoch,
-            optimizer=self.optimizer,
-            metrics_compute_fn=self.train_metrics,
-            loss_avg_meter=loss_avg_meter,
-            criterion=self.criterion,
-            device=device_config.device,
-            lr_warmup_epochs=self.training_params.lr_warmup_epochs,
-            sg_logger=self.sg_logger,
-            train_loader=self.train_loader,
-            valid_loader=self.valid_loader,
-            context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
-            ddp_silent_mode=self.ddp_silent_mode,
-        )
-
-        for batch_idx, batch_items in enumerate(progress_bar_train_loader):
-            batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
-            inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
-
-            if self.pre_prediction_callback is not None:
-                inputs, targets = self.pre_prediction_callback(inputs, targets, batch_idx)
-
-            context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
-            self.phase_callback_handler.on_train_batch_start(context)
-
-            # AUTOCAST IS ENABLED ONLY IF self.training_params.mixed_precision - IF enabled=False AUTOCAST HAS NO EFFECT
-            with autocast(enabled=self.training_params.mixed_precision):
-                # FORWARD PASS TO GET NETWORK'S PREDICTIONS
-                outputs = self.net(inputs)
-
-                # COMPUTE THE LOSS FOR BACK PROP + EXTRA METRICS COMPUTED DURING THE LOSS FORWARD PASS
-                loss, loss_log_items = self._get_losses(outputs, targets)
-
-            context.update_context(preds=outputs, loss_log_items=loss_log_items)
-            self.phase_callback_handler.on_train_batch_loss_end(context)
-
-            # LOG LR THAT WILL BE USED IN CURRENT EPOCH AND AFTER FIRST WARMUP/LR_SCHEDULER UPDATE BEFORE WEIGHT UPDATE
-            if not self.ddp_silent_mode and batch_idx == 0:
-                self._write_lrs(epoch)
-
-            self._backward_step(loss, epoch, batch_idx, context)
-
-            # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-            logging_values = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
-            gpu_memory_utilization = get_gpu_mem_utilization() / 1e9 if torch.cuda.is_available() else 0
-
-            # RENDER METRICS PROGRESS
-            pbar_message_dict = get_train_loop_description_dict(
-                logging_values, self.train_metrics, self.loss_logging_items_names, gpu_mem=gpu_memory_utilization
+            context = PhaseContext(
+                epoch=epoch,
+                optimizer=self.optimizer,
+                metrics_compute_fn=self.train_metrics,
+                loss_avg_meter=loss_avg_meter,
+                criterion=self.criterion,
+                device=device_config.device,
+                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
+                sg_logger=self.sg_logger,
+                train_loader=self.train_loader,
+                valid_loader=self.valid_loader,
+                context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
+                ddp_silent_mode=self.ddp_silent_mode,
             )
 
-            progress_bar_train_loader.set_postfix(**pbar_message_dict)
-            self.phase_callback_handler.on_train_batch_end(context)
+            for batch_idx, batch_items in enumerate(progress_bar_train_loader):
+                batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
+                inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
-            # TODO: ITERATE BY MAX ITERS
-            # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if (self._infinite_train_loader and batch_idx == len(self.train_loader) - 1) or (
-                self.max_train_batches is not None and self.max_train_batches - 1 <= batch_idx
-            ):
-                break
+                if self.pre_prediction_callback is not None:
+                    inputs, targets = self.pre_prediction_callback(inputs, targets, batch_idx)
 
-        self.train_monitored_values = sg_trainer_utils.update_monitored_values_dict(
-            monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict
-        )
+                context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
+                self.phase_callback_handler.on_train_batch_start(context)
+
+                # AUTOCAST IS ENABLED ONLY IF self.training_params.mixed_precision - IF enabled=False AUTOCAST HAS NO EFFECT
+                with autocast(enabled=self.training_params.mixed_precision):
+                    # FORWARD PASS TO GET NETWORK'S PREDICTIONS
+                    outputs = self.net(inputs)
+
+                    # COMPUTE THE LOSS FOR BACK PROP + EXTRA METRICS COMPUTED DURING THE LOSS FORWARD PASS
+                    loss, loss_log_items = self._get_losses(outputs, targets)
+
+                context.update_context(preds=outputs, loss_log_items=loss_log_items)
+                self.phase_callback_handler.on_train_batch_loss_end(context)
+
+                if not self.ddp_silent_mode and batch_idx == 0:
+                    self._epoch_start_logging_values = self._get_epoch_start_logging_values()
+
+                self._backward_step(loss, epoch, batch_idx, context)
+
+                # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
+                logging_values = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
+                gpu_memory_utilization = get_gpu_mem_utilization() / 1e9 if torch.cuda.is_available() else 0
+
+                # RENDER METRICS PROGRESS
+                pbar_message_dict = get_train_loop_description_dict(
+                    logging_values, self.train_metrics, self.loss_logging_items_names, gpu_mem=gpu_memory_utilization
+                )
+
+                progress_bar_train_loader.set_postfix(**pbar_message_dict)
+                self.phase_callback_handler.on_train_batch_end(context)
+
+                if self.max_train_batches is not None and self.max_train_batches - 1 <= batch_idx:
+                    break
+
+            self.train_monitored_values = sg_trainer_utils.update_monitored_values_dict(
+                monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict
+            )
 
         return logging_values
 
@@ -519,15 +536,14 @@ class Trainer:
 
         if self.training_params.average_best_models:
             self.model_weight_averaging = ModelWeightAveraging(
-                self.checkpoints_dir_path,
+                ckpt_dir=self.checkpoints_dir_path,
                 greater_is_better=self.greater_metric_to_watch_is_better,
-                source_ckpt_folder_name=self.source_ckpt_folder_name,
                 metric_to_watch=self.metric_to_watch,
                 metric_idx=self.metric_idx_in_results_tuple,
                 load_checkpoint=self.load_checkpoint,
             )
 
-    def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
+    def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs) -> None:
         """
         Run backprop on the loss and perform a step
         :param loss: The value computed by the loss function
@@ -565,7 +581,13 @@ class Trainer:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_train_batch_gradient_step_end(context)
 
-    def _save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None):
+    def _save_checkpoint(
+        self,
+        optimizer: torch.optim.Optimizer = None,
+        epoch: int = None,
+        validation_results_tuple: tuple = None,
+        context: PhaseContext = None,
+    ) -> None:
         """
         Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
         params)
@@ -593,6 +615,10 @@ class Trainer:
 
         if self.ema:
             state["ema_net"] = self.ema_model.ema.state_dict()
+
+        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
+            state["processing_params"] = self.valid_loader.dataset.get_dataset_preprocessing_params()
+
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
 
@@ -618,7 +644,7 @@ class Trainer:
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
-    def _prep_net_for_train(self):
+    def _prep_net_for_train(self) -> None:
         if self.arch_params is None:
             self._init_arch_params()
 
@@ -636,11 +662,11 @@ class Trainer:
         self.load_ema_as_net = False
         self.load_checkpoint = core_utils.get_param(self.training_params, "resume", False)
         self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
-        self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None
         self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
-        self._load_checkpoint_to_model()
+        self.resume_from_remote_sg_logger = core_utils.get_param(self.training_params, "resume_from_remote_sg_logger", False)
+        self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None or self.resume_from_remote_sg_logger
 
-    def _init_arch_params(self):
+    def _init_arch_params(self) -> None:
         default_arch_params = HpmStruct()
         arch_params = getattr(self.net, "arch_params", default_arch_params)
         self.arch_params = default_arch_params
@@ -985,6 +1011,14 @@ class Trainer:
                 -   `max_valid_batches`: int, for debug- when not None- will break out of inner valid loop (i.e iterating over
                       valid_loader) when reaching this number of batches. Usefull for debugging (default=None).
 
+                -   `resume_from_remote_sg_logger`: bool (default=False),  bool (default=False), When true, ckpt_name (checkpoint filename
+                       to resume i.e ckpt_latest.pth bydefault) will be downloaded into the experiment checkpoints directory
+                       prior to loading weights, then training is resumed from that checkpoint. The source is unique to
+                       every logger, and currently supported for WandB loggers only.
+
+                       IMPORTANT: Only works for experiments that were ran with sg_logger_params.save_checkpoints_remote=True.
+                       IMPORTANT: For WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
+
 
 
         :return:
@@ -992,8 +1026,15 @@ class Trainer:
         global logger
         if training_params is None:
             training_params = dict()
-        self.train_loader = train_loader or self.train_loader
-        self.valid_loader = valid_loader or self.valid_loader
+
+        self.train_loader = train_loader if train_loader is not None else self.train_loader
+        self.valid_loader = valid_loader if valid_loader is not None else self.valid_loader
+
+        if self.train_loader is None:
+            raise ValueError("No `train_loader` found. Please provide a value for `train_loader`")
+
+        if self.valid_loader is None:
+            raise ValueError("No `valid_loader` found. Please provide a value for `valid_loader`")
 
         if hasattr(self.train_loader, "batch_sampler") and self.train_loader.batch_sampler is not None:
             batch_size = self.train_loader.batch_sampler.batch_size
@@ -1012,10 +1053,10 @@ class Trainer:
                     "You are using a SequentialSampler on you training dataloader, while working on DDP. "
                     "This cancels the DDP benefits since it makes each process iterate through the entire dataset"
                 )
-            if not isinstance(train_sampler, (DistributedSampler, InfiniteSampler, RepeatAugSampler)):
+            if not isinstance(train_sampler, (DistributedSampler, RepeatAugSampler)):
                 logger.warning(
                     "The training sampler you are using might not support DDP. "
-                    "If it doesnt, please use one of the following sampler: DistributedSampler, InfiniteSampler, RepeatAugSampler"
+                    "If it doesnt, please use one of the following sampler: DistributedSampler, RepeatAugSampler"
                 )
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
@@ -1030,6 +1071,9 @@ class Trainer:
         self.net = model
 
         self._prep_net_for_train()
+        if not self.ddp_silent_mode:
+            self._initialize_sg_logger_objects(additional_configs_to_log)
+        self._load_checkpoint_to_model()
 
         # SET RANDOM SEED
         random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
@@ -1127,8 +1171,6 @@ class Trainer:
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
         if not self.ddp_silent_mode:
-            self._initialize_sg_logger_objects(additional_configs_to_log)
-
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
                 dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes, title="Train-set", anchors=self.net.module.arch_params.anchors)
@@ -1161,10 +1203,6 @@ class Trainer:
         self.pre_prediction_callback = CallbacksFactory().get(self.training_params.pre_prediction_callback)
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
-
-        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or (
-            hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler)
-        )
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
@@ -1216,9 +1254,11 @@ class Trainer:
             num_gpus=get_world_size(),
             batch_size=len(inputs),
             batch_accumulate=self.batch_accumulate,
-            len_train_set=len(self.train_loader.dataset),
+            train_dataset_length=len(self.train_loader.dataset),
+            train_dataloader_len=len(self.train_loader),
         )
 
+        self._set_net_preprocessing_from_valid_loader()
         try:
             # HEADERS OF THE TRAINING PROGRESS
             if not silent_mode:
@@ -1290,7 +1330,14 @@ class Trainer:
 
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch, context)
+                    self._write_to_disk_operations(
+                        train_metrics=train_metrics_tuple,
+                        validation_results=validation_results_tuple,
+                        lr_dict=self._epoch_start_logging_values,
+                        inf_time=inf_time,
+                        epoch=epoch,
+                        context=context,
+                    )
                     self.sg_logger.upload()
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
@@ -1315,6 +1362,16 @@ class Trainer:
 
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
+
+    def _set_net_preprocessing_from_valid_loader(self):
+        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
+            try:
+                self.net.module.set_dataset_processing_params(**self.valid_loader.dataset.get_dataset_preprocessing_params())
+            except Exception as e:
+                logger.warning(
+                    f"Could not set preprocessing pipeline from the validation dataset:\n {e}.\n Before calling"
+                    "predict make sure to call set_dataset_processing_params."
+                )
 
     def _reset_best_metric(self):
         self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
@@ -1468,16 +1525,19 @@ class Trainer:
 
          strict:           See StrictLoad class documentation for details.
          load_backbone:    loads the provided checkpoint to self.net.backbone instead of self.net
-         source_ckpt_folder_name: The folder where the checkpoint is saved. By default uses the self.experiment_name
 
         NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params
          is True
         """
+        with wait_for_the_master(get_local_rank()):
+            if self.resume_from_remote_sg_logger and not self.ddp_silent_mode:
+                self.sg_logger.download_remote_ckpt(ckpt_name=self.ckpt_name)
 
         if self.load_checkpoint or self.external_checkpoint_path:
             # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST
+            ckpt_root_dir = str(Path(self.checkpoints_dir_path).parent)
             ckpt_local_path = get_ckpt_local_path(
-                source_ckpt_folder_name=self.source_ckpt_folder_name,
+                ckpt_root_dir=ckpt_root_dir,
                 experiment_name=self.experiment_name,
                 ckpt_name=self.ckpt_name,
                 external_checkpoint_path=self.external_checkpoint_path,
@@ -1572,13 +1632,29 @@ class Trainer:
         if isinstance(sg_logger, AbstractSGLogger):
             self.sg_logger = sg_logger
         elif isinstance(sg_logger, str):
-            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
-            if issubclass(SG_LOGGERS[sg_logger], BaseSGLogger):
-                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
-            if sg_logger not in SG_LOGGERS:
-                raise RuntimeError("sg_logger not defined in SG_LOGGERS")
 
-            self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
+            sg_logger_cls = SG_LOGGERS.get(sg_logger)
+            if sg_logger_cls is None:
+                raise RuntimeError(f"sg_logger={sg_logger} not registered in SuperGradients. Available {list(SG_LOGGERS.keys())}")
+
+            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
+            if issubclass(sg_logger_cls, BaseSGLogger):
+                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
+
+            # Some sg_logger require model_name, but not all of them.
+            if "model_name" in get_callable_param_names(sg_logger_cls.__init__):
+                if sg_logger_params.get("model_name") is None:
+                    # Use the model name used in `models.get(...)` if relevant
+                    sg_logger_params["model_name"] = get_model_name(self.net.module)
+
+                if sg_logger_params["model_name"] is None:
+                    raise ValueError(
+                        f'`model_name` is required to use `training_hyperparams.sg_logger="{sg_logger}"`.\n'
+                        'Please set `training_hyperparams.sg_logger_params.model_name="<your-model-name>"`.\n'
+                        "Note that specifying `model_name` is not required when the model was loaded using `models.get(...)`."
+                    )
+
+            self.sg_logger = sg_logger_cls(**sg_logger_params)
         else:
             raise RuntimeError("sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger")
 
@@ -1619,7 +1695,7 @@ class Trainer:
         }
         return hyper_param_config
 
-    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int, context: PhaseContext):
+    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, lr_dict: dict, inf_time: float, epoch: int, context: PhaseContext):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         # STORE VALUES IN A TENSORBOARD FILE
         train_results = list(train_metrics) + list(validation_results) + [inf_time]
@@ -1627,16 +1703,19 @@ class Trainer:
 
         result_dict = {all_titles[i]: train_results[i] for i in range(len(train_results))}
         self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
+        self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
         # SAVE THE CHECKPOINT
         if self.training_params.save_model:
             self._save_checkpoint(self.optimizer, epoch + 1, validation_results, context)
 
-    def _write_lrs(self, epoch):
+    def _get_epoch_start_logging_values(self) -> dict:
+        """Get all the values that should be logged at the start of each epoch.
+        This is useful for values like Learning Rate that can change over an epoch."""
         lrs = [self.optimizer.param_groups[i]["lr"] for i in range(len(self.optimizer.param_groups))]
         lr_titles = ["LR/Param_group_" + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ["LR"]
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
-        self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
+        return lr_dict
 
     def test(
         self,
@@ -1707,6 +1786,8 @@ class Trainer:
 
         self._first_backward = True
 
+        test_results = get_metrics_dict(test_results, self.test_metrics, self.loss_logging_items_names)
+
         return test_results
 
     def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
@@ -1752,10 +1833,9 @@ class Trainer:
         """
 
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
-        progress_bar_data_loader = tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode)
         loss_avg_meter = core_utils.utils.AverageMeter()
         logging_values = None
-        loss_tuple = None
+
         lr_warmup_epochs = self.training_params.lr_warmup_epochs if self.training_params else None
         context = PhaseContext(
             epoch=epoch,
@@ -1770,76 +1850,78 @@ class Trainer:
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
 
-        if not silent_mode:
-            # PRINT TITLES
-            pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
-            progress_bar_data_loader.set_description(pbar_start_msg)
+        with tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_data_loader:
 
-        with torch.no_grad():
-            for batch_idx, batch_items in enumerate(progress_bar_data_loader):
-                batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
-                inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
+            if not silent_mode:
+                # PRINT TITLES
+                pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
+                progress_bar_data_loader.set_description(pbar_start_msg)
 
-                # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
-                context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
-                if evaluation_type == EvaluationType.VALIDATION:
-                    self.phase_callback_handler.on_validation_batch_start(context)
-                else:
-                    self.phase_callback_handler.on_test_batch_start(context)
+            with torch.no_grad():
+                for batch_idx, batch_items in enumerate(progress_bar_data_loader):
+                    batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
+                    inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
-                output = self.net(inputs)
-                context.update_context(preds=output)
+                    # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
+                    context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
+                    if evaluation_type == EvaluationType.VALIDATION:
+                        self.phase_callback_handler.on_validation_batch_start(context)
+                    else:
+                        self.phase_callback_handler.on_test_batch_start(context)
 
-                if self.criterion is not None:
-                    # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
-                    loss_tuple = self._get_losses(output, targets)[1].cpu()
-                    context.update_context(loss_log_items=loss_tuple)
+                    output = self.net(inputs)
+                    context.update_context(preds=output)
 
-                # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
-                if evaluation_type == EvaluationType.VALIDATION:
-                    self.phase_callback_handler.on_validation_batch_end(context)
-                else:
-                    self.phase_callback_handler.on_test_batch_end(context)
+                    if self.criterion is not None:
+                        # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
+                        loss_tuple = self._get_losses(output, targets)[1].cpu()
+                        context.update_context(loss_log_items=loss_tuple)
 
-                # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
-                if metrics_progress_verbose and not silent_mode:
-                    # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                    logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
-                    pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+                    # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
+                    if evaluation_type == EvaluationType.VALIDATION:
+                        self.phase_callback_handler.on_validation_batch_end(context)
+                    else:
+                        self.phase_callback_handler.on_test_batch_end(context)
 
-                    progress_bar_data_loader.set_postfix(**pbar_message_dict)
+                    # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
+                    if metrics_progress_verbose and not silent_mode:
+                        # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
+                        logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                        pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
-                if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
-                    break
+                        progress_bar_data_loader.set_postfix(**pbar_message_dict)
 
-        # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
-        if not metrics_progress_verbose:
-            # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-            logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                    if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
+                        break
+
+            # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
+            if not metrics_progress_verbose:
+                # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
+                logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+
+                progress_bar_data_loader.set_postfix(**pbar_message_dict)
+
+            # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
+            #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
+            #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
+            #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
+
+            if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+                logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
+
             pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
-            progress_bar_data_loader.set_postfix(**pbar_message_dict)
-
-        # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
-        #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
-        #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
-        #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
-
-        if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-            logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
-
-        pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
-
-        self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
-            monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict
-        )
-
-        if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
-            progress_bar_data_loader.write("===========================================================")
-            sg_trainer_utils.display_epoch_summary(
-                epoch=context.epoch, n_digits=4, train_monitored_values=self.train_monitored_values, valid_monitored_values=self.valid_monitored_values
+            self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
+                monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict
             )
-            progress_bar_data_loader.write("===========================================================")
+
+            if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
+                progress_bar_data_loader.write("===========================================================")
+                sg_trainer_utils.display_epoch_summary(
+                    epoch=context.epoch, n_digits=4, train_monitored_values=self.train_monitored_values, valid_monitored_values=self.valid_monitored_values
+                )
+                progress_bar_data_loader.write("===========================================================")
 
         return logging_values
 
@@ -1967,3 +2049,337 @@ class Trainer:
                 self.metric_to_watch = criterion_name + "/" + self.metric_to_watch
         else:
             self.loss_logging_items_names = [criterion_name]
+
+    @classmethod
+    def quantize_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
+        """
+        Perform quantization aware training (QAT) according to a recipe configuration.
+
+        This method will instantiate all the objects specified in the recipe, build and quantize the model,
+        and calibrate the quantized model. The resulting quantized model and the output of the trainer.train()
+        method will be returned.
+
+        The quantized model will be exported to ONNX along with other checkpoints.
+
+        The call to self.quantize (see docs in the next method) is done with the created
+         train_loader and valid_loader. If no calibration data loader is passed through cfg.calib_loader,
+         a train data laoder with the validation transforms is used for calibration.
+
+        :param cfg: The parsed DictConfig object from yaml recipe files or a dictionary.
+        :return: A tuple containing the quantized model and the output of trainer.train() method.
+
+        :raises ValueError: If the recipe does not have the required key `quantization_params` or
+        `checkpoint_params.checkpoint_path` in it.
+        :raises NotImplementedError: If the recipe requests multiple GPUs or num_gpus is not equal to 1.
+        :raises ImportError: If pytorch-quantization import was unsuccessful
+
+        """
+        if _imported_pytorch_quantization_failure is not None:
+            raise _imported_pytorch_quantization_failure
+
+        # INSTANTIATE ALL OBJECTS IN CFG
+        cfg = hydra.utils.instantiate(cfg)
+
+        # TRIGGER CFG MODIFYING CALLBACKS
+        cfg = cls._trigger_cfg_modifying_callbacks(cfg)
+
+        quantization_params = get_param(cfg, "quantization_params")
+
+        if quantization_params is None:
+            raise logger.warning("Your recipe does not include quantization_params. Using default quantization params.")
+
+        if get_param(cfg.checkpoint_params, "checkpoint_path") is None and get_param(cfg.checkpoint_params, "pretrained_weights") is None:
+            raise ValueError("Starting checkpoint / pretrained weights are a must for QAT finetuning.")
+
+        num_gpus = core_utils.get_param(cfg, "num_gpus")
+        multi_gpu = core_utils.get_param(cfg, "multi_gpu")
+        device = core_utils.get_param(cfg, "device")
+        if num_gpus != 1:
+            raise NotImplementedError(
+                f"Recipe requests multi_gpu={cfg.multi_gpu} and num_gpus={cfg.num_gpus}. QAT is proven to work correctly only with multi_gpu=OFF and num_gpus=1"
+            )
+
+        setup_device(device=device, multi_gpu=multi_gpu, num_gpus=num_gpus)
+
+        # INSTANTIATE DATA LOADERS
+        train_dataloader = dataloaders.get(
+            name=get_param(cfg, "train_dataloader"),
+            dataset_params=copy.deepcopy(cfg.dataset_params.train_dataset_params),
+            dataloader_params=copy.deepcopy(cfg.dataset_params.train_dataloader_params),
+        )
+
+        val_dataloader = dataloaders.get(
+            name=get_param(cfg, "val_dataloader"),
+            dataset_params=copy.deepcopy(cfg.dataset_params.val_dataset_params),
+            dataloader_params=copy.deepcopy(cfg.dataset_params.val_dataloader_params),
+        )
+
+        if "calib_dataloader" in cfg:
+            calib_dataloader_name = get_param(cfg, "calib_dataloader")
+            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.calib_dataloader_params)
+            calib_dataset_params = copy.deepcopy(cfg.dataset_params.calib_dataset_params)
+        else:
+            calib_dataloader_name = get_param(cfg, "train_dataloader")
+            calib_dataloader_params = copy.deepcopy(cfg.dataset_params.train_dataloader_params)
+            calib_dataset_params = copy.deepcopy(cfg.dataset_params.train_dataset_params)
+
+            # if we use whole dataloader for calibration, don't shuffle it
+            # HistogramCalibrator collection routine is sensitive to order of batches and produces slightly different results
+            # if we use several batches, we don't want it to be from one class if it's sequential in dataloader
+            # model is in eval mode, so BNs will not be affected
+            calib_dataloader_params.shuffle = cfg.quantization_params.calib_params.num_calib_batches is not None
+            # we don't need training transforms during calibration, distribution of activations will be skewed
+            calib_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
+
+        calib_dataloader = dataloaders.get(
+            name=calib_dataloader_name,
+            dataset_params=calib_dataset_params,
+            dataloader_params=calib_dataloader_params,
+        )
+
+        # BUILD MODEL
+        model = models.get(
+            model_name=cfg.arch_params.get("model_name", None) or cfg.architecture,
+            num_classes=cfg.get("num_classes", None) or cfg.arch_params.num_classes,
+            arch_params=cfg.arch_params,
+            strict_load=cfg.checkpoint_params.strict_load,
+            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+            load_backbone=False,
+        )
+
+        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
+        trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=get_param(cfg, "ckpt_root_dir"))
+
+        if quantization_params.ptq_only:
+            res = trainer.ptq(
+                calib_loader=calib_dataloader,
+                model=model,
+                quantization_params=quantization_params,
+                valid_loader=val_dataloader,
+                valid_metrics_list=cfg.training_hyperparams.valid_metrics_list,
+            )
+        else:
+            res = trainer.qat(
+                model=model,
+                quantization_params=quantization_params,
+                calib_loader=calib_dataloader,
+                valid_loader=val_dataloader,
+                train_loader=train_dataloader,
+                training_params=cfg.training_hyperparams,
+                additional_qat_configs_to_log=recipe_logged_cfg,
+            )
+
+        return model, res
+
+    def qat(
+        self,
+        calib_loader: DataLoader,
+        model: torch.nn.Module,
+        valid_loader: DataLoader,
+        train_loader: DataLoader,
+        training_params: Mapping = None,
+        quantization_params: Mapping = None,
+        additional_qat_configs_to_log: Dict = None,
+        valid_metrics_list: List[Metric] = None,
+    ):
+        """
+        Performs post-training quantization (PTQ), and then quantization-aware training (QAT).
+        Exports the ONNX models (ckpt_best.pth of QAT and the calibrated model) to the checkpoints directory.
+
+        :param calib_loader: DataLoader, data loader for calibration.
+
+        :param model: torch.nn.Module, Model to perform QAT/PTQ on. When None, will try to use the network from
+        previous self.train call(that is, if there was one - will try to use self.ema_model.ema if EMA was used,
+        otherwise self.net)
+
+
+        :param valid_loader: DataLoader, data loader for validation. Used both for validating the calibrated model after PTQ and during QAT.
+            When None, will try to use self.valid_loader if it was set in previous self.train(..) call (default=None).
+
+        :param train_loader: DataLoader, data loader for QA training, can be ignored when quantization_params["ptq_only"]=True (default=None).
+
+        :param quantization_params: Mapping, with the following entries:defaults-
+            selective_quantizer_params:
+              calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
+              calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
+              per_channel: True          # per-channel quantization of weights, activations stay per-tensor by default
+              learn_amax: False          # enable learnable amax in all TensorQuantizers using straight-through estimator
+              skip_modules:              # optional list of module names (strings) to skip from quantization
+
+            calib_params:
+              histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators,
+                                                                # acceptable types are ["percentile", "entropy", mse"],
+                                                                # "max" calibrators always use "max"
+
+              percentile: 99.99                     # percentile for all histogram calibrators with method "percentile",
+                                                    # other calibrators are not affected
+
+              num_calib_batches:                    # number of batches to use for calibration, if None, 512 / batch_size will be used
+              verbose: False                        # if calibrator should be verbose
+
+
+              When None, the above default config is used (default=None)
+
+
+        :param training_params: Mapping, training hyper parameters for QAT, same as in super.train(...). When None, will try to use self.training_params
+         which is set in previous self.train(..) call (default=None).
+
+        :param additional_qat_configs_to_log: Dict, Optional dictionary containing configs that will be added to the QA training's
+         sg_logger. Format should be {"Config_title_1": {...}, "Config_title_2":{..}}.
+
+        :param valid_metrics_list:  (list(torchmetrics.Metric)) metrics list for evaluation of the calibrated model.
+        When None, the validation metrics from training_params are used). (default=None).
+
+        :return: Validation results of the QAT model in case quantization_params['ptq_only']=False and of the PTQ
+        model otherwise.
+        """
+
+        if quantization_params is None:
+            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+            logger.info(f"Using default quantization params: {quantization_params}")
+        valid_metrics_list = valid_metrics_list or get_param(training_params, "valid_metrics_list")
+
+        _ = self.ptq(
+            calib_loader=calib_loader,
+            model=model,
+            quantization_params=quantization_params,
+            valid_loader=valid_loader,
+            valid_metrics_list=valid_metrics_list,
+            deepcopy_model_for_export=True,
+        )
+        # TRAIN
+        model.train()
+        torch.cuda.empty_cache()
+
+        res = self.train(
+            model=model,
+            train_loader=train_loader,
+            valid_loader=valid_loader,
+            training_params=training_params,
+            additional_configs_to_log=additional_qat_configs_to_log,
+        )
+
+        # EXPORT QUANTIZED MODEL TO ONNX
+        input_shape = next(iter(valid_loader))[0].shape
+        os.makedirs(self.checkpoints_dir_path, exist_ok=True)
+        qdq_onnx_path = os.path.join(self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape))}_qat.onnx")
+
+        # TODO: modify SG's convert_to_onnx for quantized models and use it instead
+        export_quantized_module_to_onnx(
+            model=model.cpu(),
+            onnx_filename=qdq_onnx_path,
+            input_shape=input_shape,
+            input_size=input_shape,
+            train=False,
+        )
+        logger.info(f"Exported QAT ONNX to {qdq_onnx_path}")
+        return res
+
+    def ptq(
+        self,
+        calib_loader: DataLoader,
+        model: nn.Module,
+        valid_loader: DataLoader,
+        valid_metrics_list: List[torchmetrics.Metric],
+        quantization_params: Dict = None,
+        deepcopy_model_for_export: bool = False,
+    ):
+        """
+        Performs post-training quantization (calibration of the model)..
+
+        :param calib_loader: DataLoader, data loader for calibration.
+
+        :param model: torch.nn.Module, Model to perform calibration on. When None, will try to use self.net which is
+        set in previous self.train(..) call (default=None).
+
+        :param valid_loader: DataLoader, data loader for validation. Used both for validating the calibrated model.
+            When None, will try to use self.valid_loader if it was set in previous self.train(..) call (default=None).
+
+        :param quantization_params: Mapping, with the following entries:defaults-
+            selective_quantizer_params:
+              calibrator_w: "max"        # calibrator type for weights, acceptable types are ["max", "histogram"]
+              calibrator_i: "histogram"  # calibrator type for inputs acceptable types are ["max", "histogram"]
+              per_channel: True          # per-channel quantization of weights, activations stay per-tensor by default
+              learn_amax: False          # enable learnable amax in all TensorQuantizers using straight-through estimator
+              skip_modules:              # optional list of module names (strings) to skip from quantization
+
+            calib_params:
+              histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators,
+                                                                # acceptable types are ["percentile", "entropy", mse"],
+                                                                # "max" calibrators always use "max"
+
+              percentile: 99.99                     # percentile for all histogram calibrators with method "percentile",
+                                                    # other calibrators are not affected
+
+              num_calib_batches:                    # number of batches to use for calibration, if None, 512 / batch_size will be used
+              verbose: False                        # if calibrator should be verbose
+
+
+              When None, the above default config is used (default=None)
+
+
+
+        :param valid_metrics_list:  (list(torchmetrics.Metric)) metrics list for evaluation of the calibrated model.
+
+        :param deepcopy_model_for_export: bool, Whether to export deepcopy(model). Necessary in case further training is
+            performed and prep_model_for_conversion makes the network un-trainable (i.e RepVGG blocks).
+
+        :return: Validation results of the calibrated model.
+        """
+
+        if quantization_params is None:
+            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+            logger.info(f"Using default quantization params: {quantization_params}")
+
+        selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
+        calib_params = get_param(quantization_params, "calib_params")
+        model.to(device_config.device)
+        # QUANTIZE MODEL
+        model.eval()
+        fuse_repvgg_blocks_residual_branches(model)
+        q_util = SelectiveQuantizer(
+            default_quant_modules_calibrator_weights=get_param(selective_quantizer_params, "calibrator_w"),
+            default_quant_modules_calibrator_inputs=get_param(selective_quantizer_params, "calibrator_i"),
+            default_per_channel_quant_weights=get_param(selective_quantizer_params, "per_channel"),
+            default_learn_amax=get_param(selective_quantizer_params, "learn_amax"),
+            verbose=get_param(calib_params, "verbose"),
+        )
+        q_util.register_skip_quantization(layer_names=get_param(selective_quantizer_params, "skip_modules"))
+        q_util.quantize_module(model)
+        # CALIBRATE MODEL
+        logger.info("Calibrating model...")
+        calibrator = QuantizationCalibrator(
+            verbose=get_param(calib_params, "verbose"),
+            torch_hist=True,
+        )
+        calibrator.calibrate_model(
+            model,
+            method=get_param(calib_params, "histogram_calib_method"),
+            calib_data_loader=calib_loader,
+            num_calib_batches=get_param(calib_params, "num_calib_batches") or len(calib_loader),
+            percentile=get_param(calib_params, "percentile", 99.99),
+        )
+        calibrator.reset_calibrators(model)  # release memory taken by calibrators
+        # VALIDATE PTQ MODEL AND PRINT SUMMARY
+        logger.info("Validating PTQ model...")
+        valid_metrics_dict = self.test(model=model, test_loader=valid_loader, test_metrics_list=valid_metrics_list)
+        results = ["PTQ Model Validation Results"]
+        results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
+        logger.info("\n".join(results))
+
+        input_shape = next(iter(valid_loader))[0].shape
+        os.makedirs(self.checkpoints_dir_path, exist_ok=True)
+        qdq_onnx_path = os.path.join(self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape))}_ptq.onnx")
+
+        # TODO: modify SG's convert_to_onnx for quantized models and use it instead
+        export_quantized_module_to_onnx(
+            model=model.cpu(),
+            onnx_filename=qdq_onnx_path,
+            input_shape=input_shape,
+            input_size=input_shape,
+            train=False,
+            deepcopy_model=deepcopy_model_for_export,
+        )
+
+        return valid_metrics_dict

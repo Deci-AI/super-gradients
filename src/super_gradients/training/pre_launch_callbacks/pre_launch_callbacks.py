@@ -5,10 +5,16 @@ from typing import Union
 from omegaconf import DictConfig
 import torch
 
+from super_gradients.common.environment.cfg_utils import load_recipe
+from super_gradients.common.registry.registry import register_pre_launch_callback
 from super_gradients import is_distributed
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import models
 from torch.distributed import barrier
+import cv2
+import numpy as np
+
+from super_gradients.training.utils import get_param
 
 logger = get_logger(__name__)
 
@@ -26,12 +32,13 @@ class PreLaunchCallback:
         raise NotImplementedError
 
 
+@register_pre_launch_callback()
 class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
     """
     AutoTrainBatchSizeSelectionCallback
 
     Modifies cfg.dataset_params.train_dataloader_params.batch_size by searching for the maximal batch size that fits
-     gpu memory. Works out of the box for DDP.
+     gpu memory/ the one resulting in fastest time for the selected number of train datalaoder iterations. Works out of the box for DDP.
 
     The search is done by running a few forward passes for increasing batch sizes, until CUDA OUT OF MEMORY is raised:
 
@@ -68,14 +75,19 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
 
     :param scale_lr: bool, whether to linearly scale cfg.training_hyperparams.initial_lr, i.e multiply by
      FOUND_BATCH_SIZE/cfg.dataset_params.train_datalaoder_params.batch_size (default=True)
+    :param mode: str, one of ["fastest","largest"], whether to select the largest batch size that fits memory or the one
+     that the resulted in overall fastest execution.
     """
 
-    def __init__(self, min_batch_size: int, size_step: int, num_forward_passes: int = 3, max_batch_size=None, scale_lr: bool = True):
+    def __init__(self, min_batch_size: int, size_step: int, num_forward_passes: int = 3, max_batch_size=None, scale_lr: bool = True, mode: str = "fastest"):
+        if mode not in ["fastest", "largest"]:
+            raise TypeError(f"Expected mode to be one of: ['fastest','largest'], got {mode}")
         self.scale_lr = scale_lr
         self.min_batch_size = min_batch_size
         self.size_step = size_step
         self.max_batch_size = max_batch_size
         self.num_forward_passes = num_forward_passes
+        self.mode = mode
 
     def __call__(self, cfg: DictConfig) -> DictConfig:
 
@@ -94,21 +106,32 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
             load_backbone=cfg.checkpoint_params.load_backbone,
         )
         tmp_cfg = deepcopy(cfg)
-        tmp_cfg.training_hyperparams.batch_accumulate = 1
-        tmp_cfg.training_hyperparams.max_train_batches = self.num_forward_passes
-        tmp_cfg.training_hyperparams.run_validation_freq = 2
-        tmp_cfg.training_hyperparams.silent_mode = True
-        tmp_cfg.training_hyperparams.save_model = False
-        tmp_cfg.training_hyperparams.max_epochs = 1
-        tmp_cfg.training_hyperparams.average_best_models = False
-        tmp_cfg.training_hyperparams.kill_ddp_pgroup_on_end = False
+        tmp_cfg.training_hyperparamsbatch_accumulate = 1
+        tmp_cfg.training_hyperparamsmax_train_batches = self.num_forward_passes
+        tmp_cfg.training_hyperparamsrun_validation_freq = 2
+        tmp_cfg.training_hyperparamssilent_mode = True
+        tmp_cfg.training_hyperparamssave_model = False
+        tmp_cfg.training_hyperparamsmax_epochs = 1
+        tmp_cfg.training_hyperparamsaverage_best_models = False
+        tmp_cfg.training_hyperparamskill_ddp_pgroup_on_end = False
         tmp_cfg.pre_launch_callbacks_list = []
 
-        while True:
+        fastest_batch_time = np.inf
+        fastest_batch_size = curr_batch_size
+
+        bs_found = False
+
+        while not bs_found:
             tmp_cfg.dataset_params.train_dataloader_params.batch_size = curr_batch_size
 
             try:
+                passes_start = cv2.getTickCount()
                 Trainer.train_from_config(tmp_cfg)
+                curr_batch_time = (cv2.getTickCount() - passes_start) / cv2.getTickFrequency()
+                logger.info(f"Batch size = {curr_batch_size} time for {self.num_forward_passes} forward passes: {curr_batch_time} seconds.")
+                if curr_batch_time < fastest_batch_time:
+                    fastest_batch_size = curr_batch_size
+                    fastest_batch_time = curr_batch_time
 
             except RuntimeError as e:
                 if "out of memory" in str(e):
@@ -116,26 +139,32 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
                         logger.error("Ran out of memory for the smallest batch, try setting smaller min_batch_size.")
                         raise e
                     else:
-                        logger.info(f"Ran out of memory for {curr_batch_size}, setting batch size to {curr_batch_size - self.size_step}.")
-                        self._adapt_lr_if_needed(cfg, found_batch_size=curr_batch_size - self.size_step)
-                        cfg.dataset_params.train_dataloader_params.batch_size = curr_batch_size - self.size_step
-                        self._clear_model_gpu_mem(model)
-                        return cfg
+                        selected_batch_size = curr_batch_size - self.size_step if self.mode == "largest" else fastest_batch_size
+                        msg = f"Ran out of memory for {curr_batch_size}, setting batch size to {selected_batch_size}."
+                        bs_found = True
                 else:
                     raise e
 
             else:
                 if self.max_batch_size is not None and curr_batch_size >= self.max_batch_size:
-                    logger.info(
-                        f"Did not run out of memory for {curr_batch_size} >= max_batch_size={self.max_batch_size}, " f"setting batch to {self.max_batch_size}."
+                    selected_batch_size = self.max_batch_size if self.mode == "largest" else fastest_batch_size
+                    msg = (
+                        f"Did not run out of memory for {curr_batch_size} >= max_batch_size={self.max_batch_size}, " f"setting batch to {selected_batch_size}."
                     )
-                    self._adapt_lr_if_needed(cfg, found_batch_size=self.max_batch_size)
-                    cfg.dataset_params.train_dataloader_params.batch_size = self.max_batch_size
+                    bs_found = True
+                else:
+                    logger.info(f"Did not run out of memory for {curr_batch_size}, retrying batch {curr_batch_size + self.size_step}.")
+                    curr_batch_size += self.size_step
                     self._clear_model_gpu_mem(model)
-                    return cfg
-                logger.info(f"Did not run out of memory for {curr_batch_size}, retrying batch {curr_batch_size + self.size_step}.")
-                curr_batch_size += self.size_step
-                self._clear_model_gpu_mem(model)
+
+        return self._inject_selected_batch_size_to_config(cfg, model, msg, selected_batch_size)
+
+    def _inject_selected_batch_size_to_config(self, cfg, model, msg, selected_batch_size):
+        logger.info(msg)
+        self._adapt_lr_if_needed(cfg, found_batch_size=selected_batch_size)
+        cfg.dataset_params.train_dataloader_params.batch_size = selected_batch_size
+        self._clear_model_gpu_mem(model)
+        return cfg
 
     def _adapt_lr_if_needed(self, cfg: DictConfig, found_batch_size: int) -> DictConfig:
         if self.scale_lr:
@@ -154,11 +183,157 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
             barrier()
 
 
+def modify_params_for_qat(
+    training_hyperparams,
+    train_dataset_params,
+    val_dataset_params,
+    train_dataloader_params,
+    val_dataloader_params,
+    quantization_params=None,
+    batch_size_divisor: int = 2,
+    max_epochs_divisor: int = 10,
+    lr_decay_factor: float = 0.01,
+    warmup_epochs_divisor: int = 10,
+    cosine_final_lr_ratio: float = 0.01,
+    disable_phase_callbacks: bool = True,
+    disable_augmentations: bool = False,
+):
+    """
+
+    This method modifies the recipe for QAT to implement rules of thumb based on the regular non-qat recipe.
+    It does so by manipulating the training_hyperparams, train_dataloader_params, val_dataloader_params, train_dataset_params, val_dataset_params.
+    Usage:
+        trainer = Trainer("test_launch_qat_with_minimal_changes")
+        net = ResNet18(num_classes=10, arch_params={})
+        train_params = {...}
+
+        train_dataset_params = {
+            "transforms": [...
+            ]
+        }
+
+        train_dataloader_params = {"batch_size": 256}
+
+        val_dataset_params = {"transforms": [ToTensor(), Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])]}
+
+        val_dataloader_params = {"batch_size": 256}
+
+        train_loader = cifar10_train(dataset_params=train_dataset_params, dataloader_params=train_dataloader_params)
+        valid_loader = cifar10_val(dataset_params=val_dataset_params, dataloader_params=val_dataloader_params)
+
+        trainer.train(
+            model=net,
+            training_params=train_params,
+            train_loader=train_loader,
+            valid_loader=valid_loader,
+        )
+
+        train_params, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params = modify_params_for_qat(
+            train_params, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params
+        )
+
+        train_loader = cifar10_train(dataset_params=train_dataset_params, dataloader_params=train_dataloader_params)
+        valid_loader = cifar10_val(dataset_params=val_dataset_params, dataloader_params=val_dataloader_params)
+
+        trainer.qat(
+            model=net,
+            training_params=train_params,
+            train_loader=train_loader,
+            valid_loader=valid_loader,
+            calib_loader=train_loader,
+        )
+
+    :param val_dataset_params: Dict, validation dataset_params to be passed to dataloaders.get(...) when instantiating the train dataloader.
+    :param train_dataset_params: Dict, train dataset_params to be passed to dataloaders.get(...) when instantiating the validation dataloader.
+    :param val_dataloader_params: Dict, validation dataloader_params to be passed to dataloaders.get(...) when instantiating the validation dataloader.
+    :param train_dataloader_params: Dict, train dataloader_params to be passed to dataloaders.get(...) when instantiating the train dataloader.
+    :param training_hyperparams: Dict, train parameters passed to Trainer.qat(...)
+    :param quantization_params: Dict, quantization parameters as passed to Trainer.qat(...). When None, will use the
+     default parameters in super_gradients/recipes/quantization_params/default_quantization_params.yaml
+    :param int batch_size_divisor: Divisor used to calculate the batch size. Default value is 2.
+    :param int max_epochs_divisor: Divisor used to calculate the maximum number of epochs. Default value is 10.
+    :param float lr_decay_factor: Factor used to decay the learning rate, weight decay and warmup. Default value is 0.01.
+    :param int warmup_epochs_divisor: Divisor used to calculate the number of warm-up epochs. Default value is 10.
+    :param float cosine_final_lr_ratio: Ratio used to determine the final learning rate in a cosine annealing schedule. Default value is 0.01.
+    :param bool disable_phase_callbacks: Flag to control to disable phase callbacks, which can interfere with QAT. Default value is True.
+    :param bool disable_augmentations: Flag to control to disable phase augmentations, which can interfere with QAT. Default value is False.
+    :return: modified (copy) training_hyperparams, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params
+    """
+    if quantization_params is None:
+        quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+
+    quantization_params = deepcopy(quantization_params)
+    training_hyperparams = deepcopy(training_hyperparams)
+    train_dataloader_params = deepcopy(train_dataloader_params)
+    val_dataloader_params = deepcopy(val_dataloader_params)
+    train_dataset_params = deepcopy(train_dataset_params)
+    val_dataset_params = deepcopy(val_dataset_params)
+
+    if "max_epochs" not in training_hyperparams.keys():
+        raise ValueError("max_epochs is a required field in training_hyperparams for QAT modification.")
+
+    if "initial_lr" not in training_hyperparams.keys():
+        raise ValueError("initial_lr is a required field in training_hyperparams for QAT modification.")
+
+    if "optimizer_params" not in training_hyperparams.keys():
+        raise ValueError("optimizer_params is a required field in training_hyperparams for QAT modification.")
+
+    if "weight_decay" not in training_hyperparams["optimizer_params"].keys():
+        raise ValueError("weight_decay is a required field in training_hyperparams['optimizer_params'] for QAT modification.")
+
+    # Q/DQ Layers take a lot of space for activations in training mode
+    if get_param(quantization_params, "selective_quantizer_params") and get_param(quantization_params["selective_quantizer_params"], "learn_amax"):
+        train_dataloader_params["batch_size"] //= batch_size_divisor
+        val_dataloader_params["batch_size"] //= batch_size_divisor
+
+        logger.warning(f"New dataset_params.train_dataloader_params.batch_size: {train_dataloader_params['batch_size']}")
+        logger.warning(f"New dataset_params.val_dataloader_params.batch_size: {val_dataloader_params['batch_size']}")
+    training_hyperparams["max_epochs"] //= max_epochs_divisor
+    logger.warning(f"New number of epochs: {training_hyperparams['max_epochs']}")
+    training_hyperparams["initial_lr"] *= lr_decay_factor
+    if get_param(training_hyperparams, "warmup_initial_lr") is not None:
+        training_hyperparams["warmup_initial_lr"] *= lr_decay_factor
+    else:
+        training_hyperparams["warmup_initial_lr"] = training_hyperparams["initial_lr"] * 0.01
+    training_hyperparams["optimizer_params"]["weight_decay"] *= lr_decay_factor
+    logger.warning(f"New learning rate: {training_hyperparams['initial_lr']}")
+    logger.warning(f"New weight decay: {training_hyperparams['optimizer_params']['weight_decay']}")
+    # as recommended by pytorch-quantization docs
+    if get_param(training_hyperparams, "lr_mode") != "cosine":
+        training_hyperparams["lr_mode"] = "cosine"
+    training_hyperparams["cosine_final_lr_ratio"] = cosine_final_lr_ratio
+    logger.warning(
+        f"lr_mode will be set to cosine for QAT run instead of {get_param(training_hyperparams, 'lr_mode')} with "
+        f"cosine_final_lr_ratio={cosine_final_lr_ratio}"
+    )
+
+    training_hyperparams["lr_warmup_epochs"] = (training_hyperparams["max_epochs"] // warmup_epochs_divisor) or 1
+    logger.warning(f"New lr_warmup_epochs: {training_hyperparams['lr_warmup_epochs']}")
+
+    # do mess with Q/DQ
+    if get_param(training_hyperparams, "ema"):
+        logger.warning("EMA will be disabled for QAT run.")
+        training_hyperparams["ema"] = False
+    if get_param(training_hyperparams, "sync_bn"):
+        logger.warning("SyncBatchNorm will be disabled for QAT run.")
+        training_hyperparams["sync_bn"] = False
+    if disable_phase_callbacks and get_param(training_hyperparams, "phase_callbacks") is not None and len(training_hyperparams["phase_callbacks"]) > 0:
+        logger.warning(f"Recipe contains {len(training_hyperparams['phase_callbacks'])} phase callbacks. All of them will be disabled.")
+        training_hyperparams["phase_callbacks"] = []
+    # no augmentations
+    if disable_augmentations and "transforms" in val_dataset_params:
+        logger.warning("Augmentations will be disabled for QAT run. Using validation transforms instead.")
+        train_dataset_params["transforms"] = val_dataset_params["transforms"]
+
+    return training_hyperparams, train_dataset_params, val_dataset_params, train_dataloader_params, val_dataloader_params
+
+
+@register_pre_launch_callback()
 class QATRecipeModificationCallback(PreLaunchCallback):
     """
      QATRecipeModificationCallback(PreLaunchCallback)
 
-    This callback modifies the recipe for QAT to imlement rules of thumb based on the regular non-qat recipe.
+    This callback modifies the recipe for QAT to implement rules of thumb based on the regular non-qat recipe.
 
     :param int batch_size_divisor: Divisor used to calculate the batch size. Default value is 2.
     :param int max_epochs_divisor: Divisor used to calculate the maximum number of epochs. Default value is 10.
@@ -166,6 +341,7 @@ class QATRecipeModificationCallback(PreLaunchCallback):
     :param int warmup_epochs_divisor: Divisor used to calculate the number of warm-up epochs. Default value is 10.
     :param float cosine_final_lr_ratio: Ratio used to determine the final learning rate in a cosine annealing schedule. Default value is 0.01.
     :param bool disable_phase_callbacks: Flag to control to disable phase callbacks, which can interfere with QAT. Default value is True.
+    :param bool disable_augmentations: Flag to control to disable phase augmentations, which can interfere with QAT. Default value is False.
 
     Example usage:
 
@@ -179,8 +355,9 @@ class QATRecipeModificationCallback(PreLaunchCallback):
             warmup_epochs_divisor: 10
             cosine_final_lr_ratio: 0.01
             disable_phase_callbacks: True
+            disable_augmentations: False
 
-    USE THIS CALLBACK ONLY WITH QATTrainer!
+    USE THIS CALLBACK ONLY WITH Trainer.quantize_from_config
     """
 
     def __init__(
@@ -191,7 +368,9 @@ class QATRecipeModificationCallback(PreLaunchCallback):
         warmup_epochs_divisor: int = 10,
         cosine_final_lr_ratio: float = 0.01,
         disable_phase_callbacks: bool = True,
+        disable_augmentations: bool = False,
     ):
+        self.disable_augmentations = disable_augmentations
         self.disable_phase_callbacks = disable_phase_callbacks
         self.cosine_final_lr_ratio = cosine_final_lr_ratio
         self.warmup_epochs_divisor = warmup_epochs_divisor
@@ -204,53 +383,31 @@ class QATRecipeModificationCallback(PreLaunchCallback):
 
         cfg = copy.deepcopy(cfg)
 
-        # Q/DQ Layers take a lot of space for activations in training mode
-        if cfg.quantization_params.selective_quantizer_params.learn_amax:
-            cfg.dataset_params.train_dataloader_params.batch_size //= self.batch_size_divisor
-            cfg.dataset_params.val_dataloader_params.batch_size //= self.batch_size_divisor
-
-            logger.warning(f"New dataset_params.train_dataloader_params.batch_size: {cfg.dataset_params.train_dataloader_params.batch_size}")
-            logger.warning(f"New dataset_params.val_dataloader_params.batch_size: {cfg.dataset_params.val_dataloader_params.batch_size}")
-
-        cfg.training_hyperparams.max_epochs //= self.max_epochs_divisor
-        logger.warning(f"New number of epochs: {cfg.training_hyperparams.max_epochs}")
-
-        cfg.training_hyperparams.initial_lr *= self.lr_decay_factor
-        if cfg.training_hyperparams.warmup_initial_lr is not None:
-            cfg.training_hyperparams.warmup_initial_lr *= self.lr_decay_factor
-        else:
-            cfg.training_hyperparams.warmup_initial_lr = cfg.training_hyperparams.initial_lr * 0.01
-
-        cfg.training_hyperparams.optimizer_params.weight_decay *= self.lr_decay_factor
-
-        logger.warning(f"New learning rate: {cfg.training_hyperparams.initial_lr}")
-        logger.warning(f"New weight decay: {cfg.training_hyperparams.optimizer_params.weight_decay}")
-
-        # as recommended by pytorch-quantization docs
-        cfg.training_hyperparams.lr_mode = "cosine"
-        cfg.training_hyperparams.lr_warmup_epochs = (cfg.training_hyperparams.max_epochs // self.warmup_epochs_divisor) or 1
-        cfg.training_hyperparams.cosine_final_lr_ratio = self.cosine_final_lr_ratio
-
-        # do mess with Q/DQ
-        if cfg.training_hyperparams.ema:
-            logger.warning("EMA will be disabled for QAT run.")
-            cfg.training_hyperparams.ema = False
-
-        if cfg.training_hyperparams.sync_bn:
-            logger.warning("SyncBatchNorm will be disabled for QAT run.")
-            cfg.training_hyperparams.sync_bn = False
-
-        if self.disable_phase_callbacks and len(cfg.training_hyperparams.phase_callbacks) > 0:
-            logger.warning(f"Recipe contains {len(cfg.training_hyperparams.phase_callbacks)} phase callbacks. All of them will be disabled.")
-            cfg.training_hyperparams.phase_callbacks = []
+        (
+            cfg.training_hyperparams,
+            cfg.dataset_params.train_dataset_params,
+            cfg.dataset_params.val_dataset_params,
+            cfg.dataset_params.train_dataloader_params,
+            cfg.dataset_params.val_dataloader_params,
+        ) = modify_params_for_qat(
+            training_hyperparams=cfg.training_hyperparams,
+            train_dataset_params=cfg.dataset_params.train_dataset_params,
+            train_dataloader_params=cfg.dataset_params.train_dataloader_params,
+            val_dataset_params=cfg.dataset_params.val_dataset_params,
+            val_dataloader_params=cfg.dataset_params.val_dataloader_params,
+            quantization_params=cfg.quantization_params,
+            batch_size_divisor=self.batch_size_divisor,
+            disable_phase_callbacks=self.disable_phase_callbacks,
+            cosine_final_lr_ratio=self.cosine_final_lr_ratio,
+            warmup_epochs_divisor=self.warmup_epochs_divisor,
+            lr_decay_factor=self.lr_decay_factor,
+            max_epochs_divisor=self.max_epochs_divisor,
+            disable_augmentations=self.disable_augmentations,
+        )
 
         if cfg.multi_gpu != "OFF" or cfg.num_gpus != 1:
             logger.warning(f"Recipe requests multi_gpu={cfg.multi_gpu} and num_gpus={cfg.num_gpus}. Changing to multi_gpu=OFF and num_gpus=1")
             cfg.multi_gpu = "OFF"
             cfg.num_gpus = 1
-
-        # no augmentations
-        if "transforms" in cfg.dataset_params.val_dataset_params:
-            cfg.dataset_params.train_dataset_params.transforms = cfg.dataset_params.val_dataset_params.transforms
 
         return cfg

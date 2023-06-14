@@ -1,5 +1,14 @@
 resume: False # whether to continue training from ckpt with the same experiment name.
 resume_path: # Explicit checkpoint path (.pth file) to use to resume training.
+
+resume_from_remote_sg_logger: False # bool (default=False), When true, ckpt_name (checkpoint filename
+#        to resume i.e ckpt_latest.pth bydefault) will be downloaded into the experiment checkpoints directory
+#        prior to loading weights, then training is resumed from that checkpoint. The source is unique to
+#        every logger, and currently supported for WandB loggers only.
+#
+#        IMPORTANT: Only works for experiments that were ran with sg_logger_params.save_checkpoints_remote=True.
+#        IMPORTANT: For WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
+
 ckpt_name: ckpt_latest.pth  # The checkpoint (.pth file) filename in CKPT_ROOT_DIR/EXPERIMENT_NAME/ to use when resume=True and resume_path=None
 lr_mode: # Learning rate scheduling policy, one of ['step','poly','cosine','function']
 lr_schedule_function: # Learning rate scheduling function to be used when `lr_mode` is 'function'.

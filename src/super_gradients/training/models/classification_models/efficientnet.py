@@ -18,10 +18,15 @@ import re
 import math
 import collections
 from functools import partial
+from typing import List, Tuple, Union, Optional
+
 import torch
 from torch import nn
 from torch.nn import functional as F
 from collections import OrderedDict
+
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
@@ -34,17 +39,15 @@ BlockArgs = collections.namedtuple(
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
 
-def round_filters(filters, width_coefficient, depth_divisor, min_depth):
+def round_filters(filters: int, width_coefficient: int, depth_divisor: int, min_depth: int):
     """Calculate and round number of filters based on width multiplier.
        Use width_coefficient, depth_divisor and min_depth.
-    Args:
-        filters (int): Filters number to be calculated.
-        Params from arch_params:
-        width_coefficient (int): model's width coefficient. Used as the multiplier.
-        depth_divisor (int): model's depth divisor. Used as the divisor.
-        and min_depth (int): model's minimal depth, if given.
-    Returns:
-        new_filters: New filters number after calculating.
+
+    :param filters: Filters number to be calculated. Params from arch_params:
+    :param width_coefficient: model's width coefficient. Used as the multiplier.
+    :param depth_divisor: model's depth divisor. Used as the divisor.
+    :param min_depth: model's minimal depth, if given.
+    :return: new_filters: New filters number after calculating.
     """
     if not width_coefficient:
         return filters
@@ -58,14 +61,13 @@ def round_filters(filters, width_coefficient, depth_divisor, min_depth):
     return int(new_filters)
 
 
-def round_repeats(repeats, depth_coefficient):
+def round_repeats(repeats: int, depth_coefficient: int):
     """Calculate module's repeat number of a block based on depth multiplier.
        Use depth_coefficient.
-    Args:
-        repeats (int): num_repeat to be calculated.
-        depth_coefficient (int): the depth coefficient of the model. this func uses it as the multiplier.
-    Returns:
-        new repeat: New repeat number after calculating.
+
+    :param repeats: num_repeat to be calculated.
+    :param depth_coefficient: the depth coefficient of the model. this func uses it as the multiplier.
+    :return: new repeat: New repeat number after calculating.
     """
     if not depth_coefficient:
         return repeats
@@ -73,15 +75,13 @@ def round_repeats(repeats, depth_coefficient):
     return int(math.ceil(depth_coefficient * repeats))
 
 
-def drop_connect(inputs, p, training):
+def drop_connect(inputs: torch.Tensor, p: float, training: bool) -> torch.Tensor:
     """Drop connect.
 
-    Args:
-        inputs (tensor: BCWH): Input of this structure.
-        p (float: 0.0~1.0): Probability of drop connection.
-        training (bool): The running mode.
-    Returns:
-        output: Output after drop connection.
+    :param inputs :     Input of this structure. (tensor: BCWH)
+    :param p :          Probability of drop connection. (float: 0.0~1.0)
+    :param training:    Running mode.
+    :return: output: Output after drop connection.
     """
     assert p >= 0 and p <= 1, "p must be in range of [0,1]"
 
@@ -100,14 +100,13 @@ def drop_connect(inputs, p, training):
     return output
 
 
-def calculate_output_image_size(input_image_size, stride):
+def calculate_output_image_size(input_image_size: Union[int, Tuple, List], stride: Union[int, Tuple, List]) -> Optional[List[int]]:
     """Calculates the output image size when using Conv2dSamePadding with a stride.
-       Necessary for static padding. Thanks to mannatsingh for pointing this out.
-    Args:
-        input_image_size (int, tuple or list): Size of input image.
-        stride (int, tuple or list): Conv2d operation's stride.
-    Returns:
-        output_image_size: A list [H,W].
+    Necessary for static padding. Thanks to mannatsingh for pointing this out.
+
+    :param input_image_size:    Size of input image.
+    :param stride:              Conv2d operation's stride.
+    :return: output_image_size: A list [H,W].
     """
     if input_image_size is None:
         return None
@@ -127,13 +126,12 @@ def calculate_output_image_size(input_image_size, stride):
 # Don't be confused by their function names ! ! !
 
 
-def get_same_padding_conv2d(image_size=None):
+def get_same_padding_conv2d(image_size: Optional[Union[int, Tuple[int, int]]] = None):
     """Chooses static padding if you have specified an image size, and dynamic padding otherwise.
        Static padding is necessary for ONNX exporting of models.
-    Args:
-        image_size (int or tuple): Size of the image.
-    Returns:
-        Conv2dDynamicSamePadding or Conv2dStaticSamePadding.
+
+    :param image_size: Size of the image.
+    :return: Conv2dDynamicSamePadding or Conv2dStaticSamePadding.
     """
     if image_size is None:
         return Conv2dDynamicSamePadding
@@ -225,13 +223,11 @@ class BlockDecoder(object):
     """Block Decoder for readability, straight from the official TensorFlow repository."""
 
     @staticmethod
-    def _decode_block_string(block_string):
+    def _decode_block_string(block_string: str) -> BlockArgs:
         """Get a block through a string notation of arguments.
-        Args:
-            block_string (str): A string notation of arguments.
-                                Examples: 'r1_k3_s11_e1_i32_o16_se0.25_noskip'.
-        Returns:
-            BlockArgs: The namedtuple defined at the top of this file.
+
+        :param block_string: A string notation of arguments. Examples: 'r1_k3_s11_e1_i32_o16_se0.25_noskip'.
+        :return:     BlockArgs: The namedtuple defined at the top of this file.
         """
         assert isinstance(block_string, str)
 
@@ -258,12 +254,11 @@ class BlockDecoder(object):
         )
 
     @staticmethod
-    def _encode_block_string(block):
+    def _encode_block_string(block) -> str:
         """Encode a block to a string.
-        Args:
-            block (namedtuple): A BlockArgs type argument.
-        Returns:
-            block_string: A String form of BlockArgs.
+
+        :param block: A BlockArgs type argument (NamedTuple)
+        :return: block_string: A String form of BlockArgs.
         """
         args = [
             "r%d" % block.num_repeat,
@@ -280,12 +275,11 @@ class BlockDecoder(object):
         return "_".join(args)
 
     @staticmethod
-    def decode(string_list):
+    def decode(string_list: List[str]) -> List[BlockArgs]:
         """Decode a list of string notations to specify blocks inside the network.
-        Args:
-            string_list (list[str]): A list of strings, each string is a notation of block.
-        Returns:
-            blocks_args: A list of BlockArgs namedtuples of block args.
+
+        :param string_list:     List of strings, each string is a notation of block.
+        :return blocks_args:    List of BlockArgs namedtuples of block args.
         """
         assert isinstance(string_list, list)
         blocks_args = []
@@ -294,12 +288,11 @@ class BlockDecoder(object):
         return blocks_args
 
     @staticmethod
-    def encode(blocks_args):
+    def encode(blocks_args: List):
         """Encode a list of BlockArgs to a list of strings.
-        Args:
-            blocks_args (list[namedtuples]): A list of BlockArgs namedtuples of block args.
-        Returns:
-            block_strings: A list of strings, each string is a notation of block.
+
+        :param blocks_args: A list of BlockArgs namedtuples of block args. (list[namedtuples])
+        :return: block_strings: A list of strings, each string is a notation of block.
         """
         block_strings = []
         for block in blocks_args:
@@ -309,17 +302,19 @@ class BlockDecoder(object):
 
 class MBConvBlock(nn.Module):
     """Mobile Inverted Residual Bottleneck Block.
-    Args:
-        block_args (namedtuple): BlockArgs.
-        arch_params (HpmStruct): HpmStruct.
-        image_size (tuple or list): [image_height, image_width].
+
     References:
         [1] https://arxiv.org/abs/1704.04861 (MobileNet v1)
         [2] https://arxiv.org/abs/1801.04381 (MobileNet v2)
         [3] https://arxiv.org/abs/1905.02244 (MobileNet v3)
+
+    :param block_args: BlockArgs.
+    :param batch_norm_momentum: Batch norm momentum.
+    :param batch_norm_epsilon: Batch norm epsilon.
+    :param image_size: [image_height, image_width].
     """
 
-    def __init__(self, block_args, batch_norm_momentum, batch_norm_epsilon, image_size=None):
+    def __init__(self, block_args: BlockArgs, batch_norm_momentum: float, batch_norm_epsilon: float, image_size: Union[Tuple, List] = None):
         super().__init__()
         self._block_args = block_args
         self._bn_mom = 1 - batch_norm_momentum  # pytorch's difference from tensorflow
@@ -357,13 +352,12 @@ class MBConvBlock(nn.Module):
         self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
         self._swish = nn.functional.silu
 
-    def forward(self, inputs, drop_connect_rate=None):
+    def forward(self, inputs: torch.Tensor, drop_connect_rate: Optional[float] = None) -> torch.Tensor:
         """MBConvBlock's forward function.
-        Args:
-            inputs (tensor): Input tensor.
-            drop_connect_rate (bool): Drop connect rate (float, between 0 and 1).
-        Returns:
-            Output of this block after processing.
+
+        :param inputs:              Input tensor.
+        :param drop_connect_rate:   Drop connect rate (float, between 0 and 1).
+        :return:                    Output of this block after processing.
         """
 
         # Expansion and Depthwise Convolution
@@ -400,35 +394,60 @@ class MBConvBlock(nn.Module):
 
 
 class EfficientNet(SgModule):
-    """EfficientNet model.
-    Args:
-        blocks_args (list[namedtuple]): A list of BlockArgs to construct blocks.
-        arch_params (HpmStruct): A set of global params shared between blocks.
+    """
+    EfficientNet model.
+
     References:
         [1] https://arxiv.org/abs/1905.11946 (EfficientNet)
+
+
+    :param width_coefficient:   model's width coefficient. Used as the multiplier.
+    :param depth_coefficient:   model's depth coefficient. Used as the multiplier.
+    :param image_size:          Size of input image.
+    :param dropout_rate:        Dropout probability in final layer
+    :param num_classes:         Number of classes.
+    :param batch_norm_momentum: Value used for the running_mean and running_var computation
+    :param batch_norm_epsilon:  Value added to the denominator for numerical stability
+    :param drop_connect_rate:   Connection dropout probability
+    :param depth_divisor:       Model's depth divisor. Used as the divisor.
+    :param min_depth:           Model's minimal depth, if given.
+    :param backbone_mode:       If true, dropping the final linear layer
+    :param blocks_args:         List of BlockArgs to construct blocks. (list[namedtuple])
     """
 
-    def __init__(self, blocks_args=None, arch_params=None):
+    def __init__(
+        self,
+        width_coefficient: float,
+        depth_coefficient: float,
+        image_size: int,
+        dropout_rate: float,
+        num_classes: int,
+        batch_norm_momentum: Optional[float] = 0.99,
+        batch_norm_epsilon: Optional[float] = 1e-3,
+        drop_connect_rate: Optional[float] = 0.2,
+        depth_divisor: Optional[int] = 8,
+        min_depth: Optional[int] = None,
+        backbone_mode: Optional[bool] = False,
+        blocks_args: Optional[list] = None,
+    ):
         super().__init__()
         assert isinstance(blocks_args, list), "blocks_args should be a list"
         assert len(blocks_args) > 0, "block args must be greater than 0"
-        self._arch_params = arch_params
+
         self._blocks_args = blocks_args
-        self.backbone_mode = arch_params.backbone_mode
+        self.backbone_mode = backbone_mode
+        self.drop_connect_rate = drop_connect_rate
 
         # Batch norm parameters
-        bn_mom = 1 - self._arch_params.batch_norm_momentum
-        bn_eps = self._arch_params.batch_norm_epsilon
+        bn_mom = 1 - batch_norm_momentum
+        bn_eps = batch_norm_epsilon
 
         # Get stem static or dynamic convolution depending on image size
-        image_size = arch_params.image_size
         Conv2d = get_same_padding_conv2d(image_size=image_size)
 
         # Stem
         in_channels = 3  # rgb
-        out_channels = round_filters(
-            32, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth
-        )  # number of output channels
+        out_channels = round_filters(32, width_coefficient, depth_divisor, min_depth)  # number of output channels
         self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
         self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         image_size = calculate_output_image_size(image_size, 2)
@@ -439,27 +458,23 @@ class EfficientNet(SgModule):
 
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                input_filters=round_filters(
-                    block_args.input_filters, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth
-                ),
-                output_filters=round_filters(
-                    block_args.output_filters, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth
-                ),
-                num_repeat=round_repeats(block_args.num_repeat, self._arch_params.depth_coefficient),
+                input_filters=round_filters(block_args.input_filters, width_coefficient, depth_divisor, min_depth),
+                output_filters=round_filters(block_args.output_filters, width_coefficient, depth_divisor, min_depth),
+                num_repeat=round_repeats(block_args.num_repeat, depth_coefficient),
             )
 
             # The first block needs to take care of stride and filter size increase.
-            self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum, self._arch_params.batch_norm_epsilon, image_size=image_size))
+            self._blocks.append(MBConvBlock(block_args, batch_norm_momentum, batch_norm_epsilon, image_size=image_size))
             image_size = calculate_output_image_size(image_size, block_args.stride)
             if block_args.num_repeat > 1:  # modify block_args to keep same output size
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)
             for _ in range(block_args.num_repeat - 1):
-                self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum, self._arch_params.batch_norm_epsilon, image_size=image_size))
+                self._blocks.append(MBConvBlock(block_args, batch_norm_momentum, batch_norm_epsilon, image_size=image_size))
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
         # Head
         in_channels = block_args.output_filters  # output of final block
-        out_channels = round_filters(1280, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth)
+        out_channels = round_filters(1280, width_coefficient, depth_divisor, min_depth)
         Conv2d = get_same_padding_conv2d(image_size=image_size)
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
@@ -467,18 +482,16 @@ class EfficientNet(SgModule):
         # Final linear layer
         if not self.backbone_mode:
             self._avg_pooling = nn.AdaptiveAvgPool2d(1)
-            self._dropout = nn.Dropout(self._arch_params.dropout_rate)
-            self._fc = nn.Linear(out_channels, self._arch_params.num_classes)
+            self._dropout = nn.Dropout(dropout_rate)
+            self._fc = nn.Linear(out_channels, num_classes)
         self._swish = nn.functional.silu
 
-    def extract_features(self, inputs):
+    def extract_features(self, inputs: torch.Tensor) -> torch.Tensor:
         """
         Use convolution layer to extract feature.
-        Args:
-            inputs (tensor): Input tensor.
-        Returns:
-            Output of the final convolution.
-            layer in the efficientnet model.
+
+        :param inputs: Input tensor.
+        :return: Output of the final convolution layer in the efficientnet model.
         """
 
         # Stem
@@ -486,7 +499,7 @@ class EfficientNet(SgModule):
 
         # Blocks
         for idx, block in enumerate(self._blocks):
-            drop_connect_rate = self._arch_params.drop_connect_rate
+            drop_connect_rate = self.drop_connect_rate
             if drop_connect_rate:
                 drop_connect_rate *= float(idx) / len(self._blocks)  # scale drop connect_rate
             x = block(x, drop_connect_rate=drop_connect_rate)
@@ -497,12 +510,12 @@ class EfficientNet(SgModule):
         return x
 
     def forward(self, inputs):
-        """EfficientNet's forward function.
-           Calls extract_features to extract features, applies final linear layer, and returns logits.
-        Args:
-            inputs (tensor): Input tensor.
-        Returns:
-            Output of this model after processing.
+        """
+        EfficientNet's forward function.
+        Calls extract_features to extract features, applies final linear layer, and returns logits.
+
+        :param inputs: Input tensor.
+        :return: Output of this model after processing.
         """
         bs = inputs.size(0)
 
@@ -518,7 +531,7 @@ class EfficientNet(SgModule):
 
         return x
 
-    def replace_head(self, new_num_classes=None, new_head=None):
+    def replace_head(self, new_num_classes: Optional[int] = None, new_head: Optional[nn.Module] = None):
         if new_num_classes is None and new_head is None:
             raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
         if new_head is not None:
@@ -526,7 +539,7 @@ class EfficientNet(SgModule):
         else:
             self._fc = nn.Linear(self._fc.in_features, new_num_classes)
 
-    def load_state_dict(self, state_dict, strict=True):
+    def load_state_dict(self, state_dict: dict, strict: bool = True):
         """
         load_state_dict - Overloads the base method and calls it to load a modified dict for usage as a backbone
         :param state_dict:  The state_dict to load
@@ -592,68 +605,209 @@ def get_efficientnet_params(width: float, depth: float, res: float, dropout: flo
     return blocks_args, arch_params_new
 
 
+@register_model(Models.EFFICIENTNET_B0)
 class EfficientNetB0(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(width=1.0, depth=1.0, res=224, dropout=0.2, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
+@register_model(Models.EFFICIENTNET_B1)
 class EfficientNetB1(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(width=1.0, depth=1.1, res=240, dropout=0.2, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
+@register_model(Models.EFFICIENTNET_B2)
 class EfficientNetB2(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(width=1.1, depth=1.2, res=260, dropout=0.3, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
+@register_model(Models.EFFICIENTNET_B3)
 class EfficientNetB3(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(width=1.2, depth=1.4, res=300, dropout=0.3, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
+@register_model(Models.EFFICIENTNET_B4)
 class EfficientNetB4(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(width=1.4, depth=1.8, res=380, dropout=0.4, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
+@register_model(Models.EFFICIENTNET_B5)
 class EfficientNetB5(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(width=1.6, depth=2.2, res=456, dropout=0.4, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
+@register_model(Models.EFFICIENTNET_B6)
 class EfficientNetB6(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(width=1.8, depth=2.6, res=528, dropout=0.5, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
+@register_model(Models.EFFICIENTNET_B7)
 class EfficientNetB7(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(width=2.0, depth=3.1, res=600, dropout=0.5, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
+@register_model(Models.EFFICIENTNET_B8)
 class EfficientNetB8(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(width=2.2, depth=3.6, res=672, dropout=0.5, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
+@register_model(Models.EFFICIENTNET_L2)
 class EfficientNetL2(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(width=4.3, depth=5.3, res=800, dropout=0.5, arch_params=arch_params)
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )
 
 
+@register_model(Models.CUSTOMIZEDEFFICIENTNET)
 class CustomizedEfficientnet(EfficientNet):
-    def __init__(self, arch_params):
+    def __init__(self, arch_params: HpmStruct):
         blocks_args, arch_params = get_efficientnet_params(
             width=arch_params.width_coefficient,
             depth=arch_params.depth_coefficient,
@@ -661,4 +815,17 @@ class CustomizedEfficientnet(EfficientNet):
             dropout=arch_params.dropout_rate,
             arch_params=arch_params,
         )
-        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
+        super().__init__(
+            blocks_args=blocks_args,
+            num_classes=arch_params.num_classes,
+            backbone_mode=arch_params.backbone_mode,
+            batch_norm_momentum=arch_params.batch_norm_momentum,
+            batch_norm_epsilon=arch_params.batch_norm_epsilon,
+            image_size=arch_params.image_size,
+            width_coefficient=arch_params.width_coefficient,
+            depth_divisor=arch_params.depth_divisor,
+            min_depth=arch_params.min_depth,
+            depth_coefficient=arch_params.depth_coefficient,
+            dropout_rate=arch_params.dropout_rate,
+            drop_connect_rate=arch_params.drop_connect_rate,
+        )

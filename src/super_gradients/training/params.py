@@ -64,6 +64,11 @@ DEFAULT_TRAINING_PARAMS = {
     # (i.e iterating over train_loader) when reaching this number of batches.
     "max_valid_batches": None,  # For debug- when not None- will break out of inner valid loop
     # (i.e iterating over valid_loader) when reaching this number of batches.
+    "resume_from_remote_sg_logger": False,  # When true, ckpt_name (checkpoint filename to resume, ckpt_latest.pth by
+    # default) will be downloaded into the experiment checkpoints directory prior to loading weights, then resumed
+    # from that checkpoint. The source is unique to every logger, and currently supported for WandB loggers only.
+    # Note that for this to work, the experiment must be ran with sg_logger_params.save_checkpoints_remote=True. For
+    # WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
     "torch_compile": False,
 }
 

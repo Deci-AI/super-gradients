@@ -27,7 +27,7 @@ def check_os():
 
     if "linux" not in sys.platform.lower():
         error = "Deci officially supports only Linux kernels. Some features may not work as expected."
-        logger.error(msg=format_error_msg(test_name="operating system", error_msg=error))
+        logger.warning(msg=format_error_msg(test_name="operating system", error_msg=error))
 
 
 def get_requirements_path(requirements_file_name: str) -> Optional[Path]:
@@ -78,7 +78,7 @@ def check_packages():
     test_name = "installed packages"
 
     installed_packages = {package.key.lower(): package.version for package in pkg_resources.working_set}
-    requirements = get_requirements(use_pro_requirements="deci-lab-client" in installed_packages)
+    requirements = get_requirements(use_pro_requirements="deci-platform-client" in installed_packages)
 
     if requirements is None:
         logger.info(msg='Library check is not supported when super_gradients installed through "git+https://github.com/..." command')
@@ -89,7 +89,7 @@ def check_packages():
 
         if package_name not in installed_packages.keys():
             error = f"{package_name} required but not found"
-            logger.error(msg=format_error_msg(test_name=test_name, error_msg=error))
+            logger.warning(msg=format_error_msg(test_name=test_name, error_msg=error))
             continue
 
         installed_version_str = installed_packages[package_name]
@@ -104,7 +104,7 @@ def check_packages():
 
                 requires_at_least = operator_str in ("==", "~=", ">=", ">")
                 if requires_at_least and installed_version < req_version:
-                    logger.error(msg=format_error_msg(test_name=test_name, error_msg=error))
+                    logger.warning(msg=format_error_msg(test_name=test_name, error_msg=error))
                 else:
                     logger.debug(msg=error)
 

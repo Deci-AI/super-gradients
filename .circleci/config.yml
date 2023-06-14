@@ -1,14 +1,35 @@
 version: 2.1
 
 parameters:
+  ad_hoc_container_build:
+    type: boolean
+    default: false
+  ad_hoc_container_build_code_only:
+    type: boolean
+    default: false
   remote_docker_version:
     type: string
     description: remote docker version
     default: "20.10.18"
+  sg_docker_version:
+    type: string
+    description: the version of super gradients docker image
+    default: "2.0.0"
+  build_py_version:
+    type: string
+    description: Python version
+    default: "3.8"
+  run_sanity_tests_flow:
+    type: boolean
+    description: If true will run sanity_test flow
+    default: false
+  skip_md_files:
+    type: boolean
+    default: true
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
-    default: "10.5.0"
+    default: "10.5.1"
 #    default: "dev:alpha"
 
 orbs:
@@ -38,6 +59,47 @@ release_candidate_tag_filter: &release_candidate_tag_filter
       only: /^\d+\.\d+\.\d+rc\d+/
 
 commands:
+  build_and_publish_command:
+    parameters:
+      repo_name:
+        type: string
+      docker_context:
+        type: string
+      image_tag:
+        type: string
+      additional_tags:
+        type: string
+      build_args:
+        type: string
+        default: ""
+      dockerfile:
+        type: string
+        default: "Dockerfile"
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Put config dir in repo context
+          command: |
+            if [ -d ~/.config ]; then
+              echo "found a .config directory, copying to repo dir"
+              cp -r  ~/.config ~/project/<< parameters.docker_context >>
+            fi
+      - deci-common/ecr_login_dev
+      - deci-common/container_image_build:
+          context: << parameters.docker_context >>
+          working_directory: "."
+          repository_name: << parameters.repo_name >>
+          image_tag: << parameters.image_tag >>
+          dockerfile: << parameters.dockerfile >>
+          build_args: << parameters.build_args >>
+      #          build_args: "PYTHON_VERSION=3.8 SG_VERSION=3.0.7"
+      - deci-common/push_docker_image_aws_dev:
+          repository_name: << parameters.repo_name >>
+          image_tag: << parameters.image_tag >>
+          additional_tags: << parameters.additional_tags >>
+
   get_beta_and_rc_tags:
     description: "getting beta and rc tag (if exist) according to ouir convention"
     steps:
@@ -89,17 +151,11 @@ jobs:
     steps:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
-          skip_md_files: true
+          skip_md_files: << pipeline.parameters.skip_md_files >>
       - deci-common/get_persisted_version_info
-      - when:
+      - unless:
           condition:
-            and:
-              - not:
-                  equal: [ develop, << pipeline.git.branch >> ]
-              - not:
-                  equal: [ staging, << pipeline.git.branch >> ]
-              - not:
-                  equal: [ master, << pipeline.git.branch >> ]
+            equal: [ master, << pipeline.git.branch >> ]
           steps:
             - run:
                 name: install Black Flake8 python linter
@@ -123,7 +179,7 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            python3 -m pip install pip==22.0.4
+            python3 -m pip install pip==23.1.2
             cat requirements.txt | cut -f1 -d"#" | xargs -n 1 -L 1 pip install --progress-bar off
       - run:
           name: edit package version
@@ -385,7 +441,8 @@ jobs:
 
 
   recipe_accuracy_tests:
-    machine: true
+    docker:
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -407,11 +464,15 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=shortened_cifar10_resnet_accuracy_test training_hyperparams.max_epochs=100 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
+            python3.8 -m pip install torch torchvision torchaudio
+            python3.8 -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
+
+            python3.8 tests/verify_min_samples_ddp.py
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_pose_dekr_w32_no_dc experiment_name=shortened_coco2017_pose_dekr_w32_ap_test batch_size=4 val_batch_size=8 epochs=1 training_hyperparams.lr_warmup_steps=0 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=1000 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cifar10_resnet experiment_name=shortened_cifar10_resnet_accuracy_test epochs=100 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
             python3.8 src/super_gradients/examples/convert_recipe_example/convert_recipe_example.py --config-name=cifar10_conversion_params experiment_name=shortened_cifar10_resnet_accuracy_test
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox experiment_name=shortened_coco2017_yolox_n_map_test architecture=yolox_n training_hyperparams.loss=yolox_fast_loss training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_regseg48 experiment_name=shortened_cityscapes_regseg48_iou_test training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_yolox experiment_name=shortened_coco2017_yolox_n_map_test architecture=yolox_n training_hyperparams.loss=yolox_fast_loss epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_regseg48 experiment_name=shortened_cityscapes_regseg48_iou_test epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
             coverage run --source=super_gradients -m unittest tests/deci_core_recipe_test_suite_runner.py
 
       - run:
@@ -419,8 +480,14 @@ jobs:
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
 
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
   recipe_sanity_tests_classification_pt1:
-    machine: true
+    docker:
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -439,23 +506,32 @@ jobs:
           command: |
             << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
             source << parameters.sg_new_env_name >>/bin/activate
+            ls /data/
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY600 dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY800 dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50 dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=8 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 -m pip install torch torchvision torchaudio
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY600 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY800 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_repvgg batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_resnet50 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_vit_base batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd batch_size=8 val_batch_size=8 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
 
       - run:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
+
   recipe_sanity_tests_classification_pt2:
-    machine: true
+    docker:
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -477,20 +553,25 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2 dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_large dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_small dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY200 dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY400 dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 -m pip install torch torchvision torchaudio
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_efficientnet batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_mobilenetv2 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_mobilenetv3_large batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_mobilenetv3_small batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY200 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_regnetY architecture=regnetY400 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
       - run:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
   recipe_sanity_tests_segmentation:
-    machine: true
+    docker:
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -512,30 +593,36 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
+            python3.8 -m pip install torch torchvision torchaudio
             wget  -O $(pwd)/checkpoints/ddrnet23_slim_bb_imagenet.pth https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_slim_bb_imagenet.pth
             wget  -O $(pwd)/checkpoints/ddrnet23_bb_imagenet.pth https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_bb_imagenet.pth
             wget  -O $(pwd)/checkpoints/ddrnet39_imagenet_pretrained.pth https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet39_bb_imagenet.pth
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py  --config-name=cityscapes_ddrnet checkpoint_params.checkpoint_path=$(pwd)/checkpoints/ddrnet23_bb_imagenet.pth dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py  --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim checkpoint_params.checkpoint_path=$(pwd)/checkpoints/ddrnet23_slim_bb_imagenet.pth dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet checkpoint_params.checkpoint_path=$(pwd)/checkpoints/ddrnet39_imagenet_pretrained.pth architecture=ddrnet_39 dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py  --config-name=cityscapes_ddrnet checkpoint_params.checkpoint_path=$(pwd)/checkpoints/ddrnet23_bb_imagenet.pth batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py  --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim checkpoint_params.checkpoint_path=$(pwd)/checkpoints/ddrnet23_slim_bb_imagenet.pth batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_ddrnet checkpoint_params.checkpoint_path=$(pwd)/checkpoints/ddrnet39_imagenet_pretrained.pth architecture=ddrnet_39 batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
             wget  -O $(pwd)/checkpoints/stdc1_imagenet_pretrained.pth https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc1_imagenet_pretrained.pth
             wget  -O $(pwd)/checkpoints/stdc2_imagenet_pretrained.pth https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc2_imagenet_pretrained.pth
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_pplite_seg50 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc1_imagenet_pretrained.pth architecture=pp_lite_t_seg dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_pplite_seg50 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc2_imagenet_pretrained.pth architecture=pp_lite_b_seg dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_pplite_seg75 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc1_imagenet_pretrained.pth architecture=pp_lite_t_seg dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_pplite_seg75 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc2_imagenet_pretrained.pth architecture=pp_lite_b_seg dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc1_imagenet_pretrained.pth dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc2_imagenet_pretrained.pth architecture=stdc2_seg dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc1_imagenet_pretrained.pth dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc2_imagenet_pretrained.pth architecture=stdc2_seg dataset_params.train_dataloader_params.batch_size=3 dataset_params.val_dataloader_params.batch_size=3 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_pplite_seg50 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc1_imagenet_pretrained.pth architecture=pp_lite_t_seg batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_pplite_seg50 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc2_imagenet_pretrained.pth architecture=pp_lite_b_seg batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_pplite_seg75 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc1_imagenet_pretrained.pth architecture=pp_lite_t_seg batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_pplite_seg75 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc2_imagenet_pretrained.pth architecture=pp_lite_b_seg batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc1_imagenet_pretrained.pth batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc2_imagenet_pretrained.pth architecture=stdc2_seg batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_stdc_seg75 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc1_imagenet_pretrained.pth batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_stdc_seg75 checkpoint_params.checkpoint_path=$(pwd)/checkpoints/stdc2_imagenet_pretrained.pth architecture=stdc2_seg batch_size=3 val_batch_size=3 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
       - run:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
 
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
   recipe_sanity_tests_detection:
-    machine: true
+    docker:
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
     resource_class: deci-ai/sg-gpu-on-premise
     parameters:
       sg_existing_env_path:
@@ -557,21 +644,135 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2 dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=16 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m dataset_params.train_dataloader_params.batch_size=8 dataset_params.val_dataloader_params.batch_size=8 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l dataset_params.train_dataloader_params.batch_size=4 dataset_params.val_dataloader_params.batch_size=8 training_hyperparams.max_epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 -m pip install torch torchvision torchaudio
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m batch_size=8 val_batch_size=8 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l batch_size=4 val_batch_size=8 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
 
       - run:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
           when: on_fail
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
+  recipe_sanity_tests_pose_estimation:
+    docker:
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
+    resource_class: deci-ai/sg-gpu-on-premise
+    parameters:
+      sg_existing_env_path:
+        type: string
+        default: "/env/persistent_env"
+      sg_new_env_name:
+        type: string
+        default: "${CIRCLE_BUILD_NUM}"
+      sg_new_env_python_version:
+        type: string
+        default: "python3.8"
+    steps:
+      - checkout
+      - run:
+          name: install requirements and run pose estimation sanity tests
+          command: |
+            << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
+            source << parameters.sg_new_env_name >>/bin/activate
+            python3.8 -m pip install --upgrade setuptools pip wheel
+            python3.8 -m pip install -r requirements.txt
+            python3.8 -m pip install .
+            python3.8 -m pip install torch torchvision torchaudio
+            python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_pose_dekr_w32_no_dc experiment_name=shortened_coco2017_pose_dekr_w32_ap_test batch_size=4 val_batch_size=8 epochs=1 training_hyperparams.lr_warmup_steps=0 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=1000 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+
+      - run:
+          name: Remove new environment when failed
+          command: "rm -r << parameters.sg_new_env_name >>"
+          when: on_fail
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
+  docker-build-and-publish-branch:
+    docker:
+      - image: cimg/base:stable-20.04
+    parameters:
+      repo_name:
+        type: string
+        default: "deci/super-gradients"
+      docker_context:
+        type: string
+        default: "."
+      additional_tags:
+        type: string
+        default: ''
+    steps:
+      - setup_remote_docker:
+          version: 20.10.7
+          docker_layer_caching: true
+      - deci-common/container_image_lint_tag:
+          image_tag: "${CIRCLE_BRANCH}"
+      - run:
+          command: |
+            ADDITIONAL_TAGS="<< parameters.additional_tags >>"
+            echo "export ADDITIONAL_TAGS=${ADDITIONAL_TAGS}" >> $BASH_ENV
+      - run:
+          command: |
+            source $BASH_ENV
+            echo "$CONTAINER_LINT_TAG"
+            echo "$ADDITIONAL_TAGS"
+      - when:
+          condition: << pipeline.parameters.ad_hoc_container_build_code_only >>
+          steps:
+            - build_and_publish_command:
+                repo_name: << parameters.repo_name >>
+                docker_context: << parameters.docker_context >>
+                image_tag: $CONTAINER_LINT_TAG
+                additional_tags: $ADDITIONAL_TAGS
+                dockerfile: 'scripts/Dockerfile.branch.code'
+                build_args: "BASE_TAG=$CONTAINER_LINT_TAG"
+      - unless:
+          condition: << pipeline.parameters.ad_hoc_container_build_code_only >>
+          steps:
+            - build_and_publish_command:
+                repo_name: << parameters.repo_name >>
+                docker_context: << parameters.docker_context >>
+                image_tag: $CONTAINER_LINT_TAG
+                additional_tags: $ADDITIONAL_TAGS
+                dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
+  sanity_tests:
+    when:  << pipeline.parameters.run_sanity_tests_flow >>
+    jobs:
+      - recipe_sanity_tests_classification_pt1:
+          context:
+            - slack
+      - recipe_sanity_tests_classification_pt2:
+          context:
+            - slack
+      - recipe_sanity_tests_segmentation:
+          context:
+            - slack
+      - recipe_sanity_tests_detection:
+          context:
+            - slack
+      - recipe_sanity_tests_pose_estimation:
+          context:
+            - slack
+      - recipe_accuracy_tests:
+          context:
+            - slack
+
   release:
+    unless:
+      or:
+        - << pipeline.parameters.ad_hoc_container_build >>
+        - << pipeline.parameters.ad_hoc_container_build_code_only >>
     jobs:
       - deci-common/persist_version_info:
           version_override: $CIRCLE_TAG
@@ -581,40 +782,47 @@ workflows:
           repo_name: "deci-packages"
           <<: *release_tag_filter
       - build:
-          name: "build3.7"
-          py_version: "3.7"
+          name: "build3.8"
+          py_version: "3.8"
           package_name: "super-gradients"
           requires:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt1:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt2:
-          requires:
-            - recipe_sanity_tests_classification_pt1
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_segmentation:
-          requires:
-            - recipe_sanity_tests_classification_pt2
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_sanity_tests_detection:
-          requires:
-            - recipe_sanity_tests_segmentation
+          context:
+            - slack
+          <<: *release_tag_filter
+      - recipe_sanity_tests_pose_estimation:
+          context:
+            - slack
           <<: *release_tag_filter
       - recipe_accuracy_tests:
-          requires:
-            - recipe_sanity_tests_detection
+          context:
+            - slack
           <<: *release_tag_filter
       - release_version:
-          py_version: "3.7"
+          py_version: "3.8"
           requires:
-            - "build3.7"
+            - "build3.8"
             - recipe_accuracy_tests
             - recipe_sanity_tests_classification_pt1
             - recipe_sanity_tests_classification_pt2
             - recipe_sanity_tests_segmentation
             - recipe_sanity_tests_detection
+            - recipe_sanity_tests_pose_estimation
           <<: *release_tag_filter
       - deci-common/pip_upload_package_from_codeartifact_to_global_pypi:
           package_name: "super-gradients"
@@ -628,64 +836,75 @@ workflows:
 
 
   build_and_deploy:
+    unless:
+      or:
+        - << pipeline.parameters.ad_hoc_container_build >>
+        - << pipeline.parameters.ad_hoc_container_build_code_only >>
     jobs:
       - deci-common/persist_version_info:
           use_rc: true
           use_beta: false
           version_override: ""
-      - deci-common/codeartifact_login:
-          repo_name: "deci-packages"
+
       - build:
-          name: "build3.7"
-          py_version: "3.7"
+          name: "build<< pipeline.parameters.build_py_version >>"
+          py_version:  << pipeline.parameters.build_py_version >>
           package_name: "super-gradients"
           requires:
             - deci-common/persist_version_info
-            - deci-common/codeartifact_login
+
+      - deci-common/codeartifact_login:
+          repo_name: "deci-packages"
+          <<: *release_candidate_filter
 
       - release_candidate: # happens on merge
-          py_version: "3.7"
+          py_version: "<< pipeline.parameters.build_py_version >>"
           requires:
-            - "build3.7"
+            - "build<< pipeline.parameters.build_py_version >>"
+            - deci-common/codeartifact_login
           <<: *release_candidate_filter
 
   SG_docker:
-     jobs:
-       - change_rc_to_b: # works on release candidate creation
-           <<: *release_candidate_tag_filter
-       - build_and_publish_sg_container:  # works on release candidate creation
-           requires:
-             - "change_rc_to_b"
-           <<: *release_candidate_tag_filter
-       - testing_supergradients_docker_image:  # works on release candidate creation
+    unless:
+      or:
+        - << pipeline.parameters.ad_hoc_container_build >>
+        - << pipeline.parameters.ad_hoc_container_build_code_only >>
+    jobs:
+      - change_rc_to_b: # works on release candidate creation
+          <<: *release_candidate_tag_filter
+      - build_and_publish_sg_container:  # works on release candidate creation
+          requires:
+            - "change_rc_to_b"
+          <<: *release_candidate_tag_filter
+      - testing_supergradients_docker_image:  # works on release candidate creation
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
           requires:
             - "build_and_publish_sg_container"
             - "change_rc_to_b"
           <<: *release_candidate_tag_filter
-       - add_rc_tag_to_beta: # works on release candidate creation for ECR Repo
+      - add_rc_tag_to_beta: # works on release candidate creation for ECR Repo
           requires:
             - "testing_supergradients_docker_image"
             - "change_rc_to_b"
           <<: *release_candidate_tag_filter
-       - find_rc_tag_per_sha: # works on release
-           <<: *release_tag_filter
-       - add_release_tag_to_rc: # works on release
-            requires:
-              - "find_rc_tag_per_sha"
-            <<: *release_tag_filter
-       - slack/on-hold:
-           context: slack
-           channel: "sg-integration-tests"
-           requires:
-             - "add_release_tag_to_rc"
-           <<: *release_tag_filter
-       - hold-sg-public-release:  # works on release
-           type: approval
-           requires:
-             - "slack/on-hold"
-           <<: *release_tag_filter
-       - docker/publish:  # works on release
+      - find_rc_tag_per_sha: # works on release
+          <<: *release_tag_filter
+      - add_release_tag_to_rc: # works on release
+          requires:
+            - "find_rc_tag_per_sha"
+          <<: *release_tag_filter
+      - slack/on-hold:
+          context: slack
+          channel: "sg-integration-tests"
+          requires:
+           - "add_release_tag_to_rc"
+          <<: *release_tag_filter
+      - hold-sg-public-release:  # works on release
+          type: approval
+          requires:
+           - "slack/on-hold"
+          <<: *release_tag_filter
+      - docker/publish:  # works on release
           executor:
               image: cimg/base
               tag: stable-20.04
@@ -703,7 +922,7 @@ workflows:
           requires:
             - "hold-sg-public-release"
           <<: *release_tag_filter
-       - docker/publish: # works on release
+      - docker/publish: # works on release
           executor:
               image: cimg/base
               tag: stable-20.04
@@ -720,3 +939,11 @@ workflows:
           requires:
             - "hold-sg-public-release"
           <<: *release_tag_filter
+  build-and-push-container-flow:
+    when: << pipeline.parameters.ad_hoc_container_build >>
+    jobs:
+      - docker-build-and-publish-branch
+  build-and-push-container-code-only-flow:
+    when: << pipeline.parameters.ad_hoc_container_build_code_only >>
+    jobs:
+      - docker-build-and-publish-branch

@@ -9,13 +9,15 @@ import numpy as np
 import psutil
 import torch
 from PIL import Image
+
+from super_gradients.common.registry.registry import register_sg_logger
 from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.code_save_decorator import saved_codes
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.params import TrainingParams
-from super_gradients.training.utils import sg_trainer_utils
+from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.common.environment.monitoring import SystemMonitor
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
@@ -27,6 +29,7 @@ LOGGER_LOGS_PREFIX = "logs"
 CONSOLE_LOGS_PREFIX = "console"
 
 
+@register_sg_logger("base_sg_logger")
 class BaseSGLogger(AbstractSGLogger):
     def __init__(
         self,
@@ -46,20 +49,18 @@ class BaseSGLogger(AbstractSGLogger):
     ):
         """
 
-        :param experiment_name: Used for logging and loading purposes
-        :param storage_location: If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
-        :param resumed: if true, then old tensorboard files will *not* be deleted when tb_files_user_prompt=True
-        :param training_params: training_params for the experiment.
-        :param checkpoints_dir_path: Local root directory path where all experiment logging directories will
-                                                 reside.
-        :param tb_files_user_prompt: Asks user for Tensorboard deletion prompt.
-        :param launch_tensorboard: Whether to launch a TensorBoard process.
-        :param tensorboard_port: Specific port number for the tensorboard to use when launched (when set to None, some free port
-                    number will be used
+        :param experiment_name:         Name used for logging and loading purposes
+        :param storage_location:        If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
+        :param resumed:                 If true, then old tensorboard files will **NOT** be deleted when tb_files_user_prompt=True
+        :param training_params:         training_params for the experiment.
+        :param checkpoints_dir_path:    Local root directory path where all experiment logging directories will reside.
+        :param tb_files_user_prompt:    Asks user for Tensorboard deletion prompt.
+        :param launch_tensorboard:      Whether to launch a TensorBoard process.
+        :param tensorboard_port:        Specific port number for the tensorboard to use when launched (when set to None, some free port number will be used
         :param save_checkpoints_remote: Saves checkpoints in s3.
         :param save_tensorboard_remote: Saves tensorboard in s3.
-        :param save_logs_remote: Saves log files in s3.
-        :param monitor_system: Save the system statistics (GPU utilization, CPU, ...) in the tensorboard
+        :param save_logs_remote:        Saves log files in s3.
+        :param monitor_system:          Save the system statistics (GPU utilization, CPU, ...) in the tensorboard
         """
         super().__init__()
         self.project_name = project_name
@@ -100,6 +101,7 @@ class BaseSGLogger(AbstractSGLogger):
         self._init_system_monitor(monitor_system)
 
         self._save_code()
+        self._resume_from_remote_sg_logger = get_param(training_params, "resume_from_remote_sg_logger")
 
     @multi_process_safe
     def _launch_tensorboard(self, port):
@@ -285,15 +287,31 @@ class BaseSGLogger(AbstractSGLogger):
                 logger.info("[CLEANUP] - Could not stop tensorboard process properly: " + str(ex))
 
     @multi_process_safe
-    def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = None):
+    def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = None) -> None:
+        """Add checkpoint to experiment folder.
 
+        :param tag:         Identifier of the checkpoint. If None, global_step will be used to name the checkpoint.
+        :param state_dict:  Checkpoint state_dict.
+        :param global_step: Epoch number.
+        """
         name = f"ckpt_{global_step}.pth" if tag is None else tag
         if not name.endswith(".pth"):
             name += ".pth"
-
         path = os.path.join(self._local_dir, name)
+
+        self._save_checkpoint(path=path, state_dict=state_dict)
+
+    @multi_process_safe
+    def _save_checkpoint(self, path: str, state_dict: dict) -> None:
+        """Save the Checkpoint locally.
+
+        :param path:        Full path of the checkpoint
+        :param state_dict:  State dict of the checkpoint
+        """
+
+        name = os.path.basename(path)
         torch.save(state_dict, path)
-        if "best" in tag:
+        if "best" in name:
             logger.info("Checkpoint saved in " + path)
         if self.save_checkpoints_remote:
             self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)

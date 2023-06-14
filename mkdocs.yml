@@ -1,0 +1,43 @@
+site_name: super-gradients
+nav:
+- Welcome:
+  - Intro: ./documentation/source/welcome.md
+  - Installation: ./documentation/source/installation.md
+  - Model Zoo: ./documentation/source/model_zoo.md
+- Quick Start:
+  - Basic: ./documentation/source/QuickstartBasicToolkit.md
+  - Classification: ./documentation/source/Example_Classification.md
+  - Object Detection: ./documentation/source/ObjectDetection.md
+  - Segmentation: ./documentation/source/Segmentation.md
+  - Pose Estimation: ./documentation/source/PoseEstimation.md
+  - Training an external model: ./documentation/source/Example_Training-an-external-model.md
+  - Pretrained Model Prediction:
+    - Prediction: ./documentation/source/ModelPredictions.md
+    - Custom training Setup: ./documentation/source/PredictionSetup.md
+- Main Components:
+  - Models: ./documentation/source/models.md
+  - Dataset:
+    - Data: ./documentation/source/Data.md
+    - Computer Vision Datasets: ./src/super_gradients/training/datasets/Dataset_Setup_Instructions.md
+  - Loss functions: ./documentation/source/Losses.md
+  - LR schedulers: ./documentation/source/LRScheduling.md
+  - Metrics: ./documentation/source/Metrics.md
+  - Optimizers: ./documentation/source/optimizers.md
+  - Phase Callbacks: ./documentation/source/PhaseCallbacks.md
+  - YAMLs and Recipes:
+    - Configurations: ./documentation/source/configuration_files.md
+    - Recipes: ./src/super_gradients/recipes/Training_Recipes.md
+  - Checkpoints: ./documentation/source/Checkpoints.md
+  - Docker: ./documentation/source/SGDocker.md
+  - Output Adapter: ./documentation/source/DetectionOutputAdapter.md
+- Features:
+  - Training Modes: ./documentation/source/device.md
+  - Logging: ./documentation/source/logs.md
+  - Experiment Monitoring: ./documentation/source/experiment_monitoring.md
+  - Exponential Moving Average (EMA): ./documentation/source/EMA.md
+  - Automatic Mixed Precision (AMP): ./documentation/source/average_mixed_precision.md
+  - Knowledge Distillation (KD): ./documentation/source/KD.md
+  - Quantization (PTQ & QAT): ./documentation/source/ptq_qat.md
+- Troubleshooting: ./documentation/source/troubleshooting.md
+- Contribution: ./documentation/source/CONTRIBUTING.md
+- Code: this_is_automatically_generated.md

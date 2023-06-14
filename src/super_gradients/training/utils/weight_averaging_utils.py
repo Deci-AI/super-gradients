@@ -1,8 +1,7 @@
 import os
 import torch
 import numpy as np
-import pkg_resources
-from super_gradients.training import utils as core_utils
+from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict
 from super_gradients.training.utils.utils import move_state_dict_to_device
 
 
@@ -18,7 +17,6 @@ class ModelWeightAveraging:
         self,
         ckpt_dir,
         greater_is_better,
-        source_ckpt_folder_name=None,
         metric_to_watch="acc",
         metric_idx=1,
         load_checkpoint=False,
@@ -26,16 +24,13 @@ class ModelWeightAveraging:
     ):
         """
         Init the ModelWeightAveraging
-        :param checkpoint_dir: the directory where the checkpoints are saved
+        :param ckpt_dir: the directory where the checkpoints are saved
         :param metric_to_watch: monitoring loss or acc, will be identical to that which determines best_model
         :param metric_idx:
         :param load_checkpoint: whether to load pre-existing snapshot dict.
         :param number_of_models_to_average: number of models to average
         """
 
-        if source_ckpt_folder_name is not None:
-            source_ckpt_file = os.path.join(source_ckpt_folder_name, "averaging_snapshots.pkl")
-            source_ckpt_file = pkg_resources.resource_filename("checkpoints", source_ckpt_file)
         self.averaging_snapshots_file = os.path.join(ckpt_dir, "averaging_snapshots.pkl")
         self.number_of_models_to_average = number_of_models_to_average
         self.metric_to_watch = metric_to_watch
@@ -43,14 +38,8 @@ class ModelWeightAveraging:
         self.greater_is_better = greater_is_better
 
         # if continuing training, copy previous snapshot dict if exist
-        if load_checkpoint and source_ckpt_folder_name is not None and os.path.isfile(source_ckpt_file):
-            averaging_snapshots_dict = core_utils.load_checkpoint(
-                ckpt_destination_dir=ckpt_dir,
-                source_ckpt_folder_name=source_ckpt_folder_name,
-                ckpt_filename="averaging_snapshots.pkl",
-                load_weights_only=False,
-                overwrite_local_ckpt=True,
-            )
+        if load_checkpoint and ckpt_dir is not None and os.path.isfile(self.averaging_snapshots_file):
+            averaging_snapshots_dict = read_ckpt_state_dict(self.averaging_snapshots_file)
 
         else:
             averaging_snapshots_dict = {"snapshot" + str(i): None for i in range(self.number_of_models_to_average)}
@@ -60,7 +49,7 @@ class ModelWeightAveraging:
             else:
                 averaging_snapshots_dict["snapshots_metric"] = np.inf * np.ones(self.number_of_models_to_average)
 
-        torch.save(averaging_snapshots_dict, self.averaging_snapshots_file)
+            torch.save(averaging_snapshots_dict, self.averaging_snapshots_file)
 
     def update_snapshots_dict(self, model, validation_results_tuple):
         """

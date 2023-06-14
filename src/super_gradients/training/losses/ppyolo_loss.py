@@ -1,4 +1,4 @@
-from typing import Mapping, Tuple, Union
+from typing import Mapping, Tuple, Union, Optional
 
 import numpy as np
 import torch
@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 
 import super_gradients
+from super_gradients.common.object_names import Losses
+from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import cxcywh_to_xyxy
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.training.utils.distributed_training_utils import (
@@ -13,15 +15,13 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 
 
-def batch_iou_similarity(box1, box2, eps=1e-9):
+def batch_iou_similarity(box1: torch.Tensor, box2: torch.Tensor, eps: float = 1e-9) -> float:
     """Calculate iou of box1 and box2 in batch. Bboxes are expected to be in x1y1x2y2 format.
 
-    Args:
-        box1 (Tensor): box with the shape [N, M1, 4]
-        box2 (Tensor): box with the shape [N, M2, 4]
+    :param box1: box with the shape [N, M1, 4]
+    :param box2: box with the shape [N, M2, 4]
+    :return iou: iou between box1 and box2 with the shape [N, M1, M2]
 
-    Return:
-        iou (Tensor): iou between box1 and box2 with the shape [N, M1, M2]
     """
     box1 = box1.unsqueeze(2)  # [N, M1, 4] -> [N, M1, 1, 4]
     box2 = box2.unsqueeze(1)  # [N, M2, 4] -> [N, 1, M2, 4]
@@ -36,16 +36,14 @@ def batch_iou_similarity(box1, box2, eps=1e-9):
     return overlap / union
 
 
-def iou_similarity(box1, box2, eps=1e-10):
+def iou_similarity(box1: torch.Tensor, box2: torch.Tensor, eps: float = 1e-10) -> float:
     """
     Calculate iou of box1 and box2. Bboxes are expected to be in x1y1x2y2 format.
 
-    Args:
-        box1 (Tensor): box with the shape [M1, 4]
-        box2 (Tensor): box with the shape [M2, 4]
+    :param box1: box with the shape [M1, 4]
+    :param box2: box with the shape [M2, 4]
 
-    Return:
-        iou (Tensor): iou between box1 and box2 with the shape [M1, M2]
+    :return iou: iou between box1 and box2 with the shape [M1, M2]
     """
     box1 = box1.unsqueeze(1)  # [M1, 4] -> [M1, 1, 4]
     box2 = box2.unsqueeze(0)  # [M2, 4] -> [1, M2, 4]
@@ -60,24 +58,22 @@ def iou_similarity(box1, box2, eps=1e-10):
     return overlap / union
 
 
-def bbox_overlaps(bboxes1, bboxes2, mode="iou", is_aligned=False, eps=1e-6):
-    """Calculate overlap between two set of bboxes.
+def bbox_overlaps(bboxes1: torch.Tensor, bboxes2: torch.Tensor, mode: str = "iou", is_aligned: bool = False, eps: float = 1e-6) -> torch.Tensor:
+    """
+    Calculate overlap between two set of bboxes.
+
     If ``is_aligned `` is ``False``, then calculate the overlaps between each
     bbox of bboxes1 and bboxes2, otherwise the overlaps between each aligned
     pair of bboxes1 and bboxes2.
-    Args:
-        bboxes1 (Tensor): shape (B, m, 4) in <x1, y1, x2, y2> format or empty.
-        bboxes2 (Tensor): shape (B, n, 4) in <x1, y1, x2, y2> format or empty.
-            B indicates the batch dim, in shape (B1, B2, ..., Bn).
-            If ``is_aligned `` is ``True``, then m and n must be equal.
-        mode (str): "iou" (intersection over union) or "iof" (intersection over
-            foreground).
-        is_aligned (bool, optional): If True, then m and n must be equal.
-            Default False.
-        eps (float, optional): A value added to the denominator for numerical
-            stability. Default 1e-6.
-    Returns:
-        Tensor: shape (m, n) if ``is_aligned `` is False else shape (m,)
+
+    :param bboxes1:     shape (B, m, 4) in <x1, y1, x2, y2> format or empty.
+    :param bboxes2:     shape (B, n, 4) in <x1, y1, x2, y2> format or empty.
+                                B indicates the batch dim, in shape (B1, B2, ..., Bn).
+                                If ``is_aligned `` is ``True``, then m and n must be equal.
+    :param mode:        Either "iou" (intersection over union) or "iof" (intersection over foreground).
+    :param is_aligned:  If True, then m and n must be equal. Default False.
+    :param eps:         A value added to the denominator for numerical stability. Default 1e-6.
+    :return:            Tensor of shape (m, n) if ``is_aligned `` is False else shape (m,)
     """
     assert mode in ["iou", "iof", "giou"], "Unsupported mode {}".format(mode)
     # Either the boxes are empty or the length of boxes's last dimenstion is 4
@@ -170,10 +166,9 @@ def topk_(input, k, axis=1, largest=True):
 def compute_max_iou_anchor(ious: Tensor) -> Tensor:
     r"""
     For each anchor, find the GT with the largest IOU.
-    Args:
-        ious (Tensor, float32): shape[B, n, L], n: num_gts, L: num_anchors
-    Returns:
-        is_max_iou (Tensor, float32): shape[B, n, L], value=1. means selected
+
+    :param ious: Tensor (float32) of shape[B, n, L], n: num_gts, L: num_anchors
+    :return: is_max_iou is Tensor (float32) of shape[B, n, L], value=1. means selected
     """
     num_max_boxes = ious.shape[-2]
     max_iou_index = ious.argmax(dim=-2)
@@ -181,15 +176,15 @@ def compute_max_iou_anchor(ious: Tensor) -> Tensor:
     return is_max_iou.type_as(ious)
 
 
-def check_points_inside_bboxes(points: Tensor, bboxes, center_radius_tensor=None, eps=1e-9):
-    r"""
-    Args:
-        points (Tensor, float32): shape[L, 2], "xy" format, L: num_anchors
-        bboxes (Tensor, float32): shape[B, n, 4], "xmin, ymin, xmax, ymax" format
-        center_radius_tensor (Tensor, float32): shape [L, 1]. Default: None.
-        eps (float): Default: 1e-9
-    Returns:
-        is_in_bboxes (Tensor, float32): shape[B, n, L], value=1. means selected
+def check_points_inside_bboxes(points: Tensor, bboxes: Tensor, center_radius_tensor: Optional[Tensor] = None, eps: float = 1e-9) -> Tensor:
+    """
+
+    :param points:                  Tensor (float32) of shape[L, 2], "xy" format, L: num_anchors
+    :param bboxes:                  Tensor (float32) of shape[B, n, 4], "xmin, ymin, xmax, ymax" format
+    :param center_radius_tensor:    Tensor (float32) of shape [L, 1]. Default: None.
+    :param eps:                     Default: 1e-9
+
+    :return is_in_bboxes: Tensor (float32) of shape[B, n, L], value=1. means selected
     """
     points = points.unsqueeze(0).unsqueeze(0)
     x, y = points.chunk(2, dim=-1)
@@ -217,19 +212,16 @@ def check_points_inside_bboxes(points: Tensor, bboxes, center_radius_tensor=None
     return is_in_bboxes.type_as(bboxes)
 
 
-def gather_topk_anchors(metrics, topk, largest=True, topk_mask=None, eps=1e-9):
-    r"""
-    Args:
-        metrics (Tensor, float32): shape[B, n, L], n: num_gts, L: num_anchors
-        topk (int): The number of top elements to look for along the axis.
-        largest (bool) : largest is a flag, if set to true,
-            algorithm will sort by descending order, otherwise sort by
-            ascending order. Default: True
-        topk_mask (Tensor, float32): shape[B, n, 1], ignore bbox mask,
-            Default: None
-        eps (float): Default: 1e-9
-    Returns:
-        is_in_topk (Tensor, float32): shape[B, n, L], value=1. means selected
+def gather_topk_anchors(metrics: Tensor, topk: int, largest: bool = True, topk_mask: Optional[Tensor] = None, eps: float = 1e-9) -> Tensor:
+    """
+
+    :param metrics:     Tensor(float32) of shape[B, n, L], n: num_gts, L: num_anchors
+    :param topk:        The number of top elements to look for along the axis.
+    :param largest:     If set to true, algorithm will sort by descending order, otherwise sort by ascending order.
+    :param topk_mask:   Tensor(float32) of shape[B, n, 1], ignore bbox mask,
+    :param eps:         Default: 1e-9
+
+    :return: is_in_topk, Tensor (float32) of shape[B, n, L], value=1. means selected
     """
     num_anchors = metrics.shape[-1]
     topk_metrics, topk_idxs = torch.topk(metrics, topk, dim=-1, largest=largest)
@@ -239,25 +231,24 @@ def gather_topk_anchors(metrics, topk, largest=True, topk_mask=None, eps=1e-9):
     return is_in_topk * topk_mask
 
 
-def bbox_center(boxes):
-    """Get bbox centers from boxes.
-    Args:
-        boxes (Tensor): boxes with shape (..., 4), "xmin, ymin, xmax, ymax" format.
-    Returns:
-        Tensor: boxes centers with shape (..., 2), "cx, cy" format.
+def bbox_center(boxes: Tensor) -> Tensor:
+    """
+    Get bbox centers from boxes.
+
+    :param boxes:   Boxes with shape (..., 4), "xmin, ymin, xmax, ymax" format.
+    :return:        Boxes centers with shape (..., 2), "cx, cy" format.
     """
     boxes_cx = (boxes[..., 0] + boxes[..., 2]) / 2
     boxes_cy = (boxes[..., 1] + boxes[..., 3]) / 2
     return torch.stack([boxes_cx, boxes_cy], dim=-1)
 
 
-def compute_max_iou_gt(ious):
-    r"""
+def compute_max_iou_gt(ious: Tensor) -> Tensor:
+    """
     For each GT, find the anchor with the largest IOU.
-    Args:
-        ious (Tensor, float32): shape[B, n, L], n: num_gts, L: num_anchors
-    Returns:
-        is_max_iou (Tensor, float32): shape[B, n, L], value=1. means selected
+
+    :param ious: Tensor (float32) of shape[B, n, L], n: num_gts, L: num_anchors
+    :return:    is_max_iou, Tensor (float32) of shape[B, n, L], value=1. means selected
     """
     num_anchors = ious.shape[-1]
     max_iou_index = ious.argmax(dim=-1)
@@ -309,17 +300,17 @@ class ATSSAssigner(nn.Module):
     @torch.no_grad()
     def forward(
         self,
-        anchor_bboxes,
-        num_anchors_list,
-        gt_labels,
-        gt_bboxes,
-        pad_gt_mask,
-        bg_index,
-        gt_scores=None,
-        pred_bboxes=None,
-    ):
-        r"""This code is based on
-            https://github.com/fcjian/TOOD/blob/master/mmdet/core/bbox/assigners/atss_assigner.py
+        anchor_bboxes: Tensor,
+        num_anchors_list: list,
+        gt_labels: Tensor,
+        gt_bboxes: Tensor,
+        pad_gt_mask: Tensor,
+        bg_index: int,
+        gt_scores: Optional[Tensor] = None,
+        pred_bboxes: Optional[Tensor] = None,
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        """
+        This code is based on https://github.com/fcjian/TOOD/blob/master/mmdet/core/bbox/assigners/atss_assigner.py
 
         The assignment is done in following steps
         1. compute iou between all bbox (bbox of all pyramid levels) and gt
@@ -334,21 +325,19 @@ class ATSSAssigner(nn.Module):
         6. limit the positive sample's center in gt
         7. if an anchor box is assigned to multiple gts, the one with the
            highest iou will be selected.
-        Args:
-            anchor_bboxes (Tensor, float32): pre-defined anchors, shape(L, 4),
-                    "xmin, xmax, ymin, ymax" format
-            num_anchors_list (List): num of anchors in each level
-            gt_labels (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
-            gt_bboxes (Tensor, float32): Ground truth bboxes, shape(B, n, 4)
-            pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
-            bg_index (int): background index
-            gt_scores (Tensor|None, float32) Score of gt_bboxes,
-                    shape(B, n, 1), if None, then it will initialize with one_hot label
-            pred_bboxes (Tensor, float32, optional): predicted bounding boxes, shape(B, L, 4)
-        Returns:
-            assigned_labels (Tensor): (B, L)
-            assigned_bboxes (Tensor): (B, L, 4)
-            assigned_scores (Tensor): (B, L, C), if pred_bboxes is not None, then output ious
+
+        :param anchor_bboxes:       Tensor(float32) - pre-defined anchors, shape(L, 4), "xmin, xmax, ymin, ymax" format
+        :param num_anchors_list:    Number of anchors in each level
+        :param gt_labels:           Tensor (int64|int32) - Label of gt_bboxes, shape(B, n, 1)
+        :param gt_bboxes:           Tensor (float32) - Ground truth bboxes, shape(B, n, 4)
+        :param pad_gt_mask:         Tensor (float32) - 1 means bbox, 0 means no bbox, shape(B, n, 1)
+        :param bg_index:            Background index
+        :param gt_scores:           Tensor (float32) - Score of gt_bboxes, shape(B, n, 1), if None, then it will initialize with one_hot label
+        :param pred_bboxes:         Tensor (float32) - predicted bounding boxes, shape(B, L, 4)
+        :return:
+            - assigned_labels: Tensor of shape (B, L)
+            - assigned_bboxes: Tensor of shape (B, L, 4)
+            - assigned_scores: Tensor of shape (B, L, C), if pred_bboxes is not None, then output ious
         """
         assert gt_labels.ndim == gt_bboxes.ndim and gt_bboxes.ndim == 3
 
@@ -460,18 +449,18 @@ class TaskAlignedAssigner(nn.Module):
     @torch.no_grad()
     def forward(
         self,
-        pred_scores,
-        pred_bboxes,
-        anchor_points,
-        num_anchors_list,
-        gt_labels,
-        gt_bboxes,
-        pad_gt_mask,
-        bg_index,
-        gt_scores=None,
+        pred_scores: Tensor,
+        pred_bboxes: Tensor,
+        anchor_points: Tensor,
+        num_anchors_list: list,
+        gt_labels: Tensor,
+        gt_bboxes: Tensor,
+        pad_gt_mask: Tensor,
+        bg_index: int,
+        gt_scores: Optional[Tensor] = None,
     ):
-        r"""This code is based on
-            https://github.com/fcjian/TOOD/blob/master/mmdet/core/bbox/assigners/task_aligned_assigner.py
+        """
+        This code is based on https://github.com/fcjian/TOOD/blob/master/mmdet/core/bbox/assigners/task_aligned_assigner.py
 
         The assignment is done in following steps
         1. compute alignment metric between all bbox (bbox of all pyramid levels) and gt
@@ -480,20 +469,20 @@ class TaskAlignedAssigner(nn.Module):
            only can predict positive distance)
         4. if an anchor box is assigned to multiple gts, the one with the
            highest iou will be selected.
-        Args:
-            pred_scores (Tensor, float32): predicted class probability, shape(B, L, C)
-            pred_bboxes (Tensor, float32): predicted bounding boxes, shape(B, L, 4)
-            anchor_points (Tensor, float32): pre-defined anchors, shape(L, 2), "cxcy" format
-            num_anchors_list (List): num of anchors in each level, shape(L)
-            gt_labels (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
-            gt_bboxes (Tensor, float32): Ground truth bboxes, shape(B, n, 4)
-            pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
-            bg_index (int): background index
-            gt_scores (Tensor|None, float32) Score of gt_bboxes, shape(B, n, 1)
-        Returns:
-            assigned_labels (Tensor): (B, L)
-            assigned_bboxes (Tensor): (B, L, 4)
-            assigned_scores (Tensor): (B, L, C)
+
+        :param pred_scores: Tensor (float32): predicted class probability, shape(B, L, C)
+        :param pred_bboxes: Tensor (float32): predicted bounding boxes, shape(B, L, 4)
+        :param anchor_points: Tensor (float32): pre-defined anchors, shape(L, 2), "cxcy" format
+        :param num_anchors_list: List ( num of anchors in each level, shape(L)
+        :param gt_labels: Tensor (int64|int32): Label of gt_bboxes, shape(B, n, 1)
+        :param gt_bboxes: Tensor (float32): Ground truth bboxes, shape(B, n, 4)
+        :param pad_gt_mask: Tensor (float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
+        :param bg_index: int ( background index
+        :param gt_scores: Tensor (one, float32) Score of gt_bboxes, shape(B, n, 1)
+        :return:
+            - assigned_labels, Tensor of shape (B, L)
+            - assigned_bboxes, Tensor of shape (B, L, 4)
+            - assigned_scores, Tensor of shape (B, L, C)
         """
         assert pred_scores.ndim == pred_bboxes.ndim
         assert gt_labels.ndim == gt_bboxes.ndim and gt_bboxes.ndim == 3
@@ -503,9 +492,9 @@ class TaskAlignedAssigner(nn.Module):
 
         # negative batch
         if num_max_boxes == 0:
-            assigned_labels = torch.full([batch_size, num_anchors], bg_index, dtype="int32")
-            assigned_bboxes = torch.zeros([batch_size, num_anchors, 4])
-            assigned_scores = torch.zeros([batch_size, num_anchors, num_classes])
+            assigned_labels = torch.full([batch_size, num_anchors], bg_index, dtype=torch.long, device=gt_labels.device)
+            assigned_bboxes = torch.zeros([batch_size, num_anchors, 4], device=gt_labels.device)
+            assigned_scores = torch.zeros([batch_size, num_anchors, num_classes], device=gt_labels.device)
             return assigned_labels, assigned_bboxes, assigned_scores
 
         # compute iou between gt and pred bbox, [B, n, L]
@@ -567,28 +556,29 @@ class TaskAlignedAssigner(nn.Module):
 class GIoULoss(object):
     """
     Generalized Intersection over Union, see https://arxiv.org/abs/1902.09630
-    Args:
-        loss_weight (float): giou loss weight, default as 1
-        eps (float): epsilon to avoid divide by zero, default as 1e-10
-        reduction (string): Options are "none", "mean" and "sum". default as none
+
+    :param loss_weight: giou loss weight, default as 1
+    :param eps:         epsilon to avoid divide by zero, default as 1e-10
+    :param reduction:   Options are "none", "mean" and "sum". default as none
     """
 
-    def __init__(self, loss_weight=1.0, eps=1e-10, reduction="none"):
+    def __init__(self, loss_weight: float = 1.0, eps: float = 1e-10, reduction: str = "none"):
         self.loss_weight = loss_weight
         self.eps = eps
         assert reduction in ("none", "mean", "sum")
         self.reduction = reduction
 
-    def bbox_overlap(self, box1, box2, eps=1e-10):
-        """calculate the iou of box1 and box2
-        Args:
-            box1 (Tensor): box1 with the shape (..., 4)
-            box2 (Tensor): box1 with the shape (..., 4)
-            eps (float): epsilon to avoid divide by zero
-        Return:
-            iou (Tensor): iou of box1 and box2
-            overlap (Tensor): overlap of box1 and box2
-            union (Tensor): union of box1 and box2
+    def bbox_overlap(self, box1: Tensor, box2: Tensor, eps: float = 1e-10) -> Tuple[Tensor, Tensor, Tensor]:
+        """
+        Calculate the iou of box1 and box2.
+
+        :param box1:    box1 with the shape (..., 4)
+        :param box2:    box1 with the shape (..., 4)
+        :param eps:     epsilon to avoid divide by zero
+        :return:
+            - iou:      iou of box1 and box2
+            - overlap:  overlap of box1 and box2
+            - union:    union of box1 and box2
         """
         x1, y1, x2, y2 = box1
         x1g, y1g, x2g, y2g = box2
@@ -640,6 +630,7 @@ class GIoULoss(object):
         return loss * self.loss_weight
 
 
+@register_loss(Losses.PPYOLOE_LOSS)
 class PPYoloELoss(nn.Module):
     def __init__(
         self,

@@ -1,25 +1,28 @@
+import collections
 import math
-import time
-from functools import lru_cache
-from pathlib import Path
-from typing import Mapping, Optional, Tuple, Union, List, Dict, Any
-from zipfile import ZipFile
 import os
-from jsonschema import validate
-import tarfile
-from PIL import Image, ExifTags
+import random
 import re
+import tarfile
+import time
+import inspect
+from functools import lru_cache, wraps
+from importlib import import_module
+from itertools import islice
+
+from pathlib import Path
+from typing import Mapping, Optional, Tuple, Union, List, Dict, Any, Iterable
+from zipfile import ZipFile
+
+import numpy as np
 import torch
 import torch.nn as nn
-
-
-# These functions changed from torch 1.2 to torch 1.3
-
-import random
-import numpy as np
-from importlib import import_module
+from PIL import Image, ExifTags
+from jsonschema import validate
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+
+# These functions changed from torch 1.2 to torch 1.3
 
 logger = get_logger(__name__)
 
@@ -29,11 +32,14 @@ def empty_list():
     return list()
 
 
-def convert_to_tensor(array):
+def convert_to_tensor(array, dtype=None, device=None):
     """Converts numpy arrays and lists to Torch tensors before calculation losses
     :param array: torch.tensor / Numpy array / List
     """
-    return torch.FloatTensor(array) if type(array) != torch.Tensor else array
+    if not torch.is_tensor(array):
+        array = torch.tensor(array)
+
+    return array.to(device=device, dtype=dtype)
 
 
 class HpmStruct:
@@ -78,6 +84,44 @@ class WrappedModel(nn.Module):
 
     def forward(self, x):
         return self.module(x)
+
+
+def arch_params_deprecated(func):
+    """
+    Since initialization of arch_params is deprecated and will be removed, this decorator will be used to wrap the _init_
+    function of some models. It will unwrap the parameters of the function and will log a warning.
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        func_args = inspect.getfullargspec(func).args
+        _args = []
+        if "arch_params" in kwargs:
+            _arch_params = kwargs.get("arch_params", kwargs).to_dict()
+        elif len(args) > 1 and isinstance(args[1], HpmStruct):
+            _arch_params = args[1].to_dict()  # when called from inheritance
+            _args.append(args[0])
+        elif len(args) > 0 and isinstance(args[0], HpmStruct):
+            _arch_params = args[0].to_dict()
+        else:
+            return func(*args, **kwargs)
+
+        _kwargs = dict()
+        for param_name in func_args:
+            if param_name in _arch_params:
+                _kwargs[param_name] = _arch_params[param_name]
+            if param_name in kwargs:
+                _kwargs[param_name] = kwargs[param_name]
+
+        logger.warning(
+            f"The {func.__qualname__} received `arch_params` argument which is deprecated and will be removed in next versions. "
+            f"Please change the signature of the __init__ method to take explicit list arguments instead: "
+            f"{func.__qualname__}({', '.join(_kwargs.keys())})"
+        )
+        return func(*_args, **_kwargs)
+
+    return wrapper
 
 
 class Timer:
@@ -314,8 +358,8 @@ def load_func(dotpath: str):
 
     Used for passing functions (without calling them) in yaml files.
 
-    @param dotpath: path to module.
-    @return: a python function
+    :param dotpath: path to module.
+    :return: a python function
     """
     module_, func = dotpath.rsplit(".", maxsplit=1)
     m = import_module(module_)
@@ -326,8 +370,8 @@ def get_filename_suffix_by_framework(framework: str):
     """
     Return the file extension of framework.
 
-    @param framework: (str)
-    @return: (str) the suffix for the specific framework
+    :param framework: (str)
+    :return: (str) the suffix for the specific framework
     """
     frameworks_dict = {
         "TENSORFLOW1": ".pb",
@@ -352,9 +396,9 @@ def check_models_have_same_weights(model_1: torch.nn.Module, model_2: torch.nn.M
     """
     Checks whether two networks have the same weights
 
-    @param model_1: Net to be checked
-    @param model_2: Net to be checked
-    @return: True iff the two networks have the same weights
+    :param model_1: Net to be checked
+    :param model_2: Net to be checked
+    :return: True iff the two networks have the same weights
     """
     model_1, model_2 = model_1.to("cpu"), model_2.to("cpu")
     models_differ = 0
@@ -374,7 +418,7 @@ def check_models_have_same_weights(model_1: torch.nn.Module, model_2: torch.nn.M
 def recursive_override(base: dict, extension: dict):
     for k, v in extension.items():
         if k in base:
-            if isinstance(v, Mapping):
+            if isinstance(v, Mapping) and isinstance(base[k], Mapping):
                 recursive_override(base[k], extension[k])
             else:
                 base[k] = extension[k]
@@ -526,3 +570,30 @@ def override_default_params_without_nones(params: Dict, default_params: Mapping)
         if key not in params.keys() or params[key] is None:
             params[key] = val
     return params
+
+
+def generate_batch(iterable: Iterable, batch_size: int) -> Iterable:
+    """Batch data into tuples of length n. The last batch may be shorter."""
+    it = iter(iterable)
+    while True:
+        batch = tuple(islice(it, batch_size))
+        if batch:
+            yield batch
+        else:
+            return
+
+
+def ensure_is_tuple_of_two(inputs: Union[Any, Iterable[Any], None]) -> Union[Tuple[Any, Any], None]:
+    """
+    Checks input and converts it to a tuple of length two. If input is None returns None.
+    :param inputs: Input argument, either a number or a tuple of two numbers.
+    :return: Tuple of two numbers if input is not None, otherwise - None.
+    """
+    if inputs is None:
+        return None
+
+    if isinstance(inputs, collections.Iterable) and not isinstance(inputs, str):
+        a, b = inputs
+        return a, b
+
+    return inputs, inputs

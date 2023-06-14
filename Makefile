@@ -1,51 +1,16 @@
-# Summary report can be found here: https://www.notion.so/deci-ai/Torch-Compile-25afee245d01412598e95c5f16885249
+unit_tests:
+	python -m unittest tests/deci_core_unit_test_suite_runner.py
 
-# Fails at torch.compile (Investigate needed)
-coco2017_ppyoloe_s:
-	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_s_compile_enabled multi_gpu=Off num_gpus=1
-	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ppyoloe_s_compile_disabled multi_gpu=Off num_gpus=1
+integration_tests:
+	python -m unittest tests/deci_core_integration_test_suite_runner.py
 
-# Fails at torch.compile (Probably could be fixed by rewriting our forward implementation to not using hooks)
-# RuntimeError: Failed running call_module getattr_self_backbone_multi_output_backbone__modules__0___features___14___conv_2(*(FakeTensor(FakeTensor(..., device='meta', size=(32, 576, 20, 20),
-#  File "/home/eugene.khvedchenia/super-gradients/src/super_gradients/training/utils/module_utils.py", line 61, in save_output_hook
-#    self._outputs_lists[input[0].device].append(output) <---- LOOOKS SUS!!!!!
-#KeyError: device(type='cuda', index=0)
-coco2017_ssd_lite_mobilenet_v2:
-	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2_compile_enabled multi_gpu=Off num_gpus=1
-	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2_compile_disabled multi_gpu=Off num_gpus=1
+yolo_nas_integration_tests:
+	python -m unittest tests/integration_tests/yolo_nas_integration_test.py
 
-# Crashes at first forward attempt with CUDA error (misaligned address) (Investigate needed)
-coco2017_yolox:
-	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox_compile_enabled multi_gpu=Off num_gpus=1
-	python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox_compile_disabled multi_gpu=Off num_gpus=1
-
-
-imagenet_resnet50:
-	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50_compile_enabled training_hyperparams.torch_compile_mode=default          multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50_compile_enabled training_hyperparams.torch_compile_mode=reduce-overhead  multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50_compile_enabled training_hyperparams.torch_compile_mode=max-autotune     multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50_compile_disabled                     									   multi_gpu=Off num_gpus=1
-
-imagenet_regnetY:
-	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY_compile_enabled training_hyperparams.torch_compile_mode=default          multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY_compile_enabled training_hyperparams.torch_compile_mode=reduce-overhead  multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY_compile_enabled training_hyperparams.torch_compile_mode=max-autotune     multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY_compile_disabled                       								   multi_gpu=Off num_gpus=1
-
-
-cityscapes_ddrnet:
-	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_enabled training_hyperparams.torch_compile_mode=default          multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_enabled training_hyperparams.torch_compile_mode=reduce-overhead  multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_enabled training_hyperparams.torch_compile_mode=max-autotune     multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet_compile_disabled                     									   multi_gpu=Off num_gpus=1
-
-
-cityscapes_stdc_seg50:
-	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50_compile_disabled                     									   multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50_compile_enabled training_hyperparams.torch_compile_mode=default          multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50_compile_enabled training_hyperparams.torch_compile_mode=reduce-overhead  multi_gpu=Off num_gpus=1
-	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50_compile_enabled training_hyperparams.torch_compile_mode=max-autotune     multi_gpu=Off num_gpus=1
-
-
-
-all: imagenet_resnet50 cityscapes_ddrnet cityscapes_stdc_seg50 imagenet_regnetY
+recipe_accuracy_tests:
+	python3.8 src/super_gradients/examples/convert_recipe_example/convert_recipe_example.py --config-name=cifar10_conversion_params experiment_name=shortened_cifar10_resnet_accuracy_test
+	python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_pose_dekr_w32_no_dc experiment_name=shortened_coco2017_pose_dekr_w32_ap_test epochs=1 batch_size=4 val_batch_size=8 training_hyperparams.lr_warmup_steps=0 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=1000 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4
+	python3.8 src/super_gradients/train_from_recipe.py --config-name=cifar10_resnet               experiment_name=shortened_cifar10_resnet_accuracy_test   epochs=100 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
+	python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_yolox               experiment_name=shortened_coco2017_yolox_n_map_test      epochs=10  architecture=yolox_n training_hyperparams.loss=yolox_fast_loss training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
+	python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_regseg48          experiment_name=shortened_cityscapes_regseg48_iou_test   epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
+	coverage run --source=super_gradients -m unittest tests/deci_core_recipe_test_suite_runner.py

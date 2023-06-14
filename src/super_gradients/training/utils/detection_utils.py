@@ -4,16 +4,19 @@ import pathlib
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, List, Union, Tuple, Optional, Dict
+from typing import Callable, List, Union, Tuple, Optional, Dict, Type
 
 import cv2
-import matplotlib.pyplot as plt
+
 import numpy as np
 import torch
 import torchvision
 from omegaconf import ListConfig
 from torch import nn
-from torch.utils.data._utils.collate import default_collate
+
+from super_gradients.common.registry.registry import register_collate_function
+from super_gradients.training.utils.visualization.detection import draw_bbox
+from super_gradients.training.utils.visualization.utils import generate_color_mapping
 
 
 class DetectionTargetsFormat(Enum):
@@ -57,9 +60,9 @@ def _set_batch_labels_index(labels_batch):
     return labels_batch
 
 
-def convert_xywh_bbox_to_xyxy(input_bbox: torch.Tensor):
+def convert_cxcywh_bbox_to_xyxy(input_bbox: torch.Tensor):
     """
-    Converts bounding box format from [x, y, w, h] to [x1, y1, x2, y2]
+    Converts bounding box format from [cx, cy, w, h] to [x1, y1, x2, y2]
         :param input_bbox:  input bbox either 2-dimensional (for all boxes of a single image) or 3-dimensional (for
                             boxes of a batch of images)
         :return:            Converted bbox in same dimensions as the original
@@ -121,10 +124,10 @@ def _iou(CIoU: bool, DIoU: bool, GIoU: bool, b1_x1, b1_x2, b1_y1, b1_y2, b2_x1, 
 def calculate_bbox_iou_matrix(box1, box2, x1y1x2y2=True, GIoU: bool = False, DIoU=False, CIoU=False, eps=1e-9):
     """
     calculate iou matrix containing the iou of every couple iuo(i,j) where i is in box1 and j is in box2
-        :param box1: a 2D tensor of boxes (shape N x 4)
-        :param box2: a 2D tensor of boxes (shape M x 4)
-        :param x1y1x2y2: boxes format is x1y1x2y2 (True) or xywh where xy is the center (False)
-        :return: a 2D iou matrix (shape NxM)
+    :param box1: a 2D tensor of boxes (shape N x 4)
+    :param box2: a 2D tensor of boxes (shape M x 4)
+    :param x1y1x2y2: boxes format is x1y1x2y2 (True) or xywh where xy is the center (False)
+    :return: a 2D iou matrix (shape NxM)
     """
     if box1.dim() > 1:
         box1 = box1.T
@@ -207,17 +210,14 @@ class IouThreshold(tuple, Enum):
             return torch.tensor([self[0]])
 
 
-def box_iou(box1, box2):
+def box_iou(box1: torch.Tensor, box2: torch.Tensor) -> torch.Tensor:
     # https://github.com/pytorch/vision/blob/master/torchvision/ops/boxes.py
     """
     Return intersection-over-union (Jaccard index) of boxes.
     Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
-    Arguments:
-        box1 (Tensor[N, 4])
-        box2 (Tensor[M, 4])
-    Returns:
-        iou (Tensor[N, M]): the NxM matrix containing the pairwise
-            IoU values for every element in boxes1 and boxes2
+    :param box1: Tensor of shape [N, 4]
+    :param box2: Tensor of shape [M, 4]
+    :return:     iou, Tensor of shape [N, M]: the NxM matrix containing the pairwise IoU values for every element in boxes1 and boxes2
     """
 
     def box_area(box):
@@ -235,7 +235,7 @@ def box_iou(box1, box2):
 def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_per_box: bool = True, with_confidence: bool = False):
     """
     Performs Non-Maximum Suppression (NMS) on inference results
-        :param prediction: raw model prediction
+        :param prediction: raw model prediction. Should be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
         :param conf_thres: below the confidence threshold - prediction are discarded
         :param iou_thres: IoU threshold for the nms algorithm
         :param multi_label_per_box: whether to use re-use each box with all possible labels
@@ -243,9 +243,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_p
                                     will be sent to NMS); by default is set to True
         :param with_confidence: whether to multiply objectness score with class score.
                                 usually valid for Yolo models only.
-        :return:  (x1, y1, x2, y2, object_conf, class_conf, class)
-    Returns:
-         detections with shape: nx6 (x1, y1, x2, y2, conf, cls)
+        :return: detections with shape nx6 (x1, y1, x2, y2, object_conf, class_conf, class)
     """
     candidates_above_thres = prediction[..., 4] > conf_thres  # filter by confidence
     output = [None] * prediction.shape[0]
@@ -260,7 +258,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_p
         if with_confidence:
             pred[:, 5:] *= pred[:, 4:5]  # multiply objectness score with class score
 
-        box = convert_xywh_bbox_to_xyxy(pred[:, :4])  # xywh to xyxy
+        box = convert_cxcywh_bbox_to_xyxy(pred[:, :4])  # cxcywh to xyxy
 
         # Detections matrix nx6 (xyxy, conf, cls)
         if multi_label_per_box:  # try for all good confidence classes
@@ -282,26 +280,30 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_p
     return output
 
 
-def matrix_non_max_suppression(pred, conf_thres: float = 0.1, kernel: str = "gaussian", sigma: float = 3.0, max_num_of_detections: int = 500):
-    """Performs Matrix Non-Maximum Suppression (NMS) on inference results
-        https://arxiv.org/pdf/1912.04488.pdf
-        :param pred: raw model prediction (in test mode) - a Tensor of shape [batch, num_predictions, 85]
-        where each item format is (x, y, w, h, object_conf, class_conf, ... 80 classes score ...)
-        :param conf_thres: below the confidence threshold - prediction are discarded
-        :param kernel: type of kernel to use ['gaussian', 'linear']
-        :param sigma: sigma for the gussian kernel
-        :param max_num_of_detections: maximum number of boxes to output
-        :return:  list of (x1, y1, x2, y2, object_conf, class_conf, class)
+def matrix_non_max_suppression(
+    pred,
+    conf_thres: float = 0.1,
+    kernel: str = "gaussian",
+    sigma: float = 3.0,
+    max_num_of_detections: int = 500,
+) -> List[torch.Tensor]:
+    """Performs Matrix Non-Maximum Suppression (NMS) on inference results https://arxiv.org/pdf/1912.04488.pdf
 
-    Returns:
-         detections list with shape: (x1, y1, x2, y2, conf, cls)
+    :param pred:        Raw model prediction (in test mode) - a Tensor of shape [batch, num_predictions, 85]
+                        where each item format is (x, y, w, h, object_conf, class_conf, ... 80 classes score ...)
+    :param conf_thres:  Threshold under which prediction are discarded
+    :param kernel:      Type of kernel to use ['gaussian', 'linear']
+    :param sigma:       Sigma for the gaussian kernel
+    :param max_num_of_detections: Maximum number of boxes to output
+
+    :return: Detections list with shape (x1, y1, x2, y2, object_conf, class_conf, class)
     """
     # MULTIPLY CONF BY CLASS CONF TO GET COMBINED CONFIDENCE
     class_conf, class_pred = pred[:, :, 5:].max(2)
     pred[:, :, 4] *= class_conf
 
     # BOX (CENTER X, CENTER Y, WIDTH, HEIGHT) TO (X1, Y1, X2, Y2)
-    pred[:, :, :4] = convert_xywh_bbox_to_xyxy(pred[:, :, :4])
+    pred[:, :, :4] = convert_cxcywh_bbox_to_xyxy(pred[:, :, :4])
 
     # DETECTIONS ORDERED AS (x1y1x2y2, obj_conf, class_conf, class_pred)
     pred = torch.cat((pred[:, :, :5], class_pred.unsqueeze(2)), 2)
@@ -363,9 +365,8 @@ class DetectionVisualization:
         """
         Generate a unique BGR color for each class
         """
-        cmap = plt.cm.get_cmap("gist_rainbow", num_classes)
-        colors = [cmap(i, bytes=True)[:3][::-1] for i in range(num_classes)]
-        return [tuple(int(v) for v in c) for c in colors]
+
+        return generate_color_mapping(num_classes=num_classes)
 
     @staticmethod
     def _draw_box_title(
@@ -384,20 +385,12 @@ class DetectionVisualization:
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
-        # Draw the box
-        image_np = cv2.rectangle(image_np, (x1, y1), (x2, y2), color, box_thickness)
-
-        # Caption with class name and confidence if given
-        text_color = (255, 255, 255)  # white
-
         if is_target:
             title = f"[GT] {class_name}"
-        if not is_target:
+        else:
             title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
 
-        image_np = cv2.rectangle(image_np, (x1, y1 - 15), (x1 + len(title) * 10, y1), color, cv2.FILLED)
-        image_np = cv2.putText(image_np, title, (x1, y1 - box_thickness), 2, 0.5, text_color, 1, lineType=cv2.LINE_AA)
-
+        image_np = draw_bbox(image=image_np, title=title, x1=x1, y1=y1, x2=x2, y2=y2, box_thickness=box_thickness, color=color)
         return image_np
 
     @staticmethod
@@ -663,37 +656,69 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     return bbox
 
 
+class DatasetItemsException(Exception):
+    def __init__(self, data_sample: Tuple, collate_type: Type, expected_item_names: Tuple):
+        """
+        :param data_sample: item(s) returned by a dataset
+        :param collate_type: type of the collate that caused the exception
+        :param expected_item_names: tuple of names of items that are expected by the collate to be returned from the dataset
+        """
+        collate_type_name = collate_type.__name__
+        num_sample_items = len(data_sample) if isinstance(data_sample, tuple) else 1
+        error_msg = f"`{collate_type_name}` only supports Datasets that return a tuple {expected_item_names}, but got a tuple of len={num_sample_items}"
+        super().__init__(error_msg)
+
+
+@register_collate_function()
 class DetectionCollateFN:
     """
     Collate function for Yolox training
     """
 
+    def __init__(self):
+        self.expected_item_names = ("image", "targets")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
-        batch = default_collate(data)
-        ims, targets = batch[0:2]
-        return ims, self._format_targets(targets)
+        try:
+            images_batch, labels_batch = list(zip(*data))
+        except (ValueError, TypeError):
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
 
-    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
-        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
-        targets_merged = []
-        for i in range(targets.shape[0]):
-            targets_im = targets[i, : nlabel[i]]
-            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
-            targets_merged.append(torch.cat((batch_column, targets_im), 1))
-        return torch.cat(targets_merged, 0)
+        return self._format_images(images_batch), self._format_targets(labels_batch)
+
+    def _format_images(self, images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+        images_batch = [torch.tensor(img) for img in images_batch]
+        images_batch_stack = torch.stack(images_batch, 0)
+        if images_batch_stack.shape[3] == 3:
+            images_batch_stack = torch.moveaxis(images_batch_stack, -1, 1).float()
+        return images_batch_stack
+
+    def _format_targets(self, labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+        """
+        Stack a batch id column to targets and concatenate
+        :param labels_batch: a list of targets per image (each of arbitrary length)
+        :return: one tensor of targets of all imahes of shape [N, 6], where N is the total number of targets in a batch
+                 and the 1st column is batch item index
+        """
+        labels_batch = [torch.tensor(labels) for labels in labels_batch]
+        labels_batch_indexed = []
+        for i, labels in enumerate(labels_batch):
+            batch_column = labels.new_ones((labels.shape[0], 1)) * i
+            labels = torch.cat((batch_column, labels), dim=-1)
+            labels_batch_indexed.append(labels)
+        return torch.cat(labels_batch_indexed, 0)
 
 
-class PPYoloECollateFN:
+class PPYoloECollateFN(DetectionCollateFN):
     """
     Collate function for PPYoloE training
     """
 
     def __init__(self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None):
         """
-
-        Args:
-            random_resize_sizes: (rows, cols)
+        :param random_resize_sizes: (rows, cols)
         """
+        super().__init__()
         self.random_resize_sizes = random_resize_sizes
         self.random_resize_modes = random_resize_modes
 
@@ -706,13 +731,7 @@ class PPYoloECollateFN:
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         if self.random_resize_sizes is not None:
             data = self.random_resize(data)
-
-        batch = default_collate(data)
-        ims, targets = batch
-        targets = self._format_targets(targets)
-        ims = torch.moveaxis(ims, -1, 1).float()
-
-        return ims, targets
+        return super().__call__(data)
 
     def random_resize(self, batch):
         target_size = random.choice(self.random_resize_sizes)
@@ -724,11 +743,11 @@ class PPYoloECollateFN:
         if len(sample) == 2:
             image, targets = sample  # TARGETS ARE IN LABEL_CXCYWH
             with_crowd = False
-        elif len(sample == 3):
+        elif len(sample) == 3:
             image, targets, crowd_targets = sample
             with_crowd = True
         else:
-            raise RuntimeError()
+            raise DatasetItemsException(data_sample=sample, collate_type=type(self), expected_item_names=self.expected_item_names)
 
         dsize = int(target_size), int(target_size)
         scale_factors = target_size / image.shape[0], target_size / image.shape[1]
@@ -747,57 +766,53 @@ class PPYoloECollateFN:
 
         return image, targets
 
-    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
-        """
-
-        :param targets:
-        :return: Tensor of shape [B, N, 6], where 6 elements are (index, c, cx, cy, w, h)
-        """
-        # Same collate as in YoloX. We convert to PPYoloTargets in the loss
-        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
-        targets_merged = []
-        for i in range(targets.shape[0]):
-            targets_im = targets[i, : nlabel[i]]
-            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
-            targets_merged.append(torch.cat((batch_column, targets_im), 1))
-
-        return torch.cat(targets_merged, 0)
-
 
 class CrowdDetectionPPYoloECollateFN(PPYoloECollateFN):
     """
     Collate function for Yolox training with additional_batch_items that includes crowd targets
     """
 
+    def __init__(self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None):
+        super().__init__(random_resize_sizes, random_resize_modes)
+        self.expected_item_names = ("image", "targets", "crowd_targets")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
 
         if self.random_resize_sizes is not None:
             data = self.random_resize(data)
 
-        batch = default_collate(data)
-        ims, targets, crowd_targets = batch
-        if ims.shape[3] == 3:
-            ims = torch.moveaxis(ims, -1, 1).float()
+        try:
+            images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
+        except (ValueError, TypeError):
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
 
-        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+        return self._format_images(images_batch), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
 
 
+@register_collate_function()
 class CrowdDetectionCollateFN(DetectionCollateFN):
     """
     Collate function for Yolox training with additional_batch_items that includes crowd targets
     """
 
+    def __init__(self):
+        super().__init__()
+        self.expected_item_names = ("image", "targets", "crowd_targets")
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
-        batch = default_collate(data)
-        ims, targets, crowd_targets = batch[0:3]
-        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+        try:
+            images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
+        except (ValueError, TypeError):
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
+
+        return self._format_images(images_batch), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
 
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:
-    """Compute the area of one or many boxes.
-         :param box: One or many boxes, shape = (4, ?), each box in format (x1, y1, x2, y2)
-    Returns:
-        Area of every box, shape = (1, ?)
+    """
+    Compute the area of one or many boxes.
+    :param box: One or many boxes, shape = (4, ?), each box in format (x1, y1, x2, y2)
+    :return: Area of every box, shape = (1, ?)
     """
     # box = 4xn
     return (box[2] - box[0]) * (box[3] - box[1])
@@ -807,12 +822,10 @@ def crowd_ioa(det_box: torch.Tensor, crowd_box: torch.Tensor) -> torch.Tensor:
     """
     Return intersection-over-detection_area of boxes, used for crowd ground truths.
     Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
-    Arguments:
-        det_box (Tensor[N, 4])
-        crowd_box (Tensor[M, 4])
-    Returns:
-        crowd_ioa (Tensor[N, M]): the NxM matrix containing the pairwise
-            IoA values for every element in det_box and crowd_box
+
+    :param det_box:     Tensor of shape [N, 4]
+    :param crowd_box:   Tensor of shape [M, 4]
+    :return: crowd_ioa, Tensor of shape [N, M]: the NxM matrix containing the pairwise IoA values for every element in det_box and crowd_box
     """
     det_area = compute_box_area(det_box.T)
 
@@ -822,7 +835,7 @@ def crowd_ioa(det_box: torch.Tensor, crowd_box: torch.Tensor) -> torch.Tensor:
 
 
 def compute_detection_matching(
-    output: torch.Tensor,
+    output: List[torch.Tensor],
     targets: torch.Tensor,
     height: int,
     width: int,

@@ -1,12 +1,15 @@
-from collections import OrderedDict
+import warnings
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from collections import OrderedDict
 
-from super_gradients.training.models import BasicBlock, Bottleneck, HpmStruct
-from super_gradients.training.utils import get_param
+from super_gradients.common.registry.registry import register_model
+from super_gradients.common.object_names import Models
+from super_gradients.training.models.classification_models.resnet import BasicResNetBlock, Bottleneck
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
+from super_gradients.training.utils import get_param, HpmStruct
 
 """
 paper: Deep Dual-resolution Networks for Real-time and
@@ -211,7 +214,7 @@ class DDRBackBoneBase(nn.Module):
 
 
 class BasicDDRBackBone(DDRBackBoneBase):
-    def __init__(self, block: nn.Module.__class__, width: int, layers: list, input_channels: int, layer3_repeats: int):
+    def __init__(self, block: nn.Module.__class__, width: int, layers: list, input_channels: int, layer3_repeats: int = 1):
         super().__init__()
         self.input_channels = input_channels
         self.stem = nn.Sequential(
@@ -506,6 +509,17 @@ class DDRNet(SegmentationModule):
 class DDRNetCustom(DDRNet):
     def __init__(self, arch_params: HpmStruct):
         """Parse arch_params and translate the parameters to build the original DDRNet architecture"""
+        if get_param(arch_params, "aux_heads") is not None:
+            message = "arch_params.aux_heads is deprecated in 3.1.1 and will be removed in 3.2.0."
+            if get_param(arch_params, "use_aux_heads") is not None:
+                message += "\n using arch_params.use_aux_heads instead."
+
+            else:
+                message += "\n use arch_params.use_aux_heads instead."
+            warnings.warn(message, DeprecationWarning)
+            use_aux_heads = get_param(arch_params, "aux_heads")
+        else:
+            use_aux_heads = get_param(arch_params, "use_aux_heads")
         super().__init__(
             backbone=arch_params.backbone,
             additional_layers=arch_params.additional_layers,
@@ -514,7 +528,7 @@ class DDRNetCustom(DDRNet):
             highres_planes=arch_params.highres_planes,
             spp_width=arch_params.spp_planes,
             head_width=arch_params.head_planes,
-            use_aux_heads=arch_params.use_aux_heads,
+            use_aux_heads=use_aux_heads,
             ssp_inter_mode=arch_params.ssp_inter_mode,
             segmentation_inter_mode=arch_params.segmentation_inter_mode,
             skip_block=arch_params.skip_block,
@@ -529,8 +543,8 @@ class DDRNetCustom(DDRNet):
 
 DEFAULT_DDRNET_23_PARAMS = {
     "input_channels": 3,
-    "block": BasicBlock,
-    "skip_block": BasicBlock,
+    "block": BasicResNetBlock,
+    "skip_block": BasicResNetBlock,
     "layer5_block": Bottleneck,
     "layer5_bottleneck_expansion": 2,
     "layers": [2, 2, 2, 2, 1, 2, 2, 1],
@@ -558,6 +572,7 @@ DEFAULT_DDRNET_23_SLIM_PARAMS = {
 DEFAULT_DDRNET_39_PARAMS = {**DEFAULT_DDRNET_23_PARAMS, "layers": [3, 4, 3, 3, 1, 3, 3, 1], "head_planes": 256, "layer3_repeats": 2}
 
 
+@register_model(Models.DDRNET_39)
 class DDRNet39(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_39_PARAMS)
@@ -574,6 +589,7 @@ class DDRNet39(DDRNetCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.DDRNET_23)
 class DDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_PARAMS)
@@ -590,6 +606,7 @@ class DDRNet23(DDRNetCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.DDRNET_23_SLIM)
 class DDRNet23Slim(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_SLIM_PARAMS)
@@ -606,6 +623,7 @@ class DDRNet23Slim(DDRNetCustom):
         super().__init__(_arch_params)
 
 
+@register_model(Models.CUSTOM_DDRNET_23)
 class AnyBackBoneDDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_PARAMS)

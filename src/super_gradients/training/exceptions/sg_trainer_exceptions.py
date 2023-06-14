@@ -1,21 +1,16 @@
 class UnsupportedTrainingParameterFormat(Exception):
     """Exception raised illegal training param format.
 
-    Attributes:
-        message -- explanation of the error
+    :param desc: Explanation of the error
     """
 
-    def __init__(self, desc):
+    def __init__(self, desc: str):
         self.message = "Unsupported training parameter format: " + desc
         super().__init__(self.message)
 
 
 class UnsupportedOptimizerFormat(UnsupportedTrainingParameterFormat):
-    """Exception raised illegal optimizer format.
-
-    Attributes:
-        message -- explanation of the error
-    """
+    """Exception raised illegal optimizer format."""
 
     def __init__(self):
         super().__init__("optimizer parameter expected one of ['Adam','SGD','RMSProp'], or torch.optim.Optimizer object")

@@ -58,11 +58,15 @@ SOFTWARE.
 """
 
 import math
-
+from typing import Optional, Union, Iterable, Tuple
 import torch
 from torch.optim import Optimizer
 
+from super_gradients.common.object_names import Optimizers
+from super_gradients.common.registry.registry import register_optimizer
 
+
+@register_optimizer(Optimizers.LAMB)
 class Lamb(Optimizer):
     """Implements a pure pytorch variant of FuseLAMB (NvLamb variant) optimizer from apex.optimizers.FusedLAMB
     reference: https://github.com/NVIDIA/DeepLearningExamples/blob/master/PyTorch/LanguageModeling/Transformer-XL/pytorch/lamb.py
@@ -92,16 +96,16 @@ class Lamb(Optimizer):
 
     def __init__(
         self,
-        params,
-        lr=1e-3,
-        bias_correction=True,
-        betas=(0.9, 0.999),
-        eps=1e-6,
-        weight_decay=0.01,
-        grad_averaging=True,
-        max_grad_norm=1.0,
-        trust_clip=False,
-        always_adapt=False,
+        params: Union[Iterable[torch.Tensor], Iterable[dict]],
+        lr: float = 1e-3,
+        bias_correction: bool = True,
+        betas: Tuple[float, float] = (0.9, 0.999),
+        eps: float = 1e-6,
+        weight_decay: float = 0.01,
+        grad_averaging: bool = True,
+        max_grad_norm: float = 1.0,
+        trust_clip: bool = False,
+        always_adapt: bool = False,
     ):
         defaults = dict(
             lr=lr,
@@ -117,7 +121,7 @@ class Lamb(Optimizer):
         super().__init__(params, defaults)
 
     @torch.no_grad()
-    def step(self, closure=None):
+    def step(self, closure: Optional[callable] = None) -> torch.Tensor:
         """Performs a single optimization step.
         Arguments:
             closure (callable, optional): A closure that reevaluates the model

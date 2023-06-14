@@ -1,11 +1,33 @@
-from typing import Tuple
+import abc
+from typing import Tuple, Dict, Union
 
 import cv2
 import numpy as np
 from torch import Tensor
 
+from super_gradients.common.registry.registry import register_target_generator
 
-class DEKRTargetsGenerator:
+__all__ = ["KeypointsTargetsGenerator", "DEKRTargetsGenerator"]
+
+
+class KeypointsTargetsGenerator:
+    @abc.abstractmethod
+    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray) -> Union[Tensor, Tuple[Tensor, ...], Dict[str, Tensor]]:
+        """
+        Encode input joints into target tensors
+
+        :param image: [C,H,W] Input image tensor
+        :param joints: [Num Instances, Num Joints, 3] Last channel represents (x, y, visibility)
+        :param mask: [H,W] Mask representing valid image areas. For instance, in COCO dataset crowd targets
+                           are not used during training and corresponding instances will be zero-masked.
+                           Your implementation may use this mask when generating targets.
+        :return: Encoded targets
+        """
+        raise NotImplementedError()
+
+
+@register_target_generator()
+class DEKRTargetsGenerator(KeypointsTargetsGenerator):
     """
     Target generator for pose estimation task tailored for the DEKR paper (https://arxiv.org/abs/2104.02300)
     """
@@ -166,6 +188,8 @@ class DEKRTargetsGenerator:
                     ignored_hms[idx, aa:bb, cc:dd] = 1.0
 
         for person_id, p in enumerate(joints):
+            person_area = area[person_id]
+            offset_weight_factor = 1.0 / np.clip(np.sqrt(person_area), a_min=1, a_max=None)
             ct_x = int(p[-1, 0])
             ct_y = int(p[-1, 1])
             ct_v = int(p[-1, 2])
@@ -190,8 +214,8 @@ class DEKRTargetsGenerator:
 
                             offset_map[idx * 2, pos_y, pos_x] = offset_x
                             offset_map[idx * 2 + 1, pos_y, pos_x] = offset_y
-                            offset_weight[idx * 2, pos_y, pos_x] = 1.0 / np.sqrt(area[person_id])
-                            offset_weight[idx * 2 + 1, pos_y, pos_x] = 1.0 / np.sqrt(area[person_id])
+                            offset_weight[idx * 2, pos_y, pos_x] = offset_weight_factor
+                            offset_weight[idx * 2 + 1, pos_y, pos_x] = offset_weight_factor
 
         ignored_hms[ignored_hms == 2] = self.bg_weight
 

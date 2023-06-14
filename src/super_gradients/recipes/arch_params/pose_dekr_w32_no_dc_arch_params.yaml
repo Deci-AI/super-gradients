@@ -1,0 +1,48 @@
+# This model config is mimicing the one from the original repo:
+# https://github.com/HRNet/DEKR/blob/main/experiments/coco/w32/w32_4x_reg03_bs10_512_adam_lr1e-3_coco_x140.yaml
+SPEC:
+  FINAL_CONV_KERNEL: 1
+  STAGES:
+    NUM_STAGES: 3
+    NUM_MODULES:
+    - 1
+    - 4
+    - 3
+    NUM_BRANCHES:
+    - 2
+    - 3
+    - 4
+    BLOCK:
+    - BASIC
+    - BASIC
+    - BASIC
+    NUM_BLOCKS:
+    - [4, 4]
+    - [4, 4, 4]
+    - [4, 4, 4, 4]
+    NUM_CHANNELS:
+    - [32, 64]
+    - [32, 64, 128]
+    - [32, 64, 128, 256]
+    FUSE_METHOD:
+    - SUM
+    - SUM
+    - SUM
+  HEAD_HEATMAP:
+    BLOCK: BASIC
+    NUM_BLOCKS: 1
+    NUM_CHANNELS: 32
+    DILATION_RATE: 1
+    HEATMAP_APPLY_SIGMOID: False
+
+  HEAD_OFFSET:
+    # Note we replace ADAPTIVE conv with BASIC conv since deformable conv is not supported in TensorRT,
+    # and we want the model to be exportable.
+    # Instead, we set dilation rate to 5 to mimic the effect of ADAPTIVE conv.
+    # Original recipe uses ADAPTIVE conv:
+    # BLOCK: ADAPTIVE
+    # DILATION_RATE: 1
+    BLOCK: BASIC # ADAPTIVE | BASIC
+    DILATION_RATE: 5
+    NUM_BLOCKS: 2
+    NUM_CHANNELS_PERKPT: 15

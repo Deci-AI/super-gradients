@@ -9,7 +9,7 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
+#       python -m super_gradients.train_from_recipe --config-name=imagenet_resnet50
 
 
 defaults:
@@ -18,6 +18,7 @@ defaults:
   - arch_params: resnet50_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
+  - variable_setup
 
 arch_params:
   droppath_prob: 0.05
@@ -32,16 +33,9 @@ training_hyperparams:
 
 experiment_name: resnet50_imagenet
 
-ckpt_root_dir:
+
 
 multi_gpu: DDP
 num_gpus: 4
 
 architecture: resnet50
-
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

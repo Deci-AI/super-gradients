@@ -8,7 +8,10 @@ from torchmetrics import Metric
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.ddp_utils import is_distributed
+from super_gradients.common.object_names import Metrics
+from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching, compute_visible_bbox_xywh
+from super_gradients.training.utils import convert_to_tensor
 from super_gradients.training.utils.detection_utils import compute_detection_metrics_per_cls
 
 logger = get_logger(__name__)
@@ -16,6 +19,7 @@ logger = get_logger(__name__)
 __all__ = ["PoseEstimationMetrics"]
 
 
+@register_metric(Metrics.POSE_ESTIMATION_METRICS)
 class PoseEstimationMetrics(Metric):
     """
     Implementation of COCO Keypoint evaluation metric.
@@ -116,8 +120,9 @@ class PoseEstimationMetrics(Metric):
         self.add_state("predictions", default=[], dist_reduce_fx=None)
 
     def reset(self) -> None:
-        self.predictions = []
+        self.predictions.clear()
 
+    @torch.no_grad()
     def update(
         self,
         preds,
@@ -168,7 +173,7 @@ class PoseEstimationMetrics(Metric):
 
         for i in range(len(predicted_poses)):
             self.update_single_image(
-                predicted_poses[i], predicted_scores[i], gt_joints[i], gt_areas=gt_areas[i], gt_bboxes=gt_bboxes[i], gt_is_crowd=gt_iscrowd[i]
+                predicted_poses[i], predicted_scores[i], gt_joints[i], gt_areas=gt_areas[i], gt_bboxes=gt_bboxes[i], gt_iscrowd=gt_iscrowd[i]
             )
 
     def update_single_image(
@@ -178,31 +183,31 @@ class PoseEstimationMetrics(Metric):
         groundtruths: Union[Tensor, np.ndarray],
         gt_bboxes: Union[Tensor, np.ndarray],
         gt_areas: Union[Tensor, np.ndarray],
-        gt_is_crowd: Union[Tensor, np.ndarray, List[bool]],
+        gt_iscrowd: Union[Tensor, np.ndarray, List[bool]],
     ):
         if len(predicted_poses) == 0 and len(groundtruths) == 0:
             return
         if len(predicted_poses) != len(predicted_scores):
             raise ValueError("Length of predicted poses and scores should be equal. Got {} and {}".format(len(predicted_poses), len(predicted_scores)))
-        if len(groundtruths) != len(gt_areas) != len(gt_bboxes) != len(gt_is_crowd):
+        if len(groundtruths) != len(gt_areas) != len(gt_bboxes) != len(gt_iscrowd):
             raise ValueError(
                 "Length of groundtruths, areas, bboxes and iscrowd should be equal. Got {} and {} and {} and {}".format(
-                    len(groundtruths), len(gt_areas), len(gt_bboxes), len(gt_is_crowd)
+                    len(groundtruths), len(gt_areas), len(gt_bboxes), len(gt_iscrowd)
                 )
             )
 
-        predicted_poses = torch.tensor(predicted_poses, dtype=torch.float, device=self.device)
-        predicted_scores = torch.tensor(predicted_scores, dtype=torch.float, device=self.device)
+        predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float32, device=self.device)
+        predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float32, device=self.device)
 
-        gt_keypoints = torch.tensor(groundtruths, dtype=torch.float, device=self.device)
-        gt_areas = torch.tensor(gt_areas, dtype=torch.float, device=self.device)
-        gt_bboxes = torch.tensor(gt_bboxes, dtype=torch.float, device=self.device)
+        gt_keypoints = convert_to_tensor(groundtruths, dtype=torch.float32, device=self.device)
+        gt_areas = convert_to_tensor(gt_areas, dtype=torch.float32, device=self.device)
+        gt_bboxes = convert_to_tensor(gt_bboxes, dtype=torch.float32, device=self.device)
+        gt_iscrowd = convert_to_tensor(gt_iscrowd, dtype=torch.bool, device=self.device)
 
         gt_keypoints_xy = gt_keypoints[:, :, 0:2]
         gt_keypoints_visibility = gt_keypoints[:, :, 2]
         gt_all_kpts_invisible = gt_keypoints_visibility.eq(0).all(dim=1)
-        gt_is_crowd = torch.tensor(gt_is_crowd, dtype=torch.bool, device=self.device)
-        gt_is_ignore = gt_all_kpts_invisible | gt_is_crowd
+        gt_is_ignore = gt_all_kpts_invisible | gt_iscrowd
 
         targets = gt_keypoints_xy[~gt_is_ignore] if len(groundtruths) else []
         targets_visibilities = gt_keypoints_visibility[~gt_is_ignore] if len(groundtruths) else []
@@ -215,7 +220,7 @@ class PoseEstimationMetrics(Metric):
         crowd_targets_areas = gt_areas[gt_is_ignore]
         crowd_targets_bboxes = gt_bboxes[gt_is_ignore]
 
-        preds_matched, preds_to_ignore, preds_scores, num_targets = compute_img_keypoint_matching(
+        mr = compute_img_keypoint_matching(
             predicted_poses,
             predicted_scores,
             #
@@ -235,15 +240,15 @@ class PoseEstimationMetrics(Metric):
             top_k=self.max_objects_per_image,
         )
 
-        self.predictions.append((preds_matched, preds_to_ignore, preds_scores, num_targets))
+        self.predictions.append((mr.preds_matched.cpu(), mr.preds_to_ignore.cpu(), mr.preds_scores.cpu(), int(mr.num_targets)))
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
         """
         When in distributed mode, stats are aggregated after each forward pass to the metric state. Since these have all
         different sizes we override the synchronization function since it works only for tensors (and use
         all_gather_object)
-        @param dist_sync_fn:
-        @return:
+        :param dist_sync_fn:
+        :return:
         """
         if self.world_size is None:
             self.world_size = torch.distributed.get_world_size() if self.is_distributed else -1
@@ -253,7 +258,6 @@ class PoseEstimationMetrics(Metric):
         if self.is_distributed:
             local_state_dict = self.predictions
             gathered_state_dicts = [None] * self.world_size
-            torch.distributed.barrier()
             torch.distributed.all_gather_object(gathered_state_dicts, local_state_dict)
             self.predictions = list(itertools.chain(*gathered_state_dicts))
 
@@ -269,9 +273,9 @@ class PoseEstimationMetrics(Metric):
 
         predictions = self.predictions  # All gathered by this time
         if len(predictions) > 0:
-            preds_matched = torch.cat([x[0] for x in predictions], dim=0)
-            preds_to_ignore = torch.cat([x[1] for x in predictions], dim=0)
-            preds_scores = torch.cat([x[2] for x in predictions], dim=0)
+            preds_matched = torch.cat([x[0].cpu() for x in predictions], dim=0)
+            preds_to_ignore = torch.cat([x[1].cpu() for x in predictions], dim=0)
+            preds_scores = torch.cat([x[2].cpu() for x in predictions], dim=0)
             n_targets = sum([x[3] for x in predictions])
 
             cls_precision, _, cls_recall = compute_detection_metrics_per_cls(
@@ -279,9 +283,9 @@ class PoseEstimationMetrics(Metric):
                 preds_to_ignore=preds_to_ignore,
                 preds_scores=preds_scores,
                 n_targets=n_targets,
-                recall_thresholds=self.recall_thresholds.to(self.device),
+                recall_thresholds=self.recall_thresholds.cpu(),
                 score_threshold=0,
-                device=self.device,
+                device="cpu",
             )
 
             precision[:, 0] = cls_precision.cpu().numpy()

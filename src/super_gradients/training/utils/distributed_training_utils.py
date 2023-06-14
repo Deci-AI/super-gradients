@@ -18,7 +18,8 @@ from super_gradients.common.environment.argparse_utils import EXTRA_ARGS
 from super_gradients.common.environment.ddp_utils import find_free_port, is_distributed, is_launched_using_sg
 
 
-from super_gradients.common.abstractions.abstract_logger import get_logger, mute_current_process
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.abstractions.mute_processes import mute_current_process
 from super_gradients.common.environment.device_utils import device_config
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -231,7 +232,7 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = No
 
     if device == "cuda" and not torch.cuda.is_available():
         logger.warning("CUDA device is not available on your device... Moving to CPU.")
-        device = "cpu"
+        multi_gpu, num_gpus, device = MultiGPUMode.OFF, 0, "cpu"
 
     if device == "cpu":
         setup_cpu(multi_gpu, num_gpus)
@@ -400,12 +401,7 @@ def get_gpu_mem_utilization():
 
 
 class DDPNotSetupException(Exception):
-    """
-    Exception raised when DDP setup is required but was not done
-
-    Attributes:
-        message -- explanation of the error
-    """
+    """Exception raised when DDP setup is required but was not done"""
 
     def __init__(self):
         self.message = (
