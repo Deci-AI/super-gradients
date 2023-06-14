@@ -87,8 +87,8 @@ save_model: True # Whether to save the model checkpoints
 seed: 42 # seed for reproducibility
 
 
-phase_callbacks: [] # list of callbacks to be applied at specific phases.
-
+phase_callbacks:
+  - TimerCallback
 
 log_installed_packages: True # when set, the list of all installed packages (and their versions) will be written to the tensorboard
 
@@ -112,7 +112,6 @@ sg_logger_params:
   save_tensorboard_remote: False  # upload tensorboard files to s3
   save_logs_remote: False  # upload log files to s3
   monitor_system: True  # Monitor and write to tensorboard the system statistics, such as CPU usage, GPU, ...
-
 
 torch_compile: False
 torch_compile_mode: default # reduce-overhead / max-autotune
