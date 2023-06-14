@@ -73,6 +73,7 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
             self.wandb_table.add_data(self.epoch_count, wandb_image, mean_prediction_dict)
         self.wandb_images, self.mean_prediction_dicts = [], []
         self.epoch_count += 1
-    
+
     def on_training_end(self, context: PhaseContext) -> None:
+        _ = context
         wandb.log({"Validation-Prediction": self.wandb_table})
