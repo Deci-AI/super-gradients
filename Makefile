@@ -14,3 +14,8 @@ recipe_accuracy_tests:
 	python3.8 src/super_gradients/train_from_recipe.py --config-name=coco2017_yolox               experiment_name=shortened_coco2017_yolox_n_map_test      epochs=10  architecture=yolox_n training_hyperparams.loss=yolox_fast_loss training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
 	python3.8 src/super_gradients/train_from_recipe.py --config-name=cityscapes_regseg48          experiment_name=shortened_cityscapes_regseg48_iou_test   epochs=10 training_hyperparams.average_best_models=False multi_gpu=DDP num_gpus=4
 	coverage run --source=super_gradients -m unittest tests/deci_core_recipe_test_suite_runner.py
+
+
+detection_models_compile_tests:
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_s experiment_name=coco2017_yolox_s_compile_disabled epochs=5 training_hyperparams.torch_compile=False  training_hyperparams.sg_logger=wandb_sg_logger training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments training_hyperparams.sg_logger_params.entity=super-gradients  training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_s experiment_name=coco2017_yolox_s_compile_enabled  epochs=5 training_hyperparams.torch_compile=True   training_hyperparams.sg_logger=wandb_sg_logger training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments training_hyperparams.sg_logger_params.entity=super-gradients  training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
