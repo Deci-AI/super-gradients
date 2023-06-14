@@ -10,7 +10,7 @@ from super_gradients.training.transforms.transforms import DetectionTargetsForma
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.training.datasets.detection_datasets import DetectionDataset
 
-from super_gradients.training.models.prediction_results import ImageDetectionPrediction, ImagesDetectionPrediction
+from super_gradients.training.utils.predict import ImageDetectionPrediction, ImagesDetectionPrediction
 
 
 def visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPrediction, show_confidence: bool):

@@ -60,13 +60,13 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
 <tr>
     <td>   
         <a target="_blank" href="https://bit.ly/yolo-nas-starter-notebook">
-            <img src="./docs/assets/SG_img/colab_logo.png" /> Fine-Tuning Notebook 
+            <img src="./documentation/assets/SG_img/colab_logo.png" /> Fine-Tuning Notebook 
         </a>
     </td>
 </tr><tr>
     <td>   
         <a target="_blank" href="https://bit.ly/3MIKdTy">
-            <img src="./docs/assets/SG_img/colab_logo.png" /> Quantization Aware Training YoloNAS on Custom Dataset Notebook
+            <img src="./documentation/assets/SG_img/colab_logo.png" /> Quantization Aware Training YoloNAS on Custom Dataset Notebook
         </a>
     </td>
 </tr>

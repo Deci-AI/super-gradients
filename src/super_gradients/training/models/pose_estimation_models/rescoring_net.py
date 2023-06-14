@@ -24,9 +24,9 @@ class PoseRescoringNet(SgModule):
     The output is a single scalar value.
     """
 
-    def __init__(self, num_classes: int, hidden_channels: int, num_layers: int, joint_links: List[Tuple[int, int]]):
+    def __init__(self, num_classes: int, hidden_channels: int, num_layers: int, edge_links: List[Tuple[int, int]]):
         super(PoseRescoringNet, self).__init__()
-        in_channels = len(joint_links) * 2 + len(joint_links) + num_classes  # [joint_relate, joint_length, visibility]
+        in_channels = len(edge_links) * 2 + len(edge_links) + num_classes  # [joint_relate, joint_length, visibility]
         layers = []
         for _ in range(num_layers):
             layers.append(nn.Linear(in_channels, hidden_channels, bias=True))
@@ -34,7 +34,7 @@ class PoseRescoringNet(SgModule):
             in_channels = hidden_channels
         self.layers = nn.Sequential(*layers)
         self.final = nn.Linear(hidden_channels, 1, bias=True)
-        self.joint_links = torch.tensor(joint_links).long()
+        self.edge_links = torch.tensor(edge_links).long()
 
     def forward(self, poses: Tensor) -> Tuple[Tensor, Tensor]:
         """
@@ -43,7 +43,7 @@ class PoseRescoringNet(SgModule):
         :return: Tuple of input poses and corresponding scores
         """
 
-        x = self.get_feature(poses, self.joint_links)
+        x = self.get_feature(poses, self.edge_links)
         x = self.layers(x)
         y_pred = self.final(x)
         return poses, y_pred
@@ -55,19 +55,19 @@ class PoseRescoringNet(SgModule):
                 nn.init.constant_(m.bias, 0)
 
     @classmethod
-    def get_feature(cls, poses: Tensor, joint_links: Tensor) -> Tensor:
+    def get_feature(cls, poses: Tensor, edge_links: Tensor) -> Tensor:
         """
         Compute the feature vector input to the rescoring network.
 
         :param poses: [N, J, 3] Predicted poses
-        :param joint_links: [L,2] List of joint indices
+        :param edge_links: [L,2] List of joint indices
         :return: [N, L*2+L+J] Feature vector
         """
         joint_xy = poses[..., :2]
         visibility = poses[..., 2]
 
-        joint_1 = joint_links[:, 0]
-        joint_2 = joint_links[:, 1]
+        joint_1 = edge_links[:, 0]
+        joint_2 = edge_links[:, 1]
 
         # To get the Delta x Delta y
         joint_relate = joint_xy[..., joint_1, :] - joint_xy[..., joint_2, :]  # [N, L, 2]
@@ -99,5 +99,5 @@ class COCOPoseRescoringNet(PoseRescoringNet):
             num_classes=merged_arch_params.num_classes,
             hidden_channels=merged_arch_params.hidden_channels,
             num_layers=merged_arch_params.num_layers,
-            joint_links=merged_arch_params.joint_links,
+            edge_links=merged_arch_params.edge_links,
         )
