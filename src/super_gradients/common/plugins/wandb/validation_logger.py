@@ -69,6 +69,7 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
             self.wandb_images.append(wandb_image)
 
     def on_validation_loader_end(self, context: PhaseContext) -> None:
+        _ = context
         for wandb_image, mean_prediction_dict in zip(self.wandb_images, self.mean_prediction_dicts):
             self.wandb_table.add_data(self.epoch_count, wandb_image, mean_prediction_dict)
         self.wandb_images, self.mean_prediction_dicts = [], []
