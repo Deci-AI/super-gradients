@@ -20,6 +20,9 @@ from super_gradients.training.utils.predict import (
     Prediction,
     DetectionPrediction,
     PoseEstimationPrediction,
+    ImageClassificationPrediction,
+    ImagesClassificationPrediction,
+    ClassificationPrediction
 )
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, includes_video_extension
@@ -180,14 +183,10 @@ class Pipeline(ABC):
 
         # Predict
         with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast():
-            # todo (224, 224, 3) is the shape of each img in preprocessed_images
             torch_inputs = torch.from_numpy(np.array(preprocessed_images)).to(self.device)
             if self.fuse_model:
                 self._fuse_model(torch_inputs)
-            # todo needs to unsqueeze(dim=0) the img? model expected input[1, 224, 224, 3] or to operate torch_inputs[0].permute(2, 1, 0)?
-            # todo RuntimeError: Given groups=1, weight of size [64, 3, 7, 7], expected input[1, 224, 224, 3] to have 3 channels, but got 224 channels instead
             model_output = self.model(torch_inputs)
-            # todo model output is torch.Size([1, 1000])
             predictions = self._decode_model_output(model_output, model_input=torch_inputs)
 
         # Postprocess
@@ -299,7 +298,7 @@ class DetectionPipeline(Pipeline):
         return predictions
 
     def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
-        return ImageDetectionPrediction(image=image, prediction=prediction, class_names=self.class_names)
+        return ImageClassificationPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
             self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
@@ -420,48 +419,48 @@ class ClassificationPipeline(Pipeline):
         super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names,
                          fuse_model=fuse_model)
 
-    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
-        """Decode the model output, by applying post prediction callback. This includes NMS.
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) \
+            -> List[ClassificationPrediction]:
+        """Decode the model output
 
         :param model_output:    Direct output of the model, without any post-processing.
         :param model_input:     Model input (i.e. images after preprocessing).
         :return:                Predicted Bboxes.
         """
-        # todo argmax?
-        post_nms_predictions = self.post_prediction_callback(model_output, device=self.device)
+        confidence_predictions, classifier_predictions = torch.max(model_output, 1)
 
-        predictions = []
-        for prediction, image in zip(post_nms_predictions, model_input):
-            prediction = prediction if prediction is not None else torch.zeros((0, 6), dtype=torch.float32)
-            prediction = prediction.detach().cpu().numpy()
+        classifier_predictions = classifier_predictions.detach().cpu().numpy()
+        # todo do we need this?
+        confidence_predictions = confidence_predictions.detach().cpu().numpy()
+
+        predictions = list()
+        for prediction, confidence, image_input in zip(classifier_predictions, confidence_predictions, model_input):
             predictions.append(
-                DetectionPrediction(
-                    bboxes=prediction[:, :4],
-                    confidence=prediction[:, 4],
-                    labels=prediction[:, 5],
-                    bbox_format="xyxy",
-                    image_shape=image.shape,
+                ClassificationPrediction(
+                    confidence=confidence,
+                    labels=prediction,
+                    image_shape=image_input.shape
                 )
             )
-
         return predictions
 
-    def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
-        return ImageDetectionPrediction(image=image, prediction=prediction, class_names=self.class_names)
+    def _instantiate_image_prediction(self, image: np.ndarray, prediction: ClassificationPrediction) -> ImagePrediction:
+        return ImageClassificationPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
-        self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
-    ) -> ImagesDetectionPrediction:
+        self, images_predictions: Iterable[ImageClassificationPrediction], n_images: Optional[int] = None
+    ) -> ImagesClassificationPrediction:
         if n_images is not None and n_images == 1:
             # Do not show tqdm progress bar if there is only one image
             images_predictions = [next(iter(images_predictions))]
         else:
             images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
 
-        return ImagesDetectionPrediction(_images_prediction_lst=images_predictions)
+        return ImagesClassificationPrediction(_images_prediction_lst=images_predictions)
 
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoDetectionPrediction:
+        # TODO we dont need this in classification task
         images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
         return VideoDetectionPrediction(_images_prediction_lst=images_predictions, fps=fps)

@@ -527,6 +527,8 @@ def default_resnet_imagenet_processing_params() -> dict:
             Resize(size=256),
             CenterCrop(size=224),
             NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            StandardizeImage(),
+            ImagePermute()
         ]
     )
     params = dict(
