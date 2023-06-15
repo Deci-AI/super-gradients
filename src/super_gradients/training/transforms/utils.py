@@ -26,7 +26,7 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarr
     return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
 
 
-def _rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np.array:
+def _rescale_bboxes(targets: np.ndarray, scale_factors: Tuple[float, float]) -> np.ndarray:
     """Rescale bboxes to given scale factors, without preserving aspect ratio.
 
     :param targets:         Targets to rescale (N, 4+), where target[:, :4] is the bounding box coordinates.
@@ -38,6 +38,24 @@ def _rescale_bboxes(targets: np.array, scale_factors: Tuple[float, float]) -> np
 
     sy, sx = scale_factors
     targets[:, :4] *= np.array([[sx, sy, sx, sy]], dtype=targets.dtype)
+    return targets
+
+
+def _rescale_keypoints(targets: np.ndarray, scale_factors: Tuple[float, float]) -> np.ndarray:
+    """Rescale keypoints to given scale factors, without preserving aspect ratio.
+
+    :param targets:         Array of keypoints to rescale. Can have arbitrary shape [N,2], [N,K,2], etc.
+                            Last dimension encodes XY coordinates: target[..., 0] is the X coordinates and
+                            targets[..., 1] is the Y coordinate.
+    :param scale_factors:   Tuple of (scale_factor_h, scale_factor_w) scale factors to rescale to.
+    :return:                Rescaled targets.
+    """
+
+    targets = targets.astype(np.float32, copy=True)
+
+    sy, sx = scale_factors
+    targets[..., 0] *= sx
+    targets[..., 1] *= sy
     return targets
 
 
@@ -82,6 +100,7 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
     """
     pad_h = (padding_coordinates.top, padding_coordinates.bottom)
     pad_w = (padding_coordinates.left, padding_coordinates.right)
+
     if len(image.shape) == 3:
         return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
     else:
@@ -100,6 +119,20 @@ def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array
     boxes[:, [0, 2]] += shift_w
     boxes[:, [1, 3]] += shift_h
     return np.concatenate((boxes, labels), 1)
+
+
+def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.array:
+    """Shift keypoints with respect to padding values.
+
+    :param targets:  Keypoints to transform of shape (N, 2+), or (N, K, 2+), in format [x1, y1, ...]
+    :param shift_w:  shift width.
+    :param shift_h:  shift height.
+    :return:         Transformed keypoints of the same shape as input.
+    """
+    targets = targets.copy()
+    targets[..., 0] += shift_w
+    targets[..., 1] += shift_h
+    return targets
 
 
 def _rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:

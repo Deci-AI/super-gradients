@@ -1,5 +1,5 @@
 <div "center">
-  <img src="docs/assets/SG_img/SG - Horizontal.png" width="600"/>
+  <img src="documentation/assets/SG_img/SG - Horizontal.png" width="600"/>
  <br/><br/>
 
 ## Introduction
