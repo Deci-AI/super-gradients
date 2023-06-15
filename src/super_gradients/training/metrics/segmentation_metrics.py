@@ -176,7 +176,7 @@ class PreprocessSegmentationMetricsArgs(AbstractMetricsArgsPrepFn):
 
 @register_metric(Metrics.PIXEL_ACCURACY)
 class PixelAccuracy(Metric):
-    def __init__(self, ignore_label=-100, dist_sync_on_step=False, metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
+    def __init__(self, ignore_label: Union[int, List[int]] = -100, dist_sync_on_step=False, metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.ignore_label = ignore_label
         self.greater_is_better = True
@@ -186,18 +186,43 @@ class PixelAccuracy(Metric):
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         predict, target = self.metrics_args_prep_fn(preds, target)
+        labeled_mask = self._handle_multiple_ignored_inds(target)
 
-        labeled_mask = target.ne(self.ignore_label)
         pixel_labeled = torch.sum(labeled_mask)
         pixel_correct = torch.sum((predict == target) * labeled_mask)
         self.total_correct += pixel_correct
         self.total_label += pixel_labeled
+
+    def _handle_multiple_ignored_inds(self, target):
+        if isinstance(self.ignore_label, list):
+            labeled_mask = None
+            for ignored_label in self.ignore_label:
+                if labeled_mask is None:
+                    labeled_mask = target.ne(ignored_label)
+                else:
+                    labeled_mask = torch.logical_and(labeled_mask, target.ne(ignored_label))
+        else:
+            labeled_mask = target.ne(self.ignore_label)
+
+        return labeled_mask
 
     def compute(self):
         _total_correct = self.total_correct.cpu().detach().numpy().astype("int64")
         _total_label = self.total_label.cpu().detach().numpy().astype("int64")
         pix_acc = np.float64(1.0) * _total_correct / (np.spacing(1, dtype=np.float64) + _total_label)
         return pix_acc
+
+
+def _handle_multiple_ignored_inds(ignore_index, num_classes):
+    if isinstance(ignore_index, list):
+        ignore_index_list = ignore_index
+        unfiltered_num_classes = num_classes
+        num_classes = num_classes - len(ignore_index_list) + 1
+        ignore_index = 0
+    else:
+        unfiltered_num_classes = num_classes
+        ignore_index_list = None
+    return ignore_index, ignore_index_list, num_classes, unfiltered_num_classes
 
 
 @register_metric(Metrics.IOU)
@@ -215,14 +240,7 @@ class IoU(torchmetrics.JaccardIndex):
         if num_classes <= 1:
             raise ValueError(f"IoU class only for multi-class usage! For binary usage, please call {BinaryIOU.__name__}")
 
-        if isinstance(ignore_index, list):
-            ignore_index_list = ignore_index
-            unfiltered_num_classes = num_classes
-            num_classes = num_classes - len(ignore_index_list) + 1
-            ignore_index = 0
-        else:
-            unfiltered_num_classes = num_classes
-            ignore_index_list = None
+        ignore_index, ignore_index_list, num_classes, unfiltered_num_classes = _handle_multiple_ignored_inds(ignore_index, num_classes)
 
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction=reduction, threshold=threshold)
 
@@ -254,15 +272,7 @@ class Dice(torchmetrics.JaccardIndex):
         if num_classes <= 1:
             raise ValueError(f"Dice class only for multi-class usage! For binary usage, please call {BinaryDice.__name__}")
 
-        if isinstance(ignore_index, list):
-            ignore_index_list = ignore_index
-            unfiltered_num_classes = num_classes
-            num_classes = num_classes - len(ignore_index_list) + 1
-            ignore_index = 0
-            if ignore_index not in ignore_index_list:
-                raise ValueError("ignore_index_mapping must be in ignore_index_list")
-        else:
-            ignore_index_list = None
+        ignore_index, ignore_index_list, num_classes, unfiltered_num_classes = _handle_multiple_ignored_inds(ignore_index, num_classes)
 
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction=reduction, threshold=threshold)
 
