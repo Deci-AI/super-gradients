@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torchmetrics
 from torchmetrics import Metric
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List, Union
 from torchmetrics.utilities.distributed import reduce
 from abc import ABC, abstractmethod
 
@@ -122,6 +122,18 @@ def intersection_and_union(im_pred, im_lab, num_class):
     return area_inter, area_union
 
 
+def _map_ignored_inds(target: torch.Tensor, ignore_index_list, unfiltered_num_classes) -> torch.Tensor:
+    target_copy = torch.zeros_like(target)
+    all_unfiltered_classes = list(range(unfiltered_num_classes))
+    filtered_classes = [i for i in all_unfiltered_classes if i not in ignore_index_list]
+    for mapped_idx in range(len(filtered_classes)):
+        cls_to_map = filtered_classes[mapped_idx]
+        map_val = mapped_idx + 1
+        target_copy[target == cls_to_map] = map_val
+
+    return target_copy
+
+
 class AbstractMetricsArgsPrepFn(ABC):
     """
     Abstract preprocess metrics arguments class.
@@ -194,7 +206,7 @@ class IoU(torchmetrics.JaccardIndex):
         self,
         num_classes: int,
         dist_sync_on_step: bool = False,
-        ignore_index: Optional[int] = None,
+        ignore_index: Optional[Union[int, List[int]]] = None,
         reduction: str = "elementwise_mean",
         threshold: float = 0.5,
         metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None,
@@ -203,12 +215,27 @@ class IoU(torchmetrics.JaccardIndex):
         if num_classes <= 1:
             raise ValueError(f"IoU class only for multi-class usage! For binary usage, please call {BinaryIOU.__name__}")
 
+        if isinstance(ignore_index, list):
+            ignore_index_list = ignore_index
+            unfiltered_num_classes = num_classes
+            num_classes = num_classes - len(ignore_index_list) + 1
+            ignore_index = 0
+        else:
+            unfiltered_num_classes = num_classes
+            ignore_index_list = None
+
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction=reduction, threshold=threshold)
+
+        self.unfiltered_num_classes = unfiltered_num_classes
+        self.ignore_index_list = ignore_index_list
         self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
         self.greater_is_better = True
 
     def update(self, preds, target: torch.Tensor):
         preds, target = self.metrics_args_prep_fn(preds, target)
+        if self.ignore_index_list is not None:
+            target = _map_ignored_inds(target, self.ignore_index_list, self.unfiltered_num_classes)
+            preds = _map_ignored_inds(preds, self.ignore_index_list, self.unfiltered_num_classes)
         super().update(preds=preds, target=target)
 
 
@@ -227,12 +254,27 @@ class Dice(torchmetrics.JaccardIndex):
         if num_classes <= 1:
             raise ValueError(f"Dice class only for multi-class usage! For binary usage, please call {BinaryDice.__name__}")
 
+        if isinstance(ignore_index, list):
+            ignore_index_list = ignore_index
+            unfiltered_num_classes = num_classes
+            num_classes = num_classes - len(ignore_index_list) + 1
+            ignore_index = 0
+            if ignore_index not in ignore_index_list:
+                raise ValueError("ignore_index_mapping must be in ignore_index_list")
+        else:
+            ignore_index_list = None
+
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction=reduction, threshold=threshold)
+
+        self.ignore_index_list = ignore_index_list
+        self.unfiltered_num_classes = unfiltered_num_classes
         self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
         self.greater_is_better = True
 
     def update(self, preds, target: torch.Tensor):
         preds, target = self.metrics_args_prep_fn(preds, target)
+        if self.ignore_index_list is not None:
+            target = _map_ignored_inds(target, self.ignore_index_list, self.ignore_index)
         super().update(preds=preds, target=target)
 
     def compute(self) -> torch.Tensor:
