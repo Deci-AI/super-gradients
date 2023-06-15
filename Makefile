@@ -101,20 +101,20 @@ detection_compile_tests:
 	python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_x batch_size=4 experiment_name=coco2017_yolo_nas_x_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 	# coco2017_yolox_n
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_n experiment_name=coco2017_yolox_n_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_n experiment_name=coco2017_yolox_n_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_n batch_size=16 experiment_name=coco2017_yolox_n_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_n batch_size=16 experiment_name=coco2017_yolox_n_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	# coco2017_yolox_t
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_t experiment_name=coco2017_yolox_t_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_t experiment_name=coco2017_yolox_t_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_t batch_size=16 experiment_name=coco2017_yolox_t_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_t batch_size=16 experiment_name=coco2017_yolox_t_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	# coco2017_yolox_s
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_s experiment_name=coco2017_yolox_s_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_s experiment_name=coco2017_yolox_s_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_s batch_size=16 experiment_name=coco2017_yolox_s_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_s batch_size=16 experiment_name=coco2017_yolox_s_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	# coco2017_yolox_m
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_m experiment_name=coco2017_yolox_m_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_m experiment_name=coco2017_yolox_m_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_m batch_size=8 experiment_name=coco2017_yolox_m_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_m batch_size=8 experiment_name=coco2017_yolox_m_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	# coco2017_yolox_l
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_l experiment_name=coco2017_yolox_l_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_l experiment_name=coco2017_yolox_l_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_l batch_size=8 experiment_name=coco2017_yolox_l_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_l batch_size=8 experiment_name=coco2017_yolox_l_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 
 
