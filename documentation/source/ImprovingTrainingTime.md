@@ -35,20 +35,22 @@ PyTorch 2.0 introduced new [`torch.compile`](https://pytorch.org/tutorials/inter
 This API can be used to fuse the operations in the model graph and optimize the model for the target device.
 
 SuperGradients support the `torch.compile` API and can be used to improve the training time of the model. 
+Here we report the relative improvement (reduction) of training time for several models and tasks. We measure the training time per epoch. 
+This includes iteration over training and validation datasets, loss & metric computation. Essentially all steps that are performed during training.
+Please note that the improvement may vary depending on the model architecture, task, and training hyperparameters.
 
-| Task                  | Recipe                  | Time per epoch in seconds (Baseline) | Time per epoch in seconds (torch.compile) | Improvement, % | № of GPUs |
-|-----------------------|-------------------------|--------------------------------------|-------------------------------------------|----------------|-----------|
-| Semantic Segmentation | cityscapes_pplite_seg75 | 270.63                               | 119.11                                    | 56%            | 1         |
-| Semantic Segmentation | cityscapes_pplite_seg75 | 49.95                                | 35.91                                     | 18%            | 8         |
-| Semantic Segmentation | cityscapes_regseg48     | 125.14                               | 108.57                                    | 13.2%          | 1         |
-| Semantic Segmentation | cityscapes_regseg48     | 44.959                               | 44.55                                     | 0.9%           | 8         |
-| Semantic Segmentation | cityscapes_segformer    | 199.97                               | 162.52                                    | 18.7%          | 1         |
-| Semantic Segmentation | cityscapes_segformer    | 46.21                                | 43.71                                     | 5.4%           | 8         |
-| Semantic Segmentation | cityscapes_stdc_seg75   | 425.19                               | 153.16                                    | 63.9%          | 1         |
-| Semantic Segmentation | cityscapes_stdc_seg75   | 73.07                                | 45.89                                     | 37.19%         | 8         |
-| Semantic Segmentation | cityscapes_ddrnet       |                                      |                                           |                | 1         |
-| Semantic Segmentation | cityscapes_ddrnet       |                                      |                                           |                | 8         |
-
+| Task                  | Recipe                  | Time per epoch in seconds (Baseline) | Time per epoch in seconds (torch.compile) | Improvement, % | Mode          |
+|-----------------------|-------------------------|--------------------------------------|-------------------------------------------|----------------|---------------|
+| Semantic Segmentation | cityscapes_pplite_seg75 | 270.63                               | 119.11                                    | 56%            | Single GPU    |
+| Semantic Segmentation | cityscapes_pplite_seg75 | 49.95                                | 35.91                                     | 18%            | DDP           |
+| Semantic Segmentation | cityscapes_regseg48     | 125.14                               | 108.57                                    | 13.2%          | Single GPU    |
+| Semantic Segmentation | cityscapes_regseg48     | 44.959                               | 44.55                                     | 0.9%           | DDP           |
+| Semantic Segmentation | cityscapes_segformer    | 199.97                               | 162.52                                    | 18.7%          | Single GPU    |
+| Semantic Segmentation | cityscapes_segformer    | 46.21                                | 43.71                                     | 5.4%           | DPP           |
+| Semantic Segmentation | cityscapes_stdc_seg75   | 425.19                               | 153.16                                    | 63.9%          | Single GPU    |
+| Semantic Segmentation | cityscapes_stdc_seg75   | 73.07                                | 45.89                                     | 37.19%         | DDP           |
+| Semantic Segmentation | cityscapes_ddrnet       | 226.51                               | 174.11                                    | 23.1%          | Single GPU    |
+| Semantic Segmentation | cityscapes_ddrnet       | 51.78                                | 48.29                                     | 7.3%           | DDP           |
 
 In the table above, number are reported as speedup compared to the baseline training time. 
 Both experiments were run on 8x 3090 GPUs using PyTorch 2.0 with CUDA 11.8. 
