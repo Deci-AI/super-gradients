@@ -176,6 +176,25 @@ class PreprocessSegmentationMetricsArgs(AbstractMetricsArgsPrepFn):
 
 @register_metric(Metrics.PIXEL_ACCURACY)
 class PixelAccuracy(Metric):
+    """
+    Pixel Accuracy
+
+    Args:
+        ignore_label: Optional[Union[int, List[int]]], specifying a target class(es) to ignore.
+            If given, this class index does not contribute to the returned score, regardless of reduction method.
+            Has no effect if given an int that is not in the range [0, num_classes-1].
+            By default, no index is ignored, and all classes are used.
+            IMPORTANT: reduction="none" alongside with a list of ignored indices is not supported and will raise an error.
+        reduction: a method to reduce metric score over labels:
+
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
+
+        metrics_args_prep_fn: Callable, inputs preprocess function applied on preds, target before updating metrics.
+            By default set to PreprocessSegmentationMetricsArgs(apply_arg_max=True)
+    """
+
     def __init__(self, ignore_label: Union[int, List[int]] = -100, dist_sync_on_step=False, metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.ignore_label = ignore_label
@@ -227,6 +246,27 @@ def _handle_multiple_ignored_inds(ignore_index, num_classes):
 
 @register_metric(Metrics.IOU)
 class IoU(torchmetrics.JaccardIndex):
+    """
+    IoU Metric
+
+    Args:
+        num_classes: Number of classes in the dataset.
+        ignore_index: Optional[Union[int, List[int]]], specifying a target class(es) to ignore.
+            If given, this class index does not contribute to the returned score, regardless of reduction method.
+            Has no effect if given an int that is not in the range [0, num_classes-1].
+            By default, no index is ignored, and all classes are used.
+            IMPORTANT: reduction="none" alongside with a list of ignored indices is not supported and will raise an error.
+        threshold: Threshold value for binary or multi-label probabilities.
+        reduction: a method to reduce metric score over labels:
+
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
+
+        metrics_args_prep_fn: Callable, inputs preprocess function applied on preds, target before updating metrics.
+            By default set to PreprocessSegmentationMetricsArgs(apply_arg_max=True)
+    """
+
     def __init__(
         self,
         num_classes: int,
@@ -259,6 +299,27 @@ class IoU(torchmetrics.JaccardIndex):
 
 @register_metric(Metrics.DICE)
 class Dice(torchmetrics.JaccardIndex):
+    """
+    Dice Coefficient Metric
+
+    Args:
+        num_classes: Number of classes in the dataset.
+        ignore_index: Optional[Union[int, List[int]]], specifying a target class(es) to ignore.
+            If given, this class index does not contribute to the returned score, regardless of reduction method.
+            Has no effect if given an int that is not in the range [0, num_classes-1].
+            By default, no index is ignored, and all classes are used.
+            IMPORTANT: reduction="none" alongside with a list of ignored indices is not supported and will raise an error.
+        threshold: Threshold value for binary or multi-label probabilities.
+        reduction: a method to reduce metric score over labels:
+
+            - ``'elementwise_mean'``: takes the mean (default)
+            - ``'sum'``: takes the sum
+            - ``'none'``: no reduction will be applied
+
+        metrics_args_prep_fn: Callable, inputs preprocess function applied on preds, target before updating metrics.
+            By default set to PreprocessSegmentationMetricsArgs(apply_arg_max=True)
+    """
+
     def __init__(
         self,
         num_classes: int,
