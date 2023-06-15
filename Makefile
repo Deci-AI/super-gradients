@@ -45,138 +45,42 @@ recipe_accuracy_tests:
 #	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_l experiment_name=coco2017_yolo_nas_l_compile_enabled  epochs=5 training_hyperparams.torch_compile=True   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
 #	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_l experiment_name=coco2017_yolo_nas_l_compile_disabled epochs=5 training_hyperparams.torch_compile=False  training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
 
+LOGGING_PARAMETERS = training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
+
+# We disable SyncBN & EMA and enable AMP for all experiments
+# Also we disable loading the backbone weights for all experiments (it's irrelevant for performance testing)
+DEFAULT_TRAINING_PARAMETERS = epochs=5 training_hyperparams.ema=False training_hyperparams.sync_bn=False training_hyperparams.mixed_precision=True checkpoint_params.load_backbone=False
+
+SINGLE_GPU = multi_gpu=OFF num_gpus=1
+MULTIPLE_GPUS = multi_gpu=DDP num_gpus=8
 
 segmentation_compile_tests:
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_pplite_seg75 checkpoint_params.load_backbone=False experiment_name=cityscapes_pplite_seg75_compile_disabled_ddp  	epochs=5 training_hyperparams.torch_compile=False	training_hyperparams.ema=False training_hyperparams.mixed_precision=True training_hyperparams.sync_bn=False   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_pplite_seg75 checkpoint_params.load_backbone=False experiment_name=cityscapes_pplite_seg75_compile_enabled_ddp 	epochs=5 training_hyperparams.torch_compile=True   	training_hyperparams.ema=False training_hyperparams.mixed_precision=True training_hyperparams.sync_bn=False   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
+	# cityscapes_pplite_seg75
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_pplite_seg75 experiment_name=cityscapes_pplite_seg75_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_pplite_seg75 experiment_name=cityscapes_pplite_seg75_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_pplite_seg75 experiment_name=cityscapes_pplite_seg75_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_pplite_seg75 experiment_name=cityscapes_pplite_seg75_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_pplite_seg75 checkpoint_params.load_backbone=False experiment_name=cityscapes_pplite_seg75_compile_disabled_ddp  	epochs=5 training_hyperparams.torch_compile=False	training_hyperparams.ema=False training_hyperparams.mixed_precision=True training_hyperparams.sync_bn=False   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_pplite_seg75 checkpoint_params.load_backbone=False experiment_name=cityscapes_pplite_seg75_compile_enabled_ddp 	epochs=5 training_hyperparams.torch_compile=True   	training_hyperparams.ema=False training_hyperparams.mixed_precision=True training_hyperparams.sync_bn=False   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
+	# cityscapes_regseg48
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_regseg48 experiment_name=cityscapes_regseg48_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_regseg48 experiment_name=cityscapes_regseg48_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_regseg48 experiment_name=cityscapes_regseg48_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_regseg48 experiment_name=cityscapes_regseg48_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
+	# cityscapes_segformer
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer experiment_name=cityscapes_segformer_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer experiment_name=cityscapes_segformer_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer experiment_name=cityscapes_segformer_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer experiment_name=cityscapes_segformer_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_regseg48     experiment_name=cityscapes_regseg48_compile_enabled  		epochs=5 training_hyperparams.torch_compile=True   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_regseg48     experiment_name=cityscapes_regseg48_compile_disabled  	epochs=5 training_hyperparams.torch_compile=False   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
+	# cityscapes_stdc_seg75
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer    checkpoint_params.load_backbone=False experiment_name=cityscapes_segformer_compile_enabled  	epochs=5 training_hyperparams.torch_compile=True   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer    checkpoint_params.load_backbone=False experiment_name=cityscapes_segformer_compile_disabled  	epochs=5 training_hyperparams.torch_compile=False   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75   checkpoint_params.load_backbone=False experiment_name=cityscapes_stdc_seg75_compile_enabled  	epochs=5 training_hyperparams.torch_compile=True   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75   checkpoint_params.load_backbone=False experiment_name=cityscapes_stdc_seg75_compile_disabled  	epochs=5 training_hyperparams.torch_compile=False   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       checkpoint_params.load_backbone=False experiment_name=cityscapes_ddrnet23_compile_enabled  		epochs=5 training_hyperparams.torch_compile=True   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       checkpoint_params.load_backbone=False experiment_name=cityscapes_ddrnet23_compile_disabled 		epochs=5 training_hyperparams.torch_compile=False   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       checkpoint_params.load_backbone=False experiment_name=cityscapes_ddrnet23_compile_enabled_no_ema  		epochs=5 training_hyperparams.ema=False training_hyperparams.torch_compile=True   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       checkpoint_params.load_backbone=False experiment_name=cityscapes_ddrnet23_compile_disabled_no_ema 		epochs=5 training_hyperparams.ema=False training_hyperparams.torch_compile=False   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       checkpoint_params.load_backbone=False experiment_name=cityscapes_ddrnet23_compile_enabled_no_ema_1gpu_max-autotune     	epochs=5 training_hyperparams.ema=False training_hyperparams.torch_compile_mode=max-autotune training_hyperparams.torch_compile=True   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai     multi_gpu=OFF num_gpus=1
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       checkpoint_params.load_backbone=False experiment_name=cityscapes_ddrnet23_compile_enabled_no_ema_1gpu_reduce_overhead  	epochs=5 training_hyperparams.ema=False training_hyperparams.torch_compile_mode=reduce-overhead training_hyperparams.torch_compile=True   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai     multi_gpu=OFF num_gpus=1
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       checkpoint_params.load_backbone=False experiment_name=cityscapes_ddrnet23_compile_enabled_no_ema_1gpu  	epochs=5 training_hyperparams.ema=False training_hyperparams.torch_compile=True   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai     multi_gpu=OFF num_gpus=1
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       checkpoint_params.load_backbone=False experiment_name=cityscapes_ddrnet23_compile_disabled_no_ema 		epochs=5 training_hyperparams.ema=False training_hyperparams.torch_compile=False   training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments +training_hyperparams.sg_logger_params.entity=super-gradients  +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai    multi_gpu=OFF num_gpus=1
-
-
-cityscapes_ddrnet_test:
-	# compile: False
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       \
-		checkpoint_params.load_backbone=False \
-		experiment_name=cityscapes_ddrnet23_compile_disabled_no_ema_no_sync_bn_fp16 \
-		training_hyperparams.torch_compile=False   \
-		training_hyperparams.mixed_precision=True \
-		training_hyperparams.ema=False \
-		training_hyperparams.sync_bn=False \
-		batch_size=4 \
-		epochs=5 \
-		training_hyperparams.sg_logger=wandb_sg_logger \
-		+training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments \
-		+training_hyperparams.sg_logger_params.entity=super-gradients  \
-		+training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       \
-		checkpoint_params.load_backbone=False \
-		experiment_name=cityscapes_ddrnet23_compile_disabled_no_ema_no_sync_bn_fp32 \
-		training_hyperparams.torch_compile=False   \
-		training_hyperparams.mixed_precision=False \
-		training_hyperparams.ema=False \
-		training_hyperparams.sync_bn=False \
-		batch_size=4 \
-		epochs=5 \
-		training_hyperparams.sg_logger=wandb_sg_logger \
-		+training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments \
-		+training_hyperparams.sg_logger_params.entity=super-gradients  \
-		+training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-
-
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       \
-		checkpoint_params.load_backbone=False \
-		experiment_name=cityscapes_ddrnet23_compile_enabled_no_ema_no_sync_bn_fp16 \
-		training_hyperparams.torch_compile=True   \
-		training_hyperparams.torch_compile_mode=reduce-overhead   		\
-		training_hyperparams.mixed_precision=True \
-		training_hyperparams.ema=False \
-		training_hyperparams.sync_bn=False \
-		batch_size=4 \
-		epochs=5 \
-		training_hyperparams.sg_logger=wandb_sg_logger \
-		+training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments \
-		+training_hyperparams.sg_logger_params.entity=super-gradients  \
-		+training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       \
-		checkpoint_params.load_backbone=False \
-		experiment_name=cityscapes_ddrnet23_compile_enabled_no_ema_no_sync_bn_fp32 \
-		training_hyperparams.torch_compile=True   \
-		training_hyperparams.torch_compile_mode=reduce-overhead   		\
-		training_hyperparams.mixed_precision=False \
-		training_hyperparams.ema=False \
-		training_hyperparams.sync_bn=False \
-		batch_size=4 \
-		epochs=5 \
-		training_hyperparams.sg_logger=wandb_sg_logger \
-		+training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments \
-		+training_hyperparams.sg_logger_params.entity=super-gradients  \
-		+training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-
-
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       \
-		checkpoint_params.load_backbone=False \
-		experiment_name=cityscapes_ddrnet23_compile_enabled_with_ema_no_sync_bn_fp32 \
-		training_hyperparams.torch_compile=True   \
-		training_hyperparams.mixed_precision=False \
-		training_hyperparams.ema=True \
-		training_hyperparams.sync_bn=False \
-		batch_size=4 \
-		epochs=5 \
-		training_hyperparams.sg_logger=wandb_sg_logger \
-		+training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments \
-		+training_hyperparams.sg_logger_params.entity=super-gradients  \
-		+training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       \
-		checkpoint_params.load_backbone=False \
-		experiment_name=cityscapes_ddrnet23_compile_enabled_with_ema_no_sync_bn_fp32 \
-		training_hyperparams.torch_compile=True   \
-		training_hyperparams.torch_compile_mode=reduce-overhead   		\
-		training_hyperparams.mixed_precision=False \
-		training_hyperparams.ema=True \
-		training_hyperparams.sync_bn=False \
-		batch_size=4 \
-		epochs=5 \
-		training_hyperparams.sg_logger=wandb_sg_logger \
-		+training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments \
-		+training_hyperparams.sg_logger_params.entity=super-gradients  \
-		+training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
-
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet       \
-		checkpoint_params.load_backbone=False \
-		experiment_name=cityscapes_ddrnet23_compile_enabled_with_ema_no_sync_bn_fp16 \
-		training_hyperparams.torch_compile=True   \
-		training_hyperparams.torch_compile_mode=reduce-overhead   		\
-		training_hyperparams.mixed_precision=True \
-		training_hyperparams.ema=True \
-		training_hyperparams.sync_bn=False \
-		batch_size=4 \
-		epochs=5 \
-		training_hyperparams.sg_logger=wandb_sg_logger \
-		+training_hyperparams.sg_logger_params.project_name=TorchCompileExperiments \
-		+training_hyperparams.sg_logger_params.entity=super-gradients  \
-		+training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai
+	# cityscapes_stdc_seg75
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet experiment_name=cityscapes_ddrnet_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet experiment_name=cityscapes_ddrnet_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet experiment_name=cityscapes_ddrnet_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet experiment_name=cityscapes_ddrnet_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
