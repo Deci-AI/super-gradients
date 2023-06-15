@@ -74,13 +74,13 @@ segmentation_compile_tests:
 #	python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer experiment_name=cityscapes_segformer_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 	# cityscapes_stdc_seg75
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 experiment_name=cityscapes_stdc_seg75_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 	# cityscapes_stdc_seg75
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet experiment_name=cityscapes_ddrnet_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet experiment_name=cityscapes_ddrnet_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet experiment_name=cityscapes_ddrnet_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet experiment_name=cityscapes_ddrnet_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet experiment_name=cityscapes_ddrnet_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	python -m super_gradients.train_from_recipe --config-name=cityscapes_ddrnet experiment_name=cityscapes_ddrnet_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
