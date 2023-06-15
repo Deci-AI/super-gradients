@@ -59,7 +59,7 @@ class ImageClassificationPrediction(ImagePrediction):
         """Draw the predicted label on the image.
 
         :param show_confidence: Whether to show confidence scores on the image.
-        :return:                Image with predicted bboxes. Note that this does not modify the original image.
+        :return:                Image with predicted label.
         """
 
         image = self.image.copy()
@@ -67,10 +67,10 @@ class ImageClassificationPrediction(ImagePrediction):
 
         # Determine the size of the label text
         (label_width, label_height), _ = cv2.getTextSize(text=label_text, fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                                                         fontScale=0.5, thickness=2)
+                                                         fontScale=0.5, thickness=1)
 
         # Calculate the position to draw the label
-        image_height, image_width = self.prediction.image_shape[1:]
+        image_width, image_height = self.prediction.image_shape[1:]
         start_point = ((image_width - label_width) // 2, (image_height - label_height) // 4)
         end_point = (start_point[0] + label_width, start_point[1] + label_height)
 
@@ -88,26 +88,19 @@ class ImageClassificationPrediction(ImagePrediction):
         return image
 
     def show(self, show_confidence: bool = True) -> None:
-        """Display the image with predicted bboxes.
+        """Display the image with predicted label.
 
-        :param box_thickness:   Thickness of bounding boxes.
         :param show_confidence: Whether to show confidence scores on the image.
-        :param color_mapping:   List of tuples representing the colors for each class.
-                                Default is None, which generates a default color mapping based on the number of class names.
         """
         # to do draw the prediction on the image
         image = self.draw(show_confidence=show_confidence)
         show_image(image)
 
-    def save(self, output_path: str, box_thickness: int = 2, show_confidence: bool = True,
-             color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
-        """Save the predicted bboxes on the images.
+    def save(self, output_path: str, show_confidence: bool = True,) -> None:
+        """Save the predicted label on the images.
 
         :param output_path:     Path to the output video file.
-        :param box_thickness:   Thickness of bounding boxes.
         :param show_confidence: Whether to show confidence scores on the image.
-        :param color_mapping:   List of tuples representing the colors for each class.
-                                Default is None, which generates a default color mapping based on the number of class names.
         """
         image = self.draw(show_confidence=show_confidence)
         save_image(image=image, path=output_path)
@@ -250,7 +243,7 @@ class ImagesClassificationPrediction(ImagesPredictions):
             prediction.show(show_confidence=show_confidence)
 
     def save(self, output_folder: str, show_confidence: bool = True) -> None:
-        """Save the predicted bboxes on the images.
+        """Save the predicted label on the images.
 
         :param output_folder:     Folder path, where the images will be saved.
         :param show_confidence: Whether to show confidence scores on the image.

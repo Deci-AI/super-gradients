@@ -109,7 +109,7 @@ class PoseEstimationPrediction(Prediction):
 
 @dataclass
 class ClassificationPrediction(Prediction):
-    """Represents a Classification prediction, with bboxes represented in xyxy format."""
+    """Represents a Classification prediction"""
 
     confidence: np.float32
     labels: np.int64

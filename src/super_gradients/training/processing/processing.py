@@ -1,12 +1,14 @@
-from typing import Tuple, List, Union
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Tuple, List, Union
 
 import numpy as np
+from PIL import Image
+from torchvision.transforms import CenterCrop
 
+from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_processing
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST, IMAGENET_CLASSES
-from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
 from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
@@ -19,9 +21,7 @@ from super_gradients.training.transforms.utils import (
     _shift_keypoints,
 
 )
-from super_gradients.common.object_names import Processings
-
-from torchvision.transforms import CenterCrop
+from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
 
 
 @dataclass
@@ -334,7 +334,6 @@ class Resize(ClassificationProcess):
         :param image: Image, in (H, W, C) format.
         :return:      The resized image.
         """
-        from PIL import Image
         image = Image.fromarray(image)
         resized_image = image.resize((self.size, self.size))
         resized_image = np.array(resized_image)
@@ -353,7 +352,7 @@ class CenterCrop(ClassificationProcess):
         self.size = size
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
-        """Reverse the channel order of an image.
+        """ Crops the given image at the center.
 
         :param image: Image, in (H, W, C) format.
         :return:      The center cropped image.
@@ -522,6 +521,7 @@ def default_dekr_coco_processing_params() -> dict:
 
 
 def default_resnet_imagenet_processing_params() -> dict:
+    """Processing parameters commonly used for training resnet on Imagenet dataset."""
     image_processor = ComposeProcessing(
         [
             Resize(size=256),
