@@ -835,6 +835,7 @@ class DetectionHorizontalFlip(DetectionTransform):
         sample["image"] = image
         return sample
 
+
 @register_transform(Transforms.DetectionVerticalFlip)
 class DetectionVerticalFlip(DetectionTransform):
     """
@@ -1314,7 +1315,7 @@ def _horizontal_mirror(image, boxes, prob=0.5):
     _, width, _ = image.shape
     if random.random() < prob:
         image = image[:, ::-1]
-        flipped_boxes[:, [0,2]] = width - boxes[:, [2,0]]
+        flipped_boxes[:, [0, 2]] = width - boxes[:, [2, 0]]
     return image, flipped_boxes
 
 
@@ -1331,7 +1332,7 @@ def _vertical_mirror(image, boxes, prob=0.5):
     height, _, _ = image.shape
     if random.random() < prob:
         image = image[::-1, :]
-        flipped_boxes[:, [1,3]] = height - boxes[:, [3,1]]
+        flipped_boxes[:, [1, 3]] = height - boxes[:, [3, 1]]
     return image, flipped_boxes
 
 
