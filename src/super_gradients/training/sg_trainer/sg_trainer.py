@@ -401,7 +401,7 @@ class Trainer:
             if sync_bn:
                 if not self.ddp_silent_mode:
                     logger.info("DDP - Using Sync Batch Norm... Training time will be affected accordingly")
-                self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net).to(device_config.device)
+                self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net)
 
             local_rank = int(device_config.device.split(":")[1])
             self.net = torch.nn.parallel.DistributedDataParallel(self.net, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
