@@ -9,26 +9,25 @@ Pre-trained CIFAR10 models: 'deci-model-repository/CIFAR_NAS_#?_????_?/ckpt_best
 
 Code adapted from https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 """
+from collections import OrderedDict
 from functools import lru_cache
 from typing import Optional, List
 
 import torch.nn as nn
 import torch.nn.functional as F
-from collections import OrderedDict
-
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
+from super_gradients.common.object_names import Models
+from super_gradients.common.registry.registry import register_model
 from super_gradients.modules.utils import width_multiplier
-from super_gradients.training.models import SgModule
+from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
 from super_gradients.training.pipelines.pipelines import ClassificationPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.media.image import ImageSource
-from super_gradients.training.utils.predict import ImagesDetectionPrediction, ImagesPredictions
+from super_gradients.training.utils.predict import ImagesPredictions
 from super_gradients.training.utils.regularization_utils import DropPath
-from super_gradients.common.registry.registry import register_model
-from super_gradients.common.object_names import Models
 
 
 class BasicResNetBlock(nn.Module):
@@ -94,7 +93,7 @@ class Bottleneck(nn.Module):
         return out
 
 
-class CifarResNet(SgModule):
+class CifarResNet(BaseClassifier):
     def __init__(self, block, num_blocks, num_classes=10, width_mult=1, expansion=1):
         super(CifarResNet, self).__init__()
         self.expansion = expansion
@@ -139,7 +138,7 @@ class CifarResNet(SgModule):
         return out
 
 
-class ResNet(SgModule):
+class ResNet(BaseClassifier):
     def __init__(
             self,
             block,
@@ -271,7 +270,6 @@ class ResNet(SgModule):
         """Instantiate the prediction pipeline of this model.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
-        # todo look for more attributes in resnet
         if None in (self._class_names, self._image_processor):
             raise RuntimeError(
                 "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
@@ -286,7 +284,6 @@ class ResNet(SgModule):
         return pipeline
 
     def predict(self, images: ImageSource, fuse_model: bool = True) -> ImagesPredictions:
-        # todo check if the import of ImagesPredictions is ok? (there are 2 places we can find this)
         """Predict an image or a list of images.
 
         :param images:  Images to predict.

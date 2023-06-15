@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
 
 """Densenet-BC model class, based on
 "Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`_
@@ -72,7 +72,7 @@ class _Transition(nn.Sequential):
         self.add_module("pool", nn.AvgPool2d(kernel_size=2, stride=2))
 
 
-class DenseNet(SgModule):
+class DenseNet(BaseClassifier):
     def __init__(self, growth_rate: int, structure: list, num_init_features: int, bn_size: int, drop_rate: float, num_classes: int):
         """
         :param growth_rate:         number of filter to add each layer (noted as 'k' in the paper)
