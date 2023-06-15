@@ -666,6 +666,13 @@ class Trainer:
         self.resume_from_remote_sg_logger = core_utils.get_param(self.training_params, "resume_from_remote_sg_logger", False)
         self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None or self.resume_from_remote_sg_logger
 
+        if self.training_params.torch_compile:
+            logger.info("Using torch.compile feature. Compiling model. This may take a few minutes")
+            self.net = torch.compile(self.net, mode=self.training_params.torch_compile_mode)
+            logger.info("Model compilation complete. Continuing training")
+            if is_distributed():
+                torch.distributed.barrier()
+
     def _init_arch_params(self) -> None:
         default_arch_params = HpmStruct()
         arch_params = getattr(self.net, "arch_params", default_arch_params)
@@ -1060,13 +1067,6 @@ class Trainer:
                 )
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
-
-        if self.training_params.torch_compile:
-            logger.info("Using torch.compile feature. Compiling model. This may take a few minutes")
-            model = torch.compile(model, mode=self.training_params.torch_compile_mode)
-            logger.info("Model compilation complete. Continuing training")
-            if is_distributed():
-                torch.distributed.barrier()
 
         self.net = model
 
