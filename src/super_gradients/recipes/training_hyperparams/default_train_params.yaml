@@ -114,6 +114,6 @@ sg_logger_params:
   monitor_system: True  # Monitor and write to tensorboard the system statistics, such as CPU usage, GPU, ...
 
 torch_compile: False
-torch_compile_mode: default # reduce-overhead / max-autotune
+torch_compile_mode: reduce-overhead # default / reduce-overhead / max-autotune
 
 _convert_: all
