@@ -122,8 +122,8 @@ classification_compile_tests:
 #	python -m super_gradients.train_from_recipe --config-name=imagenet_repvgg experiment_name=imagenet_repvgg_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 #	python -m super_gradients.train_from_recipe --config-name=imagenet_repvgg experiment_name=imagenet_repvgg_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
-	python -m super_gradients.train_from_recipe --config-name=imagenet_resnet50 experiment_name=imagenet_resnet50_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=imagenet_resnet50 experiment_name=imagenet_resnet50_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=imagenet_resnet50 batch_size=128 experiment_name=imagenet_resnet50_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=imagenet_resnet50 batch_size=128 experiment_name=imagenet_resnet50_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 	python -m super_gradients.train_from_recipe --config-name=imagenet_vit_base experiment_name=imagenet_vit_base_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	python -m super_gradients.train_from_recipe --config-name=imagenet_vit_base experiment_name=imagenet_vit_base_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
