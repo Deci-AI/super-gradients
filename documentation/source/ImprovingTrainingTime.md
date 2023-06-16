@@ -55,7 +55,9 @@ Please note that the improvement may vary depending on the model architecture, t
 | Object Detection        | coco2017_yolo_nas_s       |                                        |                                             |                  | Single GPU      |
 | Object Detection        | coco2017_yolo_nas_s       | 384.41                                 | 376.10                                      | 2.42%            | DDP             |
 | Object Detection        | coco2017_yolo_nas_m       |                                        |                                             |                  | Single GPU      |
-| Object Detection        | coco2017_yolo_nas_m       |                                        | 508.40                                      |                  | DDP             |
+| Object Detection        | coco2017_yolo_nas_m       | 537.24                                 | 508.40                                      | 0.19%            | DDP             |
+| Object Detection        | coco2017_yolo_nas_l       |                                        |                                             |                  | Single GPU      |
+| Object Detection        | coco2017_yolo_nas_l       |                                        |                                             |                  | DDP             |
 
 In the table above, number are reported as speedup compared to the baseline training time. 
 Both experiments were run on 8x 3090 GPUs using PyTorch 2.0 with CUDA 11.8. 
