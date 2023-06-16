@@ -7,7 +7,6 @@ from torch import nn
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
-from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.utils.ema_decay_schedules import IDecayFunction, EMA_DECAY_FUNCTIONS
@@ -172,15 +171,13 @@ class KDModelEMA(ModelEMA):
                      its final value. beta=15 is ~40% of the training process.
         """
         # Only work on the student (we don't want to update and to have a duplicate of the teacher)
-        super().__init__(model=core_utils.WrappedModel(kd_model.module.student), decay=decay, decay_function=decay_function)
+        super().__init__(model=kd_model.student, decay=decay, decay_function=decay_function)
 
         # Overwrite current ema attribute with combination of the student model EMA (current self.ema)
         # with already the instantiated teacher, to have the final KD EMA
-        self.ema = core_utils.WrappedModel(
-            KDModule(
-                arch_params=kd_model.module.arch_params,
-                student=self.ema.module,
-                teacher=kd_model.module.teacher,
-                run_teacher_on_eval=kd_model.module.run_teacher_on_eval,
-            )
+        self.ema = KDModule(
+            arch_params=kd_model.arch_params,
+            student=self.ema,
+            teacher=kd_model.teacher,
+            run_teacher_on_eval=kd_model.run_teacher_on_eval,
         )

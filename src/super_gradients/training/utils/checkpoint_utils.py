@@ -54,6 +54,13 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Uni
     :return:
     """
     state_dict = state_dict["net"] if "net" in state_dict else state_dict
+
+    # This is a backward compatibility fix for checkpoints that were saved with DataParallel/DistributedDataParallel wrapper
+    # and contains "module." prefix in all keys
+    # If all keys start with "module.", then we remove it.
+    if all([key.startswith("module.") for key in state_dict.keys()]):
+        state_dict = collections.OrderedDict([(key[7:], value) for key, value in state_dict.items()])
+
     try:
         strict_bool = strict if isinstance(strict, bool) else strict != StrictLoad.OFF
         net.load_state_dict(state_dict, strict=strict_bool)

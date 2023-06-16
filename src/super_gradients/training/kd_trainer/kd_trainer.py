@@ -27,6 +27,7 @@ from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallbac
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, load_checkpoint_to_model
 from super_gradients.training.utils.distributed_training_utils import setup_device
 from super_gradients.training.utils.ema import KDModelEMA
+from super_gradients.training.utils.utils import get_real_model
 
 logger = get_logger(__name__)
 
@@ -271,12 +272,12 @@ class KDTrainer(Trainer):
         Overrides parent best_ckpt saving to modify the state dict so that we only save the student.
         """
         if self.ema:
-            best_net = core_utils.WrappedModel(self.ema_model.ema.module.student)
+            best_net = self.ema_model.ema.student
             state.pop("ema_net")
         else:
-            best_net = core_utils.WrappedModel(self.net.module.student)
+            best_net = self.net.student
 
-        state["net"] = best_net.state_dict()
+        state["net"] = get_real_model(best_net).state_dict()
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
     def train(

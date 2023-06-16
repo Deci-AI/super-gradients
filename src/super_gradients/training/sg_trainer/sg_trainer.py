@@ -66,7 +66,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
-from super_gradients.training.utils.utils import fuzzy_idx_in_list
+from super_gradients.training.utils.utils import fuzzy_idx_in_list, get_real_model
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
@@ -405,9 +405,6 @@ class Trainer:
             local_rank = int(device_config.device.split(":")[1])
             self.net = torch.nn.parallel.DistributedDataParallel(self.net, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
 
-        else:
-            self.net = core_utils.WrappedModel(self.net)
-
     def _train_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
         """
         train_epoch - A single epoch training procedure
@@ -592,7 +589,7 @@ class Trainer:
         """
         # WHEN THE validation_results_tuple IS NONE WE SIMPLY SAVE THE state_dict AS LATEST AND Return
         if validation_results_tuple is None:
-            self.sg_logger.add_checkpoint(tag="ckpt_latest_weights_only.pth", state_dict={"net": self.net.state_dict()}, global_step=epoch)
+            self.sg_logger.add_checkpoint(tag="ckpt_latest_weights_only.pth", state_dict={"net": get_real_model(self.net).state_dict()}, global_step=epoch)
             return
 
         # COMPUTE THE CURRENT metric
@@ -604,7 +601,8 @@ class Trainer:
         )
 
         # BUILD THE state_dict
-        state = {"net": self.net.state_dict(), "acc": metric, "epoch": epoch}
+        state = {"net": get_real_model(self.net).state_dict(), "acc": metric, "epoch": epoch}
+
         if optimizer is not None:
             state["optimizer_state_dict"] = optimizer.state_dict()
 
@@ -612,7 +610,7 @@ class Trainer:
             state["scaler_state_dict"] = self.scaler.state_dict()
 
         if self.ema:
-            state["ema_net"] = self.ema_model.ema.state_dict()
+            state["ema_net"] = get_real_model(self.ema_model.ema).state_dict()
 
         if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
             state["processing_params"] = self.valid_loader.dataset.get_dataset_preprocessing_params()
@@ -638,7 +636,7 @@ class Trainer:
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(metric))
 
         if self.training_params.average_best_models:
-            net_for_averaging = self.ema_model.ema if self.ema else self.net
+            net_for_averaging = get_real_model(self.ema_model.ema if self.ema else self.net)
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
@@ -1438,7 +1436,7 @@ class Trainer:
         with wait_for_the_master(local_rank):
             average_model_sd = read_ckpt_state_dict(average_model_ckpt_path)["net"]
 
-        self.net.load_state_dict(average_model_sd)
+        get_real_model(self.net).load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
         averaged_model_results_tuple = self._validate_epoch(epoch=self.max_epochs)
 
@@ -1494,7 +1492,8 @@ class Trainer:
 
         if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logger.warning("Warning: distributed training is not supported in re_build_model()")
-        self.net = torch.nn.DataParallel(self.net, device_ids=get_device_ids()) if device_config.multi_gpu else core_utils.WrappedModel(self.net)
+        if device_config.multi_gpu == MultiGPUMode.DATA_PARALLEL:
+            self.net = torch.nn.DataParallel(self.net, device_ids=get_device_ids())
 
     @property
     def get_module(self):

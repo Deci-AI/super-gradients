@@ -13,6 +13,7 @@ from itertools import islice
 from pathlib import Path
 from typing import Mapping, Optional, Tuple, Union, List, Dict, Any, Iterable
 from zipfile import ZipFile
+from torch.nn.parallel import DistributedDataParallel
 
 import numpy as np
 import torch
@@ -77,13 +78,20 @@ class HpmStruct:
             validate(self.__dict__, self.schema)
 
 
-class WrappedModel(nn.Module):
-    def __init__(self, module):
-        super(WrappedModel, self).__init__()
-        self.module = module  # that I actually define.
+def get_real_model(model: Union[nn.Module, nn.DataParallel, DistributedDataParallel]) -> nn.Module:
+    """
+    Get the real model from a model wrapper (DataParallel, DistributedDataParallel)
 
-    def forward(self, x):
-        return self.module(x)
+    :param model:
+    :return:
+    """
+    if isinstance(model, DistributedDataParallel):
+        return model.module
+    elif isinstance(model, nn.DataParallel):
+        return model.module
+    elif isinstance(model, nn.Module):
+        return model
+    raise ValueError(f"Unknown model type: {type(model)}")
 
 
 def arch_params_deprecated(func):
