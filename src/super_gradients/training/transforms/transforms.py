@@ -655,8 +655,10 @@ class DetectionMixup(DetectionTransform):
             cp_sample = sample["additional_samples"][0]
             img, cp_labels = cp_sample["image"], cp_sample["target"]
             cp_boxes = cp_labels[:, :4]
-
-            img, cp_boxes = _horizontal_mirror(img, cp_boxes, self.flip_prob)
+            if self.prob < randon.random():
+                _, width, _ = img.shape
+                image = _flip_horizontal_image(img)
+                cp_boxes = _flip_horizontal_boxes(cp_boxes, width)
             # PLUG IN TARGET THE FLIPPED BOXES
             cp_labels[:, :4] = cp_boxes
 
@@ -825,14 +827,21 @@ class DetectionHorizontalFlip(DetectionTransform):
         self.prob = prob
 
     def __call__(self, sample):
-        image, targets = sample["image"], sample["target"]
-        if len(targets) == 0:
-            targets = np.zeros((0, 5), dtype=np.float32)
-        boxes = targets[:, :4]
-        image, boxes = _horizontal_mirror(image, boxes, self.prob)
-        targets[:, :4] = boxes
-        sample["target"] = targets
-        sample["image"] = image
+        if self.prob < randon.random():
+            image, targets = sample["image"], sample["target"]
+            crowd_targets = sample.get("crowd_targets")
+            _, width, _ = image.shape
+            if len(targets) == 0:
+                targets = np.zeros((0, 5), dtype=np.float32)
+            boxes = targets[:, :4]
+            image = _flip_horizontal_image(image)
+            boxes = _flip_horizontal_boxes(boxes, width)
+            targets[:, :4] = boxes
+            if crowd_targets  is not None:
+                crowd_targets = _flip_horizontal_boxes(crowd_targets)
+            sample["target"] = targets
+            sample["crowd_targets"] = crowd_targets
+            sample["image"] = image
         return sample
 
 
@@ -850,14 +859,21 @@ class DetectionVerticalFlip(DetectionTransform):
         self.prob = prob
 
     def __call__(self, sample):
-        image, targets = sample["image"], sample["target"]
-        if len(targets) == 0:
-            targets = np.zeros((0, 5), dtype=np.float32)
-        boxes = targets[:, :4]
-        image, boxes = _vertical_mirror(image, boxes, self.prob)
-        targets[:, :4] = boxes
-        sample["target"] = targets
-        sample["image"] = image
+        if self.prob < randon.random():
+            image, targets = sample["image"], sample["target"]
+            crowd_targets = sample.get("crowd_targets")
+            height, _, _ = image.shape
+            if len(targets) == 0:
+                targets = np.zeros((0, 5), dtype=np.float32)
+            boxes = targets[:, :4]
+            image = _flip_vertical_image(image)
+            boxes = _flip_vertical_boxes(boxes, height)
+            targets[:, :4] = boxes
+            if crowd_targets  is not None:
+                crowd_targets = _flip_vertical_boxes(crowd_targets)
+            sample["target"] = targets
+            sample["crowd_targets"] = crowd_targets
+            sample["image"] = image
         return sample
 
 
@@ -1302,38 +1318,40 @@ def _filter_box_candidates(box1, box2, wh_thr=2, ar_thr=20, area_thr=0.1):
     return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + 1e-16) > area_thr) & (ar < ar_thr)  # candidates
 
 
-def _horizontal_mirror(image, boxes, prob=0.5):
+def _flip_horizontal_image(image: np.array):
     """
-    Horizontally flips image and bboxes with probability prob.
-
+    Horizontally flips image
     :param image: (np.array) image to be flipped.
-    :param boxes: (np.array) bboxes to be modified. (xyxy format)
-    :param prob: probability to perform flipping.
-    :return: flipped_image, flipped_bboxes
+    :return: flipped_image
     """
-    flipped_boxes = boxes.copy()
-    _, width, _ = image.shape
-    if random.random() < prob:
-        image = image[:, ::-1]
-        flipped_boxes[:, [0, 2]] = width - boxes[:, [2, 0]]
-    return image, flipped_boxes
+    return image[:, ::-1]
 
 
-def _vertical_mirror(image, boxes, prob=0.5):
+def _flip_horizontal_boxes(boxes: np.array, img_width: int):
     """
-    Vertically flips image and bboxes with probability prob.
+    Horizontally flips bboxes
+    :param boxes: (np.array) bboxes to be flipped. (xyxy format)
+    :return: flipped_boxes
+    """
+    return img_width - boxes[:, [2,1,0,3]]
 
+
+def _flip_vertical_image(image: np.array):
+    """
+    Vertically flips image
     :param image: (np.array) image to be flipped.
-    :param boxes: (np.array) bboxes to be modified. (xyxy format)
-    :param prob: probability to perform flipping.
-    :return: flipped_image, flipped_bboxes
+    :return: flipped_image
     """
-    flipped_boxes = boxes.copy()
-    height, _, _ = image.shape
-    if random.random() < prob:
-        image = image[::-1, :]
-        flipped_boxes[:, [1, 3]] = height - boxes[:, [3, 1]]
-    return image, flipped_boxes
+    return image[::-1, :]
+
+
+def _flip_vertical_boxes(boxes: np.array, img_height: int):
+    """
+    Vertically flips bboxes
+    :param boxes: (np.array) bboxes to be flipped. (xyxy format)
+    :return: flipped_boxes
+    """
+    return img_height - boxes[:, [0,3,2,1]]
 
 
 def augment_hsv(img: np.array, hgain: float, sgain: float, vgain: float, bgr_channels=(0, 1, 2)):
