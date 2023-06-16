@@ -1,4 +1,3 @@
-import collections
 import math
 import os
 import random
@@ -6,6 +5,7 @@ import re
 import tarfile
 import time
 import inspect
+import typing
 from functools import lru_cache, wraps
 from importlib import import_module
 from itertools import islice
@@ -592,7 +592,7 @@ def ensure_is_tuple_of_two(inputs: Union[Any, Iterable[Any], None]) -> Union[Tup
     if inputs is None:
         return None
 
-    if isinstance(inputs, collections.Iterable) and not isinstance(inputs, str):
+    if isinstance(inputs, typing.Iterable) and not isinstance(inputs, str):
         a, b = inputs
         return a, b
 
