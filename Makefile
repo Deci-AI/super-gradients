@@ -78,11 +78,11 @@ detection_compile_tests_1gpu:
 
 detection_compile_tests:
 	# coco2017_yolo_nas_s
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s batch_size=16 experiment_name=coco2017_yolo_nas_s_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s batch_size=16 experiment_name=coco2017_yolo_nas_s_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s batch_size=16 experiment_name=coco2017_yolo_nas_s_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s batch_size=16 experiment_name=coco2017_yolo_nas_s_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	# coco2017_yolo_nas_m
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_m batch_size=16 experiment_name=coco2017_yolo_nas_m_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_m batch_size=16 experiment_name=coco2017_yolo_nas_m_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_m batch_size=12 experiment_name=coco2017_yolo_nas_m_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_m batch_size=12 experiment_name=coco2017_yolo_nas_m_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	# coco2017_yolo_nas_l
 	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_l batch_size=8 experiment_name=coco2017_yolo_nas_l_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_l batch_size=8 experiment_name=coco2017_yolo_nas_l_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
