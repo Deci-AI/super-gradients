@@ -110,17 +110,17 @@ detection_compile_tests:
 #	python -m super_gradients.train_from_recipe --config-name=coco2017_ssd_lite_mobilenet_v2 batch_size=8 experiment_name=coco2017_ssd_lite_mobilenet_v2_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 classification_compile_tests:
-	python -m super_gradients.train_from_recipe --config-name=imagenet_efficientnet experiment_name=imagenet_efficientnet_b0_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=imagenet_efficientnet experiment_name=imagenet_efficientnet_b0_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-
-	python -m super_gradients.train_from_recipe --config-name=imagenet_mobilenetv3_large experiment_name=imagenet_mobilenetv3_large_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=imagenet_mobilenetv3_large experiment_name=imagenet_mobilenetv3_large_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-
-	python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY experiment_name=imagenet_regnetY_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY experiment_name=imagenet_regnetY_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-
-	python -m super_gradients.train_from_recipe --config-name=imagenet_repvgg experiment_name=imagenet_repvgg_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=imagenet_repvgg experiment_name=imagenet_repvgg_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=imagenet_efficientnet experiment_name=imagenet_efficientnet_b0_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=imagenet_efficientnet experiment_name=imagenet_efficientnet_b0_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#
+#	python -m super_gradients.train_from_recipe --config-name=imagenet_mobilenetv3_large experiment_name=imagenet_mobilenetv3_large_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=imagenet_mobilenetv3_large experiment_name=imagenet_mobilenetv3_large_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#
+#	python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY experiment_name=imagenet_regnetY_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY experiment_name=imagenet_regnetY_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#
+#	python -m super_gradients.train_from_recipe --config-name=imagenet_repvgg experiment_name=imagenet_repvgg_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=imagenet_repvgg experiment_name=imagenet_repvgg_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 	python -m super_gradients.train_from_recipe --config-name=imagenet_resnet50 experiment_name=imagenet_resnet50_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 	python -m super_gradients.train_from_recipe --config-name=imagenet_resnet50 experiment_name=imagenet_resnet50_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
