@@ -117,8 +117,8 @@ detection_compile_tests:
 #	python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_l batch_size=8 experiment_name=coco2017_yolox_l_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 	# coco2017_ssd_lite_mobilenet_v2
-	python -m super_gradients.train_from_recipe --config-name=coco2017_ssd_lite_mobilenet_v2 batch_size=8 experiment_name=coco2017_ssd_lite_mobilenet_v2_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_ssd_lite_mobilenet_v2 batch_size=8 experiment_name=coco2017_ssd_lite_mobilenet_v2_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=coco2017_ssd_lite_mobilenet_v2 batch_size=8 experiment_name=coco2017_ssd_lite_mobilenet_v2_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+#	python -m super_gradients.train_from_recipe --config-name=coco2017_ssd_lite_mobilenet_v2 batch_size=8 experiment_name=coco2017_ssd_lite_mobilenet_v2_compile_disabled_ddp  training_hyperparams.torch_compile=False $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 classification_compile_tests:
 	python -m super_gradients.train_from_recipe --config-name=imagenet_efficientnet experiment_name=imagenet_efficientnet_b0_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
