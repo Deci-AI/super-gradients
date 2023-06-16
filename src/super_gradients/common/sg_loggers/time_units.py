@@ -32,7 +32,7 @@ class EpochNumber(TimeUnit):
 
 
 @dataclasses.dataclass
-class GlobalBatchStepNumber(abc.ABC):
+class GlobalBatchStepNumber(TimeUnit):
     """
     A time unit for representing total number of batches processed, including training and validation ones.
     Suppose training loader has 320 batches and validation loader has 80 batches.
