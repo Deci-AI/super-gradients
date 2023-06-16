@@ -2,7 +2,7 @@ import json
 import os
 import signal
 import time
-from typing import Union, Any, Mapping
+from typing import Union, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,17 +10,18 @@ import psutil
 import torch
 from PIL import Image
 
-from super_gradients.common.registry.registry import register_sg_logger
-from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.decorators.code_save_decorator import saved_codes
-from super_gradients.common.environment.ddp_utils import multi_process_safe
-from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
-from super_gradients.training.params import TrainingParams
-from super_gradients.training.utils import sg_trainer_utils, get_param
-from super_gradients.common.environment.monitoring import SystemMonitor
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
+from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
+from super_gradients.common.decorators.code_save_decorator import saved_codes
+from super_gradients.common.environment.ddp_utils import multi_process_safe
+from super_gradients.common.environment.monitoring import SystemMonitor
+from super_gradients.common.registry.registry import register_sg_logger
+from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
+from super_gradients.common.sg_loggers.time_units import TimeUnit
+from super_gradients.training.params import TrainingParams
+from super_gradients.training.utils import sg_trainer_utils, get_param
 
 logger = get_logger(__name__)
 
@@ -155,9 +156,9 @@ class BaseSGLogger(AbstractSGLogger):
         self._write_to_log_file(log_lines)
 
     @multi_process_safe
-    def add_scalar(self, tag: str, scalar_value: float, global_step: int = None):
-        if isinstance(global_step, Mapping):
-            global_step = global_step.get("epoch", None) or global_step.get("global_step", None)
+    def add_scalar(self, tag: str, scalar_value: float, global_step: Union[int, TimeUnit] = None):
+        if isinstance(global_step, TimeUnit):
+            global_step = global_step.get_value()
         self.tensorboard_writer.add_scalar(tag=tag.lower().replace(" ", "_"), scalar_value=scalar_value, global_step=global_step)
 
     @multi_process_safe

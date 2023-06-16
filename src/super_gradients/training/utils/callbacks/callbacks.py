@@ -18,6 +18,7 @@ from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback
 from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
+from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, EpochNumber
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
@@ -780,7 +781,7 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/train_batch_forward_with_loss_ms",
             scalar_value=self.elapsed_time_between("on_train_batch_start", "on_train_batch_loss_end"),
-            global_step={"global_step": self.infer_global_step(context, is_train_loader=True)},
+            global_step=GlobalBatchStepNumber(self.infer_global_step(context, is_train_loader=True)),
         )
 
     @multi_process_safe
@@ -793,7 +794,7 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/train_batch_gradient_time",
             scalar_value=self.elapsed_time_between("on_train_batch_gradient_step_start", "on_train_batch_gradient_step_end"),
-            global_step={"global_step": self.infer_global_step(context, is_train_loader=True)},
+            global_step=GlobalBatchStepNumber(self.infer_global_step(context, is_train_loader=True)),
         )
 
     @multi_process_safe
@@ -802,7 +803,7 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/train_batch_total_time_ms",
             scalar_value=self.elapsed_time_between("on_train_batch_start", "on_train_batch_end"),
-            global_step={"global_step": self.infer_global_step(context, is_train_loader=True)},
+            global_step=GlobalBatchStepNumber(self.infer_global_step(context, is_train_loader=True)),
         )
 
     @multi_process_safe
@@ -811,7 +812,7 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/train_loader_total_time_ms",
             scalar_value=self.elapsed_time_between("on_train_loader_start", "on_train_loader_end"),
-            global_step={"epoch": context.epoch},
+            global_step=EpochNumber(context.epoch),
         )
 
     @multi_process_safe
@@ -828,7 +829,7 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/validation_batch_total_time_ms",
             scalar_value=self.elapsed_time_between("on_validation_batch_start", "on_validation_batch_end"),
-            global_step={"global_step": self.infer_global_step(context, is_train_loader=False)},
+            global_step=GlobalBatchStepNumber(self.infer_global_step(context, is_train_loader=False)),
         )
 
     @multi_process_safe
@@ -837,13 +838,13 @@ class TimerCallback(Callback):
         context.sg_logger.add_scalar(
             tag="timer/validation_loader_total_time_ms",
             scalar_value=self.elapsed_time_between("on_validation_loader_start", "on_validation_loader_end"),
-            global_step={"epoch": context.epoch},
+            global_step=EpochNumber(context.epoch),
         )
 
         context.sg_logger.add_scalar(
             tag="timer/epoch_total_time_sec",
             scalar_value=self.elapsed_time_between("on_train_loader_start", "on_validation_loader_end") / 1000.0,
-            global_step={"epoch": context.epoch},
+            global_step=EpochNumber(context.epoch),
         )
 
     def elapsed_time_between(self, start_event, end_event):
@@ -851,7 +852,7 @@ class TimerCallback(Callback):
 
     def infer_global_step(self, context: PhaseContext, is_train_loader: bool):
         total_steps_in_epoch = len(context.train_loader) + len(context.valid_loader)
-        total_steps_in_done = context.epoch * total_steps_in_epoch + context.batch_idx
+        total_steps_in_done = context.epoch * total_steps_in_epoch
         if is_train_loader:
             return total_steps_in_done + context.batch_idx
         else:
