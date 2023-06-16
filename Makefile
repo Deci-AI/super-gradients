@@ -55,26 +55,15 @@ SINGLE_GPU = multi_gpu=OFF num_gpus=1
 MULTIPLE_GPUS = multi_gpu=DDP num_gpus=8
 
 detection_compile_tests_1gpu:
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s experiment_name=coco2017_yolo_nas_s_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s experiment_name=coco2017_yolo_nas_s_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	CUDA_VISIBLE_DEVICES=0 python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s experiment_name=coco2017_yolo_nas_s_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS) &
+	CUDA_VISIBLE_DEVICES=1 python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s experiment_name=coco2017_yolo_nas_s_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS) &
 
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_m experiment_name=coco2017_yolo_nas_m_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_m experiment_name=coco2017_yolo_nas_m_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	CUDA_VISIBLE_DEVICES=2 python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_m experiment_name=coco2017_yolo_nas_m_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS) &
+	CUDA_VISIBLE_DEVICES=3 python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_m experiment_name=coco2017_yolo_nas_m_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS) &
 
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_l experiment_name=coco2017_yolo_nas_l_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_l experiment_name=coco2017_yolo_nas_l_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	CUDA_VISIBLE_DEVICES=4 python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_l experiment_name=coco2017_yolo_nas_l_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS) &
+	CUDA_VISIBLE_DEVICES=5 python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_l experiment_name=coco2017_yolo_nas_l_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS) &
 
-	python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_s experiment_name=coco2017_yolo_nas_s_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_s experiment_name=coco2017_yolo_nas_s_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-
-	python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_m experiment_name=coco2017_yolo_nas_m_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_m experiment_name=coco2017_yolo_nas_m_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-
-	python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_l experiment_name=coco2017_yolo_nas_l_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_l experiment_name=coco2017_yolo_nas_l_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-
-	python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_x experiment_name=coco2017_yolo_nas_l_compile_enabled_1gpu  training_hyperparams.torch_compile=True  $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
-	python -m super_gradients.train_from_recipe --config-name=coco2017_ppyoloe_x experiment_name=coco2017_yolo_nas_l_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 detection_compile_tests:
 	# coco2017_yolo_nas_s
