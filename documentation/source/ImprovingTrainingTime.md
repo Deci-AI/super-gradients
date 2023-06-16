@@ -39,43 +39,44 @@ Here we report the relative improvement (reduction) of training time for several
 This includes iteration over training and validation datasets, loss & metric computation. Essentially all steps that are performed during training.
 Please note that the improvement may vary depending on the model architecture, task, and training hyperparameters.
 
-| Task                  | Recipe                      | Baseline (1 GPU) | Baseline (8 GPU) | 1 GPU With Compile | 8 GPU With Compile | Speedup, % (1 GPU) | Speedup, % (8 GPU) |
-|-----------------------|-----------------------------|------------------|------------------|--------------------|--------------------|--------------------|--------------------|
-| Semantic Segmentation | cityscapes_pplite_seg75     | 270.63           | 49.95            | 119.11             | 35.91              | 56%                | 18%                |
-| Semantic Segmentation | cityscapes_regseg48         | 125.14           | 44.959           | 108.57             | 44.55              | 13.2%              | 0.9%               |
-| Semantic Segmentation | cityscapes_segformer        | 199.97           | 46.21            | 162.52             | 43.71              | 18.7%              | 5.4%               |
-| Semantic Segmentation | cityscapes_stdc_seg75       | 425.19           | 73.07            | 153.16             | 45.89              | 63.9%              | 37.19%             |
-| Semantic Segmentation | cityscapes_ddrnet           | 226.51           | 51.78            | 174.11             | 48.29              | 23.1%              | 7.3%               |
-|                       |                             |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_yolo_nas_s         |                  | 384.41           |                    | 376.10             |                    | 2.42%              |
-| Object Detection      | coco2017_yolo_nas_m         |                  | 537.24           |                    | 508.40             |                    | 0.19%              |
-| Object Detection      | coco2017_yolo_nas_l         |                  | 764.17           |                    | 745.58             |                    |                    |
-|                       |                             |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_ppyoloe_s          |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_ppyoloe_m          |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_ppyoloe_l          |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_ppyoloe_x          |                  |                  |                    |                    |                    |                    |
-|                       |                             |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_yolox_n            |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_yolox_t            |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_yolox_s            |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_yolox_m            |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_yolox_l            |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_yolox_x            |                  |                  |                    |                    |                    |                    |
-| Object Detection      | coco2017_yolox_x            |                  |                  |                    |                    |                    |                    |
-|                       |                             |                  |                  |                    |                    |                    |                    |
-| Classification        | imagenet_efficientnet       |                  |                  |                    |                    |                    |                    |
-| Classification        | imagenet_mobilenetv3_large  |                  |                  |                    |                    |                    |                    |
-| Classification        | imagenet_regnetY            |                  |                  |                    |                    |                    |                    |
-| Classification        | imagenet_repvgg             |                  |                  |                    |                    |                    |                    |
-| Classification        | imagenet_resnet50           |                  |                  |                    |                    |                    |                    |
-| Classification        | imagenet_vit_base           |                  |                  |                    |                    |                    |                    |
-| Classification        | imagenet_vit_large          |                  |                  |                    |                    |                    |                    |
+| Task                  | Recipe                      | Baseline (1 GPU) | Baseline (8 GPU) | 1 GPU With Compile | 8 GPU With Compile | Improvement, % (1 GPU) | Improvement, % (8 GPU) |
+|-----------------------|-----------------------------|------------------|------------------|--------------------|--------------------|------------------------|--------------------|
+| Semantic Segmentation | cityscapes_pplite_seg75     | 270.63           | 49.95            | 119.11             | 35.91              | 56%                    | 18%                |
+| Semantic Segmentation | cityscapes_regseg48         | 125.14           | 44.959           | 108.57             | 44.55              | 13.2%                  | 0.9%               |
+| Semantic Segmentation | cityscapes_segformer        | 199.97           | 46.21            | 162.52             | 43.71              | 18.7%                  | 5.4%               |
+| Semantic Segmentation | cityscapes_stdc_seg75       | 425.19           | 73.07            | 153.16             | 45.89              | 63.9%                  | 37.19%             |
+| Semantic Segmentation | cityscapes_ddrnet           | 226.51           | 51.78            | 174.11             | 48.29              | 23.1%                  | 7.3%               |
+|                       |                             |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_yolo_nas_s         |                  | 384.41           |                    | 376.10             |                        | 2.42%              |
+| Object Detection      | coco2017_yolo_nas_m         |                  | 537.24           |                    | 508.40             |                        | 0.19%              |
+| Object Detection      | coco2017_yolo_nas_l         |                  | 764.17           |                    | 745.58             |                        |                    |
+|                       |                             |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_ppyoloe_s          |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_ppyoloe_m          |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_ppyoloe_l          |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_ppyoloe_x          |                  |                  |                    |                    |                        |                    |
+|                       |                             |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_yolox_n            |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_yolox_t            |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_yolox_s            |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_yolox_m            |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_yolox_l            |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_yolox_x            |                  |                  |                    |                    |                        |                    |
+| Object Detection      | coco2017_yolox_x            |                  |                  |                    |                    |                        |                    |
+|                       |                             |                  |                  |                    |                    |                        |                    |
+| Classification        | imagenet_efficientnet       |                  | 425.61           |                    | 408.39             |                        | 4.1%               |
+| Classification        | imagenet_mobilenetv3_large  |                  |                  |                    |                    |                        |                    |
+| Classification        | imagenet_regnetY            |                  |                  |                    |                    |                        |                    |
+| Classification        | imagenet_repvgg             |                  |                  |                    |                    |                        |                    |
+| Classification        | imagenet_resnet50           |                  |                  |                    |                    |                        |                    |
+| Classification        | imagenet_vit_base           |                  |                  |                    |                    |                        |                    |
+| Classification        | imagenet_vit_large          |                  |                  |                    |                    |                        |                    |
 
 In the table above, number are reported as speedup compared to the baseline training time. 
 Both experiments were run on 8x 3090 GPUs using PyTorch 2.0 with CUDA 11.8. 
 Training was done for 5 epochs and median value was picked to compute the speedup. 
 All experiments conducted with mixed precision (AMP) enabled, and SyncBN and EMA disabled.
+Improvement percentage computed as follows: `100 * (baseline_time - compile_time) / baseline_time`.
 
 To leverage use of compiled models in SuperGradients one need to pass the `torch_compile: True` option to training hyperparameters:
 
