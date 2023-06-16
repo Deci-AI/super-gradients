@@ -827,21 +827,21 @@ class DetectionHorizontalFlip(DetectionTransform):
         self.prob = prob
 
     def __call__(self, sample):
+        image, targets = sample["image"], sample["target"]
+        crowd_targets = sample.get("crowd_targets")
+        if len(targets) == 0:
+            targets = np.zeros((0, 5), dtype=np.float32)
         if self.prob < randon.random():
-            image, targets = sample["image"], sample["target"]
-            crowd_targets = sample.get("crowd_targets")
-            _, width, _ = image.shape
-            if len(targets) == 0:
-                targets = np.zeros((0, 5), dtype=np.float32)
-            boxes = targets[:, :4]
             image = _flip_horizontal_image(image)
+            boxes = targets[:, :4]
+            _, width, _ = image.shape
             boxes = _flip_horizontal_boxes(boxes, width)
             targets[:, :4] = boxes
             if crowd_targets  is not None:
                 crowd_targets = _flip_horizontal_boxes(crowd_targets)
-            sample["target"] = targets
-            sample["crowd_targets"] = crowd_targets
-            sample["image"] = image
+        sample["image"] = image
+        sample["target"] = targets
+        sample["crowd_targets"] = crowd_targets
         return sample
 
 
@@ -859,21 +859,21 @@ class DetectionVerticalFlip(DetectionTransform):
         self.prob = prob
 
     def __call__(self, sample):
+        image, targets = sample["image"], sample["target"]
+        crowd_targets = sample.get("crowd_targets")
+        if len(targets) == 0:
+            targets = np.zeros((0, 5), dtype=np.float32)
         if self.prob < randon.random():
-            image, targets = sample["image"], sample["target"]
-            crowd_targets = sample.get("crowd_targets")
-            height, _, _ = image.shape
-            if len(targets) == 0:
-                targets = np.zeros((0, 5), dtype=np.float32)
-            boxes = targets[:, :4]
             image = _flip_vertical_image(image)
+            boxes = targets[:, :4]
+            height, _, _ = image.shape
             boxes = _flip_vertical_boxes(boxes, height)
             targets[:, :4] = boxes
             if crowd_targets  is not None:
                 crowd_targets = _flip_vertical_boxes(crowd_targets)
-            sample["target"] = targets
-            sample["crowd_targets"] = crowd_targets
-            sample["image"] = image
+        sample["image"] = image
+        sample["target"] = targets
+        sample["crowd_targets"] = crowd_targets
         return sample
 
 
