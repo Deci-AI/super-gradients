@@ -1318,40 +1318,42 @@ def _filter_box_candidates(box1, box2, wh_thr=2, ar_thr=20, area_thr=0.1):
     return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + 1e-16) > area_thr) & (ar < ar_thr)  # candidates
 
 
-def _flip_horizontal_image(image: np.array):
+def _flip_horizontal_image(image: np.ndarray) -> np.ndarray:
     """
     Horizontally flips image
-    :param image: (np.array) image to be flipped.
+    :param image: image to be flipped.
     :return: flipped_image
     """
     return image[:, ::-1]
 
 
-def _flip_horizontal_boxes(boxes: np.array, img_width: int):
+def _flip_horizontal_boxes(boxes: np.ndarray, img_width: int) -> np.ndarray:
     """
     Horizontally flips bboxes
-    :param boxes: (np.array) bboxes to be flipped. (xyxy format)
+    :param boxes: bboxes to be flipped. (xyxy format)
     :return: flipped_boxes
     """
-    return img_width - boxes[:, [2,1,0,3]]
+    boxes[:, [0, 2]] = img_width - boxes[:, [2, 0]]
+    return boxes
 
 
-def _flip_vertical_image(image: np.array):
+def _flip_vertical_image(image: np.ndarray) -> np.ndarray:
     """
     Vertically flips image
-    :param image: (np.array) image to be flipped.
+    :param image: image to be flipped.
     :return: flipped_image
     """
     return image[::-1, :]
 
 
-def _flip_vertical_boxes(boxes: np.array, img_height: int):
+def _flip_vertical_boxes(boxes: np.ndarray, img_height: int) -> np.ndarray:
     """
     Vertically flips bboxes
-    :param boxes: (np.array) bboxes to be flipped. (xyxy format)
+    :param boxes: bboxes to be flipped. (xyxy format)
     :return: flipped_boxes
     """
-    return img_height - boxes[:, [0,3,2,1]]
+    boxes[:, [1, 3]] = img_height - boxes[:, [3, 1]]
+    return boxes
 
 
 def augment_hsv(img: np.array, hgain: float, sgain: float, vgain: float, bgr_channels=(0, 1, 2)):
