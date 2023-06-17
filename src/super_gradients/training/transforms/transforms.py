@@ -655,9 +655,9 @@ class DetectionMixup(DetectionTransform):
             cp_sample = sample["additional_samples"][0]
             img, cp_labels = cp_sample["image"], cp_sample["target"]
             cp_boxes = cp_labels[:, :4]
-            if self.prob < randon.random():
+            if self.prob < random.random():
                 _, width, _ = img.shape
-                image = _flip_horizontal_image(img)
+                img = _flip_horizontal_image(img)
                 cp_boxes = _flip_horizontal_boxes(cp_boxes, width)
             # PLUG IN TARGET THE FLIPPED BOXES
             cp_labels[:, :4] = cp_boxes
@@ -831,13 +831,13 @@ class DetectionHorizontalFlip(DetectionTransform):
         crowd_targets = sample.get("crowd_targets")
         if len(targets) == 0:
             targets = np.zeros((0, 5), dtype=np.float32)
-        if self.prob < randon.random():
+        if self.prob < random.random():
             image = _flip_horizontal_image(image)
             boxes = targets[:, :4]
             _, width, _ = image.shape
             boxes = _flip_horizontal_boxes(boxes, width)
             targets[:, :4] = boxes
-            if crowd_targets  is not None:
+            if crowd_targets is not None:
                 crowd_targets = _flip_horizontal_boxes(crowd_targets)
         sample["image"] = image
         sample["target"] = targets
@@ -863,13 +863,13 @@ class DetectionVerticalFlip(DetectionTransform):
         crowd_targets = sample.get("crowd_targets")
         if len(targets) == 0:
             targets = np.zeros((0, 5), dtype=np.float32)
-        if self.prob < randon.random():
+        if self.prob < random.random():
             image = _flip_vertical_image(image)
             boxes = targets[:, :4]
             height, _, _ = image.shape
             boxes = _flip_vertical_boxes(boxes, height)
             targets[:, :4] = boxes
-            if crowd_targets  is not None:
+            if crowd_targets is not None:
                 crowd_targets = _flip_vertical_boxes(crowd_targets)
         sample["image"] = image
         sample["target"] = targets
