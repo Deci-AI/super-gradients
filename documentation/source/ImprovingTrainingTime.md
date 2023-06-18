@@ -37,40 +37,40 @@ This API can be used to fuse the operations in the model graph and optimize the 
 SuperGradients support the `torch.compile` API and can be used to improve the training time of the model. 
 Here we report the relative improvement (reduction) of training time for several models and tasks. We measure the training time of one epoch. 
 This includes iteration over training and validation datasets, loss & metric computation. Essentially all steps that are performed during training.
-Please note that the improvement may vary depending on the model architecture, task, and training hyperparameters.
+Please note that the improvement vary depending on the model architecture, dataset, and training hyperparameters.
 
 | Task                  | Recipe                      | Baseline (1 GPU) | Baseline (8 GPU) | 1 GPU With Compile | 8 GPU With Compile | Improvement, % (1 GPU) | Improvement, % (8 GPU) |
-|-----------------------|-----------------------------|------------------|------------------|--------------------|--------------------|------------------------|--------------------|
-| Semantic Segmentation | cityscapes_pplite_seg75     | 270.63           | 49.95            | 119.11             | 35.91              | 56%                    | 18%                |
-| Semantic Segmentation | cityscapes_regseg48         | 125.14           | 44.959           | 108.57             | 44.55              | 13.2%                  | 0.9%               |
-| Semantic Segmentation | cityscapes_segformer        | 199.97           | 46.21            | 162.52             | 43.71              | 18.7%                  | 5.4%               |
-| Semantic Segmentation | cityscapes_stdc_seg75       | 425.19           | 73.07            | 153.16             | 45.89              | 63.9%                  | 37.19%             |
-| Semantic Segmentation | cityscapes_ddrnet           | 226.51           | 51.78            | 174.11             | 48.29              | 23.1%                  | 7.3%               |
-|                       |                             |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_yolo_nas_s         |                  | 384.41           |                    | 376.10             |                        | 2.42%              |
-| Object Detection      | coco2017_yolo_nas_m         |                  | 537.24           |                    | 508.40             |                        | 0.19%              |
-| Object Detection      | coco2017_yolo_nas_l         |                  | 764.17           |                    | 745.58             |                        |                    |
-|                       |                             |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_ppyoloe_s          |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_ppyoloe_m          |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_ppyoloe_l          |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_ppyoloe_x          |                  |                  |                    |                    |                        |                    |
-|                       |                             |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_yolox_n            |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_yolox_t            |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_yolox_s            |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_yolox_m            |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_yolox_l            |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_yolox_x            |                  |                  |                    |                    |                        |                    |
-| Object Detection      | coco2017_yolox_x            |                  |                  |                    |                    |                        |                    |
-|                       |                             |                  |                  |                    |                    |                        |                    |
-| Classification        | imagenet_efficientnet       |                  | 425.61           |                    | 408.39             |                        | 4.1%               |
-| Classification        | imagenet_mobilenetv3_large  |                  |                  |                    |                    |                        |                    |
-| Classification        | imagenet_regnetY            |                  |                  |                    |                    |                        |                    |
-| Classification        | imagenet_repvgg             |                  |                  |                    |                    |                        |                    |
-| Classification        | imagenet_resnet50           |                  |                  |                    |                    |                        |                    |
-| Classification        | imagenet_vit_base           |                  |                  |                    |                    |                        |                    |
-| Classification        | imagenet_vit_large          |                  |                  |                    |                    |                        |                    |
+|-----------------------|-----------------------------|------------------|------------------|--------------------|--------------------|------------------------|------------------------|
+| Semantic Segmentation | cityscapes_pplite_seg75     | 270.63           | 49.95            | 119.11             | 35.91              | 56%                    | 18%                    |
+| Semantic Segmentation | cityscapes_regseg48         | 125.14           | 44.959           | 108.57             | 44.55              | 13.2%                  | 0.9%                   |
+| Semantic Segmentation | cityscapes_segformer        | 199.97           | 46.21            | 162.52             | 43.71              | 18.7%                  | 5.4%                   |
+| Semantic Segmentation | cityscapes_stdc_seg75       | 425.19           | 73.07            | 153.16             | 45.89              | 63.9%                  | 37.19%                 |
+| Semantic Segmentation | cityscapes_ddrnet           | 226.51           | 51.78            | 174.11             | 48.29              | 23.1%                  | 7.3%                   |
+|                       |                             |                  |                  |                    |                    |                        |                        |
+| Object Detection      | coco2017_yolo_nas_s         | 1509             | 384.41           | 1379               | 376.10             | 8.6%                   | 2.42%                  |
+| Object Detection      | coco2017_yolo_nas_m         | 2363             | 537.24           | 2090               | 508.40             | 11.5%                  | 0.19%                  |
+| Object Detection      | coco2017_yolo_nas_l         | 3193             | 764.17           | 2869               | 745.58             | 10.14%                 | 2.43%                  |
+|                       |                             |                  |                  |                    |                    |                        |                        |
+| Object Detection      | coco2017_ppyoloe_s          |                  | N/A              |                    | N/A                |                        | N/A                    |
+| Object Detection      | coco2017_ppyoloe_m          |                  | N/A              |                    | N/A                |                        | N/A                    |
+| Object Detection      | coco2017_ppyoloe_l          |                  | N/A              |                    | N/A                |                        | N/A                    |
+| Object Detection      | coco2017_ppyoloe_x          |                  | N/A              |                    | N/A                |                        | N/A                    |
+|                       |                             |                  |                  |                    |                    |                        |                        |
+| Object Detection      | coco2017_yolox_n            |                  |                  |                    | N/A                | N/A                    | N/A                    |
+| Object Detection      | coco2017_yolox_t            |                  |                  |                    | N/A                | N/A                    | N/A                    |
+| Object Detection      | coco2017_yolox_s            |                  |                  |                    | N/A                | N/A                    | N/A                    |
+| Object Detection      | coco2017_yolox_m            |                  |                  |                    | N/A                | N/A                    | N/A                    |
+| Object Detection      | coco2017_yolox_l            |                  |                  |                    | N/A                | N/A                    | N/A                    |
+| Object Detection      | coco2017_yolox_x            |                  |                  |                    | N/A                | N/A                    | N/A                    |
+| Object Detection      | coco2017_yolox_x            |                  |                  |                    | N/A                | N/A                    | N/A                    |
+|                       |                             |                  |                  |                    |                    |                        |                        |
+| Classification        | imagenet_efficientnet       |                  | 425.61           |                    | 408.39             |                        | 4.1%                   |
+| Classification        | imagenet_mobilenetv3_large  |                  | 373.73           |                    | 374.51             |                        | -0.2%                  |
+| Classification        | imagenet_regnetY            |                  | 406.86           |                    | 383.04             |                        | 5.8%                   |
+| Classification        | imagenet_repvgg             |                  | 407.19           |                    | 387.00             |                        | 4.9%                   |
+| Classification        | imagenet_resnet50           |                  | 481.36           |                    | 480.29             |                        |                        |
+| Classification        | imagenet_vit_base           |                  | N/A              |                    | N/A                |                        | N/A                    |
+| Classification        | imagenet_vit_large          |                  | N/A              |                    | N/A                |                        | N/A                    |
 
 In the table above, number are reported as speedup compared to the baseline training time. 
 Both experiments were run on 8x 3090 GPUs using PyTorch 2.0 with CUDA 11.8. 
