@@ -24,6 +24,7 @@ from super_gradients.training.utils.predict import (
     ImagesClassificationPrediction,
     ClassificationPrediction,
 )
+from torch.nn.functional import softmax
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, includes_video_extension
 from super_gradients.training.utils.media.image import ImageSource, check_image_typing
@@ -412,8 +413,7 @@ class ClassificationPipeline(Pipeline):
         confidence_predictions, classifier_predictions = torch.max(model_output, 1)
 
         classifier_predictions = classifier_predictions.detach().cpu().numpy()
-        # todo do we need this?
-        confidence_predictions = confidence_predictions.detach().cpu().numpy()
+        confidence_predictions = softmax(confidence_predictions).detach().cpu().numpy()
 
         predictions = list()
         for prediction, confidence, image_input in zip(classifier_predictions, confidence_predictions, model_input):

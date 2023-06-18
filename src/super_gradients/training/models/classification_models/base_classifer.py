@@ -26,8 +26,6 @@ class BaseClassifier(SgModule):
 
         :param class_names:     (Optional) Names of the dataset the model was trained on.
         :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
-        :param iou:             (Optional) IoU threshold for the nms algorithm
-        :param conf:            (Optional) Below the confidence threshold, prediction are discarded
         """
         self._class_names = class_names or self._class_names
         self._image_processor = image_processor or self._image_processor

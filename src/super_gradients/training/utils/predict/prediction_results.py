@@ -3,12 +3,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Iterator
 
-import cv2
 import numpy as np
 
 from super_gradients.training.utils.media.image import show_image, save_image
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.visualization.detection import draw_bbox
+from super_gradients.training.utils.visualization.classification import draw_label
+
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
 from .predictions import Prediction, DetectionPrediction, ClassificationPrediction
 
@@ -63,35 +64,9 @@ class ImageClassificationPrediction(ImagePrediction):
         """
 
         image = self.image.copy()
-        label_text = self.class_names[self.prediction.labels]
-
-        # Determine the size of the label text
-        (label_width, label_height), _ = cv2.getTextSize(text=label_text, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, thickness=1)
-
-        # Calculate the position to draw the label
-        image_width, image_height = self.prediction.image_shape[1:]
-        start_point = ((image_width - label_width) // 2, (image_height - label_height) // 4)
-        # end_point = (start_point[0] + label_width, start_point[1] + label_height)
-
-        # Draw a filled rectangle as the background for the label
-        label_color = (0, 0, 0)
-        bg_position = (start_point[0], start_point[1] - label_height)
-        bg_size = (label_width, label_height + 5)
-        cv2.rectangle(image, bg_position, (bg_position[0] + bg_size[0], bg_position[1] + bg_size[1]), label_color, thickness=-1)
-
-        # Draw the label text on the image
-        cv2.putText(
-            img=image,
-            text=label_text,
-            org=start_point,
-            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-            fontScale=0.5,
-            color=(255, 255, 255),
-            thickness=1,
-            lineType=cv2.LINE_AA,
+        return draw_label(
+            image=image, label=self.class_names[self.prediction.labels], confidence=self.prediction.confidence, image_shape=self.prediction.image_shape[1:]
         )
-
-        return image
 
     def show(self, show_confidence: bool = True) -> None:
         """Display the image with predicted label.
