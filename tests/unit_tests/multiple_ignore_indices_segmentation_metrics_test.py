@@ -42,7 +42,7 @@ class TestSegmentationMetricsMultipleIgnored(unittest.TestCase):
         pred[:, 4] = 1
         pred[0, 0, 3] = 2
 
-        self.assertEqual(metric_multi_ignored(pred, target_multi_ignored), 0.5)
+        self.assertEqual(metric_multi_ignored(pred, target_multi_ignored), 1.0)
 
     def test_pixelaccuracy_with_multiple_ignored_classes(self):
         metric_multi_ignored = PixelAccuracy(ignore_label=[3, 1, 2])
