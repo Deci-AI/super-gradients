@@ -4,6 +4,10 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.pipelines.pipelines import ClassificationPipeline
 from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.predict import ImagesPredictions
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.processing_factory import ProcessingFactory
+from super_gradients.training.processing.processing import Processing
+from typing import Optional, List
 
 
 class BaseClassifier(SgModule):
@@ -11,6 +15,22 @@ class BaseClassifier(SgModule):
         self,
     ):
         super(BaseClassifier, self).__init__()
+
+    @resolve_param("image_processor", ProcessingFactory())
+    def set_dataset_processing_params(
+        self,
+        class_names: Optional[List[str]] = None,
+        image_processor: Optional[Processing] = None,
+    ) -> None:
+        """Set the processing parameters for the dataset.
+
+        :param class_names:     (Optional) Names of the dataset the model was trained on.
+        :param image_processor: (Optional) Image processing objects to reproduce the dataset preprocessing used for training.
+        :param iou:             (Optional) IoU threshold for the nms algorithm
+        :param conf:            (Optional) Below the confidence threshold, prediction are discarded
+        """
+        self._class_names = class_names or self._class_names
+        self._image_processor = image_processor or self._image_processor
 
     @lru_cache(maxsize=1)
     def _get_pipeline(self, fuse_model: bool = True) -> ClassificationPipeline:
