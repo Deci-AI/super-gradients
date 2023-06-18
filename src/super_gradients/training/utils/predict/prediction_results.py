@@ -65,7 +65,7 @@ class ImageClassificationPrediction(ImagePrediction):
 
         image = self.image.copy()
         return draw_label(
-            image=image, label=self.class_names[self.prediction.labels], confidence=self.prediction.confidence, image_shape=self.prediction.image_shape[1:]
+            image=image, label=self.class_names[self.prediction.labels], confidence=str(self.prediction.confidence), image_shape=self.prediction.image_shape[1:]
         )
 
     def show(self, show_confidence: bool = True) -> None:
