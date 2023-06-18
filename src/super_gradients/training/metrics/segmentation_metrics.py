@@ -122,7 +122,24 @@ def intersection_and_union(im_pred, im_lab, num_class):
     return area_inter, area_union
 
 
-def _map_ignored_inds(target: torch.Tensor, ignore_index_list, unfiltered_num_classes) -> torch.Tensor:
+def _map_ignored_inds(target: torch.Tensor, ignore_index_list: List[int], unfiltered_num_classes: int) -> torch.Tensor:
+    """
+    Creaetes a copy of target, mapping indices in range(unfiltered_num_classes) to range(unfiltered_num_classes-len(
+    ignore_index_list)+1). Indices in ignore_index_list are being mapped to 0, which can later on be used as
+     "ignore_index".
+
+     Example:
+        >>>_map_ignored_inds(torch.tensor([0,1,2,3,4,5,6]), ignore_index_list=[3,5,1], unfiltered_num_classes=7)
+        >>> tensor([1, 0, 2, 0, 3, 0, 4])
+
+
+
+    :param target: torch.Tensor, tensor to perform the mapping on.
+    :param ignore_index_list: List[int], list of indices to map to 0 in the output tensor.
+    :param unfiltered_num_classes: int, Total number of possible class indices in target.
+
+    :return: mapped tensor as described above.
+    """
     target_copy = torch.zeros_like(target)
     all_unfiltered_classes = list(range(unfiltered_num_classes))
     filtered_classes = [i for i in all_unfiltered_classes if i not in ignore_index_list]
@@ -232,7 +249,24 @@ class PixelAccuracy(Metric):
         return pix_acc
 
 
-def _handle_multiple_ignored_inds(ignore_index, num_classes):
+def _handle_multiple_ignored_inds(ignore_index: Union[int, List[int]], num_classes: int):
+    """
+    Helper method for variable assignment, prior to the
+
+    super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction=reduction, threshold=threshold)
+
+    call in segmentation metrics inheriting from torchmetrics.JaccardIndex.
+    When ignore_index is list, the num_classes being passed to the torchmetrics.JaccardIndex c'tor is set to be the one after
+     mapping of the ignored indices in ignore_index_list to 0. Hence, we set:
+      ignore_index=0,
+    And since we map all of the ignored indices to 0, it is if we removed them and introduces a new index:
+      num_classes = num_classes - len(ignore_index_list) +1
+    Unfiltered num_classes is used in .update() for mapping of the original indice values.
+    Sets ignore_index to 0
+    :param ignore_index: list or single int representing the class ind(ices) to ignore.
+    :param num_classes: int, num_classes (original, before mapping) being passed to segmentation metric classesץ
+    :return:ignore_index, ignore_index_list, num_classes, unfiltered_num_classesignore_index, ignore_index_list, num_classes, unfiltered_num_classes
+    """
     if isinstance(ignore_index, list):
         ignore_index_list = ignore_index
         unfiltered_num_classes = num_classes
@@ -279,7 +313,8 @@ class IoU(torchmetrics.JaccardIndex):
 
         if num_classes <= 1:
             raise ValueError(f"IoU class only for multi-class usage! For binary usage, please call {BinaryIOU.__name__}")
-
+        if isinstance(ignore_index, list) and reduction == "none":
+            raise ValueError("passing multiple ignore indices ")
         ignore_index, ignore_index_list, num_classes, unfiltered_num_classes = _handle_multiple_ignored_inds(ignore_index, num_classes)
 
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction=reduction, threshold=threshold)
