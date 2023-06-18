@@ -228,7 +228,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         labels_yolo_format, invalid_labels = [], []
         for line in filter(lambda x: x != "\n", lines):
             try:
-                label_id, cx, cw, w, h = line.split(" ")
+                label_id, cx, cw, w, h = line.split()
                 labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
             except Exception as e:
                 if ignore_invalid_labels:
