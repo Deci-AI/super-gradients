@@ -380,7 +380,8 @@ class Dice(torchmetrics.JaccardIndex):
     def update(self, preds, target: torch.Tensor):
         preds, target = self.metrics_args_prep_fn(preds, target)
         if self.ignore_index_list is not None:
-            target = _map_ignored_inds(target, self.ignore_index_list, self.ignore_index)
+            target = _map_ignored_inds(target, self.ignore_index_list, self.unfiltered_num_classes)
+            preds = _map_ignored_inds(preds, self.ignore_index_list, self.unfiltered_num_classes)
         super().update(preds=preds, target=target)
 
     def compute(self) -> torch.Tensor:
