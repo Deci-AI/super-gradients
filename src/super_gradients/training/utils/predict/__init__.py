@@ -7,7 +7,7 @@ from .prediction_results import (
     ImagesPredictions,
     VideoPredictions,
     ImageClassificationPrediction,
-    ImagesClassificationPrediction
+    ImagesClassificationPrediction,
 )
 from .prediction_pose_estimation_results import (
     ImagePoseEstimationPrediction,
@@ -31,6 +31,5 @@ __all__ = [
     "ImagesPoseEstimationPrediction",
     "VideoPoseEstimationPrediction",
     "ImageClassificationPrediction",
-    "ImagesClassificationPrediction"
-
+    "ImagesClassificationPrediction",
 ]

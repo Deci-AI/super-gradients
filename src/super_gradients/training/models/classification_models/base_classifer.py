@@ -1,5 +1,4 @@
 from functools import lru_cache
-from typing import Optional
 
 from super_gradients.training.models import SgModule
 from super_gradients.training.pipelines.pipelines import ClassificationPipeline
@@ -9,7 +8,7 @@ from super_gradients.training.utils.predict import ImagesPredictions
 
 class BaseClassifier(SgModule):
     def __init__(
-            self,
+        self,
     ):
         super(BaseClassifier, self).__init__()
 

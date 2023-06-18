@@ -44,8 +44,7 @@ class BasicResNetBlock(nn.Module):
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(self.expansion * planes)
+                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False), nn.BatchNorm2d(self.expansion * planes)
             )
 
     def forward(self, x):
@@ -74,8 +73,7 @@ class Bottleneck(nn.Module):
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(self.expansion * planes)
+                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False), nn.BatchNorm2d(self.expansion * planes)
             )
 
     def forward(self, x):
@@ -115,9 +113,7 @@ class CifarResNet(BaseClassifier):
             # When the number of blocks is zero but spatial dimension and/or number of filters about to change we put 1
             # 3X3 conv layer to make this change to the new dimensions.
             if stride != 1 or self.in_planes != planes:
-                layers.append(nn.Sequential(
-                    nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1),
-                    nn.BatchNorm2d(planes)))
+                layers.append(nn.Sequential(nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1), nn.BatchNorm2d(planes)))
                 self.in_planes = planes
 
         else:
@@ -140,15 +136,15 @@ class CifarResNet(BaseClassifier):
 
 class ResNet(BaseClassifier):
     def __init__(
-            self,
-            block,
-            num_blocks: list,
-            num_classes: int = 10,
-            width_mult: float = 1,
-            expansion: int = 1,
-            droppath_prob=0.0,
-            input_batchnorm: bool = False,
-            backbone_mode: bool = False,
+        self,
+        block,
+        num_blocks: list,
+        num_classes: int = 10,
+        width_mult: float = 1,
+        expansion: int = 1,
+        droppath_prob=0.0,
+        input_batchnorm: bool = False,
+        backbone_mode: bool = False,
     ):
         super(ResNet, self).__init__()
         self.expansion = expansion
@@ -163,14 +159,10 @@ class ResNet(BaseClassifier):
         self.bn1 = nn.BatchNorm2d(width_multiplier(64, width_mult))
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.layer1 = self._make_layer(block, width_multiplier(64, width_mult), num_blocks[0], stride=1,
-                                       droppath_prob=droppath_prob)
-        self.layer2 = self._make_layer(block, width_multiplier(128, width_mult), num_blocks[1], stride=2,
-                                       droppath_prob=droppath_prob)
-        self.layer3 = self._make_layer(block, width_multiplier(256, width_mult), num_blocks[2], stride=2,
-                                       droppath_prob=droppath_prob)
-        self.layer4 = self._make_layer(block, width_multiplier(512, width_mult), num_blocks[3], stride=2,
-                                       droppath_prob=droppath_prob)
+        self.layer1 = self._make_layer(block, width_multiplier(64, width_mult), num_blocks[0], stride=1, droppath_prob=droppath_prob)
+        self.layer2 = self._make_layer(block, width_multiplier(128, width_mult), num_blocks[1], stride=2, droppath_prob=droppath_prob)
+        self.layer3 = self._make_layer(block, width_multiplier(256, width_mult), num_blocks[2], stride=2, droppath_prob=droppath_prob)
+        self.layer4 = self._make_layer(block, width_multiplier(512, width_mult), num_blocks[3], stride=2, droppath_prob=droppath_prob)
 
         if not self.backbone_mode:
             # IF RESNET IS IN BACK_BONE MODE WE DON'T NEED THE FINAL CLASSIFIER LAYERS, BUT ONLY THE NET BLOCK STRUCTURE
@@ -186,9 +178,7 @@ class ResNet(BaseClassifier):
             # When the number of blocks is zero but spatial dimension and/or number of filters about to change we put 1
             # 3X3 conv layer to make this change to the new dimensions.
             if stride != 1 or self.in_planes != planes:
-                layers.append(nn.Sequential(
-                    nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1),
-                    nn.BatchNorm2d(planes)))
+                layers.append(nn.Sequential(nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1), nn.BatchNorm2d(planes)))
                 self.in_planes = planes
 
         else:
@@ -251,9 +241,9 @@ class ResNet(BaseClassifier):
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(
-            self,
-            class_names: Optional[List[str]] = None,
-            image_processor: Optional[Processing] = None,
+        self,
+        class_names: Optional[List[str]] = None,
+        image_processor: Optional[Processing] = None,
     ) -> None:
         """Set the processing parameters for the dataset.
 
@@ -392,15 +382,13 @@ class ResNet152(ResNet):
 @register_model(Models.CUSTOM_RESNET_CIFAR)
 class CustomizedResnetCifar(CifarResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(BasicResNetBlock, arch_params.structure, width_mult=arch_params.width_mult,
-                         num_classes=num_classes or arch_params.num_classes)
+        super().__init__(BasicResNetBlock, arch_params.structure, width_mult=arch_params.width_mult, num_classes=num_classes or arch_params.num_classes)
 
 
 @register_model(Models.CUSTOM_RESNET50_CIFAR)
 class CustomizedResnet50Cifar(CifarResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(Bottleneck, arch_params.structure, width_mult=arch_params.width_mult,
-                         num_classes=num_classes or arch_params.num_classes, expansion=4)
+        super().__init__(Bottleneck, arch_params.structure, width_mult=arch_params.width_mult, num_classes=num_classes or arch_params.num_classes, expansion=4)
 
 
 @register_model(Models.CUSTOM_RESNET)

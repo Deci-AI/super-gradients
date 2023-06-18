@@ -9,7 +9,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
-from super_gradients.training.models.sg_module import SgModule
 
 
 class BasicBlock(nn.Module):

@@ -8,6 +8,7 @@ import torch.nn.functional as F
 
 from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
 
+
 class Block(nn.Module):
     """Depthwise conv + Pointwise conv"""
 

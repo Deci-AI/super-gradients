@@ -22,7 +22,7 @@ from super_gradients.training.utils.predict import (
     PoseEstimationPrediction,
     ImageClassificationPrediction,
     ImagesClassificationPrediction,
-    ClassificationPrediction
+    ClassificationPrediction,
 )
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, includes_video_extension
@@ -59,12 +59,12 @@ class Pipeline(ABC):
     """
 
     def __init__(
-            self,
-            model: SgModule,
-            image_processor: Union[Processing, List[Processing]],
-            class_names: List[str],
-            device: Optional[str] = None,
-            fuse_model: bool = True,
+        self,
+        model: SgModule,
+        image_processor: Union[Processing, List[Processing]],
+        class_names: List[str],
+        device: Optional[str] = None,
+        fuse_model: bool = True,
     ):
         self.device = device or next(model.parameters()).device
         self.model = model.to(self.device)
@@ -77,15 +77,13 @@ class Pipeline(ABC):
         self.fuse_model = fuse_model  # If True, the model will be fused in the first forward pass, to make sure it gets the right input_size
 
     def _fuse_model(self, input_example: torch.Tensor):
-        logger.info(
-            "Fusing some of the model's layers. If this takes too much memory, you can deactivate it by setting `fuse_model=False`")
+        logger.info("Fusing some of the model's layers. If this takes too much memory, you can deactivate it by setting `fuse_model=False`")
         self.model = copy.deepcopy(self.model)
         self.model.eval()
         self.model.prep_model_for_conversion(input_size=input_example.shape[-2:])
         self.fuse_model = False
 
-    def __call__(self, inputs: Union[str, ImageSource, List[ImageSource]],
-                 batch_size: Optional[int] = 32) -> ImagesPredictions:
+    def __call__(self, inputs: Union[str, ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> ImagesPredictions:
         """Predict an image or a list of images.
 
         Supported types include:
@@ -107,8 +105,7 @@ class Pipeline(ABC):
         else:
             raise ValueError(f"Input {inputs} not supported for prediction.")
 
-    def predict_images(self, images: Union[ImageSource, List[ImageSource]],
-                       batch_size: Optional[int] = 32) -> ImagesPredictions:
+    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> ImagesPredictions:
         """Predict an image or a list of images.
 
         :param images:      Images to predict.
@@ -143,8 +140,7 @@ class Pipeline(ABC):
         video_streaming = WebcamStreaming(frame_processing_fn=_draw_predictions, fps_update_frequency=1)
         video_streaming.run()
 
-    def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[
-        ImagePrediction]:
+    def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[ImagePrediction]:
         """Run the pipeline on the images as single batch or through multiple batches.
 
         NOTE: A core motivation to have this function as a generator is that it can be used in a lazy way (if images is generator itself),
@@ -171,8 +167,7 @@ class Pipeline(ABC):
         :return:        Iterable of Results object, each containing the results of the prediction and the image.
         """
         images = list(images)  # We need to load all the images into memory, and to reuse it afterwards.
-        self.model = self.model.to(
-            self.device)  # Make sure the model is on the correct device, as it might have been moved after init
+        self.model = self.model.to(self.device)  # Make sure the model is on the correct device, as it might have been moved after init
 
         # Preprocess
         preprocessed_images, processing_metadatas = [], []
@@ -192,8 +187,7 @@ class Pipeline(ABC):
         # Postprocess
         postprocessed_predictions = []
         for image, prediction, processing_metadata in zip(images, predictions, processing_metadatas):
-            prediction = self.image_processor.postprocess_predictions(predictions=prediction,
-                                                                      metadata=processing_metadata)
+            prediction = self.image_processor.postprocess_predictions(predictions=prediction, metadata=processing_metadata)
             postprocessed_predictions.append(prediction)
 
         # Yield results one by one
@@ -201,8 +195,7 @@ class Pipeline(ABC):
             yield self._instantiate_image_prediction(image=image, prediction=prediction)
 
     @abstractmethod
-    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[
-        Prediction]:
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[Prediction]:
         """Decode the model outputs, move each prediction to numpy and store it in a Prediction object.
 
         :param model_output:    Direct output of the model, without any post-processing.
@@ -222,8 +215,7 @@ class Pipeline(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _combine_image_prediction_to_images(self, images_prediction_lst: Iterable[ImagePrediction],
-                                            n_images: Optional[int] = None) -> ImagesPredictions:
+    def _combine_image_prediction_to_images(self, images_prediction_lst: Iterable[ImagePrediction], n_images: Optional[int] = None) -> ImagesPredictions:
         """Instantiate an object wrapping the list of images and the pipeline's predictions on them.
 
         :param images_prediction_lst:   List of image predictions.
@@ -234,7 +226,7 @@ class Pipeline(ABC):
 
     @abstractmethod
     def _combine_image_prediction_to_video(
-            self, images_prediction_lst: Iterable[ImagePrediction], fps: float, n_images: Optional[int] = None
+        self, images_prediction_lst: Iterable[ImagePrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoPredictions:
         """Instantiate an object holding the video frames and the pipeline's predictions on it.
 
@@ -259,20 +251,18 @@ class DetectionPipeline(Pipeline):
     """
 
     def __init__(
-            self,
-            model: SgModule,
-            class_names: List[str],
-            post_prediction_callback: DetectionPostPredictionCallback,
-            device: Optional[str] = None,
-            image_processor: Optional[Processing] = None,
-            fuse_model: bool = True,
+        self,
+        model: SgModule,
+        class_names: List[str],
+        post_prediction_callback: DetectionPostPredictionCallback,
+        device: Optional[str] = None,
+        image_processor: Optional[Processing] = None,
+        fuse_model: bool = True,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names,
-                         fuse_model=fuse_model)
+        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
         self.post_prediction_callback = post_prediction_callback
 
-    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[
-        DetectionPrediction]:
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
         """Decode the model output, by applying post prediction callback. This includes NMS.
 
         :param model_output:    Direct output of the model, without any post-processing.
@@ -301,22 +291,20 @@ class DetectionPipeline(Pipeline):
         return ImageClassificationPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
-            self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
+        self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
     ) -> ImagesDetectionPrediction:
         if n_images is not None and n_images == 1:
             # Do not show tqdm progress bar if there is only one image
             images_predictions = [next(iter(images_predictions))]
         else:
-            images_predictions = [image_predictions for image_predictions in
-                                  tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+            images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
 
         return ImagesDetectionPrediction(_images_prediction_lst=images_predictions)
 
     def _combine_image_prediction_to_video(
-            self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
+        self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoDetectionPrediction:
-        images_predictions = [image_predictions for image_predictions in
-                              tqdm(images_predictions, total=n_images, desc="Predicting Video")]
+        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
         return VideoDetectionPrediction(_images_prediction_lst=images_predictions, fps=fps)
 
 
@@ -332,25 +320,23 @@ class PoseEstimationPipeline(Pipeline):
     """
 
     def __init__(
-            self,
-            model: SgModule,
-            edge_links: Union[np.ndarray, List[Tuple[int, int]]],
-            edge_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
-            keypoint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
-            post_prediction_callback,
-            device: Optional[str] = None,
-            image_processor: Optional[Processing] = None,
-            fuse_model: bool = True,
+        self,
+        model: SgModule,
+        edge_links: Union[np.ndarray, List[Tuple[int, int]]],
+        edge_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
+        keypoint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
+        post_prediction_callback,
+        device: Optional[str] = None,
+        image_processor: Optional[Processing] = None,
+        fuse_model: bool = True,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=None,
-                         fuse_model=fuse_model)
+        super().__init__(model=model, device=device, image_processor=image_processor, class_names=None, fuse_model=fuse_model)
         self.post_prediction_callback = post_prediction_callback
         self.edge_links = np.asarray(edge_links, dtype=int)
         self.edge_colors = np.asarray(edge_colors, dtype=int)
         self.keypoint_colors = np.asarray(keypoint_colors, dtype=int)
 
-    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[
-        PoseEstimationPrediction]:
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[PoseEstimationPrediction]:
         """Decode the model output, by applying post prediction callback. This includes NMS.
 
         :param model_output:    Direct output of the model, without any post-processing.
@@ -378,22 +364,20 @@ class PoseEstimationPipeline(Pipeline):
         return ImagePoseEstimationPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
-            self, images_predictions: Iterable[PoseEstimationPrediction], n_images: Optional[int] = None
+        self, images_predictions: Iterable[PoseEstimationPrediction], n_images: Optional[int] = None
     ) -> ImagesPoseEstimationPrediction:
         if n_images is not None and n_images == 1:
             # Do not show tqdm progress bar if there is only one image
             images_predictions = [next(iter(images_predictions))]
         else:
-            images_predictions = [image_predictions for image_predictions in
-                                  tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+            images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
 
         return ImagesPoseEstimationPrediction(_images_prediction_lst=images_predictions)
 
     def _combine_image_prediction_to_video(
-            self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
+        self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoPoseEstimationPrediction:
-        images_predictions = [image_predictions for image_predictions in
-                              tqdm(images_predictions, total=n_images, desc="Predicting Video")]
+        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
         return VideoPoseEstimationPrediction(_images_prediction_lst=images_predictions, fps=fps)
 
 
@@ -409,18 +393,16 @@ class ClassificationPipeline(Pipeline):
     """
 
     def __init__(
-            self,
-            model: SgModule,
-            class_names: List[str],
-            device: Optional[str] = None,
-            image_processor: Optional[Processing] = None,
-            fuse_model: bool = True,
+        self,
+        model: SgModule,
+        class_names: List[str],
+        device: Optional[str] = None,
+        image_processor: Optional[Processing] = None,
+        fuse_model: bool = True,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names,
-                         fuse_model=fuse_model)
+        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
 
-    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) \
-            -> List[ClassificationPrediction]:
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[ClassificationPrediction]:
         """Decode the model output
 
         :param model_output:    Direct output of the model, without any post-processing.
@@ -435,13 +417,7 @@ class ClassificationPipeline(Pipeline):
 
         predictions = list()
         for prediction, confidence, image_input in zip(classifier_predictions, confidence_predictions, model_input):
-            predictions.append(
-                ClassificationPrediction(
-                    confidence=confidence,
-                    labels=prediction,
-                    image_shape=image_input.shape
-                )
-            )
+            predictions.append(ClassificationPrediction(confidence=confidence, labels=prediction, image_shape=image_input.shape))
         return predictions
 
     def _instantiate_image_prediction(self, image: np.ndarray, prediction: ClassificationPrediction) -> ImagePrediction:

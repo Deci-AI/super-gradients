@@ -107,6 +107,7 @@ class PoseEstimationPrediction(Prediction):
     def __len__(self):
         return len(self.poses)
 
+
 @dataclass
 class ClassificationPrediction(Prediction):
     """Represents a Classification prediction"""
@@ -115,7 +116,7 @@ class ClassificationPrediction(Prediction):
     labels: np.int64
     image_shape: Tuple[int, int]
 
-    def __init__(self, confidence: np.float32,  labels: np.int64, image_shape: Optional[Tuple[int, int]]):
+    def __init__(self, confidence: np.float32, labels: np.int64, image_shape: Optional[Tuple[int, int]]):
         """
 
         :param confidence:  Confidence scores for each bounding box
