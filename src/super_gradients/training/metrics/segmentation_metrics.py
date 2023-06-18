@@ -231,16 +231,16 @@ class PixelAccuracy(Metric):
 
     def _handle_multiple_ignored_inds(self, target):
         if isinstance(self.ignore_label, list):
-            labeled_mask = None
+            evaluated_classes_mask = None
             for ignored_label in self.ignore_label:
-                if labeled_mask is None:
-                    labeled_mask = target.ne(ignored_label)
+                if evaluated_classes_mask is None:
+                    evaluated_classes_mask = target.ne(ignored_label)
                 else:
-                    labeled_mask = torch.logical_and(labeled_mask, target.ne(ignored_label))
+                    evaluated_classes_mask = torch.logical_and(evaluated_classes_mask, target.ne(ignored_label))
         else:
-            labeled_mask = target.ne(self.ignore_label)
+            evaluated_classes_mask = target.ne(self.ignore_label)
 
-        return labeled_mask
+        return evaluated_classes_mask
 
     def compute(self):
         _total_correct = self.total_correct.cpu().detach().numpy().astype("int64")
