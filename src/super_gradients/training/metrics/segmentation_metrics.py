@@ -1,3 +1,5 @@
+import typing
+
 import numpy as np
 import torch
 import torchmetrics
@@ -230,7 +232,7 @@ class PixelAccuracy(Metric):
         self.total_label += pixel_labeled
 
     def _handle_multiple_ignored_inds(self, target):
-        if isinstance(self.ignore_label, list):
+        if isinstance(self.ignore_label, typing.Iterable):
             evaluated_classes_mask = torch.ones_like(target)
             for ignored_label in self.ignore_label:
                 evaluated_classes_mask = evaluated_classes_mask.masked_fill(target.eq(ignored_label), 0)
@@ -264,7 +266,7 @@ def _handle_multiple_ignored_inds(ignore_index: Union[int, List[int]], num_class
     :param num_classes: int, num_classes (original, before mapping) being passed to segmentation metric classesץ
     :return:ignore_index, ignore_index_list, num_classes, unfiltered_num_classesignore_index, ignore_index_list, num_classes, unfiltered_num_classes
     """
-    if isinstance(ignore_index, list):
+    if isinstance(ignore_index, typing.Iterable):
         ignore_index_list = ignore_index
         unfiltered_num_classes = num_classes
         num_classes = num_classes - len(ignore_index_list) + 1
@@ -310,7 +312,7 @@ class IoU(torchmetrics.JaccardIndex):
 
         if num_classes <= 1:
             raise ValueError(f"IoU class only for multi-class usage! For binary usage, please call {BinaryIOU.__name__}")
-        if isinstance(ignore_index, list) and reduction == "none":
+        if isinstance(ignore_index, typing.Iterable) and reduction == "none":
             raise ValueError("passing multiple ignore indices ")
         ignore_index, ignore_index_list, num_classes, unfiltered_num_classes = _handle_multiple_ignored_inds(ignore_index, num_classes)
 
