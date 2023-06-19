@@ -50,17 +50,17 @@ Please note that the improvement vary depending on the model architecture, datas
 | Object Detection      | coco2017_yolo_nas_s             | 1509             | 384.41           | 1379               | 376.10             | 8.6%                   | 2.42%                  |
 | Object Detection      | coco2017_yolo_nas_m             | 2363             | 537.24           | 2090               | 508.40             | 11.5%                  | 0.19%                  |
 | Object Detection      | coco2017_yolo_nas_l             | 3193             | 764.17           | 2869               | 745.58             | 10.14%                 | 2.43%                  |
-| Object Detection      | coco2017_ppyoloe_s/m/l/x        |                  | N/A              |                    | N/A                | N/A                    | N/A                    |
-| Object Detection      | coco2017_yolox_n/t/s/m/l/x      |                  | N/A              |                    | N/A                | N/A                    | N/A                    |
-| Object Detection      | coco2017_ssd_lite_mobilenet_v2  |                  | N/A              |                    | N/A                | N/A                    | N/A                    |
+| Object Detection      | coco2017_ppyoloe_s/m/l/x        | N/A              | N/A              |                    | N/A                | N/A                    | N/A                    |
+| Object Detection      | coco2017_yolox_n/t/s/m/l/x      | N/A              | N/A              |                    | N/A                | N/A                    | N/A                    |
+| Object Detection      | coco2017_ssd_lite_mobilenet_v2  | N/A              | N/A              |                    | N/A                | N/A                    | N/A                    |
 |                       |                                 |                  |                  |                    |                    |                        |                        |
 | Classification        | imagenet_efficientnet           |                  | 425.61           |                    | 408.39             |                        | 4.1%                   |
 | Classification        | imagenet_mobilenetv3_large      |                  | 373.73           |                    | 374.51             |                        | -0.2%                  |
 | Classification        | imagenet_regnetY                |                  | 406.86           |                    | 383.04             |                        | 5.8%                   |
 | Classification        | imagenet_repvgg                 |                  | 407.19           |                    | 387.00             |                        | 4.9%                   |
-| Classification        | imagenet_resnet50               |                  | 481.36           |                    | 480.29             |                        |                        |
-| Classification        | imagenet_vit_base               |                  | N/A              |                    | N/A                |                        | N/A                    |
-| Classification        | imagenet_vit_large              |                  | N/A              |                    | N/A                |                        | N/A                    |
+| Classification        | imagenet_resnet50               |                  | 481.36           |                    | 480.29             |                        | 0.22%                  |
+| Classification        | imagenet_vit_base               | N/A              | N/A              | N/A                | N/A                | N/A                    | N/A                    |
+| Classification        | imagenet_vit_large              | N/A              | N/A              | N/A                | N/A                | N/A                    | N/A                    |
 
 In the table above, number are reported as speedup compared to the baseline training time. 
 Both experiments were run on 8x 3090 GPUs using PyTorch 2.0 with CUDA 11.8. 
