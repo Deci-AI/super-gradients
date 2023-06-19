@@ -110,7 +110,7 @@ trainer = Trainer(
 #### Exponential moving average `EMA` and Torch Compile
 
 Torch Compile is still in its early stages and has some limitations. Not every model can be compiled. 
-Additionally, some training features are not supported either. 
+Additionally, some training features can conflict with `torch.compile`. 
 Here is what we found so far:
 
 * Exponential moving average `EMA` is incompatible with `torch.compile` (At the moment of writing, this is true for SG release 3.1.2). 
