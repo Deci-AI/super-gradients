@@ -233,7 +233,7 @@ class PixelAccuracy(Metric):
         if isinstance(self.ignore_label, list):
             evaluated_classes_mask = torch.ones_like(target)
             for ignored_label in self.ignore_label:
-                evaluated_classes_mask.masked_fill(target.eq(ignored_label), 0)
+                evaluated_classes_mask = evaluated_classes_mask.masked_fill(target.eq(ignored_label), 0)
         else:
             evaluated_classes_mask = target.ne(self.ignore_label)
 
