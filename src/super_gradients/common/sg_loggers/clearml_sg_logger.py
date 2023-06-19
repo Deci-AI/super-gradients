@@ -12,6 +12,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.registry.registry import register_sg_logger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
+from super_gradients.common.sg_loggers.time_units import TimeUnit
 
 logger = get_logger(__name__)
 
@@ -114,8 +115,10 @@ class ClearMLSGLogger(BaseSGLogger):
         self.clearml_logger.report_scalar(title=tag, series=tag, value=scalar_value, iteration=global_step)
 
     @multi_process_safe
-    def add_scalar(self, tag: str, scalar_value: float, global_step: int = 0):
+    def add_scalar(self, tag: str, scalar_value: float, global_step: Union[int, TimeUnit] = 0):
         super(ClearMLSGLogger, self).add_scalar(tag=tag, scalar_value=scalar_value, global_step=global_step)
+        if isinstance(global_step, TimeUnit):
+            global_step = global_step.get_value()
         self.__add_scalar(tag=tag, scalar_value=scalar_value, global_step=global_step)
 
     @multi_process_safe
