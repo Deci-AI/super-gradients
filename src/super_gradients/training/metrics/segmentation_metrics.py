@@ -231,9 +231,9 @@ class PixelAccuracy(Metric):
 
     def _handle_multiple_ignored_inds(self, target):
         if isinstance(self.ignore_label, list):
-            labeled_mask = torch.ones_like(target)
+            evaluated_classes_mask = torch.ones_like(target)
             for ignored_label in self.ignore_label:
-                labeled_mask.masked_fill(target.eq(ignored_label), 0)
+                evaluated_classes_mask.masked_fill(target.eq(ignored_label), 0)
         else:
             evaluated_classes_mask = target.ne(self.ignore_label)
 
