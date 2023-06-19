@@ -2077,7 +2077,9 @@ class Trainer:
         quantization_params = get_param(cfg, "quantization_params")
 
         if quantization_params is None:
-            raise logger.warning("Your recipe does not include quantization_params. Using default quantization params.")
+            logger.warning("Your recipe does not include quantization_params. Using default quantization params.")
+            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+            cfg.quantization_params = quantization_params
 
         if get_param(cfg.checkpoint_params, "checkpoint_path") is None and get_param(cfg.checkpoint_params, "pretrained_weights") is None:
             raise ValueError("Starting checkpoint / pretrained weights are a must for QAT finetuning.")
