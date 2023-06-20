@@ -7,8 +7,7 @@ https://github.com/kuangliu/pytorch-cifar/blob/master/models/pnasnet.py
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
+from super_gradients.training.models.sg_module import SgModule
 
 
 class SepConv(nn.Module):
@@ -72,7 +71,7 @@ class CellB(nn.Module):
         return F.relu(self.bn2(self.conv2(y)))
 
 
-class PNASNet(BaseClassifier):
+class PNASNet(SgModule):
     def __init__(self, cell_type, num_cells, num_planes):
         super(PNASNet, self).__init__()
         self.in_planes = num_planes

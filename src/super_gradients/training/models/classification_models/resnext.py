@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
+from super_gradients.training.models.sg_module import SgModule
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
@@ -68,7 +68,7 @@ class GroupedConvBlock(nn.Module):
         return out
 
 
-class ResNeXt(BaseClassifier):
+class ResNeXt(SgModule):
     def __init__(self, layers, cardinality, bottleneck_width, num_classes=10, replace_stride_with_dilation=None):
         super(ResNeXt, self).__init__()
 

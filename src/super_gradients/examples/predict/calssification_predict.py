@@ -1,7 +1,7 @@
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
-model = models.get(Models.RESNET18, pretrained_weights="imagenet")
+model = models.get(Models.RESNET50, pretrained_weights="imagenet")
 
 IMAGES = [
     "../../../../documentation/source/images/examples/countryside.jpg",

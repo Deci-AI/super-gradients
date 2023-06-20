@@ -12,7 +12,7 @@ from einops import repeat
 
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
+from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param
 
 
@@ -123,7 +123,7 @@ class Transformer(nn.Module):
         return x
 
 
-class ViT(BaseClassifier):
+class ViT(SgModule):
     def __init__(
         self,
         image_size: tuple,

@@ -1,8 +1,7 @@
 """VGG11/13/16/19 in Pytorch. Adapted from https://github.com/pytorch/vision/blob/master/torchvision/models/vgg.py"""
 import torch
 import torch.nn as nn
-
-from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
+from super_gradients.training.models.sg_module import SgModule
 
 cfg = {
     "VGG11": [64, "M", 128, "M", 256, 256, "M", 512, 512, "M", 512, 512, "M"],
@@ -12,7 +11,7 @@ cfg = {
 }
 
 
-class VGG(BaseClassifier):
+class VGG(SgModule):
     def __init__(self, vgg_name):
         super(VGG, self).__init__()
         self.features = self._make_layers(cfg[vgg_name])

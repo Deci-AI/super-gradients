@@ -15,11 +15,11 @@ import math
 
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
+from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.utils import get_param
 
 
-class MobileNetBase(BaseClassifier):
+class MobileNetBase(SgModule):
     def __init__(self):
         super(MobileNetBase, self).__init__()
 

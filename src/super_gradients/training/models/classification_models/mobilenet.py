@@ -5,8 +5,7 @@ for more details.
 """
 import torch.nn as nn
 import torch.nn.functional as F
-
-from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
+from super_gradients.training.models.sg_module import SgModule
 
 
 class Block(nn.Module):
@@ -25,7 +24,7 @@ class Block(nn.Module):
         return out
 
 
-class MobileNet(BaseClassifier):
+class MobileNet(SgModule):
     # (128,2) means conv planes=128, conv stride=2, by default conv stride=1
     cfg = [64, 128, (128, 2), 256, (256, 2), 512, 512, 512, 512, 512, (512, 2), 1024, (1024, 2)]
 

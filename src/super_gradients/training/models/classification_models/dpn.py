@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
+from super_gradients.training.models.sg_module import SgModule
 
 
 class Bottleneck(nn.Module):
@@ -42,7 +42,7 @@ class Bottleneck(nn.Module):
         return out
 
 
-class DPN(BaseClassifier):
+class DPN(SgModule):
     def __init__(
         self,
         in_planes: Tuple[int, int, int, int],

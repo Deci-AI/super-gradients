@@ -12,7 +12,7 @@ from math import sqrt
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.modules import Residual
-from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
+from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.training.utils.utils import get_param
 
@@ -110,7 +110,7 @@ class Stage(nn.Module):  # From figure 3
         return x
 
 
-class AnyNetX(BaseClassifier):
+class AnyNetX(SgModule):
     def __init__(
         self,
         ls_num_blocks,
