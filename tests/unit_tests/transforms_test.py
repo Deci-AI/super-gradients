@@ -150,14 +150,18 @@ class TestTransforms(unittest.TestCase):
         image = np.random.rand(100, 100, 3)
         image_original = image.copy()
         # [x0, y0, x1, y1]
-        bboxes = np.array((
-            (10, 10, 20, 20),
-            (90, 90, 100, 100),
-        ))
-        bboxes_expected = np.array((
-            (80, 10, 90, 20),
-            (0, 90, 10, 100),
-        ))
+        bboxes = np.array(
+            (
+                (10, 10, 20, 20),
+                (90, 90, 100, 100),
+            )
+        )
+        bboxes_expected = np.array(
+            (
+                (80, 10, 90, 20),
+                (0, 90, 10, 100),
+            )
+        )
 
         # run transform
         sample = {"image": image}
@@ -171,31 +175,29 @@ class TestTransforms(unittest.TestCase):
 
         # check the first two cols of original image
         # match last two rows of flipped image
-        self.assertTrue(
-            np.array_equal(image_original[:, 0], image[:, -1])
-        )
-        self.assertTrue(
-            np.array_equal(image_original[:, 1], image[:, -2])
-        )
+        self.assertTrue(np.array_equal(image_original[:, 0], image[:, -1]))
+        self.assertTrue(np.array_equal(image_original[:, 1], image[:, -2]))
 
         # check bboxes as expected
-        self.assertTrue(
-            np.array_equal(bboxes, bboxes_expected)
-        )
+        self.assertTrue(np.array_equal(bboxes, bboxes_expected))
 
     def test_detection_vertical_flip(self):
         aug = DetectionVerticalFlip(prob=1)
         image = np.random.rand(100, 100, 3)
         image_original = image.copy()
         # [x0, y0, x1, y1]
-        bboxes = np.array((
-            (10, 10, 20, 20),
-            (90, 90, 100, 100),
-        ))
-        bboxes_expected = np.array((
-            (10, 80, 20, 90),
-            (90, 0, 100, 10),
-        ))
+        bboxes = np.array(
+            (
+                (10, 10, 20, 20),
+                (90, 90, 100, 100),
+            )
+        )
+        bboxes_expected = np.array(
+            (
+                (10, 80, 20, 90),
+                (90, 0, 100, 10),
+            )
+        )
 
         # run transform
         sample = {"image": image}
@@ -209,17 +211,11 @@ class TestTransforms(unittest.TestCase):
 
         # check top two rows of original image
         # matches bottom rows of flipped image
-        self.assertTrue(
-            np.array_equal(image_original[0], image[-1])
-        )
-        self.assertTrue(
-            np.array_equal(image_original[1], image[-2])
-        )
+        self.assertTrue(np.array_equal(image_original[0], image[-1]))
+        self.assertTrue(np.array_equal(image_original[1], image[-2]))
 
         # check bboxes as expected
-        self.assertTrue(
-            np.array_equal(bboxes, bboxes_expected)
-        )
+        self.assertTrue(np.array_equal(bboxes, bboxes_expected))
 
     def test_rescale_bboxes(self):
         sy, sx = (2.0, 0.5)
