@@ -49,7 +49,6 @@ SG supports remote checkpoint saving using 3rd party tools (for example, [Weight
 To do so, specify `save_checkpoints_remote=True` inside `sg_logger_params` training_param.
 See our documentation on [Third-party experiment monitoring](experiment_monitoring.md).
 
-
 ## Loading Checkpoints
 
 When discussing checkpoint loading in SG, we must separate it into two use cases: loading weights and resuming training.
