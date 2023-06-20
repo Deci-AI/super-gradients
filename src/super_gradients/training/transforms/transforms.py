@@ -831,7 +831,7 @@ class DetectionHorizontalFlip(DetectionTransform):
         crowd_targets = sample.get("crowd_targets")
         if len(targets) == 0:
             targets = np.zeros((0, 5), dtype=np.float32)
-        if self.prob < random.random():
+        if random.random() < self.prob:
             image = _flip_horizontal_image(image)
             boxes = targets[:, :4]
             _, width, _ = image.shape
@@ -863,7 +863,7 @@ class DetectionVerticalFlip(DetectionTransform):
         crowd_targets = sample.get("crowd_targets")
         if len(targets) == 0:
             targets = np.zeros((0, 5), dtype=np.float32)
-        if self.prob < random.random():
+        if random.random() < self.prob:
             image = _flip_vertical_image(image)
             boxes = targets[:, :4]
             height, _, _ = image.shape

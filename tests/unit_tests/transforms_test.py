@@ -9,7 +9,12 @@ from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
 )
-from super_gradients.training.transforms.transforms import DetectionImagePermute, DetectionPadToSize
+from super_gradients.training.transforms.transforms import (
+    DetectionImagePermute,
+    DetectionPadToSize,
+    DetectionHorizontalFlip,
+    DetectionVerticalFlip,
+)
 
 from super_gradients.training.transforms.utils import (
     _rescale_image,
@@ -139,6 +144,84 @@ class TestTransforms(unittest.TestCase):
 
         # Check if the rescaled image has the correct target shape
         self.assertEqual(rescaled_image.shape[:2], target_shape)
+
+
+    def test_detection_horizontal_flip(self):
+        aug = DetectionHorizontalFlip(prob=1)
+        image = np.random.rand(100, 100, 3)
+        image_original = image.copy()
+        # [x0, y0, x1, y1]
+        bboxes = np.array((
+            (10, 10, 20, 20),
+            (90, 90, 100, 100),
+        ))
+        bboxes_expected = np.array((
+            (80, 10, 90, 20),
+            (0, 90, 10, 100),
+        ))
+
+        # run transform
+        sample = {"image": image}
+        sample["target"] = bboxes
+        output = aug(sample)
+        image = output["image"]
+        bboxes = output["target"]
+
+        # check image hasn't changed shape
+        self.assertEqual(image.shape, image_original.shape)
+
+        # check the first two cols of original image
+        # match last two rows of flipped image
+        self.assertTrue(
+            np.array_equal(image_original[:,0], image[:,-1])
+        )
+        self.assertTrue(
+            np.array_equal(image_original[:,1], image[:,-2])
+        )
+
+        # check bboxes as expected
+        self.assertTrue(
+            np.array_equal(bboxes, bboxes_expected)
+        )
+
+    def test_detection_vertical_flip(self):
+        aug = DetectionVerticalFlip(prob=1)
+        image = np.random.rand(100, 100, 3)
+        image_original = image.copy()
+        # [x0, y0, x1, y1]
+        bboxes = np.array((
+            (10, 10, 20, 20),
+            (90, 90, 100, 100),
+        ))
+        bboxes_expected = np.array((
+            (10, 80, 20, 90),
+            (90, 0, 100, 10),
+        ))
+
+        # run transform
+        sample = {"image": image}
+        sample["target"] = bboxes
+        output = aug(sample)
+        image = output["image"]
+        bboxes = output["target"]
+
+        # check image hasn't changed shape
+        self.assertEqual(image.shape, image_original.shape)
+
+        # check top two rows of original image
+        # matches bottom rows of flipped image
+        self.assertTrue(
+            np.array_equal(image_original[0], image[-1])
+        )
+        self.assertTrue(
+            np.array_equal(image_original[1], image[-2])
+        )
+
+        # check bboxes as expected
+        self.assertTrue(
+            np.array_equal(bboxes, bboxes_expected)
+        )
+
 
     def test_rescale_bboxes(self):
         sy, sx = (2.0, 0.5)
