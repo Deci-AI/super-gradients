@@ -145,7 +145,6 @@ class TestTransforms(unittest.TestCase):
         # Check if the rescaled image has the correct target shape
         self.assertEqual(rescaled_image.shape[:2], target_shape)
 
-
     def test_detection_horizontal_flip(self):
         aug = DetectionHorizontalFlip(prob=1)
         image = np.random.rand(100, 100, 3)
@@ -173,10 +172,10 @@ class TestTransforms(unittest.TestCase):
         # check the first two cols of original image
         # match last two rows of flipped image
         self.assertTrue(
-            np.array_equal(image_original[:,0], image[:,-1])
+            np.array_equal(image_original[:, 0], image[:, -1])
         )
         self.assertTrue(
-            np.array_equal(image_original[:,1], image[:,-2])
+            np.array_equal(image_original[:, 1], image[:, -2])
         )
 
         # check bboxes as expected
@@ -221,7 +220,6 @@ class TestTransforms(unittest.TestCase):
         self.assertTrue(
             np.array_equal(bboxes, bboxes_expected)
         )
-
 
     def test_rescale_bboxes(self):
         sy, sx = (2.0, 0.5)
