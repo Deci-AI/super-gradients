@@ -6,7 +6,7 @@ from super_gradients.training.utils.callbacks import Callback, PhaseContext
 from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
 from super_gradients.common.plugins.wandb.log_predictions import visualize_image_detection_prediction_on_wandb
 from super_gradients.training.models.predictions import DetectionPrediction
-from super_gradients.training.models.prediction_results import ImageDetectionPrediction
+from super_gradients.training.utils.predict import ImageDetectionPrediction
 
 
 class WandBDetectionValidationPredictionLoggerCallback(Callback):
