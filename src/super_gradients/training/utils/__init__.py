@@ -1,7 +1,6 @@
 from super_gradients.training.utils.utils import (
     Timer,
     HpmStruct,
-    WrappedModel,
     convert_to_tensor,
     get_param,
     tensor_container_to_device,
@@ -17,7 +16,6 @@ from super_gradients.training.utils.pose_estimation import DEKRPoseEstimationDec
 __all__ = [
     "Timer",
     "HpmStruct",
-    "WrappedModel",
     "convert_to_tensor",
     "get_param",
     "tensor_container_to_device",
