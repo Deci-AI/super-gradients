@@ -63,6 +63,7 @@ def plot_detection_dataset_on_wandb(detection_dataset: DetectionDataset, max_exa
     :param max_examples:            Maximum number of examples from the detection dataset to plot (an `int`).
     :param dataset_name:            Name of the dataset (a `str`).
     """
+    max_examples = len(detection_dataset) if max_examples is None else max_examples
     wandb_table = wandb.Table(columns=["Images", "Class-Frequencies"])
     input_format = detection_dataset.output_target_format
     target_format_transform = DetectionTargetsFormatTransform(input_format=input_format, output_format=XYXY_LABEL)
