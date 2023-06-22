@@ -9,6 +9,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
+from super_gradients.common.sg_loggers.time_units import TimeUnit
 
 logger = get_logger(__name__)
 
@@ -177,8 +178,10 @@ class DagsHubSGLogger(BaseSGLogger):
                     logger.warning(f"Skip to log {k}: {v}")
 
     @multi_process_safe
-    def add_scalar(self, tag: str, scalar_value: float, global_step: int = 0):
+    def add_scalar(self, tag: str, scalar_value: float, global_step: [int, TimeUnit] = 0):
         super(DagsHubSGLogger, self).add_scalar(tag=tag, scalar_value=scalar_value, global_step=global_step)
+        if isinstance(global_step, TimeUnit):
+            global_step = global_step.get_value()
         mlflow.log_metric(key=tag, value=scalar_value, step=global_step)
 
     @multi_process_safe

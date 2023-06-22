@@ -1,18 +1,17 @@
 import os
-
 from typing import Union, Optional, Any
 
-import numpy as np
-from PIL import Image
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
+from PIL import Image
 
-from super_gradients.common.registry.registry import register_sg_logger
-from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
-
-from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
+from super_gradients.common.environment.env_variables import env_variables
+from super_gradients.common.registry.registry import register_sg_logger
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
+from super_gradients.common.sg_loggers.time_units import TimeUnit
 
 logger = get_logger(__name__)
 
@@ -169,9 +168,12 @@ class WandBSGLogger(BaseSGLogger):
         wandb.config.update(config, allow_val_change=self.resumed)
 
     @multi_process_safe
-    def add_scalar(self, tag: str, scalar_value: float, global_step: int = 0):
+    def add_scalar(self, tag: str, scalar_value: float, global_step: Union[int, TimeUnit] = 0):
         super(WandBSGLogger, self).add_scalar(tag=tag, scalar_value=scalar_value, global_step=global_step)
-        wandb.log(data={tag: scalar_value}, step=global_step)
+        if isinstance(global_step, TimeUnit):
+            wandb.log(data={tag: scalar_value, global_step.get_name(): global_step.get_value()})
+        else:
+            wandb.log(data={tag: scalar_value}, step=global_step)
 
     @multi_process_safe
     def add_scalars(self, tag_scalar_dict: dict, global_step: int = 0):
