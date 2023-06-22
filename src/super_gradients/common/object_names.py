@@ -146,6 +146,7 @@ class Callbacks:
     DETECTION_VISUALIZATION_CALLBACK = "DetectionVisualizationCallback"
     DEKR_VISUALIZATION = "DEKRVisualizationCallback"
     ROBOFLOW_RESULT_CALLBACK = "RoboflowResultCallback"
+    TIMER = "TimerCallback"
 
 
 class LRSchedulers:
