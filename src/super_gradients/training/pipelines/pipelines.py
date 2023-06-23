@@ -289,7 +289,7 @@ class DetectionPipeline(Pipeline):
         return predictions
 
     def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
-        return ImageClassificationPrediction(image=image, prediction=prediction, class_names=self.class_names)
+        return ImageDetectionPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
         self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
@@ -417,7 +417,7 @@ class ClassificationPipeline(Pipeline):
 
         predictions = list()
         for prediction, confidence, image_input in zip(classifier_predictions, confidence_predictions, model_input):
-            predictions.append(ClassificationPrediction(confidence=confidence, labels=prediction, image_shape=image_input.shape))
+            predictions.append(ClassificationPrediction(confidence=float(confidence), labels=int(prediction), image_shape=image_input.shape))
         return predictions
 
     def _instantiate_image_prediction(self, image: np.ndarray, prediction: ClassificationPrediction) -> ImagePrediction:
@@ -437,6 +437,4 @@ class ClassificationPipeline(Pipeline):
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoDetectionPrediction:
-        # TODO we dont need this in classification task
-        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
-        return VideoDetectionPrediction(_images_prediction_lst=images_predictions, fps=fps)
+        raise NotImplementedError('This feature is not available for Classification task')
