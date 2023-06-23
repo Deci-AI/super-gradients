@@ -129,7 +129,7 @@ class ClassificationPrediction(Prediction):
     #     self.labels = labels
     #     self.image_shape = image_shape
 
-    def __post_init__(self, confidence: float, labels: int, image_shape: Optional[Tuple[int, int]]):
+    def __post_init__(self):
         """
 
         :param confidence:  Confidence scores for each bounding box
