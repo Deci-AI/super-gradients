@@ -116,20 +116,7 @@ class ClassificationPrediction(Prediction):
     labels: int
     image_shape: Tuple[int, int]
 
-    # def __init__(self, confidence: float, labels: int, image_shape: Optional[Tuple[int, int]]):
-    #     """
-    #
-    #     :param confidence:  Confidence scores for each bounding box
-    #     :param labels:      Labels for each bounding box.
-    #     :param image_shape: Shape of the image the prediction is made on, (H, W).
-    #     """
-    #     self._validate_input(confidence, labels)
-    #
-    #     self.confidence = confidence
-    #     self.labels = labels
-    #     self.image_shape = image_shape
-
-    def __post_init__(self):
+    def __init__(self, confidence: float, labels: int, image_shape: Optional[Tuple[int, int]]):
         """
 
         :param confidence:  Confidence scores for each bounding box
@@ -137,6 +124,10 @@ class ClassificationPrediction(Prediction):
         :param image_shape: Shape of the image the prediction is made on, (H, W).
         """
         self._validate_input(confidence, labels)
+
+        self.confidence = confidence
+        self.labels = labels
+        self.image_shape = image_shape
 
     def _validate_input(self, confidence: np.ndarray, labels: np.ndarray) -> None:
         if not isinstance(confidence, float):
