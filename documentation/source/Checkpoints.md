@@ -16,7 +16,7 @@ That's why in SG, multiple checkpoints are saved throughout training:
 
 | Checkpoint Filename | When is it saved?|
 | ------------- |:-------------:|
-| `ckpt_best.pth` | Each time we reach a new best [metric_to_watch](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) when perfroming validation. |
+| `ckpt_best.pth` | Each time we reach a new best [metric_to_watch](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) when performing validation. |
 | `ckpt_latest.pth` | At the end of every epoch, constantly overriding. |
 | `average_model.pth` | At the end of training - composed of 10 best models according to  [metric_to_watch](https://github.com/Deci-AI/super-gradients/blob/69d8d19813964022af192a34b6e7853edac34a75/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml#L39) and will only be save when the training_param `average_best_models`=True. |
 | `ckpt_epoch_{EPOCH_INDEX}.pth` | At the end of a fixed epoch number `EPOCH_INDEX` if it is specified through `save_ckpt_epoch_list` training_param |
