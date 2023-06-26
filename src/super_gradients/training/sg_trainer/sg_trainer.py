@@ -66,7 +66,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
-from super_gradients.training.utils.utils import fuzzy_idx_in_list, get_real_model
+from super_gradients.training.utils.utils import fuzzy_idx_in_list, unwrap_model
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
@@ -590,7 +590,7 @@ class Trainer:
         """
         # WHEN THE validation_results_tuple IS NONE WE SIMPLY SAVE THE state_dict AS LATEST AND Return
         if validation_results_tuple is None:
-            self.sg_logger.add_checkpoint(tag="ckpt_latest_weights_only.pth", state_dict={"net": get_real_model(self.net).state_dict()}, global_step=epoch)
+            self.sg_logger.add_checkpoint(tag="ckpt_latest_weights_only.pth", state_dict={"net": unwrap_model(self.net).state_dict()}, global_step=epoch)
             return
 
         # COMPUTE THE CURRENT metric
@@ -602,7 +602,7 @@ class Trainer:
         )
 
         # BUILD THE state_dict
-        state = {"net": get_real_model(self.net).state_dict(), "acc": metric, "epoch": epoch}
+        state = {"net": unwrap_model(self.net).state_dict(), "acc": metric, "epoch": epoch}
 
         if optimizer is not None:
             state["optimizer_state_dict"] = optimizer.state_dict()
@@ -611,9 +611,9 @@ class Trainer:
             state["scaler_state_dict"] = self.scaler.state_dict()
 
         if self.ema:
-            state["ema_net"] = get_real_model(self.ema_model.ema).state_dict()
+            state["ema_net"] = unwrap_model(self.ema_model.ema).state_dict()
 
-        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
+        if isinstance(unwrap_model(self.net), HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
             state["processing_params"] = self.valid_loader.dataset.get_dataset_preprocessing_params()
 
         # SAVES CURRENT MODEL AS ckpt_latest
@@ -637,7 +637,7 @@ class Trainer:
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(metric))
 
         if self.training_params.average_best_models:
-            net_for_averaging = get_real_model(self.ema_model.ema if self.ema else self.net)
+            net_for_averaging = unwrap_model(self.ema_model.ema if self.ema else self.net)
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
@@ -652,7 +652,7 @@ class Trainer:
         self._net_to_device()
 
         # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
-        self.update_param_groups = hasattr(self.net.module, "update_param_groups")
+        self.update_param_groups = hasattr(unwrap_model(self.net), "update_param_groups")
 
         self.checkpoint = {}
         self.strict_load = core_utils.get_param(self.training_params, "resume_strict_load", StrictLoad.ON)
@@ -1162,7 +1162,9 @@ class Trainer:
         if not self.ddp_silent_mode:
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
-                dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes, title="Train-set", anchors=self.net.module.arch_params.anchors)
+                dataset_statistics_logger.analyze(
+                    self.train_loader, all_classes=self.classes, title="Train-set", anchors=unwrap_model(self.net).arch_params.anchors
+                )
                 dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes, title="val-set")
 
         sg_trainer_utils.log_uncaught_exceptions(logger)
@@ -1353,9 +1355,9 @@ class Trainer:
                 self.sg_logger.close()
 
     def _set_net_preprocessing_from_valid_loader(self):
-        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
+        if isinstance(unwrap_model(self.net), HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
             try:
-                self.net.module.set_dataset_processing_params(**self.valid_loader.dataset.get_dataset_preprocessing_params())
+                unwrap_model(self.net).set_dataset_processing_params(**self.valid_loader.dataset.get_dataset_preprocessing_params())
             except Exception as e:
                 logger.warning(
                     f"Could not set preprocessing pipeline from the validation dataset:\n {e}.\n Before calling"
@@ -1411,7 +1413,7 @@ class Trainer:
                 def hook(module, _):
                     module.forward = MultiGPUModeAutocastWrapper(module.forward)
 
-                self.net.module.register_forward_pre_hook(hook=hook)
+                unwrap_model(self.net).register_forward_pre_hook(hook=hook)
 
             if self.load_checkpoint:
                 scaler_state_dict = core_utils.get_param(self.checkpoint, "scaler_state_dict")
@@ -1437,7 +1439,7 @@ class Trainer:
         with wait_for_the_master(local_rank):
             average_model_sd = read_ckpt_state_dict(average_model_ckpt_path)["net"]
 
-        get_real_model(self.net).load_state_dict(average_model_sd)
+        unwrap_model(self.net).load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
         averaged_model_results_tuple = self._validate_epoch(epoch=self.max_epochs)
 
@@ -1461,7 +1463,7 @@ class Trainer:
 
     @property
     def get_structure(self):
-        return self.net.module.structure
+        return unwrap_model(self.net).structure
 
     @property
     def get_architecture(self):
@@ -1635,7 +1637,7 @@ class Trainer:
             if "model_name" in get_callable_param_names(sg_logger_cls.__init__):
                 if sg_logger_params.get("model_name") is None:
                     # Use the model name used in `models.get(...)` if relevant
-                    sg_logger_params["model_name"] = get_model_name(self.net.module)
+                    sg_logger_params["model_name"] = get_model_name(unwrap_model(self.net))
 
                 if sg_logger_params["model_name"] is None:
                     raise ValueError(

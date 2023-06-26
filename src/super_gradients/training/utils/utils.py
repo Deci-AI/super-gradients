@@ -78,7 +78,7 @@ class HpmStruct:
             validate(self.__dict__, self.schema)
 
 
-def get_real_model(model: Union[nn.Module, nn.DataParallel, DistributedDataParallel]) -> nn.Module:
+def unwrap_model(model: Union[nn.Module, nn.DataParallel, DistributedDataParallel]) -> nn.Module:
     """
     Get the real model from a model wrapper (DataParallel, DistributedDataParallel)
 

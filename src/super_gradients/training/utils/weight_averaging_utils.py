@@ -2,7 +2,7 @@ import os
 import torch
 import numpy as np
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict
-from super_gradients.training.utils.utils import move_state_dict_to_device, get_real_model
+from super_gradients.training.utils.utils import move_state_dict_to_device, unwrap_model
 
 
 class ModelWeightAveraging:
@@ -63,7 +63,7 @@ class ModelWeightAveraging:
         require_update, update_ind = self._is_better(averaging_snapshots_dict, validation_results_tuple)
         if require_update:
             # moving state dict to cpu
-            new_sd = get_real_model(model).state_dict()
+            new_sd = unwrap_model(model).state_dict()
             new_sd = move_state_dict_to_device(new_sd, "cpu")
 
             averaging_snapshots_dict["snapshot" + str(update_ind)] = new_sd
