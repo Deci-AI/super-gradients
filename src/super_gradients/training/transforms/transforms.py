@@ -655,7 +655,7 @@ class DetectionMixup(DetectionTransform):
             cp_sample = sample["additional_samples"][0]
             img, cp_labels = cp_sample["image"], cp_sample["target"]
             cp_boxes = cp_labels[:, :4]
-            if self.prob < random.random():
+            if random.random() < self.prob:
                 _, width, _ = img.shape
                 img = _flip_horizontal_image(img)
                 cp_boxes = _flip_horizontal_boxes(cp_boxes, width)
@@ -833,12 +833,10 @@ class DetectionHorizontalFlip(DetectionTransform):
             targets = np.zeros((0, 5), dtype=np.float32)
         if random.random() < self.prob:
             image = _flip_horizontal_image(image)
-            boxes = targets[:, :4]
             _, width, _ = image.shape
-            boxes = _flip_horizontal_boxes(boxes, width)
-            targets[:, :4] = boxes
+            targets[:, :4] = _flip_horizontal_boxes(targets[:, :4], width)
             if crowd_targets is not None:
-                crowd_targets = _flip_horizontal_boxes(crowd_targets)
+                crowd_targets = _flip_horizontal_boxes(crowd_targets, width)
         sample["image"] = image
         sample["target"] = targets
         sample["crowd_targets"] = crowd_targets
@@ -865,12 +863,10 @@ class DetectionVerticalFlip(DetectionTransform):
             targets = np.zeros((0, 5), dtype=np.float32)
         if random.random() < self.prob:
             image = _flip_vertical_image(image)
-            boxes = targets[:, :4]
             height, _, _ = image.shape
-            boxes = _flip_vertical_boxes(boxes, height)
-            targets[:, :4] = boxes
+            targets[:, :4] = _flip_vertical_boxes(targets[:, :4], height)
             if crowd_targets is not None:
-                crowd_targets = _flip_vertical_boxes(crowd_targets)
+                crowd_targets[:, :4] = _flip_vertical_boxes(crowd_targets[:, :4], height)
         sample["image"] = image
         sample["target"] = targets
         sample["crowd_targets"] = crowd_targets

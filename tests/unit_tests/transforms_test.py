@@ -166,9 +166,11 @@ class TestTransforms(unittest.TestCase):
         # run transform
         sample = {"image": image}
         sample["target"] = bboxes
+        sample["crowd_targets"] = bboxes.copy()
         output = aug(sample)
         image = output["image"]
-        bboxes = output["target"]
+        target = output["target"]
+        crowd_targets = output["crowd_targets"]
 
         # check image hasn't changed shape
         self.assertEqual(image.shape, image_original.shape)
@@ -179,7 +181,8 @@ class TestTransforms(unittest.TestCase):
         self.assertTrue(np.array_equal(image_original[:, 1], image[:, -2]))
 
         # check bboxes as expected
-        self.assertTrue(np.array_equal(bboxes, bboxes_expected))
+        self.assertTrue(np.array_equal(target, bboxes_expected))
+        self.assertTrue(np.array_equal(crowd_targets, bboxes_expected))
 
     def test_detection_vertical_flip(self):
         aug = DetectionVerticalFlip(prob=1)
@@ -202,9 +205,11 @@ class TestTransforms(unittest.TestCase):
         # run transform
         sample = {"image": image}
         sample["target"] = bboxes
+        sample["crowd_targets"] = bboxes.copy()
         output = aug(sample)
         image = output["image"]
-        bboxes = output["target"]
+        target = output["target"]
+        crowd_targets = output["crowd_targets"]
 
         # check image hasn't changed shape
         self.assertEqual(image.shape, image_original.shape)
@@ -215,7 +220,8 @@ class TestTransforms(unittest.TestCase):
         self.assertTrue(np.array_equal(image_original[1], image[-2]))
 
         # check bboxes as expected
-        self.assertTrue(np.array_equal(bboxes, bboxes_expected))
+        self.assertTrue(np.array_equal(target, bboxes_expected))
+        self.assertTrue(np.array_equal(crowd_targets, bboxes_expected))
 
     def test_rescale_bboxes(self):
         sy, sx = (2.0, 0.5)
