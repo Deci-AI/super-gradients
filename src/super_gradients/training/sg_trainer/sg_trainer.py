@@ -1178,7 +1178,7 @@ class Trainer:
         if isinstance(self.training_params.optimizer, str) or (
             inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
         ):
-            self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr, training_params=self.training_params)
+            self.optimizer = build_optimizer(net=unwrap_model(self.net), lr=self.training_params.initial_lr, training_params=self.training_params)
         elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
             self.optimizer = self.training_params.optimizer
         else:
@@ -1295,7 +1295,7 @@ class Trainer:
                             num_gpus=get_world_size(),
                         )
 
-                # model switch - we replace self.net.module with the ema model for the testing and saving part
+                # model switch - we replace self.net with the ema model for the testing and saving part
                 # and then switch it back before the next training epoch
                 if self.ema:
                     self.ema_model.update_attr(self.net)

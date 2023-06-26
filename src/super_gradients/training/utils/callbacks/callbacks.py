@@ -23,7 +23,7 @@ from super_gradients.training.utils.detection_utils import DetectionVisualizatio
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
-
+from super_gradients.training.utils.utils import unwrap_model
 
 logger = get_logger(__name__)
 
@@ -75,7 +75,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         self.atol = kwargs.get("atol", 1e-05)
 
     def __call__(self, context: PhaseContext):
-        model = copy.deepcopy(context.net.module)
+        model = copy.deepcopy(unwrap_model(context.net))
         model = model.cpu()
         model.eval()  # Put model into eval mode
 
@@ -267,7 +267,9 @@ class LRCallbackBase(PhaseCallback):
 
     def update_lr(self, optimizer, epoch, batch_idx=None):
         if self.update_param_groups:
-            param_groups = self.net.module.update_param_groups(optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len)
+            param_groups = unwrap_model(self.net).update_param_groups(
+                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
+            )
             optimizer.param_groups = param_groups
         else:
             # UPDATE THE OPTIMIZERS PARAMETER
@@ -373,7 +375,9 @@ class BatchStepLinearWarmupLRCallback(Callback):
         :return:
         """
         if self.update_param_groups:
-            param_groups = self.net.module.update_param_groups(optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len)
+            param_groups = unwrap_model(self.net).update_param_groups(
+                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
+            )
             optimizer.param_groups = param_groups
         else:
             # UPDATE THE OPTIMIZERS PARAMETER

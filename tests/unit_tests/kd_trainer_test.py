@@ -81,10 +81,10 @@ class KDTrainerTest(unittest.TestCase):
         )
 
         # TEACHER WEIGHT'S SHOULD REMAIN THE SAME
-        self.assertTrue(check_models_have_same_weights(teacher_model, sg_model.net.module.teacher))
+        self.assertTrue(check_models_have_same_weights(teacher_model, sg_model.net.teacher))
 
         # STUDENT WEIGHT'S SHOULD NOT REMAIN THE SAME
-        self.assertFalse(check_models_have_same_weights(student_model, sg_model.net.module.student))
+        self.assertFalse(check_models_have_same_weights(student_model, sg_model.net.student))
 
     def test_train_model_with_input_adapter(self):
         kd_trainer = KDTrainer("train_kd_module_with_with_input_adapter")
@@ -105,7 +105,7 @@ class KDTrainerTest(unittest.TestCase):
             valid_loader=classification_test_dataloader(),
         )
 
-        self.assertEqual(kd_trainer.net.module.teacher_input_adapter, adapter)
+        self.assertEqual(kd_trainer.net.teacher_input_adapter, adapter)
 
     def test_load_ckpt_best_for_student(self):
         kd_trainer = KDTrainer("test_load_ckpt_best")
@@ -124,7 +124,7 @@ class KDTrainerTest(unittest.TestCase):
 
         student_reloaded = models.get(Models.RESNET18, arch_params={"num_classes": 5}, checkpoint_path=best_student_ckpt)
 
-        self.assertTrue(check_models_have_same_weights(student_reloaded, kd_trainer.net.module.student))
+        self.assertTrue(check_models_have_same_weights(student_reloaded, kd_trainer.net.student))
 
     def test_load_ckpt_best_for_student_with_ema(self):
         kd_trainer = KDTrainer("test_load_ckpt_best")

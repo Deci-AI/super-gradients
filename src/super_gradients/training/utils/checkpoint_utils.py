@@ -14,6 +14,7 @@ from super_gradients.common.decorators.explicit_params_validator import explicit
 from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
+from super_gradients.training.utils.utils import unwrap_model
 
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
@@ -224,6 +225,8 @@ def load_checkpoint_to_model(
     if isinstance(strict, str):
         strict = StrictLoad(strict)
 
+    net = unwrap_model(net)
+
     if load_backbone and not hasattr(net, "backbone"):
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
 
@@ -246,7 +249,7 @@ def load_checkpoint_to_model(
     message_model = "model" if not load_backbone else "model's backbone"
     logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
 
-    if (isinstance(net, HasPredict) or (hasattr(net, "module") and isinstance(net.module, HasPredict))) and load_processing_params:
+    if (isinstance(net, HasPredict)) and load_processing_params:
         if "processing_params" not in checkpoint.keys():
             raise ValueError("Can't load processing params - could not find any stored in checkpoint file.")
         try:
