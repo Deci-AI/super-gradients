@@ -266,7 +266,11 @@ def fuzzy_idx_in_list(name: str, lst: List[str]) -> int:
     :param lst: List[str], the list as described above.
     :return: int, index of name in lst in the matter discussed above.
     """
-    return [fuzzy_str(x) for x in lst].index(fuzzy_str(name))
+    fuzzy_name = fuzzy_str(name)
+    for i, element in enumerate(lst):
+        if fuzzy_str(element) == fuzzy_name:
+            return i
+    raise KeyError(f"Key {name} not found in list {lst}.")
 
 
 def get_param(params, name, default_val=None):

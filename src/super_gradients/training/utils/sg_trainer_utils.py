@@ -78,6 +78,24 @@ class ImprovementType(Enum):
 logger = get_logger(__name__)
 
 
+# @dataclass
+# class ValuesMonitored:
+#     def __init__(self, greater_is_better_dict: Dict[str, bool]):
+#         self.values_dict: Dict[str, MonitoredValue] = {}
+#         self.greater_is_better_dict = greater_is_better_dict
+#
+#     def add_value(self, name: str):
+#         self.values_dict[name] = MonitoredValue(name=name, greater_is_better=self.greater_is_better_dict.get(name, False))
+#
+#     def update_value(self, name: str, new_value: float):
+#         previous_value = self.values_dict.get(name, self.add_value(name=name))
+#         self.values_dict[name] = update_monitored_value(new_value=new_value, previous_monitored_value=previous_value)
+#
+#     def update_values(self, new_values_dict: Dict[str, float]):
+#         for name, new_value in new_values_dict.items():
+#             self.update_value(name=name, new_value=new_value)
+
+
 @dataclass
 class MonitoredValue:
     """Store a value and some indicators relative to its past iterations.

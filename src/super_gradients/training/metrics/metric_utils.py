@@ -34,10 +34,14 @@ def get_metrics_titles(metrics_collection: MetricCollection):
         if metric_name == "additional_items":
             continue
         elif hasattr(metric, "component_names"):
-            titles += metric.component_names
+            if not metric_name.find("/"):
+                titles.extend(metric.component_names)
+            else:
+                prefix = metric_name.split("/")[0]
+                for component_name in metric.component_names:
+                    titles.append(f"{prefix}/{component_name}")
         else:
             titles.append(metric_name)
-
     return titles
 
 

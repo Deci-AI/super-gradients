@@ -3,7 +3,7 @@ import inspect
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Union, Tuple, Mapping, Dict, Any, List
+from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
 
 import hydra
 import numpy as np
@@ -516,18 +516,50 @@ class Trainer:
         return loss, loss_logging_items
 
     def _init_monitored_items(self):
-        self.metric_to_watch = "valid_bird/" + self.metric_to_watch
-        self.metric_idx_in_results_tuple = fuzzy_idx_in_list(self.metric_to_watch, self.loss_logging_items_names + get_metrics_titles(self.valid_metrics))
+        if isinstance(self.dataloader, dict):
+            if "/" not in self.metric_to_watch or self.metric_to_watch.split("/")[0] not in self.dataloader.keys():
+                raise ValueError(
+                    f"`metric_to_watch` must start follow the pattern `<dataset_name>/<metric_name>` "
+                    f"with `dataset_name` in ({list(self.dataloader.keys())}).\n"
+                    f"Got `metric_to_watch={self.metric_to_watch}`"
+                )
+            metric_to_watch_name = "/".join(self.metric_to_watch.split("/")[1:])
+        else:
+            metric_to_watch_name = self.metric_to_watch
+
+        try:
+            self.metric_idx_in_results_tuple = fuzzy_idx_in_list(metric_to_watch_name, self.loss_logging_items_names + get_metrics_titles(self.valid_metrics))
+        except KeyError:
+            raise ValueError(
+                f"`metric_to_watch` Should refer to a metric/loss that you provided; "
+                f"{self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)}\n"
+                f"Got `{metric_to_watch_name}`"
+            )
         # Instantiate the values to monitor (loss/metric)
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
-            self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
 
         for metric_name in get_metrics_titles(self.train_metrics):
             self.train_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_train_metrics_is_better.get(metric_name))
 
-        for metric_name in get_metrics_titles(self.valid_metrics):
-            self.valid_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name))
+        if isinstance(self.dataloader, dict):
+            for dataset_name in self.dataloader.keys():
+                for loss_name in self.loss_logging_items_names:
+                    self.valid_monitored_values[f"{dataset_name}/{loss_name}"] = MonitoredValue(name=f"{dataset_name}/{loss_name}", greater_is_better=False)
+                for metric_name in get_metrics_titles(self.valid_metrics):
+                    self.valid_monitored_values[f"{dataset_name}/{metric_name}"] = MonitoredValue(
+                        name=f"{dataset_name}/{metric_name}", greater_is_better=self.greater_valid_metrics_is_better.get(metric_name)
+                    )
+            if self.metric_to_watch not in self.valid_monitored_values:
+                raise ValueError(f"`metric_to_watch` must be one of {list(self.valid_monitored_values.keys())}")
+        else:
+            for loss_name in self.loss_logging_items_names:
+                self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
+
+            for metric_name in get_metrics_titles(self.valid_metrics):
+                self.valid_monitored_values[metric_name] = MonitoredValue(
+                    name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name)
+                )
 
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
@@ -584,7 +616,7 @@ class Trainer:
         self,
         optimizer: torch.optim.Optimizer = None,
         epoch: int = None,
-        validation_results_tuple: tuple = None,
+        validation_results_dict: Optional[Dict[str, float]] = None,
         context: PhaseContext = None,
     ) -> None:
         """
@@ -592,16 +624,16 @@ class Trainer:
         params)
         """
         # WHEN THE validation_results_tuple IS NONE WE SIMPLY SAVE THE state_dict AS LATEST AND Return
-        if validation_results_tuple is None:
+        if validation_results_dict is None:
             self.sg_logger.add_checkpoint(tag="ckpt_latest_weights_only.pth", state_dict={"net": self.net.state_dict()}, global_step=epoch)
             return
 
         # COMPUTE THE CURRENT metric
         # IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES
         metric = (
-            validation_results_tuple[self.metric_idx_in_results_tuple]
+            validation_results_dict[self.metric_to_watch]
             if isinstance(self.metric_idx_in_results_tuple, int)
-            else sum([validation_results_tuple[idx] for idx in self.metric_idx_in_results_tuple])
+            else sum(validation_results_dict[idx] for idx in self.metric_to_watch)
         )
 
         # BUILD THE state_dict
@@ -640,6 +672,9 @@ class Trainer:
 
         if self.training_params.average_best_models:
             net_for_averaging = self.ema_model.ema if self.ema else self.net
+
+            # We do this instead of simply tuple(validation_results_dict.keys()) to make sure the order is respected...
+            validation_results_tuple = tuple(validation_results_dict[metric_name] for metric_name in get_metrics_titles(self.valid_metrics))
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
@@ -1028,6 +1063,7 @@ class Trainer:
 
         self.train_loader = train_loader if train_loader is not None else self.train_loader
         self.valid_loader = valid_loader if valid_loader is not None else self.valid_loader
+        self.valid_loader = {"bird": self.valid_loader, "cars": self.valid_loader}
 
         if self.train_loader is None:
             raise ValueError("No `train_loader` found. Please provide a value for `train_loader`")
@@ -1075,7 +1111,7 @@ class Trainer:
         self._set_valid_metrics(valid_metrics_list=self.training_params.valid_metrics_list)
 
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
-        self.metric_to_watch = self.training_params.metric_to_watch
+        self.metric_to_watch = "bird/" + self.training_params.metric_to_watch  # TODO: REMOVE THIS
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
 
         # Allowing loading instantiated loss or string
@@ -1111,7 +1147,7 @@ class Trainer:
                     logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
 
         self.run_validation_freq = self.training_params.run_validation_freq
-        validation_results_tuple = (0, 0)
+        # validation_results_tuple = (0, 0)
         inf_time = 0
         timer = core_utils.Timer(device_config.device)
 
@@ -1306,12 +1342,12 @@ class Trainer:
                 if (epoch + 1) % self.run_validation_freq == 0:
                     self.phase_callback_handler.on_validation_loader_start(context)
                     timer.start()
-                    validation_results_tuple = self._validate_epoch(epoch=epoch, silent_mode=silent_mode)
+                    valid_metrics_dict = self._validate_epoch(epoch=epoch, silent_mode=silent_mode)
                     inf_time = timer.stop()
 
                     # Phase.VALIDATION_EPOCH_END
                     # RUN PHASE CALLBACKS
-                    valid_metrics_dict = get_metrics_dict(validation_results_tuple, self.valid_metrics, self.loss_logging_items_names)
+                    # valid_metrics_dict = get_metrics_dict(validation_results_tuple, self.valid_metrics, self.loss_logging_items_names)
 
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
@@ -1322,8 +1358,8 @@ class Trainer:
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
                     self._write_to_disk_operations(
-                        train_metrics=train_metrics_tuple,
-                        validation_results=validation_results_tuple,
+                        train_metrics_dict=train_metrics_dict,
+                        validation_results_dict=valid_metrics_dict,
                         lr_dict=self._epoch_start_logging_values,
                         inf_time=inf_time,
                         epoch=epoch,
@@ -1385,6 +1421,7 @@ class Trainer:
                 self.greater_train_metrics_is_better[metric_name] = None
 
     # def _set_valid_metrics(self, valid_metrics_list: Union[list, dict]):
+    # THIS IS USEFUL IIF WE CREATE MULTIPLE METRICS!
     #     if isinstance(valid_metrics_list, list):
     #         valid_metrics_list = ListFactory(MetricsFactory()).get(valid_metrics_list)
     #         self.valid_metrics = MetricCollection(valid_metrics_list)
@@ -1422,12 +1459,7 @@ class Trainer:
 
     @resolve_param("valid_metrics_list", ListFactory(MetricsFactory()))
     def _set_valid_metrics(self, valid_metrics_list):
-        dataset_mapping = {}
-        for metric in valid_metrics_list:
-            dataset_mapping[f"valid_bird/{metric.__class__.__name__}"] = metric
-            dataset_mapping[f"valid_car/{metric.__class__.__name__}"] = metric
-            dataset_mapping[f"valid_misc/{metric.__class__.__name__}"] = metric
-        self.valid_metrics = MetricCollection(dataset_mapping)
+        self.valid_metrics = MetricCollection(valid_metrics_list)
 
         for metric_name, metric in self.valid_metrics.items():
             if hasattr(metric, "greater_component_is_better"):
@@ -1727,19 +1759,21 @@ class Trainer:
         }
         return hyper_param_config
 
-    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, lr_dict: dict, inf_time: float, epoch: int, context: PhaseContext):
+    def _write_to_disk_operations(
+        self, train_metrics_dict: dict, validation_results_dict: dict, lr_dict: dict, inf_time: float, epoch: int, context: PhaseContext
+    ):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
-        # STORE VALUES IN A TENSORBOARD FILE
-        train_results = list(train_metrics) + list(validation_results) + [inf_time]
-        all_titles = self.results_titles + ["Inference Time"]
-
-        result_dict = {all_titles[i]: train_results[i] for i in range(len(train_results))}
+        result_dict = {
+            "Inference Time": inf_time,
+            **{f"Train_{k}": v for k, v in train_metrics_dict.items()},
+            **{f"Valid_{k}": v for k, v in validation_results_dict.items()},
+        }
         self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
         # SAVE THE CHECKPOINT
         if self.training_params.save_model:
-            self._save_checkpoint(self.optimizer, epoch + 1, validation_results, context)
+            self._save_checkpoint(self.optimizer, epoch + 1, validation_results_dict, context)
 
     def _get_epoch_start_logging_values(self) -> dict:
         """Get all the values that should be logged at the start of each epoch.
@@ -1760,7 +1794,7 @@ class Trainer:
         metrics_progress_verbose=False,
         test_phase_callbacks=None,
         use_ema_net=True,
-    ) -> tuple:
+    ) -> dict:
         """
         Evaluates the model on given dataloader and metrics.
         :param model: model to perfrom test on. When none is given, will try to use self.net (defalut=None).
@@ -1818,11 +1852,9 @@ class Trainer:
 
         self._first_backward = True
 
-        test_results = get_metrics_dict(test_results, self.test_metrics, self.loss_logging_items_names)
-
         return test_results
 
-    def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
+    def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> dict:
         """
         Runs evaluation on self.valid_loader, with self.valid_metrics.
 
@@ -1842,13 +1874,13 @@ class Trainer:
 
     def evaluate(
         self,
-        data_loader: torch.utils.data.DataLoader,
+        data_loader: Union[torch.utils.data.DataLoader, Dict[torch.utils.data.DataLoader]],
         metrics: MetricCollection,
         evaluation_type: EvaluationType,
         epoch: int = None,
         silent_mode: bool = False,
         metrics_progress_verbose: bool = False,
-    ):
+    ) -> Dict[str, float]:
         """
         Evaluates the model on given dataloader and metrics.
 
@@ -1863,6 +1895,70 @@ class Trainer:
 
         :return: results tuple (tuple) containing the loss items and metric values.
         """
+
+        results = {}
+        self._reset_metrics()
+        if isinstance(data_loader, dict):
+            for dataloader_name, data_loader in data_loader.items():
+                self._reset_metrics()
+                logging_values = self._evaluate_dataloader(
+                    data_loader=data_loader,
+                    metrics=metrics,
+                    evaluation_type=evaluation_type,
+                    epoch=epoch,
+                    silent_mode=silent_mode,
+                    metrics_progress_verbose=metrics_progress_verbose,
+                )
+
+                dataset_results = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+                for key, value in dataset_results.items():
+                    results[f"{dataloader_name}_{key}"] = value
+                self._reset_metrics()
+        elif isinstance(data_loader, torch.utils.data.DataLoader):
+            logging_values = self._evaluate_dataloader(
+                data_loader=data_loader,
+                metrics=metrics,
+                evaluation_type=evaluation_type,
+                epoch=epoch,
+                silent_mode=silent_mode,
+                metrics_progress_verbose=metrics_progress_verbose,
+            )
+            results = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+            self._reset_metrics()
+        else:
+            raise ValueError(f"data_loader should be of type dict or torch.utils.data.DataLoader, but got {type(data_loader)}")
+
+        # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
+        #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
+        #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
+        #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
+
+        self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
+            monitored_values_dict=self.valid_monitored_values,
+            new_values_dict=results,
+        )
+
+        if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
+            print("===========================================================")
+            sg_trainer_utils.display_epoch_summary(
+                epoch=epoch,
+                n_digits=4,
+                train_monitored_values=self.train_monitored_values,
+                valid_monitored_values=self.valid_monitored_values,
+            )
+            print("===========================================================")
+
+        return results
+
+    def _evaluate_dataloader(
+        self,
+        data_loader: torch.utils.data.DataLoader,
+        metrics: MetricCollection,
+        evaluation_type: EvaluationType,
+        epoch: int = None,
+        silent_mode: bool = False,
+        metrics_progress_verbose: bool = False,
+    ):
 
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
         loss_avg_meter = core_utils.utils.AverageMeter()
@@ -1881,81 +1977,66 @@ class Trainer:
             valid_loader=self.valid_loader,
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
-        data_loader_dict = {"valid_bird": data_loader, "valid_car": data_loader}
-        for dataloader_name, data_loader in data_loader_dict.items():
-            with tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_data_loader:
+        with tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_data_loader:
 
-                if not silent_mode:
-                    # PRINT TITLES
-                    pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
-                    progress_bar_data_loader.set_description(pbar_start_msg)
+            if not silent_mode:
+                # PRINT TITLES
+                pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
+                progress_bar_data_loader.set_description(pbar_start_msg)
 
-                with torch.no_grad():
+            with torch.no_grad():
 
-                    for batch_idx, batch_items in enumerate(progress_bar_data_loader):
-                        batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
-                        inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
+                for batch_idx, batch_items in enumerate(progress_bar_data_loader):
+                    batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
+                    inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
-                        # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
-                        context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items, dataset_name=dataloader_name)
-                        if evaluation_type == EvaluationType.VALIDATION:
-                            self.phase_callback_handler.on_validation_batch_start(context)
-                        else:
-                            self.phase_callback_handler.on_test_batch_start(context)
+                    # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
+                    context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
+                    if evaluation_type == EvaluationType.VALIDATION:
+                        self.phase_callback_handler.on_validation_batch_start(context)
+                    else:
+                        self.phase_callback_handler.on_test_batch_start(context)
 
-                        output = self.net(inputs)
-                        context.update_context(preds=output)
+                    output = self.net(inputs)
+                    context.update_context(preds=output)
 
-                        if self.criterion is not None:
-                            # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
-                            loss_tuple = self._get_losses(output, targets)[1].cpu()
-                            context.update_context(loss_log_items=loss_tuple)
+                    if self.criterion is not None:
+                        # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
+                        loss_tuple = self._get_losses(output, targets)[1].cpu()
+                        context.update_context(loss_log_items=loss_tuple)
 
-                        # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
-                        if evaluation_type == EvaluationType.VALIDATION:
-                            self.phase_callback_handler.on_validation_batch_end(context)
-                        else:
-                            self.phase_callback_handler.on_test_batch_end(context)
+                    # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
+                    if evaluation_type == EvaluationType.VALIDATION:
+                        self.phase_callback_handler.on_validation_batch_end(context)
+                    else:
+                        self.phase_callback_handler.on_test_batch_end(context)
 
-                        # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
-                        if metrics_progress_verbose and not silent_mode:
-                            # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                            logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
-                            pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+                    # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
+                    if metrics_progress_verbose and not silent_mode:
+                        # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
+                        logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                        pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
-                            progress_bar_data_loader.set_postfix(**pbar_message_dict)
+                        progress_bar_data_loader.set_postfix(**pbar_message_dict)
 
-                        if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
-                            break
+                    if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
+                        break
 
-                # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
-                if not metrics_progress_verbose:
-                    # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                    logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
-                    pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
-
-                    progress_bar_data_loader.set_postfix(**pbar_message_dict)
-
-                # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
-                #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
-                #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
-                #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
-
-                if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-                    logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
-
+            # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
+            if not metrics_progress_verbose:
+                # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
+                logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
                 pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
-                self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
-                    monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict
-                )
+                progress_bar_data_loader.set_postfix(**pbar_message_dict)
 
-        if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
-            progress_bar_data_loader.write("===========================================================")
-            sg_trainer_utils.display_epoch_summary(
-                epoch=context.epoch, n_digits=4, train_monitored_values=self.train_monitored_values, valid_monitored_values=self.valid_monitored_values
-            )
-            progress_bar_data_loader.write("===========================================================")
+            # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
+            #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
+            #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
+            #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
+
+            if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+                logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
 
         return logging_values
 
