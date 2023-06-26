@@ -78,6 +78,10 @@ class HpmStruct:
             validate(self.__dict__, self.schema)
 
 
+def is_model_wrapped(model: nn.Module) -> bool:
+    return isinstance(model, (nn.DataParallel, DistributedDataParallel))
+
+
 def unwrap_model(model: Union[nn.Module, nn.DataParallel, DistributedDataParallel]) -> nn.Module:
     """
     Get the real model from a model wrapper (DataParallel, DistributedDataParallel)
@@ -85,9 +89,7 @@ def unwrap_model(model: Union[nn.Module, nn.DataParallel, DistributedDataParalle
     :param model:
     :return:
     """
-    if isinstance(model, DistributedDataParallel):
-        return model.module
-    elif isinstance(model, nn.DataParallel):
+    if is_model_wrapped(model):
         return model.module
     elif isinstance(model, nn.Module):
         return model
