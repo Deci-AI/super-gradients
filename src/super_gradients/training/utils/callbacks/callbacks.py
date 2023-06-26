@@ -12,6 +12,7 @@ import onnx
 import onnxruntime
 import torch
 from deprecated import deprecated
+from torchmetrics import MetricCollection
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.plugins.deci_client import DeciClient
@@ -567,13 +568,32 @@ class LRSchedulerCallback(PhaseCallback):
         return "LRSchedulerCallback: " + repr(self.scheduler)
 
 
+# @register_callback(Callbacks.METRICS_UPDATE)
+# class MetricsUpdateCallback(PhaseCallback):
+#     def __init__(self, phase: Phase):
+#         super(MetricsUpdateCallback, self).__init__(phase)
+#
+#     def __call__(self, context: PhaseContext):
+#         context.metrics_compute_fn.update(**context.__dict__)
+#         if context.criterion is not None:
+#             context.loss_avg_meter.update(context.loss_log_items, len(context.inputs))
+
+
 @register_callback(Callbacks.METRICS_UPDATE)
 class MetricsUpdateCallback(PhaseCallback):
     def __init__(self, phase: Phase):
         super(MetricsUpdateCallback, self).__init__(phase)
 
     def __call__(self, context: PhaseContext):
-        context.metrics_compute_fn.update(**context.__dict__)
+
+        if context.dataset_name is None:
+            context.metrics_compute_fn.update(**context.__dict__)
+        else:
+            metrics_dict = {
+                metric_name: metric for metric_name, metric in context.metrics_compute_fn.items() if metric_name.startswith(f"{context.dataset_name}/")
+            }
+            metrics = MetricCollection(metrics_dict)
+            metrics.update(**context.__dict__)
         if context.criterion is not None:
             context.loss_avg_meter.update(context.loss_log_items, len(context.inputs))
 

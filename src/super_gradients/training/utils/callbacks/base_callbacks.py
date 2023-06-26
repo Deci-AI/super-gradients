@@ -55,6 +55,7 @@ class PhaseContext:
         valid_metrics=None,
         context_methods=None,
         ema_model=None,
+        dataset_name=None,
     ):
         self.epoch = epoch
         self.batch_idx = batch_idx
@@ -85,6 +86,7 @@ class PhaseContext:
         self.valid_metrics = valid_metrics
         self.context_methods = context_methods
         self.ema_model = ema_model
+        self.dataset_name = dataset_name
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():

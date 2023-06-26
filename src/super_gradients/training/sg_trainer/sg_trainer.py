@@ -252,7 +252,6 @@ class Trainer:
         )
 
         # INSTANTIATE DATA LOADERS
-
         train_dataloader = dataloaders.get(
             name=get_param(cfg, "train_dataloader"),
             dataset_params=cfg.dataset_params.train_dataset_params,
@@ -517,6 +516,7 @@ class Trainer:
         return loss, loss_logging_items
 
     def _init_monitored_items(self):
+        self.metric_to_watch = "valid_bird/" + self.metric_to_watch
         self.metric_idx_in_results_tuple = fuzzy_idx_in_list(self.metric_to_watch, self.loss_logging_items_names + get_metrics_titles(self.valid_metrics))
         # Instantiate the values to monitor (loss/metric)
         for loss_name in self.loss_logging_items_names:
@@ -1384,9 +1384,50 @@ class Trainer:
             else:
                 self.greater_train_metrics_is_better[metric_name] = None
 
+    # def _set_valid_metrics(self, valid_metrics_list: Union[list, dict]):
+    #     if isinstance(valid_metrics_list, list):
+    #         valid_metrics_list = ListFactory(MetricsFactory()).get(valid_metrics_list)
+    #         self.valid_metrics = MetricCollection(valid_metrics_list)
+    #     elif isinstance(valid_metrics_list, dict):
+    #         if not isinstance(self.valid_loader, dict):
+    #             raise RuntimeError(
+    #                 "`valid_metrics_list` can be a mapping of 'dataset_name -> lis of metrics', "
+    #                 "only when `self.valid_loader` is itself a mapping of 'dataset_name -> dataloader'"
+    #             )
+    #         for dataset_name in valid_metrics_list.keys():
+    #             if dataset_name not in self.valid_loader.keys():
+    #                 raise ValueError(f"`valid_metrics_list` includes key '{dataset_name}' which does not match to any dataset defined in `self.valid_loader`")
+    #
+    #         for dataset_name, dataset_metrics_list in valid_metrics_list.items():
+    #             if not isinstance(dataset_metrics_list, list):
+    #                 raise RuntimeError(
+    #                     "`valid_metrics_list` should either be a list of metrics, or a dictionary mapping validation dataset names to a list of metrics."
+    #                 )
+    #             metrics_list = ListFactory(MetricsFactory()).get(dataset_metrics_list)
+    #             dataset_mapping = {f"{dataset_name}/{metric.__class__.__name__}": metric for metric in metrics_list}
+    #             self.valid_metrics = MetricCollection(dataset_mapping)  # Question: Do we prefer flat with "/", or working with dict of metrics instead ?
+    #     else:
+    #         raise RuntimeError(
+    #             f"`valid_metrics_list` should either be a list of metrics, or a dictionary mapping validation dataset names to a list of metrics. "
+    #             f"Got {type(valid_metrics_list)}"
+    #         )
+    #
+    #     for metric_name, metric in self.valid_metrics.items():
+    #         if hasattr(metric, "greater_component_is_better"):
+    #             self.greater_valid_metrics_is_better.update(metric.greater_component_is_better)
+    #         elif hasattr(metric, "greater_is_better"):
+    #             self.greater_valid_metrics_is_better[metric_name] = metric.greater_is_better
+    #         else:
+    #             self.greater_valid_metrics_is_better[metric_name] = None
+
     @resolve_param("valid_metrics_list", ListFactory(MetricsFactory()))
     def _set_valid_metrics(self, valid_metrics_list):
-        self.valid_metrics = MetricCollection(valid_metrics_list)
+        dataset_mapping = {}
+        for metric in valid_metrics_list:
+            dataset_mapping[f"valid_bird/{metric.__class__.__name__}"] = metric
+            dataset_mapping[f"valid_car/{metric.__class__.__name__}"] = metric
+            dataset_mapping[f"valid_misc/{metric.__class__.__name__}"] = metric
+        self.valid_metrics = MetricCollection(dataset_mapping)
 
         for metric_name, metric in self.valid_metrics.items():
             if hasattr(metric, "greater_component_is_better"):
@@ -1840,79 +1881,81 @@ class Trainer:
             valid_loader=self.valid_loader,
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
+        data_loader_dict = {"valid_bird": data_loader, "valid_car": data_loader}
+        for dataloader_name, data_loader in data_loader_dict.items():
+            with tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_data_loader:
 
-        with tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_data_loader:
+                if not silent_mode:
+                    # PRINT TITLES
+                    pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
+                    progress_bar_data_loader.set_description(pbar_start_msg)
 
-            if not silent_mode:
-                # PRINT TITLES
-                pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
-                progress_bar_data_loader.set_description(pbar_start_msg)
+                with torch.no_grad():
 
-            with torch.no_grad():
-                for batch_idx, batch_items in enumerate(progress_bar_data_loader):
-                    batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
-                    inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
+                    for batch_idx, batch_items in enumerate(progress_bar_data_loader):
+                        batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
+                        inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
-                    # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
-                    context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
-                    if evaluation_type == EvaluationType.VALIDATION:
-                        self.phase_callback_handler.on_validation_batch_start(context)
-                    else:
-                        self.phase_callback_handler.on_test_batch_start(context)
+                        # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
+                        context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items, dataset_name=dataloader_name)
+                        if evaluation_type == EvaluationType.VALIDATION:
+                            self.phase_callback_handler.on_validation_batch_start(context)
+                        else:
+                            self.phase_callback_handler.on_test_batch_start(context)
 
-                    output = self.net(inputs)
-                    context.update_context(preds=output)
+                        output = self.net(inputs)
+                        context.update_context(preds=output)
 
-                    if self.criterion is not None:
-                        # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
-                        loss_tuple = self._get_losses(output, targets)[1].cpu()
-                        context.update_context(loss_log_items=loss_tuple)
+                        if self.criterion is not None:
+                            # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
+                            loss_tuple = self._get_losses(output, targets)[1].cpu()
+                            context.update_context(loss_log_items=loss_tuple)
 
-                    # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
-                    if evaluation_type == EvaluationType.VALIDATION:
-                        self.phase_callback_handler.on_validation_batch_end(context)
-                    else:
-                        self.phase_callback_handler.on_test_batch_end(context)
+                        # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
+                        if evaluation_type == EvaluationType.VALIDATION:
+                            self.phase_callback_handler.on_validation_batch_end(context)
+                        else:
+                            self.phase_callback_handler.on_test_batch_end(context)
 
-                    # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
-                    if metrics_progress_verbose and not silent_mode:
-                        # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                        logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
-                        pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+                        # COMPUTE METRICS IF PROGRESS VERBOSITY IS SET
+                        if metrics_progress_verbose and not silent_mode:
+                            # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
+                            logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                            pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
-                        progress_bar_data_loader.set_postfix(**pbar_message_dict)
+                            progress_bar_data_loader.set_postfix(**pbar_message_dict)
 
-                    if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
-                        break
+                        if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
+                            break
 
-            # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
-            if not metrics_progress_verbose:
-                # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
+                if not metrics_progress_verbose:
+                    # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
+                    logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+                    pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+
+                    progress_bar_data_loader.set_postfix(**pbar_message_dict)
+
+                # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
+                #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
+                #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
+                #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
+
+                if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+                    logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
+
                 pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
-                progress_bar_data_loader.set_postfix(**pbar_message_dict)
-
-            # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
-            #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
-            #  DETECTIONMETRICS, WHICH ALREADY RETURN THE METRICS VALUEST HEMSELVES AND NOT THE ITEMS REQUIRED FOR SUCH
-            #  COMPUTATION. ALSO REMOVE THE BELOW LINES BY IMPLEMENTING CRITERION AS A TORCHMETRIC.
-
-            if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-                logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
-
-            pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
-
-            self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
-                monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict
-            )
-
-            if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
-                progress_bar_data_loader.write("===========================================================")
-                sg_trainer_utils.display_epoch_summary(
-                    epoch=context.epoch, n_digits=4, train_monitored_values=self.train_monitored_values, valid_monitored_values=self.valid_monitored_values
+                self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
+                    monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict
                 )
-                progress_bar_data_loader.write("===========================================================")
+
+        if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
+            progress_bar_data_loader.write("===========================================================")
+            sg_trainer_utils.display_epoch_summary(
+                epoch=context.epoch, n_digits=4, train_monitored_values=self.train_monitored_values, valid_monitored_values=self.valid_monitored_values
+            )
+            progress_bar_data_loader.write("===========================================================")
 
         return logging_values
 
