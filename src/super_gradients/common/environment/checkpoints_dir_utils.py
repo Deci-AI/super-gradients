@@ -37,7 +37,7 @@ def get_project_checkpoints_dir_path() -> Optional[str]:
 
     checkpoints_path = os.path.join(project_root_path, "checkpoints")
     if not os.path.exists(checkpoints_path):
-        os.makedirs(checkpoints_path)
+        os.makedirs(checkpoints_path, exist_ok=True)
         logger.info(f'A checkpoints directory was just created at "{checkpoints_path}". To work with another directory, please set "ckpt_root_dir"')
     return checkpoints_path
 
