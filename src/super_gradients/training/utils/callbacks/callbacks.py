@@ -204,12 +204,12 @@ class DeciLabUploadCallback(PhaseCallback):
         :param context: Training phase context
         """
         try:
-            model = copy.deepcopy(context.net)
+            model = copy.deepcopy(unwrap_model(context.net))
             model_state_dict_path = os.path.join(context.ckpt_dir, self.ckpt_name)
             model_state_dict = torch.load(model_state_dict_path)["net"]
             model.load_state_dict(state_dict=model_state_dict)
 
-            model = model.module.cpu()
+            model = model.cpu()
             if hasattr(model, "prep_model_for_conversion"):
                 model.prep_model_for_conversion(input_size=self.input_dimensions)
 

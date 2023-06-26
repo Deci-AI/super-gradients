@@ -146,7 +146,7 @@ class KDTrainerTest(unittest.TestCase):
 
         student_reloaded = models.get(Models.RESNET18, arch_params={"num_classes": 5}, checkpoint_path=best_student_ckpt)
 
-        self.assertTrue(check_models_have_same_weights(student_reloaded, kd_trainer.ema_model.ema.module.student))
+        self.assertTrue(check_models_have_same_weights(student_reloaded, kd_trainer.ema_model.ema.student))
 
     def test_resume_kd_training(self):
         kd_trainer = KDTrainer("test_resume_training_start")
