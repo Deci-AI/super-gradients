@@ -3,7 +3,7 @@ try:
 except (ModuleNotFoundError, ImportError, NameError):
     pass  # no action or logging - this is normal in most cases
 
-from super_gradients.training.models.prediction_results import ImageDetectionPrediction, ImagesDetectionPrediction
+from super_gradients.training.utils.predict import ImageDetectionPrediction, ImagesDetectionPrediction
 
 
 def _visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPrediction, show_confidence: bool):

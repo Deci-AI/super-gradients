@@ -324,12 +324,14 @@ class Trainer:
             name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
         )
 
-        if cfg.checkpoint_params.pretrained_weights is None and cfg.checkpoint_params.checkpoint_path is None:
+        if cfg.checkpoint_params.checkpoint_path is None:
             logger.info(
                 "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
             )
-            checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-            cfg.checkpoint_params.checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
+            checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+            checkpoint_path = os.path.join(checkpoints_dir, cfg.training_hyperparams.ckpt_name)
+            if os.path.exists(checkpoint_path):
+                cfg.checkpoint_params.checkpoint_path = checkpoint_path
 
         logger.info(f"Evaluating checkpoint: {cfg.checkpoint_params.checkpoint_path}")
 
@@ -436,6 +438,7 @@ class Trainer:
                 lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                 sg_logger=self.sg_logger,
                 train_loader=self.train_loader,
+                valid_loader=self.valid_loader,
                 context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
                 ddp_silent_mode=self.ddp_silent_mode,
             )
@@ -1833,6 +1836,8 @@ class Trainer:
             device=device_config.device,
             lr_warmup_epochs=lr_warmup_epochs,
             sg_logger=self.sg_logger,
+            train_loader=self.train_loader,
+            valid_loader=self.valid_loader,
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
 
@@ -2072,7 +2077,9 @@ class Trainer:
         quantization_params = get_param(cfg, "quantization_params")
 
         if quantization_params is None:
-            raise logger.warning("Your recipe does not include quantization_params. Using default quantization params.")
+            logger.warning("Your recipe does not include quantization_params. Using default quantization params.")
+            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+            cfg.quantization_params = quantization_params
 
         if get_param(cfg.checkpoint_params, "checkpoint_path") is None and get_param(cfg.checkpoint_params, "pretrained_weights") is None:
             raise ValueError("Starting checkpoint / pretrained weights are a must for QAT finetuning.")
