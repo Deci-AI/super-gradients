@@ -7,7 +7,6 @@ from tqdm import tqdm
 import numpy as np
 import torch
 
-from super_gradients.training.models.classification_models.base_classifer import BaseClassifier
 from super_gradients.training.utils.predict import (
     ImagePoseEstimationPrediction,
     ImagesPoseEstimationPrediction,
@@ -396,7 +395,7 @@ class ClassificationPipeline(Pipeline):
 
     def __init__(
         self,
-        model: BaseClassifier,
+        model: SgModule,
         class_names: List[str],
         device: Optional[str] = None,
         image_processor: Optional[Processing] = None,
