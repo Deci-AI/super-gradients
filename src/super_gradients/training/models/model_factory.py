@@ -43,7 +43,9 @@ def get_architecture(
     :return:
         - architecture_cls:     Class of the model
         - arch_params:          Might be updated if loading from remote deci lab
-        - pretrained_weights_path:   path to the pretrained weights from deci lab (None for local models or when).
+        - pretrained_weights_path:   path to the pretrained weights from deci lab (None for local models or when deci
+            client is not enabled).
+
         - is_remote:            True if loading from remote deci lab
     """
     pretrained_weights_path = None
