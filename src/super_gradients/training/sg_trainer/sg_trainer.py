@@ -673,7 +673,7 @@ class Trainer:
         if self.training_params.average_best_models:
             net_for_averaging = self.ema_model.ema if self.ema else self.net
 
-            # We do this instead of simply tuple(validation_results_dict.keys()) to make sure the order is respected...
+            # We do this instead of simply tuple(validation_results_dict.keys()) because we want to make sure the order is respected...
             validation_results_tuple = tuple(validation_results_dict[metric_name] for metric_name in get_metrics_titles(self.valid_metrics))
             state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
@@ -1794,7 +1794,7 @@ class Trainer:
         metrics_progress_verbose=False,
         test_phase_callbacks=None,
         use_ema_net=True,
-    ) -> dict:
+    ) -> Dict[str, float]:
         """
         Evaluates the model on given dataloader and metrics.
         :param model: model to perfrom test on. When none is given, will try to use self.net (defalut=None).
@@ -1895,9 +1895,9 @@ class Trainer:
 
         :return: results tuple (tuple) containing the loss items and metric values.
         """
+        self._reset_metrics()
 
         results = {}
-        self._reset_metrics()
         if isinstance(data_loader, dict):
             for dataloader_name, data_loader in data_loader.items():
                 self._reset_metrics()
@@ -1912,7 +1912,7 @@ class Trainer:
 
                 dataset_results = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
                 for key, value in dataset_results.items():
-                    results[f"{dataloader_name}_{key}"] = value
+                    results[f"{dataloader_name}/{key}"] = value
                 self._reset_metrics()
         elif isinstance(data_loader, torch.utils.data.DataLoader):
             logging_values = self._evaluate_dataloader(

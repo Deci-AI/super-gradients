@@ -34,7 +34,7 @@ def get_metrics_titles(metrics_collection: MetricCollection):
         if metric_name == "additional_items":
             continue
         elif hasattr(metric, "component_names"):
-            if not metric_name.find("/"):
+            if "/" not in metric_name:
                 titles.extend(metric.component_names)
             else:
                 prefix = metric_name.split("/")[0]

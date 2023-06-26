@@ -227,7 +227,7 @@ def fuzzy_str(s: str):
     :param s: str, string to apply the manipulation discussed above.
     :return: str, s after the manipulation discussed above.
     """
-    return re.sub(r"[^\w]", "", s).replace("_", "").lower()  # Make it work for / ...
+    return re.sub(r"[^\w]", "", s).replace("_", "").lower()
 
 
 def _get_fuzzy_attr_map(params):
