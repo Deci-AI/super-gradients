@@ -13,7 +13,7 @@ If you trained a model on a dataset that **does not** inherit from any of the Su
 ### 2. Using pretrained weights or training on a SuperGradient's dataset
 All necessary information is automatically saved during training within the model checkpoint, so you can run `model.predict()` **without** calling `model.set_dataset_processing_params()`.
 
-*For more details about `model.predict()`, please refer to the [related tutorial](DetectionPrediction.md).*
+*For more details about `model.predict()`, please refer to the [related tutorial](ModelPredictions.md).*
 
 
 ## Set-up parameters
@@ -83,4 +83,4 @@ IMAGES = [...]
 images_predictions = model.predict(IMAGES)
 ```
 
-*For more information about the `model.predict()`, please check out the [following tutorial](DetectionPrediction.md).*
+*For more information about the `model.predict()`, please check out the [following tutorial](ModelPredictions.md).*
