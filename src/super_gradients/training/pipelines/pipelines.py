@@ -437,4 +437,4 @@ class ClassificationPipeline(Pipeline):
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoDetectionPrediction:
-        raise NotImplementedError('This feature is not available for Classification task')
+        raise NotImplementedError("This feature is not available for Classification task")
