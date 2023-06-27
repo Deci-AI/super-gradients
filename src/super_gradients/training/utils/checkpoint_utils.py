@@ -285,7 +285,7 @@ def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
 
     if (
         ckpt_val.shape != model_val.shape
-        and ckpt_key == "module._backbone._modules_list.0.conv.conv.weight"
+        and (ckpt_key == "module._backbone._modules_list.0.conv.conv.weight" or ckpt_key == "_backbone._modules_list.0.conv.conv.weight")
         and model_key == "_backbone._modules_list.0.conv.weight"
     ):
         model_val.data[:, :, ::2, ::2] = ckpt_val.data[:, :3]
