@@ -1349,10 +1349,7 @@ class Trainer:
                 self.sg_logger.close()
 
     def _get_preprocessing_from_valid_loader(self) -> Optional[dict]:
-        dataset_name = next(iter(self.valid_loaders_dict.keys()))
-        if len(self.valid_loaders_dict) > 1:
-            logger.info(f'The transformations of the dataloader (dataset_name="{dataset_name}") will be used when using `model.predict(...)`.')
-        valid_loader = self.valid_loaders_dict[dataset_name]
+        valid_loader = self.valid_loader
 
         if isinstance(self.net.module, HasPredict) and isinstance(valid_loader.dataset, HasPreprocessingParams):
             try:
