@@ -71,6 +71,14 @@ class KeypointsCompose(KeypointTransform):
             preprocessing += t.get_equivalent_preprocessing()
         return preprocessing
 
+    def __repr__(self):
+        format_string = self.__class__.__name__ + "("
+        for t in self.transforms:
+            format_string += "\n"
+            format_string += "    {0}".format(repr(t))
+        format_string += "\n)"
+        return format_string
+
 
 @register_transform(Transforms.KeypointsImageToTensor)
 class KeypointsImageToTensor(KeypointTransform):
@@ -86,6 +94,9 @@ class KeypointsImageToTensor(KeypointTransform):
         return [
             {Processings.ImagePermute: {"permutation": (2, 0, 1)}},
         ]
+
+    def __repr__(self):
+        return self.__class__.__name__ + "()"
 
 
 @register_transform(Transforms.KeypointsImageStandardize)
@@ -107,6 +118,9 @@ class KeypointsImageStandardize(KeypointTransform):
     def get_equivalent_preprocessing(self) -> List[Dict]:
         return [{Processings.StandardizeImage: {"max_value": self.max_value}}]
 
+    def __repr__(self):
+        return self.__class__.__name__ + "()"
+
 
 @register_transform(Transforms.KeypointsImageNormalize)
 class KeypointsImageNormalize(KeypointTransform):
@@ -121,6 +135,9 @@ class KeypointsImageNormalize(KeypointTransform):
     def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         image = (image - self.mean) / self.std
         return image, mask, joints, areas, bboxes
+
+    def __repr__(self):
+        return self.__class__.__name__ + "(mean={0}, std={1})".format(self.mean, self.std)
 
     def get_equivalent_preprocessing(self) -> List:
         return [{Processings.NormalizeImage: {"mean": self.mean, "std": self.std}}]
@@ -142,6 +159,9 @@ class KeypointsRandomHorizontalFlip(KeypointTransform):
         """
         self.flip_index = flip_index
         self.prob = prob
+
+    def __repr__(self):
+        return self.__class__.__name__ + "(flip_index={0}, prob={1})".format(self.flip_index, self.prob)
 
     def __call__(self, image, mask, joints, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         if image.shape[:2] != mask.shape[:2]:
@@ -218,6 +238,9 @@ class KeypointsRandomVerticalFlip(KeypointTransform):
     def get_equivalent_preprocessing(self) -> List:
         raise RuntimeError("KeypointsRandomHorizontalFlip does not have equivalent preprocessing.")
 
+    def __repr__(self):
+        return self.__class__.__name__ + "(prob={0})".format(self.prob)
+
 
 @register_transform(Transforms.KeypointsLongestMaxSize)
 class KeypointsLongestMaxSize(KeypointTransform):
@@ -278,6 +301,11 @@ class KeypointsLongestMaxSize(KeypointTransform):
     def apply_to_bboxes(cls, bboxes, scale):
         return bboxes * scale
 
+    def __repr__(self):
+        return self.__class__.__name__ + "(max_height={0}, max_width={1}, interpolation={2}, prob={3})".format(
+            self.max_height, self.max_width, self.interpolation, self.prob
+        )
+
     def get_equivalent_preprocessing(self) -> List:
         return [{Processings.KeypointsLongestMaxSizeRescale: {"output_shape": (self.max_height, self.max_width)}}]
 
@@ -318,6 +346,11 @@ class KeypointsPadIfNeeded(KeypointTransform):
 
         return image, mask, joints, areas, bboxes
 
+    def __repr__(self):
+        return self.__class__.__name__ + "(min_height={0}, min_width={1}, image_pad_value={2}, mask_pad_value={3})".format(
+            self.min_height, self.min_width, self.image_pad_value, self.mask_pad_value
+        )
+
     def get_equivalent_preprocessing(self) -> List:
         return [{Processings.KeypointsBottomRightPadding: {"output_shape": (self.min_height, self.min_width), "pad_value": self.image_pad_value}}]
 
@@ -352,6 +385,14 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         self.image_pad_value = image_pad_value
         self.mask_pad_value = mask_pad_value
         self.prob = prob
+
+    def __repr__(self):
+        return (
+            self.__class__.__name__
+            + "(max_rotation={0}, min_scale={1}, max_scale={2}, max_translate={3}, image_pad_value={4}, mask_pad_value={5}, prob={6})".format(
+                self.max_rotation, self.min_scale, self.max_scale, self.max_translate, self.image_pad_value, self.mask_pad_value, self.prob
+            )
+        )
 
     def _get_affine_matrix(self, img, angle, scale, dx, dy):
         """
