@@ -1439,7 +1439,6 @@ class Trainer:
         self.net.load_state_dict(keep_state_dict)
 
         if not self.ddp_silent_mode:
-            # average_model_tb_titles = ["Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]]
             write_struct = ""
             for name, value in averaged_model_results_dict.items():
                 write_struct += "%s: %.3f  \n  " % (name, value)
