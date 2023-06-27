@@ -45,17 +45,14 @@ val_dataloader: coco2017_val
 
 
 load_checkpoint: False
-#checkpoint_params:
-#  pretrained_weights: coco
-
-resume: True
+resume: False
 training_hyperparams:
   resume: ${resume}
 
 architecture: yolox_s
 
-multi_gpu: Off
-#num_gpus: 8
+multi_gpu: DDP
+num_gpus: 8
 
 experiment_suffix: res${dataset_params.train_dataset_params.input_dim}
 experiment_name: ${architecture}_coco2017_${experiment_suffix}

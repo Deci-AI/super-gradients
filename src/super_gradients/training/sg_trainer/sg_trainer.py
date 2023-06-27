@@ -514,7 +514,6 @@ class Trainer:
         for metric_name in get_metrics_titles(self.train_metrics):
             self.train_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_train_metrics_is_better.get(metric_name))
 
-        # if isinstance(self.valid_loaders_dict, dict):
         for dataset_name in self.valid_loaders_dict.keys():
             for loss_name in self.loss_logging_items_names:
                 loss_full_name = f"{dataset_name}/{loss_name}" if dataset_name else loss_name
@@ -530,14 +529,6 @@ class Trainer:
                 )
         if self.metric_to_watch not in self.valid_monitored_values:
             raise ValueError(f"`metric_to_watch` must be one of {list(self.valid_monitored_values.keys())}")
-        # else:
-        #     for loss_name in self.loss_logging_items_names:
-        #         self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
-        #
-        #     for metric_name in get_metrics_titles(self.valid_metrics):
-        #         self.valid_monitored_values[metric_name] = MonitoredValue(
-        #             name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name)
-        #         )
 
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
@@ -1082,7 +1073,7 @@ class Trainer:
         self._set_valid_metrics(valid_metrics_list=self.training_params.valid_metrics_list)
 
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
-        self.metric_to_watch = "bird/" + self.training_params.metric_to_watch  # TODO: REMOVE THIS
+        self.metric_to_watch = self.training_params.metric_to_watch  # TODO: Check if works
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
 
         # Allowing loading instantiated loss or string
@@ -1118,7 +1109,7 @@ class Trainer:
                     logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
 
         self.run_validation_freq = self.training_params.run_validation_freq
-        # validation_results_tuple = (0, 0)
+
         inf_time = 0
         timer = core_utils.Timer(device_config.device)
 
@@ -1366,12 +1357,9 @@ class Trainer:
                 self.sg_logger.close()
 
     def _get_preprocessing_from_valid_loader(self) -> Optional[dict]:
-        if isinstance(self.valid_loaders_dict, dict):
-            dataset_name = next(iter(self.valid_loaders_dict.keys()))
-            logger.info(f"The first dataloader ({dataset_name}) provided will be used to calibrate the `model.predict(...)` function.")
-            valid_loader = self.valid_loaders_dict[dataset_name]
-        else:
-            valid_loader = self.valid_loaders_dict
+        dataset_name = next(iter(self.valid_loaders_dict.keys()))
+        logger.info(f"The first dataloader ({dataset_name}) provided will be used to calibrate the `model.predict(...)` function.")
+        valid_loader = self.valid_loaders_dict[dataset_name]
 
         if isinstance(self.net.module, HasPredict) and isinstance(valid_loader.dataset, HasPreprocessingParams):
             try:
@@ -1737,12 +1725,11 @@ class Trainer:
             "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
             "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader, "dataloader_params") else None,
         }
-        if isinstance(self.valid_loaders_dict, dict):
-            for dataset_mame, dataloader in self.valid_loaders_dict.items():
-                dataset_params[dataset_mame] = {
-                    "valid_dataset_params": dataloader.dataset.dataset_params if hasattr(dataloader.dataset, "dataset_params") else None,
-                    "valid_dataloader_params": dataloader.dataloader_params if hasattr(dataloader, "dataloader_params") else None,
-                }
+        for dataset_mame, dataloader in self.valid_loaders_dict.items():
+            dataset_params[dataset_mame] = {
+                "valid_dataset_params": dataloader.dataset.dataset_params if hasattr(dataloader.dataset, "dataset_params") else None,
+                "valid_dataloader_params": dataloader.dataloader_params if hasattr(dataloader, "dataloader_params") else None,
+            }
         else:
             dataset_params.update(
                 {
