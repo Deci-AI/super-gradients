@@ -30,6 +30,13 @@ class ReplaceHeadUnitTest(unittest.TestCase):
             (_, pred_scores), _ = model.forward(input)
             self.assertEqual(pred_scores.size(2), 100)
 
+    def test_dekr_replace_head(self):
+        input = torch.randn(1, 3, 640, 640).to(self.device)
+        model = models.get(Models.DEKR_W32_NO_DC, num_classes=20, pretrained_weights="coco_pose").to(self.device).eval()
+        heatmap, offsets = model.forward(input)
+        self.assertEqual(heatmap.size(1), 20 + 1)
+        self.assertEqual(offsets.size(1), 20 * 2)
+
     def tearDown(self) -> None:
         if os.path.exists("~/.cache/torch/hub/"):
             shutil.rmtree("~/.cache/torch/hub/")

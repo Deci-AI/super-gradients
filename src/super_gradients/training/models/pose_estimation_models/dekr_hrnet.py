@@ -328,7 +328,7 @@ class DEKRPoseEstimationModel(SgModule):
             setattr(self, "stage{}".format(i + 2), stage)
 
         # build head net
-        inp_channels = int(sum(self.stages_spec.NUM_CHANNELS[-1]))
+        self.head_inp_channels = int(sum(self.stages_spec.NUM_CHANNELS[-1]))
         self.config_heatmap = self.spec.HEAD_HEATMAP
         self.config_offset = self.spec.HEAD_OFFSET
         self.num_joints = arch_params.num_classes
@@ -337,8 +337,8 @@ class DEKRPoseEstimationModel(SgModule):
         self.offset_prekpt = self.config_offset["NUM_CHANNELS_PERKPT"]
 
         offset_channels = self.num_joints * self.offset_prekpt
-        self.transition_heatmap = self._make_transition_for_head(inp_channels, self.config_heatmap["NUM_CHANNELS"])
-        self.transition_offset = self._make_transition_for_head(inp_channels, offset_channels)
+        self.transition_heatmap = self._make_transition_for_head(self.head_inp_channels, self.config_heatmap["NUM_CHANNELS"])
+        self.transition_offset = self._make_transition_for_head(self.head_inp_channels, offset_channels)
         self.head_heatmap = self._make_heatmap_head(self.config_heatmap)
         self.offset_feature_layers, self.offset_final_layer = self._make_separete_regression_head(self.config_offset)
         self.heatmap_activation = nn.Sigmoid() if self.config_heatmap["HEATMAP_APPLY_SIGMOID"] else nn.Identity()
@@ -346,10 +346,12 @@ class DEKRPoseEstimationModel(SgModule):
 
     def replace_head(self, new_num_classes: int):
         self.num_joints = new_num_classes
-        self.num_offset = self.num_joints * 2
-        self.num_joints_with_center = self.num_joints + 1
+        self.num_offset = new_num_classes * 2
+        self.num_joints_with_center = new_num_classes + 1
 
+        offset_channels = self.num_joints * self.offset_prekpt
         self.head_heatmap = self._make_heatmap_head(self.config_heatmap)
+        self.transition_offset = self._make_transition_for_head(self.head_inp_channels, offset_channels)
         self.offset_feature_layers, self.offset_final_layer = self._make_separete_regression_head(self.config_offset)
 
     def _make_transition_for_head(self, inplanes: int, outplanes: int) -> nn.Module:
