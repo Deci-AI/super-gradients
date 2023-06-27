@@ -1773,7 +1773,7 @@ class Trainer:
 
         return test_results
 
-    def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> dict:
+    def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> Dict[str, float]:
         """
         Runs evaluation on self.valid_loader, with self.valid_metrics.
 
