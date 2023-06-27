@@ -1433,17 +1433,17 @@ class Trainer:
 
         self.net.load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
-        averaged_model_results_tuple = self._validate_epoch(epoch=self.max_epochs)
+        averaged_model_results_dict = self._validate_epoch(epoch=self.max_epochs)
 
         # Reverting the current model
         self.net.load_state_dict(keep_state_dict)
 
         if not self.ddp_silent_mode:
-            average_model_tb_titles = ["Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]]
+            # average_model_tb_titles = ["Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]]
             write_struct = ""
-            for ind, title in enumerate(average_model_tb_titles):
-                write_struct += "%s: %.3f  \n  " % (title, averaged_model_results_tuple[ind])
-                self.sg_logger.add_scalar(title, averaged_model_results_tuple[ind], global_step=self.max_epochs)
+            for name, value in averaged_model_results_dict.items():
+                write_struct += "%s: %.3f  \n  " % (name, value)
+                self.sg_logger.add_scalar(name, value, global_step=self.max_epochs)
 
             self.sg_logger.add_text("Averaged_Model_Performance", write_struct, self.max_epochs)
             if cleanup_snapshots_pkl_file:
