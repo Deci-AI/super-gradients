@@ -44,7 +44,7 @@ class PhaseContext:
         lr_warmup_epochs=None,
         sg_logger=None,
         train_loader=None,
-        valid_loader=None,
+        valid_loaders_dict=None,
         training_params=None,
         ddp_silent_mode=None,
         checkpoint_params=None,
@@ -75,7 +75,7 @@ class PhaseContext:
         self.lr_warmup_epochs = lr_warmup_epochs
         self.sg_logger = sg_logger
         self.train_loader = train_loader
-        self.valid_loader = valid_loader
+        self.valid_loaders_dict = valid_loaders_dict
         self.training_params = training_params
         self.ddp_silent_mode = ddp_silent_mode
         self.checkpoint_params = checkpoint_params
@@ -166,7 +166,7 @@ class Callback:
         - criterion
         - sg_logger
         - train_loader
-        - valid_loader
+        - valid_loaders_dict
         - training_params
         - checkpoint_params
         - architecture

@@ -20,7 +20,7 @@ save_ckpt_epoch_list: [100, 200, 250]
 loss:
   ppyoloe_loss:
     use_static_assigner: False
-    num_classes: ${arch_params.num_classes}
+    num_classes: 3
     reg_max: 16
 
 optimizer: AdamW
@@ -39,7 +39,7 @@ valid_metrics_list:
   - DetectionMetrics:
       score_thres: 0.1
       top_k_predictions: 300
-      num_cls: ${arch_params.num_classes}
+      num_cls: 3
       normalize_targets: True
       post_prediction_callback:
         _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback

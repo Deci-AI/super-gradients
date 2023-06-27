@@ -45,10 +45,10 @@ val_dataloader: coco2017_val
 
 
 load_checkpoint: False
-checkpoint_params:
-  pretrained_weights: coco
+#checkpoint_params:
+#  pretrained_weights: coco
 
-resume: False
+resume: True
 training_hyperparams:
   resume: ${resume}
 

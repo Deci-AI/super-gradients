@@ -66,7 +66,6 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
-from super_gradients.training.utils.utils import fuzzy_idx_in_list
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
@@ -150,7 +149,7 @@ class Trainer:
 
         # SET THE EMPTY PROPERTIES
         self.net, self.architecture, self.arch_params, self.dataset_interface = None, None, None, None
-        self.train_loader, self.valid_loader = None, None
+        self.train_loader, self.valid_loaders_dict = None, None
         self.ema = None
         self.ema_model = None
         self.sg_logger = None
@@ -263,7 +262,7 @@ class Trainer:
             dataset_params=cfg.dataset_params.val_dataset_params,
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
-
+        val_dataloader = {"bird": val_dataloader, "technically_train": train_dataloader}
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
         res = trainer.train(
@@ -376,15 +375,6 @@ class Trainer:
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
         cls.evaluate_from_recipe(cfg)
 
-    def _set_dataset_params(self):
-        self.dataset_params = {
-            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
-            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader, "dataloader_params") else None,
-            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(self.valid_loader.dataset, "dataset_params") else None,
-            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader, "dataloader_params") else None,
-        }
-        self.dataset_params = HpmStruct(**self.dataset_params)
-
     def _net_to_device(self):
         """
         Manipulates self.net according to device.multi_gpu
@@ -437,7 +427,7 @@ class Trainer:
                 lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                 sg_logger=self.sg_logger,
                 train_loader=self.train_loader,
-                valid_loader=self.valid_loader,
+                valid_loaders_dict=self.valid_loaders_dict,
                 context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
                 ddp_silent_mode=self.ddp_silent_mode,
             )
@@ -516,25 +506,7 @@ class Trainer:
         return loss, loss_logging_items
 
     def _init_monitored_items(self):
-        if isinstance(self.dataloader, dict):
-            if "/" not in self.metric_to_watch or self.metric_to_watch.split("/")[0] not in self.dataloader.keys():
-                raise ValueError(
-                    f"`metric_to_watch` must start follow the pattern `<dataset_name>/<metric_name>` "
-                    f"with `dataset_name` in ({list(self.dataloader.keys())}).\n"
-                    f"Got `metric_to_watch={self.metric_to_watch}`"
-                )
-            metric_to_watch_name = "/".join(self.metric_to_watch.split("/")[1:])
-        else:
-            metric_to_watch_name = self.metric_to_watch
 
-        try:
-            self.metric_idx_in_results_tuple = fuzzy_idx_in_list(metric_to_watch_name, self.loss_logging_items_names + get_metrics_titles(self.valid_metrics))
-        except KeyError:
-            raise ValueError(
-                f"`metric_to_watch` Should refer to a metric/loss that you provided; "
-                f"{self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)}\n"
-                f"Got `{metric_to_watch_name}`"
-            )
         # Instantiate the values to monitor (loss/metric)
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
@@ -542,24 +514,30 @@ class Trainer:
         for metric_name in get_metrics_titles(self.train_metrics):
             self.train_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_train_metrics_is_better.get(metric_name))
 
-        if isinstance(self.dataloader, dict):
-            for dataset_name in self.dataloader.keys():
-                for loss_name in self.loss_logging_items_names:
-                    self.valid_monitored_values[f"{dataset_name}/{loss_name}"] = MonitoredValue(name=f"{dataset_name}/{loss_name}", greater_is_better=False)
-                for metric_name in get_metrics_titles(self.valid_metrics):
-                    self.valid_monitored_values[f"{dataset_name}/{metric_name}"] = MonitoredValue(
-                        name=f"{dataset_name}/{metric_name}", greater_is_better=self.greater_valid_metrics_is_better.get(metric_name)
-                    )
-            if self.metric_to_watch not in self.valid_monitored_values:
-                raise ValueError(f"`metric_to_watch` must be one of {list(self.valid_monitored_values.keys())}")
-        else:
+        # if isinstance(self.valid_loaders_dict, dict):
+        for dataset_name in self.valid_loaders_dict.keys():
             for loss_name in self.loss_logging_items_names:
-                self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
-
-            for metric_name in get_metrics_titles(self.valid_metrics):
-                self.valid_monitored_values[metric_name] = MonitoredValue(
-                    name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name)
+                loss_full_name = f"{dataset_name}/{loss_name}" if dataset_name else loss_name
+                self.valid_monitored_values[loss_full_name] = MonitoredValue(
+                    name=f"{dataset_name}/{loss_name}",
+                    greater_is_better=False,
                 )
+            for metric_name in get_metrics_titles(self.valid_metrics):
+                metric_full_name = f"{dataset_name}/{metric_name}" if dataset_name else metric_name
+                self.valid_monitored_values[metric_full_name] = MonitoredValue(
+                    name=metric_full_name,
+                    greater_is_better=self.greater_valid_metrics_is_better.get(metric_name),
+                )
+        if self.metric_to_watch not in self.valid_monitored_values:
+            raise ValueError(f"`metric_to_watch` must be one of {list(self.valid_monitored_values.keys())}")
+        # else:
+        #     for loss_name in self.loss_logging_items_names:
+        #         self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
+        #
+        #     for metric_name in get_metrics_titles(self.valid_metrics):
+        #         self.valid_monitored_values[metric_name] = MonitoredValue(
+        #             name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name)
+        #         )
 
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
@@ -570,7 +548,6 @@ class Trainer:
                 ckpt_dir=self.checkpoints_dir_path,
                 greater_is_better=self.greater_metric_to_watch_is_better,
                 metric_to_watch=self.metric_to_watch,
-                metric_idx=self.metric_idx_in_results_tuple,
                 load_checkpoint=self.load_checkpoint,
             )
 
@@ -630,11 +607,7 @@ class Trainer:
 
         # COMPUTE THE CURRENT metric
         # IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES
-        metric = (
-            validation_results_dict[self.metric_to_watch]
-            if isinstance(self.metric_idx_in_results_tuple, int)
-            else sum(validation_results_dict[idx] for idx in self.metric_to_watch)
-        )
+        metric = validation_results_dict[self.metric_to_watch]
 
         # BUILD THE state_dict
         state = {"net": self.net.state_dict(), "acc": metric, "epoch": epoch}
@@ -647,8 +620,9 @@ class Trainer:
         if self.ema:
             state["ema_net"] = self.ema_model.ema.state_dict()
 
-        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
-            state["processing_params"] = self.valid_loader.dataset.get_dataset_preprocessing_params()
+        processing_params = self._get_preprocessing_from_valid_loader()
+        if processing_params is not None:
+            state["processing_params"] = processing_params
 
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
@@ -673,9 +647,7 @@ class Trainer:
         if self.training_params.average_best_models:
             net_for_averaging = self.ema_model.ema if self.ema else self.net
 
-            # We do this instead of simply tuple(validation_results_dict.keys()) because we want to make sure the order is respected...
-            validation_results_tuple = tuple(validation_results_dict[metric_name] for metric_name in get_metrics_titles(self.valid_metrics))
-            state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
+            state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_dict=validation_results_dict)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
     def _prep_net_for_train(self) -> None:
@@ -1062,13 +1034,13 @@ class Trainer:
             training_params = dict()
 
         self.train_loader = train_loader if train_loader is not None else self.train_loader
-        self.valid_loader = valid_loader if valid_loader is not None else self.valid_loader
-        self.valid_loader = {"bird": self.valid_loader, "cars": self.valid_loader}
+        valid_loader = valid_loader if valid_loader is not None else self.valid_loaders_dict
+        self.valid_loaders_dict = valid_loader if isinstance(valid_loader, dict) else {"": valid_loader}
 
         if self.train_loader is None:
             raise ValueError("No `train_loader` found. Please provide a value for `train_loader`")
 
-        if self.valid_loader is None:
+        if self.valid_loaders_dict is None:
             raise ValueError("No `valid_loader` found. Please provide a value for `valid_loader`")
 
         if hasattr(self.train_loader, "batch_sampler") and self.train_loader.batch_sampler is not None:
@@ -1078,7 +1050,6 @@ class Trainer:
 
         if len(self.train_loader.dataset) % batch_size != 0 and not self.train_loader.drop_last:
             logger.warning("Train dataset size % batch_size != 0 and drop_last=False, this might result in smaller " "last batch.")
-        self._set_dataset_params()
 
         if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             # Note: the dataloader uses sampler of the batch_sampler when it is not None.
@@ -1201,7 +1172,7 @@ class Trainer:
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
                 dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes, title="Train-set", anchors=self.net.module.arch_params.anchors)
-                dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes, title="val-set")
+                dataset_statistics_logger.analyze(self.valid_loaders_dict, all_classes=self.classes, title="val-set")
 
         sg_trainer_utils.log_uncaught_exceptions(logger)
 
@@ -1240,10 +1211,11 @@ class Trainer:
                 raise ValueError("max_train_batches must be positive.")
 
         if self.training_params.max_valid_batches is not None:
-            if self.training_params.max_valid_batches > len(self.valid_loader):
-                logger.warning("max_valid_batches is greater than len(self.valid_loader) and will have no effect.")
-            elif self.training_params.max_valid_batches <= 0:
-                raise ValueError("max_valid_batches must be positive.")
+            for dataset_name, valid_loader in self.valid_loaders_dict.items():
+                if self.training_params.max_valid_batches > len(valid_loader):
+                    logger.warning(f"max_valid_batches is greater than len({dataset_name}) and will have no effect.")
+                elif self.training_params.max_valid_batches <= 0:
+                    raise ValueError("max_valid_batches must be positive.")
 
         self.max_train_batches = self.training_params.max_train_batches
         self.max_valid_batches = self.training_params.max_valid_batches
@@ -1260,7 +1232,7 @@ class Trainer:
             lr_warmup_epochs=self.training_params.lr_warmup_epochs,
             sg_logger=self.sg_logger,
             train_loader=self.train_loader,
-            valid_loader=self.valid_loader,
+            valid_loaders_dict=self.valid_loaders_dict,
             training_params=self.training_params,
             ddp_silent_mode=self.ddp_silent_mode,
             checkpoint_params=self.checkpoint_params,
@@ -1285,7 +1257,10 @@ class Trainer:
             train_dataloader_len=len(self.train_loader),
         )
 
-        self._set_net_preprocessing_from_valid_loader()
+        processing_params = self._get_preprocessing_from_valid_loader()
+        if processing_params is not None:
+            self.net.module.set_dataset_processing_params(**processing_params)
+
         try:
             # HEADERS OF THE TRAINING PROGRESS
             if not silent_mode:
@@ -1390,10 +1365,17 @@ class Trainer:
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
 
-    def _set_net_preprocessing_from_valid_loader(self):
-        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
+    def _get_preprocessing_from_valid_loader(self) -> Optional[dict]:
+        if isinstance(self.valid_loaders_dict, dict):
+            dataset_name = next(iter(self.valid_loaders_dict.keys()))
+            logger.info(f"The first dataloader ({dataset_name}) provided will be used to calibrate the `model.predict(...)` function.")
+            valid_loader = self.valid_loaders_dict[dataset_name]
+        else:
+            valid_loader = self.valid_loaders_dict
+
+        if isinstance(self.net.module, HasPredict) and isinstance(valid_loader.dataset, HasPreprocessingParams):
             try:
-                self.net.module.set_dataset_processing_params(**self.valid_loader.dataset.get_dataset_preprocessing_params())
+                return valid_loader.dataset.get_dataset_preprocessing_params()
             except Exception as e:
                 logger.warning(
                     f"Could not set preprocessing pipeline from the validation dataset:\n {e}.\n Before calling"
@@ -1750,11 +1732,31 @@ class Trainer:
         if self.training_params.log_installed_packages:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items["installed_packages"] = pkg_list
+
+        dataset_params = {
+            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
+            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader, "dataloader_params") else None,
+        }
+        if isinstance(self.valid_loaders_dict, dict):
+            for dataset_mame, dataloader in self.valid_loaders_dict.items():
+                dataset_params[dataset_mame] = {
+                    "valid_dataset_params": dataloader.dataset.dataset_params if hasattr(dataloader.dataset, "dataset_params") else None,
+                    "valid_dataloader_params": dataloader.dataloader_params if hasattr(dataloader, "dataloader_params") else None,
+                }
+        else:
+            dataset_params.update(
+                {
+                    "valid_dataset_params": self.valid_loaders_dict.dataset.dataset_params
+                    if hasattr(self.valid_loaders_dict.dataset, "dataset_params")
+                    else None,
+                    "valid_dataloader_params": self.valid_loaders_dict.dataloader_params if hasattr(self.valid_loaders_dict, "dataloader_params") else None,
+                }
+            )
         hyper_param_config = {
             "arch_params": self.arch_params.__dict__,
             "checkpoint_params": self.checkpoint_params.__dict__,
             "training_hyperparams": self.training_params.__dict__,
-            "dataset_params": self.dataset_params.__dict__,
+            "dataset_params": dataset_params,
             "additional_log_items": additional_log_items,
         }
         return hyper_param_config
@@ -1869,12 +1871,12 @@ class Trainer:
         self.valid_metrics.to(device_config.device)
 
         return self.evaluate(
-            data_loader=self.valid_loader, metrics=self.valid_metrics, evaluation_type=EvaluationType.VALIDATION, epoch=epoch, silent_mode=silent_mode
+            data_loader=self.valid_loaders_dict, metrics=self.valid_metrics, evaluation_type=EvaluationType.VALIDATION, epoch=epoch, silent_mode=silent_mode
         )
 
     def evaluate(
         self,
-        data_loader: Union[torch.utils.data.DataLoader, Dict[torch.utils.data.DataLoader]],
+        data_loader: Union[torch.utils.data.DataLoader, Dict[str, torch.utils.data.DataLoader]],
         metrics: MetricCollection,
         evaluation_type: EvaluationType,
         epoch: int = None,
@@ -1895,26 +1897,14 @@ class Trainer:
 
         :return: results tuple (tuple) containing the loss items and metric values.
         """
+        if not isinstance(data_loader, dict):
+            data_loader = {"", data_loader}
+
         self._reset_metrics()
 
         results = {}
-        if isinstance(data_loader, dict):
-            for dataloader_name, data_loader in data_loader.items():
-                self._reset_metrics()
-                logging_values = self._evaluate_dataloader(
-                    data_loader=data_loader,
-                    metrics=metrics,
-                    evaluation_type=evaluation_type,
-                    epoch=epoch,
-                    silent_mode=silent_mode,
-                    metrics_progress_verbose=metrics_progress_verbose,
-                )
-
-                dataset_results = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
-                for key, value in dataset_results.items():
-                    results[f"{dataloader_name}/{key}"] = value
-                self._reset_metrics()
-        elif isinstance(data_loader, torch.utils.data.DataLoader):
+        for dataloader_name, data_loader in data_loader.items():
+            self._reset_metrics()
             logging_values = self._evaluate_dataloader(
                 data_loader=data_loader,
                 metrics=metrics,
@@ -1923,10 +1913,12 @@ class Trainer:
                 silent_mode=silent_mode,
                 metrics_progress_verbose=metrics_progress_verbose,
             )
-            results = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+
+            dataset_results = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+            for key, value in dataset_results.items():
+                metric_name = f"{dataloader_name}/{key}" if dataloader_name else key
+                results[metric_name] = value
             self._reset_metrics()
-        else:
-            raise ValueError(f"data_loader should be of type dict or torch.utils.data.DataLoader, but got {type(data_loader)}")
 
         # TODO: SUPPORT PRINTING AP PER CLASS- SINCE THE METRICS ARE NOT HARD CODED ANYMORE (as done in
         #  calc_batch_prediction_accuracy_per_class in metric_utils.py), THIS IS ONLY RELEVANT WHEN CHOOSING
@@ -1974,7 +1966,7 @@ class Trainer:
             lr_warmup_epochs=lr_warmup_epochs,
             sg_logger=self.sg_logger,
             train_loader=self.train_loader,
-            valid_loader=self.valid_loader,
+            valid_loaders_dict=self.valid_loaders_dict,
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
         with tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_data_loader:
