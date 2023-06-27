@@ -46,7 +46,7 @@ class DropPath(nn.Module):
         if self.drop_prob == 0.0 or not self.training:
             return x
 
-        return drop_path(x, self.drop_prob, self.training, self.scale_by_keep)
+        return drop_path(x, self.drop_prob, self.scale_by_keep)
 
     def extra_repr(self):
         return f"drop_prob={round(self.drop_prob,3):0.3f}"
