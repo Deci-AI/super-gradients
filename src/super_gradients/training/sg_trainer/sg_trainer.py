@@ -533,7 +533,9 @@ class Trainer:
         ]
 
         # make sure the metric_to_watch is an exact match
-        metric_to_watch = fuzzy_idx_in_list(self.metric_to_watch, self.loss_logging_items_names + get_metrics_titles(self.valid_metrics))
+        metric_titles = self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
+        metric_to_watch_idx = fuzzy_idx_in_list(self.metric_to_watch, metric_titles)
+        metric_to_watch = metric_titles[metric_to_watch_idx]
         if metric_to_watch != self.metric_to_watch:
             logger.warning("No exact match found for `metric_to_watch={self.metric_to_watch}`. `metric_to_watch={metric_to_watch} will be used instead.`")
             self.metric_to_watch = metric_to_watch
