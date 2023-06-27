@@ -2,7 +2,7 @@ from functools import partial
 from typing import Type, List, Iterable, Union
 
 import torch
-from super_gradients.modules.dropout_layers import DropPath
+from super_gradients.training.utils.regularization_utils import DropPath
 from torch import nn, Tensor
 
 from super_gradients.common.registry import register_detection_module
@@ -47,14 +47,15 @@ class YoloNASBottleneck(nn.Module):
         self.cv2 = block_type(output_channels, output_channels, activation_type=activation_type)
         self.add = shortcut and input_channels == output_channels
         self.shortcut = Residual() if self.add else None
-        self.path_drop = DropPath(drop_path_rate) if drop_path_rate > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path_rate) if drop_path_rate > 0.0 else nn.Identity()
         if use_alpha:
             self.alpha = torch.nn.Parameter(torch.tensor([1.0]), requires_grad=True)
         else:
             self.alpha = 1.0
 
     def forward(self, x):
-        return self.path_drop(self.alpha * self.shortcut(x)) + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
+        y = self.drop_path(self.cv2(self.cv1(x)))
+        return self.alpha * self.shortcut(x) + y if self.add else y
 
 
 class SequentialWithIntermediates(nn.Sequential):
