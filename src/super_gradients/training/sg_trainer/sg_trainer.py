@@ -377,15 +377,6 @@ class Trainer:
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
         cls.evaluate_from_recipe(cfg)
 
-    def _set_dataset_params(self):
-        self.dataset_params = {
-            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
-            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader, "dataloader_params") else None,
-            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(self.valid_loader.dataset, "dataset_params") else None,
-            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader, "dataloader_params") else None,
-        }
-        self.dataset_params = HpmStruct(**self.dataset_params)
-
     def _net_to_device(self):
         """
         Manipulates self.net according to device.multi_gpu
@@ -1042,7 +1033,6 @@ class Trainer:
 
         if len(self.train_loader.dataset) % batch_size != 0 and not self.train_loader.drop_last:
             logger.warning("Train dataset size % batch_size != 0 and drop_last=False, this might result in smaller " "last batch.")
-        self._set_dataset_params()
 
         if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             # Note: the dataloader uses sampler of the batch_sampler when it is not None.
@@ -1677,11 +1667,18 @@ class Trainer:
         if self.training_params.log_installed_packages:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items["installed_packages"] = pkg_list
+
+        dataset_params = {
+            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
+            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader, "dataloader_params") else None,
+            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(self.valid_loader.dataset, "dataset_params") else None,
+            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader, "dataloader_params") else None,
+        }
         hyper_param_config = {
             "arch_params": self.arch_params.__dict__,
             "checkpoint_params": self.checkpoint_params.__dict__,
             "training_hyperparams": self.training_params.__dict__,
-            "dataset_params": self.dataset_params.__dict__,
+            "dataset_params": dataset_params,
             "additional_log_items": additional_log_items,
         }
         return hyper_param_config
