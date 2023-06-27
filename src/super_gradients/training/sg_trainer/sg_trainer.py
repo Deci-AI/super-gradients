@@ -262,7 +262,8 @@ class Trainer:
             dataset_params=cfg.dataset_params.val_dataset_params,
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
-        val_dataloader = {"bird": val_dataloader, "technically_train": train_dataloader}
+        # val_dataloader = {"": val_dataloader, "bird": val_dataloader, "technically_train": train_dataloader}
+        # cfg.training_hyperparams.metric_to_watch = "bird/" + cfg.training_hyperparams.metric_to_watch
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
         res = trainer.train(
@@ -528,7 +529,7 @@ class Trainer:
                     greater_is_better=self.greater_valid_metrics_is_better.get(metric_name),
                 )
         if self.metric_to_watch not in self.valid_monitored_values:
-            raise ValueError(f"`metric_to_watch` must be one of {list(self.valid_monitored_values.keys())}")
+            raise ValueError(f"`metric_to_watch` must be one of {list(self.valid_monitored_values.keys())}.\n Got `metric_to_watch={self.metric_to_watch}`")
 
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
@@ -676,7 +677,7 @@ class Trainer:
         model: nn.Module,
         training_params: dict = None,
         train_loader: DataLoader = None,
-        valid_loader: DataLoader = None,
+        valid_loader: Union[DataLoader, Dict[str, DataLoader]] = None,
         additional_configs_to_log: Dict = None,
     ):  # noqa: C901
         """
@@ -1358,7 +1359,8 @@ class Trainer:
 
     def _get_preprocessing_from_valid_loader(self) -> Optional[dict]:
         dataset_name = next(iter(self.valid_loaders_dict.keys()))
-        logger.info(f"The first dataloader ({dataset_name}) provided will be used to calibrate the `model.predict(...)` function.")
+        if len(self.valid_loaders_dict) > 1:
+            logger.info(f'The transformations of the dataloader (dataset_name="{dataset_name}") will be used when using `model.predict(...)`.')
         valid_loader = self.valid_loaders_dict[dataset_name]
 
         if isinstance(self.net.module, HasPredict) and isinstance(valid_loader.dataset, HasPreprocessingParams):
@@ -1730,15 +1732,6 @@ class Trainer:
                 "valid_dataset_params": dataloader.dataset.dataset_params if hasattr(dataloader.dataset, "dataset_params") else None,
                 "valid_dataloader_params": dataloader.dataloader_params if hasattr(dataloader, "dataloader_params") else None,
             }
-        else:
-            dataset_params.update(
-                {
-                    "valid_dataset_params": self.valid_loaders_dict.dataset.dataset_params
-                    if hasattr(self.valid_loaders_dict.dataset, "dataset_params")
-                    else None,
-                    "valid_dataloader_params": self.valid_loaders_dict.dataloader_params if hasattr(self.valid_loaders_dict, "dataloader_params") else None,
-                }
-            )
         hyper_param_config = {
             "arch_params": self.arch_params.__dict__,
             "checkpoint_params": self.checkpoint_params.__dict__,
@@ -1899,6 +1892,7 @@ class Trainer:
                 epoch=epoch,
                 silent_mode=silent_mode,
                 metrics_progress_verbose=metrics_progress_verbose,
+                tqdm_prefix=dataloader_name,
             )
 
             dataset_results = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
@@ -1937,6 +1931,7 @@ class Trainer:
         epoch: int = None,
         silent_mode: bool = False,
         metrics_progress_verbose: bool = False,
+        tqdm_prefix: Optional[str] = None,
     ):
 
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
@@ -1960,7 +1955,8 @@ class Trainer:
 
             if not silent_mode:
                 # PRINT TITLES
-                pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
+                tqdm_prefix = f"{tqdm_prefix}: " if tqdm_prefix else ""
+                pbar_start_msg = f"{tqdm_prefix}Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
                 progress_bar_data_loader.set_description(pbar_start_msg)
 
             with torch.no_grad():
