@@ -1,7 +1,8 @@
 from functools import partial
-from typing import Type, List
+from typing import Type, List, Iterable, Union
 
 import torch
+from super_gradients.modules.dropout_layers import DropPath
 from torch import nn, Tensor
 
 from super_gradients.common.registry import register_detection_module
@@ -20,7 +21,14 @@ class YoloNASBottleneck(nn.Module):
     """
 
     def __init__(
-        self, input_channels: int, output_channels: int, block_type: Type[nn.Module], activation_type: Type[nn.Module], shortcut: bool, use_alpha: bool
+        self,
+        input_channels: int,
+        output_channels: int,
+        block_type: Type[nn.Module],
+        activation_type: Type[nn.Module],
+        shortcut: bool,
+        use_alpha: bool,
+        drop_path_rate: float = 0.0,
     ):
         """
         Initialize the YoloNASBottleneck block
@@ -31,6 +39,7 @@ class YoloNASBottleneck(nn.Module):
         :param activation_type: Activation type for the convolutional block
         :param shortcut: If True, adds the residual connection from input to output.
         :param use_alpha: If True, adds the learnable alpha parameter (multiplier for the residual connection).
+        :param drop_path_rate: Drop path rate for the residual path of the block
         """
         super().__init__()
 
@@ -38,13 +47,14 @@ class YoloNASBottleneck(nn.Module):
         self.cv2 = block_type(output_channels, output_channels, activation_type=activation_type)
         self.add = shortcut and input_channels == output_channels
         self.shortcut = Residual() if self.add else None
+        self.path_drop = DropPath(drop_path_rate) if drop_path_rate > 0.0 else nn.Identity()
         if use_alpha:
             self.alpha = torch.nn.Parameter(torch.tensor([1.0]), requires_grad=True)
         else:
             self.alpha = 1.0
 
     def forward(self, x):
-        return self.alpha * self.shortcut(x) + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
+        return self.path_drop(self.alpha * self.shortcut(x)) + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
 
 
 class SequentialWithIntermediates(nn.Sequential):
@@ -83,6 +93,8 @@ class YoloNASCSPLayer(nn.Module):
         expansion: float = 0.5,
         hidden_channels: int = None,
         concat_intermediates: bool = False,
+        drop_path_rates: Union[Iterable[float], None] = None,
+        dropout_rate: float = 0.0,
     ):
         """
 
@@ -96,21 +108,39 @@ class YoloNASCSPLayer(nn.Module):
         :param expansion: If hidden_channels is None, hidden_channels is set to in_channels * expansion.
         :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks.
         :param concat_intermediates:
+        :param drop_path_rates: List of drop path probabilities for each bottleneck block.
+                                Must have the length equal to the num_bottlenecks or None.
+        :param dropout_rate: Dropout probability before the last convolution in this layer.
         """
+        if drop_path_rates is None:
+            drop_path_rates = [0.0] * num_bottlenecks
+        else:
+            drop_path_rates = tuple(drop_path_rates)
+        if len(drop_path_rates) != num_bottlenecks:
+            raise ValueError(
+                f"Argument drop_path_rates ({drop_path_rates}, len {len(drop_path_rates)} "
+                f"must have the length equal to the num_bottlenecks ({num_bottlenecks})."
+            )
+
         super(YoloNASCSPLayer, self).__init__()
         if hidden_channels is None:
             hidden_channels = int(out_channels * expansion)
         self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
         self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=activation_type)
         self.conv3 = Conv(hidden_channels * (2 + concat_intermediates * num_bottlenecks), out_channels, 1, stride=1, activation_type=activation_type)
-        module_list = [YoloNASBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha) for _ in range(num_bottlenecks)]
+        module_list = [
+            YoloNASBottleneck(hidden_channels, hidden_channels, block_type, activation_type, shortcut, use_alpha, drop_path_rate=drop_path_rates[i])
+            for i in range(num_bottlenecks)
+        ]
         self.bottlenecks = SequentialWithIntermediates(concat_intermediates, *module_list)
+        self.dropout = nn.Dropout2d(dropout_rate, inplace=True) if dropout_rate > 0.0 else nn.Identity()
 
     def forward(self, x: Tensor) -> Tensor:
         x_1 = self.conv1(x)
         x_1 = self.bottlenecks(x_1)
         x_2 = self.conv2(x)
         x = torch.cat((*x_1, x_2), dim=1)
+        x = self.dropout(x)
         return self.conv3(x)
 
 
@@ -153,6 +183,8 @@ class YoloNASStage(BaseDetectionModule):
         activation_type: Type[nn.Module],
         hidden_channels: int = None,
         concat_intermediates: bool = False,
+        drop_path_rates: Union[Iterable[float], None] = None,
+        dropout_rate: float = 0.0,
     ):
         """
         Initialize the YoloNASStage module
@@ -162,6 +194,9 @@ class YoloNASStage(BaseDetectionModule):
         :param activation_type: Activation type for all blocks
         :param hidden_channels: If not None, sets the number of hidden channels used inside the bottleneck blocks.
         :param concat_intermediates: If True, concatenates the intermediate values from the YoloNASCSPLayer.
+        :param drop_path_rates: List of drop path probabilities for each bottleneck block.
+                                Must have the length equal to the num_blocks or None.
+        :param dropout_rate: Dropout probability before the last convolution in this layer.
         """
         super().__init__(in_channels)
         self._out_channels = out_channels
@@ -175,6 +210,8 @@ class YoloNASStage(BaseDetectionModule):
             True,
             hidden_channels=hidden_channels,
             concat_intermediates=concat_intermediates,
+            drop_path_rates=drop_path_rates,
+            dropout_rate=dropout_rate,
         )
 
     @property
@@ -203,6 +240,8 @@ class YoloNASUpStage(BaseDetectionModule):
         hidden_channels: int = None,
         concat_intermediates: bool = False,
         reduce_channels: bool = False,
+        drop_path_rates: Union[Iterable[float], None] = None,
+        dropout_rate: float = 0.0,
     ):
         """
         Initialize the YoloNASUpStage module
@@ -249,6 +288,8 @@ class YoloNASUpStage(BaseDetectionModule):
             activation_type,
             hidden_channels=hidden_channels,
             concat_intermediates=concat_intermediates,
+            drop_path_rates=drop_path_rates,
+            dropout_rate=dropout_rate,
         )
 
         self._out_channels = [out_channels, out_channels]
@@ -286,6 +327,8 @@ class YoloNASDownStage(BaseDetectionModule):
         activation_type: Type[nn.Module],
         hidden_channels: int = None,
         concat_intermediates: bool = False,
+        drop_path_rates: Union[Iterable[float], None] = None,
+        dropout_rate: float = 0.0,
     ):
         """
         Initializes a YoloNASDownStage.
@@ -316,6 +359,8 @@ class YoloNASDownStage(BaseDetectionModule):
             activation_type=activation_type,
             hidden_channels=hidden_channels,
             concat_intermediates=concat_intermediates,
+            drop_path_rates=drop_path_rates,
+            dropout_rate=dropout_rate,
         )
 
         self._out_channels = out_channels
