@@ -27,7 +27,7 @@ from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallbac
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, load_checkpoint_to_model
 from super_gradients.training.utils.distributed_training_utils import setup_device
 from super_gradients.training.utils.ema import KDModelEMA
-from super_gradients.training.utils.utils import get_real_model
+from super_gradients.training.utils.utils import unwrap_model
 
 logger = get_logger(__name__)
 
@@ -212,7 +212,7 @@ class KDTrainer(Trainer):
          the entire KD network following the same logic as in Trainer.
         """
         teacher_checkpoint_path = get_param(self.checkpoint_params, "teacher_checkpoint_path")
-        teacher_net = self.net.module.teacher
+        teacher_net = unwrap_model(self.net).teacher
 
         if teacher_checkpoint_path is not None:
 
@@ -277,7 +277,7 @@ class KDTrainer(Trainer):
         else:
             best_net = self.net.student
 
-        state["net"] = get_real_model(best_net).state_dict()
+        state["net"] = unwrap_model(best_net).state_dict()
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
     def train(

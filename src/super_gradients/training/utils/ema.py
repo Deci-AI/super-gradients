@@ -3,6 +3,7 @@ from copy import deepcopy
 from typing import Union
 
 import torch
+from super_gradients.training.utils.utils import unwrap_model
 from torch import nn
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -33,7 +34,7 @@ class ModelEMA:
     GPU assignment and distributed training wrappers.
     """
 
-    def __init__(self, model, decay: float, decay_function: IDecayFunction):
+    def __init__(self, model: nn.Module, decay: float, decay_function: IDecayFunction):
         """
         Init the EMA
         :param model: Union[SgModule, nn.Module], the training model to construct the EMA model by
@@ -45,6 +46,7 @@ class ModelEMA:
                      its final value. beta=15 is ~40% of the training process.
         """
         # Create EMA
+        model = unwrap_model(model)
         self.ema = deepcopy(model)
         self.ema.eval()
         self.decay = decay
@@ -56,14 +58,14 @@ class ModelEMA:
         get_include_attributes and get_exclude_attributes functions. for a nn.Module which is not a SgModule
         all non-private (not starting with '_') attributes will be updated (and only them).
         """
-        if isinstance(model.module, SgModule):
-            self.include_attributes = model.module.get_include_attributes()
-            self.exclude_attributes = model.module.get_exclude_attributes()
+        if isinstance(model, SgModule):
+            self.include_attributes = model.get_include_attributes()
+            self.exclude_attributes = model.get_exclude_attributes()
         else:
             warnings.warn("Warning: EMA should be used with SgModule instance. All attributes of the model will be " "included in EMA")
             self.include_attributes = []
             self.exclude_attributes = []
-        for p in self.ema.module.parameters():
+        for p in self.ema.parameters():
             p.requires_grad_(False)
 
     @classmethod
@@ -130,10 +132,11 @@ class ModelEMA:
         :param total_steps: Total training steps
         """
         # Update EMA parameters
+        model = unwrap_model(model)
         with torch.no_grad():
             decay = self.decay_function(self.decay, step, total_steps)
 
-            for ema_v, model_v in zip(self.ema.module.state_dict().values(), model.state_dict().values()):
+            for ema_v, model_v in zip(self.ema.state_dict().values(), model.state_dict().values()):
                 if ema_v.dtype.is_floating_point:
                     ema_v.copy_(ema_v * decay + (1.0 - decay) * model_v.detach())
 
@@ -146,7 +149,7 @@ class ModelEMA:
         attributes will be updated (and only them).
         :param model: the source model
         """
-        copy_attr(self.ema.module, model.module, self.include_attributes, self.exclude_attributes)
+        copy_attr(self.ema, unwrap_model(model), self.include_attributes, self.exclude_attributes)
 
 
 class KDModelEMA(ModelEMA):
