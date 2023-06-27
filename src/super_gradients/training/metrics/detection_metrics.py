@@ -50,6 +50,9 @@ class DetectionMetrics(Metric):
 
         if isinstance(iou_thres, IouThreshold):
             self.iou_thresholds = iou_thres.to_tensor()
+        if isinstance(iou_thres, tuple):
+            low, high = iou_thres
+            self.iou_thresholds = IouThreshold.from_bounds(low, high)
         else:
             self.iou_thresholds = torch.tensor([iou_thres])
 
