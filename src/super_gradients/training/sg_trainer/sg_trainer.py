@@ -1074,7 +1074,7 @@ class Trainer:
         self._set_valid_metrics(valid_metrics_list=self.training_params.valid_metrics_list)
 
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
-        self.metric_to_watch = self.training_params.metric_to_watch  # TODO: Check if works
+        self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
 
         # Allowing loading instantiated loss or string
@@ -1314,8 +1314,6 @@ class Trainer:
 
                     # Phase.VALIDATION_EPOCH_END
                     # RUN PHASE CALLBACKS
-                    # valid_metrics_dict = get_metrics_dict(validation_results_tuple, self.valid_metrics, self.loss_logging_items_names)
-
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
@@ -1391,43 +1389,6 @@ class Trainer:
                 self.greater_train_metrics_is_better[metric_name] = metric.greater_is_better
             else:
                 self.greater_train_metrics_is_better[metric_name] = None
-
-    # def _set_valid_metrics(self, valid_metrics_list: Union[list, dict]):
-    # THIS IS USEFUL IIF WE CREATE MULTIPLE METRICS!
-    #     if isinstance(valid_metrics_list, list):
-    #         valid_metrics_list = ListFactory(MetricsFactory()).get(valid_metrics_list)
-    #         self.valid_metrics = MetricCollection(valid_metrics_list)
-    #     elif isinstance(valid_metrics_list, dict):
-    #         if not isinstance(self.valid_loader, dict):
-    #             raise RuntimeError(
-    #                 "`valid_metrics_list` can be a mapping of 'dataset_name -> lis of metrics', "
-    #                 "only when `self.valid_loader` is itself a mapping of 'dataset_name -> dataloader'"
-    #             )
-    #         for dataset_name in valid_metrics_list.keys():
-    #             if dataset_name not in self.valid_loader.keys():
-    #                 raise ValueError(f"`valid_metrics_list` includes key '{dataset_name}' which does not match to any dataset defined in `self.valid_loader`")
-    #
-    #         for dataset_name, dataset_metrics_list in valid_metrics_list.items():
-    #             if not isinstance(dataset_metrics_list, list):
-    #                 raise RuntimeError(
-    #                     "`valid_metrics_list` should either be a list of metrics, or a dictionary mapping validation dataset names to a list of metrics."
-    #                 )
-    #             metrics_list = ListFactory(MetricsFactory()).get(dataset_metrics_list)
-    #             dataset_mapping = {f"{dataset_name}/{metric.__class__.__name__}": metric for metric in metrics_list}
-    #             self.valid_metrics = MetricCollection(dataset_mapping)  # Question: Do we prefer flat with "/", or working with dict of metrics instead ?
-    #     else:
-    #         raise RuntimeError(
-    #             f"`valid_metrics_list` should either be a list of metrics, or a dictionary mapping validation dataset names to a list of metrics. "
-    #             f"Got {type(valid_metrics_list)}"
-    #         )
-    #
-    #     for metric_name, metric in self.valid_metrics.items():
-    #         if hasattr(metric, "greater_component_is_better"):
-    #             self.greater_valid_metrics_is_better.update(metric.greater_component_is_better)
-    #         elif hasattr(metric, "greater_is_better"):
-    #             self.greater_valid_metrics_is_better[metric_name] = metric.greater_is_better
-    #         else:
-    #             self.greater_valid_metrics_is_better[metric_name] = None
 
     @resolve_param("valid_metrics_list", ListFactory(MetricsFactory()))
     def _set_valid_metrics(self, valid_metrics_list):
