@@ -66,6 +66,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
+from super_gradients.training.utils.utils import fuzzy_idx_in_list
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
@@ -530,6 +531,12 @@ class Trainer:
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
         ]
+
+        # make sure the metric_to_watch is an exact match
+        metric_to_watch = fuzzy_idx_in_list(self.metric_to_watch, self.loss_logging_items_names + get_metrics_titles(self.valid_metrics))
+        if metric_to_watch != self.metric_to_watch:
+            logger.warning("No exact match found for `metric_to_watch={self.metric_to_watch}`. `metric_to_watch={metric_to_watch} will be used instead.`")
+            self.metric_to_watch = metric_to_watch
 
         if self.training_params.average_best_models:
             self.model_weight_averaging = ModelWeightAveraging(
