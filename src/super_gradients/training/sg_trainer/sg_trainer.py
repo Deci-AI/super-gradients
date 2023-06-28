@@ -20,6 +20,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torchmetrics import MetricCollection, Metric
 from tqdm import tqdm
 
+from super_gradients import is_distributed
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
 from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
@@ -48,7 +49,7 @@ from super_gradients.training.metrics.metric_utils import (
 from super_gradients.training.models import SgModule, get_model_name
 from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import sg_trainer_utils, get_param
+from super_gradients.training.utils import sg_trainer_utils, get_param, torch_version_is_greater_or_equal
 from super_gradients.training.utils.distributed_training_utils import (
     MultiGPUModeAutocastWrapper,
     reduce_results_tuple_for_ddp,
@@ -391,7 +392,7 @@ class Trainer:
             if sync_bn:
                 if not self.ddp_silent_mode:
                     logger.info("DDP - Using Sync Batch Norm... Training time will be affected accordingly")
-                self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net).to(device_config.device)
+                self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net)
 
             local_rank = int(device_config.device.split(":")[1])
             self.net = torch.nn.parallel.DistributedDataParallel(self.net, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
@@ -660,6 +661,20 @@ class Trainer:
         self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
         self.resume_from_remote_sg_logger = core_utils.get_param(self.training_params, "resume_from_remote_sg_logger", False)
         self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None or self.resume_from_remote_sg_logger
+
+        if self.training_params.torch_compile:
+            if torch_version_is_greater_or_equal(2, 0):
+                logger.info("Using torch.compile feature. Compiling model. This may take a few minutes")
+                self.net = torch.compile(self.net, **self.training_params.torch_compile_options)
+                logger.info("Model compilation complete. Continuing training")
+                if is_distributed():
+                    torch.distributed.barrier()
+            else:
+                logger.warning(
+                    "Your recipe has requested use of torch.compile. "
+                    f"However torch.compile is not supported in this version of PyTorch ({torch.__version__}). "
+                    "A Pytorch 2.0 or greater version is required. Ignoring torch_compile flag"
+                )
 
     def _init_arch_params(self) -> None:
         default_arch_params = HpmStruct()
@@ -1056,6 +1071,7 @@ class Trainer:
         self.training_params.override(**training_params)
 
         self.net = model
+
         self._prep_net_for_train()
         if not self.ddp_silent_mode:
             self._initialize_sg_logger_objects(additional_configs_to_log)
@@ -1084,6 +1100,20 @@ class Trainer:
             self.criterion = self.training_params.loss
 
         self.criterion.to(device_config.device)
+
+        if self.training_params.torch_compile_loss:
+            if torch_version_is_greater_or_equal(2, 0):
+                logger.info("Using torch.compile feature. Compiling loss. This may take a few minutes")
+                self.criterion = torch.compile(self.criterion, **self.training_params.torch_compile_options)
+                logger.info("Loss compilation complete. Continuing training")
+                if is_distributed():
+                    torch.distributed.barrier()
+            else:
+                logger.warning(
+                    "Your recipe has requested use of torch.compile. "
+                    f"However torch.compile is not supported in this version of PyTorch ({torch.__version__}). "
+                    "A Pytorch 2.0 or greater version is required. Ignoring torch_compile flag"
+                )
 
         self.max_epochs = self.training_params.max_epochs
 

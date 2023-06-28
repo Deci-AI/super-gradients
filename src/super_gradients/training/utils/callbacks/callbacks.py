@@ -14,6 +14,7 @@ import torch
 from deprecated import deprecated
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback
 from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
@@ -21,7 +22,6 @@ from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, 
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
-from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
 from super_gradients.training.utils.utils import unwrap_model
 

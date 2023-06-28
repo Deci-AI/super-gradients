@@ -125,7 +125,7 @@ class PPYOLOEHead(nn.Module):
 
         self.in_channels = tuple(in_channels)
         self.num_classes = num_classes
-        self.fpn_strides = fpn_strides
+        self.fpn_strides = tuple(fpn_strides)
         self.grid_cell_scale = grid_cell_scale
         self.grid_cell_offset = grid_cell_offset
         self.reg_max = reg_max
