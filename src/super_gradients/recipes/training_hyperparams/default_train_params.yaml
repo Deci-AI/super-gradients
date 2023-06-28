@@ -113,4 +113,18 @@ sg_logger_params:
   save_logs_remote: False  # upload log files to s3
   monitor_system: True  # Monitor and write to tensorboard the system statistics, such as CPU usage, GPU, ...
 
+torch_compile: False        # Enable or disable use of torch.compile to optimize the model (Requires Pytorch 2.0)
+torch_compile_loss: False   # Enable or disable use of torch.compile to optimize the loss  (Requires Pytorch 2.0)
+
+# torch.compile options from https://pytorch.org/docs/stable/generated/torch.compile.html
+torch_compile_options:
+  mode: reduce-overhead # default / reduce-overhead / max-autotune
+  fullgraph: False      # Whether it is ok to break model into several subgraphs
+  dynamic: False        # Use dynamic shape tracing
+  backend: inductor     # backend to be used
+  options:              # A dictionary of options to pass to the backend.
+  disable: False        # Turn torch.compile() into a no-op for testing
+
+
+
 _convert_: all

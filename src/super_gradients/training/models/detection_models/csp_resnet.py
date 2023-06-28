@@ -206,7 +206,7 @@ class CSPResNetBackbone(nn.Module):
 
         self._out_channels = channels[1:]
         self._out_strides = [4 * 2**i for i in range(n)]
-        self.return_idx = return_idx
+        self.return_idx = tuple(return_idx)
 
         if pretrained_weights:
             if isinstance(pretrained_weights, (str, Path)) and os.path.isfile(str(pretrained_weights)):
