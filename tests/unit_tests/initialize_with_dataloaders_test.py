@@ -48,7 +48,7 @@ class InitializeWithDataloadersTest(unittest.TestCase):
             train_loader=self.testcase_trainloader,
             valid_loader=self.testcase_validloader,
         )
-        self.assertTrue(0 < trainer.best_metric.item() < 1)
+        self.assertTrue(0 < trainer.best_metric < 1)
 
 
 if __name__ == "__main__":
