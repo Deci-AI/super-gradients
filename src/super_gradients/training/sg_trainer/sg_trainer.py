@@ -24,7 +24,6 @@ from super_gradients.common.environment.checkpoints_dir_utils import get_checkpo
 from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 
-from super_gradients.training.utils.utils import fuzzy_idx_in_list
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
@@ -67,6 +66,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
+from super_gradients.training.utils.utils import fuzzy_idx_in_list
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
@@ -263,8 +263,7 @@ class Trainer:
             dataset_params=cfg.dataset_params.val_dataset_params,
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
-        # val_dataloader = {"": val_dataloader, "bird": val_dataloader, "technically_train": train_dataloader}
-        # cfg.training_hyperparams.metric_to_watch = "bird/" + cfg.training_hyperparams.metric_to_watch
+
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
         res = trainer.train(
@@ -1931,7 +1930,6 @@ class Trainer:
                 progress_bar_data_loader.set_description(pbar_start_msg)
 
             with torch.no_grad():
-
                 for batch_idx, batch_items in enumerate(progress_bar_data_loader):
                     batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
                     inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
