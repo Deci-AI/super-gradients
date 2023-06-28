@@ -1,3 +1,5 @@
+from typing import Optional
+
 import wandb
 import torch
 import numpy as np
@@ -17,18 +19,24 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
         nms_threshold: float = 0.6,
         nms_top_k: int = 1000,
         max_predictions: int = 300,
+        max_predictions_plotted: Optional[int] = None,
         multi_label_per_box: bool = True,
     ) -> None:
         """A callback for logging object detection predictions to Weights & Biases during training.
 
-        :param class_names:         A list of class names.
-        :param score_threshold:     Predictions confidence threshold. Predictions with score lower than score_threshold will not participate in Top-K & NMS
-        :param iou:                 IoU threshold for NMS step.
-        :param nms_top_k:           Number of predictions participating in NMS step
-        :param max_predictions:     maximum number of boxes to return after NMS step
+        :param class_names:             A list of class names.
+        :param score_threshold:         Predictions confidence threshold. Predictions with score lower than score_threshold will not participate in Top-K & NMS
+        :param iou:                     IoU threshold for NMS step.
+        :param nms_top_k:               Number of predictions participating in NMS step
+        :param max_predictions:         Maximum number of boxes to return after NMS step
+        :param max_predictions_plotted: Maximum number of predictions to be plotted per epoch. This is set to `None` by default which means thatthe predictions
+                                        corresponding to all images from `context.inputs` is logged, otherwise only `max_predictions_plotted` number of images is logged.
+                                        Since `WandBDetectionValidationPredictionLoggerCallback` accumulates the generated images in the RAM, it is advisable that the
+                                        value of this parameter be explicitly specified for larger datasets in order to avoid out-of-memory errors.
         """
         super().__init__()
         self.class_names = class_names
+        self.max_predictions_plotted = max_predictions_plotted
         self.post_prediction_callback = PPYoloEPostPredictionCallback(
             score_threshold=score_threshold,
             nms_threshold=nms_threshold,
@@ -45,7 +53,12 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
         self.wandb_images = []
         mean_prediction_dict = {class_name: 0.0 for class_name in self.class_names}
         post_nms_predictions = self.post_prediction_callback(context.preds, device=context.device)
-        for prediction, image in zip(post_nms_predictions, context.inputs):
+        if self.max_predictions_plotted is not None:
+            post_nms_predictions = post_nms_predictions[: self.max_predictions_plotted]
+            input_images = context.inputs[: self.max_predictions_plotted]
+        else:
+            input_images = context.inputs
+        for prediction, image in zip(post_nms_predictions, input_images):
             prediction = prediction if prediction is not None else torch.zeros((0, 6), dtype=torch.float32)
             prediction = prediction.detach().cpu().numpy()
             postprocessed_image = image.detach().cpu().numpy().transpose(1, 2, 0).astype(np.int32)
