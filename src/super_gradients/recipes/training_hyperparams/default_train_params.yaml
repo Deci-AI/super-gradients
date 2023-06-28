@@ -89,6 +89,7 @@ seed: 42 # seed for reproducibility
 
 phase_callbacks: [] # list of callbacks to be applied at specific phases.
 
+
 log_installed_packages: True # when set, the list of all installed packages (and their versions) will be written to the tensorboard
 
 
