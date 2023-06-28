@@ -69,7 +69,7 @@ detection_compile_tests_compile_loss:
 	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s batch_size=16 experiment_name=coco2017_yolo_nas_s_compile_loss_enabled_ddp   training_hyperparams.torch_compile=True training_hyperparams.torch_compile_loss=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 detection_compile_tests_compile_loss_1gpu:
-	CUDA_VISIBLE_DEVICES=0 python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s batch_size=12 experiment_name=coco2017_yolo_nas_s_compile_loss_enabled_1gpu   training_hyperparams.torch_compile=True training_hyperparams.torch_compile_loss=True  $(SINGLE_GPU) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+	CUDA_VISIBLE_DEVICES=0 python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s batch_size=8 experiment_name=coco2017_yolo_nas_s_compile_loss_enabled_1gpu   training_hyperparams.torch_compile=True training_hyperparams.torch_compile_loss=True  $(SINGLE_GPU) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
 
 detection_compile_tests:
 	# coco2017_yolo_nas_s
