@@ -1855,7 +1855,7 @@ class Trainer:
         results = {}
         for dataloader_name, data_loader in data_loader.items():
             self._reset_metrics()
-            logging_values = self._evaluate_dataloader(
+            dataset_results = self._evaluate_dataloader(
                 data_loader=data_loader,
                 metrics=metrics,
                 evaluation_type=evaluation_type,
@@ -1865,7 +1865,6 @@ class Trainer:
                 tqdm_prefix=dataloader_name,
             )
 
-            dataset_results = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
             for key, value in dataset_results.items():
                 metric_name = f"{dataloader_name}/{key}" if dataloader_name else key
                 results[metric_name] = value
