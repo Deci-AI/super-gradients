@@ -1850,13 +1850,11 @@ class Trainer:
 
         :return: results tuple (tuple) containing the loss items and metric values.
         """
-        if not isinstance(data_loader, dict):
-            data_loader = {"", data_loader}
-
+        data_loaders_dict = data_loader if isinstance(data_loader, dict) else {"": data_loader}
         self._reset_metrics()
 
         results = {}
-        for dataloader_name, data_loader in data_loader.items():
+        for dataloader_name, data_loader in data_loaders_dict.items():
             self._reset_metrics()
             dataset_results = self._evaluate_dataloader(
                 data_loader=data_loader,
