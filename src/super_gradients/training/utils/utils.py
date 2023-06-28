@@ -249,11 +249,11 @@ def fuzzy_keys(params: Mapping) -> List[str]:
 
 def fuzzy_str(s: str):
     """
-    Returns s removing leading and trailing white space, lower-casing and drops
+    Returns s removing leading and trailing white space, lower-casing and drops non word chars (except for '/')
     :param s: str, string to apply the manipulation discussed above.
     :return: str, s after the manipulation discussed above.
     """
-    return re.sub(r"[^\w]", "", s).replace("_", "").lower()
+    return re.sub(r"[^\w|\/]", "", s).replace("_", "").lower()
 
 
 def _get_fuzzy_attr_map(params):
