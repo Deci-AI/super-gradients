@@ -31,7 +31,7 @@ train_dataset_params:
         prob: 0.5                       # probability to apply per-sample mixup
         flip_prob: 0.5                  # probability to apply horizontal flip
     - DetectionPaddedRescale:
-        input_dim: ${dataset_params.train_dataset_params.input_dim}
+        input_dim: [640, 640]
         pad_value: 114
     - DetectionStandardize:
         max_value: 255.
