@@ -38,7 +38,7 @@ train_dataset_params:
         output_format: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples: 1000
+  max_num_samples:
   with_crowd: False
 
 train_dataloader_params:
@@ -52,7 +52,6 @@ train_dataloader_params:
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
   collate_fn: # collate function for trainset
     _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
-
 
 val_dataset_params:
   data_dir: /data/coco # root path to coco data
@@ -69,7 +68,7 @@ val_dataset_params:
       output_format: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples: 1000
+  max_num_samples:
   with_crowd: True
 
 val_dataloader_params:
