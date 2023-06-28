@@ -2462,7 +2462,7 @@ class Trainer:
 
     @property
     def valid_loader(self) -> DataLoader:
-        # Meant for backward compatibility and simplicity of use.
+        # Meant for backward compatibility
         if len(self.valid_loaders_dict) == 1:
             logger.warning("`valid_loader` is deprecated in favor of `valid_loaders_dict`.")
             return next(iter(self.valid_loaders_dict.values()))
