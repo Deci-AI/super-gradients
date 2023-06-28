@@ -660,7 +660,7 @@ class Trainer:
         if self.training_params.torch_compile:
             if torch_version_is_greater_or_equal(2, 0):
                 logger.info("Using torch.compile feature. Compiling model. This may take a few minutes")
-                self.net = torch.compile(self.net, mode=self.training_params.torch_compile_mode)
+                self.net = torch.compile(self.net, **self.training_params.torch_compile_options)
                 logger.info("Model compilation complete. Continuing training")
                 if is_distributed():
                     torch.distributed.barrier()
@@ -1099,7 +1099,7 @@ class Trainer:
         if self.training_params.torch_compile_loss:
             if torch_version_is_greater_or_equal(2, 0):
                 logger.info("Using torch.compile feature. Compiling loss. This may take a few minutes")
-                self.criterion = torch.compile(self.criterion, mode=self.training_params.torch_compile_mode)
+                self.criterion = torch.compile(self.criterion, **self.training_params.torch_compile_options)
                 logger.info("Loss compilation complete. Continuing training")
                 if is_distributed():
                     torch.distributed.barrier()
