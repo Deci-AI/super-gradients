@@ -35,18 +35,18 @@ training_hyperparams:
   ema: False
   mixed_precision: True
 
-  sg_logger: wandb_sg_logger
-  sg_logger_params:
-    api_server: https://wandb.research.deci.ai
-    entity: super-gradients
-    launch_tensorboard: false
-    monitor_system: true
-    project_name: YoloNasExperiments
-    save_checkpoints_remote: true
-    save_logs_remote: true
-    save_tensorboard_remote: true
-    tb_files_user_prompt: false
-    tensorboard_port: null
+#  sg_logger: wandb_sg_logger
+#  sg_logger_params:
+#    api_server: https://wandb.research.deci.ai
+#    entity: super-gradients
+#    launch_tensorboard: false
+#    monitor_system: true
+#    project_name: YoloNasExperiments
+#    save_checkpoints_remote: true
+#    save_logs_remote: true
+#    save_tensorboard_remote: true
+#    tb_files_user_prompt: false
+#    tensorboard_port: null
 
 architecture: yolo_nas_l
 

@@ -33,6 +33,7 @@ train_dataset_params:
     - DetectionPaddedRescale:
         input_dim: [640, 640]
         pad_value: 114
+        swap: [0, 1, 2]
     - DetectionStandardize:
         max_value: 255.
     - DetectionTargetsFormatTransform:
