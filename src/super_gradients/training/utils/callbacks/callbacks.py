@@ -856,7 +856,9 @@ class TimerCallback(Callback):
 
     def _infer_global_step(self, context: PhaseContext, is_train_loader: bool):
         train_loader_length = len(context.train_loader) if context.train_loader is not None else 0
-        valid_loader_length = len(context.valid_loader) if context.valid_loader is not None else 0
+        valid_loader_length = 0
+        for valid_loader in context.valid_loaders_dict.values():
+            valid_loader_length += len(valid_loader) if valid_loader is not None else 0
         total_steps_in_epoch = train_loader_length + valid_loader_length
         total_steps_in_done = context.epoch * total_steps_in_epoch
         if is_train_loader:
