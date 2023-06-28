@@ -1,7 +1,5 @@
-import torch.optim as optim
 import torch.nn as nn
-from torch.nn.modules.batchnorm import _BatchNorm
-from torch.nn.modules.conv import _ConvNd
+import torch.optim as optim
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.factories.optimizers_type_factory import OptimizersTypeFactory
 from super_gradients.training.params import (
@@ -12,6 +10,9 @@ from super_gradients.training.params import (
 )
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.optimizers.rmsprop_tf import RMSpropTF
+from super_gradients.training.utils.utils import is_model_wrapped
+from torch.nn.modules.batchnorm import _BatchNorm
+from torch.nn.modules.conv import _ConvNd
 
 logger = get_logger(__name__)
 
@@ -86,6 +87,8 @@ def build_optimizer(net: nn.Module, lr: float, training_params) -> optim.Optimiz
         :param lr: initial learning rate
         :param training_params: training_parameters
     """
+    if is_model_wrapped(net):
+        raise ValueError("Argument net for build_optimizer must be an unwrapped model. " "Please use build_optimizer(unwrap_model(net), ...).")
     if isinstance(training_params.optimizer, str):
         optimizer_cls = OptimizersTypeFactory().get(training_params.optimizer)
     else:
@@ -96,14 +99,14 @@ def build_optimizer(net: nn.Module, lr: float, training_params) -> optim.Optimiz
 
     weight_decay = get_param(training_params.optimizer_params, "weight_decay", 0.0)
     # OPTIMIZER PARAM GROUPS ARE SET USING DEFAULT OR MODEL SPECIFIC INIT
-    if hasattr(net.module, "initialize_param_groups"):
+    if hasattr(net, "initialize_param_groups"):
         # INITIALIZE_PARAM_GROUPS MUST RETURN A LIST OF DICTS WITH 'named_params' AND OPTIMIZER's ATTRIBUTES PER GROUP
-        net_named_params = net.module.initialize_param_groups(lr, training_params)
+        net_named_params = net.initialize_param_groups(lr, training_params)
     else:
         net_named_params = [{"named_params": net.named_parameters()}]
 
     if training_params.zero_weight_decay_on_bias_and_bn:
-        optimizer_training_params = separate_zero_wd_params_groups_for_optimizer(net.module, net_named_params, weight_decay)
+        optimizer_training_params = separate_zero_wd_params_groups_for_optimizer(net, net_named_params, weight_decay)
 
     else:
         # Overwrite groups to include params instead of named params
