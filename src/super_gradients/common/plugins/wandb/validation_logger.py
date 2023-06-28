@@ -30,9 +30,10 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
         :param nms_top_k:               Number of predictions participating in NMS step
         :param max_predictions:         Maximum number of boxes to return after NMS step
         :param max_predictions_plotted: Maximum number of predictions to be plotted per epoch. This is set to `None` by default which means thatthe predictions
-                                        corresponding to all images from `context.inputs` is logged, otherwise only `max_predictions_plotted` number of images is logged.
-                                        Since `WandBDetectionValidationPredictionLoggerCallback` accumulates the generated images in the RAM, it is advisable that the
-                                        value of this parameter be explicitly specified for larger datasets in order to avoid out-of-memory errors.
+                                        corresponding to all images from `context.inputs` is logged, otherwise only `max_predictions_plotted` number of images
+                                        is logged. Since `WandBDetectionValidationPredictionLoggerCallback` accumulates the generated images in the RAM, it is
+                                        advisable that the value of this parameter be explicitly specified for larger datasets in order to avoid out-of-memory
+                                        errors.
         """
         super().__init__()
         self.class_names = class_names
