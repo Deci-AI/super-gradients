@@ -70,6 +70,8 @@ DEFAULT_TRAINING_PARAMS = {
     # Note that for this to work, the experiment must be ran with sg_logger_params.save_checkpoints_remote=True. For
     # WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
     "torch_compile": False,
+    "torch_compile_loss": False,
+    "torch_compile_mode": "reduce-overhead",
 }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}

@@ -65,6 +65,9 @@ detection_compile_tests_1gpu:
 	CUDA_VISIBLE_DEVICES=5 python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_l batch_size=8 experiment_name=coco2017_yolo_nas_l_compile_disabled_1gpu training_hyperparams.torch_compile=False $(SINGLE_GPU)    $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS) &
 
 
+detection_compile_tests_compile_loss:
+	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s batch_size=16 experiment_name=coco2017_yolo_nas_s_compile_enabled_ddp   training_hyperparams.torch_compile=True training_hyperparams.torch_compile_loss=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)
+
 detection_compile_tests:
 	# coco2017_yolo_nas_s
 #	python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_s batch_size=16 experiment_name=coco2017_yolo_nas_s_compile_enabled_ddp   training_hyperparams.torch_compile=True  $(MULTIPLE_GPUS) $(DEFAULT_TRAINING_PARAMETERS) $(LOGGING_PARAMETERS)

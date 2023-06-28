@@ -1096,6 +1096,20 @@ class Trainer:
 
         self.criterion.to(device_config.device)
 
+        if self.training_params.torch_compile_loss:
+            if torch_version_is_greater_or_equal(2, 0):
+                logger.info("Using torch.compile feature. Compiling loss. This may take a few minutes")
+                self.criterion = torch.compile(self.criterion, mode=self.training_params.torch_compile_mode)
+                logger.info("Loss compilation complete. Continuing training")
+                if is_distributed():
+                    torch.distributed.barrier()
+            else:
+                logger.warning(
+                    "Your recipe has requested use of torch.compile. "
+                    "However torch.compile is not supported in this version of PyTorch. "
+                    "Ignoring torch_compile flag"
+                )
+
         self.max_epochs = self.training_params.max_epochs
 
         self.ema = self.training_params.ema
