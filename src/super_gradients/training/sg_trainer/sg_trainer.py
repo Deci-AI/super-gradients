@@ -3,7 +3,7 @@ import inspect
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Union, Tuple, Mapping, Dict, Any, List
+from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
 
 import hydra
 import numpy as np
@@ -324,12 +324,14 @@ class Trainer:
             name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
         )
 
-        if cfg.checkpoint_params.pretrained_weights is None and cfg.checkpoint_params.checkpoint_path is None:
+        if cfg.checkpoint_params.checkpoint_path is None:
             logger.info(
                 "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
             )
-            checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-            cfg.checkpoint_params.checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
+            checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+            checkpoint_path = os.path.join(checkpoints_dir, cfg.training_hyperparams.ckpt_name)
+            if os.path.exists(checkpoint_path):
+                cfg.checkpoint_params.checkpoint_path = checkpoint_path
 
         logger.info(f"Evaluating checkpoint: {cfg.checkpoint_params.checkpoint_path}")
 
@@ -374,15 +376,6 @@ class Trainer:
         cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
         cls.evaluate_from_recipe(cfg)
-
-    def _set_dataset_params(self):
-        self.dataset_params = {
-            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
-            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader, "dataloader_params") else None,
-            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(self.valid_loader.dataset, "dataset_params") else None,
-            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader, "dataloader_params") else None,
-        }
-        self.dataset_params = HpmStruct(**self.dataset_params)
 
     def _net_to_device(self):
         """
@@ -436,6 +429,7 @@ class Trainer:
                 lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                 sg_logger=self.sg_logger,
                 train_loader=self.train_loader,
+                valid_loader=self.valid_loader,
                 context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
                 ddp_silent_mode=self.ddp_silent_mode,
             )
@@ -612,8 +606,9 @@ class Trainer:
         if self.ema:
             state["ema_net"] = self.ema_model.ema.state_dict()
 
-        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
-            state["processing_params"] = self.valid_loader.dataset.get_dataset_preprocessing_params()
+        processing_params = self._get_preprocessing_from_valid_loader()
+        if processing_params is not None:
+            state["processing_params"] = processing_params
 
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
@@ -1039,7 +1034,6 @@ class Trainer:
 
         if len(self.train_loader.dataset) % batch_size != 0 and not self.train_loader.drop_last:
             logger.warning("Train dataset size % batch_size != 0 and drop_last=False, this might result in smaller " "last batch.")
-        self._set_dataset_params()
 
         if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             # Note: the dataloader uses sampler of the batch_sampler when it is not None.
@@ -1246,7 +1240,10 @@ class Trainer:
             train_dataloader_len=len(self.train_loader),
         )
 
-        self._set_net_preprocessing_from_valid_loader()
+        processing_params = self._get_preprocessing_from_valid_loader()
+        if processing_params is not None:
+            self.net.module.set_dataset_processing_params(**processing_params)
+
         try:
             # HEADERS OF THE TRAINING PROGRESS
             if not silent_mode:
@@ -1351,10 +1348,12 @@ class Trainer:
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
 
-    def _set_net_preprocessing_from_valid_loader(self):
-        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
+    def _get_preprocessing_from_valid_loader(self) -> Optional[dict]:
+        valid_loader = self.valid_loader
+
+        if isinstance(self.net.module, HasPredict) and isinstance(valid_loader.dataset, HasPreprocessingParams):
             try:
-                self.net.module.set_dataset_processing_params(**self.valid_loader.dataset.get_dataset_preprocessing_params())
+                return valid_loader.dataset.get_dataset_preprocessing_params()
             except Exception as e:
                 logger.warning(
                     f"Could not set preprocessing pipeline from the validation dataset:\n {e}.\n Before calling"
@@ -1674,11 +1673,18 @@ class Trainer:
         if self.training_params.log_installed_packages:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items["installed_packages"] = pkg_list
+
+        dataset_params = {
+            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
+            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader, "dataloader_params") else None,
+            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(self.valid_loader.dataset, "dataset_params") else None,
+            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader, "dataloader_params") else None,
+        }
         hyper_param_config = {
             "arch_params": self.arch_params.__dict__,
             "checkpoint_params": self.checkpoint_params.__dict__,
             "training_hyperparams": self.training_params.__dict__,
-            "dataset_params": self.dataset_params.__dict__,
+            "dataset_params": dataset_params,
             "additional_log_items": additional_log_items,
         }
         return hyper_param_config
@@ -1833,6 +1839,8 @@ class Trainer:
             device=device_config.device,
             lr_warmup_epochs=lr_warmup_epochs,
             sg_logger=self.sg_logger,
+            train_loader=self.train_loader,
+            valid_loader=self.valid_loader,
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
 
@@ -2072,7 +2080,9 @@ class Trainer:
         quantization_params = get_param(cfg, "quantization_params")
 
         if quantization_params is None:
-            raise logger.warning("Your recipe does not include quantization_params. Using default quantization params.")
+            logger.warning("Your recipe does not include quantization_params. Using default quantization params.")
+            quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
+            cfg.quantization_params = quantization_params
 
         if get_param(cfg.checkpoint_params, "checkpoint_path") is None and get_param(cfg.checkpoint_params, "pretrained_weights") is None:
             raise ValueError("Starting checkpoint / pretrained weights are a must for QAT finetuning.")

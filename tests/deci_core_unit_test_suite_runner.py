@@ -29,6 +29,7 @@ from tests.unit_tests.export_onnx_test import TestModelsONNXExport
 from tests.unit_tests.load_checkpoint_test import LoadCheckpointTest
 from tests.unit_tests.local_ckpt_head_replacement_test import LocalCkptHeadReplacementTest
 from tests.unit_tests.max_batches_loop_break_test import MaxBatchesLoopBreakTest
+from tests.unit_tests.multiple_ignore_indices_segmentation_metrics_test import TestSegmentationMetricsMultipleIgnored
 from tests.unit_tests.phase_delegates_test import ContextMethodsTest
 from tests.unit_tests.pose_estimation_dataset_test import TestPoseEstimationDataset
 from tests.unit_tests.preprocessing_unit_test import PreprocessingUnitTest
@@ -141,6 +142,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestYOLONAS))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DeprecationsUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestMinSamplesSingleNode))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationMetricsMultipleIgnored))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

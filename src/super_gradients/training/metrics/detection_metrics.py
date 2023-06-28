@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Tuple
 import torch
 from torchmetrics import Metric
 
@@ -24,6 +24,7 @@ class DetectionMetrics(Metric):
     :param post_prediction_callback:        DetectionPostPredictionCallback to be applied on net's output prior to the metric computation (NMS).
     :param normalize_targets:               Whether to normalize bbox coordinates by image size.
     :param iou_thres:                       IoU threshold to compute the mAP.
+                                            Could be either instance of IouThreshold, a tuple (lower bound, upper_bound) or single scalar.
     :param recall_thres:                    Recall threshold to compute the mAP.
     :param score_thres:                     Score threshold to compute Recall, Precision and F1.
     :param top_k_predictions:               Number of predictions per class used to compute metrics, ordered by confidence score
@@ -41,7 +42,7 @@ class DetectionMetrics(Metric):
         num_cls: int,
         post_prediction_callback: DetectionPostPredictionCallback,
         normalize_targets: bool = False,
-        iou_thres: Union[IouThreshold, float] = IouThreshold.MAP_05_TO_095,
+        iou_thres: Union[IouThreshold, Tuple[float, float], float] = IouThreshold.MAP_05_TO_095,
         recall_thres: torch.Tensor = None,
         score_thres: float = 0.1,
         top_k_predictions: int = 100,
@@ -55,6 +56,9 @@ class DetectionMetrics(Metric):
 
         if isinstance(iou_thres, IouThreshold):
             self.iou_thresholds = iou_thres.to_tensor()
+        if isinstance(iou_thres, tuple):
+            low, high = iou_thres
+            self.iou_thresholds = IouThreshold.from_bounds(low, high)
         else:
             self.iou_thresholds = torch.tensor([iou_thres])
 
