@@ -528,7 +528,10 @@ class Trainer:
         metric_to_watch_idx = fuzzy_idx_in_list(self.metric_to_watch, metric_titles)
         metric_to_watch = metric_titles[metric_to_watch_idx]
         if metric_to_watch != self.metric_to_watch:
-            logger.warning("No exact match found for `metric_to_watch={self.metric_to_watch}`. `metric_to_watch={metric_to_watch} will be used instead.`")
+            logger.warning(
+                f"No exact match found for `metric_to_watch={self.metric_to_watch}`. It should be one of {metric_titles}. \n"
+                f"`metric_to_watch={metric_to_watch} will be used instead.`"
+            )
             self.metric_to_watch = metric_to_watch
 
         if self.training_params.average_best_models:
