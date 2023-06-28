@@ -3,7 +3,7 @@ import inspect
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import Union, Tuple, Mapping, Dict, Any, List
+from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
 
 import hydra
 import numpy as np
@@ -377,15 +377,6 @@ class Trainer:
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
         cls.evaluate_from_recipe(cfg)
 
-    def _set_dataset_params(self):
-        self.dataset_params = {
-            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
-            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader, "dataloader_params") else None,
-            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(self.valid_loader.dataset, "dataset_params") else None,
-            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader, "dataloader_params") else None,
-        }
-        self.dataset_params = HpmStruct(**self.dataset_params)
-
     def _net_to_device(self):
         """
         Manipulates self.net according to device.multi_gpu
@@ -517,7 +508,6 @@ class Trainer:
         return loss, loss_logging_items
 
     def _init_monitored_items(self):
-        self.metric_idx_in_results_tuple = fuzzy_idx_in_list(self.metric_to_watch, self.loss_logging_items_names + get_metrics_titles(self.valid_metrics))
         # Instantiate the values to monitor (loss/metric)
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
@@ -533,12 +523,22 @@ class Trainer:
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
         ]
 
+        # make sure the metric_to_watch is an exact match
+        metric_titles = self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
+        metric_to_watch_idx = fuzzy_idx_in_list(self.metric_to_watch, metric_titles)
+        metric_to_watch = metric_titles[metric_to_watch_idx]
+        if metric_to_watch != self.metric_to_watch:
+            logger.warning(
+                f"No exact match found for `metric_to_watch={self.metric_to_watch}`. It should be one of {metric_titles}. \n"
+                f"`metric_to_watch={metric_to_watch} will be used instead.`"
+            )
+            self.metric_to_watch = metric_to_watch
+
         if self.training_params.average_best_models:
             self.model_weight_averaging = ModelWeightAveraging(
                 ckpt_dir=self.checkpoints_dir_path,
                 greater_is_better=self.greater_metric_to_watch_is_better,
                 metric_to_watch=self.metric_to_watch,
-                metric_idx=self.metric_idx_in_results_tuple,
                 load_checkpoint=self.load_checkpoint,
             )
 
@@ -584,7 +584,7 @@ class Trainer:
         self,
         optimizer: torch.optim.Optimizer = None,
         epoch: int = None,
-        validation_results_tuple: tuple = None,
+        validation_results_dict: Optional[Dict[str, float]] = None,
         context: PhaseContext = None,
     ) -> None:
         """
@@ -592,17 +592,13 @@ class Trainer:
         params)
         """
         # WHEN THE validation_results_tuple IS NONE WE SIMPLY SAVE THE state_dict AS LATEST AND Return
-        if validation_results_tuple is None:
+        if validation_results_dict is None:
             self.sg_logger.add_checkpoint(tag="ckpt_latest_weights_only.pth", state_dict={"net": self.net.state_dict()}, global_step=epoch)
             return
 
         # COMPUTE THE CURRENT metric
         # IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES
-        metric = (
-            validation_results_tuple[self.metric_idx_in_results_tuple]
-            if isinstance(self.metric_idx_in_results_tuple, int)
-            else sum([validation_results_tuple[idx] for idx in self.metric_idx_in_results_tuple])
-        )
+        metric = validation_results_dict[self.metric_to_watch]
 
         # BUILD THE state_dict
         state = {"net": self.net.state_dict(), "acc": metric, "epoch": epoch}
@@ -615,8 +611,9 @@ class Trainer:
         if self.ema:
             state["ema_net"] = self.ema_model.ema.state_dict()
 
-        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
-            state["processing_params"] = self.valid_loader.dataset.get_dataset_preprocessing_params()
+        processing_params = self._get_preprocessing_from_valid_loader()
+        if processing_params is not None:
+            state["processing_params"] = processing_params
 
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
@@ -640,7 +637,8 @@ class Trainer:
 
         if self.training_params.average_best_models:
             net_for_averaging = self.ema_model.ema if self.ema else self.net
-            state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
+
+            state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_dict=validation_results_dict)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
     def _prep_net_for_train(self) -> None:
@@ -1042,7 +1040,6 @@ class Trainer:
 
         if len(self.train_loader.dataset) % batch_size != 0 and not self.train_loader.drop_last:
             logger.warning("Train dataset size % batch_size != 0 and drop_last=False, this might result in smaller " "last batch.")
-        self._set_dataset_params()
 
         if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             # Note: the dataloader uses sampler of the batch_sampler when it is not None.
@@ -1111,7 +1108,7 @@ class Trainer:
                     logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
 
         self.run_validation_freq = self.training_params.run_validation_freq
-        validation_results_tuple = (0, 0)
+
         inf_time = 0
         timer = core_utils.Timer(device_config.device)
 
@@ -1249,7 +1246,10 @@ class Trainer:
             train_dataloader_len=len(self.train_loader),
         )
 
-        self._set_net_preprocessing_from_valid_loader()
+        processing_params = self._get_preprocessing_from_valid_loader()
+        if processing_params is not None:
+            self.net.module.set_dataset_processing_params(**processing_params)
+
         try:
             # HEADERS OF THE TRAINING PROGRESS
             if not silent_mode:
@@ -1306,13 +1306,11 @@ class Trainer:
                 if (epoch + 1) % self.run_validation_freq == 0:
                     self.phase_callback_handler.on_validation_loader_start(context)
                     timer.start()
-                    validation_results_tuple = self._validate_epoch(epoch=epoch, silent_mode=silent_mode)
+                    valid_metrics_dict = self._validate_epoch(epoch=epoch, silent_mode=silent_mode)
                     inf_time = timer.stop()
 
                     # Phase.VALIDATION_EPOCH_END
                     # RUN PHASE CALLBACKS
-                    valid_metrics_dict = get_metrics_dict(validation_results_tuple, self.valid_metrics, self.loss_logging_items_names)
-
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
@@ -1322,8 +1320,8 @@ class Trainer:
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
                     self._write_to_disk_operations(
-                        train_metrics=train_metrics_tuple,
-                        validation_results=validation_results_tuple,
+                        train_metrics_dict=train_metrics_dict,
+                        validation_results_dict=valid_metrics_dict,
                         lr_dict=self._epoch_start_logging_values,
                         inf_time=inf_time,
                         epoch=epoch,
@@ -1354,10 +1352,12 @@ class Trainer:
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
 
-    def _set_net_preprocessing_from_valid_loader(self):
-        if isinstance(self.net.module, HasPredict) and isinstance(self.valid_loader.dataset, HasPreprocessingParams):
+    def _get_preprocessing_from_valid_loader(self) -> Optional[dict]:
+        valid_loader = self.valid_loader
+
+        if isinstance(self.net.module, HasPredict) and isinstance(valid_loader.dataset, HasPreprocessingParams):
             try:
-                self.net.module.set_dataset_processing_params(**self.valid_loader.dataset.get_dataset_preprocessing_params())
+                return valid_loader.dataset.get_dataset_preprocessing_params()
             except Exception as e:
                 logger.warning(
                     f"Could not set preprocessing pipeline from the validation dataset:\n {e}.\n Before calling"
@@ -1441,17 +1441,16 @@ class Trainer:
 
         self.net.load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
-        averaged_model_results_tuple = self._validate_epoch(epoch=self.max_epochs)
+        averaged_model_results_dict = self._validate_epoch(epoch=self.max_epochs)
 
         # Reverting the current model
         self.net.load_state_dict(keep_state_dict)
 
         if not self.ddp_silent_mode:
-            average_model_tb_titles = ["Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]]
             write_struct = ""
-            for ind, title in enumerate(average_model_tb_titles):
-                write_struct += "%s: %.3f  \n  " % (title, averaged_model_results_tuple[ind])
-                self.sg_logger.add_scalar(title, averaged_model_results_tuple[ind], global_step=self.max_epochs)
+            for name, value in averaged_model_results_dict.items():
+                write_struct += "%s: %.3f  \n  " % (name, value)
+                self.sg_logger.add_scalar(name, value, global_step=self.max_epochs)
 
             self.sg_logger.add_text("Averaged_Model_Performance", write_struct, self.max_epochs)
             if cleanup_snapshots_pkl_file:
@@ -1677,28 +1676,37 @@ class Trainer:
         if self.training_params.log_installed_packages:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items["installed_packages"] = pkg_list
+
+        dataset_params = {
+            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
+            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader, "dataloader_params") else None,
+            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(self.valid_loader.dataset, "dataset_params") else None,
+            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader, "dataloader_params") else None,
+        }
         hyper_param_config = {
             "arch_params": self.arch_params.__dict__,
             "checkpoint_params": self.checkpoint_params.__dict__,
             "training_hyperparams": self.training_params.__dict__,
-            "dataset_params": self.dataset_params.__dict__,
+            "dataset_params": dataset_params,
             "additional_log_items": additional_log_items,
         }
         return hyper_param_config
 
-    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, lr_dict: dict, inf_time: float, epoch: int, context: PhaseContext):
+    def _write_to_disk_operations(
+        self, train_metrics_dict: dict, validation_results_dict: dict, lr_dict: dict, inf_time: float, epoch: int, context: PhaseContext
+    ):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
-        # STORE VALUES IN A TENSORBOARD FILE
-        train_results = list(train_metrics) + list(validation_results) + [inf_time]
-        all_titles = self.results_titles + ["Inference Time"]
-
-        result_dict = {all_titles[i]: train_results[i] for i in range(len(train_results))}
+        result_dict = {
+            "Inference Time": inf_time,
+            **{f"Train_{k}": v for k, v in train_metrics_dict.items()},
+            **{f"Valid_{k}": v for k, v in validation_results_dict.items()},
+        }
         self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
         # SAVE THE CHECKPOINT
         if self.training_params.save_model:
-            self._save_checkpoint(self.optimizer, epoch + 1, validation_results, context)
+            self._save_checkpoint(self.optimizer, epoch + 1, validation_results_dict, context)
 
     def _get_epoch_start_logging_values(self) -> dict:
         """Get all the values that should be logged at the start of each epoch.
@@ -1719,7 +1727,7 @@ class Trainer:
         metrics_progress_verbose=False,
         test_phase_callbacks=None,
         use_ema_net=True,
-    ) -> tuple:
+    ) -> Dict[str, float]:
         """
         Evaluates the model on given dataloader and metrics.
         :param model: model to perfrom test on. When none is given, will try to use self.net (defalut=None).
@@ -1777,11 +1785,9 @@ class Trainer:
 
         self._first_backward = True
 
-        test_results = get_metrics_dict(test_results, self.test_metrics, self.loss_logging_items_names)
-
         return test_results
 
-    def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
+    def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> Dict[str, float]:
         """
         Runs evaluation on self.valid_loader, with self.valid_metrics.
 
@@ -1807,7 +1813,7 @@ class Trainer:
         epoch: int = None,
         silent_mode: bool = False,
         metrics_progress_verbose: bool = False,
-    ):
+    ) -> Dict[str, float]:
         """
         Evaluates the model on given dataloader and metrics.
 
@@ -1885,10 +1891,10 @@ class Trainer:
                     if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
                         break
 
+            logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
             # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
             if not metrics_progress_verbose:
                 # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
                 pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
                 progress_bar_data_loader.set_postfix(**pbar_message_dict)
@@ -1914,7 +1920,7 @@ class Trainer:
                 )
                 progress_bar_data_loader.write("===========================================================")
 
-        return logging_values
+        return get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
     def _instantiate_net(
         self, architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict, checkpoint_params: dict, *args, **kwargs
