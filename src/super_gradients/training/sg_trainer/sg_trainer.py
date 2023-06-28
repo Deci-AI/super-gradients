@@ -4,6 +4,7 @@ import os
 from copy import deepcopy
 from pathlib import Path
 from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
+import warnings
 
 import hydra
 import numpy as np
@@ -2462,7 +2463,7 @@ class Trainer:
     def valid_loader(self) -> DataLoader:
         # Meant for backward compatibility
         if len(self.valid_loaders_dict) == 1:
-            logger.warning("`valid_loader` is deprecated in favor of `valid_loaders_dict`.")
+            warnings.warn("`valid_loader` is deprecated in favor of `valid_loaders_dict`.", category=DeprecationWarning)
             return next(iter(self.valid_loaders_dict.values()))
         else:
             raise RuntimeError("`valid_loader` not defined when working with multiple validation loaders. Please use `valid_loaders_dict` instead.")

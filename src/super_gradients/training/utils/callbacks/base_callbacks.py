@@ -1,5 +1,8 @@
 from enum import Enum
-from typing import List
+from typing import List, Optional
+import warnings
+
+from torch.utils.data.dataloader import DataLoader
 
 __all__ = ["Phase", "PhaseCallback", "PhaseContext", "CallbackHandler", "Callback"]
 
@@ -44,6 +47,7 @@ class PhaseContext:
         lr_warmup_epochs=None,
         sg_logger=None,
         train_loader=None,
+        valid_loader=None,
         valid_loaders_dict=None,
         training_params=None,
         ddp_silent_mode=None,
@@ -56,6 +60,10 @@ class PhaseContext:
         context_methods=None,
         ema_model=None,
     ):
+        """
+        :param valid_loader:        Deprecated in favor of `valid_loaders_dict` instead. Will be removed in the next release.
+        :param valid_loaders_dict:  Dictionary mapping dataset names to validation Dataloaders.
+        """
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -75,7 +83,7 @@ class PhaseContext:
         self.lr_warmup_epochs = lr_warmup_epochs
         self.sg_logger = sg_logger
         self.train_loader = train_loader
-        self.valid_loaders_dict = valid_loaders_dict
+        self.valid_loaders_dict = valid_loaders_dict  # Now replacing valid_loader
         self.training_params = training_params
         self.ddp_silent_mode = ddp_silent_mode
         self.checkpoint_params = checkpoint_params
@@ -86,9 +94,39 @@ class PhaseContext:
         self.context_methods = context_methods
         self.ema_model = ema_model
 
+        if valid_loader is not None:
+            warnings.warn(
+                "`valid_loader` is deprecated in favor of `valid_loaders_dict`, and will be removed in the next release.", category=DeprecationWarning
+            )
+            if valid_loaders_dict is not None:
+                raise RuntimeError("`valid_loader` and `valid_loaders_dict` cannot both be defined together. Please use `valid_loaders_dict` only.")
+            else:
+                self.valid_loaders_dict = {"": valid_loader}
+
     def update_context(self, **kwargs):
+        valid_loader, valid_loaders_dict = kwargs.get("valid_loader"), kwargs.get("valid_loaders_dict")
+        if valid_loader is not None:
+            warnings.warn(
+                "`valid_loader` is deprecated in favor of `valid_loaders_dict`, and will be removed in the next release.", category=DeprecationWarning
+            )
+            if valid_loaders_dict is not None:
+                raise RuntimeError("`valid_loader` and `valid_loaders_dict` cannot both be defined together. Please use `valid_loaders_dict` only.")
+            else:
+                self.valid_loaders_dict = {"": kwargs.pop("valid_loader")}
+
         for attr, attr_val in kwargs.items():
             setattr(self, attr, attr_val)
+
+    @property
+    def valid_loader(self) -> Optional[DataLoader]:
+        # Meant for backward compatibility
+        warnings.warn("`valid_loader` is deprecated in favor of `valid_loaders_dict`, and will be removed in the next release.", category=DeprecationWarning)
+        if self.valid_loaders_dict is None:
+            return None
+        elif len(self.valid_loaders_dict) == 1:
+            return next(iter(self.valid_loaders_dict.values()))
+        else:
+            raise RuntimeError("`valid_loader` not defined when working with multiple validation loaders. Please use `valid_loaders_dict` instead.")
 
 
 class Callback:
