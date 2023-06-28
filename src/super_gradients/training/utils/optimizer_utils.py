@@ -62,11 +62,11 @@ def _get_no_decay_param_ids(module: nn.Module):
     NOTE - ALL MODULES WITH ATTRIBUTES NAMED BIAS AND ARE INSTANCE OF nn.Parameter WILL BE CONSIDERED A BIAS PARAM FOR
         ZERO WEIGHT DECAY.
     """
-    batchnorm_types = (_BatchNorm,)
+    norm_types = (_BatchNorm, nn.GroupNorm, nn.LayerNorm, nn.InstanceNorm1d, nn.InstanceNorm2d, nn.InstanceNorm3d)
     torch_weight_with_bias_types = (_ConvNd, nn.Linear)
     no_decay_ids = []
     for name, m in module.named_modules():
-        if isinstance(m, batchnorm_types):
+        if isinstance(m, norm_types):
             no_decay_ids.append(id(m.weight))
             no_decay_ids.append(id(m.bias))
         elif hasattr(m, "bias") and isinstance(m.bias, nn.Parameter):
