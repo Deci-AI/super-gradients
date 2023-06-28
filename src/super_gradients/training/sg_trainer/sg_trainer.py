@@ -1242,7 +1242,7 @@ class Trainer:
 
         processing_params = self._get_preprocessing_from_valid_loader()
         if processing_params is not None:
-            self.net.module.set_dataset_processing_params(**processing_params)
+            unwrap_model(self.net).set_dataset_processing_params(**processing_params)
 
         try:
             # HEADERS OF THE TRAINING PROGRESS
