@@ -49,7 +49,7 @@ from super_gradients.training.metrics.metric_utils import (
 from super_gradients.training.models import SgModule, get_model_name
 from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import sg_trainer_utils, get_param
+from super_gradients.training.utils import sg_trainer_utils, get_param, torch_version_is_greater_or_equal
 from super_gradients.training.utils.distributed_training_utils import (
     MultiGPUModeAutocastWrapper,
     reduce_results_tuple_for_ddp,
@@ -658,11 +658,18 @@ class Trainer:
         self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None or self.resume_from_remote_sg_logger
 
         if self.training_params.torch_compile:
-            logger.info("Using torch.compile feature. Compiling model. This may take a few minutes")
-            self.net = torch.compile(self.net, mode=self.training_params.torch_compile_mode)
-            logger.info("Model compilation complete. Continuing training")
-            if is_distributed():
-                torch.distributed.barrier()
+            if torch_version_is_greater_or_equal(2, 0):
+                logger.info("Using torch.compile feature. Compiling model. This may take a few minutes")
+                self.net = torch.compile(self.net, mode=self.training_params.torch_compile_mode)
+                logger.info("Model compilation complete. Continuing training")
+                if is_distributed():
+                    torch.distributed.barrier()
+            else:
+                logger.warning(
+                    "Your recipe has requested use of torch.compile. "
+                    "However torch.compile is not supported in this version of PyTorch. "
+                    "Ignoring torch_compile flag"
+                )
 
     def _init_arch_params(self) -> None:
         default_arch_params = HpmStruct()
