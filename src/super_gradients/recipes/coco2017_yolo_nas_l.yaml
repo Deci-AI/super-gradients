@@ -25,7 +25,7 @@ resume: False
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 32
+    batch_size: 24
 
 arch_params:
   num_classes: 80
