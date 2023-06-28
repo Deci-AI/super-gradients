@@ -23,7 +23,7 @@ from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallbac
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
-
+from super_gradients.training.utils.utils import unwrap_model
 
 logger = get_logger(__name__)
 
@@ -75,7 +75,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         self.atol = kwargs.get("atol", 1e-05)
 
     def __call__(self, context: PhaseContext):
-        model = copy.deepcopy(context.net.module)
+        model = copy.deepcopy(unwrap_model(context.net))
         model = model.cpu()
         model.eval()  # Put model into eval mode
 
@@ -204,12 +204,12 @@ class DeciLabUploadCallback(PhaseCallback):
         :param context: Training phase context
         """
         try:
-            model = copy.deepcopy(context.net)
+            model = copy.deepcopy(unwrap_model(context.net))
             model_state_dict_path = os.path.join(context.ckpt_dir, self.ckpt_name)
             model_state_dict = torch.load(model_state_dict_path)["net"]
             model.load_state_dict(state_dict=model_state_dict)
 
-            model = model.module.cpu()
+            model = model.cpu()
             if hasattr(model, "prep_model_for_conversion"):
                 model.prep_model_for_conversion(input_size=self.input_dimensions)
 
@@ -267,7 +267,9 @@ class LRCallbackBase(PhaseCallback):
 
     def update_lr(self, optimizer, epoch, batch_idx=None):
         if self.update_param_groups:
-            param_groups = self.net.module.update_param_groups(optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len)
+            param_groups = unwrap_model(self.net).update_param_groups(
+                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
+            )
             optimizer.param_groups = param_groups
         else:
             # UPDATE THE OPTIMIZERS PARAMETER
@@ -373,7 +375,9 @@ class BatchStepLinearWarmupLRCallback(Callback):
         :return:
         """
         if self.update_param_groups:
-            param_groups = self.net.module.update_param_groups(optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len)
+            param_groups = unwrap_model(self.net).update_param_groups(
+                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
+            )
             optimizer.param_groups = param_groups
         else:
             # UPDATE THE OPTIMIZERS PARAMETER

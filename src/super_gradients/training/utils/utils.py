@@ -6,6 +6,7 @@ import tarfile
 import time
 import inspect
 import typing
+import warnings
 from functools import lru_cache, wraps
 from importlib import import_module
 from itertools import islice
@@ -13,6 +14,7 @@ from itertools import islice
 from pathlib import Path
 from typing import Mapping, Optional, Tuple, Union, List, Dict, Any, Iterable
 from zipfile import ZipFile
+from torch.nn.parallel import DistributedDataParallel
 
 import numpy as np
 import torch
@@ -80,10 +82,34 @@ class HpmStruct:
 class WrappedModel(nn.Module):
     def __init__(self, module):
         super(WrappedModel, self).__init__()
+        warnings.warn(
+            "WrappedModel is deprecated and will be removed in next major release of SuperGradients. "
+            "You don't need to wrap your model anymore, simply remove it and everything will work as expected.",
+            DeprecationWarning,
+        )
+
         self.module = module  # that I actually define.
 
     def forward(self, x):
         return self.module(x)
+
+
+def is_model_wrapped(model: nn.Module) -> bool:
+    return isinstance(model, (nn.DataParallel, DistributedDataParallel, WrappedModel))
+
+
+def unwrap_model(model: Union[nn.Module, nn.DataParallel, DistributedDataParallel]) -> nn.Module:
+    """
+    Get the real model from a model wrapper (DataParallel, DistributedDataParallel)
+
+    :param model:
+    :return:
+    """
+    if is_model_wrapped(model):
+        return model.module
+    elif isinstance(model, nn.Module):
+        return model
+    raise ValueError(f"Unknown model type: {type(model)}")
 
 
 def arch_params_deprecated(func):
