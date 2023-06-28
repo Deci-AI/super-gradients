@@ -24,6 +24,7 @@ from super_gradients.common.environment.checkpoints_dir_utils import get_checkpo
 from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 
+from super_gradients.training.utils.utils import fuzzy_idx_in_list
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
@@ -507,7 +508,6 @@ class Trainer:
         return loss, loss_logging_items
 
     def _init_monitored_items(self):
-
         # Instantiate the values to monitor (loss/metric)
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
@@ -534,6 +534,17 @@ class Trainer:
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
         ]
+
+        # make sure the metric_to_watch is an exact match
+        metric_titles = self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
+        metric_to_watch_idx = fuzzy_idx_in_list(self.metric_to_watch, metric_titles)
+        metric_to_watch = metric_titles[metric_to_watch_idx]
+        if metric_to_watch != self.metric_to_watch:
+            logger.warning(
+                f"No exact match found for `metric_to_watch={self.metric_to_watch}`. It should be one of {metric_titles}. \n"
+                f"`metric_to_watch={metric_to_watch} will be used instead.`"
+            )
+            self.metric_to_watch = metric_to_watch
 
         if self.training_params.average_best_models:
             self.model_weight_averaging = ModelWeightAveraging(
@@ -1447,17 +1458,16 @@ class Trainer:
 
         self.net.load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
-        averaged_model_results_tuple = self._validate_epoch(epoch=self.max_epochs)
+        averaged_model_results_dict = self._validate_epoch(epoch=self.max_epochs)
 
         # Reverting the current model
         self.net.load_state_dict(keep_state_dict)
 
         if not self.ddp_silent_mode:
-            average_model_tb_titles = ["Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]]
             write_struct = ""
-            for ind, title in enumerate(average_model_tb_titles):
-                write_struct += "%s: %.3f  \n  " % (title, averaged_model_results_tuple[ind])
-                self.sg_logger.add_scalar(title, averaged_model_results_tuple[ind], global_step=self.max_epochs)
+            for name, value in averaged_model_results_dict.items():
+                write_struct += "%s: %.3f  \n  " % (name, value)
+                self.sg_logger.add_scalar(name, value, global_step=self.max_epochs)
 
             self.sg_logger.add_text("Averaged_Model_Performance", write_struct, self.max_epochs)
             if cleanup_snapshots_pkl_file:
@@ -1797,7 +1807,7 @@ class Trainer:
 
         return test_results
 
-    def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> dict:
+    def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> Dict[str, float]:
         """
         Runs evaluation on self.valid_loader, with self.valid_metrics.
 
@@ -1958,10 +1968,10 @@ class Trainer:
                     if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
                         break
 
+            logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
             # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
             if not metrics_progress_verbose:
                 # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
-                logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
                 pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
                 progress_bar_data_loader.set_postfix(**pbar_message_dict)
@@ -1974,7 +1984,20 @@ class Trainer:
             if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                 logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
 
-        return logging_values
+            pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
+
+            self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
+                monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict
+            )
+
+            if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
+                progress_bar_data_loader.write("===========================================================")
+                sg_trainer_utils.display_epoch_summary(
+                    epoch=context.epoch, n_digits=4, train_monitored_values=self.train_monitored_values, valid_monitored_values=self.valid_monitored_values
+                )
+                progress_bar_data_loader.write("===========================================================")
+
+        return get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
     def _instantiate_net(
         self, architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict, checkpoint_params: dict, *args, **kwargs
