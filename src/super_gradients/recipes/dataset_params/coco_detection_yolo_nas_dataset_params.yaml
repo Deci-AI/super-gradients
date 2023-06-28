@@ -2,7 +2,7 @@ train_dataset_params:
   data_dir: /data/coco # root path to coco data
   subdir: images/train2017 # sub directory path of data_dir containing the train data.
   json_file: instances_train2017.json # path to coco train json file, data_dir/annotations/train_json_file.
-  input_dim: [640, 640]
+  input_dim:
   cache_dir:
   cache: False
   transforms:
@@ -37,37 +37,43 @@ train_dataset_params:
         max_value: 255.
     - DetectionTargetsFormatTransform:
         output_format: LABEL_CXCYWH
-
+  ignore_empty_annotations: False
   tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:
-  with_crowd: False
+  with_crowd: True
 
 train_dataloader_params:
   batch_size: 25
   num_workers: 8
   shuffle: True
   drop_last: True
-  pin_memory: True
-  collate_fn:
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  pin_memory: False
+  collate_fn: # collate function for trainset
+    _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
+    random_resize_sizes: [ 320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768 ]
+    random_resize_modes:
+      - 0 # cv::INTER_NEAREST
+      - 1 # cv::INTER_LINEAR
+      - 2 # cv::INTER_CUBIC
+      - 3 # cv::INTER_AREA
+      - 4 # cv::INTER_LANCZOS4
 
 val_dataset_params:
   data_dir: /data/coco # root path to coco data
   subdir: images/val2017 # sub directory path of data_dir containing the train data.
   json_file: instances_val2017.json # path to coco train json file, data_dir/annotations/train_json_file.
-  input_dim: [636, 636]
+  input_dim:
   cache_dir:
   cache: False
   transforms:
     - DetectionRGB2BGR:
         prob: 1
-    - DetectionPadToSize:
-        output_size: [640, 640]
-        pad_value: 114
     - DetectionStandardize:
         max_value: 255.
-    - DetectionImagePermute
+    - DetectionPaddedRescale:
+        input_dim: [640, 640]
+        pad_value: 114
     - DetectionTargetsFormatTransform:
         input_dim: [640, 640]
         output_format: LABEL_CXCYWH

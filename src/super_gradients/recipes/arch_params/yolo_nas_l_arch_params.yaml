@@ -14,6 +14,8 @@ backbone:
           activation_type: relu
           hidden_channels: 96
           concat_intermediates: True
+          drop_path_rates: [0.05, 0.05]
+          dropout_rate: 0.05
 
       - YoloNASStage:
           out_channels: 192
@@ -21,6 +23,8 @@ backbone:
           activation_type: relu
           hidden_channels: 128
           concat_intermediates: True
+          drop_path_rates: [0.05, 0.05, 0.05]
+          dropout_rate: 0.1
 
       - YoloNASStage:
           out_channels: 384
@@ -28,6 +32,8 @@ backbone:
           activation_type: relu
           hidden_channels: 256
           concat_intermediates: True
+          drop_path_rates: [0.1, 0.1, 0.1, 0.1, 0.1]
+          dropout_rate: 0.15
 
       - YoloNASStage:
           out_channels: 768
@@ -35,7 +41,8 @@ backbone:
           activation_type: relu
           hidden_channels: 512
           concat_intermediates: True
-
+          drop_path_rates: [0.1, 0.1]
+          dropout_rate: 0.2
 
     context_module:
       SPP:
@@ -57,6 +64,8 @@ neck:
         depth_mult: 1
         activation_type: relu
         reduce_channels: True
+        drop_path_rates: [0.1, 0.1, 0.1, 0.1]
+        dropout_rate: 0.1
 
     neck2:
       YoloNASUpStage:
@@ -67,6 +76,8 @@ neck:
         depth_mult: 1
         activation_type: relu
         reduce_channels: True
+        drop_path_rates: [0.1, 0.1, 0.1, 0.1]
+        dropout_rate: 0.1
 
     neck3:
       YoloNASDownStage:
@@ -76,6 +87,8 @@ neck:
         activation_type: relu
         width_mult: 1
         depth_mult: 1
+        drop_path_rates: [0.1, 0.1, 0.1, 0.1]
+        dropout_rate: 0.1
 
     neck4:
       YoloNASDownStage:
@@ -85,6 +98,8 @@ neck:
         activation_type: relu
         width_mult: 1
         depth_mult: 1
+        drop_path_rates: [0.1, 0.1, 0.1, 0.1]
+        dropout_rate: 0.1
 
 heads:
   NDFLHeads:
@@ -96,19 +111,25 @@ heads:
           width_mult: 1
           first_conv_group_size: 0
           stride: 8
+          cls_dropout_rate: 0.1
+          reg_dropout_rate: 0.1
       - YoloNASDFLHead:
           inter_channels: 256
           width_mult: 1
           first_conv_group_size: 0
           stride: 16
+          cls_dropout_rate: 0.1
+          reg_dropout_rate: 0.1
       - YoloNASDFLHead:
           inter_channels: 512
           width_mult: 1
           first_conv_group_size: 0
           stride: 32
+          cls_dropout_rate: 0.1
+          reg_dropout_rate: 0.1
 
 bn_eps: 1e-3
-bn_momentum: 0.03
+bn_momentum: 0.1
 inplace_act: True
 
 _convert_: all
