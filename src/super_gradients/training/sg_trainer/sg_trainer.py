@@ -2459,3 +2459,12 @@ class Trainer:
         )
 
         return valid_metrics_dict
+
+    @property
+    def valid_loader(self) -> DataLoader:
+        # Meant for backward compatibility and simplicity of use.
+        if len(self.valid_loaders_dict) == 1:
+            logger.warning("`valid_loader` is deprecated in favor of `valid_loaders_dict`.")
+            return next(iter(self.valid_loaders_dict.values()))
+        else:
+            raise RuntimeError("`valid_loader` not defined when working with multiple validation loaders. Please use `valid_loaders_dict` instead.")
