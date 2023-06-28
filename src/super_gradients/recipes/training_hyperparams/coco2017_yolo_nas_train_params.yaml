@@ -35,9 +35,6 @@ ema_params:
 mixed_precision: False
 sync_bn: True
 
-phase_callbacks:
-  - TimerCallback
-
 valid_metrics_list:
   - DetectionMetrics:
       score_thres: 0.1
