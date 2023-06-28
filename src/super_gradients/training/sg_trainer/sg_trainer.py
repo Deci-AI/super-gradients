@@ -672,8 +672,8 @@ class Trainer:
             else:
                 logger.warning(
                     "Your recipe has requested use of torch.compile. "
-                    "However torch.compile is not supported in this version of PyTorch. "
-                    "Ignoring torch_compile flag"
+                    f"However torch.compile is not supported in this version of PyTorch ({torch.__version__}). "
+                    "A Pytorch 2.0 or greater version is required. Ignoring torch_compile flag"
                 )
 
     def _init_arch_params(self) -> None:
@@ -1111,8 +1111,8 @@ class Trainer:
             else:
                 logger.warning(
                     "Your recipe has requested use of torch.compile. "
-                    "However torch.compile is not supported in this version of PyTorch. "
-                    "Ignoring torch_compile flag"
+                    f"However torch.compile is not supported in this version of PyTorch ({torch.__version__}). "
+                    "A Pytorch 2.0 or greater version is required. Ignoring torch_compile flag"
                 )
 
         self.max_epochs = self.training_params.max_epochs
