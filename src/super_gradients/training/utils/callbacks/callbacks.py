@@ -933,6 +933,10 @@ def create_lr_scheduler_callback(
             **training_params.to_dict(),
         )
     elif isinstance(lr_mode, Mapping) and list(lr_mode.keys())[0] in TORCH_LR_SCHEDULERS:
+        if update_param_groups:
+            logger.warning(
+                "The network's way of updataing (i.e update_param_groups) is not supported with native " "torch lr schedulers and will have no effect."
+            )
         lr_scheduler_name = list(lr_mode.keys())[0]
         torch_scheduler_params = {k: v for k, v in lr_mode[lr_scheduler_name].items() if k != "phase" and k != "metric_name"}
         torch_scheduler_params["optimizer"] = optimizer
