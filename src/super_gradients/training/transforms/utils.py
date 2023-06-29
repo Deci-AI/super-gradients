@@ -95,7 +95,7 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
     :param image:       Image to shift. (H, W, C) or (H, W).
     :param pad_h:       Tuple of (padding_top, padding_bottom).
     :param pad_w:       Tuple of (padding_left, padding_right).
-    :param pad_value:   Padding value.
+    :param pad_value:   Padding value
     :return:            Image shifted according to padding coordinates.
     """
     pad_h = (padding_coordinates.top, padding_coordinates.bottom)
