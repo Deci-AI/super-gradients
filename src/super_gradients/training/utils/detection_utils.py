@@ -203,11 +203,21 @@ class IouThreshold(tuple, Enum):
 
     def to_tensor(self):
         if self.is_range():
-            n_iou_thresh = int(round((self[1] - self[0]) / 0.05)) + 1
-            return torch.linspace(self[0], self[1], n_iou_thresh)
+            return self.from_bounds(self[0], self[1], step=0.05)
         else:
-            n_iou_thresh = 1
             return torch.tensor([self[0]])
+
+    @classmethod
+    def from_bounds(cls, low: float, high: float, step: float = 0.05) -> torch.Tensor:
+        """
+        Create a tensor with values from low (including) to high (including) with a given step size.
+        :param low: Lower bound
+        :param high: Upper bound
+        :param step: Step size
+        :return: Tensor of [low, low + step, low + 2 * step, ..., high]
+        """
+        n_iou_thresh = int(round((high - low) / step)) + 1
+        return torch.linspace(low, high, n_iou_thresh)
 
 
 def box_iou(box1: torch.Tensor, box2: torch.Tensor) -> torch.Tensor:

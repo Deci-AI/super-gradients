@@ -5,7 +5,7 @@ from super_gradients.training import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.kd_trainer import KDTrainer
 import torch
-from super_gradients.training.utils.utils import check_models_have_same_weights
+from super_gradients.training.utils.utils import check_models_have_same_weights, unwrap_model
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.losses.kd_losses import KDLogitsLoss
 from super_gradients.common.object_names import Models
@@ -52,8 +52,8 @@ class KDEMATest(unittest.TestCase):
             valid_loader=classification_test_dataloader(),
         )
 
-        self.assertTrue(kd_model.ema_model.ema.module.teacher is kd_model.net.module.teacher)
-        self.assertTrue(kd_model.ema_model.ema.module.student is not kd_model.net.module.student)
+        self.assertTrue(unwrap_model(kd_model.ema_model.ema).teacher is unwrap_model(kd_model.net).teacher)
+        self.assertTrue(unwrap_model(kd_model.ema_model.ema).student is not unwrap_model(kd_model.net).student)
 
     def test_kd_ckpt_reload_net(self):
         """Check that the KD trainer load correctly from checkpoint when "load_ema_as_net=False"."""
@@ -100,10 +100,10 @@ class KDEMATest(unittest.TestCase):
         self.assertTrue(not check_models_have_same_weights(reloaded_net, ema_model))
 
         # loaded student ema == loaded  student net (since load_ema_as_net = False)
-        self.assertTrue(not check_models_have_same_weights(reloaded_ema_model.module.student, reloaded_net.module.student))
+        self.assertTrue(not check_models_have_same_weights(reloaded_ema_model.student, reloaded_net.student))
 
         # loaded teacher ema == loaded teacher net (teacher always loads ema)
-        self.assertTrue(check_models_have_same_weights(reloaded_ema_model.module.teacher, reloaded_net.module.teacher))
+        self.assertTrue(check_models_have_same_weights(reloaded_ema_model.teacher, reloaded_net.teacher))
 
 
 if __name__ == "__main__":
