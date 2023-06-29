@@ -17,7 +17,7 @@ class TrainWithTorchSchedulerTest(unittest.TestCase):
     """
 
     def test_train_with_torch_scheduler(self):
-        trainer = Trainer("external_criterion_test")
+        trainer = Trainer("test_train_with_torch_scheduler")
         dataloader = classification_test_dataloader(batch_size=10)
 
         model = models.get(Models.RESNET18, num_classes=5)
@@ -26,6 +26,28 @@ class TrainWithTorchSchedulerTest(unittest.TestCase):
             "lr_updates": [1],
             "lr_decay_factor": 0.1,
             "lr_mode": {"StepLR": {"step_size": 0.1, "phase": Phase.TRAIN_EPOCH_END}},
+            "lr_warmup_epochs": 0,
+            "initial_lr": 0.1,
+            "loss": torch.nn.CrossEntropyLoss(),
+            "optimizer": "SGD",
+            "criterion_params": {},
+            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+            "train_metrics_list": [Accuracy()],
+            "valid_metrics_list": [Accuracy()],
+            "metric_to_watch": "Accuracy",
+            "greater_metric_to_watch_is_better": True,
+        }
+        trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
+
+    def test_train_with_rop_torch_scheduler(self):
+        trainer = Trainer("external_criterion_test")
+        dataloader = classification_test_dataloader(batch_size=10)
+
+        model = models.get(Models.RESNET18, num_classes=5)
+        train_params = {
+            "max_epochs": 2,
+            "lr_decay_factor": 0.1,
+            "lr_mode": {"ReduceLROnPlateau": {"patience": 1, "phase": Phase.TRAIN_EPOCH_END, "metric_name": "Accuracy"}},
             "lr_warmup_epochs": 0,
             "initial_lr": 0.1,
             "loss": torch.nn.CrossEntropyLoss(),

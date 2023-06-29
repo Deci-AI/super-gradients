@@ -26,6 +26,7 @@ from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
+from super_gradients.training.utils.callbacks.callbacks import create_lr_scheduler_callback
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
@@ -47,7 +48,7 @@ from super_gradients.training.metrics.metric_utils import (
     get_train_loop_description_dict,
 )
 from super_gradients.training.models import SgModule, get_model_name
-from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS, TORCH_LR_SCHEDULERS
+from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param, torch_version_is_greater_or_equal
 from super_gradients.training.utils.distributed_training_utils import (
@@ -84,9 +85,8 @@ from super_gradients.training.utils.callbacks import (
     MetricsUpdateCallback,
     ContextSgMethods,
     LRCallbackBase,
-    LRSchedulerCallback,
 )
-from super_gradients.common.registry.registry import LR_SCHEDULERS_CLS_DICT, LR_WARMUP_CLS_DICT
+from super_gradients.common.registry.registry import LR_WARMUP_CLS_DICT
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
@@ -736,7 +736,9 @@ class Trainer:
                     Decay factor to apply to the learning rate at each update when `lr_mode='step'`.
 
 
-                -  `lr_mode` : str
+                -  `lr_mode` : Union[str, Mapping],
+
+                    When str:
 
                     Learning rate scheduling policy, one of ['step','poly','cosine','function'].
 
@@ -748,6 +750,20 @@ class Trainer:
                     'poly' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
 
                     'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
+
+
+
+                    When Mapping, refers to a torch.optim.lr_scheduler._LRScheduler, following the below API:
+
+                        lr_mode = {LR_SCHEDULER_CLASS_NAME: {**LR_SCHEDULER_KWARGS, "phase": XXX, "metric_name": XXX)
+
+                        Where "phase" (of Phase type) controls when to call torch.optim.lr_scheduler._LRScheduler.step().
+
+                        The "metric_name" refers to the metric to watch (See docs for "metric_to_watch" in train(...)
+                         https://docs.deci.ai/super-gradients/docstring/training/sg_trainer.html) when using
+                          ReduceLROnPlateau. In any other case this kwarg is ignored.
+
+                        **LR_SCHEDULER_KWARGS are simply passed to the torch scheduler's __init__.
 
                 - `lr_schedule_function` : Union[callable,None]
 
@@ -1201,23 +1217,41 @@ class Trainer:
             raise UnsupportedOptimizerFormat()
 
         if self.lr_mode is not None:
-            if isinstance(self.lr_mode, str) and self.lr_mode in LR_SCHEDULERS_CLS_DICT:
-                sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
-                self.phase_callbacks.append(
-                    sg_lr_callback_cls(
-                        train_loader_len=len(self.train_loader),
-                        net=self.net,
-                        training_params=self.training_params,
-                        update_param_groups=self.update_param_groups,
-                        **self.training_params.to_dict(),
-                    )
+            self.phase_callbacks.append(
+                create_lr_scheduler_callback(
+                    lr_mode=self.lr_mode,
+                    train_loader=self.train_loader,
+                    net=self.net,
+                    training_params=self.training_params,
+                    update_param_groups=self.update_param_groups,
+                    optimizer=self.optimizer,
                 )
-            elif isinstance(self.lr_mode, Mapping) and list(self.lr_mode.keys())[0] in TORCH_LR_SCHEDULERS:
-                lr_scheduler_name = list(self.lr_mode.keys())[0]
-                torch_scheduler_params = {k: v for k, v in self.lr_mode[lr_scheduler_name].items() if k != "phase"}
-                torch_scheduler_params["optimizer"] = self.optimizer
-                torch_scheduler = TORCH_LR_SCHEDULERS[lr_scheduler_name](**torch_scheduler_params)
-                self.phase_callbacks.append(LRSchedulerCallback(scheduler=torch_scheduler, phase=self.lr_mode[lr_scheduler_name]["phase"]))
+            )
+            # if isinstance(self.lr_mode, str) and self.lr_mode in LR_SCHEDULERS_CLS_DICT:
+            #     sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
+            #     self.phase_callbacks.append(
+            #         sg_lr_callback_cls(
+            #             train_loader_len=len(self.train_loader),
+            #             net=self.net,
+            #             training_params=self.training_params,
+            #             update_param_groups=self.update_param_groups,
+            #             **self.training_params.to_dict(),
+            #         )
+            #     )
+            # elif isinstance(self.lr_mode, Mapping) and list(self.lr_mode.keys())[0] in TORCH_LR_SCHEDULERS:
+            #     lr_scheduler_name = list(self.lr_mode.keys())[0]
+            #     torch_scheduler_params = {k: v for k, v in self.lr_mode[lr_scheduler_name].items() if k != "phase" and k != "metric_name"}
+            #     torch_scheduler_params["optimizer"] = self.optimizer
+            #     torch_scheduler = TORCH_LR_SCHEDULERS[lr_scheduler_name](**torch_scheduler_params)
+            #     if get_param(self.lr_mode[lr_scheduler_name], "phase") is None:
+            #         raise ValueError("Phase is required argument when working with torch schedulers.")
+            #
+            #     if lr_scheduler_name == "ReduceLROnPlateau" and get_param(self.lr_mode[lr_scheduler_name], "metric_name") is None:
+            #         raise ValueError("metric_name is required argument when working with ReduceLROnPlateau schedulers.")
+            #
+            #     self.phase_callbacks.append(LRSchedulerCallback(scheduler=torch_scheduler,
+            #                                                     phase=self.lr_mode[lr_scheduler_name]["phase"],
+            #                                                     metric_name=get_param(self.lr_mode[lr_scheduler_name], "metric_name")))
 
         # VERIFY GRADIENT CLIPPING VALUE
         if self.training_params.clip_grad_norm is not None and self.training_params.clip_grad_norm <= 0:
