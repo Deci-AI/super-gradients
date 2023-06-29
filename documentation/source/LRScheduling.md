@@ -213,12 +213,16 @@ From `Trainer.train(...)` docs:
         lr_mode = {LR_SCHEDULER_CLASS_NAME: {**LR_SCHEDULER_KWARGS, "phase": XXX, "metric_name": XXX)
     
         Where "phase" (of Phase type) controls when to call torch.optim.lr_scheduler._LRScheduler.step().
+        For instance, in order to:
+        - Update LR on each batch: Use phase: Phase.TRAIN_BATCH_END
+        - Update LR after each epoch: Use phase: Phase.TRAIN_EPOCH_END
     
         The "metric_name" refers to the metric to watch (See docs for "metric_to_watch" in train(...)
          https://docs.deci.ai/super-gradients/docstring/training/sg_trainer.html) when using
           ReduceLROnPlateau. In any other case this kwarg is ignored.
     
         **LR_SCHEDULER_KWARGS are simply passed to the torch scheduler's __init__.
+
     
     
         For example:

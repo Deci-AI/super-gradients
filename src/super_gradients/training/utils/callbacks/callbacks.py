@@ -900,6 +900,10 @@ def create_lr_scheduler_callback(
 
                         Where "phase" (of Phase type) controls when to call torch.optim.lr_scheduler._LRScheduler.step().
 
+                        For instance, in order to:
+                        - Update LR on each batch: Use phase: Phase.TRAIN_BATCH_END
+                        - Update LR after each epoch: Use phase: Phase.TRAIN_EPOCH_END
+
                         The "metric_name" refers to the metric to watch (See docs for "metric_to_watch" in train(...)
                          https://docs.deci.ai/super-gradients/docstring/training/sg_trainer.html) when using
                           ReduceLROnPlateau. In any other case this kwarg is ignored.
