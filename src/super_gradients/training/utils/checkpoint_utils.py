@@ -40,9 +40,7 @@ def transfer_weights(model: nn.Module, model_state_dict: Mapping[str, Tensor]) -
     for name, value in model_state_dict.items():
         try:
             model.load_state_dict(collections.OrderedDict([(name, value)]), strict=False)
-            logger.debug(f"Transferred weights for layer {name}")
         except RuntimeError:
-            logger.debug(f"Skipped layer {name}")
             pass
 
 
