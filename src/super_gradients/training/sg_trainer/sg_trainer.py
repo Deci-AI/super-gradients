@@ -26,7 +26,7 @@ from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 
 from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
-from super_gradients.training.utils.callbacks.callbacks import create_lr_scheduler_callback
+from super_gradients.training.utils.callbacks.callbacks import create_lr_scheduler_callback, LRSchedulerCallback
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
@@ -214,6 +214,7 @@ class Trainer:
         self.max_valid_batches = None
 
         self._epoch_start_logging_values = {}
+        self._torch_lr_scheduler = None
 
     @property
     def device(self) -> str:
@@ -615,6 +616,9 @@ class Trainer:
         if processing_params is not None:
             state["processing_params"] = processing_params
 
+        if self._torch_lr_scheduler is not None:
+            state["torch_scheduler_state_dict"] = self._torch_lr_scheduler.state_dict()
+
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
 
@@ -764,6 +768,23 @@ class Trainer:
                           ReduceLROnPlateau. In any other case this kwarg is ignored.
 
                         **LR_SCHEDULER_KWARGS are simply passed to the torch scheduler's __init__.
+
+
+                        For example:
+                            lr_mode = {"StepLR": {"gamma": 0.1, "step_size": 1, "phase": Phase.TRAIN_EPOCH_END}}
+                            is equivalent to following training code:
+
+                                from torch.optim.lr_scheduler import StepLR
+                                ...
+                                optimizer = ....
+                                scheduler = StepLR(optimizer=optimizer, gamma=0.1, step_size=1)
+
+                                for epoch in num_epochs:
+                                    train_epoch(...)
+                                    scheduler.step()
+                                    ....
+
+
 
                 - `lr_schedule_function` : Union[callable,None]
 
@@ -1217,41 +1238,21 @@ class Trainer:
             raise UnsupportedOptimizerFormat()
 
         if self.lr_mode is not None:
-            self.phase_callbacks.append(
-                create_lr_scheduler_callback(
-                    lr_mode=self.lr_mode,
-                    train_loader=self.train_loader,
-                    net=self.net,
-                    training_params=self.training_params,
-                    update_param_groups=self.update_param_groups,
-                    optimizer=self.optimizer,
-                )
+            lr_scheduler_callback = create_lr_scheduler_callback(
+                lr_mode=self.lr_mode,
+                train_loader=self.train_loader,
+                net=self.net,
+                training_params=self.training_params,
+                update_param_groups=self.update_param_groups,
+                optimizer=self.optimizer,
             )
-            # if isinstance(self.lr_mode, str) and self.lr_mode in LR_SCHEDULERS_CLS_DICT:
-            #     sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
-            #     self.phase_callbacks.append(
-            #         sg_lr_callback_cls(
-            #             train_loader_len=len(self.train_loader),
-            #             net=self.net,
-            #             training_params=self.training_params,
-            #             update_param_groups=self.update_param_groups,
-            #             **self.training_params.to_dict(),
-            #         )
-            #     )
-            # elif isinstance(self.lr_mode, Mapping) and list(self.lr_mode.keys())[0] in TORCH_LR_SCHEDULERS:
-            #     lr_scheduler_name = list(self.lr_mode.keys())[0]
-            #     torch_scheduler_params = {k: v for k, v in self.lr_mode[lr_scheduler_name].items() if k != "phase" and k != "metric_name"}
-            #     torch_scheduler_params["optimizer"] = self.optimizer
-            #     torch_scheduler = TORCH_LR_SCHEDULERS[lr_scheduler_name](**torch_scheduler_params)
-            #     if get_param(self.lr_mode[lr_scheduler_name], "phase") is None:
-            #         raise ValueError("Phase is required argument when working with torch schedulers.")
-            #
-            #     if lr_scheduler_name == "ReduceLROnPlateau" and get_param(self.lr_mode[lr_scheduler_name], "metric_name") is None:
-            #         raise ValueError("metric_name is required argument when working with ReduceLROnPlateau schedulers.")
-            #
-            #     self.phase_callbacks.append(LRSchedulerCallback(scheduler=torch_scheduler,
-            #                                                     phase=self.lr_mode[lr_scheduler_name]["phase"],
-            #                                                     metric_name=get_param(self.lr_mode[lr_scheduler_name], "metric_name")))
+            self.phase_callbacks.append(lr_scheduler_callback)
+
+            # NEED ACCESS TO THE UNDERLYING TORCH SCHEDULER FOR LOADING/SAVING IT'S STATE_DICT
+            if isinstance(lr_scheduler_callback, LRSchedulerCallback):
+                self._torch_lr_scheduler = lr_scheduler_callback.scheduler
+                if self.load_checkpoint:
+                    self._torch_lr_scheduler.load_state_dict(self.checkpoint["torch_scheduler_state_dict"])
 
         # VERIFY GRADIENT CLIPPING VALUE
         if self.training_params.clip_grad_norm is not None and self.training_params.clip_grad_norm <= 0:
