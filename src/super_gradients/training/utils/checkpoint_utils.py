@@ -335,7 +335,7 @@ def _load_weights(architecture, model, pretrained_state_dict):
         pretrained_state_dict["net"] = pretrained_state_dict["ema_net"]
     solver = _yolox_ckpt_solver if "yolox" in architecture else None
     # TODO: Set strict=StrictLoad.KEY_MATCHING to HACK THE SYSTEM AND FORCE LOAD THE WEIGHTS PARTIALLY
-    adaptive_load_state_dict(net=model, state_dict=pretrained_state_dict, strict=StrictLoad.KEY_MATCHING, solver=solver)
+    adaptive_load_state_dict(net=model, state_dict=pretrained_state_dict, strict=StrictLoad.NO_KEY_MATCHING, solver=solver)
 
 
 def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pretrained_weights: str):
