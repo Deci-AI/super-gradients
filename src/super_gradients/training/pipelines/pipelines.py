@@ -20,7 +20,11 @@ from super_gradients.training.utils.predict import (
     Prediction,
     DetectionPrediction,
     PoseEstimationPrediction,
+    ImageClassificationPrediction,
+    ImagesClassificationPrediction,
+    ClassificationPrediction,
 )
+from torch.nn.functional import softmax
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, includes_video_extension
 from super_gradients.training.utils.media.image import ImageSource, check_image_typing
@@ -29,7 +33,6 @@ from super_gradients.training.utils.detection_utils import DetectionPostPredicti
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.processing.processing import Processing, ComposeProcessing
 from super_gradients.common.abstractions.abstract_logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -377,3 +380,61 @@ class PoseEstimationPipeline(Pipeline):
     ) -> VideoPoseEstimationPrediction:
         images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
         return VideoPoseEstimationPrediction(_images_prediction_lst=images_predictions, fps=fps)
+
+
+class ClassificationPipeline(Pipeline):
+    """Pipeline specifically designed for Image Classification tasks.
+    The pipeline includes loading images, preprocessing, prediction, and postprocessing.
+
+    :param model:                       The classification model (instance of SgModule) used for making predictions.
+    :param class_names:                 List of class names corresponding to the model's output classes.
+    :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
+    :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
+    :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    """
+
+    def __init__(
+        self,
+        model: SgModule,
+        class_names: List[str],
+        device: Optional[str] = None,
+        image_processor: Optional[Processing] = None,
+        fuse_model: bool = True,
+    ):
+        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
+
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[ClassificationPrediction]:
+        """Decode the model output
+
+        :param model_output:    Direct output of the model, without any post-processing.
+        :param model_input:     Model input (i.e. images after preprocessing).
+        :return:                Predicted Bboxes.
+        """
+        confidence_predictions, classifier_predictions = torch.max(model_output, 1)
+
+        classifier_predictions = classifier_predictions.detach().cpu().numpy()
+        confidence_predictions = softmax(confidence_predictions).detach().cpu().numpy()
+
+        predictions = list()
+        for prediction, confidence, image_input in zip(classifier_predictions, confidence_predictions, model_input):
+            predictions.append(ClassificationPrediction(confidence=float(confidence), labels=int(prediction), image_shape=image_input.shape))
+        return predictions
+
+    def _instantiate_image_prediction(self, image: np.ndarray, prediction: ClassificationPrediction) -> ImagePrediction:
+        return ImageClassificationPrediction(image=image, prediction=prediction, class_names=self.class_names)
+
+    def _combine_image_prediction_to_images(
+        self, images_predictions: Iterable[ImageClassificationPrediction], n_images: Optional[int] = None
+    ) -> ImagesClassificationPrediction:
+        if n_images is not None and n_images == 1:
+            # Do not show tqdm progress bar if there is only one image
+            images_predictions = [next(iter(images_predictions))]
+        else:
+            images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+
+        return ImagesClassificationPrediction(_images_prediction_lst=images_predictions)
+
+    def _combine_image_prediction_to_video(
+        self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
+    ) -> ImagesClassificationPrediction:
+        raise NotImplementedError("This feature is not available for Classification task")

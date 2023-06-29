@@ -423,3 +423,5 @@ class Processings:
     ReverseImageChannels = "ReverseImageChannels"
     NormalizeImage = "NormalizeImage"
     ComposeProcessing = "ComposeProcessing"
+    CenterCrop = "CenterCrop"
+    Resize = "Resize"
