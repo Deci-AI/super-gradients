@@ -31,7 +31,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         keypoint_radius: int = 5,
         box_thickness: int = 2,
         show_confidence: bool = False,
-        image_saturation: float = 0.5,
+        image_saturation: float = 1,
     ) -> np.ndarray:
         """Draw the predicted bboxes on the image.
 
@@ -53,8 +53,9 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         """
         image = self.image.copy()
 
-        monochrome = cv2.cvtColor(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), cv2.COLOR_GRAY2RGB)
-        image = cv2.addWeighted(image, image_saturation, monochrome, 1 - image_saturation, 0)
+        if image_saturation != 1:
+            monochrome = cv2.cvtColor(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), cv2.COLOR_GRAY2RGB)
+            image = cv2.addWeighted(image, image_saturation, monochrome, 1 - image_saturation, 0)
 
         for pred_i in np.argsort(self.prediction.scores):
             image = draw_skeleton(
