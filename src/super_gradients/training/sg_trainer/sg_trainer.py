@@ -46,7 +46,7 @@ from super_gradients.training.metrics.metric_utils import (
     get_train_loop_description_dict,
 )
 from super_gradients.training.models import SgModule, get_model_name
-from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS
+from super_gradients.common.registry.registry import ARCHITECTURES, SG_LOGGERS, TORCH_LR_SCHEDULERS
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.distributed_training_utils import (
@@ -83,6 +83,7 @@ from super_gradients.training.utils.callbacks import (
     MetricsUpdateCallback,
     ContextSgMethods,
     LRCallbackBase,
+    LRSchedulerCallback,
 )
 from super_gradients.common.registry.registry import LR_SCHEDULERS_CLS_DICT, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment.device_utils import device_config
@@ -1122,18 +1123,6 @@ class Trainer:
         self.phase_callbacks = self.training_params.phase_callbacks or []
         self.phase_callbacks = ListFactory(CallbacksFactory()).get(self.phase_callbacks)
 
-        if self.lr_mode is not None:
-            sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
-            self.phase_callbacks.append(
-                sg_lr_callback_cls(
-                    train_loader_len=len(self.train_loader),
-                    net=self.net,
-                    training_params=self.training_params,
-                    update_param_groups=self.update_param_groups,
-                    **self.training_params.to_dict(),
-                )
-            )
-
         warmup_mode = self.training_params.warmup_mode
         warmup_callback_cls = None
         if isinstance(warmup_mode, str):
@@ -1183,6 +1172,25 @@ class Trainer:
             self.optimizer = self.training_params.optimizer
         else:
             raise UnsupportedOptimizerFormat()
+
+        if self.lr_mode is not None:
+            if isinstance(self.lr_mode, str) and self.lr_mode in LR_SCHEDULERS_CLS_DICT:
+                sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
+                self.phase_callbacks.append(
+                    sg_lr_callback_cls(
+                        train_loader_len=len(self.train_loader),
+                        net=self.net,
+                        training_params=self.training_params,
+                        update_param_groups=self.update_param_groups,
+                        **self.training_params.to_dict(),
+                    )
+                )
+            elif isinstance(self.lr_mode, Mapping) and list(self.lr_mode.keys())[0] in TORCH_LR_SCHEDULERS:
+                lr_scheduler_name = list(self.lr_mode.keys())[0]
+                torch_scheduler_params = {k: v for k, v in self.lr_mode[lr_scheduler_name].items() if k != "phase"}
+                torch_scheduler_params["optimizer"] = self.optimizer
+                torch_scheduler = TORCH_LR_SCHEDULERS[lr_scheduler_name](**torch_scheduler_params)
+                self.phase_callbacks.append(LRSchedulerCallback(scheduler=torch_scheduler, phase=self.lr_mode[lr_scheduler_name]["phase"]))
 
         # VERIFY GRADIENT CLIPPING VALUE
         if self.training_params.clip_grad_norm is not None and self.training_params.clip_grad_norm <= 0:
