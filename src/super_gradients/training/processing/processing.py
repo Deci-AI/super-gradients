@@ -1,12 +1,13 @@
-from typing import Tuple, List, Union
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Tuple, List, Union
 
 import numpy as np
+from PIL import Image
 
+from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_processing
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
-from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST, IMAGENET_CLASSES
 from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
@@ -18,7 +19,7 @@ from super_gradients.training.transforms.utils import (
     _rescale_keypoints,
     _shift_keypoints,
 )
-from super_gradients.common.object_names import Processings
+from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
 
 
 @dataclass
@@ -257,7 +258,6 @@ class _Rescale(Processing, ABC):
         self.output_shape = output_shape
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
-
         scale_factor_h, scale_factor_w = self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1]
         rescaled_image = _rescale_image(image, target_shape=self.output_shape)
 
@@ -303,6 +303,58 @@ class KeypointsLongestMaxSizeRescale(_LongestMaxSizeRescale):
     def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: RescaleMetadata) -> PoseEstimationPrediction:
         predictions.poses = _rescale_keypoints(targets=predictions.poses, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
+
+
+class ClassificationProcess(Processing, ABC):
+    def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
+        return predictions
+
+
+@register_processing(Processings.Resize)
+class Resize(ClassificationProcess):
+    def __init__(self, size: int = 224):
+        super().__init__()
+        self.size = size
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
+        """Resize an image.
+
+        :param image: Image, in (H, W, C) format.
+        :return:      The resized image.
+        """
+        image = Image.fromarray(image)
+        resized_image = image.resize((self.size, self.size))
+        resized_image = np.array(resized_image)
+
+        return resized_image, None
+
+
+@register_processing(Processings.CenterCrop)
+class CenterCrop(ClassificationProcess):
+    """
+    :param size: Desired output size of the crop.
+    """
+
+    def __init__(self, size: int = 224):
+        super().__init__()
+        self.size = size
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
+        """Crops the given image at the center.
+
+        :param image: Image, in (H, W, C) format.
+        :return:      The center cropped image.
+        """
+        height, width = image.shape[0], image.shape[1]
+
+        # Calculate the start and end coordinates of the crop.
+        start_x = (width - self.size) // 2
+        start_y = (height - self.size) // 2
+        end_x = start_x + self.size
+        end_y = start_y + self.size
+
+        cropped_image = image[start_y:end_y, start_x:end_x]
+        return cropped_image, None
 
 
 def default_yolox_coco_processing_params() -> dict:
@@ -455,6 +507,18 @@ def default_dekr_coco_processing_params() -> dict:
     return params
 
 
+def default_resnet_imagenet_processing_params() -> dict:
+    """Processing parameters commonly used for training resnet on Imagenet dataset."""
+    image_processor = ComposeProcessing(
+        [Resize(size=256), CenterCrop(size=224), NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), StandardizeImage(), ImagePermute()]
+    )
+    params = dict(
+        class_names=IMAGENET_CLASSES,
+        image_processor=image_processor,
+    )
+    return params
+
+
 def default_yolo_nas_pose_coco_processing_params() -> dict:
     """Processing parameters commonly used for training DEKR on COCO dataset."""
 
@@ -548,10 +612,13 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
         elif "yolo_nas" in model_name:
             return default_yolo_nas_coco_processing_params()
 
+    if pretrained_weights == "coco_pose" and model_name in ("yolo_nas_pose_l", "yolo_nas_pose_m", "yolo_nas_pose_s"):
+        return default_yolo_nas_pose_coco_processing_params()
+
     if pretrained_weights == "coco_pose" and model_name in ("dekr_w32_no_dc", "dekr_custom"):
         return default_dekr_coco_processing_params()
 
-    if pretrained_weights == "coco_pose" and model_name in ("yolo_nas_pose_l", "yolo_nas_pose_m", "yolo_nas_pose_s"):
-        return default_yolo_nas_pose_coco_processing_params()
+    if pretrained_weights == "imagenet" and model_name == "resnet18":
+        return default_resnet_imagenet_processing_params()
 
     return dict()

@@ -12,7 +12,7 @@ import requests
 from urllib.parse import urlparse
 
 
-IMG_EXTENSIONS = ("bmp", "dng", "jpeg", "jpg", "mpo", "png", "tif", "tiff", "webp", "pfm")
+IMG_EXTENSIONS = ("bmp", "dng", "jpeg", "jpg", "mpo", "pfm", "pgm", "png", "ppm", "tif", "tiff", "webp")
 SingleImageSource = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
 ImageSource = Union[SingleImageSource, List[SingleImageSource]]
 

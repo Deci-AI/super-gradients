@@ -9,17 +9,17 @@ Pre-trained CIFAR10 models: 'deci-model-repository/CIFAR_NAS_#?_????_?/ckpt_best
 
 Code adapted from https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 """
+from collections import OrderedDict
 
 import torch.nn as nn
 import torch.nn.functional as F
-from collections import OrderedDict
+from super_gradients.training.models.sg_module import SgModule
 
+from super_gradients.common.object_names import Models
+from super_gradients.common.registry.registry import register_model
 from super_gradients.modules.utils import width_multiplier
-from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.regularization_utils import DropPath
-from super_gradients.common.registry.registry import register_model
-from super_gradients.common.object_names import Models
 
 
 class BasicResNetBlock(nn.Module):

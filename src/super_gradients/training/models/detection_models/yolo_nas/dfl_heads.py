@@ -18,7 +18,18 @@ from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 
 @register_detection_module()
 class YoloNASDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
-    def __init__(self, in_channels: int, inter_channels: int, width_mult: float, first_conv_group_size: int, num_classes: int, stride: int, reg_max: int):
+    def __init__(
+        self,
+        in_channels: int,
+        inter_channels: int,
+        width_mult: float,
+        first_conv_group_size: int,
+        num_classes: int,
+        stride: int,
+        reg_max: int,
+        cls_dropout_rate: float = 0.0,
+        reg_dropout_rate: float = 0.0,
+    ):
         """
         Initialize the YoloNASDFLHead
         :param in_channels: Input channels
@@ -28,6 +39,8 @@ class YoloNASDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         :param num_classes: Number of detection classes
         :param stride: Output stride for this head
         :param reg_max: Number of bins in the regression head
+        :param cls_dropout_rate: Dropout rate for the classification head
+        :param reg_dropout_rate: Dropout rate for the regression head
         """
         super().__init__(in_channels)
 
@@ -51,6 +64,9 @@ class YoloNASDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         self.cls_pred = nn.Conv2d(inter_channels, self.num_classes, 1, 1, 0)
         self.reg_pred = nn.Conv2d(inter_channels, 4 * (reg_max + 1), 1, 1, 0)
 
+        self.cls_dropout_rate = nn.Dropout2d(cls_dropout_rate) if cls_dropout_rate > 0 else nn.Identity()
+        self.reg_dropout_rate = nn.Dropout2d(reg_dropout_rate) if reg_dropout_rate > 0 else nn.Identity()
+
         self.grid = torch.zeros(1)
         self.stride = stride
 
@@ -69,9 +85,11 @@ class YoloNASDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         x = self.stem(x)
 
         cls_feat = self.cls_convs(x)
+        cls_feat = self.cls_dropout_rate(cls_feat)
         cls_output = self.cls_pred(cls_feat)
 
         reg_feat = self.reg_convs(x)
+        reg_feat = self.reg_dropout_rate(reg_feat)
         reg_output = self.reg_pred(reg_feat)
 
         return reg_output, cls_output

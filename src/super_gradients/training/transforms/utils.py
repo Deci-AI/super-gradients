@@ -19,11 +19,11 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarr
     """Rescale image to target_shape, without preserving aspect ratio.
 
     :param image:           Image to rescale. (H, W, C) or (H, W).
-    :param target_shape:    Target shape to rescale to.
+    :param target_shape:    Target shape to rescale to (H, W).
     :return:                Rescaled image.
     """
     height, width = target_shape[:2]
-    return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_LINEAR).astype(np.uint8)
+    return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_LINEAR)
 
 
 def _rescale_bboxes(targets: np.ndarray, scale_factors: Tuple[float, float]) -> np.ndarray:

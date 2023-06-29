@@ -14,6 +14,7 @@ from super_gradients.common.decorators.explicit_params_validator import explicit
 from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
+from super_gradients.training.utils.utils import unwrap_model
 
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
@@ -56,6 +57,13 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Uni
     :return:
     """
     state_dict = state_dict["net"] if "net" in state_dict else state_dict
+
+    # This is a backward compatibility fix for checkpoints that were saved with DataParallel/DistributedDataParallel wrapper
+    # and contains "module." prefix in all keys
+    # If all keys start with "module.", then we remove it.
+    if all([key.startswith("module.") for key in state_dict.keys()]):
+        state_dict = collections.OrderedDict([(key[7:], value) for key, value in state_dict.items()])
+
     try:
         strict_bool = strict if isinstance(strict, bool) else strict != StrictLoad.OFF
         net.load_state_dict(state_dict, strict=strict_bool)
@@ -219,6 +227,8 @@ def load_checkpoint_to_model(
     if isinstance(strict, str):
         strict = StrictLoad(strict)
 
+    net = unwrap_model(net)
+
     if load_backbone and not hasattr(net, "backbone"):
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
 
@@ -241,7 +251,7 @@ def load_checkpoint_to_model(
     message_model = "model" if not load_backbone else "model's backbone"
     logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
 
-    if (isinstance(net, HasPredict) or (hasattr(net, "module") and isinstance(net.module, HasPredict))) and load_processing_params:
+    if (isinstance(net, HasPredict)) and load_processing_params:
         if "processing_params" not in checkpoint.keys():
             raise ValueError("Can't load processing params - could not find any stored in checkpoint file.")
         try:
@@ -277,7 +287,7 @@ def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
 
     if (
         ckpt_val.shape != model_val.shape
-        and ckpt_key == "module._backbone._modules_list.0.conv.conv.weight"
+        and (ckpt_key == "module._backbone._modules_list.0.conv.conv.weight" or ckpt_key == "_backbone._modules_list.0.conv.conv.weight")
         and model_key == "_backbone._modules_list.0.conv.weight"
     ):
         model_val.data[:, :, ::2, ::2] = ckpt_val.data[:, :3]
