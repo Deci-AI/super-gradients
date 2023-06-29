@@ -2,6 +2,7 @@ import os
 from dataclasses import dataclass
 from typing import List
 
+import cv2
 import numpy as np
 
 from super_gradients.training.utils.predict import ImagePrediction, ImagesPredictions, VideoPredictions, PoseEstimationPrediction
@@ -30,6 +31,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         keypoint_radius: int = 5,
         box_thickness: int = 2,
         show_confidence: bool = False,
+        image_saturation: float = 0.5,
     ) -> np.ndarray:
         """Draw the predicted bboxes on the image.
 
@@ -43,9 +45,16 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param keypoint_radius: Radius of the keypoints (in pixels).
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   Thickness of bounding boxes.
+        :param image_saturation: Color saturation of the input image (0 = grayscale, 1 = original colors).
+                            This parameter controls how much color intensity is preserved in the input image.
+                            When drawing skeletons they can become hard to see if the input image is too colorful.
+                            Default: 0.6
         :return:                Image with predicted bboxes. Note that this does not modify the original image.
         """
         image = self.image.copy()
+
+        monochrome = cv2.cvtColor(cv2.cvtColor(image, cv2.COLOR_RGB2GRAY), cv2.COLOR_GRAY2RGB)
+        image = cv2.addWeighted(image, image_saturation, monochrome, 1 - image_saturation, 0)
 
         for pred_i in np.argsort(self.prediction.scores):
             image = draw_skeleton(
@@ -119,7 +128,14 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   Thickness of bounding boxes.
         """
-        image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence)
+        image = self.draw(
+            box_thickness=box_thickness,
+            show_confidence=show_confidence,
+            joint_thickness=joint_thickness,
+            keypoint_colors=keypoint_colors,
+            keypoint_radius=keypoint_radius,
+            edge_colors=edge_colors,
+        )
         save_image(image=image, path=output_path)
 
 

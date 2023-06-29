@@ -33,9 +33,11 @@ def draw_skeleton(
     :param show_confidence: Whether to show the bounding box around the pose and confidence score on top of it.
     :param box_thickness:   Thickness of bounding boxes.
 
+
     :return: A new image with the skeleton drawn on it
     """
     image = image.copy()
+
     if edge_colors is None:
         edge_colors = [(255, 0, 255)] * len(edge_links)
 
