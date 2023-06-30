@@ -1,4 +1,5 @@
 import math
+import warnings
 from typing import Union, Type, List, Tuple, Optional
 from functools import lru_cache
 
@@ -58,8 +59,10 @@ DEFAULT_YOLO_ARCH_PARAMS = {
 }
 
 
-class YoloPostPredictionCallback(DetectionPostPredictionCallback):
-    """Non-Maximum Suppression (NMS) module"""
+class YoloXPostPredictionCallback(DetectionPostPredictionCallback):
+    """Post-prediction callback to decode YoloX model's output and apply Non-Maximum Suppression (NMS) to get
+    the final predictions.
+    """
 
     def __init__(
         self,
@@ -87,7 +90,7 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         :param multi_label_per_box: controls whether to decode multiple labels per box (used in NMS_Type.ITERATIVE)
 
         """
-        super(YoloPostPredictionCallback, self).__init__()
+        super(YoloXPostPredictionCallback, self).__init__()
         self.conf = conf
         self.iou = iou
         self.classes = classes
@@ -121,6 +124,31 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
     def _filter_max_predictions(self, res: List) -> List:
         res[:] = [im[: self.max_pred] if (im is not None and im.shape[0] > self.max_pred) else im for im in res]
         return res
+
+
+class YoloPostPredictionCallback(YoloXPostPredictionCallback):
+    def __init__(
+        self,
+        conf: float = 0.001,
+        iou: float = 0.6,
+        classes: List[int] = None,
+        nms_type: NMS_Type = NMS_Type.ITERATIVE,
+        max_predictions: int = 300,
+        with_confidence: bool = True,
+        class_agnostic_nms: bool = False,
+        multi_label_per_box: bool = False,
+    ):
+        warnings.warn("YoloXPostPredictionCallback is deprecated, use YoloXPostPredictionCallback instead", DeprecationWarning)
+        super().__init__(
+            conf=conf,
+            iou=iou,
+            classes=classes,
+            nms_type=nms_type,
+            max_predictions=max_predictions,
+            with_confidence=with_confidence,
+            class_agnostic_nms=class_agnostic_nms,
+            multi_label_per_box=multi_label_per_box,
+        )
 
 
 class Concat(nn.Module):
@@ -444,7 +472,7 @@ class YoloBase(SgModule):
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
-        return YoloPostPredictionCallback(conf=conf, iou=iou)
+        return YoloXPostPredictionCallback(conf=conf, iou=iou)
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(

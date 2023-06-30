@@ -70,7 +70,7 @@ from super_gradients.training.models.detection_models.csp_darknet53 import CSPDa
 from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloE, PPYoloE_S, PPYoloE_M, PPYoloE_L, PPYoloE_X
 from super_gradients.training.models.detection_models.darknet53 import Darknet53, Darknet53Base
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
-from super_gradients.training.models.detection_models.yolo_base import YoloBase, YoloPostPredictionCallback
+from super_gradients.training.models.detection_models.yolo_base import YoloBase, YoloXPostPredictionCallback
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 from super_gradients.training.models.detection_models.yolo_nas import (
@@ -290,7 +290,7 @@ __all__ = [
     "YoloX_L",
     "YoloX_X",
     "CustomYoloX",
-    "YoloPostPredictionCallback",
+    "YoloXPostPredictionCallback",
     "CustomizableDetector",
     "ShelfNet50",
     "ShelfNet101",
