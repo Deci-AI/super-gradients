@@ -69,6 +69,8 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         nms_type: NMS_Type = NMS_Type.ITERATIVE,
         max_predictions: int = 300,
         with_confidence: bool = True,
+        class_agnostic_nms: bool = False,
+        multi_label_per_box: bool = False,
     ):
         """
         :param conf: confidence threshold
@@ -78,6 +80,12 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         :param max_predictions: maximum number of boxes to output       (used in NMS_Type.MATRIX)
         :param with_confidence: in NMS, whether to multiply objectness  (used in NMS_Type.ITERATIVE)
                                 score with class score
+        :param class_agnostic_nms: indicates how boxes of different classes will be treated during
+                                   NMS step (used in NMS_Type.ITERATIVE and NMS_Type.MATRIX)
+                                   True - NMS will be performed on all classes together.
+                                   False - NMS will be performed on each class separately (default).
+        :param multi_label_per_box: controls whether to decode multiple labels per box (used in NMS_Type.ITERATIVE)
+
         """
         super(YoloPostPredictionCallback, self).__init__()
         self.conf = conf
@@ -86,6 +94,8 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         self.nms_type = nms_type
         self.max_pred = max_predictions
         self.with_confidence = with_confidence
+        self.class_agnostic_nms = class_agnostic_nms
+        self.multi_label_per_box = multi_label_per_box
 
     def forward(self, x, device: str = None):
         """Apply NMS to the raw output of the model and keep only top `max_predictions` results.
@@ -95,9 +105,16 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         """
 
         if self.nms_type == NMS_Type.ITERATIVE:
-            nms_result = non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, with_confidence=self.with_confidence)
+            nms_result = non_max_suppression(
+                x[0],
+                conf_thres=self.conf,
+                iou_thres=self.iou,
+                with_confidence=self.with_confidence,
+                multi_label_per_box=self.multi_label_per_box,
+                class_agnostic_nms=self.class_agnostic_nms,
+            )
         else:
-            nms_result = matrix_non_max_suppression(x[0], conf_thres=self.conf, max_num_of_detections=self.max_pred)
+            nms_result = matrix_non_max_suppression(x[0], conf_thres=self.conf, max_num_of_detections=self.max_pred, class_agnostic_nms=self.class_agnostic_nms)
 
         return self._filter_max_predictions(nms_result)
 

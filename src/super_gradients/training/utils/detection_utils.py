@@ -242,18 +242,26 @@ def box_iou(box1: torch.Tensor, box2: torch.Tensor) -> torch.Tensor:
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
 
 
-def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_per_box: bool = True, with_confidence: bool = False):
+def non_max_suppression(
+    prediction, conf_thres=0.1, iou_thres=0.6, multi_label_per_box: bool = True, with_confidence: bool = False, class_agnostic_nms: bool = False
+):
     """
     Performs Non-Maximum Suppression (NMS) on inference results
-        :param prediction: raw model prediction. Should be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
-        :param conf_thres: below the confidence threshold - prediction are discarded
-        :param iou_thres: IoU threshold for the nms algorithm
-        :param multi_label_per_box: whether to use re-use each box with all possible labels
-                                    (instead of the maximum confidence all confidences above threshold
-                                    will be sent to NMS); by default is set to True
-        :param with_confidence: whether to multiply objectness score with class score.
-                                usually valid for Yolo models only.
-        :return: detections with shape nx6 (x1, y1, x2, y2, object_conf, class_conf, class)
+
+    :param prediction: raw model prediction. Should be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
+    :param conf_thres: below the confidence threshold - prediction are discarded
+    :param iou_thres: IoU threshold for the nms algorithm
+    :param multi_label_per_box: whether to use re-use each box with all possible labels
+                                (instead of the maximum confidence all confidences above threshold
+                                will be sent to NMS); by default is set to True
+    :param with_confidence: whether to multiply objectness score with class score.
+                            usually valid for Yolo models only.
+    :param class_agnostic_nms: indicates how boxes of different classes will be treated during
+                       NMS (used in NMS_Type.ITERATIVE)
+                       True - NMS will be performed on all classes together.
+                       False - NMS will be performed on each class separately (default).
+    :return: detections with shape nx6 (x1, y1, x2, y2, object_conf, class_conf, class)
+
     """
     candidates_above_thres = prediction[..., 4] > conf_thres  # filter by confidence
     output = [None] * prediction.shape[0]
@@ -284,18 +292,17 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_p
 
         # Apply torch batched NMS algorithm
         boxes, scores, cls_idx = pred[:, :4], pred[:, 4], pred[:, 5]
-        idx_to_keep = torchvision.ops.boxes.batched_nms(boxes, scores, cls_idx, iou_thres)
+        if class_agnostic_nms:
+            idx_to_keep = torchvision.ops.boxes.nms(boxes, scores, iou_thres)
+        else:
+            idx_to_keep = torchvision.ops.boxes.batched_nms(boxes, scores, cls_idx, iou_thres)
         output[image_idx] = pred[idx_to_keep]
 
     return output
 
 
 def matrix_non_max_suppression(
-    pred,
-    conf_thres: float = 0.1,
-    kernel: str = "gaussian",
-    sigma: float = 3.0,
-    max_num_of_detections: int = 500,
+    pred, conf_thres: float = 0.1, kernel: str = "gaussian", sigma: float = 3.0, max_num_of_detections: int = 500, class_agnostic_nms: bool = False
 ) -> List[torch.Tensor]:
     """Performs Matrix Non-Maximum Suppression (NMS) on inference results https://arxiv.org/pdf/1912.04488.pdf
 
@@ -326,11 +333,12 @@ def matrix_non_max_suppression(
 
     ious = ious.triu(1)
 
-    # CREATE A LABELS MASK, WE WANT ONLY BOXES WITH THE SAME LABEL TO AFFECT EACH OTHER
-    labels = pred[:, :, 5:]
-    labeles_matrix = (labels == labels.transpose(2, 1)).float().triu(1)
+    if not class_agnostic_nms:
+        # CREATE A LABELS MASK, WE WANT ONLY BOXES WITH THE SAME LABEL TO AFFECT EACH OTHER
+        labels = pred[:, :, 5:]
+        labeles_matrix = (labels == labels.transpose(2, 1)).float().triu(1)
+        ious *= labeles_matrix
 
-    ious *= labeles_matrix
     ious_cmax, _ = ious.max(1)
     ious_cmax = ious_cmax.unsqueeze(2).repeat(1, 1, max_num_of_detections)
 
