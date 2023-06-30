@@ -6,7 +6,7 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command you want:
-#         yolo_nas_s: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolo_nas_s
+#         yolo_nas_s: python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_l
 #
 
 defaults:
@@ -34,6 +34,8 @@ training_hyperparams:
   resume: ${resume}
   ema: False
   mixed_precision: True
+  initial_lr:  1e-3
+  sync_bn: True
 
   sg_logger: wandb_sg_logger
   sg_logger_params:
