@@ -82,7 +82,6 @@ from super_gradients.training.utils.callbacks import (
     Phase,
     PhaseContext,
     MetricsUpdateCallback,
-    ContextSgMethods,
     LRCallbackBase,
 )
 from super_gradients.common.registry.registry import LR_SCHEDULERS_CLS_DICT, LR_WARMUP_CLS_DICT
@@ -2016,36 +2015,6 @@ class Trainer:
         :param val: bool, value to set ema
         """
         self.ema = val
-
-    def _get_context_methods(self, phase: Phase) -> ContextSgMethods:
-        """
-        Returns ContextSgMethods holding the methods that should be accessible through phase callbacks to the user at
-         the specific phase
-
-        :param phase: Phase, controls what methods should be returned.
-        :return: ContextSgMethods holding methods from self.
-        """
-        if phase in [
-            Phase.PRE_TRAINING,
-            Phase.TRAIN_EPOCH_START,
-            Phase.TRAIN_EPOCH_END,
-            Phase.VALIDATION_EPOCH_END,
-            Phase.VALIDATION_EPOCH_END,
-            Phase.POST_TRAINING,
-            Phase.VALIDATION_END_BEST_EPOCH,
-        ]:
-            context_methods = ContextSgMethods(
-                get_net=self.get_net,
-                set_net=self.set_net,
-                set_ckpt_best_name=self.set_ckpt_best_name,
-                reset_best_metric=self._reset_best_metric,
-                validate_epoch=self._validate_epoch,
-                set_ema=self.set_ema,
-            )
-        else:
-            context_methods = ContextSgMethods()
-
-        return context_methods
 
     def _init_loss_logging_names(self, loss_logging_items):
         criterion_name = self.criterion.__class__.__name__
