@@ -73,7 +73,7 @@ class YoloXPostPredictionCallback(DetectionPostPredictionCallback):
         max_predictions: int = 300,
         with_confidence: bool = True,
         class_agnostic_nms: bool = False,
-        multi_label_per_box: bool = False,
+        multi_label_per_box: bool = True,
     ):
         """
         :param conf: confidence threshold
@@ -88,7 +88,9 @@ class YoloXPostPredictionCallback(DetectionPostPredictionCallback):
                                    True - NMS will be performed on all classes together.
                                    False - NMS will be performed on each class separately (default).
         :param multi_label_per_box: controls whether to decode multiple labels per box (used in NMS_Type.ITERATIVE)
-
+                                    True - each anchor can produce multiple labels of different classes
+                                           that pass confidence threshold check (default).
+                                    False - each anchor can produce only one label of the class with the highest score.
         """
         super(YoloXPostPredictionCallback, self).__init__()
         self.conf = conf
