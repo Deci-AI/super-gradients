@@ -14,15 +14,16 @@ import torch
 from deprecated import deprecated
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback
 from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
+from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, EpochNumber
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
-from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
-
+from super_gradients.training.utils.utils import unwrap_model
 
 logger = get_logger(__name__)
 
@@ -74,7 +75,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         self.atol = kwargs.get("atol", 1e-05)
 
     def __call__(self, context: PhaseContext):
-        model = copy.deepcopy(context.net.module)
+        model = copy.deepcopy(unwrap_model(context.net))
         model = model.cpu()
         model.eval()  # Put model into eval mode
 
@@ -203,12 +204,12 @@ class DeciLabUploadCallback(PhaseCallback):
         :param context: Training phase context
         """
         try:
-            model = copy.deepcopy(context.net)
+            model = copy.deepcopy(unwrap_model(context.net))
             model_state_dict_path = os.path.join(context.ckpt_dir, self.ckpt_name)
             model_state_dict = torch.load(model_state_dict_path)["net"]
             model.load_state_dict(state_dict=model_state_dict)
 
-            model = model.module.cpu()
+            model = model.cpu()
             if hasattr(model, "prep_model_for_conversion"):
                 model.prep_model_for_conversion(input_size=self.input_dimensions)
 
@@ -266,7 +267,9 @@ class LRCallbackBase(PhaseCallback):
 
     def update_lr(self, optimizer, epoch, batch_idx=None):
         if self.update_param_groups:
-            param_groups = self.net.module.update_param_groups(optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len)
+            param_groups = unwrap_model(self.net).update_param_groups(
+                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
+            )
             optimizer.param_groups = param_groups
         else:
             # UPDATE THE OPTIMIZERS PARAMETER
@@ -372,7 +375,9 @@ class BatchStepLinearWarmupLRCallback(Callback):
         :return:
         """
         if self.update_param_groups:
-            param_groups = self.net.module.update_param_groups(optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len)
+            param_groups = unwrap_model(self.net).update_param_groups(
+                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
+            )
             optimizer.param_groups = param_groups
         else:
             # UPDATE THE OPTIMIZERS PARAMETER
@@ -759,3 +764,102 @@ class TestLRCallback(PhaseCallback):
 
     def __call__(self, context: PhaseContext):
         self.lr_placeholder.append(context.optimizer.param_groups[0]["lr"])
+
+
+@register_callback(Callbacks.TIMER)
+class TimerCallback(Callback):
+    def __init__(self):
+        self.events = {}
+
+    @multi_process_safe
+    def on_train_loader_start(self, context: PhaseContext) -> None:
+        self.events["on_train_loader_start"] = cv2.getTickCount()
+
+    @multi_process_safe
+    def on_train_batch_start(self, context: PhaseContext) -> None:
+        self.events["on_train_batch_start"] = cv2.getTickCount()
+
+    @multi_process_safe
+    def on_train_batch_loss_end(self, context: PhaseContext) -> None:
+        self.events["on_train_batch_loss_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="timer/train_batch_forward_with_loss_ms",
+            scalar_value=self._elapsed_time_between("on_train_batch_start", "on_train_batch_loss_end"),
+            global_step=GlobalBatchStepNumber(self._infer_global_step(context, is_train_loader=True)),
+        )
+
+    @multi_process_safe
+    def on_train_batch_gradient_step_start(self, context: PhaseContext) -> None:
+        self.events["on_train_batch_gradient_step_start"] = cv2.getTickCount()
+
+    @multi_process_safe
+    def on_train_batch_gradient_step_end(self, context: PhaseContext) -> None:
+        self.events["on_train_batch_gradient_step_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="timer/train_batch_gradient_time",
+            scalar_value=self._elapsed_time_between("on_train_batch_gradient_step_start", "on_train_batch_gradient_step_end"),
+            global_step=GlobalBatchStepNumber(self._infer_global_step(context, is_train_loader=True)),
+        )
+
+    @multi_process_safe
+    def on_train_batch_end(self, context: PhaseContext) -> None:
+        self.events["on_train_batch_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="timer/train_batch_total_time_ms",
+            scalar_value=self._elapsed_time_between("on_train_batch_start", "on_train_batch_end"),
+            global_step=GlobalBatchStepNumber(self._infer_global_step(context, is_train_loader=True)),
+        )
+
+    @multi_process_safe
+    def on_train_loader_end(self, context: PhaseContext) -> None:
+        self.events["on_train_loader_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="timer/train_loader_total_time_ms",
+            scalar_value=self._elapsed_time_between("on_train_loader_start", "on_train_loader_end"),
+            global_step=EpochNumber(context.epoch),
+        )
+
+    @multi_process_safe
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
+        self.events["on_validation_loader_start"] = cv2.getTickCount()
+
+    @multi_process_safe
+    def on_validation_batch_start(self, context: PhaseContext) -> None:
+        self.events["on_validation_batch_start"] = cv2.getTickCount()
+
+    @multi_process_safe
+    def on_validation_batch_end(self, context: PhaseContext) -> None:
+        self.events["on_validation_batch_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="timer/validation_batch_total_time_ms",
+            scalar_value=self._elapsed_time_between("on_validation_batch_start", "on_validation_batch_end"),
+            global_step=GlobalBatchStepNumber(self._infer_global_step(context, is_train_loader=False)),
+        )
+
+    @multi_process_safe
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
+        self.events["on_validation_loader_end"] = cv2.getTickCount()
+        context.sg_logger.add_scalar(
+            tag="timer/validation_loader_total_time_ms",
+            scalar_value=self._elapsed_time_between("on_validation_loader_start", "on_validation_loader_end"),
+            global_step=EpochNumber(context.epoch),
+        )
+
+        context.sg_logger.add_scalar(
+            tag="timer/epoch_total_time_sec",
+            scalar_value=self._elapsed_time_between("on_train_loader_start", "on_validation_loader_end") / 1000.0,
+            global_step=EpochNumber(context.epoch),
+        )
+
+    def _elapsed_time_between(self, start_event, end_event):
+        return 1000.0 * (self.events[end_event] - self.events[start_event]) / cv2.getTickFrequency()
+
+    def _infer_global_step(self, context: PhaseContext, is_train_loader: bool):
+        train_loader_length = len(context.train_loader) if context.train_loader is not None else 0
+        valid_loader_length = len(context.valid_loader) if context.valid_loader is not None else 0
+        total_steps_in_epoch = train_loader_length + valid_loader_length
+        total_steps_in_done = context.epoch * total_steps_in_epoch
+        if is_train_loader:
+            return total_steps_in_done + context.batch_idx
+        else:
+            return total_steps_in_done + train_loader_length + context.batch_idx

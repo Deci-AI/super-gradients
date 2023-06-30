@@ -5,6 +5,8 @@ import numpy as np
 from PIL import Image
 import torch
 
+from super_gradients.common.sg_loggers.time_units import TimeUnit
+
 
 class AbstractSGLogger(ABC):
     """
@@ -40,7 +42,7 @@ class AbstractSGLogger(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def add_scalar(self, tag: str, scalar_value: float, global_step: int = None):
+    def add_scalar(self, tag: str, scalar_value: float, global_step: Union[int, TimeUnit] = None):
         """
         Add scalar data to SGLogger.
         Typically, this function will add scalar to tensorboard or other experiment management framework.

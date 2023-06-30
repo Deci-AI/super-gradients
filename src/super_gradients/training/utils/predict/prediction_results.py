@@ -1,15 +1,17 @@
 import os
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Iterator
 from dataclasses import dataclass
+from typing import List, Optional, Tuple, Iterator
 
 import numpy as np
 
-from .predictions import Prediction, DetectionPrediction
-from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.media.image import show_image, save_image
-from super_gradients.training.utils.visualization.utils import generate_color_mapping
+from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.visualization.detection import draw_bbox
+from super_gradients.training.utils.visualization.classification import draw_label
+
+from super_gradients.training.utils.visualization.utils import generate_color_mapping
+from .predictions import Prediction, DetectionPrediction, ClassificationPrediction
 
 
 @dataclass
@@ -42,6 +44,54 @@ class ImagePrediction(ABC):
 
 
 @dataclass
+class ImageClassificationPrediction(ImagePrediction):
+    """Object wrapping an image and a classification model's prediction.
+
+    :attr image:        Input image
+    :attr predictions:  Predictions of the model
+    :attr class_names:  List of the class names to predict
+    """
+
+    image: np.ndarray
+    prediction: ClassificationPrediction
+    class_names: List[str]
+
+    def draw(self, show_confidence: bool = True) -> np.ndarray:
+        """Draw the predicted label on the image.
+
+        :param show_confidence: Whether to show confidence scores on the image.
+        :return:                Image with predicted label.
+        """
+
+        image = self.image.copy()
+        return draw_label(
+            image=image, label=self.class_names[self.prediction.labels], confidence=str(self.prediction.confidence), image_shape=self.prediction.image_shape[1:]
+        )
+
+    def show(self, show_confidence: bool = True) -> None:
+        """Display the image with predicted label.
+
+        :param show_confidence: Whether to show confidence scores on the image.
+        """
+        # to do draw the prediction on the image
+        image = self.draw(show_confidence=show_confidence)
+        show_image(image)
+
+    def save(
+        self,
+        output_path: str,
+        show_confidence: bool = True,
+    ) -> None:
+        """Save the predicted label on the images.
+
+        :param output_path:     Path to the output video file.
+        :param show_confidence: Whether to show confidence scores on the image.
+        """
+        image = self.draw(show_confidence=show_confidence)
+        save_image(image=image, path=output_path)
+
+
+@dataclass
 class ImageDetectionPrediction(ImagePrediction):
     """Object wrapping an image and a detection model's prediction.
 
@@ -67,7 +117,6 @@ class ImageDetectionPrediction(ImagePrediction):
         color_mapping = color_mapping or generate_color_mapping(len(self.class_names))
 
         for pred_i in np.argsort(self.prediction.confidence):
-
             class_id = int(self.prediction.labels[pred_i])
             score = "" if not show_confidence else str(round(self.prediction.confidence[pred_i], 2))
 
@@ -157,6 +206,36 @@ class VideoPredictions(ImagesPredictions, ABC):
     def save(self, *args, **kwargs) -> None:
         """Save the predictions on the video."""
         pass
+
+
+@dataclass
+class ImagesClassificationPrediction(ImagesPredictions):
+    """Object wrapping the list of image classification predictions.
+
+    :attr _images_prediction_lst:  List of the predictions results
+    """
+
+    _images_prediction_lst: List[ImageClassificationPrediction]
+
+    def show(self, show_confidence: bool = True) -> None:
+        """Display the predicted labels on the images.
+        :param show_confidence: Whether to show confidence scores on the image.
+        """
+        for prediction in self._images_prediction_lst:
+            prediction.show(show_confidence=show_confidence)
+
+    def save(self, output_folder: str, show_confidence: bool = True) -> None:
+        """Save the predicted label on the images.
+
+        :param output_folder:     Folder path, where the images will be saved.
+        :param show_confidence: Whether to show confidence scores on the image.
+        """
+        if output_folder:
+            os.makedirs(output_folder, exist_ok=True)
+
+        for i, prediction in enumerate(self._images_prediction_lst):
+            image_output_path = os.path.join(output_folder, f"pred_{i}.jpg")
+            prediction.save(output_path=image_output_path, show_confidence=show_confidence)
 
 
 @dataclass

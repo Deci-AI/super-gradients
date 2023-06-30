@@ -57,6 +57,7 @@ class Transforms:
     DetectionRGB2BGR = "DetectionRGB2BGR"
     DetectionRandomRotate90 = "DetectionRandomRotate90"
     DetectionHorizontalFlip = "DetectionHorizontalFlip"
+    DetectionVerticalFlip = "DetectionVerticalFlip"
     DetectionRescale = "DetectionRescale"
     DetectionPadToSize = "DetectionPadToSize"
     DetectionImagePermute = "DetectionImagePermute"
@@ -146,6 +147,7 @@ class Callbacks:
     DETECTION_VISUALIZATION_CALLBACK = "DetectionVisualizationCallback"
     DEKR_VISUALIZATION = "DEKRVisualizationCallback"
     ROBOFLOW_RESULT_CALLBACK = "RoboflowResultCallback"
+    TIMER = "TimerCallback"
 
 
 class LRSchedulers:
@@ -421,3 +423,5 @@ class Processings:
     ReverseImageChannels = "ReverseImageChannels"
     NormalizeImage = "NormalizeImage"
     ComposeProcessing = "ComposeProcessing"
+    CenterCrop = "CenterCrop"
+    Resize = "Resize"
