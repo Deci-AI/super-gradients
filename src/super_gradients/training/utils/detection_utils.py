@@ -251,9 +251,10 @@ def non_max_suppression(
     :param prediction: raw model prediction. Should be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
     :param conf_thres: below the confidence threshold - prediction are discarded
     :param iou_thres: IoU threshold for the nms algorithm
-    :param multi_label_per_box: whether to use re-use each box with all possible labels
-                                (instead of the maximum confidence all confidences above threshold
-                                will be sent to NMS); by default is set to True
+    :param multi_label_per_box: controls whether to decode multiple labels per box.
+                                True - each anchor can produce multiple labels of different classes
+                                       that pass confidence threshold check (default).
+                                False - each anchor can produce only one label of the class with the highest score.
     :param with_confidence: whether to multiply objectness score with class score.
                             usually valid for Yolo models only.
     :param class_agnostic_nms: indicates how boxes of different classes will be treated during
