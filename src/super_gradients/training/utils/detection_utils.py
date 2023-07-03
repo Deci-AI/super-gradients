@@ -1119,7 +1119,7 @@ def compute_detection_metrics(
 
     recall_thresholds = torch.linspace(0, 1, 101, device=device) if recall_thresholds is None else recall_thresholds.to(device)
 
-    unique_classes = torch.unique(targets_cls)
+    unique_classes = torch.unique(targets_cls).long()
 
     n_class, nb_iou_thrs = len(unique_classes), preds_matched.shape[-1]
 

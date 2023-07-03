@@ -66,7 +66,8 @@ class DetectionMetrics(Metric):
                 "have meaningful names in reported metrics."
             )
             class_names = ["class_" + str(i) for i in range(num_cls)]
-        if len(class_names) != num_cls:
+
+        if class_names is not None and len(class_names) != num_cls:
             raise ValueError(f"Number of class names ({len(class_names)}) does not match number of classes ({num_cls})")
 
         super().__init__(dist_sync_on_step=dist_sync_on_step)
