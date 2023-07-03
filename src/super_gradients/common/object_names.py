@@ -57,6 +57,7 @@ class Transforms:
     DetectionRGB2BGR = "DetectionRGB2BGR"
     DetectionRandomRotate90 = "DetectionRandomRotate90"
     DetectionHorizontalFlip = "DetectionHorizontalFlip"
+    DetectionVerticalFlip = "DetectionVerticalFlip"
     DetectionRescale = "DetectionRescale"
     DetectionPadToSize = "DetectionPadToSize"
     DetectionImagePermute = "DetectionImagePermute"
