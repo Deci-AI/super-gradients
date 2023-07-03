@@ -5,7 +5,7 @@ from super_gradients.training.dataloaders.dataloaders import coco2017_train, coc
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 
 from super_gradients.training import Trainer, models
-from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
+from super_gradients.training.models.detection_models.yolo_base import YoloXPostPredictionCallback
 
 
 class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
@@ -31,7 +31,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
             "dataset_statistics": True,
             "launch_tensorboard": True,
             "valid_metrics_list": [
-                DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True, num_cls=80, include_classwise_ap=True)
+                DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80, include_classwise_ap=True)
             ],
             "metric_to_watch": "mAP@0.50:0.95",
         }
