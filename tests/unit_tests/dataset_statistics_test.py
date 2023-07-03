@@ -30,9 +30,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},
             "dataset_statistics": True,
             "launch_tensorboard": True,
-            "valid_metrics_list": [
-                DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80, include_classwise_ap=True)
-            ],
+            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80)],
             "metric_to_watch": "mAP@0.50:0.95",
         }
         trainer.train(model=model, training_params=training_params, train_loader=coco2017_train(), valid_loader=coco2017_val())
