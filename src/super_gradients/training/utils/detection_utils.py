@@ -257,10 +257,9 @@ def non_max_suppression(
                                 False - each anchor can produce only one label of the class with the highest score.
     :param with_confidence: whether to multiply objectness score with class score.
                             usually valid for Yolo models only.
-    :param class_agnostic_nms: indicates how boxes of different classes will be treated during
-                       NMS (used in NMS_Type.ITERATIVE)
-                       True - NMS will be performed on all classes together.
-                       False - NMS will be performed on each class separately (default).
+    :param class_agnostic_nms: indicates how boxes of different classes will be treated during NMS
+                               True - NMS will be performed on all classes together.
+                               False - NMS will be performed on each class separately (default).
     :return: detections with shape nx6 (x1, y1, x2, y2, object_conf, class_conf, class)
 
     """
