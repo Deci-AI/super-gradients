@@ -416,7 +416,7 @@ class Trainer:
             self.train_metrics.to(device_config.device)
             loss_avg_meter = core_utils.utils.AverageMeter()
 
-            context.update_context(loss_avg_meter=loss_avg_meter)
+            context.update_context(loss_avg_meter=loss_avg_meter, metrics_compute_fn=self.train_metrics)
 
             for batch_idx, batch_items in enumerate(progress_bar_train_loader):
                 batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
