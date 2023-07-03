@@ -181,8 +181,8 @@ class DetectionMetrics(Metric):
 
             # Fill array of per-class AP scores with values for classes that were present in the dataset
             ap_per_class = ap.mean(1)
-            for class_index in unique_classes:
-                mean_ap_per_class[class_index] = float(ap_per_class[class_index])
+            for i, class_index in enumerate(unique_classes):
+                mean_ap_per_class[class_index] = float(ap_per_class[i])
 
         output_dict = {
             f"Precision{self._get_range_str()}": mean_precision,
