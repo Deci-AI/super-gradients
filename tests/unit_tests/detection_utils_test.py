@@ -9,7 +9,7 @@ from super_gradients.training import Trainer, utils as core_utils, models
 from super_gradients.training.dataloaders.dataloaders import coco2017_val
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.metrics import DetectionMetrics, DetectionMetrics_050
-from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
+from super_gradients.training.models.detection_models.yolo_base import YoloXPostPredictionCallback
 from super_gradients.training.utils.detection_utils import DetectionVisualization
 from tests.core_test_utils import is_data_available
 
@@ -25,7 +25,7 @@ class TestDetectionUtils(unittest.TestCase):
 
         valid_loader = coco2017_val(dataloader_params={"batch_size": 16, "num_workers": 0})
         trainer = Trainer("visualization_test")
-        post_prediction_callback = YoloPostPredictionCallback()
+        post_prediction_callback = YoloXPostPredictionCallback()
 
         # Simulate one iteration of validation subset
         batch_i, batch = 0, next(iter(valid_loader))
@@ -50,9 +50,9 @@ class TestDetectionUtils(unittest.TestCase):
         valid_loader = coco2017_val(dataloader_params={"batch_size": 16, "num_workers": 0})
 
         metrics = [
-            DetectionMetrics(num_cls=80, post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True),
-            DetectionMetrics_050(num_cls=80, post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True),
-            DetectionMetrics(num_cls=80, post_prediction_callback=YoloPostPredictionCallback(conf=2), normalize_targets=True),
+            DetectionMetrics(num_cls=80, post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True),
+            DetectionMetrics_050(num_cls=80, post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True),
+            DetectionMetrics(num_cls=80, post_prediction_callback=YoloXPostPredictionCallback(conf=2), normalize_targets=True),
         ]
 
         ref_values = [

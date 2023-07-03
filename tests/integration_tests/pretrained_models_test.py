@@ -27,7 +27,7 @@ from super_gradients.training.models.detection_models.ssd import DEFAULT_SSD_LIT
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.losses.stdc_loss import STDCLoss
-from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
+from super_gradients.training.models.detection_models.yolo_base import YoloXPostPredictionCallback
 from super_gradients.training import models
 import super_gradients
 
@@ -152,7 +152,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "loss": "yolox_loss",
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 5},  # output strides of all yolo outputs
             "train_metrics_list": [],
-            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True, num_cls=5)],
+            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=5)],
             "metric_to_watch": "mAP@0.50:0.95",
             "greater_metric_to_watch_is_better": True,
         }
@@ -522,7 +522,7 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(
             model=model,
             test_loader=self.coco_dataset["yolox"],
-            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
+            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )
         self.assertAlmostEqual(res["mAP@0.50:0.95"].cpu().item(), self.coco_pretrained_maps[Models.YOLOX_S], delta=0.001)
 
@@ -532,7 +532,7 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(
             model=model,
             test_loader=self.coco_dataset["yolox"],
-            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
+            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )
         self.assertAlmostEqual(res["mAP@0.50:0.95"].cpu().item(), self.coco_pretrained_maps[Models.YOLOX_M], delta=0.001)
 
@@ -542,7 +542,7 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(
             model=model,
             test_loader=self.coco_dataset["yolox"],
-            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
+            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )
         self.assertAlmostEqual(res["mAP@0.50:0.95"].cpu().item(), self.coco_pretrained_maps[Models.YOLOX_L], delta=0.001)
 
@@ -553,7 +553,7 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(
             model=model,
             test_loader=self.coco_dataset["yolox"],
-            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
+            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )
         self.assertAlmostEqual(res["mAP@0.50:0.95"].cpu().item(), self.coco_pretrained_maps[Models.YOLOX_N], delta=0.001)
 
@@ -563,7 +563,7 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(
             model=model,
             test_loader=self.coco_dataset["yolox"],
-            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=80, normalize_targets=True)],
+            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), num_cls=80, normalize_targets=True)],
         )
         self.assertAlmostEqual(res["mAP@0.50:0.95"].cpu().item(), self.coco_pretrained_maps[Models.YOLOX_T], delta=0.001)
 
