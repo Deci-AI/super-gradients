@@ -39,6 +39,19 @@ class DetectionMetrics(Metric):
                                             only includes the average metrics calculated across all classes,
                                             but also the optimal score threshold overall and for each individual class.
     :param include_classwise_ap:            Whether to include the class-wise average precision in the returned metrics dictionary.
+                                            If enabled, output metrics dictionary will look similar to this:
+                                            {
+                                                'Precision0.5:0.95': 0.5,
+                                                'Recall0.5:0.95': 0.5,
+                                                'F10.5:0.95': 0.5,
+                                                'mAP0.5:0.95': 0.5,
+                                                'AP0.5:0.95_person': 0.5,
+                                                'AP0.5:0.95_car': 0.5,
+                                                'AP0.5:0.95_bicycle': 0.5,
+                                                'AP0.5:0.95_motorcycle': 0.5,
+                                                ...
+                                            }
+                                            Class names are either provided via the class_names parameter or are generated automatically.
     :param class_names:                     Array of class names. When include_classwise_ap=True, will use these names to make
                                             per-class APs keys in the output metrics dictionary.
                                             If None, will use dummy names `class_{idx}` instead.
@@ -93,8 +106,8 @@ class DetectionMetrics(Metric):
         ]
 
         if self.include_classwise_ap:
-            self.per_class_mAP_names = [f"{self.map_str}_{class_name}" for class_name in class_names]
-            greater_component_is_better += [(key, True) for key in self.per_class_mAP_names]
+            self.per_class_ap_names = [f"AP{self._get_range_str()}_{class_name}" for class_name in class_names]
+            greater_component_is_better += [(key, True) for key in self.per_class_ap_names]
 
         self.greater_component_is_better = collections.OrderedDict(greater_component_is_better)
         self.component_names = list(self.greater_component_is_better.keys())
@@ -193,7 +206,7 @@ class DetectionMetrics(Metric):
 
         if self.include_classwise_ap:
             for i, ap_i in enumerate(mean_ap_per_class):
-                output_dict[self.per_class_mAP_names[i]] = float(ap_i)
+                output_dict[self.per_class_ap_names[i]] = float(ap_i)
 
         if self.calc_best_score_thresholds:
             output_dict["Best_score_threshold"] = best_score_threshold
