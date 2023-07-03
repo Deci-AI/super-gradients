@@ -6,7 +6,7 @@ from super_gradients import Trainer
 from super_gradients.training import models
 from super_gradients.training.datasets import COCODetectionDataset
 from super_gradients.training.metrics import DetectionMetrics
-from super_gradients.training.models import YoloPostPredictionCallback
+from super_gradients.training.models import YoloXPostPredictionCallback
 from super_gradients.training.processing import ReverseImageChannels, DetectionLongestMaxSizeRescale, DetectionBottomRightPadding, ImagePermute
 from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
 from super_gradients.training import dataloaders
@@ -90,7 +90,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "loss": "yolox_loss",
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
             "train_metrics_list": [],
-            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True, num_cls=5)],
+            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=5)],
             "metric_to_watch": "mAP@0.50:0.95",
             "greater_metric_to_watch_is_better": True,
             "average_best_models": False,
@@ -157,7 +157,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "loss": "yolox_loss",
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
             "train_metrics_list": [],
-            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True, num_cls=5)],
+            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=5)],
             "metric_to_watch": "mAP@0.50:0.95",
             "greater_metric_to_watch_is_better": True,
             "average_best_models": False,
