@@ -1105,7 +1105,6 @@ def compute_detection_metrics(
                                     precision, recall and f1 (not MaP)
     :param device:             Device
     :param calc_best_score_thresholds: If True, the best confidence score threshold is computed for each class
-
     :return:
         :ap, precision, recall, f1: Tensors of shape (n_class, nb_iou_thrs)
         :unique_classes:            Vector with all unique target classes
@@ -1121,6 +1120,7 @@ def compute_detection_metrics(
     recall_thresholds = torch.linspace(0, 1, 101, device=device) if recall_thresholds is None else recall_thresholds.to(device)
 
     unique_classes = torch.unique(targets_cls)
+
     n_class, nb_iou_thrs = len(unique_classes), preds_matched.shape[-1]
 
     ap = torch.zeros((n_class, nb_iou_thrs), device=device)

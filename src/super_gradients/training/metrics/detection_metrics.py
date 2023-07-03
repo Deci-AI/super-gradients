@@ -56,7 +56,7 @@ class DetectionMetrics(Metric):
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
         calc_best_score_thresholds: bool = False,
-        include_classwise_ap: bool = True,
+        include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
         if class_names is None and include_classwise_ap:
@@ -158,6 +158,7 @@ class DetectionMetrics(Metric):
         mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold, best_score_threshold_per_cls = -1.0, -1.0, -1.0, -1.0, -1.0, None
         accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
         mean_ap_per_class = np.zeros(self.num_cls)
+
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
 
@@ -176,7 +177,11 @@ class DetectionMetrics(Metric):
 
             # MaP is averaged over IoU thresholds and over classes
             mean_ap = ap.mean()
-            mean_ap_per_class = ap.mean(1)
+
+            # Fill array of per-class AP scores with values for classes that were present in the dataset
+            ap_per_class = ap.mean(1)
+            for class_index in unique_classes:
+                mean_ap_per_class[class_index] = float(ap_per_class[class_index])
 
         output_dict = {
             f"Precision{self._get_range_str()}": mean_precision,
