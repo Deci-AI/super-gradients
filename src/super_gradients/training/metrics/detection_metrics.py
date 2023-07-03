@@ -235,6 +235,7 @@ class DetectionMetrics_050(DetectionMetrics):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
+        calc_best_score_thresholds: bool = False,
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
@@ -249,6 +250,7 @@ class DetectionMetrics_050(DetectionMetrics):
             top_k_predictions=top_k_predictions,
             dist_sync_on_step=dist_sync_on_step,
             accumulate_on_cpu=accumulate_on_cpu,
+            calc_best_score_thresholds=calc_best_score_thresholds,
             include_classwise_ap=include_classwise_ap,
             class_names=class_names,
         )
@@ -266,6 +268,7 @@ class DetectionMetrics_075(DetectionMetrics):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
+        calc_best_score_thresholds: bool = False,
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
@@ -280,6 +283,7 @@ class DetectionMetrics_075(DetectionMetrics):
             top_k_predictions=top_k_predictions,
             dist_sync_on_step=dist_sync_on_step,
             accumulate_on_cpu=accumulate_on_cpu,
+            calc_best_score_thresholds=calc_best_score_thresholds,
             include_classwise_ap=include_classwise_ap,
             class_names=class_names,
         )
@@ -297,6 +301,7 @@ class DetectionMetrics_050_095(DetectionMetrics):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
+        calc_best_score_thresholds: bool = False,
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
@@ -311,6 +316,7 @@ class DetectionMetrics_050_095(DetectionMetrics):
             top_k_predictions=top_k_predictions,
             dist_sync_on_step=dist_sync_on_step,
             accumulate_on_cpu=accumulate_on_cpu,
+            calc_best_score_thresholds=calc_best_score_thresholds,
             include_classwise_ap=include_classwise_ap,
             class_names=class_names,
         )
