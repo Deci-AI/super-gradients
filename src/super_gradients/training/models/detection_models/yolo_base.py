@@ -137,10 +137,8 @@ class YoloPostPredictionCallback(YoloXPostPredictionCallback):
         nms_type: NMS_Type = NMS_Type.ITERATIVE,
         max_predictions: int = 300,
         with_confidence: bool = True,
-        class_agnostic_nms: bool = False,
-        multi_label_per_box: bool = False,
     ):
-        warnings.warn("YoloXPostPredictionCallback is deprecated, use YoloXPostPredictionCallback instead", DeprecationWarning)
+        warnings.warn("YoloPostPredictionCallback is deprecated since SG 3.1.3, please use YoloXPostPredictionCallback instead", DeprecationWarning)
         super().__init__(
             conf=conf,
             iou=iou,
@@ -148,8 +146,8 @@ class YoloPostPredictionCallback(YoloXPostPredictionCallback):
             nms_type=nms_type,
             max_predictions=max_predictions,
             with_confidence=with_confidence,
-            class_agnostic_nms=class_agnostic_nms,
-            multi_label_per_box=multi_label_per_box,
+            class_agnostic_nms=False,
+            multi_label_per_box=True,
         )
 
 
