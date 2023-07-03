@@ -83,7 +83,6 @@ class DetectionMetrics(Metric):
             self.iou_thresholds = torch.tensor([iou_thres])
 
         self.map_str = "mAP" + self._get_range_str()
-        self.per_class_mAP_names = [f"{self.map_str}_{class_name}" for class_name in class_names]
         self.include_classwise_ap = include_classwise_ap
 
         greater_component_is_better = [
@@ -94,6 +93,7 @@ class DetectionMetrics(Metric):
         ]
 
         if self.include_classwise_ap:
+            self.per_class_mAP_names = [f"{self.map_str}_{class_name}" for class_name in class_names]
             greater_component_is_better += [(key, True) for key in self.per_class_mAP_names]
 
         self.greater_component_is_better = collections.OrderedDict(greater_component_is_better)
