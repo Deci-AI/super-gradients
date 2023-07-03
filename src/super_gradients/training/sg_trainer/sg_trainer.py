@@ -1346,7 +1346,7 @@ class Trainer:
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
-                self._validate_final_average_model(cleanup_snapshots_pkl_file=True)
+                self._validate_final_average_model(context, cleanup_snapshots_pkl_file=True)
 
         except KeyboardInterrupt:
             logger.info(
@@ -1437,7 +1437,7 @@ class Trainer:
                 else:
                     self.scaler.load_state_dict(scaler_state_dict)
 
-    def _validate_final_average_model(self, cleanup_snapshots_pkl_file=False):
+    def _validate_final_average_model(self, context: PhaseContext, cleanup_snapshots_pkl_file=False):
         """
         Testing the averaged model by loading the last saved average checkpoint and running test.
         Will be loaded to each of DDP processes
@@ -1456,7 +1456,8 @@ class Trainer:
 
         unwrap_model(self.net).load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
-        averaged_model_results_dict = self._validate_epoch(epoch=self.max_epochs)
+        context.update_context(epoch=self.max_epochs)
+        averaged_model_results_dict = self._validate_epoch(context)
 
         # Reverting the current model
         self.net.load_state_dict(keep_state_dict)
