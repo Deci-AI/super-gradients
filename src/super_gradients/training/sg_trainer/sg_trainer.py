@@ -150,7 +150,7 @@ class Trainer:
 
         # SET THE EMPTY PROPERTIES
         self.net, self.architecture, self.arch_params, self.dataset_interface = None, None, None, None
-        self.train_loader, self.valid_loader, self.test_loaders = None, None, None
+        self.train_loader, self.valid_loader, self.test_loaders = None, None, {}
         self.ema = None
         self.ema_model = None
         self.sg_logger = None
@@ -194,13 +194,6 @@ class Trainer:
 
         self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
         self.phase_callback_handler: CallbackHandler = None
-
-        # SET THE DEFAULTS
-        # TODO: SET DEFAULT TRAINING PARAMS FOR EACH TASK
-
-        default_results_titles = ["Train Loss", "Train Acc", "Train Top5", "Valid Loss", "Valid Acc", "Valid Top5"]
-
-        self.results_titles = default_results_titles
 
         default_train_metrics, default_valid_metrics = MetricCollection([Accuracy(), Top5()]), MetricCollection([Accuracy(), Top5()])
 
@@ -272,7 +265,7 @@ class Trainer:
             model=model,
             train_loader=train_dataloader,
             valid_loader=val_dataloader,
-            test_loaders=None,
+            test_loaders=None,  # TODO: Add option to set test_loaders in recipe
             training_params=cfg.training_hyperparams,
             additional_configs_to_log=recipe_logged_cfg,
         )
@@ -507,21 +500,17 @@ class Trainer:
 
         for dataset_name in self.test_loaders.keys():
             for loss_name in self.loss_logging_items_names:
-                loss_full_name = f"{dataset_name}/{loss_name}" if dataset_name else loss_name
+                loss_full_name = f"{dataset_name}:{loss_name}" if dataset_name else loss_name
                 self.test_monitored_values[loss_full_name] = MonitoredValue(
-                    name=f"{dataset_name}/{loss_name}",
+                    name=f"{dataset_name}:{loss_name}",
                     greater_is_better=False,
                 )
             for metric_name in get_metrics_titles(self.test_metrics):
-                metric_full_name = f"{dataset_name}/{metric_name}" if dataset_name else metric_name
+                metric_full_name = f"{dataset_name}:{metric_name}" if dataset_name else metric_name
                 self.test_monitored_values[metric_full_name] = MonitoredValue(
                     name=metric_full_name,
                     greater_is_better=self.greater_valid_metrics_is_better.get(metric_name),
                 )
-
-        self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
-            "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
-        ]
 
         # make sure the metric_to_watch is an exact match
         metric_titles = self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
@@ -1043,7 +1032,7 @@ class Trainer:
 
         self.train_loader = train_loader if train_loader is not None else self.train_loader
         self.valid_loader = valid_loader if valid_loader is not None else self.valid_loader
-        self.test_loaders = test_loaders
+        self.test_loaders = test_loaders if test_loaders is not None else {}
 
         if self.train_loader is None:
             raise ValueError("No `train_loader` found. Please provide a value for `train_loader`")
@@ -1361,11 +1350,10 @@ class Trainer:
                 test_metrics_dict = {}
                 if (epoch + 1) % self.run_validation_freq == 0:
                     self.phase_callback_handler.on_test_loader_start(context)
-                    print(f"Evaluate {context.epoch}")
-                    for dataset_name, dataloader in self.test_loaders.items():  # TODO: handle case when None
+                    for dataset_name, dataloader in self.test_loaders.items():
                         dataset_metrics_dict = self._test_epoch(data_loader=dataloader, context=context, silent_mode=silent_mode, dataset_name=dataset_name)
                         dataset_metrics_dict_with_name = {
-                            f"{dataset_name}/{metric_name}": metric_value for metric_name, metric_value in dataset_metrics_dict.items()
+                            f"{dataset_name}:{metric_name}": metric_value for metric_name, metric_value in dataset_metrics_dict.items()
                         }
                         self.test_monitored_values = sg_trainer_utils.update_monitored_values_dict(
                             monitored_values_dict=self.test_monitored_values,
@@ -1785,7 +1773,7 @@ class Trainer:
             "Inference Time": inf_time,
             **{f"Train_{k}": v for k, v in train_metrics_dict.items()},
             **{f"Valid_{k}": v for k, v in validation_results_dict.items()},
-            **{f"Test_{k}": v for k, v in test_metrics_dict.items()},
+            **{f"Test_{k.replace(' ', '_')}": v for k, v in test_metrics_dict.items()},
         }
         self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
