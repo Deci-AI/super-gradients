@@ -1,6 +1,5 @@
 from super_gradients.training.utils.callbacks.base_callbacks import CallbackHandler, PhaseCallback, Callback, PhaseContext, Phase
 from super_gradients.training.utils.callbacks.callbacks import (
-    ContextSgMethods,
     ModelConversionCheckCallback,
     DeciLabUploadCallback,
     LRCallbackBase,
@@ -36,7 +35,6 @@ __all__ = [
     "LRWarmups",
     "LR_WARMUP_CLS_DICT",
     "Phase",
-    "ContextSgMethods",
     "PhaseContext",
     "PhaseCallback",
     "ModelConversionCheckCallback",

@@ -30,7 +30,6 @@ from tests.unit_tests.load_checkpoint_test import LoadCheckpointTest
 from tests.unit_tests.local_ckpt_head_replacement_test import LocalCkptHeadReplacementTest
 from tests.unit_tests.max_batches_loop_break_test import MaxBatchesLoopBreakTest
 from tests.unit_tests.multiple_ignore_indices_segmentation_metrics_test import TestSegmentationMetricsMultipleIgnored
-from tests.unit_tests.phase_delegates_test import ContextMethodsTest
 from tests.unit_tests.pose_estimation_dataset_test import TestPoseEstimationDataset
 from tests.unit_tests.preprocessing_unit_test import PreprocessingUnitTest
 from tests.unit_tests.quantization_utility_tests import QuantizationUtilityTest
@@ -108,7 +107,6 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRCooldownTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DetectionTargetsTransformTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ForwardpassPrepFNTest))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ContextMethodsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(UpdateParamGroupsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MaskAttentionLossTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(IoULossTest))
