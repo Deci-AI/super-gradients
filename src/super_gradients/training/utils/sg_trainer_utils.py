@@ -192,14 +192,11 @@ def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue
     """
     relevant_keys = set(new_values_dict.keys()).intersection(monitored_values_dict.keys())
     for monitored_value_name in relevant_keys:
-        try:
-            previous_value = monitored_values_dict[monitored_value_name]
-            monitored_values_dict[monitored_value_name] = update_monitored_value(
-                new_value=new_values_dict[monitored_value_name],
-                previous_monitored_value=previous_value,
-            )
-        except Exception as e:
-            print(e)
+        previous_value = monitored_values_dict[monitored_value_name]
+        monitored_values_dict[monitored_value_name] = update_monitored_value(
+            new_value=new_values_dict[monitored_value_name],
+            previous_monitored_value=previous_value,
+        )
     return monitored_values_dict
 
 
