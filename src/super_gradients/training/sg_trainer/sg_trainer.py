@@ -272,7 +272,7 @@ class Trainer:
             model=model,
             train_loader=train_dataloader,
             valid_loader=val_dataloader,
-            test_loaders={"A": train_dataloader, "B": val_dataloader},
+            test_loaders=None,
             training_params=cfg.training_hyperparams,
             additional_configs_to_log=recipe_logged_cfg,
         )
@@ -518,9 +518,6 @@ class Trainer:
                     name=metric_full_name,
                     greater_is_better=self.greater_valid_metrics_is_better.get(metric_name),
                 )
-
-        if self.metric_to_watch not in self.valid_monitored_values:
-            raise ValueError(f"`metric_to_watch` must be one of {list(self.valid_monitored_values.keys())}.\n Got `metric_to_watch={self.metric_to_watch}`")
 
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
@@ -1053,6 +1050,9 @@ class Trainer:
 
         if self.valid_loader is None:
             raise ValueError("No `valid_loader` found. Please provide a value for `valid_loader`")
+
+        if self.test_loaders is not None and not isinstance(self.test_loaders, dict):
+            raise ValueError("`test_loaders` must be a dictionary mapping dataset names to DataLoaders")
 
         if hasattr(self.train_loader, "batch_sampler") and self.train_loader.batch_sampler is not None:
             batch_size = self.train_loader.batch_sampler.batch_size
