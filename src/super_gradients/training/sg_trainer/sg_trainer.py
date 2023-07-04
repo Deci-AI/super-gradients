@@ -1361,10 +1361,7 @@ class Trainer:
 
                     for dataset_name, dataloader in self.test_loaders.items():  # TODO: handle case when None
                         dataset_metrics_dict = self._evaluate_epoch(
-                            data_loader=dataloader,
-                            metrics=self.test_metrics,
-                            context=context,
-                            silent_mode=silent_mode,
+                            data_loader=dataloader, metrics=self.test_metrics, context=context, silent_mode=silent_mode, dataset_name=dataset_name
                         )
                         dataset_metrics_dict_with_name = {
                             f"{dataset_name}/{metric_name}": metric_value for metric_name, metric_value in dataset_metrics_dict.items()
@@ -1872,7 +1869,9 @@ class Trainer:
 
         return test_results
 
-    def _evaluate_epoch(self, data_loader: DataLoader, metrics: MetricCollection, context: PhaseContext, silent_mode: bool = False) -> Dict[str, float]:
+    def _evaluate_epoch(
+        self, data_loader: DataLoader, metrics: MetricCollection, context: PhaseContext, silent_mode: bool = False, dataset_name: str = ""
+    ) -> Dict[str, float]:
         """
         Evaluate the input loader on given metrics.
 
@@ -1884,7 +1883,14 @@ class Trainer:
         self.net.eval()
         self._reset_metrics()
         self._move_metrics_to_device()
-        return self.evaluate(data_loader=data_loader, metrics=metrics, evaluation_type=EvaluationType.VALIDATION, epoch=context.epoch, silent_mode=silent_mode)
+        return self.evaluate(
+            data_loader=data_loader,
+            metrics=metrics,
+            evaluation_type=EvaluationType.VALIDATION,
+            epoch=context.epoch,
+            silent_mode=silent_mode,
+            dataset_name=dataset_name,
+        )
 
     def _move_metrics_to_device(self):
         """Ensure that all metrics are on the correct device."""
@@ -1903,6 +1909,7 @@ class Trainer:
         epoch: int = None,
         silent_mode: bool = False,
         metrics_progress_verbose: bool = False,
+        dataset_name: str = "",
     ) -> Dict[str, float]:
         """
         Evaluates the model on given dataloader and metrics.
@@ -1939,7 +1946,11 @@ class Trainer:
 
             if not silent_mode:
                 # PRINT TITLES
-                pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
+                pbar_start_msg = "Validating" if evaluation_type == EvaluationType.VALIDATION else "Testing"
+                if dataset_name:
+                    pbar_start_msg += f' "{dataset_name}"'
+                if epoch:
+                    pbar_start_msg += f": epoch {epoch}"
                 progress_bar_data_loader.set_description(pbar_start_msg)
 
             with torch.no_grad():
