@@ -181,8 +181,9 @@ class Trainer:
 
         # METRICS
         self.loss_logging_items_names = None
-        self.train_metrics = None
-        self.valid_metrics = None
+        self.train_metrics: Optional[MetricCollection] = None
+        self.valid_metrics: Optional[MetricCollection] = None
+        self.test_metrics: Optional[MetricCollection] = None
         self.greater_metric_to_watch_is_better = None
         self.metric_to_watch = None
         self.greater_train_metrics_is_better: Dict[str, bool] = {}  # For each metric, indicates if greater is better
