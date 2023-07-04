@@ -1874,7 +1874,7 @@ class Trainer:
 
     def _validate_epoch(self, context: PhaseContext, silent_mode: bool = False) -> Dict[str, float]:
         """
-        Evaluate the input loader on given metrics.
+        Runs evaluation on self.valid_loader, with self.valid_metrics.
 
         :param epoch: (int) epoch idx
         :param silent_mode: (bool) controls verbosity
