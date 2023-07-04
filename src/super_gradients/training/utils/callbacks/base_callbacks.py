@@ -50,10 +50,8 @@ class PhaseContext:
         checkpoint_params=None,
         architecture=None,
         arch_params=None,
-        metric_idx_in_results_tuple=None,
         metric_to_watch=None,
         valid_metrics=None,
-        context_methods=None,
         ema_model=None,
     ):
         self.epoch = epoch
@@ -83,7 +81,6 @@ class PhaseContext:
         self.arch_params = arch_params
         self.metric_to_watch = metric_to_watch
         self.valid_metrics = valid_metrics
-        self.context_methods = context_methods
         self.ema_model = ema_model
 
     def update_context(self, **kwargs):

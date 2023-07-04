@@ -28,16 +28,6 @@ from super_gradients.training.utils.utils import unwrap_model
 logger = get_logger(__name__)
 
 
-class ContextSgMethods:
-    """
-    Class for delegating Trainer's methods, so that only the relevant ones are ("phase wise") are accessible.
-    """
-
-    def __init__(self, **methods):
-        for attr, attr_val in methods.items():
-            setattr(self, attr, attr_val)
-
-
 @register_callback(Callbacks.MODEL_CONVERSION_CHECK)
 class ModelConversionCheckCallback(PhaseCallback):
     """
