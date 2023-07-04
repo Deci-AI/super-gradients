@@ -83,7 +83,6 @@ from super_gradients.training.utils.callbacks import (
     Phase,
     PhaseContext,
     MetricsUpdateCallback,
-    ContextSgMethods,
     LRCallbackBase,
 )
 from super_gradients.common.registry.registry import LR_WARMUP_CLS_DICT
@@ -399,7 +398,7 @@ class Trainer:
             local_rank = int(device_config.device.split(":")[1])
             self.net = torch.nn.parallel.DistributedDataParallel(self.net, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
 
-    def _train_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
+    def _train_epoch(self, context: PhaseContext, silent_mode: bool = False) -> tuple:
         """
         train_epoch - A single epoch training procedure
             :param optimizer:   The optimizer for the network
@@ -411,7 +410,7 @@ class Trainer:
 
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
         with tqdm(self.train_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_train_loader:
-            progress_bar_train_loader.set_description(f"Train epoch {epoch}")
+            progress_bar_train_loader.set_description(f"Train epoch {context.epoch}")
 
             # RESET/INIT THE METRIC LOGGERS
             self._reset_metrics()
@@ -419,20 +418,7 @@ class Trainer:
             self.train_metrics.to(device_config.device)
             loss_avg_meter = core_utils.utils.AverageMeter()
 
-            context = PhaseContext(
-                epoch=epoch,
-                optimizer=self.optimizer,
-                metrics_compute_fn=self.train_metrics,
-                loss_avg_meter=loss_avg_meter,
-                criterion=self.criterion,
-                device=device_config.device,
-                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
-                sg_logger=self.sg_logger,
-                train_loader=self.train_loader,
-                valid_loader=self.valid_loader,
-                context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
-                ddp_silent_mode=self.ddp_silent_mode,
-            )
+            context.update_context(loss_avg_meter=loss_avg_meter, metrics_compute_fn=self.train_metrics)
 
             for batch_idx, batch_items in enumerate(progress_bar_train_loader):
                 batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
@@ -458,7 +444,7 @@ class Trainer:
                 if not self.ddp_silent_mode and batch_idx == 0:
                     self._epoch_start_logging_values = self._get_epoch_start_logging_values()
 
-                self._backward_step(loss, epoch, batch_idx, context)
+                self._backward_step(loss, context.epoch, batch_idx, context)
 
                 # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
                 logging_values = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
@@ -1302,7 +1288,6 @@ class Trainer:
             arch_params=self.arch_params,
             metric_to_watch=self.metric_to_watch,
             device=device_config.device,
-            context_methods=self._get_context_methods(Phase.PRE_TRAINING),
             ema_model=self.ema_model,
         )
         self.phase_callback_handler.on_training_start(context)
@@ -1346,7 +1331,7 @@ class Trainer:
                 ):
                     self.train_loader.sampler.set_epoch(epoch)
 
-                train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
+                train_metrics_tuple = self._train_epoch(context=context, silent_mode=silent_mode)
 
                 # Phase.TRAIN_EPOCH_END
                 # RUN PHASE CALLBACKS
@@ -1379,7 +1364,7 @@ class Trainer:
                 if (epoch + 1) % self.run_validation_freq == 0:
                     self.phase_callback_handler.on_validation_loader_start(context)
                     timer.start()
-                    valid_metrics_dict = self._validate_epoch(epoch=epoch, silent_mode=silent_mode)
+                    valid_metrics_dict = self._validate_epoch(context=context, silent_mode=silent_mode)
                     inf_time = timer.stop()
 
                     # Phase.VALIDATION_EPOCH_END
@@ -1404,7 +1389,7 @@ class Trainer:
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
-                self._validate_final_average_model(cleanup_snapshots_pkl_file=True)
+                self._validate_final_average_model(context, cleanup_snapshots_pkl_file=True)
 
         except KeyboardInterrupt:
             logger.info(
@@ -1495,7 +1480,7 @@ class Trainer:
                 else:
                     self.scaler.load_state_dict(scaler_state_dict)
 
-    def _validate_final_average_model(self, cleanup_snapshots_pkl_file=False):
+    def _validate_final_average_model(self, context: PhaseContext, cleanup_snapshots_pkl_file=False):
         """
         Testing the averaged model by loading the last saved average checkpoint and running test.
         Will be loaded to each of DDP processes
@@ -1514,7 +1499,8 @@ class Trainer:
 
         unwrap_model(self.net).load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
-        averaged_model_results_dict = self._validate_epoch(epoch=self.max_epochs)
+        context.update_context(epoch=self.max_epochs)
+        averaged_model_results_dict = self._validate_epoch(context)
 
         # Reverting the current model
         self.net.load_state_dict(keep_state_dict)
@@ -1838,7 +1824,6 @@ class Trainer:
             criterion=self.criterion,
             device=self.device,
             sg_logger=self.sg_logger,
-            context_methods=self._get_context_methods(Phase.TEST_BATCH_END),
         )
         if test_metrics_list:
             context.update_context(test_metrics=self.test_metrics)
@@ -1861,7 +1846,7 @@ class Trainer:
 
         return test_results
 
-    def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> Dict[str, float]:
+    def _validate_epoch(self, context: PhaseContext, silent_mode: bool = False) -> Dict[str, float]:
         """
         Runs evaluation on self.valid_loader, with self.valid_metrics.
 
@@ -1876,7 +1861,7 @@ class Trainer:
         self.valid_metrics.to(device_config.device)
 
         return self.evaluate(
-            data_loader=self.valid_loader, metrics=self.valid_metrics, evaluation_type=EvaluationType.VALIDATION, epoch=epoch, silent_mode=silent_mode
+            data_loader=self.valid_loader, metrics=self.valid_metrics, evaluation_type=EvaluationType.VALIDATION, epoch=context.epoch, silent_mode=silent_mode
         )
 
     def evaluate(
@@ -1918,7 +1903,6 @@ class Trainer:
             sg_logger=self.sg_logger,
             train_loader=self.train_loader,
             valid_loader=self.valid_loader,
-            context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
 
         with tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_data_loader:
@@ -2075,36 +2059,6 @@ class Trainer:
         :param val: bool, value to set ema
         """
         self.ema = val
-
-    def _get_context_methods(self, phase: Phase) -> ContextSgMethods:
-        """
-        Returns ContextSgMethods holding the methods that should be accessible through phase callbacks to the user at
-         the specific phase
-
-        :param phase: Phase, controls what methods should be returned.
-        :return: ContextSgMethods holding methods from self.
-        """
-        if phase in [
-            Phase.PRE_TRAINING,
-            Phase.TRAIN_EPOCH_START,
-            Phase.TRAIN_EPOCH_END,
-            Phase.VALIDATION_EPOCH_END,
-            Phase.VALIDATION_EPOCH_END,
-            Phase.POST_TRAINING,
-            Phase.VALIDATION_END_BEST_EPOCH,
-        ]:
-            context_methods = ContextSgMethods(
-                get_net=self.get_net,
-                set_net=self.set_net,
-                set_ckpt_best_name=self.set_ckpt_best_name,
-                reset_best_metric=self._reset_best_metric,
-                validate_epoch=self._validate_epoch,
-                set_ema=self.set_ema,
-            )
-        else:
-            context_methods = ContextSgMethods()
-
-        return context_methods
 
     def _init_loss_logging_names(self, loss_logging_items):
         criterion_name = self.criterion.__class__.__name__
