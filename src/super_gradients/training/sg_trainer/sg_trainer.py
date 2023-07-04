@@ -40,6 +40,7 @@ from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import RepeatAugSampler
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.metrics.metric_utils import (
+    get_greater_is_better_mapping,
     get_metrics_titles,
     get_metrics_results_tuple,
     get_logging_values,
@@ -66,7 +67,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
-from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
+from super_gradients.training.utils.sg_trainer_utils import MonitoredValues, log_main_training_params
 from super_gradients.training.utils.utils import fuzzy_idx_in_list, unwrap_model
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
 from super_gradients.training.metrics import Accuracy, Top5
@@ -185,8 +186,6 @@ class Trainer:
         self.valid_metrics = None
         self.greater_metric_to_watch_is_better = None
         self.metric_to_watch = None
-        self.greater_train_metrics_is_better: Dict[str, bool] = {}  # For each metric, indicates if greater is better
-        self.greater_valid_metrics_is_better: Dict[str, bool] = {}
 
         # SETTING THE PROPERTIES FROM THE CONSTRUCTOR
         self.experiment_name = experiment_name
@@ -195,19 +194,12 @@ class Trainer:
         self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
         self.phase_callback_handler: CallbackHandler = None
 
-        # SET THE DEFAULTS
-        # TODO: SET DEFAULT TRAINING PARAMS FOR EACH TASK
-
-        default_results_titles = ["Train Loss", "Train Acc", "Train Top5", "Valid Loss", "Valid Acc", "Valid Top5"]
-
-        self.results_titles = default_results_titles
-
         default_train_metrics, default_valid_metrics = MetricCollection([Accuracy(), Top5()]), MetricCollection([Accuracy(), Top5()])
 
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
 
-        self.train_monitored_values = {}
-        self.valid_monitored_values = {}
+        self.train_monitored_values: Optional[MonitoredValues] = None
+        self.valid_monitored_values: Optional[MonitoredValues] = None
         self.max_train_batches = None
         self.max_valid_batches = None
 
@@ -459,9 +451,7 @@ class Trainer:
                 if self.max_train_batches is not None and self.max_train_batches - 1 <= batch_idx:
                     break
 
-            self.train_monitored_values = sg_trainer_utils.update_monitored_values_dict(
-                monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict
-            )
+            self.train_monitored_values.update_values(values=pbar_message_dict)
 
         return logging_values
 
@@ -493,19 +483,15 @@ class Trainer:
 
     def _init_monitored_items(self):
         # Instantiate the values to monitor (loss/metric)
-        for loss_name in self.loss_logging_items_names:
-            self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
-            self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
 
-        for metric_name in get_metrics_titles(self.train_metrics):
-            self.train_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_train_metrics_is_better.get(metric_name))
-
-        for metric_name in get_metrics_titles(self.valid_metrics):
-            self.valid_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name))
-
-        self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
-            "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
-        ]
+        self.train_monitored_values = MonitoredValues(
+            loss_names=self.loss_logging_items_names,
+            metrics_greater_is_better=get_greater_is_better_mapping(self.train_metrics),
+        )
+        self.valid_monitored_values = MonitoredValues(
+            loss_names=self.loss_logging_items_names,
+            metrics_greater_is_better=get_greater_is_better_mapping(self.valid_metrics),
+        )
 
         # make sure the metric_to_watch is an exact match
         metric_titles = self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
@@ -1391,14 +1377,6 @@ class Trainer:
     def _set_train_metrics(self, train_metrics_list):
         self.train_metrics = MetricCollection(train_metrics_list)
 
-        for metric_name, metric in self.train_metrics.items():
-            if hasattr(metric, "greater_component_is_better"):
-                self.greater_train_metrics_is_better.update(metric.greater_component_is_better)
-            elif hasattr(metric, "greater_is_better"):
-                self.greater_train_metrics_is_better[metric_name] = metric.greater_is_better
-            else:
-                self.greater_train_metrics_is_better[metric_name] = None
-
     @resolve_param("valid_metrics_list", ListFactory(MetricsFactory()))
     def _set_valid_metrics(self, valid_metrics_list):
         self.valid_metrics = MetricCollection(valid_metrics_list)
@@ -1923,10 +1901,7 @@ class Trainer:
                 logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
 
             pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
-
-            self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
-                monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict
-            )
+            self.valid_monitored_values.update_values(values=pbar_message_dict)
 
             if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
                 progress_bar_data_loader.write("===========================================================")

@@ -1,6 +1,21 @@
+from typing import Dict
+
 import torch
 from torchmetrics import MetricCollection
+
 from super_gradients.training.utils.utils import AverageMeter
+
+
+def get_greater_is_better_mapping(metrics: MetricCollection) -> Dict[str, bool]:
+    greater_is_better_mapping = {}
+    for metric_name, metric in metrics.items():
+        if hasattr(metric, "greater_component_is_better"):
+            greater_is_better_mapping.update(metric.greater_component_is_better)
+        elif hasattr(metric, "greater_is_better"):
+            greater_is_better_mapping[metric_name] = metric.greater_is_better
+        else:
+            greater_is_better_mapping[metric_name] = None
+    return greater_is_better_mapping
 
 
 def get_logging_values(loss_loggings: AverageMeter, metrics: MetricCollection, criterion=None):

@@ -5,9 +5,8 @@ import time
 from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union, Dict, Sequence, Callable
+from typing import Tuple, Union, Dict, Sequence, Callable, List
 import random
-
 import inspect
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -148,6 +147,27 @@ class MonitoredValue:
             return ImprovementType.IS_SAME
 
 
+@dataclass
+class MonitoredValues:
+    values: Dict[str, MonitoredValue] = None
+
+    def __init__(self, loss_names: List[str], metrics_greater_is_better: Dict[str, bool]):
+        values = {}
+        for loss_name in loss_names:
+            values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
+
+        for metric_name, greater_is_better in metrics_greater_is_better.items():
+            values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=greater_is_better)
+        self.values = values
+
+    def update_value(self, key, value):
+        self.values[key] = update_monitored_value(new_value=value, previous_monitored_value=self.values[key])
+
+    def update_values(self, values: Dict[str, float]):
+        for key, value in values.items():
+            self.update_value(key=key, value=value)
+
+
 def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: float) -> MonitoredValue:
     """Update the given ValueToMonitor object (could be a loss or a metric) with the new value
 
@@ -198,9 +218,7 @@ def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue
     return monitored_values_dict
 
 
-def display_epoch_summary(
-    epoch: int, n_digits: int, train_monitored_values: Dict[str, MonitoredValue], valid_monitored_values: Dict[str, MonitoredValue]
-) -> None:
+def display_epoch_summary(epoch: int, n_digits: int, train_monitored_values: MonitoredValues, valid_monitored_values: MonitoredValues) -> None:
     """Display a summary of loss/metric of interest, for a given epoch.
 
     :param epoch: the number of epoch.
@@ -242,12 +260,12 @@ def display_epoch_summary(
 
     train_tree = Tree()
     train_tree.create_node("Training", "Training")
-    for name, value in train_monitored_values.items():
+    for name, value in train_monitored_values.values.items():
         train_tree.paste("Training", new_tree=_generate_tree(name, monitored_value=value))
 
     valid_tree = Tree()
     valid_tree.create_node("Validation", "Validation")
-    for name, value in valid_monitored_values.items():
+    for name, value in valid_monitored_values.values.items():
         valid_tree.paste("Validation", new_tree=_generate_tree(name, monitored_value=value))
 
     summary_tree = Tree()
