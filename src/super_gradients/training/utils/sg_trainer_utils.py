@@ -267,7 +267,7 @@ def display_epoch_summary(
         for name, value in test_monitored_values.items():
             test_tree.paste("Test", new_tree=_generate_tree(name, monitored_value=value))
         summary_tree.paste("Summary", test_tree)
-    summary_tree.show()
+    summary_tree.show(key=False)
     print("===========================================================")
 
 

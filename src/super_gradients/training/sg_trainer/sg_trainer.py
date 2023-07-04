@@ -195,6 +195,13 @@ class Trainer:
         self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
         self.phase_callback_handler: CallbackHandler = None
 
+        # SET THE DEFAULTS
+        # TODO: SET DEFAULT TRAINING PARAMS FOR EACH TASK
+
+        default_results_titles = ["Train Loss", "Train Acc", "Train Top5", "Valid Loss", "Valid Acc", "Valid Top5"]
+
+        self.results_titles = default_results_titles
+
         default_train_metrics, default_valid_metrics = MetricCollection([Accuracy(), Top5()]), MetricCollection([Accuracy(), Top5()])
 
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
