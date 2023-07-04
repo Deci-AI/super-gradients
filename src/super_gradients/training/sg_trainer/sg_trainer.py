@@ -1944,9 +1944,9 @@ class Trainer:
                 # PRINT TITLES
                 pbar_start_msg = "Validating" if evaluation_type == EvaluationType.VALIDATION else "Testing"
                 if dataset_name:
-                    pbar_start_msg += f' dataset="{dataset_name}"'
+                    pbar_start_msg += f' dataset="{dataset_name}:"'
                 if epoch:
-                    pbar_start_msg += f": epoch {epoch}"
+                    pbar_start_msg += f" epoch {epoch}"
                 progress_bar_data_loader.set_description(pbar_start_msg)
 
             with torch.no_grad():
