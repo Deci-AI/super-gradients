@@ -1192,6 +1192,7 @@ class Trainer:
 
         self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
         self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
+        self._add_metrics_update_callback(Phase.TEST_BATCH_END)
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
@@ -1341,13 +1342,11 @@ class Trainer:
                     self.net = self.ema_model.ema
 
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
-                valid_metrics_dict, test_metrics_dict = {}, {}
+                valid_metrics_dict = {}
                 if (epoch + 1) % self.run_validation_freq == 0:
                     self.phase_callback_handler.on_validation_loader_start(context)
                     timer.start()
-                    valid_metrics_dict = self._evaluate_epoch(
-                        data_loader=self.valid_loader, metrics=self.valid_metrics, context=context, silent_mode=silent_mode
-                    )
+                    valid_metrics_dict = self._validate_epoch(context=context, silent_mode=silent_mode)
                     inf_time = timer.stop()
 
                     self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
@@ -1359,10 +1358,12 @@ class Trainer:
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
+                test_metrics_dict = {}
+                if (epoch + 1) % self.run_validation_freq == 0:
+                    self.phase_callback_handler.on_test_loader_start(context)
+                    print(f"Evaluate {context.epoch}")
                     for dataset_name, dataloader in self.test_loaders.items():  # TODO: handle case when None
-                        dataset_metrics_dict = self._evaluate_epoch(
-                            data_loader=dataloader, metrics=self.test_metrics, context=context, silent_mode=silent_mode, dataset_name=dataset_name
-                        )
+                        dataset_metrics_dict = self._test_epoch(data_loader=dataloader, context=context, silent_mode=silent_mode, dataset_name=dataset_name)
                         dataset_metrics_dict_with_name = {
                             f"{dataset_name}/{metric_name}": metric_value for metric_name, metric_value in dataset_metrics_dict.items()
                         }
@@ -1372,6 +1373,8 @@ class Trainer:
                         )  # TODO: Move this logic inside a MonitoredValues class
 
                         test_metrics_dict.update(**dataset_metrics_dict_with_name)
+                    context.update_context(metrics_dict=test_metrics_dict)
+                    self.phase_callback_handler.on_test_loader_end(context)
 
                 if self.ema:
                     self.net = keep_model
@@ -1511,7 +1514,7 @@ class Trainer:
         unwrap_model(self.net).load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
         context.update_context(epoch=self.max_epochs)
-        averaged_model_results_dict = self._evaluate_epoch(data_loader=self.valid_loader, metrics=self.valid_metrics, context=context)
+        averaged_model_results_dict = self._validate_epoch(context=context)
         self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
             monitored_values_dict=self.valid_monitored_values,
             new_values_dict=averaged_model_results_dict,
@@ -1869,9 +1872,7 @@ class Trainer:
 
         return test_results
 
-    def _evaluate_epoch(
-        self, data_loader: DataLoader, metrics: MetricCollection, context: PhaseContext, silent_mode: bool = False, dataset_name: str = ""
-    ) -> Dict[str, float]:
+    def _validate_epoch(self, context: PhaseContext, silent_mode: bool = False) -> Dict[str, float]:
         """
         Evaluate the input loader on given metrics.
 
@@ -1882,24 +1883,31 @@ class Trainer:
         """
         self.net.eval()
         self._reset_metrics()
-        self._move_metrics_to_device()
+        self.valid_metrics.to(device_config.device)
+        return self.evaluate(
+            data_loader=self.valid_loader, metrics=self.valid_metrics, evaluation_type=EvaluationType.VALIDATION, epoch=context.epoch, silent_mode=silent_mode
+        )
+
+    def _test_epoch(self, data_loader: DataLoader, context: PhaseContext, silent_mode: bool = False, dataset_name: str = "") -> Dict[str, float]:
+        """
+        Evaluate the input loader on given metrics.
+
+        :param epoch: (int) epoch idx
+        :param silent_mode: (bool) controls verbosity
+
+        :return: results tuple (tuple) containing the loss items and metric values.
+        """
+        self.net.eval()
+        self._reset_metrics()
+        self.test_metrics.to(device_config.device)
         return self.evaluate(
             data_loader=data_loader,
-            metrics=metrics,
-            evaluation_type=EvaluationType.VALIDATION,
+            metrics=self.test_metrics,
+            evaluation_type=EvaluationType.TEST,
             epoch=context.epoch,
             silent_mode=silent_mode,
             dataset_name=dataset_name,
         )
-
-    def _move_metrics_to_device(self):
-        """Ensure that all metrics are on the correct device."""
-        if self.train_metrics is not None:
-            self.train_metrics.to(device_config.device)
-        if self.valid_metrics is not None:
-            self.valid_metrics.to(device_config.device)
-        if self.test_metrics is not None:
-            self.test_metrics.to(device_config.device)
 
     def evaluate(
         self,
