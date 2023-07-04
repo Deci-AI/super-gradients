@@ -213,6 +213,7 @@ def display_epoch_summary(
     :param n_digits: number of digits to display on screen for float values
     :param train_monitored_values: mapping of loss/metric with their stats that will be displayed
     :param valid_monitored_values: mapping of loss/metric with their stats that will be displayed
+    :param test_monitored_values: mapping of loss/metric with their stats that will be displayed
     :return:
     """
 

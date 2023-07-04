@@ -1781,7 +1781,7 @@ class Trainer:
             "Inference Time": inf_time,
             **{f"Train_{k}": v for k, v in train_metrics_dict.items()},
             **{f"Valid_{k}": v for k, v in validation_results_dict.items()},
-            **{f"Test_{k.replace(' ', '_')}": v for k, v in test_metrics_dict.items()},
+            **{f"Test_{k}": v for k, v in test_metrics_dict.items()},
         }
         self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
