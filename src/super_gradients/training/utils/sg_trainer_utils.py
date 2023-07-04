@@ -190,16 +190,25 @@ def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue
     :param new_values_dict: Dict mapping value names to their new (i.e. current epoch) value.
     :return: Updated monitored_values_dict
     """
-    for monitored_value_name in monitored_values_dict.keys():
-        monitored_values_dict[monitored_value_name] = update_monitored_value(
-            new_value=new_values_dict[monitored_value_name],
-            previous_monitored_value=monitored_values_dict[monitored_value_name],
-        )
+    relevant_keys = set(new_values_dict.keys()).intersection(monitored_values_dict.keys())
+    for monitored_value_name in relevant_keys:
+        try:
+            previous_value = monitored_values_dict[monitored_value_name]
+            monitored_values_dict[monitored_value_name] = update_monitored_value(
+                new_value=new_values_dict[monitored_value_name],
+                previous_monitored_value=previous_value,
+            )
+        except Exception as e:
+            print(e)
     return monitored_values_dict
 
 
 def display_epoch_summary(
-    epoch: int, n_digits: int, train_monitored_values: Dict[str, MonitoredValue], valid_monitored_values: Dict[str, MonitoredValue]
+    epoch: int,
+    n_digits: int,
+    train_monitored_values: Dict[str, MonitoredValue],
+    valid_monitored_values: Dict[str, MonitoredValue],
+    test_monitored_values: Dict[str, MonitoredValue],
 ) -> None:
     """Display a summary of loss/metric of interest, for a given epoch.
 
@@ -240,6 +249,7 @@ def display_epoch_summary(
             tree.create_node(tag=f"Best until now = {best:6} ({diff_with_best_colored:8})", identifier=f"1_best_{root_id}", parent=root_id)
         return tree
 
+    print("===========================================================")
     train_tree = Tree()
     train_tree.create_node("Training", "Training")
     for name, value in train_monitored_values.items():
@@ -254,7 +264,14 @@ def display_epoch_summary(
     summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
     summary_tree.paste("Summary", train_tree)
     summary_tree.paste("Summary", valid_tree)
+    if test_monitored_values:
+        test_tree = Tree()
+        test_tree.create_node("Test", "Test")
+        for name, value in test_monitored_values.items():
+            test_tree.paste("Test", new_tree=_generate_tree(name, monitored_value=value))
+        summary_tree.paste("Summary", test_tree)
     summary_tree.show()
+    print("===========================================================")
 
 
 def try_port(port):
