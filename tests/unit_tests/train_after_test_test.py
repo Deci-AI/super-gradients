@@ -37,7 +37,13 @@ class CallTrainAfterTestTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
         }
         trainer.test(model=model, test_metrics_list=[Accuracy()], test_loader=dataloader)
-        trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
+        trainer.train(
+            model=model,
+            training_params=train_params,
+            train_loader=dataloader,
+            valid_loader=dataloader,
+            test_loaders={"testset1": dataloader, "testset2": dataloader},
+        )
 
     def test_call_train_after_test_with_loss(self):
         trainer = Trainer("test_call_train_after_test_with_loss")
@@ -61,7 +67,13 @@ class CallTrainAfterTestTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
         }
         trainer.test(model=model, test_metrics_list=[Accuracy()], test_loader=dataloader, loss=torch.nn.CrossEntropyLoss())
-        trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
+        trainer.train(
+            model=model,
+            training_params=train_params,
+            train_loader=dataloader,
+            valid_loader=dataloader,
+            test_loaders={"testset1": dataloader, "testset2": dataloader},
+        )
 
 
 if __name__ == "__main__":
