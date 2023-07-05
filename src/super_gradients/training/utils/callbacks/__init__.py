@@ -1,6 +1,5 @@
 from super_gradients.training.utils.callbacks.base_callbacks import CallbackHandler, PhaseCallback, Callback, PhaseContext, Phase
 from super_gradients.training.utils.callbacks.callbacks import (
-    ContextSgMethods,
     ModelConversionCheckCallback,
     DeciLabUploadCallback,
     LRCallbackBase,
@@ -21,6 +20,7 @@ from super_gradients.training.utils.callbacks.callbacks import (
     TrainingStageSwitchCallbackBase,
     YoloXTrainingStageSwitchCallback,
     TestLRCallback,
+    TimerCallback,
 )
 from super_gradients.training.utils.callbacks.ppyoloe_switch_callback import PPYoloETrainingStageSwitchCallback
 from super_gradients.common.object_names import Callbacks, LRSchedulers, LRWarmups
@@ -35,7 +35,6 @@ __all__ = [
     "LRWarmups",
     "LR_WARMUP_CLS_DICT",
     "Phase",
-    "ContextSgMethods",
     "PhaseContext",
     "PhaseCallback",
     "ModelConversionCheckCallback",
@@ -60,4 +59,5 @@ __all__ = [
     "CallbackHandler",
     "TestLRCallback",
     "PPYoloETrainingStageSwitchCallback",
+    "TimerCallback",
 ]

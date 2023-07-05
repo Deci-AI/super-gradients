@@ -103,7 +103,14 @@ class PoseEstimationMetrics(Metric):
         self.greater_component_is_better = dict((k, True) for k in self.stats_names)
 
         if oks_sigmas is None:
-            oks_sigmas = np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0
+            if num_joints == 17:
+                oks_sigmas = np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0
+            else:
+                oks_sigmas = np.array([0.1] * num_joints)
+                logger.warning(
+                    f"Using default OKS sigmas of `0.1` for a custom dataset with {num_joints} joints. "
+                    f"To silence this warning, you may want to specify OKS sigmas explicitly as it has direct impact on the AP score."
+                )
 
         if len(oks_sigmas) != num_joints:
             raise ValueError(f"Length of oks_sigmas ({len(oks_sigmas)}) should be equal to num_joints {num_joints}")
@@ -278,7 +285,7 @@ class PoseEstimationMetrics(Metric):
             preds_scores = torch.cat([x[2].cpu() for x in predictions], dim=0)
             n_targets = sum([x[3] for x in predictions])
 
-            cls_precision, _, cls_recall = compute_detection_metrics_per_cls(
+            cls_precision, _, cls_recall, _, _ = compute_detection_metrics_per_cls(
                 preds_matched=preds_matched,
                 preds_to_ignore=preds_to_ignore,
                 preds_scores=preds_scores,

@@ -3,7 +3,10 @@
 When training deep neural networks, it is often useful to reduce learning rate as the training progresses. This can be done by using pre-defined learning rate schedules or adaptive learning rate methods.
 Learning rate scheduling type is controlled by the training parameter `lr_mode`. From `Trainer.train(...)` docs:
 
-    `lr_mode` : str
+    `lr_mode` : Union[str, Mapping]
+
+        When str:
+
         Learning rate scheduling policy, one of ['step','poly','cosine','function'].
 
         'step' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
@@ -202,36 +205,93 @@ Note that internally, Trainer unpacks [training_params to the scheduler callback
 ### Using PyTorchs Native LR Schedulers (torch.optim.lr_scheduler)
 
 PyTorch offers a [wide variety of learning rate schedulers](https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate).
-They can all be easily used by wrapping them up with `LRSchedulerCallback` and passing them as phase_callbacks.
+They can all be easily used by passing a Mapping through the lr_mode parameter, following aa simple API.
+From `Trainer.train(...)` docs:
+
+    When Mapping, refers to a torch.optim.lr_scheduler._LRScheduler, following the below API:
+    
+        lr_mode = {LR_SCHEDULER_CLASS_NAME: {**LR_SCHEDULER_KWARGS, "phase": XXX, "metric_name": XXX)
+    
+        Where "phase" (of Phase type) controls when to call torch.optim.lr_scheduler._LRScheduler.step().
+        For instance, in order to:
+        - Update LR on each batch: Use phase: Phase.TRAIN_BATCH_END
+        - Update LR after each epoch: Use phase: Phase.TRAIN_EPOCH_END
+    
+        The "metric_name" refers to the metric to watch (See docs for "metric_to_watch" in train(...)
+         https://docs.deci.ai/super-gradients/docstring/training/sg_trainer.html) when using
+          ReduceLROnPlateau. In any other case this kwarg is ignored.
+    
+        **LR_SCHEDULER_KWARGS are simply passed to the torch scheduler's __init__.
+
+    
+    
+        For example:
+            lr_mode = {"StepLR": {"gamma": 0.1, "step_size": 1, "phase": Phase.TRAIN_EPOCH_END}}
+            is equivalent to following training code:
+            
+                from torch.optim.lr_scheduler import StepLR
+                ...
+                optimizer = ....
+                scheduler = StepLR(optimizer=optimizer, gamma=0.1, step_size=1)
+    
+                for epoch in num_epochs:
+                    train_epoch(...)
+                    scheduler.step()
+                    ....
 For example:
 
 ```python
 ...
-
+trainer = Trainer("torch_Scheduler_example")
 train_dataloader = ...
 valid_dataloader = ...
 model = ...
 
-lr = 2.5e-4
-optimizer = SGD(model.parameters(), lr=lr, weight_decay=0.0001)
-step_lr_scheduler = MultiStepLR(optimizer, milestones=[0, 150, 200], gamma=0.1)
-
-# Define phase callbacks
-phase_callbacks = [
-    LRSchedulerCallback(scheduler=step_lr_scheduler, phase=Phase.TRAIN_EPOCH_END),
-]
-
-# Bring everything together with Trainer and start training
-trainer = Trainer("torch_schedulers_experiment")
-
 train_params = {
-    ...
-    "phase_callbacks": phase_callbacks,
-    "initial_lr": lr,
-    "optimizer": optimizer,
-    ...
-}
+    "max_epochs": 2,
+    "lr_mode": {"StepLR": {"gamma": 0.1, "step_size": 1, "phase": Phase.TRAIN_EPOCH_END}},
+    "lr_warmup_epochs": 0,
+    "initial_lr": 0.1,
+    "loss": torch.nn.CrossEntropyLoss(),
+    "optimizer": "SGD",
+    "criterion_params": {},
+    "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+    "train_metrics_list": [Accuracy()],
+    "valid_metrics_list": [Accuracy()],
+    "metric_to_watch": "Accuracy",
+    "greater_metric_to_watch_is_better": True,
+        }
+trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
+```
 
-trainer.train(model=net, training_params=train_params, train_loader=train_loader, valid_loader=valid_loader)
+And as stated above, for ReduceLROnPlateau we need to pass a "metric_name", which follows the same
+rules as the training parameter "metric_to_watch"(see [metrics guide](Metrics.md) when not familiar).
+For example:
+
+```python
+trainer = Trainer("torch_ROP_Scheduler_example")
+train_dataloader = ...
+valid_dataloader = ...
+model = ...
+train_params = {
+    "max_epochs": 2,
+    "lr_decay_factor": 0.1,
+    "lr_mode": {
+        "ReduceLROnPlateau": {"patience": 0, "phase": Phase.TRAIN_EPOCH_END, "metric_name": "DummyMetric"}},
+    "lr_warmup_epochs": 0,
+    "initial_lr": 0.1,
+    "loss": torch.nn.CrossEntropyLoss(),
+    "optimizer": "SGD",
+    "criterion_params": {},
+    "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+    "train_metrics_list": [Accuracy()],
+    "valid_metrics_list": [Accuracy()],
+    "metric_to_watch": "DummyMetric",
+    "greater_metric_to_watch_is_better": True,
+}
+trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
 
 ```
+
+The scheduler's `state_dict` is saved under `torch_scheduler_state_dict` entry inside the checkpoint during training,
+allowing us to resume from the same state of the scheduling.
