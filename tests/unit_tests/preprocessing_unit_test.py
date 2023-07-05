@@ -90,7 +90,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "loss": "yolox_loss",
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
             "train_metrics_list": [],
-            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=5)],
+            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80)],
             "metric_to_watch": "mAP@0.50:0.95",
             "greater_metric_to_watch_is_better": True,
             "average_best_models": False,
@@ -157,7 +157,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "loss": "yolox_loss",
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
             "train_metrics_list": [],
-            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=5)],
+            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80)],
             "metric_to_watch": "mAP@0.50:0.95",
             "greater_metric_to_watch_is_better": True,
             "average_best_models": False,
