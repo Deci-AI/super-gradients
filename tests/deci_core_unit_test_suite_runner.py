@@ -38,6 +38,7 @@ from tests.unit_tests.replace_head_test import ReplaceHeadUnitTest
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.test_deprecations import DeprecationsUnitTest
 from tests.unit_tests.test_min_samples_single_node import TestMinSamplesSingleNode
+from tests.unit_tests.test_train_with_torch_scheduler import TrainWithTorchSchedulerTest
 from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
 from tests.unit_tests.lr_warmup_test import LRWarmupTest
@@ -141,6 +142,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DeprecationsUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestMinSamplesSingleNode))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationMetricsMultipleIgnored))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainWithTorchSchedulerTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
