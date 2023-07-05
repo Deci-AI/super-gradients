@@ -1,4 +1,5 @@
 import math
+import warnings
 from typing import Union, Type, List, Tuple, Optional
 from functools import lru_cache
 
@@ -58,8 +59,10 @@ DEFAULT_YOLO_ARCH_PARAMS = {
 }
 
 
-class YoloPostPredictionCallback(DetectionPostPredictionCallback):
-    """Non-Maximum Suppression (NMS) module"""
+class YoloXPostPredictionCallback(DetectionPostPredictionCallback):
+    """Post-prediction callback to decode YoloX model's output and apply Non-Maximum Suppression (NMS) to get
+    the final predictions.
+    """
 
     def __init__(
         self,
@@ -69,6 +72,8 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         nms_type: NMS_Type = NMS_Type.ITERATIVE,
         max_predictions: int = 300,
         with_confidence: bool = True,
+        class_agnostic_nms: bool = False,
+        multi_label_per_box: bool = True,
     ):
         """
         :param conf: confidence threshold
@@ -78,32 +83,75 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         :param max_predictions: maximum number of boxes to output       (used in NMS_Type.MATRIX)
         :param with_confidence: in NMS, whether to multiply objectness  (used in NMS_Type.ITERATIVE)
                                 score with class score
+        :param class_agnostic_nms: indicates how boxes of different classes will be treated during
+                                   NMS step (used in NMS_Type.ITERATIVE and NMS_Type.MATRIX)
+                                   True - NMS will be performed on all classes together.
+                                   False - NMS will be performed on each class separately (default).
+        :param multi_label_per_box: controls whether to decode multiple labels per box (used in NMS_Type.ITERATIVE)
+                                    True - each anchor can produce multiple labels of different classes
+                                           that pass confidence threshold check (default).
+                                    False - each anchor can produce only one label of the class with the highest score.
         """
-        super(YoloPostPredictionCallback, self).__init__()
+        super(YoloXPostPredictionCallback, self).__init__()
         self.conf = conf
         self.iou = iou
         self.classes = classes
         self.nms_type = nms_type
         self.max_pred = max_predictions
         self.with_confidence = with_confidence
+        self.class_agnostic_nms = class_agnostic_nms
+        self.multi_label_per_box = multi_label_per_box
 
-    def forward(self, x, device: str = None):
+    def forward(self, x: Union[torch.Tensor, Tuple[torch.Tensor, List[torch.Tensor]]], device: str = None):
         """Apply NMS to the raw output of the model and keep only top `max_predictions` results.
 
         :param x: Raw output of the model, with x[0] expected to be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
         :return: List of Tensors of shape (x1, y1, x2, y2, conf, cls)
         """
+        # Use the main output features in case of multiple outputs.
+        if isinstance(x, (tuple, list)):
+            x = x[0]
 
         if self.nms_type == NMS_Type.ITERATIVE:
-            nms_result = non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, with_confidence=self.with_confidence)
+            nms_result = non_max_suppression(
+                x,
+                conf_thres=self.conf,
+                iou_thres=self.iou,
+                with_confidence=self.with_confidence,
+                multi_label_per_box=self.multi_label_per_box,
+                class_agnostic_nms=self.class_agnostic_nms,
+            )
         else:
-            nms_result = matrix_non_max_suppression(x[0], conf_thres=self.conf, max_num_of_detections=self.max_pred)
+            nms_result = matrix_non_max_suppression(x, conf_thres=self.conf, max_num_of_detections=self.max_pred, class_agnostic_nms=self.class_agnostic_nms)
 
         return self._filter_max_predictions(nms_result)
 
     def _filter_max_predictions(self, res: List) -> List:
         res[:] = [im[: self.max_pred] if (im is not None and im.shape[0] > self.max_pred) else im for im in res]
         return res
+
+
+class YoloPostPredictionCallback(YoloXPostPredictionCallback):
+    def __init__(
+        self,
+        conf: float = 0.001,
+        iou: float = 0.6,
+        classes: List[int] = None,
+        nms_type: NMS_Type = NMS_Type.ITERATIVE,
+        max_predictions: int = 300,
+        with_confidence: bool = True,
+    ):
+        warnings.warn("YoloPostPredictionCallback is deprecated since SG 3.1.3, please use YoloXPostPredictionCallback instead", DeprecationWarning)
+        super().__init__(
+            conf=conf,
+            iou=iou,
+            classes=classes,
+            nms_type=nms_type,
+            max_predictions=max_predictions,
+            with_confidence=with_confidence,
+            class_agnostic_nms=False,
+            multi_label_per_box=True,
+        )
 
 
 class Concat(nn.Module):
@@ -427,7 +475,7 @@ class YoloBase(SgModule):
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
-        return YoloPostPredictionCallback(conf=conf, iou=iou)
+        return YoloXPostPredictionCallback(conf=conf, iou=iou)
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(

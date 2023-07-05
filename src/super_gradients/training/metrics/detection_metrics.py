@@ -1,4 +1,7 @@
-from typing import Dict, Optional, Union, Tuple
+import collections
+from typing import Dict, Optional, Union, Tuple, List
+
+import numpy as np
 import torch
 from torchmetrics import Metric
 
@@ -35,6 +38,23 @@ class DetectionMetrics(Metric):
                                             If True, the compute() function will return a metrics dictionary that not
                                             only includes the average metrics calculated across all classes,
                                             but also the optimal score threshold overall and for each individual class.
+    :param include_classwise_ap:            Whether to include the class-wise average precision in the returned metrics dictionary.
+                                            If enabled, output metrics dictionary will look similar to this:
+                                            {
+                                                'Precision0.5:0.95': 0.5,
+                                                'Recall0.5:0.95': 0.5,
+                                                'F10.5:0.95': 0.5,
+                                                'mAP0.5:0.95': 0.5,
+                                                'AP0.5:0.95_person': 0.5,
+                                                'AP0.5:0.95_car': 0.5,
+                                                'AP0.5:0.95_bicycle': 0.5,
+                                                'AP0.5:0.95_motorcycle': 0.5,
+                                                ...
+                                            }
+                                            Class names are either provided via the class_names parameter or are generated automatically.
+    :param class_names:                     Array of class names. When include_classwise_ap=True, will use these names to make
+                                            per-class APs keys in the output metrics dictionary.
+                                            If None, will use dummy names `class_{idx}` instead.
     """
 
     def __init__(
@@ -49,7 +69,20 @@ class DetectionMetrics(Metric):
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
         calc_best_score_thresholds: bool = False,
+        include_classwise_ap: bool = False,
+        class_names: List[str] = None,
     ):
+        if class_names is None and include_classwise_ap:
+            logger.warning(
+                "Parameter 'include_classwise_ap' is set to True, but no class names are provided. "
+                "We will generate dummy class names, but we recommend to provide class names explicitly to"
+                "have meaningful names in reported metrics."
+            )
+            class_names = ["class_" + str(i) for i in range(num_cls)]
+
+        if class_names is not None and len(class_names) != num_cls:
+            raise ValueError(f"Number of class names ({len(class_names)}) does not match number of classes ({num_cls})")
+
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.num_cls = num_cls
         self.iou_thres = iou_thres
@@ -63,12 +96,20 @@ class DetectionMetrics(Metric):
             self.iou_thresholds = torch.tensor([iou_thres])
 
         self.map_str = "mAP" + self._get_range_str()
-        self.greater_component_is_better = {
-            f"Precision{self._get_range_str()}": True,
-            f"Recall{self._get_range_str()}": True,
-            f"mAP{self._get_range_str()}": True,
-            f"F1{self._get_range_str()}": True,
-        }
+        self.include_classwise_ap = include_classwise_ap
+
+        greater_component_is_better = [
+            (f"Precision{self._get_range_str()}", True),
+            (f"Recall{self._get_range_str()}", True),
+            (f"mAP{self._get_range_str()}", True),
+            (f"F1{self._get_range_str()}", True),
+        ]
+
+        if self.include_classwise_ap:
+            self.per_class_ap_names = [f"AP{self._get_range_str()}_{class_name}" for class_name in class_names]
+            greater_component_is_better += [(key, True) for key in self.per_class_ap_names]
+
+        self.greater_component_is_better = collections.OrderedDict(greater_component_is_better)
         self.component_names = list(self.greater_component_is_better.keys())
         self.calc_best_score_thresholds = calc_best_score_thresholds
         if self.calc_best_score_thresholds:
@@ -130,6 +171,7 @@ class DetectionMetrics(Metric):
         """
         mean_ap, mean_precision, mean_recall, mean_f1, best_score_threshold, best_score_threshold_per_cls = -1.0, -1.0, -1.0, -1.0, -1.0, None
         accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
+        mean_ap_per_class = np.zeros(self.num_cls)
 
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
@@ -150,12 +192,22 @@ class DetectionMetrics(Metric):
             # MaP is averaged over IoU thresholds and over classes
             mean_ap = ap.mean()
 
+            # Fill array of per-class AP scores with values for classes that were present in the dataset
+            ap_per_class = ap.mean(1)
+            for i, class_index in enumerate(unique_classes):
+                mean_ap_per_class[class_index] = float(ap_per_class[i])
+
         output_dict = {
             f"Precision{self._get_range_str()}": mean_precision,
             f"Recall{self._get_range_str()}": mean_recall,
             f"mAP{self._get_range_str()}": mean_ap,
             f"F1{self._get_range_str()}": mean_f1,
         }
+
+        if self.include_classwise_ap:
+            for i, ap_i in enumerate(mean_ap_per_class):
+                output_dict[self.per_class_ap_names[i]] = float(ap_i)
+
         if self.calc_best_score_thresholds:
             output_dict["Best_score_threshold"] = best_score_threshold
             output_dict.update(best_score_threshold_per_cls)
@@ -202,18 +254,24 @@ class DetectionMetrics_050(DetectionMetrics):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
+        calc_best_score_thresholds: bool = False,
+        include_classwise_ap: bool = False,
+        class_names: List[str] = None,
     ):
 
         super().__init__(
-            num_cls,
-            post_prediction_callback,
-            normalize_targets,
-            IouThreshold.MAP_05,
-            recall_thres,
-            score_thres,
-            top_k_predictions,
-            dist_sync_on_step,
-            accumulate_on_cpu,
+            num_cls=num_cls,
+            post_prediction_callback=post_prediction_callback,
+            normalize_targets=normalize_targets,
+            iou_thres=IouThreshold.MAP_05,
+            recall_thres=recall_thres,
+            score_thres=score_thres,
+            top_k_predictions=top_k_predictions,
+            dist_sync_on_step=dist_sync_on_step,
+            accumulate_on_cpu=accumulate_on_cpu,
+            calc_best_score_thresholds=calc_best_score_thresholds,
+            include_classwise_ap=include_classwise_ap,
+            class_names=class_names,
         )
 
 
@@ -229,10 +287,24 @@ class DetectionMetrics_075(DetectionMetrics):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
+        calc_best_score_thresholds: bool = False,
+        include_classwise_ap: bool = False,
+        class_names: List[str] = None,
     ):
 
         super().__init__(
-            num_cls, post_prediction_callback, normalize_targets, 0.75, recall_thres, score_thres, top_k_predictions, dist_sync_on_step, accumulate_on_cpu
+            num_cls=num_cls,
+            post_prediction_callback=post_prediction_callback,
+            normalize_targets=normalize_targets,
+            iou_thres=0.75,
+            recall_thres=recall_thres,
+            score_thres=score_thres,
+            top_k_predictions=top_k_predictions,
+            dist_sync_on_step=dist_sync_on_step,
+            accumulate_on_cpu=accumulate_on_cpu,
+            calc_best_score_thresholds=calc_best_score_thresholds,
+            include_classwise_ap=include_classwise_ap,
+            class_names=class_names,
         )
 
 
@@ -248,16 +320,22 @@ class DetectionMetrics_050_095(DetectionMetrics):
         top_k_predictions: int = 100,
         dist_sync_on_step: bool = False,
         accumulate_on_cpu: bool = True,
+        calc_best_score_thresholds: bool = False,
+        include_classwise_ap: bool = False,
+        class_names: List[str] = None,
     ):
 
         super().__init__(
-            num_cls,
-            post_prediction_callback,
-            normalize_targets,
-            IouThreshold.MAP_05_TO_095,
-            recall_thres,
-            score_thres,
-            top_k_predictions,
-            dist_sync_on_step,
-            accumulate_on_cpu,
+            num_cls=num_cls,
+            post_prediction_callback=post_prediction_callback,
+            normalize_targets=normalize_targets,
+            iou_thres=IouThreshold.MAP_05_TO_095,
+            recall_thres=recall_thres,
+            score_thres=score_thres,
+            top_k_predictions=top_k_predictions,
+            dist_sync_on_step=dist_sync_on_step,
+            accumulate_on_cpu=accumulate_on_cpu,
+            calc_best_score_thresholds=calc_best_score_thresholds,
+            include_classwise_ap=include_classwise_ap,
+            class_names=class_names,
         )
