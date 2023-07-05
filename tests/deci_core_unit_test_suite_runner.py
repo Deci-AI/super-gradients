@@ -21,6 +21,7 @@ from tests.unit_tests import (
     CallTrainAfterTestTest,
     CrashTipTest,
     TestTransforms,
+    TestPostPredictionCallback,
 )
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.detection_utils_test import TestDetectionUtils
@@ -141,6 +142,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestYOLONAS))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DeprecationsUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestMinSamplesSingleNode))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPostPredictionCallback))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationMetricsMultipleIgnored))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainWithTorchSchedulerTest))
 

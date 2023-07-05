@@ -23,6 +23,7 @@ from tests.unit_tests.initialize_with_dataloaders_test import InitializeWithData
 from tests.unit_tests.training_params_factory_test import TrainingParamsTest
 from tests.unit_tests.config_inspector_test import ConfigInspectTest
 from tests.unit_tests.transforms_test import TestTransforms
+from tests.unit_tests.post_prediction_callback_test import TestPostPredictionCallback
 
 __all__ = [
     "CrashTipTest",
@@ -49,4 +50,5 @@ __all__ = [
     "CallTrainAfterTestTest",
     "ConfigInspectTest",
     "TestTransforms",
+    "TestPostPredictionCallback",
 ]
