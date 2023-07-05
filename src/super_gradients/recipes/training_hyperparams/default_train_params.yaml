@@ -83,7 +83,7 @@ batch_accumulate: 1  # number of batches to accumulate before every backward pas
 
 
 run_validation_freq: 1 # The frequency in which validation is performed during training.
-run_test_freq: 3 # The frequency in which test is performed during training.
+run_test_freq: 1 # The frequency in which test is performed during training.
 
 
 save_model: True # Whether to save the model checkpoints
