@@ -15,12 +15,8 @@ class CallTrainAfterTestTest(unittest.TestCase):
     so when calling train again we see there's no change in the model's device.
     """
 
-    def test_call_train_after_test(self):
-        trainer = Trainer("test_call_train_after_test")
-        dataloader = classification_test_dataloader(batch_size=10)
-
-        model = models.get(Models.RESNET18, num_classes=5)
-        train_params = {
+    def setUp(self) -> None:
+        self.train_params = {
             "max_epochs": 2,
             "lr_updates": [1],
             "lr_decay_factor": 0.1,
@@ -36,44 +32,50 @@ class CallTrainAfterTestTest(unittest.TestCase):
             "metric_to_watch": "Accuracy",
             "greater_metric_to_watch_is_better": True,
         }
+
+    def test_call_train_after_test(self):
+        trainer = Trainer("test_call_train_after_test")
+        dataloader = classification_test_dataloader(batch_size=10)
+
+        model = models.get(Models.RESNET18, num_classes=5)
         trainer.test(model=model, test_metrics_list=[Accuracy()], test_loader=dataloader)
-        trainer.train(
-            model=model,
-            training_params=train_params,
-            train_loader=dataloader,
-            valid_loader=dataloader,
-            test_loaders={"testset1": dataloader, "testset2": dataloader},
-        )
+        trainer.train(model=model, training_params=self.train_params, train_loader=dataloader, valid_loader=dataloader)
 
     def test_call_train_after_test_with_loss(self):
         trainer = Trainer("test_call_train_after_test_with_loss")
         dataloader = classification_test_dataloader(batch_size=10)
 
         model = models.get(Models.RESNET18, num_classes=5)
-        train_params = {
-            "max_epochs": 2,
-            "lr_updates": [1],
-            "lr_decay_factor": 0.1,
-            "lr_mode": "step",
-            "lr_warmup_epochs": 0,
-            "initial_lr": 0.1,
-            "loss": torch.nn.CrossEntropyLoss(),
-            "optimizer": "SGD",
-            "criterion_params": {},
-            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-            "train_metrics_list": [Accuracy()],
-            "valid_metrics_list": [Accuracy()],
-            "metric_to_watch": "Accuracy",
-            "greater_metric_to_watch_is_better": True,
-        }
         trainer.test(model=model, test_metrics_list=[Accuracy()], test_loader=dataloader, loss=torch.nn.CrossEntropyLoss())
+        trainer.train(model=model, training_params=self.train_params, train_loader=dataloader, valid_loader=dataloader)
+
+    def test_training_with_testset_after_test(self):
+        trainer = Trainer("training_with_testset_after_test")
+        dataloader = classification_test_dataloader(batch_size=10)
+
+        model = models.get(Models.RESNET18, num_classes=5)
+        trainer.test(model=model, test_metrics_list=[Accuracy()], test_loader=dataloader)
         trainer.train(
             model=model,
-            training_params=train_params,
+            training_params=self.train_params,
             train_loader=dataloader,
             valid_loader=dataloader,
-            test_loaders={"testset1": dataloader, "testset2": dataloader},
+            test_loaders={"test1": dataloader, "test2": dataloader},
         )
+
+    def test_test_after_training_with_testset(self):
+        trainer = Trainer("test_after_training_with_testset")
+        dataloader = classification_test_dataloader(batch_size=10)
+
+        model = models.get(Models.RESNET18, num_classes=5)
+        trainer.train(
+            model=model,
+            training_params=self.train_params,
+            train_loader=dataloader,
+            valid_loader=dataloader,
+            test_loaders={"test1": dataloader, "test2": dataloader},
+        )
+        trainer.test(model=model, test_metrics_list=[Accuracy()], test_loader=dataloader, loss=torch.nn.CrossEntropyLoss())
 
 
 if __name__ == "__main__":
