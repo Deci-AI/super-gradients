@@ -156,16 +156,16 @@ class MonitoredValues:
         for loss_name in loss_names:
             values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
 
-        for metric_name, greater_is_better in metrics_greater_is_better.items():
-            values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=greater_is_better)
+        for name, greater_is_better in metrics_greater_is_better.items():
+            values[name] = MonitoredValue(name=name, greater_is_better=greater_is_better)
         self.values = values
 
-    def update_value(self, key, value):
-        self.values[key] = update_monitored_value(new_value=value, previous_monitored_value=self.values[key])
+    def update_value(self, name: str, value: float):
+        self.values[name] = update_monitored_value(new_value=value, previous_monitored_value=self.values[name])
 
     def update_values(self, values: Dict[str, float]):
-        for key, value in values.items():
-            self.update_value(key=key, value=value)
+        for name, value in values.items():
+            self.update_value(name=name, value=value)
 
 
 def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: float) -> MonitoredValue:
@@ -258,6 +258,7 @@ def display_epoch_summary(epoch: int, n_digits: int, train_monitored_values: Mon
             tree.create_node(tag=f"Best until now = {best:6} ({diff_with_best_colored:8})", identifier=f"1_best_{root_id}", parent=root_id)
         return tree
 
+    print("===========================================================")
     train_tree = Tree()
     train_tree.create_node("Training", "Training")
     for name, value in train_monitored_values.values.items():
@@ -273,6 +274,7 @@ def display_epoch_summary(epoch: int, n_digits: int, train_monitored_values: Mon
     summary_tree.paste("Summary", train_tree)
     summary_tree.paste("Summary", valid_tree)
     summary_tree.show()
+    print("===========================================================")
 
 
 def try_port(port):

@@ -482,8 +482,7 @@ class Trainer:
         return loss, loss_logging_items
 
     def _init_monitored_items(self):
-        # Instantiate the values to monitor (loss/metric)
-
+        # Instantiate the values to monitor (loss/metric
         self.train_monitored_values = MonitoredValues(
             loss_names=self.loss_logging_items_names,
             metrics_greater_is_better=get_greater_is_better_mapping(self.train_metrics),
@@ -1904,11 +1903,9 @@ class Trainer:
             self.valid_monitored_values.update_values(values=pbar_message_dict)
 
             if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
-                progress_bar_data_loader.write("===========================================================")
                 sg_trainer_utils.display_epoch_summary(
                     epoch=context.epoch, n_digits=4, train_monitored_values=self.train_monitored_values, valid_monitored_values=self.valid_monitored_values
                 )
-                progress_bar_data_loader.write("===========================================================")
 
         return get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
