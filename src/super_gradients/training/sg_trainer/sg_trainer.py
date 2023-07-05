@@ -974,7 +974,12 @@ class Trainer:
                 - `run_validation_freq` : int (default=1)
 
                     The frequency in which validation is performed during training (i.e the validation is ran every
-                     `run_validation_freq` epochs.
+                     `run_validation_freq` epochs). Also applies to test set if you provided one.
+
+                - `run_test_freq` : int (default=1)
+
+                    The frequency in which test is performed during training (i.e the test is ran every
+                     `run_test_freq` epochs). Only applies if you provided a test set.
 
                 - `save_model` : bool (default=True)
 
@@ -1180,6 +1185,7 @@ class Trainer:
                     logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
 
         self.run_validation_freq = self.training_params.run_validation_freq
+        self.run_test_freq = self.training_params.run_test_freq
 
         inf_time = 0
         timer = core_utils.Timer(device_config.device)
@@ -1399,7 +1405,7 @@ class Trainer:
                     self.phase_callback_handler.on_validation_loader_end(context)
 
                 test_metrics_dict = {}
-                if (epoch + 1) % self.run_validation_freq == 0:
+                if (epoch + 1) % self.run_test_freq == 0:
                     self.phase_callback_handler.on_test_loader_start(context)
                     for dataset_name, dataloader in self.test_loaders.items():
                         dataset_metrics_dict = self._test_epoch(data_loader=dataloader, context=context, silent_mode=silent_mode, dataset_name=dataset_name)

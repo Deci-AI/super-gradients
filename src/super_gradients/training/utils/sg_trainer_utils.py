@@ -209,7 +209,7 @@ def display_epoch_summary(epoch: int, n_digits: int, monitored_values_dict: Dict
     """
 
     def _format_to_str(val: float) -> str:
-        return str(round(val, n_digits))
+        return str(round(val, n_digits)) if val is not None else "None"
 
     def _generate_tree(value_name: str, monitored_value: MonitoredValue) -> Tree:
         """Generate a tree that represents the stats of a given loss/metric."""
