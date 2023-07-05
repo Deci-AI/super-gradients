@@ -1380,14 +1380,6 @@ class Trainer:
     def _set_valid_metrics(self, valid_metrics_list):
         self.valid_metrics = MetricCollection(valid_metrics_list)
 
-        for metric_name, metric in self.valid_metrics.items():
-            if hasattr(metric, "greater_component_is_better"):
-                self.greater_valid_metrics_is_better.update(metric.greater_component_is_better)
-            elif hasattr(metric, "greater_is_better"):
-                self.greater_valid_metrics_is_better[metric_name] = metric.greater_is_better
-            else:
-                self.greater_valid_metrics_is_better[metric_name] = None
-
     @resolve_param("test_metrics_list", ListFactory(MetricsFactory()))
     def _set_test_metrics(self, test_metrics_list):
         self.test_metrics = MetricCollection(test_metrics_list)
