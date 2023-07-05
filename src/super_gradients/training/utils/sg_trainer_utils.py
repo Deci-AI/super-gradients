@@ -200,21 +200,12 @@ def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue
     return monitored_values_dict
 
 
-def display_epoch_summary(
-    epoch: int,
-    n_digits: int,
-    train_monitored_values: Dict[str, MonitoredValue],
-    valid_monitored_values: Dict[str, MonitoredValue],
-    test_monitored_values: Dict[str, MonitoredValue],
-) -> None:
+def display_epoch_summary(epoch: int, n_digits: int, monitored_values_dict: Dict[str, Dict[str, MonitoredValue]]) -> None:
     """Display a summary of loss/metric of interest, for a given epoch.
 
     :param epoch: the number of epoch.
     :param n_digits: number of digits to display on screen for float values
-    :param train_monitored_values: mapping of loss/metric with their stats that will be displayed
-    :param valid_monitored_values: mapping of loss/metric with their stats that will be displayed
-    :param test_monitored_values: mapping of loss/metric with their stats that will be displayed
-    :return:
+    :param monitored_values_dict: Dict of Dict. The first one represents the splut, and the second one a loss/metric.
     """
 
     def _format_to_str(val: float) -> str:
@@ -247,27 +238,18 @@ def display_epoch_summary(
             tree.create_node(tag=f"Best until now = {best:6} ({diff_with_best_colored:8})", identifier=f"1_best_{root_id}", parent=root_id)
         return tree
 
-    print("===========================================================")
-    train_tree = Tree()
-    train_tree.create_node("Training", "Training")
-    for name, value in train_monitored_values.items():
-        train_tree.paste("Training", new_tree=_generate_tree(name, monitored_value=value))
-
-    valid_tree = Tree()
-    valid_tree.create_node("Validation", "Validation")
-    for name, value in valid_monitored_values.items():
-        valid_tree.paste("Validation", new_tree=_generate_tree(name, monitored_value=value))
-
     summary_tree = Tree()
     summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
-    summary_tree.paste("Summary", train_tree)
-    summary_tree.paste("Summary", valid_tree)
-    if test_monitored_values:
-        test_tree = Tree()
-        test_tree.create_node("Test", "Test")
-        for name, value in test_monitored_values.items():
-            test_tree.paste("Test", new_tree=_generate_tree(name, monitored_value=value))
-        summary_tree.paste("Summary", test_tree)
+
+    for split, monitored_values in monitored_values_dict.items():
+        if len(monitored_values):
+            split_tree = Tree()
+            split_tree.create_node(split, split)
+            for name, value in monitored_values.items():
+                split_tree.paste(split, new_tree=_generate_tree(name, monitored_value=value))
+            summary_tree.paste("Summary", split_tree)
+
+    print("===========================================================")
     summary_tree.show(key=False)
     print("===========================================================")
 

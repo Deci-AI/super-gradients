@@ -1392,9 +1392,11 @@ class Trainer:
                     sg_trainer_utils.display_epoch_summary(
                         epoch=context.epoch,
                         n_digits=4,
-                        train_monitored_values=self.train_monitored_values,
-                        valid_monitored_values=self.valid_monitored_values,
-                        test_monitored_values=self.test_monitored_values,
+                        monitored_values_dict={
+                            "Train": self.train_monitored_values,
+                            "Validation": self.valid_monitored_values,
+                            "Test": self.test_monitored_values,
+                        },
                     )
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
