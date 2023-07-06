@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union, Dict, Sequence, Callable
+from typing import Tuple, Union, Dict, Sequence, Callable, Optional
 import random
 
 import inspect
@@ -97,12 +97,12 @@ class MonitoredValue:
     """
 
     name: str
-    greater_is_better: bool = None
-    current: float = None
-    previous: float = None
-    best: float = None
-    change_from_previous: float = None
-    change_from_best: float = None
+    greater_is_better: Optional[bool] = None
+    current: Optional[float] = None
+    previous: Optional[float] = None
+    best: Optional[float] = None
+    change_from_previous: Optional[float] = None
+    change_from_best: Optional[float] = None
 
     @property
     def has_increased_from_previous(self) -> IncreaseType:
@@ -208,7 +208,7 @@ def display_epoch_summary(epoch: int, n_digits: int, monitored_values_dict: Dict
     :param monitored_values_dict: Dict of Dict. The first one represents the splut, and the second one a loss/metric.
     """
 
-    def _format_to_str(val: float) -> str:
+    def _format_to_str(val: Optional[float]) -> str:
         return str(round(val, n_digits)) if val is not None else "None"
 
     def _generate_tree(value_name: str, monitored_value: MonitoredValue) -> Tree:
