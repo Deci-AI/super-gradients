@@ -175,7 +175,7 @@ from super_gradients.training import models
 
 model = models.get(Models.YOLO_NAS_S,
                    checkpoint_path=<YOUR_CHECKPOINTS_ROOT_DIRECTORY>/yolo_nas_s_soccer_players/ckpt_best.pth>,
-                   num_classes=4)
+                   num_classes=3)
 predictions = model.predict("messi_penalty.mp4")
 predictions.show(show_confidence=False)
 ```
