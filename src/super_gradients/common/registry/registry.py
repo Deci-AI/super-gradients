@@ -144,6 +144,20 @@ OPTIMIZERS = {
     Optimizers.ADAMW: optim.AdamW,
     Optimizers.RMS_PROP: optim.RMSprop,
 }
+
+TORCH_LR_SCHEDULERS = {
+    "StepLR": torch.optim.lr_scheduler.StepLR,
+    "LambdaLR": torch.optim.lr_scheduler.LambdaLR,
+    "MultiStepLR": torch.optim.lr_scheduler.MultiStepLR,
+    "ConstantLR": torch.optim.lr_scheduler.ConstantLR,
+    "CosineAnnealingLR": torch.optim.lr_scheduler.CosineAnnealingLR,
+    "CosineAnnealingWarmRestarts": torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
+    "CyclicLR": torch.optim.lr_scheduler.CyclicLR,
+    "ExponentialLR": torch.optim.lr_scheduler.ExponentialLR,
+    "ReduceLROnPlateau": torch.optim.lr_scheduler.ReduceLROnPlateau,
+    "LinearLR": torch.optim.lr_scheduler.LinearLR,
+}
+
 register_optimizer = create_register_decorator(registry=OPTIMIZERS)
 
 PROCESSINGS = {}
