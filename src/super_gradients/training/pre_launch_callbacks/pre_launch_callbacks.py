@@ -109,6 +109,7 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
         tmp_cfg.training_hyperparams.batch_accumulate = 1
         tmp_cfg.training_hyperparams.max_train_batches = self.num_forward_passes
         tmp_cfg.training_hyperparams.run_validation_freq = 2
+        tmp_cfg.training_hyperparams.run_test_freq = 2
         tmp_cfg.training_hyperparams.silent_mode = True
         tmp_cfg.training_hyperparams.save_model = False
         tmp_cfg.training_hyperparams.max_epochs = 1
