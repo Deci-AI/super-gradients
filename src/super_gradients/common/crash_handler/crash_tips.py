@@ -6,7 +6,7 @@ import omegaconf
 
 from super_gradients.common.crash_handler.utils import indent_string, fmt_txt, json_str_to_dict
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.exceptions.sg_trainer_exceptions import IllegalMetricToWatch
+from super_gradients.common.exceptions.sg_trainer_exceptions import IllegalMetricToWatch
 
 logger = get_logger(__name__)
 

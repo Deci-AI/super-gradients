@@ -37,7 +37,7 @@ from super_gradients.common.factories.metrics_factory import MetricsFactory
 
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import RepeatAugSampler
-from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, IllegalMetricToWatch
+from super_gradients.common.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, IllegalMetricToWatch
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
     get_metrics_results_tuple,
@@ -514,7 +514,7 @@ class Trainer:
     def _init_monitored_items(self):
         possible_monitored_titles = self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
         if not is_in_fuzzy_list(self.metric_to_watch, possible_monitored_titles):
-            raise IllegalMetricToWatch(self.loss_logging_items_names, get_metrics_titles(self.valid_metrics))
+            raise IllegalMetricToWatch(self.metric_to_watch, self.loss_logging_items_names, get_metrics_titles(self.valid_metrics))
         self.metric_idx_in_results_tuple = fuzzy_idx_in_list(self.metric_to_watch, possible_monitored_titles)
         # Instantiate the values to monitor (loss/metric)
         for loss_name in self.loss_logging_items_names:

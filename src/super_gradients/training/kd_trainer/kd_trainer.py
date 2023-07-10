@@ -9,7 +9,7 @@ from super_gradients.common import MultiGPUMode, StrictLoad
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import utils as core_utils, models
 from super_gradients.training.dataloaders import dataloaders
-from super_gradients.training.exceptions.kd_trainer_exceptions import (
+from super_gradients.common.exceptions.kd_trainer_exceptions import (
     ArchitectureKwargsException,
     UnsupportedKDArchitectureException,
     InconsistentParamsException,
