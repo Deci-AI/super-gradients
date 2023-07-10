@@ -16,6 +16,7 @@ DEFAULT_TRAINING_PARAMS = {
     "zero_weight_decay_on_bias_and_bn": False,
     "load_opt_params": True,
     "run_validation_freq": 1,
+    "run_test_freq": 1,
     "save_model": True,
     "metric_to_watch": "Accuracy",
     "launch_tensorboard": False,
