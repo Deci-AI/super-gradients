@@ -68,7 +68,6 @@ from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
 from super_gradients.training.utils.utils import fuzzy_idx_in_list
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
-from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
 from super_gradients.training.utils.checkpoint_utils import (
     read_ckpt_state_dict,
@@ -198,13 +197,9 @@ class Trainer:
         # SET THE DEFAULTS
         # TODO: SET DEFAULT TRAINING PARAMS FOR EACH TASK
 
-        default_results_titles = ["Train Loss", "Train Acc", "Train Top5", "Valid Loss", "Valid Acc", "Valid Top5"]
+        self.results_titles = None
 
-        self.results_titles = default_results_titles
-
-        default_train_metrics, default_valid_metrics = MetricCollection([Accuracy(), Top5()]), MetricCollection([Accuracy(), Top5()])
-
-        self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
+        self.train_metrics, self.valid_metrics = None, None
 
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
