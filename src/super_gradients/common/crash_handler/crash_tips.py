@@ -6,7 +6,7 @@ import omegaconf
 
 from super_gradients.common.crash_handler.utils import indent_string, fmt_txt, json_str_to_dict
 from super_gradients.common.abstractions.abstract_logger import get_logger
-
+from super_gradients.training.exceptions.sg_trainer_exceptions import IllegalMetricToWatch
 
 logger = get_logger(__name__)
 
@@ -219,6 +219,21 @@ class InterpolationKeyErrorTip(CrashTip):
             f"instead of '{fmt_txt('${train_dataloader_params.batch_size}', color='red')}'.\n"
         )
         return [tip]
+
+
+class IllegalMetricToWatchTip(CrashTip):
+    @classmethod
+    def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> bool:
+        return isinstance(exc_value, IllegalMetricToWatch)
+
+    @classmethod
+    def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
+        possible_monitored_names = exc_value.loss_component_names + exc_value.metric_titles
+        tip = (
+            f"The metric_to_watch value: {exc_value.metric_to_watch} was not found among the possible values to monitor: {possible_monitored_names}."
+            f"Make sure to pass metric_to_watch that is either a loss component name: {exc_value.loss_component_names}"
+        )
+        return tip
 
 
 def get_relevant_crash_tip_message(exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Union[None, str]:

@@ -37,7 +37,7 @@ from super_gradients.common.factories.metrics_factory import MetricsFactory
 
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import RepeatAugSampler
-from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
+from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, IllegalMetricToWatch
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
     get_metrics_results_tuple,
@@ -66,7 +66,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
-from super_gradients.training.utils.utils import fuzzy_idx_in_list
+from super_gradients.training.utils.utils import fuzzy_idx_in_list, is_in_fuzzy_list
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
 from super_gradients.training.utils import random_seed
 from super_gradients.training.utils.checkpoint_utils import (
@@ -199,7 +199,7 @@ class Trainer:
 
         self.results_titles = None
 
-        self.train_metrics, self.valid_metrics = None, None
+        self.train_metrics, self.valid_metrics = [], []
 
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
@@ -512,7 +512,10 @@ class Trainer:
         return loss, loss_logging_items
 
     def _init_monitored_items(self):
-        self.metric_idx_in_results_tuple = fuzzy_idx_in_list(self.metric_to_watch, self.loss_logging_items_names + get_metrics_titles(self.valid_metrics))
+        possible_monitored_titles = self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
+        if not is_in_fuzzy_list(self.metric_to_watch, possible_monitored_titles):
+            raise IllegalMetricToWatch(self.loss_logging_items_names, get_metrics_titles(self.valid_metrics))
+        self.metric_idx_in_results_tuple = fuzzy_idx_in_list(self.metric_to_watch, possible_monitored_titles)
         # Instantiate the values to monitor (loss/metric)
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)

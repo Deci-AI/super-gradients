@@ -269,6 +269,17 @@ def fuzzy_idx_in_list(name: str, lst: List[str]) -> int:
     return [fuzzy_str(x) for x in lst].index(fuzzy_str(name))
 
 
+def is_in_fuzzy_list(name: str, lst: List[str]) -> bool:
+    """
+    Returns whether lst contains name, with non sensitivity to symbols, uppercase and lowercase.
+    :param name: str, the name to be searched in lst.
+    :param lst: List[str], the list as described above.
+    :return: True if lst contains name with the logic descrobed above
+    """
+
+    return fuzzy_str(name) in [fuzzy_str(x) for x in lst]
+
+
 def get_param(params, name, default_val=None):
     """
     Retrieves a param from a parameter object/dict . If the parameter does not exist, will return default_val.

@@ -1,3 +1,6 @@
+from typing import List
+
+
 class UnsupportedTrainingParameterFormat(Exception):
     """Exception raised illegal training param format.
 
@@ -31,4 +34,14 @@ class GPUModeNotSetupError(Exception):
             "Your environment was not setup to support DDP. Please run at the beginning of your script:\n"
             ">>> from super_gradients.common.environment.env_helpers import init_trainer\n"
             ">>> setup_device(multi_gpu=..., num_gpus=...)\n"
+        )
+
+
+class IllegalMetricToWatch(Exception):
+    def __init__(self, metric_to_watch: str, loss_component_names: List[str], metric_titles: List[str]):
+        self.loss_component_names = loss_component_names
+        self.metric_titles = metric_titles
+        self.metric_to_watch = metric_to_watch
+        super(IllegalMetricToWatch, self).__init__(
+            f"metric_to_watch: {self.metric_to_watch} not in possible monitored values: {self.loss_component_names + self.metric_titles}"
         )
