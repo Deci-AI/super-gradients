@@ -38,6 +38,14 @@ class GPUModeNotSetupError(Exception):
 
 
 class IllegalMetricToWatch(Exception):
+    """
+    Exception raised when metric_to_watch is not one of the validation metrics or loss componenets.
+    Attributes:
+        :metric_to_watch: str, the metric_to_watch training hyper-parameter.
+        :loss_component_names: List[str], Trainer.loss_component_names = critertion's component_names
+        :metric_titles: List[str], the possible validation metric names used by Trainer
+    """
+
     def __init__(self, metric_to_watch: str, loss_component_names: List[str], metric_titles: List[str]):
         self.loss_component_names = loss_component_names
         self.metric_titles = metric_titles
