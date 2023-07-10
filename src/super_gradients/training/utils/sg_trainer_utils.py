@@ -18,7 +18,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from super_gradients.common.environment.device_utils import device_config
-from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
+from super_gradients.common.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
 from super_gradients.common.data_types.enum import MultiGPUMode
 
 

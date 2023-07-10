@@ -3,7 +3,7 @@ import numpy as np
 
 from super_gradients.training.datasets import DetectionDataset
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
-from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
+from super_gradients.common.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
 
 
 class DummyDetectionDataset(DetectionDataset):
