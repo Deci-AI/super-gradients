@@ -230,8 +230,11 @@ class IllegalMetricToWatchTip(CrashTip):
     def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
         possible_monitored_names = exc_value.loss_component_names + exc_value.metric_titles
         tip = (
-            f"The metric_to_watch value: {exc_value.metric_to_watch} was not found among the possible values to monitor: {possible_monitored_names}."
-            f"Make sure to pass metric_to_watch that is either a loss component name: {exc_value.loss_component_names}"
+            f"The metric_to_watch training hyperparameter value passed: {exc_value.metric_to_watch} was not found "
+            f"among the possible values to monitor: {possible_monitored_names}.\n"
+            f"Make sure to pass metric_to_watch that is either a loss component name: {exc_value.loss_component_names} or"
+            f"one of the validation metric names passed through valid_metrics_list: {exc_value.metric_titles}.\n"
+            f"Make also sure to pass validation metrics and that you are referring/using the right loss function."
         )
         return tip
 
