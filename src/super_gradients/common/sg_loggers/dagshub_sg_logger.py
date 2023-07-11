@@ -181,7 +181,7 @@ class DagsHubSGLogger(BaseSGLogger):
     @multi_process_safe
     def _sanitize_special_characters(self, text):
         pattern = r"[!\"#$%&'()*+,:;<=>?@[\]^`{|}~\t\n\r\x0b\x0c]"
-        valid_text = re.sub(pattern, '_', text)
+        valid_text = re.sub(pattern, "_", text)
         return valid_text
 
     @multi_process_safe
