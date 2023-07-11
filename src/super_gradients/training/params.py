@@ -16,6 +16,7 @@ DEFAULT_TRAINING_PARAMS = {
     "zero_weight_decay_on_bias_and_bn": False,
     "load_opt_params": True,
     "run_validation_freq": 1,
+    "run_test_freq": 1,
     "save_model": True,
     "metric_to_watch": "Accuracy",
     "launch_tensorboard": False,
@@ -64,11 +65,21 @@ DEFAULT_TRAINING_PARAMS = {
     # (i.e iterating over train_loader) when reaching this number of batches.
     "max_valid_batches": None,  # For debug- when not None- will break out of inner valid loop
     # (i.e iterating over valid_loader) when reaching this number of batches.
-    "resume_from_remote_sg_logger": False  # When true, ckpt_name (checkpoint filename to resume, ckpt_latest.pth by
+    "resume_from_remote_sg_logger": False,  # When true, ckpt_name (checkpoint filename to resume, ckpt_latest.pth by
     # default) will be downloaded into the experiment checkpoints directory prior to loading weights, then resumed
     # from that checkpoint. The source is unique to every logger, and currently supported for WandB loggers only.
     # Note that for this to work, the experiment must be ran with sg_logger_params.save_checkpoints_remote=True. For
     # WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
+    "torch_compile": False,  # Enable or disable use of torch.compile to optimize the model
+    "torch_compile_loss": False,  # Enable or disable use of torch.compile to optimize the loss
+    "torch_compile_options": {
+        "mode": "reduce-overhead",  # Can be either “default”, “reduce-overhead” or “max-autotune”
+        "fullgraph": False,  # Whether it is ok to break model into several subgraphs
+        "dynamic": False,  # Use dynamic shape tracing
+        "backend": "inductor",  # backend to be used
+        "options": None,  # A dictionary of options to pass to the backend.
+        "disable": False,  # Turn torch.compile() into a no-op for testing
+    },  # torch.compile options from https://pytorch.org/docs/stable/generated/torch.compile.html
 }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}

@@ -203,11 +203,21 @@ class IouThreshold(tuple, Enum):
 
     def to_tensor(self):
         if self.is_range():
-            n_iou_thresh = int(round((self[1] - self[0]) / 0.05)) + 1
-            return torch.linspace(self[0], self[1], n_iou_thresh)
+            return self.from_bounds(self[0], self[1], step=0.05)
         else:
-            n_iou_thresh = 1
             return torch.tensor([self[0]])
+
+    @classmethod
+    def from_bounds(cls, low: float, high: float, step: float = 0.05) -> torch.Tensor:
+        """
+        Create a tensor with values from low (including) to high (including) with a given step size.
+        :param low: Lower bound
+        :param high: Upper bound
+        :param step: Step size
+        :return: Tensor of [low, low + step, low + 2 * step, ..., high]
+        """
+        n_iou_thresh = int(round((high - low) / step)) + 1
+        return torch.linspace(low, high, n_iou_thresh)
 
 
 def box_iou(box1: torch.Tensor, box2: torch.Tensor) -> torch.Tensor:
@@ -232,18 +242,26 @@ def box_iou(box1: torch.Tensor, box2: torch.Tensor) -> torch.Tensor:
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
 
 
-def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_per_box: bool = True, with_confidence: bool = False):
+def non_max_suppression(
+    prediction, conf_thres=0.1, iou_thres=0.6, multi_label_per_box: bool = True, with_confidence: bool = False, class_agnostic_nms: bool = False
+):
     """
     Performs Non-Maximum Suppression (NMS) on inference results
-        :param prediction: raw model prediction. Should be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
-        :param conf_thres: below the confidence threshold - prediction are discarded
-        :param iou_thres: IoU threshold for the nms algorithm
-        :param multi_label_per_box: whether to use re-use each box with all possible labels
-                                    (instead of the maximum confidence all confidences above threshold
-                                    will be sent to NMS); by default is set to True
-        :param with_confidence: whether to multiply objectness score with class score.
-                                usually valid for Yolo models only.
-        :return: detections with shape nx6 (x1, y1, x2, y2, object_conf, class_conf, class)
+
+    :param prediction: raw model prediction. Should be a list of Tensors of shape (cx, cy, w, h, confidence, cls0, cls1, ...)
+    :param conf_thres: below the confidence threshold - prediction are discarded
+    :param iou_thres: IoU threshold for the nms algorithm
+    :param multi_label_per_box: controls whether to decode multiple labels per box.
+                                True - each anchor can produce multiple labels of different classes
+                                       that pass confidence threshold check (default).
+                                False - each anchor can produce only one label of the class with the highest score.
+    :param with_confidence: whether to multiply objectness score with class score.
+                            usually valid for Yolo models only.
+    :param class_agnostic_nms: indicates how boxes of different classes will be treated during NMS
+                               True - NMS will be performed on all classes together.
+                               False - NMS will be performed on each class separately (default).
+    :return: detections with shape nx6 (x1, y1, x2, y2, object_conf, class_conf, class)
+
     """
     candidates_above_thres = prediction[..., 4] > conf_thres  # filter by confidence
     output = [None] * prediction.shape[0]
@@ -274,18 +292,17 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_p
 
         # Apply torch batched NMS algorithm
         boxes, scores, cls_idx = pred[:, :4], pred[:, 4], pred[:, 5]
-        idx_to_keep = torchvision.ops.boxes.batched_nms(boxes, scores, cls_idx, iou_thres)
+        if class_agnostic_nms:
+            idx_to_keep = torchvision.ops.boxes.nms(boxes, scores, iou_thres)
+        else:
+            idx_to_keep = torchvision.ops.boxes.batched_nms(boxes, scores, cls_idx, iou_thres)
         output[image_idx] = pred[idx_to_keep]
 
     return output
 
 
 def matrix_non_max_suppression(
-    pred,
-    conf_thres: float = 0.1,
-    kernel: str = "gaussian",
-    sigma: float = 3.0,
-    max_num_of_detections: int = 500,
+    pred, conf_thres: float = 0.1, kernel: str = "gaussian", sigma: float = 3.0, max_num_of_detections: int = 500, class_agnostic_nms: bool = False
 ) -> List[torch.Tensor]:
     """Performs Matrix Non-Maximum Suppression (NMS) on inference results https://arxiv.org/pdf/1912.04488.pdf
 
@@ -316,11 +333,12 @@ def matrix_non_max_suppression(
 
     ious = ious.triu(1)
 
-    # CREATE A LABELS MASK, WE WANT ONLY BOXES WITH THE SAME LABEL TO AFFECT EACH OTHER
-    labels = pred[:, :, 5:]
-    labeles_matrix = (labels == labels.transpose(2, 1)).float().triu(1)
+    if not class_agnostic_nms:
+        # CREATE A LABELS MASK, WE WANT ONLY BOXES WITH THE SAME LABEL TO AFFECT EACH OTHER
+        labels = pred[:, :, 5:]
+        labeles_matrix = (labels == labels.transpose(2, 1)).float().triu(1)
+        ious *= labeles_matrix
 
-    ious *= labeles_matrix
     ious_cmax, _ = ious.max(1)
     ious_cmax = ious_cmax.unsqueeze(2).repeat(1, 1, max_num_of_detections)
 
@@ -1078,6 +1096,7 @@ def compute_detection_metrics(
     device: str,
     recall_thresholds: Optional[torch.Tensor] = None,
     score_threshold: Optional[float] = 0.1,
+    calc_best_score_thresholds: bool = False,
 ) -> Tuple:
     """
     Compute the list of precision, recall, MaP and f1 for every recall IoU threshold and for every class.
@@ -1093,26 +1112,37 @@ def compute_detection_metrics(
     :param score_threshold:    Minimum confidence score to consider a prediction for the computation of
                                     precision, recall and f1 (not MaP)
     :param device:             Device
-
+    :param calc_best_score_thresholds: If True, the best confidence score threshold is computed for each class
     :return:
         :ap, precision, recall, f1: Tensors of shape (n_class, nb_iou_thrs)
         :unique_classes:            Vector with all unique target classes
+        :best_score_threshold:      torch.float with the best overall score threshold if calc_best_score_thresholds
+                                    is True else None
+        :best_score_threshold_per_cls:     dict that stores the best score threshold for each class , if
+                                            calc_best_score_thresholds is True else None
+
     """
     preds_matched, preds_to_ignore = preds_matched.to(device), preds_to_ignore.to(device)
     preds_scores, preds_cls, targets_cls = preds_scores.to(device), preds_cls.to(device), targets_cls.to(device)
 
     recall_thresholds = torch.linspace(0, 1, 101, device=device) if recall_thresholds is None else recall_thresholds.to(device)
 
-    unique_classes = torch.unique(targets_cls)
+    unique_classes = torch.unique(targets_cls).long()
+
     n_class, nb_iou_thrs = len(unique_classes), preds_matched.shape[-1]
 
     ap = torch.zeros((n_class, nb_iou_thrs), device=device)
     precision = torch.zeros((n_class, nb_iou_thrs), device=device)
     recall = torch.zeros((n_class, nb_iou_thrs), device=device)
 
+    nb_score_thrs = 101
+    all_score_thresholds = torch.linspace(0, 1, nb_score_thrs, device=device)
+    f1_per_class_per_threshold = torch.zeros((n_class, nb_score_thrs), device=device) if calc_best_score_thresholds else None
+    best_score_threshold_per_cls = dict() if calc_best_score_thresholds else None
+
     for cls_i, cls in enumerate(unique_classes):
         cls_preds_idx, cls_targets_idx = (preds_cls == cls), (targets_cls == cls)
-        cls_ap, cls_precision, cls_recall = compute_detection_metrics_per_cls(
+        cls_ap, cls_precision, cls_recall, cls_f1_per_threshold, cls_best_score_threshold = compute_detection_metrics_per_cls(
             preds_matched=preds_matched[cls_preds_idx],
             preds_to_ignore=preds_to_ignore[cls_preds_idx],
             preds_scores=preds_scores[cls_preds_idx],
@@ -1120,14 +1150,24 @@ def compute_detection_metrics(
             recall_thresholds=recall_thresholds,
             score_threshold=score_threshold,
             device=device,
+            calc_best_score_thresholds=calc_best_score_thresholds,
+            nb_score_thrs=nb_score_thrs,
         )
         ap[cls_i, :] = cls_ap
         precision[cls_i, :] = cls_precision
         recall[cls_i, :] = cls_recall
+        if calc_best_score_thresholds:
+            f1_per_class_per_threshold[cls_i, :] = cls_f1_per_threshold
+            best_score_threshold_per_cls[f"Best_score_threshold_cls_{int(cls)}"] = cls_best_score_threshold
 
     f1 = 2 * precision * recall / (precision + recall + 1e-16)
+    if calc_best_score_thresholds:
+        mean_f1_across_classes = torch.mean(f1_per_class_per_threshold, dim=0)
+        best_score_threshold = all_score_thresholds[torch.argmax(mean_f1_across_classes)]
+    else:
+        best_score_threshold = None
 
-    return ap, precision, recall, f1, unique_classes
+    return ap, precision, recall, f1, unique_classes, best_score_threshold, best_score_threshold_per_cls
 
 
 def compute_detection_metrics_per_cls(
@@ -1138,6 +1178,8 @@ def compute_detection_metrics_per_cls(
     recall_thresholds: torch.Tensor,
     score_threshold: float,
     device: str,
+    calc_best_score_thresholds: bool = False,
+    nb_score_thrs: int = 101,
 ):
     """
     Compute the list of precision, recall and MaP of a given class for every recall IoU threshold.
@@ -1154,16 +1196,30 @@ def compute_detection_metrics_per_cls(
         :param score_threshold:    Minimum confidence score to consider a prediction for the computation of
                                         precision and recall (not MaP)
         :param device:             Device
+        :param calc_best_score_thresholds: If True, the best confidence score threshold is computed for this class
+        :param nb_score_thrs:       Number of score thresholds to consider when calc_best_score_thresholds is True
 
-        :return ap, precision, recall:  Tensors of shape (nb_iou_thrs)
+        :return:
+            :ap, precision, recall:     Tensors of shape (nb_iou_thrs)
+            :mean_f1_per_threshold:     Tensor of shape (nb_score_thresholds) if calc_best_score_thresholds is True else None
+            :best_score_threshold:      torch.float if calc_best_score_thresholds is True else None
     """
     nb_iou_thrs = preds_matched.shape[-1]
+
+    mean_f1_per_threshold = torch.zeros(nb_score_thrs, device=device) if calc_best_score_thresholds else None
+    best_score_threshold = torch.tensor(0.0, dtype=torch.float, device=device) if calc_best_score_thresholds else None
 
     tps = preds_matched
     fps = torch.logical_and(torch.logical_not(preds_matched), torch.logical_not(preds_to_ignore))
 
     if len(tps) == 0:
-        return torch.zeros(nb_iou_thrs, device=device), torch.zeros(nb_iou_thrs, device=device), torch.zeros(nb_iou_thrs, device=device)
+        return (
+            torch.zeros(nb_iou_thrs, device=device),
+            torch.zeros(nb_iou_thrs, device=device),
+            torch.zeros(nb_iou_thrs, device=device),
+            mean_f1_per_threshold,
+            best_score_threshold,
+        )
 
     # Sort by decreasing score
     dtype = torch.uint8 if preds_scores.is_cuda and preds_scores.dtype is torch.bool else preds_scores.dtype
@@ -1187,7 +1243,8 @@ def compute_detection_metrics_per_cls(
 
     # We want the rolling precision/recall at index i so that: preds_scores[i-1] >= score_threshold > preds_scores[i]
     # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
-    lowest_score_above_threshold = torch.searchsorted(-preds_scores, -score_threshold, right=False)
+    # Note2: right=True due to negation
+    lowest_score_above_threshold = torch.searchsorted(-preds_scores, -score_threshold, right=True)
 
     if lowest_score_above_threshold == 0:  # Here score_threshold > preds_scores[0], so no pred is above the threshold
         recall = torch.zeros(nb_iou_thrs, device=device)
@@ -1195,6 +1252,28 @@ def compute_detection_metrics_per_cls(
     else:
         recall = rolling_recalls[lowest_score_above_threshold - 1]
         precision = rolling_precisions[lowest_score_above_threshold - 1]
+
+    # ==================
+    # BEST CONFIDENCE SCORE THRESHOLD PER CLASS
+    if calc_best_score_thresholds:
+        all_score_thresholds = torch.linspace(0, 1, nb_score_thrs, device=device)
+
+        # We want the rolling precision/recall at index i so that: preds_scores[i-1] > score_threshold >= preds_scores[i]
+        # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
+        lowest_scores_above_thresholds = torch.searchsorted(-preds_scores, -all_score_thresholds, right=True)
+
+        # When score_threshold > preds_scores[0], then no pred is above the threshold, so we pad with zeros
+        rolling_recalls_padded = torch.cat((torch.zeros(1, nb_iou_thrs, device=device), rolling_recalls), dim=0)
+        rolling_precisions_padded = torch.cat((torch.zeros(1, nb_iou_thrs, device=device), rolling_precisions), dim=0)
+
+        # shape = (n_score_thresholds, nb_iou_thrs)
+        recalls_per_threshold = torch.index_select(input=rolling_recalls_padded, dim=0, index=lowest_scores_above_thresholds)
+        precisions_per_threshold = torch.index_select(input=rolling_precisions_padded, dim=0, index=lowest_scores_above_thresholds)
+
+        # shape (n_score_thresholds, nb_iou_thrs)
+        f1_per_threshold = 2 * recalls_per_threshold * precisions_per_threshold / (recalls_per_threshold + precisions_per_threshold + 1e-16)
+        mean_f1_per_threshold = torch.mean(f1_per_threshold, dim=1)  # average over iou thresholds
+        best_score_threshold = all_score_thresholds[torch.argmax(mean_f1_per_threshold)]
 
     # ==================
     # AVERAGE PRECISION
@@ -1216,4 +1295,4 @@ def compute_detection_metrics_per_cls(
     # Average over the recall_thresholds
     ap = sampled_precision_points.mean(0)
 
-    return ap, precision, recall
+    return ap, precision, recall, mean_f1_per_threshold, best_score_threshold

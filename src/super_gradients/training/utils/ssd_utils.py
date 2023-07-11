@@ -121,9 +121,10 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         :param iou: IoU threshold
         :param classes: (optional list) filter by class
         :param nms_type: the type of nms to use (iterative or matrix)
-        :param multi_label_per_box: whether to use re-use each box with all possible labels
-                                    (instead of the maximum confidence all confidences above threshold
-                                    will be sent to NMS)
+        :param multi_label_per_box: controls whether to decode multiple labels per box.
+                                    True - each anchor can produce multiple labels of different classes
+                                           that pass confidence threshold check (default).
+                                    False - each anchor can produce only one label of the class with the highest score.
         """
         super(SSDPostPredictCallback, self).__init__()
         self.conf = conf

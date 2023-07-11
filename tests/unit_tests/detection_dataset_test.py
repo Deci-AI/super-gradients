@@ -3,11 +3,18 @@ from pathlib import Path
 from typing import Dict
 
 from torch.utils.data import DataLoader
+
+from super_gradients import Trainer
+from super_gradients.training import models, dataloaders
 from super_gradients.training.dataloaders import coco2017_train_yolo_nas, get_data_loader
 from super_gradients.training.datasets import COCODetectionDataset
 from super_gradients.training.datasets.data_formats.default_formats import LABEL_CXCYWH
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
+from super_gradients.training.metrics import DetectionMetrics
+from super_gradients.training.models import YoloXPostPredictionCallback
 from super_gradients.training.transforms import DetectionMosaic, DetectionTargetsFormatTransform, DetectionPaddedRescale
+from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
 
 
 class DummyCOCODetectionDatasetInheritor(COCODetectionDataset):
@@ -123,6 +130,69 @@ class DetectionDatasetTest(unittest.TestCase):
         self.assertEqual(batch[0].shape[2], 384)
         self.assertEqual(batch[0].shape[3], 384)
         self.assertEqual(dataloader.dataset.dummy_field, 10)
+
+    def test_coco_detection_metrics_with_classwise_ap(self):
+        model = models.get("yolox_s", pretrained_weights="coco", num_classes=80)
+
+        train_dataset_params = {
+            "data_dir": self.mini_coco_data_dir,
+            "subdir": "images/train2017",
+            "json_file": "instances_train2017.json",
+            "cache": False,
+            "input_dim": [329, 320],
+            "transforms": [
+                {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+            ],
+            "with_crowd": False,
+        }
+
+        val_dataset_params = {
+            "data_dir": self.mini_coco_data_dir,
+            "subdir": "images/val2017",
+            "json_file": "instances_val2017.json",
+            "cache": False,
+            "input_dim": [329, 320],
+            "transforms": [
+                {"DetectionPaddedRescale": {"input_dim": [512, 512]}},
+                {"DetectionTargetsFormatTransform": {"input_dim": [512, 512], "output_format": "LABEL_CXCYWH"}},
+            ],
+        }
+        trainset = COCODetectionDataset(**train_dataset_params)
+        train_loader = dataloaders.get(dataset=trainset, dataloader_params={"collate_fn": DetectionCollateFN(), "batch_size": 16})
+
+        valset = COCODetectionDataset(**val_dataset_params)
+        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": CrowdDetectionCollateFN(), "batch_size": 16})
+
+        trainer = Trainer("test_detection_metrics_with_classwise_ap")
+
+        detection_train_params_yolox = {
+            "max_epochs": 5,
+            "lr_mode": "cosine",
+            "cosine_final_lr_ratio": 0.05,
+            "warmup_bias_lr": 0.0,
+            "warmup_momentum": 0.9,
+            "initial_lr": 0.02,
+            "loss": "yolox_loss",
+            "mixed_precision": False,
+            "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
+            "train_metrics_list": [],
+            "valid_metrics_list": [
+                DetectionMetrics(
+                    post_prediction_callback=YoloXPostPredictionCallback(),
+                    normalize_targets=True,
+                    num_cls=80,
+                    include_classwise_ap=True,
+                    class_names=COCO_DETECTION_CLASSES_LIST,
+                    calc_best_score_thresholds=False,
+                )
+            ],
+            "metric_to_watch": "AP@0.50:0.95_car",
+            "greater_metric_to_watch_is_better": True,
+            "average_best_models": False,
+        }
+
+        trainer.train(model=model, training_params=detection_train_params_yolox, train_loader=train_loader, valid_loader=valid_loader)
 
 
 if __name__ == "__main__":
