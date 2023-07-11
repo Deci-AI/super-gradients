@@ -179,12 +179,10 @@ class DagsHubSGLogger(BaseSGLogger):
         return items
 
     @multi_process_safe
-    def _contains_special_characters(self, text):
+    def _sanitize_special_characters(self, text):
         pattern = r"[!\"#$%&'()*+,:;<=>?@[\]^`{|}~\t\n\r\x0b\x0c]"
-        matches = re.findall(pattern, text)
-        if matches:
-            return True, ", ".join(matches)
-        return False, None
+        valid_text = re.sub(pattern, '_', text)
+        return valid_text
 
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
@@ -192,26 +190,23 @@ class DagsHubSGLogger(BaseSGLogger):
         flatten_dict = self._get_nested_dict_values(d=config)
         for k, v in flatten_dict:
             try:
-                mlflow.log_params({k: v})
+                k_sanitized = self._sanitize_special_characters(k)
+                mlflow.log_params({k_sanitized: v})
             except Exception as e:
-                is_contain, spec_char = self._contains_special_characters(k)
-                if is_contain:
-                    err_msg = f"Fail to log {k}, please remove the unsupported characters: {spec_char}"
-                else:
-                    err_msg = f"Fail to log the config: {k}, got an expection: {e}"
+                err_msg = f"Fail to log the config: {k}, got an expection: {e}"
                 logger.warning(err_msg)
 
     @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: [int, TimeUnit] = 0):
         super(DagsHubSGLogger, self).add_scalar(tag=tag, scalar_value=scalar_value, global_step=global_step)
         try:
-            mlflow.log_metric(key=tag, value=scalar_value, step=global_step)
+            if isinstance(global_step, TimeUnit):
+                global_step = global_step.get_value()
+
+            tag_sanitized = self._sanitize_special_characters(tag)
+            mlflow.log_metric(key=tag_sanitized, value=scalar_value, step=global_step)
         except Exception as e:
-            is_contain, spec_char = self._contains_special_characters(tag)
-            if is_contain:
-                err_msg = f"Fail to log {tag}, please remove the unsupported characters: {spec_char}"
-            else:
-                err_msg = f"Fail to log the metric: {tag}, got an expection: {e}"
+            err_msg = f"Fail to log the metric: {tag}, got an expection: {e}"
             raise Exception(err_msg)
 
     @multi_process_safe
