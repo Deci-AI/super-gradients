@@ -9,7 +9,7 @@ from typing import List, Optional
 from contextlib import redirect_stdout
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
-from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
+from super_gradients.common.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 
 logger = get_logger(__name__)
@@ -143,7 +143,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
             if self.tight_box_rotation:
                 seg_points = [j for i in annotation.get("segmentation", []) for j in i]
                 if seg_points:
-                    seg_points_c = np.array(seg_points).reshape((-1, 2)).astype(np.int)
+                    seg_points_c = np.array(seg_points).reshape((-1, 2)).astype(np.int32)
                     seg_points_convex = cv2.convexHull(seg_points_c).ravel()
                 else:
                     seg_points_convex = []

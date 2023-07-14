@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union, Dict, Sequence, Callable
+from typing import Tuple, Union, Dict, Sequence, Callable, Optional
 import random
 
 import inspect
@@ -18,7 +18,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from super_gradients.common.environment.device_utils import device_config
-from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
+from super_gradients.common.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
 from super_gradients.common.data_types.enum import MultiGPUMode
 
 
@@ -97,12 +97,12 @@ class MonitoredValue:
     """
 
     name: str
-    greater_is_better: bool = None
-    current: float = None
-    previous: float = None
-    best: float = None
-    change_from_previous: float = None
-    change_from_best: float = None
+    greater_is_better: Optional[bool] = None
+    current: Optional[float] = None
+    previous: Optional[float] = None
+    best: Optional[float] = None
+    change_from_previous: Optional[float] = None
+    change_from_best: Optional[float] = None
 
     @property
     def has_increased_from_previous(self) -> IncreaseType:
@@ -190,28 +190,26 @@ def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue
     :param new_values_dict: Dict mapping value names to their new (i.e. current epoch) value.
     :return: Updated monitored_values_dict
     """
-    for monitored_value_name in monitored_values_dict.keys():
+    relevant_keys = set(new_values_dict.keys()).intersection(monitored_values_dict.keys())
+    for monitored_value_name in relevant_keys:
+        previous_value = monitored_values_dict[monitored_value_name]
         monitored_values_dict[monitored_value_name] = update_monitored_value(
             new_value=new_values_dict[monitored_value_name],
-            previous_monitored_value=monitored_values_dict[monitored_value_name],
+            previous_monitored_value=previous_value,
         )
     return monitored_values_dict
 
 
-def display_epoch_summary(
-    epoch: int, n_digits: int, train_monitored_values: Dict[str, MonitoredValue], valid_monitored_values: Dict[str, MonitoredValue]
-) -> None:
+def display_epoch_summary(epoch: int, n_digits: int, monitored_values_dict: Dict[str, Dict[str, MonitoredValue]]) -> None:
     """Display a summary of loss/metric of interest, for a given epoch.
 
     :param epoch: the number of epoch.
     :param n_digits: number of digits to display on screen for float values
-    :param train_monitored_values: mapping of loss/metric with their stats that will be displayed
-    :param valid_monitored_values: mapping of loss/metric with their stats that will be displayed
-    :return:
+    :param monitored_values_dict: Dict of Dict. The first one represents the splut, and the second one a loss/metric.
     """
 
-    def _format_to_str(val: float) -> str:
-        return str(round(val, n_digits))
+    def _format_to_str(val: Optional[float]) -> str:
+        return str(round(val, n_digits)) if val is not None else "None"
 
     def _generate_tree(value_name: str, monitored_value: MonitoredValue) -> Tree:
         """Generate a tree that represents the stats of a given loss/metric."""
@@ -240,21 +238,20 @@ def display_epoch_summary(
             tree.create_node(tag=f"Best until now = {best:6} ({diff_with_best_colored:8})", identifier=f"1_best_{root_id}", parent=root_id)
         return tree
 
-    train_tree = Tree()
-    train_tree.create_node("Training", "Training")
-    for name, value in train_monitored_values.items():
-        train_tree.paste("Training", new_tree=_generate_tree(name, monitored_value=value))
-
-    valid_tree = Tree()
-    valid_tree.create_node("Validation", "Validation")
-    for name, value in valid_monitored_values.items():
-        valid_tree.paste("Validation", new_tree=_generate_tree(name, monitored_value=value))
-
     summary_tree = Tree()
     summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
-    summary_tree.paste("Summary", train_tree)
-    summary_tree.paste("Summary", valid_tree)
-    summary_tree.show()
+
+    for split, monitored_values in monitored_values_dict.items():
+        if len(monitored_values):
+            split_tree = Tree()
+            split_tree.create_node(split, split)
+            for name, value in monitored_values.items():
+                split_tree.paste(split, new_tree=_generate_tree(name, monitored_value=value))
+            summary_tree.paste("Summary", split_tree)
+
+    print("===========================================================")
+    summary_tree.show(key=False)
+    print("===========================================================")
 
 
 def try_port(port):

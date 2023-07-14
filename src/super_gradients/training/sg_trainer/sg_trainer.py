@@ -39,7 +39,7 @@ from super_gradients.common.factories.metrics_factory import MetricsFactory
 
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import RepeatAugSampler
-from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
+from super_gradients.common.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
     get_metrics_results_tuple,
@@ -151,7 +151,7 @@ class Trainer:
 
         # SET THE EMPTY PROPERTIES
         self.net, self.architecture, self.arch_params, self.dataset_interface = None, None, None, None
-        self.train_loader, self.valid_loader = None, None
+        self.train_loader, self.valid_loader, self.test_loaders = None, None, {}
         self.ema = None
         self.ema_model = None
         self.sg_logger = None
@@ -182,8 +182,9 @@ class Trainer:
 
         # METRICS
         self.loss_logging_items_names = None
-        self.train_metrics = None
-        self.valid_metrics = None
+        self.train_metrics: Optional[MetricCollection] = None
+        self.valid_metrics: Optional[MetricCollection] = None
+        self.test_metrics: Optional[MetricCollection] = None
         self.greater_metric_to_watch_is_better = None
         self.metric_to_watch = None
         self.greater_train_metrics_is_better: Dict[str, bool] = {}  # For each metric, indicates if greater is better
@@ -209,6 +210,7 @@ class Trainer:
 
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
+        self.test_monitored_values = {}
         self.max_train_batches = None
         self.max_valid_batches = None
 
@@ -273,6 +275,7 @@ class Trainer:
             model=model,
             train_loader=train_dataloader,
             valid_loader=val_dataloader,
+            test_loaders=None,  # TODO: Add option to set test_loaders in recipe
             training_params=cfg.training_hyperparams,
             additional_configs_to_log=recipe_logged_cfg,
         )
@@ -505,9 +508,19 @@ class Trainer:
         for metric_name in get_metrics_titles(self.valid_metrics):
             self.valid_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name))
 
-        self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
-            "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
-        ]
+        for dataset_name in self.test_loaders.keys():
+            for loss_name in self.loss_logging_items_names:
+                loss_full_name = f"{dataset_name}:{loss_name}" if dataset_name else loss_name
+                self.test_monitored_values[loss_full_name] = MonitoredValue(
+                    name=f"{dataset_name}:{loss_name}",
+                    greater_is_better=False,
+                )
+            for metric_name in get_metrics_titles(self.test_metrics):
+                metric_full_name = f"{dataset_name}:{metric_name}" if dataset_name else metric_name
+                self.test_monitored_values[metric_full_name] = MonitoredValue(
+                    name=metric_full_name,
+                    greater_is_better=self.greater_valid_metrics_is_better.get(metric_name),
+                )
 
         # make sure the metric_to_watch is an exact match
         metric_titles = self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
@@ -681,6 +694,7 @@ class Trainer:
         training_params: dict = None,
         train_loader: DataLoader = None,
         valid_loader: DataLoader = None,
+        test_loaders: Dict[str, DataLoader] = None,
         additional_configs_to_log: Dict = None,
     ):  # noqa: C901
         """
@@ -697,6 +711,7 @@ class Trainer:
 
             :param train_loader: Dataloader for train set.
             :param valid_loader: Dataloader for validation.
+            :param test_loaders: Dictionary of test loaders. The key will be used as the dataset name.
             :param training_params:
 
                 - `resume` : bool (default=False)
@@ -959,7 +974,12 @@ class Trainer:
                 - `run_validation_freq` : int (default=1)
 
                     The frequency in which validation is performed during training (i.e the validation is ran every
-                     `run_validation_freq` epochs.
+                     `run_validation_freq` epochs). Also applies to test set if you provided one.
+
+                - `run_test_freq` : int (default=1)
+
+                    The frequency in which test is performed during training (i.e the test is ran every
+                     `run_test_freq` epochs). Only applies if you provided a test set.
 
                 - `save_model` : bool (default=True)
 
@@ -1063,12 +1083,16 @@ class Trainer:
 
         self.train_loader = train_loader if train_loader is not None else self.train_loader
         self.valid_loader = valid_loader if valid_loader is not None else self.valid_loader
+        self.test_loaders = test_loaders if test_loaders is not None else {}
 
         if self.train_loader is None:
             raise ValueError("No `train_loader` found. Please provide a value for `train_loader`")
 
         if self.valid_loader is None:
             raise ValueError("No `valid_loader` found. Please provide a value for `valid_loader`")
+
+        if self.test_loaders is not None and not isinstance(self.test_loaders, dict):
+            raise ValueError("`test_loaders` must be a dictionary mapping dataset names to DataLoaders")
 
         if hasattr(self.train_loader, "batch_sampler") and self.train_loader.batch_sampler is not None:
             batch_size = self.train_loader.batch_sampler.batch_size
@@ -1108,6 +1132,7 @@ class Trainer:
         # METRICS
         self._set_train_metrics(train_metrics_list=self.training_params.train_metrics_list)
         self._set_valid_metrics(valid_metrics_list=self.training_params.valid_metrics_list)
+        self.test_metrics = self.valid_metrics.clone()
 
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
         self.metric_to_watch = self.training_params.metric_to_watch
@@ -1160,6 +1185,7 @@ class Trainer:
                     logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
 
         self.run_validation_freq = self.training_params.run_validation_freq
+        self.run_test_freq = self.training_params.run_test_freq
 
         inf_time = 0
         timer = core_utils.Timer(device_config.device)
@@ -1195,6 +1221,7 @@ class Trainer:
 
         self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
         self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
+        self._add_metrics_update_callback(Phase.TEST_BATCH_END)
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
@@ -1361,16 +1388,38 @@ class Trainer:
                     self.net = self.ema_model.ema
 
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
+                valid_metrics_dict = {}
                 if (epoch + 1) % self.run_validation_freq == 0:
                     self.phase_callback_handler.on_validation_loader_start(context)
                     timer.start()
                     valid_metrics_dict = self._validate_epoch(context=context, silent_mode=silent_mode)
                     inf_time = timer.stop()
 
+                    self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
+                        monitored_values_dict=self.valid_monitored_values,
+                        new_values_dict=valid_metrics_dict,
+                    )  # TODO: Move this logic inside a MonitoredValues class
                     # Phase.VALIDATION_EPOCH_END
                     # RUN PHASE CALLBACKS
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
+
+                test_metrics_dict = {}
+                if (epoch + 1) % self.run_test_freq == 0:
+                    self.phase_callback_handler.on_test_loader_start(context)
+                    for dataset_name, dataloader in self.test_loaders.items():
+                        dataset_metrics_dict = self._test_epoch(data_loader=dataloader, context=context, silent_mode=silent_mode, dataset_name=dataset_name)
+                        dataset_metrics_dict_with_name = {
+                            f"{dataset_name}:{metric_name}": metric_value for metric_name, metric_value in dataset_metrics_dict.items()
+                        }
+                        self.test_monitored_values = sg_trainer_utils.update_monitored_values_dict(
+                            monitored_values_dict=self.test_monitored_values,
+                            new_values_dict=dataset_metrics_dict_with_name,
+                        )  # TODO: Move this logic inside a MonitoredValues class
+
+                        test_metrics_dict.update(**dataset_metrics_dict_with_name)
+                    context.update_context(metrics_dict=test_metrics_dict)
+                    self.phase_callback_handler.on_test_loader_end(context)
 
                 if self.ema:
                     self.net = keep_model
@@ -1380,12 +1429,24 @@ class Trainer:
                     self._write_to_disk_operations(
                         train_metrics_dict=train_metrics_dict,
                         validation_results_dict=valid_metrics_dict,
+                        test_metrics_dict=test_metrics_dict,
                         lr_dict=self._epoch_start_logging_values,
                         inf_time=inf_time,
                         epoch=epoch,
                         context=context,
                     )
                     self.sg_logger.upload()
+
+                if not silent_mode:
+                    sg_trainer_utils.display_epoch_summary(
+                        epoch=context.epoch,
+                        n_digits=4,
+                        monitored_values_dict={
+                            "Train": self.train_monitored_values,
+                            "Validation": self.valid_monitored_values,
+                            "Test": self.test_monitored_values,
+                        },
+                    )
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
@@ -1500,7 +1561,11 @@ class Trainer:
         unwrap_model(self.net).load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
         context.update_context(epoch=self.max_epochs)
-        averaged_model_results_dict = self._validate_epoch(context)
+        averaged_model_results_dict = self._validate_epoch(context=context)
+        self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
+            monitored_values_dict=self.valid_monitored_values,
+            new_values_dict=averaged_model_results_dict,
+        )  # TODO: Move this logic inside a MonitoredValues class
 
         # Reverting the current model
         self.net.load_state_dict(keep_state_dict)
@@ -1644,7 +1709,7 @@ class Trainer:
                 "Metrics are required to perform test. Pass them through test_metrics_list arg when "
                 "calling test or through training_params when calling train(...)"
             )
-        if self.test_loader is None:
+        if test_loader is None:
             raise ValueError("Test dataloader is required to perform test. Make sure to either pass it through " "test_loader arg.")
 
         # RESET METRIC RUNNERS
@@ -1753,13 +1818,21 @@ class Trainer:
         return hyper_param_config
 
     def _write_to_disk_operations(
-        self, train_metrics_dict: dict, validation_results_dict: dict, lr_dict: dict, inf_time: float, epoch: int, context: PhaseContext
+        self,
+        train_metrics_dict: dict,
+        validation_results_dict: dict,
+        test_metrics_dict: dict,
+        lr_dict: dict,
+        inf_time: float,
+        epoch: int,
+        context: PhaseContext,
     ):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         result_dict = {
             "Inference Time": inf_time,
             **{f"Train_{k}": v for k, v in train_metrics_dict.items()},
             **{f"Valid_{k}": v for k, v in validation_results_dict.items()},
+            **{f"Test_{k}": v for k, v in test_metrics_dict.items()},
         }
         self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
@@ -1830,7 +1903,7 @@ class Trainer:
 
         self.phase_callback_handler.on_test_loader_start(context)
         test_results = self.evaluate(
-            data_loader=self.test_loader,
+            data_loader=test_loader,
             metrics=self.test_metrics,
             evaluation_type=EvaluationType.TEST,
             silent_mode=silent_mode,
@@ -1855,13 +1928,32 @@ class Trainer:
 
         :return: results tuple (tuple) containing the loss items and metric values.
         """
-
         self.net.eval()
         self._reset_metrics()
         self.valid_metrics.to(device_config.device)
-
         return self.evaluate(
             data_loader=self.valid_loader, metrics=self.valid_metrics, evaluation_type=EvaluationType.VALIDATION, epoch=context.epoch, silent_mode=silent_mode
+        )
+
+    def _test_epoch(self, data_loader: DataLoader, context: PhaseContext, silent_mode: bool = False, dataset_name: str = "") -> Dict[str, float]:
+        """
+        Evaluate the input loader on given metrics.
+
+        :param epoch: (int) epoch idx
+        :param silent_mode: (bool) controls verbosity
+
+        :return: results tuple (tuple) containing the loss items and metric values.
+        """
+        self.net.eval()
+        self._reset_metrics()
+        self.test_metrics.to(device_config.device)
+        return self.evaluate(
+            data_loader=data_loader,
+            metrics=self.test_metrics,
+            evaluation_type=EvaluationType.TEST,
+            epoch=context.epoch,
+            silent_mode=silent_mode,
+            dataset_name=dataset_name,
         )
 
     def evaluate(
@@ -1872,6 +1964,7 @@ class Trainer:
         epoch: int = None,
         silent_mode: bool = False,
         metrics_progress_verbose: bool = False,
+        dataset_name: str = "",
     ) -> Dict[str, float]:
         """
         Evaluates the model on given dataloader and metrics.
@@ -1890,7 +1983,6 @@ class Trainer:
 
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
         loss_avg_meter = core_utils.utils.AverageMeter()
-        logging_values = None
 
         lr_warmup_epochs = self.training_params.lr_warmup_epochs if self.training_params else None
         context = PhaseContext(
@@ -1909,7 +2001,11 @@ class Trainer:
 
             if not silent_mode:
                 # PRINT TITLES
-                pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
+                pbar_start_msg = "Validating" if evaluation_type == EvaluationType.VALIDATION else "Testing"
+                if dataset_name:
+                    pbar_start_msg += f' dataset="{dataset_name}:"'
+                if epoch:
+                    pbar_start_msg += f" epoch {epoch}"
                 progress_bar_data_loader.set_description(pbar_start_msg)
 
             with torch.no_grad():
@@ -1964,19 +2060,6 @@ class Trainer:
 
             if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                 logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
-
-            pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
-
-            self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
-                monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict
-            )
-
-            if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
-                progress_bar_data_loader.write("===========================================================")
-                sg_trainer_utils.display_epoch_summary(
-                    epoch=context.epoch, n_digits=4, train_monitored_values=self.train_monitored_values, valid_monitored_values=self.valid_monitored_values
-                )
-                progress_bar_data_loader.write("===========================================================")
 
         return get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
