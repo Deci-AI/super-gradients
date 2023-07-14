@@ -95,7 +95,7 @@ class Pipeline(ABC):
             - List:             A list of images of any of the above image types (list of videos not supported).
 
         :param inputs:      inputs to the model, which can be any of the above-mentioned types.
-        :param batch_size:  Number of images to be processed at the same time.
+        :param batch_size:  Maximum number of images to process at the same time.
         :return:            Results of the prediction.
         """
 
