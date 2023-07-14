@@ -56,6 +56,7 @@ class Pipeline(ABC):
     :param model:           The model used for making predictions.
     :param image_processor: A single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:          The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
+    :param dtype:           Specify the dtype of the inputs. If None, will use the dtype of the model's parameters.
     :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
     """
 
@@ -66,9 +67,11 @@ class Pipeline(ABC):
         class_names: List[str],
         device: Optional[str] = None,
         fuse_model: bool = True,
+        dtype: Optional[torch.dtype] = None,
     ):
         self.device = device or next(model.parameters()).device
         self.model = model.to(self.device)
+        self.dtype = dtype or next(model.parameters()).dtype
         self.class_names = class_names
 
         if isinstance(image_processor, list):
@@ -180,6 +183,7 @@ class Pipeline(ABC):
         # Predict
         with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast():
             torch_inputs = torch.from_numpy(np.array(preprocessed_images)).to(self.device)
+            torch_inputs = torch_inputs.to(torch.promote_types(self.dtype, torch_inputs.dtype))
             if self.fuse_model:
                 self._fuse_model(torch_inputs)
             model_output = self.model(torch_inputs)
