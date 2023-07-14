@@ -143,7 +143,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
             if self.tight_box_rotation:
                 seg_points = [j for i in annotation.get("segmentation", []) for j in i]
                 if seg_points:
-                    seg_points_c = np.array(seg_points).reshape((-1, 2)).astype(np.int)
+                    seg_points_c = np.array(seg_points).reshape((-1, 2)).astype(np.int32)
                     seg_points_convex = cv2.convexHull(seg_points_c).ravel()
                 else:
                     seg_points_convex = []
