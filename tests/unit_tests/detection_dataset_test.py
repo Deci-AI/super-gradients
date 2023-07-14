@@ -10,7 +10,7 @@ from super_gradients.training.dataloaders import coco2017_train_yolo_nas, get_da
 from super_gradients.training.datasets import COCODetectionDataset
 from super_gradients.training.datasets.data_formats.default_formats import LABEL_CXCYWH
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
-from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
+from super_gradients.common.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.models import YoloXPostPredictionCallback
 from super_gradients.training.transforms import DetectionMosaic, DetectionTargetsFormatTransform, DetectionPaddedRescale
