@@ -183,7 +183,7 @@ class Pipeline(ABC):
         # Predict
         with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast():
             torch_inputs = torch.from_numpy(np.array(preprocessed_images)).to(self.device)
-            torch_inputs = torch_inputs.to(torch.promote_types(self.dtype, torch_inputs.dtype))
+            torch_inputs = torch_inputs.to(self.dtype)
             if self.fuse_model:
                 self._fuse_model(torch_inputs)
             model_output = self.model(torch_inputs)
