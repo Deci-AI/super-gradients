@@ -16,7 +16,7 @@ import numpy as np
 import torch
 
 from super_gradients.common.registry.registry import register_collate_function
-from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
+from super_gradients.common.exceptions.dataset_exceptions import IllegalDatasetParameterException
 
 
 def one_hot(x, num_classes, on_value=1.0, off_value=0.0, device="cuda"):
