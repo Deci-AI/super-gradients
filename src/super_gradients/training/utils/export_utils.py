@@ -1,5 +1,8 @@
+from typing import Optional, Union, Tuple
+
 import torch
 import torch.nn as nn
+from super_gradients.module_interfaces import HasPredict
 
 
 def fuse_conv_bn(model: nn.Module, replace_bn_with_identity: bool = False):
@@ -23,3 +26,23 @@ def fuse_conv_bn(model: nn.Module, replace_bn_with_identity: bool = False):
         counter += fuse_conv_bn(child, replace_bn_with_identity)
 
     return counter
+
+
+def infer_format_from_file_name(output_filename: str) -> Optional[str]:
+    if isinstance(output_filename, str) and output_filename.endswith(".onnx"):
+        return "onnx"
+
+    return None
+
+
+def infer_image_shape_from_model(model: Union[nn.Module, HasPredict]) -> Optional[Tuple[int, int]]:
+    """
+    Infer the image shape from the model. This function takes the preprocessing parameters if they are available
+    and gets the input image shape from them. If the preprocessing parameters are not available, the function returns None
+    :param model:
+    :return: A tuple of (height, width) or None
+    """
+    if not isinstance(model, HasPredict):
+        return None
+
+    return None

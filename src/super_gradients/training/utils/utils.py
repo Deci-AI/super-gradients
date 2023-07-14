@@ -623,3 +623,23 @@ def ensure_is_tuple_of_two(inputs: Union[Any, Iterable[Any], None]) -> Union[Tup
         return a, b
 
     return inputs, inputs
+
+
+def infer_model_device(model: nn.Module) -> Optional[torch.device]:
+    """
+    Get the device where the model's parameters are stored.
+    This function returns device of the first parameter of the model, assuming there is no
+    cross-device parameter movement inside the model.
+    :param model: Model to get the device from.
+    :return: Device where the model's parameters are stored.
+             The function may return None if the model has no parameters or buffers.
+    """
+    try:
+        first_parameter = next(iter(model.parameters()))
+        return first_parameter.device
+    except StopIteration:
+        try:
+            first_buffer = next(iter(model.buffers()))
+            return first_buffer.device
+        except StopIteration:
+            return None
