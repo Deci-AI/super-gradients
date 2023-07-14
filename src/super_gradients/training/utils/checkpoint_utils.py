@@ -48,7 +48,7 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Uni
     """
     Adaptively loads state_dict to net, by adapting the state_dict to net's layer names first.
     :param net: (nn.Module) to load state_dict to
-    :param state_dict: (dict) Chekpoint state_dict
+    :param state_dict: (dict) Checkpoint state_dict
     :param strict: (StrictLoad) key matching strictness
     :param solver: callable with signature (ckpt_key, ckpt_val, model_key, model_val)
                      that returns a desired weight for ckpt_val.
@@ -140,7 +140,7 @@ def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> Mapping[str, torch.Ten
     Reads a checkpoint state dict from a given path or url
 
     :param ckpt_path: Checkpoint path or url
-    :param device: Target devide where tensors should be loaded
+    :param device: Target device where tensors should be loaded
     :return: Checkpoint state dict object
     """
 

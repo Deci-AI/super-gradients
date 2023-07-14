@@ -9,7 +9,7 @@ from typing import List, Optional
 from contextlib import redirect_stdout
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
-from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
+from super_gradients.common.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 
 logger = get_logger(__name__)
