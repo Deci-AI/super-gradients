@@ -140,7 +140,7 @@ def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> Mapping[str, torch.Ten
     Reads a checkpoint state dict from a given path or url
 
     :param ckpt_path: Checkpoint path or url
-    :param device: Target devide where tensors should be loaded
+    :param device: Target device where tensors should be loaded
     :return: Checkpoint state dict object
     """
 
