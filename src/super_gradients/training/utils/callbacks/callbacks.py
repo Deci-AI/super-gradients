@@ -3,7 +3,7 @@ import math
 import os
 import signal
 import time
-from typing import List, Union, Optional, Sequence
+from typing import List, Union, Optional, Sequence, Mapping
 
 import csv
 import cv2
@@ -12,13 +12,15 @@ import onnx
 import onnxruntime
 import torch
 from deprecated import deprecated
+from torch.utils.data import DataLoader
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
-from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback
+from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback, LR_SCHEDULERS_CLS_DICT, TORCH_LR_SCHEDULERS
 from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
 from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, EpochNumber
+from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
@@ -26,16 +28,6 @@ from super_gradients.common.environment.checkpoints_dir_utils import get_project
 from super_gradients.training.utils.utils import unwrap_model
 
 logger = get_logger(__name__)
-
-
-class ContextSgMethods:
-    """
-    Class for delegating Trainer's methods, so that only the relevant ones are ("phase wise") are accessible.
-    """
-
-    def __init__(self, **methods):
-        for attr, attr_val in methods.items():
-            setattr(self, attr, attr_val)
 
 
 @register_callback(Callbacks.MODEL_CONVERSION_CHECK)
@@ -743,7 +735,6 @@ class RoboflowResultCallback(Callback):
 
     @multi_process_safe
     def on_training_end(self, context: PhaseContext):
-
         with open(self.output_path, mode="a", newline="") as csv_file:
             writer = csv.writer(csv_file)
 
@@ -863,3 +854,97 @@ class TimerCallback(Callback):
             return total_steps_in_done + context.batch_idx
         else:
             return total_steps_in_done + train_loader_length + context.batch_idx
+
+
+def create_lr_scheduler_callback(
+    lr_mode: Union[str, Mapping],
+    train_loader: DataLoader,
+    net: torch.nn.Module,
+    training_params: Mapping,
+    update_param_groups: bool,
+    optimizer: torch.optim.Optimizer,
+) -> PhaseCallback:
+    """
+    Creates the phase callback in charge of LR scheduling, to be used by Trainer.
+
+    :param lr_mode: Union[str, Mapping],
+
+                    When str:
+
+                    Learning rate scheduling policy, one of ['step','poly','cosine','function'].
+
+                    'step' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
+
+                    'cosine' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
+                      The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
+
+                    'poly' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
+
+                    'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
+
+
+
+                    When Mapping, refers to a torch.optim.lr_scheduler._LRScheduler, following the below API:
+
+                        lr_mode = {LR_SCHEDULER_CLASS_NAME: {**LR_SCHEDULER_KWARGS, "phase": XXX, "metric_name": XXX)
+
+                        Where "phase" (of Phase type) controls when to call torch.optim.lr_scheduler._LRScheduler.step().
+
+                        For instance, in order to:
+                        - Update LR on each batch: Use phase: Phase.TRAIN_BATCH_END
+                        - Update LR after each epoch: Use phase: Phase.TRAIN_EPOCH_END
+
+                        The "metric_name" refers to the metric to watch (See docs for "metric_to_watch" in train(...)
+                         https://docs.deci.ai/super-gradients/docstring/training/sg_trainer.html) when using
+                          ReduceLROnPlateau. In any other case this kwarg is ignored.
+
+                        **LR_SCHEDULER_KWARGS are simply passed to the torch scheduler's __init__.
+
+
+
+
+    :param train_loader: DataLoader, the Trainer.train_loader used for training.
+
+    :param net: torch.nn.Module, the Trainer.net used for training.
+
+    :param training_params: Mapping, Trainer.training_params.
+
+    :param update_param_groups:bool,  Whether the Trainer.net has a specific way of updaitng its parameter group.
+
+    :param optimizer: The optimizer used for training. Will be passed to the LR callback's __init__
+     (or the torch scheduler's init, depending on the lr_mode value as described above).
+
+    :return: a PhaseCallback instance to be used by Trainer for LR scheduling.
+    """
+
+    if isinstance(lr_mode, str) and lr_mode in LR_SCHEDULERS_CLS_DICT:
+        sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[lr_mode]
+        sg_lr_callback = sg_lr_callback_cls(
+            train_loader_len=len(train_loader),
+            net=net,
+            training_params=training_params,
+            update_param_groups=update_param_groups,
+            **training_params.to_dict(),
+        )
+    elif isinstance(lr_mode, Mapping) and list(lr_mode.keys())[0] in TORCH_LR_SCHEDULERS:
+        if update_param_groups:
+            logger.warning(
+                "The network's way of updataing (i.e update_param_groups) is not supported with native " "torch lr schedulers and will have no effect."
+            )
+        lr_scheduler_name = list(lr_mode.keys())[0]
+        torch_scheduler_params = {k: v for k, v in lr_mode[lr_scheduler_name].items() if k != "phase" and k != "metric_name"}
+        torch_scheduler_params["optimizer"] = optimizer
+        torch_scheduler = TORCH_LR_SCHEDULERS[lr_scheduler_name](**torch_scheduler_params)
+        if get_param(lr_mode[lr_scheduler_name], "phase") is None:
+            raise ValueError("Phase is required argument when working with torch schedulers.")
+
+        if lr_scheduler_name == "ReduceLROnPlateau" and get_param(lr_mode[lr_scheduler_name], "metric_name") is None:
+            raise ValueError("metric_name is required argument when working with ReduceLROnPlateau schedulers.")
+
+        sg_lr_callback = LRSchedulerCallback(
+            scheduler=torch_scheduler, phase=lr_mode[lr_scheduler_name]["phase"], metric_name=get_param(lr_mode[lr_scheduler_name], "metric_name")
+        )
+    else:
+        raise ValueError(f"Unknown lr_mode: {lr_mode}")
+
+    return sg_lr_callback

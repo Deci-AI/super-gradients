@@ -10,11 +10,11 @@ In SuperGradients, we aim to collect such models and make them very convenient a
 
 ## Implemented models
 
-| Model                                    | Yaml                                                                                                                                           | Model class                                                                                                                                     |  Loss Class                                                                                                     | NMS Callback                                                                                                                                                                            |
-|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| 
-| [SSD](https://arxiv.org/abs/1512.02325) | [ssd_lite_mobilenetv2_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ssd_lite_mobilenetv2_arch_params.yaml) | [SSDLiteMobileNetV2](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py) | [SSDLoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.ssd_loss.SSDLoss) | [SSDPostPredictCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.ssd_utils.SSDPostPredictCallback) |
-| [YOLOX](https://arxiv.org/abs/2107.08430) | [yolox_s_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/yolox_s_arch_params.yaml) | [YoloX_S](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolox.py) | [YoloXFastDetectionLoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.yolox_loss.YoloXFastDetectionLoss) | [YoloPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.yolo_base.YoloPostPredictionCallback) |
-| [PPYolo](https://arxiv.org/abs/2007.12099) | [ppyoloe_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ppyoloe_arch_params.yaml) | [PPYoloE](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.pp_yolo_e.pp_yolo_e.PPYoloE) | [PPYoloELoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.ppyolo_loss.PPYoloELoss) | [PPYoloEPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.pp_yolo_e.post_prediction_callback.PPYoloEPostPredictionCallback) |
+| Model                                      | Yaml                                                                                                                                                                     | Model class                                                                                                                              | Loss Class                                                                                                                                  | NMS Callback                                                                                                                                                                                       |
+|--------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| 
+| [SSD](https://arxiv.org/abs/1512.02325)    | [ssd_lite_mobilenetv2_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ssd_lite_mobilenetv2_arch_params.yaml) | [SSDLiteMobileNetV2](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py) | [SSDLoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.ssd_loss.SSDLoss)                                 | [SSDPostPredictCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.ssd_utils.SSDPostPredictCallback)                                                           |
+| [YOLOX](https://arxiv.org/abs/2107.08430)  | [yolox_s_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/yolox_s_arch_params.yaml)                           | [YoloX_S](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolox.py)          | [YoloXFastDetectionLoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.yolox_loss.YoloXFastDetectionLoss) | [YoloXPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.yolo_base.YoloXPostPredictionCallback)                              |
+| [PPYolo](https://arxiv.org/abs/2007.12099) | [ppyoloe_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ppyoloe_arch_params.yaml)                           | [PPYoloE](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.pp_yolo_e.pp_yolo_e.PPYoloE)  | [PPYoloELoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.ppyolo_loss.PPYoloELoss)                      | [PPYoloEPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.pp_yolo_e.post_prediction_callback.PPYoloEPostPredictionCallback) |
 
 
 ## Training
@@ -73,16 +73,16 @@ In order to use `DetectionMetrics` you have to pass a so-called `post_prediction
 ### Postprocessing
 
 Postprocessing refers to a process of transforming the model's raw output into final predictions. Postprocessing is also model-specific and depends on the model's output format.
-For `YOLOX` model, the postprocessing step is implemented in [YoloPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.yolo_base.YoloPostPredictionCallback) class.
+For `YOLOX` model, the postprocessing step is implemented in [YoloXPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.yolo_base.YoloXPostPredictionCallback) class.
 It can be passed into a `DetectionMetrics` as a `post_prediction_callback`. 
 The postprocessing of all detection models involves non-maximum suppression (NMS) which filters dense model's predictions and leaves only boxes with the highest confidence and suppresses boxes with very high overlap 
 based on the assumption that they likely belong to the same object. Thus, a confidence threshold and an IoU threshold must be passed into the postprocessing object.
 
 ```python
-from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
+from super_gradients.training.models.detection_models.yolo_base import YoloXPostPredictionCallback
 
 
-post_prediction_callback = YoloPostPredictionCallback(conf=0.001, iou=0.6)
+post_prediction_callback = YoloXPostPredictionCallback(conf=0.001, iou=0.6)
 ```
 
 ### Visualization
@@ -114,7 +114,7 @@ def my_undo_image_preprocessing(im_tensor: torch.Tensor) -> np.ndarray:
 
 model = models.get("yolox_s", pretrained_weights="coco", num_classes=80)
 imgs, targets = next(iter(train_dataloader))
-preds = YoloPostPredictionCallback(conf=0.1, iou=0.6)(model(imgs))
+preds = YoloXPostPredictionCallback(conf=0.1, iou=0.6)(model(imgs))
 DetectionVisualization.visualize_batch(imgs, preds, targets, batch_name='train', class_names=COCO_DETECTION_CLASSES_LIST,
                                        checkpoint_dir='/path/for/saved_images/', gt_alpha=0.5,
                                        undo_preprocessing_func=my_undo_image_preprocessing)
@@ -148,13 +148,13 @@ valid_metrics_list:
   - DetectionMetrics:
       normalize_targets: True
       post_prediction_callback:
-        _target_: super_gradients.training.models.detection_models.yolo_base.YoloPostPredictionCallback
+        _target_: super_gradients.training.models.detection_models.yolo_base.YoloXPostPredictionCallback
         iou: 0.65
         conf: 0.01
       num_cls: 80
 ```
 
-Notice how `YoloPostPredictionCallback` is passed as a `post_prediction_callback`.
+Notice how `YoloXPostPredictionCallback` is passed as a `post_prediction_callback`.
 
 A visualization belongs to `training_hyperparams` as well, specifically to the `phase_callbacks` list, as follows:
 ```yaml
@@ -165,7 +165,7 @@ phase_callbacks:
         value: VALIDATION_EPOCH_END
       freq: 1
       post_prediction_callback:
-        _target_: super_gradients.training.models.detection_models.yolo_base.YoloPostPredictionCallback
+        _target_: super_gradients.training.models.detection_models.yolo_base.YoloXPostPredictionCallback
         iou: 0.65
         conf: 0.01
       classes: [

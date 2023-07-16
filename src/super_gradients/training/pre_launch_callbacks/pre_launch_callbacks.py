@@ -106,14 +106,15 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
             load_backbone=cfg.checkpoint_params.load_backbone,
         )
         tmp_cfg = deepcopy(cfg)
-        tmp_cfg.training_hyperparamsbatch_accumulate = 1
-        tmp_cfg.training_hyperparamsmax_train_batches = self.num_forward_passes
-        tmp_cfg.training_hyperparamsrun_validation_freq = 2
-        tmp_cfg.training_hyperparamssilent_mode = True
-        tmp_cfg.training_hyperparamssave_model = False
-        tmp_cfg.training_hyperparamsmax_epochs = 1
-        tmp_cfg.training_hyperparamsaverage_best_models = False
-        tmp_cfg.training_hyperparamskill_ddp_pgroup_on_end = False
+        tmp_cfg.training_hyperparams.batch_accumulate = 1
+        tmp_cfg.training_hyperparams.max_train_batches = self.num_forward_passes
+        tmp_cfg.training_hyperparams.run_validation_freq = 2
+        tmp_cfg.training_hyperparams.run_test_freq = 2
+        tmp_cfg.training_hyperparams.silent_mode = True
+        tmp_cfg.training_hyperparams.save_model = False
+        tmp_cfg.training_hyperparams.max_epochs = 1
+        tmp_cfg.training_hyperparams.average_best_models = False
+        tmp_cfg.training_hyperparams.kill_ddp_pgroup_on_end = False
         tmp_cfg.pre_launch_callbacks_list = []
 
         fastest_batch_time = np.inf

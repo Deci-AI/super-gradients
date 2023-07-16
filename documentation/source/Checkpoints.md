@@ -42,7 +42,7 @@ The checkpoint keys:
 - `optimizer_state_dict`: The state_dict of the optimizer (state_dict).
 - `scaler_state_dict`: Optional - only present when training with [mixed_precision=True](average_mixed_precision.md). The state_dict of Trainer.scaler.
 - `ema_net`: Optional - only present when training with [ema=True](EMA.md). The EMA model's state_dict. Note that `average_model.pth` lacks this entry even if ema=True since the average model's snapshots are of the EMA network already (i.e., the "net" entry is already an average of the EMA snapshots).
-
+- `torch_scheduler_state_dict`: Optional, will only be present when using a torch native lr scheduler (see [LRScheduling](LRScheduling.md))
 ## Remote Checkpoint Saving with SG Loggers
 
 SG supports remote checkpoint saving using 3rd party tools (for example, [Weights & Biases](https://www.google.com/aclk?sa=l&ai=DChcSEwi1iaLxhYj9AhXejWgJHZYqCGIYABAAGgJ3Zg&sig=AOD64_30zInAUka20YKKdULr8PHnLnLWgg&q&adurl&ved=2ahUKEwiKxZvxhYj9AhUzTKQEHSJwCkcQ0Qx6BAgGEAE)).
