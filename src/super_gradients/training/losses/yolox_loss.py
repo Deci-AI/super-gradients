@@ -120,7 +120,7 @@ class YoloXDetectionLoss(_Loss):
 
     def __init__(
         self,
-        strides: list,
+        strides: List[int],
         num_classes: int,
         use_l1: bool = False,
         center_sampling_radius: float = 2.5,
