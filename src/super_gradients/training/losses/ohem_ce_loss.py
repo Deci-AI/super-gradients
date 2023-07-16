@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.nn.modules.loss import _Loss
-from super_gradients.training.exceptions.loss_exceptions import IllegalRangeForLossAttributeException, RequiredLossComponentReductionException
+from super_gradients.common.exceptions.loss_exceptions import IllegalRangeForLossAttributeException, RequiredLossComponentReductionException
 
 
 class OhemLoss(_Loss):
