@@ -3,6 +3,7 @@ import math
 import os
 import signal
 import time
+from abc import ABC, abstractmethod
 from typing import List, Union, Optional, Sequence, Mapping
 
 import csv
@@ -955,7 +956,7 @@ def create_lr_scheduler_callback(
     return sg_lr_callback
 
 
-class ExtremeBatchCaseVisualizationCallback(Callback):
+class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
     """
     ExtremeBatchCaseVisualizationCallback
 
@@ -1000,6 +1001,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback):
 
         super(ExtremeBatchCaseVisualizationCallback, self).__init__()
 
+    @abstractmethod
     def process_extreme_batch(self) -> np.array:
         raise NotImplementedError
 
