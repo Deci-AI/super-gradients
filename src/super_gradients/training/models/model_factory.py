@@ -188,7 +188,7 @@ def get(
     :param model_name:          Defines the model's architecture from models/ALL_ARCHITECTURES
     :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
     :param num_classes:         Number of classes (defines the net's structure).
-                                    If None is given, will try to derrive from pretrained_weight's corresponding dataset.
+                                    If None is given, will try to derive from pretrained_weight's corresponding dataset.
     :param strict_load:         See super_gradients.common.data_types.enum.strict_load.StrictLoad class documentation for details
                                     (default=NO_KEY_MATCHING to suport SG trained checkpoints)
     :param checkpoint_path:     The path to the external checkpoint to be loaded. Can be absolute or relative (ie: path/to/checkpoint.pth) path or URL.
