@@ -174,13 +174,13 @@ class KDModelEMA(ModelEMA):
                      its final value. beta=15 is ~40% of the training process.
         """
         # Only work on the student (we don't want to update and to have a duplicate of the teacher)
-        super().__init__(model=kd_model.student, decay=decay, decay_function=decay_function)
+        super().__init__(model=unwrap_model(kd_model).student, decay=decay, decay_function=decay_function)
 
         # Overwrite current ema attribute with combination of the student model EMA (current self.ema)
         # with already the instantiated teacher, to have the final KD EMA
         self.ema = KDModule(
-            arch_params=kd_model.arch_params,
+            arch_params=unwrap_model(kd_model).arch_params,
             student=self.ema,
-            teacher=kd_model.teacher,
-            run_teacher_on_eval=kd_model.run_teacher_on_eval,
+            teacher=unwrap_model(kd_model).teacher,
+            run_teacher_on_eval=unwrap_model(kd_model).run_teacher_on_eval,
         )
