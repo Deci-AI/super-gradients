@@ -13,12 +13,11 @@ import onnx
 import onnxruntime
 import torch
 from deprecated import deprecated
-from torch.distributed import gather_object, get_rank
 from torch.utils.data import DataLoader
 from torchmetrics import MetricCollection
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.environment.ddp_utils import multi_process_safe, is_distributed
+from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback, LR_SCHEDULERS_CLS_DICT, TORCH_LR_SCHEDULERS
@@ -27,7 +26,7 @@ from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, 
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
-from super_gradients.training.utils.distributed_training_utils import distributed_all_reduce_tensor_average, get_world_size
+from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce, maybe_all_gather
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
 from super_gradients.training.utils.utils import unwrap_model
@@ -1037,9 +1036,8 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
                 score = loss_tuple[self._idx_loss_tuple]
 
                 # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
-                if is_distributed():
-                    device = next(context.net.parameters()).device
-                    score = distributed_all_reduce_tensor_average(tensor=score.to(device), n=torch.distributed.get_world_size())
+                device = next(context.net.parameters()).device
+                score = maybe_all_reduce(device, score)
 
             if self._is_more_extreme(score):
                 self.extreme_score = score
@@ -1047,7 +1045,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
                 self.extreme_preds = context.preds
                 self.extreme_targets = context.target
 
-    def _init_loss_attributes(self, context: PhaseContext, loss_tuple: tuple):
+    def _init_loss_attributes(self, context: PhaseContext):
         if self.metric_name not in context.loss_logging_items_names:
             raise ValueError(f"{self.metric_name} not a validation metric, loss or loss component.")
         self._idx_loss_tuple = context.loss_logging_items_names.index(self.metric_name)
@@ -1057,12 +1055,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         if context.epoch % self.freq == 0:
             images_to_save = self.process_extreme_batch()
             #
-            if is_distributed():
-                rank = get_rank()
-                output_container = [None for _ in range(get_world_size())]
-                gather_object(images_to_save, output_container if rank == 0 else None, dst=0)
-                if rank == 0:
-                    images_to_save = np.concatenate(output_container, 0)
+            images_to_save = maybe_all_gather(images_to_save)
             if not context.ddp_silent_mode:
                 context.sg_logger.add_images(tag=self._tag, images=images_to_save, global_step=context.epoch)
 
