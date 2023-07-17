@@ -1,13 +1,17 @@
-from typing import Union, Optional, List
+import copy
+from typing import Union, Optional, List, Tuple
 from functools import lru_cache
 
 import torch
-from torch import Tensor
+from torch import Tensor, nn
+from torch.utils.data import DataLoader
 
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
+from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
 from super_gradients.modules import RepVGGBlock
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
@@ -16,10 +20,54 @@ from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head imp
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.pp_yolo_e.post_prediction_callback import PPYoloEPostPredictionCallback, DetectionPostPredictionCallback
+from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.training.utils.utils import infer_model_device
+
+logger = get_logger(__name__)
+
+
+class PPYoloEPostprocessingModuleForTRT(nn.Module):
+    """
+    Decoding module for TRT NMS
+    Takes in the output of the model and returns the decoded boxes in the format Tuple[Tensor, Tensor]
+    * boxes [batch_size, number_boxes, 4], boxes are in format (x1, y1, x2, y2)
+    * scores [batch_size, number_boxes, number_classes]
+    """
+
+    def __init__(
+        self,
+        pre_nms_top_k=300,
+        multi_label_per_box: bool = False,
+    ):
+        super().__init__()
+        self.pre_nms_top_k = pre_nms_top_k
+        self.multi_label_per_box = multi_label_per_box
+
+    def forward(self, inputs: Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
+        """
+
+        :param inputs:
+        * boxes [B, N, 4], boxes are in format (x1, y1, x2, y2)
+        * scores [B, N, C]
+        :return:
+        """
+        pred_bboxes, pred_scores = inputs
+
+        pred_cls_conf, pred_cls_label = torch.max(pred_scores, dim=2)
+        nms_top_k = pred_scores.size(1).clamp_max(self.pre_nms_top_k)
+        topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True)
+
+        output_pred_bboxes = pred_bboxes[topk_candidates.indices]
+        output_pred_scores = pred_scores[topk_candidates.indices]
+
+        return output_pred_bboxes, output_pred_scores
+
+    def get_output_names(self):
+        return ["pre_nms_bboxes_xyxy", "pre_nms_scores"]
 
 
 class PPYoloE(SgModule):
@@ -139,6 +187,189 @@ class PPYoloE(SgModule):
             self.head = new_head
         else:
             self.head.replace_num_classes(new_num_classes)
+
+    def get_postprocessing_module(self):
+        return PPYoloEPostprocessingModuleForTRT()
+
+    def export(
+        self,
+        output: str,
+        engine: Optional[str] = None,
+        quantize: bool = False,
+        calibration_loader: Optional[DataLoader] = None,
+        preprocessing: Union[bool, nn.Module] = True,
+        postprocessing: Union[bool, nn.Module] = True,
+        postprocessing_kwargs: Optional[dict] = None,
+        batch_size: int = 1,
+        image_shape: Optional[Tuple[int, int]] = None,
+        onnx_opset_version: Optional[int] = None,
+        onnx_export_kwargs: Optional[dict] = None,
+        device: Optional[torch.device] = None,
+    ):
+        """
+        Export the model to one of supported formats. Format is inferred from the output file extension or can be
+        explicitly specified via `format` argument.
+
+        :param output: Output file name of the exported model.
+        :param engine: Explicit specification of the inference engine. If not specified, engine is inferred from the output file extension.
+                       Supported values:
+                       - "onnx" - export to ONNX format with ONNX runtime as inference engine.
+                       Note, models that are using NMS exported in this mode may not compatible with TRT runtime.
+                       - "tensorrt" - export to ONNX format with TensorRT  as inference engine.
+                       This mode enables use of efficient TensorRT NMS plugin. Note, models that are using NMS exported in this
+                       mode may not compatible with ONNX runtime.
+        :param quantize: (bool) If True, export a quantized model, otherwise export a model in full precision.
+        :param calibration_loader: (torch.utils.data.DataLoader) An optional data loader for calibrating a quantized model.
+        :param preprocessing: (bool or nn.Module)
+                              If True, export a model with preprocessing that matches preprocessing params during training,
+                              If False - do not use any preprocessing at all
+                              If instance of nn.Module - uses given preprocessing module.
+        :param postprocessing: (bool or nn.Module)
+                               If True, export a model with postprocessing module obtained from model.get_post_processing_callback()
+                               If False - do not use any postprocessing at all
+                               If instance of nn.Module - uses given postprocessing module.
+        :param postprocessing_kwargs: (dict) Optional keyword arguments for model.get_post_processing_callback(),
+               used only when `postprocessing=True`.
+        :param include_nms: (bool) If True, export a model with NMS postprocessing, otherwise export a model
+               without NMS (model will output raw predictions without decoding and NMS).
+        :param batch_size: (int) Batch size for the exported model.
+        :param image_shape: (tuple) Input image shape (height, width) for the exported model.
+               If None, the function will infer the image shape from the model's preprocessing params.
+        :param nms_threshold: (float) NMS threshold for the exported model.
+        :param confidence_threshold: (float) Confidence threshold for the exported model.
+        :param max_detections: (int) Maximum number of detections for the exported model.
+        :param onnx_opset_version: (int) ONNX opset version for the exported model.
+               If not specified, the default opset is used (defined by torch version installed).
+        :param device: (torch.device) Device to use for exporting the model. If not specified, the device is inferred from the model itself.
+        :return:
+        """
+        if not isinstance(self, nn.Module):
+            raise TypeError(f"Export is only supported for torch.nn.Module. Got type {type(self)}")
+
+        device: torch.device = device or infer_model_device(self)
+        model: nn.Module = copy.deepcopy(self).to(device).eval()
+
+        engine: str = engine or infer_format_from_file_name(output)
+        if engine is None:
+            raise ValueError(
+                "Export format is not specified and cannot be inferred from the output file name. "
+                "Please specify the format explicitly: model.export(..., format='onnx|coreml')"
+            )
+
+        image_shape: Tuple[int, int] = image_shape or infer_image_shape_from_model(model)
+        if image_shape is None:
+            raise ValueError(
+                "Image shape is not specified and cannot be inferred from the model. "
+                "Please specify the image shape explicitly: model.export(..., image_shape=(height, width))"
+            )
+
+        try:
+            rows, cols = image_shape
+        except ValueError:
+            raise ValueError(f"Image shape must be a tuple of two integers (height, width), got {image_shape} instead")
+
+        input_shape = (batch_size, 3, rows, cols)
+        prep_model_for_conversion_kwargs = {
+            "input_size": input_shape,
+        }
+
+        if isinstance(preprocessing, nn.Module):
+            pass
+        elif preprocessing is True:
+            preprocessing = self.get_preprocessing_callback()
+        else:
+            preprocessing = None
+
+        # This variable holds the output names of the model.
+        # If postprocessing is enabled, it will be set to the output names of the postprocessing module.
+        output_names: Optional[List[str]] = None
+
+        if isinstance(postprocessing, nn.Module):
+            pass
+        elif postprocessing is True:
+            if batch_size != 1:
+                raise ValueError(
+                    "Postprocessing is not supported for batch size > 1. " "Please specify postprocessing=False to export a model without postprocessing."
+                )
+            postprocessing_kwargs = postprocessing_kwargs or {}
+            postprocessing = self.get_postprocessing_module(**postprocessing_kwargs)
+            output_names = postprocessing.get_output_names()
+        else:
+            postprocessing = None
+
+        if hasattr(model, "prep_model_for_conversion"):
+            model.prep_model_for_conversion(**prep_model_for_conversion_kwargs)
+
+        if quantize:
+            logger.debug("Quantizing model")
+            from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
+            from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
+            from pytorch_quantization import nn as quant_nn
+
+            q_util = SelectiveQuantizer(
+                default_quant_modules_calibrator_weights="max",
+                default_quant_modules_calibrator_inputs="histogram",
+                default_per_channel_quant_weights=True,
+                default_learn_amax=False,
+                verbose=True,
+            )
+            q_util.quantize_module(model)
+
+            if calibration_loader:
+                logger.debug("Calibrating model")
+                calibrator = QuantizationCalibrator(verbose=True)
+                calibrator.calibrate_model(
+                    model,
+                    method="percentile",
+                    calib_data_loader=calibration_loader,
+                    num_calib_batches=16,
+                    percentile=99.99,
+                )
+                logger.debug("Calibrating model complete")
+
+        from super_gradients.training.models.conversion import ConvertableCompletePipelineModel
+
+        complete_model = ConvertableCompletePipelineModel(self, preprocessing, postprocessing, **prep_model_for_conversion_kwargs)
+
+        if engine in {"onnx", "tensorrt"}:
+            onnx_export_kwargs = onnx_export_kwargs or {}
+
+            if quantize:
+                use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
+                quant_nn.TensorQuantizer.use_fb_fake_quant = True
+
+            try:
+                with torch.no_grad():
+                    onnx_input = torch.randn(input_shape, device=device)
+                    logger.debug("Exporting model to ONNX")
+                    logger.debug("ONNX input shape: %s", input_shape)
+                    logger.debug("ONNX output names: %s", output_names)
+                    torch.onnx.export(
+                        model=complete_model, args=onnx_input, f=output, opset_version=onnx_opset_version, output_names=output_names, **onnx_export_kwargs
+                    )
+
+                # Stich ONNX graph with NMS postprocessing
+                if postprocessing:
+                    if engine == "tensorrt":
+                        attach_tensorrt_nms(
+                            onnx_model_path=output,
+                            output_onnx_model_path=output,
+                            detections_per_img=100,
+                            nms_threshold=0.5,
+                            confidence_threshold=0.6,
+                        )
+                    elif engine == "onnx":
+                        pass
+                    else:
+                        raise KeyError(f"Unsupported engine: {engine}")
+
+            finally:
+                if quantize:
+                    # Restore functions of quant_nn back as expected
+                    quant_nn.TensorQuantizer.use_fb_fake_quant = use_fb_fake_quant_state
+
+        else:
+            raise ValueError(f"Unsupported export format: {engine}")
 
 
 @register_model(Models.PP_YOLOE_S)

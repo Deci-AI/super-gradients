@@ -2,12 +2,13 @@ from typing import Tuple, Type, List
 
 import numpy as np
 import torch
-from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
-from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from torch import nn, Tensor
 
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.modules import ConvBNAct
+from super_gradients.training.utils.bbox_utils import batch_distance2bbox
+from super_gradients.training.utils.utils import infer_model_device
 from super_gradients.training.utils.version_utils import torch_version_is_greater_or_equal
 
 
@@ -153,10 +154,12 @@ class PPYOLOEHead(nn.Module):
 
     @torch.jit.ignore
     def cache_anchors(self, input_size: Tuple[int, int]):
-        self.eval_size = input_size
+        b, c, h, w = input_size
+        self.eval_size = (h, w)
         anchor_points, stride_tensor = self._generate_anchors()
-        self.anchor_points = anchor_points
-        self.stride_tensor = stride_tensor
+        device = infer_model_device(self.pred_cls)
+        self.anchor_points = anchor_points.to(device)
+        self.stride_tensor = stride_tensor.to(device)
 
     @torch.jit.ignore
     def _init_weights(self):
