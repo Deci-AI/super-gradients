@@ -11,6 +11,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
+from super_gradients.conversion.onnx.nms import attach_onnx_nms
 from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
 from super_gradients.modules import RepVGGBlock
 from super_gradients.training.models.sg_module import SgModule
@@ -57,12 +58,19 @@ class PPYoloEPostprocessingModuleForTRT(nn.Module):
         """
         pred_bboxes, pred_scores = inputs
 
-        pred_cls_conf, pred_cls_label = torch.max(pred_scores, dim=2)
+        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
         nms_top_k = pred_scores.size(1).clamp_max(self.pre_nms_top_k)
-        topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True)
 
-        output_pred_bboxes = pred_bboxes[topk_candidates.indices]
-        output_pred_scores = pred_scores[topk_candidates.indices]
+        topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True)
+        offsets = nms_top_k * torch.arange(pred_cls_conf.size(0), device=pred_cls_conf.device)
+        flat_indices = topk_candidates.indices + offsets.reshape(pred_cls_conf.size(0), 1)
+        flat_indices = torch.flatten(flat_indices)
+
+        # gather_scores = torch.gather(gt_scores.flatten(), assigned_gt_index.flatten(), dim=0)
+        #             gather_scores = gather_scores.reshape([batch_size, num_anchors])
+
+        output_pred_bboxes = pred_bboxes.reshape(-1, pred_bboxes.size(2))[flat_indices, :].reshape(pred_bboxes.size(0), nms_top_k, pred_bboxes.size(2))
+        output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
 
         return output_pred_bboxes, output_pred_scores
 
@@ -287,10 +295,10 @@ class PPYoloE(SgModule):
         if isinstance(postprocessing, nn.Module):
             pass
         elif postprocessing is True:
-            if batch_size != 1:
-                raise ValueError(
-                    "Postprocessing is not supported for batch size > 1. " "Please specify postprocessing=False to export a model without postprocessing."
-                )
+            # if batch_size != 1:
+            #     raise ValueError(
+            #         "Postprocessing is not supported for batch size > 1. " "Please specify postprocessing=False to export a model without postprocessing."
+            #     )
             postprocessing_kwargs = postprocessing_kwargs or {}
             postprocessing = self.get_postprocessing_module(**postprocessing_kwargs)
             output_names = postprocessing.get_output_names()
@@ -359,7 +367,13 @@ class PPYoloE(SgModule):
                             confidence_threshold=0.6,
                         )
                     elif engine == "onnx":
-                        pass
+                        attach_onnx_nms(
+                            onnx_model_path=output,
+                            output_onnx_model_path=output,
+                            detections_per_img=100,
+                            nms_threshold=0.5,
+                            confidence_threshold=0.6,
+                        )
                     else:
                         raise KeyError(f"Unsupported engine: {engine}")
 

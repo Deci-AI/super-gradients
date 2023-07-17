@@ -39,25 +39,53 @@ class TestModelsONNXExport(unittest.TestCase):
             self.assertTrue(os.path.exists(out_path))
 
     def test_export_ppyolo_e(self):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco").cuda()
-            # print(infer_image_shape_from_model(ppyolo_e))
+        # with tempfile.TemporaryDirectory() as tmpdirname:
+        tmpdirname = "."
+        ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
+        # print(infer_image_shape_from_model(ppyolo_e))
 
-            onnx_file = os.path.join(tmpdirname, "ppyoloe_s_trt_nms.onnx")
-            ppyolo_e.export(
-                onnx_file,
-                engine="tensorrt",
-                image_shape=(640, 640),
-                preprocessing=False,
-                postprocessing=True,
-                quantize=False,
-            )
+        onnx_file = os.path.join(tmpdirname, "ppyoloe_s_trt_nms.onnx")
+        ppyolo_e.export(
+            onnx_file,
+            engine="tensorrt",
+            batch_size=1,
+            image_shape=(640, 640),
+            preprocessing=False,
+            postprocessing=True,
+            quantize=False,
+        )
 
-            session = onnxruntime.InferenceSession(onnx_file)
-            inputs = [o.name for o in session.get_inputs()]
-            outputs = [o.name for o in session.get_outputs()]
-            result = session.run(outputs, {inputs[0]: np.random.rand(1, 3, 640, 640).astype(np.float32)})
-            print(result, result[0].shape)
+        from decibenchmark.api.client_manager import ClientManager
+        from decibenchmark.api.hardware.jetson.jetson_device_filter import JetsonDeviceFilter
+        from decibenchmark.common.hardware.jetson.jetson_model import JetsonModel
+        from decibenchmark.common.execmethod.trt_exec_params import TrtExecParams
+
+        # Create client manager
+        client_manager = ClientManager.create()
+
+        # Get jetson client
+        client = client_manager.jetson
+
+        job = client.benchmark.trt_exec(
+            JetsonDeviceFilter(jetson_model=JetsonModel.XAVIER_NX, hostname="research-xavier-.+"),
+            TrtExecParams(extra_cmd_params=["--fp16", "--avgRuns=100", "--duration=15"]),
+        ).dispatch(onnx_file)
+
+        result = job.wait_for_result()
+
+        # Print the result in readable way in IPython
+        result.dict(exclude={"extra": {"stdout"}})
+
+        # Get the latency and throughput
+        print(f"Latency: {result.latency}")
+        print(f"Throughput: {result.throughput}")
+        # Waiting for job to be done and returning it (blocking indefinitely)
+
+        # session = onnxruntime.InferenceSession(onnx_file)
+        # inputs = [o.name for o in session.get_inputs()]
+        # outputs = [o.name for o in session.get_outputs()]
+        # result = session.run(outputs, {inputs[0]: np.random.rand(1, 3, 640, 640).astype(np.float32)})
+        # print(result, result[0].shape)
 
     def test_export_ppyolo_e_quantized(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
