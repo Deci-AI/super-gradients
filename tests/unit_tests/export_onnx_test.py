@@ -2,11 +2,13 @@ import logging
 import tempfile
 import unittest
 
+import cv2
 import numpy as np
 import onnxruntime
 
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
+from super_gradients.training.utils.media.image import load_image
 from torchvision.transforms import Compose, Normalize, Resize
 
 from super_gradients.training.dataloaders import coco2017_val
@@ -38,11 +40,83 @@ class TestModelsONNXExport(unittest.TestCase):
             )
             self.assertTrue(os.path.exists(out_path))
 
+    def test_export_ppyolo_e_onnx_nms(self):
+        # with tempfile.TemporaryDirectory() as tmpdirname:
+        tmpdirname = "."
+        ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
+
+        onnx_file = os.path.join(tmpdirname, "ppyoloe_s_torchvision_nms.onnx")
+        ppyolo_e.export(
+            onnx_file,
+            batch_size=1,
+            image_shape=(640, 640),
+            preprocessing=False,
+            postprocessing=True,
+            quantize=False,
+        )
+
+        image = load_image("../data/tinycoco/images/val2017/000000444010.jpg")
+        image = cv2.resize(image, (640, 640))
+        image = np.transpose(np.expand_dims(image, 0), (0, 3, 1, 2)) / 255.0
+
+        session = onnxruntime.InferenceSession(onnx_file)
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+        result = session.run(outputs, {inputs[0]: image.astype(np.float32)})
+        print(result, result[0].shape)
+
+    def test_export_ppyolo_e_onnx_nms_and_benchmark(self):
+        # with tempfile.TemporaryDirectory() as tmpdirname:
+        tmpdirname = "."
+        ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
+
+        onnx_file = os.path.join(tmpdirname, "ppyoloe_s_torchvision_nms.onnx")
+        ppyolo_e.export(
+            onnx_file,
+            batch_size=1,
+            image_shape=(640, 640),
+            preprocessing=False,
+            postprocessing=True,
+            quantize=False,
+        )
+
+        image = load_image("../data/tinycoco/images/val2017/000000444010.jpg")
+        image = cv2.resize(image, (640, 640))
+        image = np.transpose(np.expand_dims(image, 0), (0, 3, 1, 2)) / 255.0
+
+        session = onnxruntime.InferenceSession(onnx_file)
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+        result = session.run(outputs, {inputs[0]: image.astype(np.float32)})
+        print(result, result[0].shape)
+
+        from decibenchmark.api.client_manager import ClientManager
+        from decibenchmark.api.hardware.jetson.jetson_device_filter import JetsonDeviceFilter
+        from decibenchmark.common.hardware.jetson.jetson_model import JetsonModel
+        from decibenchmark.common.execmethod.trt_exec_params import TrtExecParams
+
+        # Create client manager
+        client_manager = ClientManager.create()
+
+        # Get jetson client
+        client = client_manager.jetson
+
+        job = client.benchmark.trt_exec(
+            JetsonDeviceFilter(jetson_model=JetsonModel.XAVIER_NX, hostname="research-xavier-.+"),
+            TrtExecParams(extra_cmd_params=["--fp16", "--avgRuns=100", "--duration=15"]),
+        ).dispatch(onnx_file)
+
+        result = job.wait_for_result()
+
+        # Get the latency and throughput
+        print(onnx_file)
+        print(f"Latency: {result.latency}")
+        print(f"Throughput: {result.throughput}")
+
     def test_export_ppyolo_e(self):
         # with tempfile.TemporaryDirectory() as tmpdirname:
         tmpdirname = "."
         ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
-        # print(infer_image_shape_from_model(ppyolo_e))
 
         onnx_file = os.path.join(tmpdirname, "ppyoloe_s_trt_nms.onnx")
         ppyolo_e.export(
@@ -73,19 +147,10 @@ class TestModelsONNXExport(unittest.TestCase):
 
         result = job.wait_for_result()
 
-        # Print the result in readable way in IPython
-        result.dict(exclude={"extra": {"stdout"}})
-
         # Get the latency and throughput
+        print(onnx_file)
         print(f"Latency: {result.latency}")
         print(f"Throughput: {result.throughput}")
-        # Waiting for job to be done and returning it (blocking indefinitely)
-
-        # session = onnxruntime.InferenceSession(onnx_file)
-        # inputs = [o.name for o in session.get_inputs()]
-        # outputs = [o.name for o in session.get_outputs()]
-        # result = session.run(outputs, {inputs[0]: np.random.rand(1, 3, 640, 640).astype(np.float32)})
-        # print(result, result[0].shape)
 
     def test_export_ppyolo_e_quantized(self):
         with tempfile.TemporaryDirectory() as tmpdirname:

@@ -65,53 +65,79 @@ def attach_onnx_nms(
     # Do shape inference
     iteratively_infer_shapes(graph)
 
-    op_inputs = graph.outputs
+    pred_boxes, pred_scores = graph.outputs
+
+    permute_scores = gs.Variable(
+        name="permuted_scores",
+        dtype=np.float32,
+    )
+    graph.layer(op="Transpose", name="permute_scores", inputs=[pred_scores], outputs=[permute_scores], attrs={"perm": [0, 2, 1]})
+
+    op_inputs = [pred_boxes, permute_scores] + [
+        gs.Constant(name="max_output_boxes_per_class", values=np.array([detections_per_img], dtype=np.int64)),
+        gs.Constant(name="iou_threshold", values=np.array([nms_threshold], dtype=np.float32)),
+        gs.Constant(name="score_threshold", values=np.array([confidence_threshold], dtype=np.float32)),
+    ]
     logger.debug(f"op_inputs: {op_inputs}")
-    op = "NonMaxSuppression"
-    attrs = {
-        "center_point_box": 0,
-    }
-
-    if precision == "fp32":
-        dtype_output = np.float32
-    elif precision == "fp16":
-        dtype_output = np.float16
-    else:
-        raise NotImplementedError(f"Currently not supports precision: {precision}")
-
-    # NMS Inputs
-    # input_max_output_boxes_per_class = gs.Constant("max_output_boxes_per_class", max_output_boxes_per_class)
-    # input_iou_threshold = gs.Constant("nms_threshold", nms_threshold)
-    # input_score_threshold = gs.Constant("score_threshold", confidence_threshold)
 
     # NMS Outputs
-    output_num_detections = gs.Variable(
-        name="num_dets",
-        dtype=np.int32,
-        shape=[batch_size, 1],
+    # selected indices from the boxes tensor. [num_selected_indices, 3], the selected index format is [batch_index, class_index, box_index].
+    output_selected_indices = gs.Variable(
+        name="selected_indices",
+        dtype=np.int64,
+        # shape=[num_selected_indices, 3],
     )  # A scalar indicating the number of valid detections per batch image.
-    output_boxes = gs.Variable(
-        name="det_boxes",
-        dtype=dtype_output,
-        shape=[batch_size, detections_per_img, 4],
-    )
-    output_scores = gs.Variable(
-        name="det_scores",
-        dtype=dtype_output,
-        shape=[batch_size, detections_per_img],
-    )
-    output_labels = gs.Variable(
-        name="det_classes",
-        dtype=np.int32,
-        shape=[batch_size, detections_per_img],
-    )
 
-    op_outputs = [output_num_detections, output_boxes, output_scores, output_labels]
+    op_outputs = [output_selected_indices]
 
     # Create the NMS Plugin node with the selected inputs. The outputs of the node will also
     # become the final outputs of the graph.
-    graph.layer(op=op, name="batched_nms", inputs=op_inputs, outputs=op_outputs, attrs=attrs)
-    logger.info(f"Created NMS plugin '{op}' with attributes: {attrs}")
+    graph.layer(
+        op="NonMaxSuppression",
+        name="batched_nms",
+        inputs=op_inputs,
+        outputs=op_outputs,
+        attrs={
+            "center_point_box": 0,
+        },
+    )
+
+    if False:
+        # graph.layer(op="GatherND", name="gather", inputs=[pred_boxes, boxes_indexes], outputs=[])
+        # graph.layer(op="GatherND", name="gather", inputs=[pred_boxes, class_indexes], outputs=[])
+        boxes_indexes = gs.Variable(
+            name="boxes_indexes",
+            dtype=np.int64,
+        )
+
+        graph.layer(
+            op="Slice",
+            name="take_boxes_indexes",
+            inputs=[
+                output_selected_indices,
+                gs.Constant(name="take_boxes_indexes_start", values=np.array([0], dtype=np.int64)),
+                gs.Constant(name="take_boxes_indexes_ends", values=np.array([2], dtype=np.int64)),
+                gs.Constant(name="take_boxes_indexes_axes", values=np.array([1], dtype=np.int64)),
+            ],
+            outputs=[boxes_indexes],
+            attrs={"axis": 1, "indices": [2]},
+        )
+
+        label_indexes = gs.Variable(
+            name="label_indexes",
+            dtype=np.int64,
+        )
+        graph.layer(op="Gather", name="take_label_indexes", inputs=[output_selected_indices], outputs=[label_indexes], attrs={"axis": 1, "indices": [2]})
+
+        # select_classes = gs.Variable(
+        #     name="select_classes",
+        #     dtype=np.int64,
+        # )
+
+        # op_outputs = [output_selected_indices]
+
+        # graph.layer(op="GatherND", name="gather", inputs=[pred_boxes, boxes_indexes], outputs=[])
+        # graph.layer(op="GatherND", name="gather", inputs=[pred_boxes, class_indexes], outputs=[])
 
     graph.outputs = op_outputs
 
