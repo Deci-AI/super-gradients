@@ -128,10 +128,11 @@ def instantiate_model(
         if pretrained_weights is None and num_classes is None:
             raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")
 
-        if pretrained_weights and pretrained_weights in PRETRAINED_NUM_CLASSES.keys():
+        is_valid_local_pretrained_weights = pretrained_weights and pretrained_weights in PRETRAINED_NUM_CLASSES.keys()
+        if is_valid_local_pretrained_weights:
             num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
             arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
-        elif pretrained_weights and pretrained_weights is None:
+        elif not download_platform_weights:
             raise ValueError(f"Unknown pretrained_weights - couldn't find pretrained weights in {PRETRAINED_NUM_CLASSES.keys()} or platform.")
 
         # Most of the SG models work with a single params names "arch_params" of type HpmStruct, but a few take
@@ -141,7 +142,7 @@ def instantiate_model(
         else:
             net = architecture_cls(arch_params=arch_params)
 
-        if pretrained_weights:
+        if is_valid_local_pretrained_weights:
             if is_remote and pretrained_weights_path:
                 load_pretrained_weights_local(net, model_name, pretrained_weights_path)
             else:
