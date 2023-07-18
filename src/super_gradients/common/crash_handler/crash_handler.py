@@ -1,4 +1,5 @@
 import sys
+
 from super_gradients.common.crash_handler.crash_tips_setup import setup_crash_tips
 from super_gradients.common.crash_handler.exception_monitoring_setup import setup_pro_user_monitoring
 from super_gradients.common.crash_handler.exception import register_exceptions
