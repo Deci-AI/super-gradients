@@ -315,6 +315,8 @@ class SegFormer(SegmentationModule):
         overlap_patch_stride: List[int],
         overlap_patch_pad: List[int],
         in_channels: int = 3,
+        sliding_window_size: Tuple[int, int] = (1024, 1024),
+        sliding_window_stride: Tuple[int, int] = (768, 768),
     ):
         """
         :param num_classes: number of classes
@@ -347,6 +349,12 @@ class SegFormer(SegmentationModule):
 
         self.init_params()
 
+        self.num_classes = num_classes
+
+        self.is_SWI = False
+        self.sliding_window_size = sliding_window_size
+        self.sliding_window_stride = sliding_window_stride
+
     def init_params(self):
 
         for m in self.modules():
@@ -362,6 +370,12 @@ class SegFormer(SegmentationModule):
                 nn.init.ones_(m.weight)
                 nn.init.zeros_(m.bias)
 
+    def enable_swi(self):
+        self.is_SWI = True
+
+    def disable_swi(self):
+        self.is_SWI = False
+
     @property
     def backbone(self):
         return self._backbone
@@ -372,11 +386,57 @@ class SegFormer(SegmentationModule):
     def replace_head(self, new_num_classes: int, new_decoder_embed_dim: int):
         self.decode_head = SegFormerHead(encoder_dims=self.encoder_embed_dims, embed_dim=new_decoder_embed_dim, num_classes=new_num_classes)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def _forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self._backbone(x)
         out = self.decode_head(features)
         out = F.interpolate(out, size=x.shape[2:], mode="bilinear", align_corners=False)
         return out
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.is_SWI:
+            return self.sliding_window(x, self.num_classes, self.sliding_window_stride, self.sliding_window_size)
+        else:
+            return self._forward(x)
+
+    def sliding_window(self, img: torch.Tensor, num_classes: int, stride: Tuple[int, int], crop_size: Tuple[int, int]) -> torch.Tensor:
+        """
+        Inference by sliding-window with overlap.
+
+        If h_crop > h_img or w_crop > w_img, the small patch will be used to
+        decode without padding.
+        """
+
+        h_stride, w_stride = stride
+        h_crop, w_crop = crop_size
+        batch_size, _, h_img, w_img = img.size()
+
+        h_grids = max(h_img - h_crop + h_stride - 1, 0) // h_stride + 1
+        w_grids = max(w_img - w_crop + w_stride - 1, 0) // w_stride + 1
+
+        preds = torch.zeros((batch_size, num_classes, h_img, w_img), device=img.device)
+        count_mat = torch.zeros((batch_size, 1, h_img, w_img), device=img.device)
+
+        for h_idx in range(h_grids):
+            for w_idx in range(w_grids):
+                y1 = h_idx * h_stride
+                x1 = w_idx * w_stride
+                y2 = min(y1 + h_crop, h_img)
+                x2 = min(x1 + w_crop, w_img)
+                y1 = max(y2 - h_crop, 0)
+                x1 = max(x2 - w_crop, 0)
+                crop_img = img[:, :, y1:y2, x1:x2]
+                crop_logits = self._forward(crop_img)
+
+                if isinstance(crop_logits, torch.Tensor):
+                    crop_logits = (crop_logits,)
+
+                crop_logits = crop_logits[0]
+
+                preds += F.pad(crop_logits, pad=(int(x1), int(preds.shape[3] - x2), int(y1), int(preds.shape[2] - y2)))
+
+                count_mat[:, :, y1:y2, x1:x2] += 1
+        preds = preds / count_mat
+        return preds
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
@@ -432,6 +492,8 @@ class SegFormerCustom(SegFormer):
             overlap_patch_stride=arch_params.overlap_patch_stride,
             overlap_patch_pad=arch_params.overlap_patch_pad,
             in_channels=arch_params.in_channels,
+            sliding_window_size=arch_params.sliding_window_size,
+            sliding_window_stride=arch_params.sliding_window_stride,
         )
 
 
@@ -442,6 +504,8 @@ DEFAULT_SEGFORMER_PARAMS = {
     "overlap_patch_pad": [3, 1, 1, 1],
     "eff_self_att_reduction_ratio": [8, 4, 2, 1],
     "eff_self_att_heads": [1, 2, 5, 8],
+    "sliding_window_size": (1024, 1024),
+    "sliding_window_stride": (768, 768),
 }
 
 DEFAULT_SEGFORMER_B0_PARAMS = {**DEFAULT_SEGFORMER_PARAMS, "encoder_embed_dims": [32, 64, 160, 256], "encoder_layers": [2, 2, 2, 2], "decoder_embed_dim": 256}

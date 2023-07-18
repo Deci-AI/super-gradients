@@ -856,6 +856,29 @@ class TimerCallback(Callback):
             return total_steps_in_done + train_loader_length + context.batch_idx
 
 
+@register_callback(Callbacks.SLIDING_WINDOW_INFERENCE)
+class ChangeToSWI(Callback):
+    """
+    Performing single-scale sliding window during inference at the end of training on the validation set.
+    """
+
+    def __init__(self):
+        self.slide_eval_params = dict(
+            stride=[768, 768],  # context.valid_metric.stride # TODO: add according to setting in recipe
+            crop_size=[1024, 1024],
+            # num_classes=context.arch_params.num_classes
+        )
+
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
+        if context.training_params.max_epochs - 1 == context.epoch:
+            unwrap_model(context.net).enable_swi()
+            context.valid_loader.dataset.transforms.transforms = []
+
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
+        if context.training_params.max_epochs - 1 == context.epoch:
+            unwrap_model(context.net).disable_swi()
+
+
 def create_lr_scheduler_callback(
     lr_mode: Union[str, Mapping],
     train_loader: DataLoader,
