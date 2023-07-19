@@ -129,28 +129,7 @@ class TestModelsONNXExport(unittest.TestCase):
             quantize=False,
         )
 
-        from decibenchmark.api.client_manager import ClientManager
-        from decibenchmark.api.hardware.jetson.jetson_device_filter import JetsonDeviceFilter
-        from decibenchmark.common.hardware.jetson.jetson_model import JetsonModel
-        from decibenchmark.common.execmethod.trt_exec_params import TrtExecParams
-
-        # Create client manager
-        client_manager = ClientManager.create()
-
-        # Get jetson client
-        client = client_manager.jetson
-
-        job = client.benchmark.trt_exec(
-            JetsonDeviceFilter(jetson_model=JetsonModel.XAVIER_NX, hostname="research-xavier-.+"),
-            TrtExecParams(extra_cmd_params=["--fp16", "--avgRuns=100", "--duration=15"]),
-        ).dispatch(onnx_file)
-
-        result = job.wait_for_result()
-
-        # Get the latency and throughput
-        print(onnx_file)
-        print(f"Latency: {result.latency}")
-        print(f"Throughput: {result.throughput}")
+        self._benchmark_onnx(onnx_file)
 
     def test_export_ppyolo_e_quantized(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -171,6 +150,8 @@ class TestModelsONNXExport(unittest.TestCase):
             outputs = [o.name for o in session.get_outputs()]
             result = session.run(outputs, {inputs[0]: np.random.rand(1, 3, 640, 640).astype(np.float32)})
             print(result, result[0].shape)
+
+            self._benchmark_onnx(onnx_file)
 
     def test_export_ppyolo_e_quantized_with_calibration(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -194,6 +175,30 @@ class TestModelsONNXExport(unittest.TestCase):
             outputs = [o.name for o in session.get_outputs()]
             result = session.run(outputs, {inputs[0]: np.random.rand(1, 3, 640, 640).astype(np.float32)})
             print(result, result[0].shape)
+
+    def _benchmark_onnx(self, onnx_file):
+        from decibenchmark.api.client_manager import ClientManager
+        from decibenchmark.api.hardware.jetson.jetson_device_filter import JetsonDeviceFilter
+        from decibenchmark.common.hardware.jetson.jetson_model import JetsonModel
+        from decibenchmark.common.execmethod.trt_exec_params import TrtExecParams
+
+        # Create client manager
+        client_manager = ClientManager.create()
+
+        # Get jetson client
+        client = client_manager.jetson
+
+        job = client.benchmark.trt_exec(
+            JetsonDeviceFilter(jetson_model=JetsonModel.AGX_ORIN),
+            TrtExecParams(extra_cmd_params=["--fp16", "--avgRuns=100", "--duration=15"]),
+        ).dispatch(onnx_file)
+
+        result = job.wait_for_result()
+
+        # Get the latency and throughput
+        print(onnx_file)
+        print(f"Latency: {result.latency}")
+        print(f"Throughput: {result.throughput}")
 
 
 if __name__ == "__main__":
