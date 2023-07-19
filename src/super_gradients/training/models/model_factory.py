@@ -133,7 +133,10 @@ def instantiate_model(
             num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
             arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
         elif not download_platform_weights:
-            raise ValueError(f"Unknown pretrained_weights - couldn't find pretrained weights in {PRETRAINED_NUM_CLASSES.keys()} or platform.")
+            raise ValueError(
+                f'`pretrained_weights="{pretrained_weights}"` is not a valid and was not found in that platform. '
+                f'Valid pretrained weights are: "{PRETRAINED_NUM_CLASSES.keys()}"'
+            )
 
         # Most of the SG models work with a single params names "arch_params" of type HpmStruct, but a few take
         # **kwargs instead
