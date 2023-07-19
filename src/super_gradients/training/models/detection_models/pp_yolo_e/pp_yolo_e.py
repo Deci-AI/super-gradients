@@ -39,9 +39,11 @@ class PPYoloEPostprocessingModuleForTRT(nn.Module):
     * scores [batch_size, number_boxes, number_classes]
     """
 
+    __constants__ = ["pre_nms_top_k", "multi_label_per_box"]
+
     def __init__(
         self,
-        pre_nms_top_k=300,
+        pre_nms_top_k: int = 300,
         multi_label_per_box: bool = False,
     ):
         super().__init__()
@@ -59,7 +61,7 @@ class PPYoloEPostprocessingModuleForTRT(nn.Module):
         pred_bboxes, pred_scores = inputs
 
         pred_cls_conf, _ = torch.max(pred_scores, dim=2)
-        nms_top_k = pred_scores.size(1).clamp_max(self.pre_nms_top_k)
+        nms_top_k = self.pre_nms_top_k
 
         topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True)
         offsets = nms_top_k * torch.arange(pred_cls_conf.size(0), device=pred_cls_conf.device)
