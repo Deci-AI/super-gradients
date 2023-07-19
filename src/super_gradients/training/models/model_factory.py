@@ -142,13 +142,13 @@ def instantiate_model(
         else:
             net = architecture_cls(arch_params=arch_params)
 
-        if is_valid_local_pretrained_weights:
+        if pretrained_weights:
             if is_remote and pretrained_weights_path:
                 load_pretrained_weights_local(net, model_name, pretrained_weights_path)
             else:
                 load_pretrained_weights(net, model_name, pretrained_weights)
 
-            if num_classes_new_head != arch_params.num_classes:
+            if is_valid_local_pretrained_weights and num_classes_new_head != arch_params.num_classes:
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
 
