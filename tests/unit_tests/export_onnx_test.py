@@ -63,10 +63,10 @@ class TestModelsONNXExport(unittest.TestCase):
         inputs = [o.name for o in session.get_inputs()]
         outputs = [o.name for o in session.get_outputs()]
         result = session.run(outputs, {inputs[0]: image.astype(np.float32)})
-        print(result, result[0].shape)
+        for r in result:
+            print(r.shape, r.dtype, r)
 
     def test_export_ppyolo_e_onnx_nms_and_benchmark(self):
-        # with tempfile.TemporaryDirectory() as tmpdirname:
         tmpdirname = "."
         ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
 
@@ -88,32 +88,12 @@ class TestModelsONNXExport(unittest.TestCase):
         inputs = [o.name for o in session.get_inputs()]
         outputs = [o.name for o in session.get_outputs()]
         result = session.run(outputs, {inputs[0]: image.astype(np.float32)})
-        print(result, result[0].shape)
+        for r in result:
+            print(r.shape, r.dtype, r)
 
-        from decibenchmark.api.client_manager import ClientManager
-        from decibenchmark.api.hardware.jetson.jetson_device_filter import JetsonDeviceFilter
-        from decibenchmark.common.hardware.jetson.jetson_model import JetsonModel
-        from decibenchmark.common.execmethod.trt_exec_params import TrtExecParams
+        self._benchmark_onnx(onnx_file)
 
-        # Create client manager
-        client_manager = ClientManager.create()
-
-        # Get jetson client
-        client = client_manager.jetson
-
-        job = client.benchmark.trt_exec(
-            JetsonDeviceFilter(jetson_model=JetsonModel.XAVIER_NX, hostname="research-xavier-.+"),
-            TrtExecParams(extra_cmd_params=["--fp16", "--avgRuns=100", "--duration=15"]),
-        ).dispatch(onnx_file)
-
-        result = job.wait_for_result()
-
-        # Get the latency and throughput
-        print(onnx_file)
-        print(f"Latency: {result.latency}")
-        print(f"Throughput: {result.throughput}")
-
-    def test_export_ppyolo_e(self):
+    def test_export_ppyolo_e_trt_nms_and_benchmark(self):
         # with tempfile.TemporaryDirectory() as tmpdirname:
         tmpdirname = "."
         ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")

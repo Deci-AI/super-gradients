@@ -1,7 +1,7 @@
 import numpy as np
 import onnx
 import onnx_graphsurgeon as gs
-from onnx import shape_inference
+from onnx import shape_inference, TensorProto
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -88,58 +88,92 @@ def attach_onnx_nms(
         # shape=[num_selected_indices, 3],
     )  # A scalar indicating the number of valid detections per batch image.
 
-    op_outputs = [output_selected_indices]
-
     # Create the NMS Plugin node with the selected inputs. The outputs of the node will also
     # become the final outputs of the graph.
     graph.layer(
         op="NonMaxSuppression",
         name="batched_nms",
         inputs=op_inputs,
-        outputs=op_outputs,
+        outputs=[output_selected_indices],
         attrs={
             "center_point_box": 0,
         },
     )
 
-    if False:
-        # graph.layer(op="GatherND", name="gather", inputs=[pred_boxes, boxes_indexes], outputs=[])
-        # graph.layer(op="GatherND", name="gather", inputs=[pred_boxes, class_indexes], outputs=[])
-        boxes_indexes = gs.Variable(
-            name="boxes_indexes",
-            dtype=np.int64,
-        )
+    selected_label_scores = gs.Variable(
+        name="selected_label_scores",
+        dtype=np.float32,
+    )
 
-        graph.layer(
-            op="Slice",
-            name="take_boxes_indexes",
-            inputs=[
-                output_selected_indices,
-                gs.Constant(name="take_boxes_indexes_start", values=np.array([0], dtype=np.int64)),
-                gs.Constant(name="take_boxes_indexes_ends", values=np.array([2], dtype=np.int64)),
-                gs.Constant(name="take_boxes_indexes_axes", values=np.array([1], dtype=np.int64)),
-            ],
-            outputs=[boxes_indexes],
-            attrs={"axis": 1, "indices": [2]},
-        )
+    graph.layer(op="GatherND", name="gather", inputs=[pred_scores, output_selected_indices], outputs=[selected_label_scores])
 
-        label_indexes = gs.Variable(
-            name="label_indexes",
-            dtype=np.int64,
-        )
-        graph.layer(op="Gather", name="take_label_indexes", inputs=[output_selected_indices], outputs=[label_indexes], attrs={"axis": 1, "indices": [2]})
+    batch_indexes = gs.Variable(
+        name="batch_indexes",
+        dtype=np.int64,
+    )
 
-        # select_classes = gs.Variable(
-        #     name="select_classes",
-        #     dtype=np.int64,
-        # )
+    boxes_indexes = gs.Variable(
+        name="boxes_indexes",
+        dtype=np.int64,
+    )
 
-        # op_outputs = [output_selected_indices]
+    label_indexes = gs.Variable(
+        name="label_indexes",
+        dtype=np.int64,
+    )
 
-        # graph.layer(op="GatherND", name="gather", inputs=[pred_boxes, boxes_indexes], outputs=[])
-        # graph.layer(op="GatherND", name="gather", inputs=[pred_boxes, class_indexes], outputs=[])
+    graph.layer(
+        op="Split",
+        name="split_predictions",
+        inputs=[output_selected_indices],
+        outputs=[batch_indexes, label_indexes, boxes_indexes],
+        attrs={"axis": 1},
+    )
 
-    graph.outputs = op_outputs
+    batch_and_boxes_indexes = gs.Variable(
+        name="batch_and_boxes_indexes",
+        dtype=np.int64,
+    )
+
+    graph.layer(op="Concat", name="concat", inputs=[batch_indexes, boxes_indexes], outputs=[batch_and_boxes_indexes], attrs={"axis": 1})
+
+    selected_boxes_coordinates = gs.Variable(
+        name="selected_boxes_coordinates",
+        dtype=np.float32,
+    )
+
+    graph.layer(op="GatherND", name="take_boxes_coordinates", inputs=[pred_boxes, batch_and_boxes_indexes], outputs=[selected_boxes_coordinates])
+
+    batch_indexes_fp32 = gs.Variable(
+        name="batch_indexes_fp32",
+        dtype=np.float32,
+    )
+    graph.layer(op="Cast", name="cast_batch_indexes", inputs=[batch_indexes], outputs=[batch_indexes_fp32], attrs={"to": TensorProto.FLOAT})
+
+    label_indexes_fp32 = gs.Variable(
+        name="label_indexes_fp32",
+        dtype=np.float32,
+    )
+    graph.layer(op="Cast", name="cast_label_indexes", inputs=[label_indexes], outputs=[label_indexes_fp32], attrs={"to": TensorProto.FLOAT})
+
+    final_decoded_boxes = gs.Variable(name="final_decoded_boxes", dtype=np.float32)
+
+    selected_label_scores_rank_2 = gs.Variable(
+        name="selected_label_scores_rank_2",
+        dtype=np.float32,
+    )
+    unsqueeze_dim_1 = gs.Constant(name="unsqueeze_dim_1", values=np.array([1], dtype=np.int64))
+    graph.layer(
+        op="Unsqueeze", name="expand_selected_label_scores_to_rank_2", inputs=[selected_label_scores, unsqueeze_dim_1], outputs=[selected_label_scores_rank_2]
+    )
+
+    graph.layer(
+        op="Concat",
+        inputs=[batch_indexes_fp32, label_indexes_fp32, selected_label_scores_rank_2, selected_boxes_coordinates],
+        outputs=[final_decoded_boxes],
+        attrs={"axis": 1},
+    )
+    graph.outputs = [final_decoded_boxes]
 
     iteratively_infer_shapes(graph)
 
