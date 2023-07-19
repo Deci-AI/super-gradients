@@ -128,15 +128,15 @@ def instantiate_model(
         if pretrained_weights is None and num_classes is None:
             raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")
 
-        is_valid_local_pretrained_weights = pretrained_weights and pretrained_weights in PRETRAINED_NUM_CLASSES.keys()
-        if is_valid_local_pretrained_weights:
-            num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
-            arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
-        elif not download_platform_weights:
-            raise ValueError(
-                f'`pretrained_weights="{pretrained_weights}"` is not a valid and was not found in that platform. '
-                f'Valid pretrained weights are: "{PRETRAINED_NUM_CLASSES.keys()}"'
-            )
+        if pretrained_weights:
+            if pretrained_weights in PRETRAINED_NUM_CLASSES.keys():
+                num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
+                arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
+            elif not download_platform_weights:
+                raise ValueError(
+                    f'`pretrained_weights="{pretrained_weights}"` is not a valid and was not found in that platform. '
+                    f'Valid pretrained weights are: "{PRETRAINED_NUM_CLASSES.keys()}"'
+                )
 
         # Most of the SG models work with a single params names "arch_params" of type HpmStruct, but a few take
         # **kwargs instead
@@ -151,7 +151,7 @@ def instantiate_model(
             else:
                 load_pretrained_weights(net, model_name, pretrained_weights)
 
-            if is_valid_local_pretrained_weights and num_classes_new_head != arch_params.num_classes:
+            if pretrained_weights in PRETRAINED_NUM_CLASSES.keys() and num_classes_new_head != arch_params.num_classes:
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
 
