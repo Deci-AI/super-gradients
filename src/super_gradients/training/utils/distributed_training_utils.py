@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from torch import distributed as dist
 from torch.cuda.amp import autocast
-from torch.distributed import get_rank, gather_object
+from torch.distributed import get_rank, all_gather_object
 from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
@@ -416,7 +416,7 @@ class DDPNotSetupException(Exception):
         super().__init__(self.message)
 
 
-def maybe_all_reduce(device: str, tensor: torch.Tensor) -> torch.Tensor:
+def maybe_all_reduce_tensor_average(device: str, tensor: torch.Tensor) -> torch.Tensor:
     """
     When in DDP- mean-reduces tensor from all devices.
     When not in DDP - returns the input tensor.
@@ -430,19 +430,20 @@ def maybe_all_reduce(device: str, tensor: torch.Tensor) -> torch.Tensor:
     return tensor
 
 
-def maybe_all_gather(tensor: torch.Tensor) -> torch.Tensor:
+def maybe_all_gather_np_images(image: np.ndarray) -> np.ndarray:
     """
-    When in DDP- gathers tensor from all devices to rank 0. Returns the gathered tensor on rank 0 and the
-     Ingathered one on other ranks.
+    When in DDP- gathers images (as np.ndarray objects) from all processes.
+     Returns the concatenated np.array across dim=0.
     When not in DDP - returns the input tensor.
 
-    :param tensor: torch.Tensor, the local rank's tensor to gather
-    :return: torch.Tensor, the gathered (or original if not in DDP) tensor.
+    :param image: np.ndarray, the local rank's tensor to gather
+
+    :return: np.ndarray, the output image as described above
     """
     if is_distributed():
         rank = get_rank()
         output_container = [None for _ in range(get_world_size())]
-        gather_object(tensor, output_container if rank == 0 else None, dst=0)
+        all_gather_object(output_container, image)
         if rank == 0:
-            tensor = np.concatenate(output_container, 0)
-    return tensor
+            image = np.concatenate(output_container, 0)
+    return image

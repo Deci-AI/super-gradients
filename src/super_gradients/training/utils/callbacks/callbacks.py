@@ -14,11 +14,13 @@ import onnxruntime
 import torch
 from deprecated import deprecated
 from torch.utils.data import DataLoader
-from torchmetrics import MetricCollection
+from torchmetrics import MetricCollection, Metric
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.device_utils import device_config
+from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback, LR_SCHEDULERS_CLS_DICT, TORCH_LR_SCHEDULERS
 from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
@@ -26,7 +28,7 @@ from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, 
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
-from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce, maybe_all_gather
+from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
 from super_gradients.training.utils.utils import unwrap_model
@@ -964,16 +966,22 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
 
     Images are saved with training_hyperparams.sg_logger.
 
-    :param metric_name: str,will be the metric which the model checkpoint will be saved according to, and can be set to any
-      of the following:
+    :param metric: Metric, will be the metric which is monitored.
 
-        a metric name (str) of one of the metric objects from the training_hyperparams.valid_metrics_list
+    :param metric_component_name: In case metric returns multiple values (as Mapping),
+     the value at metric.compute()[metric_component_name] will be the one monitored.
 
-        a "component_name" if some metric in valid_metrics_list has an attribute component_names. In such cas it
-        is a list referring to the names of each entry in the output metric (torch tensor of size n).
+    :param loss_name: str, loss_name corresponfing to the 'criterion' passed through training_params in Trainer.train(...).
+     Monitoring loss follows the same logic as metric_to_watch in Trainer.train(..), when watching the loss and should be:
 
-        one of "loss_logging_items_names" i.e which will correspond to an item returned during the
-        loss function's forward pass (see loss docs in Trainer.train(..)).
+        if hasattr(criterion, "component_names") and criterion.forward(..) returns a tuple:
+            <LOSS_CLASS.__name__>"/"<COMPONENT_NAME>.
+
+        If a single item is returned rather then a tuple:
+            <LOSS_CLASS.__name__>.
+
+        When there is no such attributesand criterion.forward(..) returns a tuple:
+            <LOSS_CLASS.__name__>"/"Loss_"<IDX>
 
     :param max: bool, Whether to take the batch corresponding to the max value of the metric/loss or
      the minimum (default=False).
@@ -983,9 +991,29 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
      Inheritors should implement process_extreme_batch which returns an image, as an np.array (uint8) with shape BCHW.
     """
 
-    def __init__(self, metric_name: str, max: bool = False, freq: int = 1):
-        self.metric_name = metric_name
-        self.metric = None
+    @resolve_param("metric", MetricsFactory())
+    def __init__(
+        self,
+        metric: Optional[Union[Metric, Mapping, str]] = None,
+        metric_component_name: Optional[str] = None,
+        loss_name: Optional[str] = None,
+        max: bool = False,
+        freq: int = 1,
+    ):
+        super(ExtremeBatchCaseVisualizationCallback, self).__init__()
+
+        if (metric and loss_name) or (metric is None and loss_name is None):
+            raise RuntimeError("Must pass exactly one of: loss, metric != None")
+
+        self._set_tag_attr(loss_name, max, metric, metric_component_name)
+        self.metric = metric
+        if self.metric:
+            self.metric = MetricCollection(self.metric)
+            self.metric.to(device_config.device)
+
+        self.metric_component_name = metric_component_name
+
+        self.loss_name = loss_name
         self.max = max
         self.freq = freq
         self.extreme_score = -1 * np.inf if max else np.inf
@@ -996,48 +1024,51 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
 
         self._first_call = True
         self._idx_loss_tuple = None
-        self._tag = f"max_{self.metric_name}_batch" if self.max else f"min_{self.metric_name}_batch"
 
-        super(ExtremeBatchCaseVisualizationCallback, self).__init__()
+    def _set_tag_attr(self, loss_name, max, metric, metric_component_name):
+        if metric_component_name:
+            monitored_val_name = metric_component_name
+        elif metric:
+            monitored_val_name = metric.__class__.__name__
+        else:
+            monitored_val_name = loss_name
+        self._tag = f"max_{monitored_val_name}_batch" if max else f"min_{monitored_val_name}_batch"
 
     @abstractmethod
-    def process_extreme_batch(self) -> np.array:
+    def process_extreme_batch(self) -> np.ndarray:
+        """
+        This method is called right before adding the images to the in  SGLoggger (inside the on_validation_loader_end call).
+         It should process self.extreme_batch, self.extreme_preds and self.extreme_targets and output the images, as np.ndarrray.
+         Output should be of shape N,3,H,W and uint8.
+        :return: images to save, np.ndarray
+        """
         raise NotImplementedError
-
-    def on_training_start(self, context: PhaseContext) -> None:
-        """
-        On train start we set the metric (if the metric_name does not corresponf to a loss).
-        :param context: Phase context
-        :return:
-        """
-        if not hasattr(context.valid_metrics, self.metric_name):
-            for metric_name, metric in context.valid_metrics.items():
-                if hasattr(metric, "greater_component_is_better") and self.metric_name in metric.greater_component_is_better.keys():
-                    # WRAP METRIC WITH METRIC COLLECTION TO FILTER ONLY THE NEEDED ARGUMENTS FOR THE METRIC UPDATE
-                    self.metric = MetricCollection(copy.deepcopy(metric))
-                    self.metric.to(device_config.device)
-        else:
-            self.metric = MetricCollection(copy.deepcopy(getattr(context.valid_metrics, self.metric_name)))
-            self.metric.to(device_config.device)
 
     def on_validation_batch_end(self, context: PhaseContext) -> None:
         if context.epoch % self.freq == 0:
             # FOR METRIC OBJECTS, RESET THEM AND COMPUTE SCORE ONLY ON BATCH.
             if self.metric is not None:
-                self.metric.reset()
                 self.metric.update(**context.__dict__)
-                score = self.metric.compute()[self.metric_name]
+                score = self.metric.compute()
+                if self.metric_component_name is not None:
+                    if not isinstance(score, Mapping) or (isinstance(score, Mapping) and self.metric_component_name not in score.keys()):
+                        raise RuntimeError(
+                            f"metric_component_name: {self.metric_component_name} is not a component "
+                            f"of the monitored metric: {self.metric.__class__.__name__}"
+                        )
+                    score = score[self.metric_component_name]
+                self.metric.reset()
             else:
 
-                # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERRIVE IT ON THE FIRST PASS
+                # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
                 loss_tuple = context.loss_log_items
                 if self._first_call:
-                    self._init_loss_attributes(context, loss_tuple)
+                    self._init_loss_attributes(context)
                 score = loss_tuple[self._idx_loss_tuple]
 
                 # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
                 device = next(context.net.parameters()).device
-                score = maybe_all_reduce(device, score)
+                score = maybe_all_reduce_tensor_average(device, score)
 
             if self._is_more_extreme(score):
                 self.extreme_score = score
@@ -1046,16 +1077,15 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
                 self.extreme_targets = context.target
 
     def _init_loss_attributes(self, context: PhaseContext):
-        if self.metric_name not in context.loss_logging_items_names:
-            raise ValueError(f"{self.metric_name} not a validation metric, loss or loss component.")
+        if self.loss_name not in context.loss_logging_items_names:
+            raise ValueError(f"{self.loss_name} not a loss or loss component.")
         self._idx_loss_tuple = context.loss_logging_items_names.index(self.metric_name)
         self._first_call = False
 
     def on_validation_loader_end(self, context: PhaseContext) -> None:
         if context.epoch % self.freq == 0:
             images_to_save = self.process_extreme_batch()
-            #
-            images_to_save = maybe_all_gather(images_to_save)
+            images_to_save = maybe_all_gather_np_images(images_to_save)
             if not context.ddp_silent_mode:
                 context.sg_logger.add_images(tag=self._tag, images=images_to_save, global_step=context.epoch)
 
@@ -1092,26 +1122,39 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
           ...
           "phase_callbacks":
             [ExtremeBatchSegVisualizationCallback(
-                metric_name=IoU'
+                metrice=IoU(20, ignore_idx=19)
                 max=False
                 ignore_idx=19),
             ExtremeBatchSegVisualizationCallback(
-                metric_name="LabelSmoothingCrossEntropyLoss"
+                loss_name="LabelSmoothingCrossEntropyLoss"
                 max=True
                 ignore_idx=19)]
                 ...}
 
+    Example usage in Yaml config:
 
-    :param metric_name: str,will be the metric which the model checkpoint will be saved according to, and can be set to any
-      of the following:
+        training_hyperparams:
+          phase_callbacks:
+            - ExtremeBatchSegVisualizationCallback:
+                loss_name: DiceCEEdgeLoss/aux_loss0
+                ignore_idx: 19
 
-        a metric name (str) of one of the metric objects from the training_hyperparams.valid_metrics_list
+    :param metric: Metric, will be the metric which is monitored.
 
-        a "component_name" if some metric in valid_metrics_list has an attribute component_names. In such cas it
-        is a list referring to the names of each entry in the output metric (torch tensor of size n).
+    :param metric_component_name: In case metric returns multiple values (as Mapping),
+     the value at metric.compute()[metric_component_name] will be the one monitored.
 
-        one of "loss_logging_items_names" i.e which will correspond to an item returned during the
-        loss function's forward pass (see loss docs in Trainer.train(..)).
+    :param loss_name: str, loss_name corresponfing to the 'criterion' passed through training_params in Trainer.train(...).
+     Monitoring loss follows the same logic as metric_to_watch in Trainer.train(..), when watching the loss and should be:
+
+        if hasattr(criterion, "component_names") and criterion.forward(..) returns a tuple:
+            <LOSS_CLASS.__name__>"/"<COMPONENT_NAME>.
+
+        If a single item is returned rather then a tuple:
+            <LOSS_CLASS.__name__>.
+
+        When there is no such attributesand criterion.forward(..) returns a tuple:
+            <LOSS_CLASS.__name__>"/"Loss_"<IDX>
 
     :param max: bool, Whether to take the batch corresponding to the max value of the metric/loss or
      the minimum (default=False).
@@ -1119,14 +1162,20 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
     :param freq: int, epoch frequency to perform all of the above (default=1).
 
 
-    :param ignore_idx: int, any prediction of a coordinate in the output image, s.t the ground truth of it is this
-     value will not be colored in green or in red (default=-1).
-
-
     """
 
-    def __init__(self, metric_name: str, max: bool = False, freq: int = 1, ignore_idx: int = -1):
-        super(ExtremeBatchSegVisualizationCallback, self).__init__(metric_name=metric_name, max=max, freq=freq)
+    def __init__(
+        self,
+        metric: Optional[Union[Metric, Mapping, str]] = None,
+        metric_component_name: Optional[str] = None,
+        loss_name: Optional[str] = None,
+        max: bool = False,
+        freq: int = 1,
+        ignore_idx: int = -1,
+    ):
+        super(ExtremeBatchSegVisualizationCallback, self).__init__(
+            metric=metric, metric_component_name=metric_component_name, loss_name=loss_name, max=max, freq=freq
+        )
         self.ignore_idx = ignore_idx
 
     def process_extreme_batch(self) -> np.array:

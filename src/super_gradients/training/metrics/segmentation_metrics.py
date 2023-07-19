@@ -331,6 +331,13 @@ class IoU(torchmetrics.JaccardIndex):
         super().update(preds=preds, target=target)
 
 
+@register_metric("DIOU")
+class DIOU(IoU):
+    def compute(self):
+        diou = super(DIOU, self).compute()
+        return {"diou": diou, "diou_minus": -1 * diou}
+
+
 @register_metric(Metrics.DICE)
 class Dice(torchmetrics.JaccardIndex):
     """
