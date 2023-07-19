@@ -66,6 +66,33 @@ class TestModelsONNXExport(unittest.TestCase):
         for r in result:
             print(r.shape, r.dtype, r)
 
+    def test_export_ppyolo_e_onnx_no_nms_and_benchmark(self):
+        tmpdirname = "."
+        ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
+
+        onnx_file = os.path.join(tmpdirname, "ppyoloe_s_no_nms.onnx")
+        ppyolo_e.export(
+            onnx_file,
+            batch_size=1,
+            image_shape=(640, 640),
+            preprocessing=False,
+            postprocessing=False,
+            quantize=False,
+        )
+
+        image = load_image("../data/tinycoco/images/val2017/000000444010.jpg")
+        image = cv2.resize(image, (640, 640))
+        image = np.transpose(np.expand_dims(image, 0), (0, 3, 1, 2)) / 255.0
+
+        session = onnxruntime.InferenceSession(onnx_file)
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+        result = session.run(outputs, {inputs[0]: image.astype(np.float32)})
+        for r in result:
+            print(r.shape, r.dtype, r)
+
+        self._benchmark_onnx(onnx_file)
+
     def test_export_ppyolo_e_onnx_nms_and_benchmark(self):
         tmpdirname = "."
         ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
@@ -111,12 +138,12 @@ class TestModelsONNXExport(unittest.TestCase):
 
         self._benchmark_onnx(onnx_file)
 
-    def test_export_ppyolo_e_quantized(self):
+    def test_export_ppyoloe_s_onnx_nms_quantized(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
-            ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco").cuda()
+            ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
             print(infer_image_shape_from_model(ppyolo_e))
 
-            onnx_file = os.path.join(tmpdirname, "ppyoloe_s_quantized.onnx")
+            onnx_file = os.path.join(tmpdirname, "ppyoloe_s_onnx_nms_quantized.onnx")
             ppyolo_e.export(
                 onnx_file,
                 image_shape=(640, 640),
@@ -131,7 +158,24 @@ class TestModelsONNXExport(unittest.TestCase):
             result = session.run(outputs, {inputs[0]: np.random.rand(1, 3, 640, 640).astype(np.float32)})
             print(result, result[0].shape)
 
-            self._benchmark_onnx(onnx_file)
+            self._benchmark_onnx(onnx_file, precision="--int8")
+
+    def test_export_ppyoloe_s_trt_nms_quantized(self):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
+            print(infer_image_shape_from_model(ppyolo_e))
+
+            onnx_file = os.path.join(tmpdirname, "ppyoloe_s_trt_nms_quantized.onnx")
+            ppyolo_e.export(
+                onnx_file,
+                engine="tensorrt",
+                image_shape=(640, 640),
+                preprocessing=False,
+                postprocessing=True,
+                quantize=True,
+            )
+
+            self._benchmark_onnx(onnx_file, precision="--int8")
 
     def test_export_ppyolo_e_quantized_with_calibration(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -156,11 +200,15 @@ class TestModelsONNXExport(unittest.TestCase):
             result = session.run(outputs, {inputs[0]: np.random.rand(1, 3, 640, 640).astype(np.float32)})
             print(result, result[0].shape)
 
-    def _benchmark_onnx(self, onnx_file):
+    def _benchmark_onnx(self, onnx_file, precision="--fp16"):
         from decibenchmark.api.client_manager import ClientManager
         from decibenchmark.api.hardware.jetson.jetson_device_filter import JetsonDeviceFilter
+
+        # from decibenchmark.api.hardware.nvidia_gpu.nvidia_gpu_device_filter import NvidiaGpuDeviceFilter
         from decibenchmark.common.hardware.jetson.jetson_model import JetsonModel
         from decibenchmark.common.execmethod.trt_exec_params import TrtExecParams
+
+        # from decibenchmark.common.hardware.nvidia_gpu.nvidia_gpu_model import NvidiaGpuModel
 
         # Create client manager
         client_manager = ClientManager.create()
@@ -169,14 +217,15 @@ class TestModelsONNXExport(unittest.TestCase):
         client = client_manager.jetson
 
         job = client.benchmark.trt_exec(
-            JetsonDeviceFilter(jetson_model=JetsonModel.AGX_ORIN),
-            TrtExecParams(extra_cmd_params=["--fp16", "--avgRuns=100", "--duration=15"]),
+            JetsonDeviceFilter(jetson_model=JetsonModel.XAVIER_NX),
+            # NvidiaGpuDeviceFilter(nvidia_gpu_model=NvidiaGpuModel.TESLA_T4),
+            TrtExecParams(extra_cmd_params=[precision, "--avgRuns=100", "--duration=15"]),
         ).dispatch(onnx_file)
 
-        result = job.wait_for_result()
-
-        # Get the latency and throughput
+        result = job.wait_for_result(timeout=-1)
+        # print(result)
         print(onnx_file)
+        # Get the latency and throughput
         print(f"Latency: {result.latency}")
         print(f"Throughput: {result.throughput}")
 
