@@ -12,9 +12,9 @@ In SuperGradients, we aim to collect such models and make them very convenient a
 
 | Model                                      | Yaml                                                                                                                                                                     | Model class                                                                                                                              | Loss Class                                                                                                                                  | NMS Callback                                                                                                                                                                                       |
 |--------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| 
-| [SSD](https://arxiv.org/abs/1512.02325)    | [ssd_lite_mobilenetv2_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ssd_lite_mobilenetv2_arch_params.yaml) | [SSDLiteMobileNetV2](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py) | [SSDLoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.ssd_loss.SSDLoss)                                 | [SSDPostPredictCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.ssd_utils.SSDPostPredictCallback)                                                           |
-| [YOLOX](https://arxiv.org/abs/2107.08430)  | [yolox_s_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/yolox_s_arch_params.yaml)                           | [YoloX_S](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolox.py)          | [YoloXFastDetectionLoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.yolox_loss.YoloXFastDetectionLoss) | [YoloXPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.yolo_base.YoloXPostPredictionCallback)                              |
-| [PPYolo](https://arxiv.org/abs/2007.12099) | [ppyoloe_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ppyoloe_arch_params.yaml)                           | [PPYoloE](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.pp_yolo_e.pp_yolo_e.PPYoloE)  | [PPYoloELoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.ppyolo_loss.PPYoloELoss)                      | [PPYoloEPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.pp_yolo_e.post_prediction_callback.PPYoloEPostPredictionCallback) |
+| [SSD](https://arxiv.org/abs/1512.02325)    | [ssd_lite_mobilenetv2_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ssd_lite_mobilenetv2_arch_params.yaml) | [SSDLiteMobileNetV2](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py) | [SSDLoss](https://docs.deci.ai/super-gradients/docstring/training/losses.html#training.losses.ssd_loss.SSDLoss)                                 | [SSDPostPredictCallback](https://docs.deci.ai/super-gradients/docstring/training/utils.html#training.utils.ssd_utils.SSDPostPredictCallback)                                                           |
+| [YOLOX](https://arxiv.org/abs/2107.08430)  | [yolox_s_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/yolox_s_arch_params.yaml)                           | [YoloX_S](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolox.py)          | [YoloXFastDetectionLoss](https://docs.deci.ai/super-gradients/docstring/training/losses.html#training.losses.yolox_loss.YoloXFastDetectionLoss) | [YoloXPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.detection_models.yolo_base.YoloXPostPredictionCallback)                              |
+| [PPYolo](https://arxiv.org/abs/2007.12099) | [ppyoloe_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ppyoloe_arch_params.yaml)                           | [PPYoloE](https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.detection_models.pp_yolo_e.pp_yolo_e.PPYoloE)  | [PPYoloELoss](https://docs.deci.ai/super-gradients/docstring/training/losses.html#training.losses.ppyolo_loss.PPYoloELoss)                      | [PPYoloEPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.detection_models.pp_yolo_e.post_prediction_callback.PPYoloEPostPredictionCallback) |
 
 
 ## Training
@@ -41,7 +41,7 @@ If you're unfamiliar with config files, we recommend you to read the [Configurat
 ### Datasets
 
 There are several well-known datasets for object detection: COCO, Pascal, etc. 
-SuperGradients provides ready-to-use dataloaders for the COCO dataset [COCODetectionDataset](https://docs.deci.ai/super-gradients/docstring/training/datasets/#training.datasets.detection_datasets.coco_detection.COCODetectionDataset) 
+SuperGradients provides ready-to-use dataloaders for the COCO dataset [COCODetectionDataset](https://docs.deci.ai/super-gradients/docstring/training/datasets.html#training.datasets.detection_datasets.coco_detection.COCODetectionDataset) 
 and more general `DetectionDataset` implementation that you can subclass from for your specific dataset format.
 
 If you want to load the dataset outside of a yaml training, do:
@@ -65,7 +65,7 @@ val_dataloader = dataloaders.get(name='coco2017_val',
 A typical metric for object detection is mean average precision, mAP for short. 
 It is calculated for a specific IoU level which defines how tightly a predicted box must intersect with a ground truth box to be considered a true positive.
 Both one value and a range can be used as IoU, where a range refers to an average of mAPs for each IoU level.
-The most popular metric for mAP on COCO is mAP@0.5:0.95, SuperGradients provide its implementation [DetectionMetrics](https://docs.deci.ai/super-gradients/docstring/training/metrics/#training.metrics.detection_metrics.DetectionMetrics).
+The most popular metric for mAP on COCO is mAP@0.5:0.95, SuperGradients provide its implementation [DetectionMetrics](https://docs.deci.ai/super-gradients/docstring/training/metrics.html#training.metrics.detection_metrics.DetectionMetrics).
 It is written to be as close as possible to the  official metric implementation from [COCO API](https://pypi.org/project/pycocotools/), while being much faster and DDP-friendly.
 
 In order to use `DetectionMetrics` you have to pass a so-called `post_prediction_callback` to the metric, which is responsible for the postprocessing of the model's raw output into final predictions and is explained below. 
@@ -73,7 +73,7 @@ In order to use `DetectionMetrics` you have to pass a so-called `post_prediction
 ### Postprocessing
 
 Postprocessing refers to a process of transforming the model's raw output into final predictions. Postprocessing is also model-specific and depends on the model's output format.
-For `YOLOX` model, the postprocessing step is implemented in [YoloXPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.yolo_base.YoloXPostPredictionCallback) class.
+For `YOLOX` model, the postprocessing step is implemented in [YoloXPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.detection_models.yolo_base.YoloXPostPredictionCallback) class.
 It can be passed into a `DetectionMetrics` as a `post_prediction_callback`. 
 The postprocessing of all detection models involves non-maximum suppression (NMS) which filters dense model's predictions and leaves only boxes with the highest confidence and suppresses boxes with very high overlap 
 based on the assumption that they likely belong to the same object. Thus, a confidence threshold and an IoU threshold must be passed into the postprocessing object.
@@ -90,7 +90,7 @@ post_prediction_callback = YoloXPostPredictionCallback(conf=0.001, iou=0.6)
 Visualization of the model predictions is a very important part of the training process for any computer vision task. 
 By visualizing the predicted boxes, developers and researchers can identify errors or inaccuracies in the model's output and adjust the model's architecture or training data accordingly.
 
-SuperGradients provide an implementation of [DetectionVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.callbacks.callbacks.DetectionVisualizationCallback). 
+SuperGradients provide an implementation of [DetectionVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils.html#training.utils.callbacks.callbacks.DetectionVisualizationCallback). 
 You can use this callback in your training pipeline to visualize predictions during training. For this, just add it to `training_hyperparams.phase_callbacks` in your yaml.
 During training, the callback will generate a visualization of the model predictions and save it to the TensorBoard or Weights & Biases depending on which logger you
 are using (Default is Tensorboard). 
@@ -320,7 +320,7 @@ class MyNewDetectionDataset(DetectionDataset):
 ```
 Note the addition of `@register_dataset` decorator. This makes SuperGradients recognize your dataset so that you can use its name directly in a yaml.
 Since detection labels often contain different number of boxes per image, targets are padded with 0s, which allows to use them in a batch. 
-They are later removed by a [DetectionCollateFN](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.detection_utils.DetectionCollateFN) which prepends all targets with an index in a batch and stacks them together.
+They are later removed by a [DetectionCollateFN](https://docs.deci.ai/super-gradients/docstring/training/utils.html#training.utils.detection_utils.DetectionCollateFN) which prepends all targets with an index in a batch and stacks them together.
 
 
 ### Add a configuration file
@@ -411,7 +411,7 @@ To implement a new model, you need to add the following parts:
 - Postprocessing Callback
 
 For a custom model, a good starting point would be a 
-[CustomizableDetector](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.detection_models.customizable_detector.CustomizableDetector) 
+[CustomizableDetector](https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.detection_models.customizable_detector.CustomizableDetector) 
 class since it allows to configure a backbone, a neck and a head separately. See an example yaml of 
 a model that uses it: [ssd_lite_mobilenetv2_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ssd_lite_mobilenetv2_arch_params.yaml)
 
