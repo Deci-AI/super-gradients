@@ -300,7 +300,6 @@ def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
 
 
 def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretrained_weights: str):
-
     """
     Loads pretrained weights from the MODEL_URLS dictionary to model
     :param architecture: name of the model's architecture
@@ -335,6 +334,7 @@ def _load_weights(architecture, model, pretrained_state_dict):
         pretrained_state_dict["net"] = pretrained_state_dict["ema_net"]
     solver = _yolox_ckpt_solver if "yolox" in architecture else None
     adaptive_load_state_dict(net=model, state_dict=pretrained_state_dict, strict=StrictLoad.NO_KEY_MATCHING, solver=solver)
+    logger.info(f"Successfully loaded pretrained weights for architecture {architecture}")
 
 
 def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pretrained_weights: str):

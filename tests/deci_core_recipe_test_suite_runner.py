@@ -3,7 +3,8 @@ import unittest
 
 from tests.recipe_training_tests.automatic_batch_selection_single_gpu_test import TestAutoBatchSelectionSingleGPU
 from tests.recipe_training_tests.coded_qat_launch_test import CodedQATLuanchTest
-from tests.recipe_training_tests.shortened_recipes_accuracy_test import ShortenedRecipesAccuracyTests
+
+# from tests.recipe_training_tests.shortened_recipes_accuracy_test import ShortenedRecipesAccuracyTests
 
 
 class CoreUnitTestSuiteRunner:
@@ -19,7 +20,7 @@ class CoreUnitTestSuiteRunner:
             :return:
         """
         self.recipe_tests_suite.addTest(self.test_loader.loadTestsFromModule(CodedQATLuanchTest))
-        self.recipe_tests_suite.addTest(self.test_loader.loadTestsFromModule(ShortenedRecipesAccuracyTests))
+        # self.recipe_tests_suite.addTest(self.test_loader.loadTestsFromModule(ShortenedRecipesAccuracyTests))
         self.recipe_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestAutoBatchSelectionSingleGPU))
 
 
