@@ -170,3 +170,6 @@ def attach_tensorrt_nms(
     model = gs.export_onnx(graph)
     onnx.save(model, output_onnx_model_path)
     logger.debug(f"Saved ONNX model to {output_onnx_model_path}")
+
+    onnxsim.simplify(output_onnx_model_path)
+    logger.debug(f"Ran onnxsim.simplify on {output_onnx_model_path}")

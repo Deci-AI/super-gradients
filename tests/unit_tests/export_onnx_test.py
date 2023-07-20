@@ -82,7 +82,7 @@ class TestModelsONNXExport(unittest.TestCase):
                     precision = "quantized" if quantize else "full_precision"
                     self._export_and_benchmark(
                         onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
-                        run_benchmark=False,
+                        run_benchmark=True,
                         run_inference_with_onnxruntime=engine != "tensorrt",
                         export_kwargs=dict(
                             batch_size=1,
@@ -104,7 +104,7 @@ class TestModelsONNXExport(unittest.TestCase):
 
         self._export_and_benchmark(
             onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}_calibrated.onnx",
-            run_benchmark=False,
+            run_benchmark=True,
             run_inference_with_onnxruntime=engine != "tensorrt",
             export_kwargs=dict(
                 batch_size=1,
@@ -137,15 +137,15 @@ class TestModelsONNXExport(unittest.TestCase):
         torch.onnx.export(
             ConvertFlatTensorToTRTFormat(batch_size=4, max_predictions_per_image=20),
             args=predictions,
-            f="flat_tensor_to_trt_format.onnx",
+            f="ConvertFlatTensorToTRTFormat.onnx",
             input_names=["flat_predictions"],
             output_names=["num_predictions", "pred_boxes", "pred_scores", "pred_classes"],
             dynamic_axes={"flat_predictions": {0: "num_predictions"}},
         )
 
-        onnx.checker.check_model(onnx.load("flat_tensor_to_trt_format.onnx"))
+        onnx.checker.check_model(onnx.load("ConvertFlatTensorToTRTFormat.onnx"))
 
-        session = onnxruntime.InferenceSession("flat_tensor_to_trt_format.onnx")
+        session = onnxruntime.InferenceSession("ConvertFlatTensorToTRTFormat.onnx")
 
         inputs = [o.name for o in session.get_inputs()]
         outputs = [o.name for o in session.get_outputs()]
@@ -200,7 +200,7 @@ class TestModelsONNXExport(unittest.TestCase):
             dynamic_axes={"flat_predictions": {0: "num_predictions"}},
         )
 
-        onnx.checker.check_model(onnx.load("flat_tensor_to_trt_format.onnx"))
+        onnx.checker.check_model(onnx.load("ConvertTRTFormatToFlatTensor.onnx"))
 
         session = onnxruntime.InferenceSession("ConvertTRTFormatToFlatTensor.onnx")
 

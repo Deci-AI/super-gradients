@@ -260,5 +260,5 @@ def attach_onnx_nms(
     onnx.save(model, output_onnx_model_path)
     logger.debug(f"Saved ONNX model to {output_onnx_model_path}")
 
-    onnxsim.simplify("flat_tensor_to_trt_format.onnx")
-    logger.debug(f"Ran onnxsim.simplify on {output_onnx_model_path}")
+    # onnxsim.simplify(output_onnx_model_path)
+    # logger.debug(f"Ran onnxsim.simplify on {output_onnx_model_path}")
