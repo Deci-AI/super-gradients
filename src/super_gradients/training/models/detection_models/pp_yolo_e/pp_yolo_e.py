@@ -53,23 +53,27 @@ class PPYoloEPostprocessingModuleForTRT(nn.Module):
     def forward(self, inputs: Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
         """
 
-        :param inputs:
-        * boxes [B, N, 4], boxes are in format (x1, y1, x2, y2)
-        * scores [B, N, C]
+        :param inputs: Tuple [Tensor, Tensor]
+            * boxes [B, N, 4], boxes are in format (x1, y1, x2, y2)
+            * scores [B, N, C]
         :return:
+            * boxes [B, Nout, 4], boxes are in format (x1, y1, x2, y2)
+            * scores [B, Nout, C]
         """
         pred_bboxes, pred_scores = inputs
 
-        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
         nms_top_k = self.pre_nms_top_k
 
-        topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True)
+        if self.multi_label_per_box:
+            pred_cls_conf, _ = torch.max(pred_scores, dim=2)
+            topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True)
+        else:
+            pred_cls_conf, _ = torch.max(pred_scores, dim=2)
+            topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True)
+
         offsets = nms_top_k * torch.arange(pred_cls_conf.size(0), device=pred_cls_conf.device)
         flat_indices = topk_candidates.indices + offsets.reshape(pred_cls_conf.size(0), 1)
         flat_indices = torch.flatten(flat_indices)
-
-        # gather_scores = torch.gather(gt_scores.flatten(), assigned_gt_index.flatten(), dim=0)
-        #             gather_scores = gather_scores.reshape([batch_size, num_anchors])
 
         output_pred_bboxes = pred_bboxes.reshape(-1, pred_bboxes.size(2))[flat_indices, :].reshape(pred_bboxes.size(0), nms_top_k, pred_bboxes.size(2))
         output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
@@ -215,6 +219,7 @@ class PPYoloE(SgModule):
         onnx_opset_version: Optional[int] = None,
         onnx_export_kwargs: Optional[dict] = None,
         device: Optional[torch.device] = None,
+        output_predictions_format: Optional[str] = None,
     ):
         """
         Export the model to one of supported formats. Format is inferred from the output file extension or can be
@@ -358,26 +363,26 @@ class PPYoloE(SgModule):
                         model=complete_model, args=onnx_input, f=output, opset_version=onnx_opset_version, output_names=output_names, **onnx_export_kwargs
                     )
 
-                # Stich ONNX graph with NMS postprocessing
+                # Stitch ONNX graph with NMS postprocessing
                 if postprocessing:
                     if engine == "tensorrt":
-                        attach_tensorrt_nms(
-                            onnx_model_path=output,
-                            output_onnx_model_path=output,
-                            detections_per_img=100,
-                            nms_threshold=0.5,
-                            confidence_threshold=0.6,
-                        )
+                        nms_attach_method = attach_tensorrt_nms
+                        output_predictions_format = output_predictions_format or "flat"
                     elif engine == "onnx":
-                        attach_onnx_nms(
-                            onnx_model_path=output,
-                            output_onnx_model_path=output,
-                            detections_per_img=100,
-                            nms_threshold=0.5,
-                            confidence_threshold=0.6,
-                        )
+                        nms_attach_method = attach_onnx_nms
+                        output_predictions_format = output_predictions_format or "batched"
                     else:
                         raise KeyError(f"Unsupported engine: {engine}")
+
+                    nms_attach_method(
+                        onnx_model_path=output,
+                        output_onnx_model_path=output,
+                        max_predictions_per_image=100,
+                        nms_threshold=0.5,
+                        confidence_threshold=0.6,
+                        batch_size=batch_size,
+                        output_predictions_format=output_predictions_format,
+                    )
 
             finally:
                 if quantize:

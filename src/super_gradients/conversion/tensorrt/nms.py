@@ -1,60 +1,99 @@
+import os
+import tempfile
+
 import numpy as np
 import onnx
 import onnx_graphsurgeon as gs
-from onnx import shape_inference
+import onnxsim
+import torch
+from torch import nn, Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.conversion.onnx.utils import append_graphs, iteratively_infer_shapes
 
 logger = get_logger(__name__)
 
 
-def iteratively_infer_shapes(graph):
-    """
-    Sanitize the graph by cleaning any unconnected nodes, do a topological resort,
-    and fold constant inputs values. When possible, run shape inference on the
-    ONNX graph to determine tensor shapes.
-    """
-    logger.debug("Performing shape inference & folding.")
-    for _ in range(3):
-        count_before = len(graph.nodes)
+class ConvertTRTFormatToFlatTensor(nn.Module):
+    def __init__(self, batch_size: int):
+        super().__init__()
+        self.batch_size = batch_size
 
-        graph.cleanup().toposort()
-        try:
-            for node in graph.nodes:
-                for o in node.outputs:
-                    o.shape = None
-            model = gs.export_onnx(graph)
-            model = shape_inference.infer_shapes(model)
-            graph = gs.import_onnx(model)
-        except Exception as e:
-            logger.debug(f"Shape inference could not be performed at this time:\n{e}")
-        try:
-            graph.fold_constants(fold_shapes=True)
-        except TypeError as e:
-            logger.error("This version of ONNX GraphSurgeon does not support folding shapes, " f"please upgrade your onnx_graphsurgeon module. Error:\n{e}")
-            raise
+    def forward(self, num_predictions: Tensor, pred_boxes: Tensor, pred_scores: Tensor, pred_classes: Tensor) -> Tensor:
+        """
+        Convert the predictions from batched format to flat tensor.
+        :param num_predictions: [B,1] The number of predictions for each image in the batch.
+        :param pred_boxes: [B, max_predictions_per_image, 4] The predicted bounding boxes for each image in the batch.
+        :param pred_scores: [B, max_predictions_per_image] The predicted scores for each image in the batch.
+        :param pred_classes: [B, max_predictions_per_image] The predicted classes for each image in the batch.
+        :return: Tensor of shape [N, 7] The predictions in flat tensor format.
+        """
+        batch_indexes = (
+            torch.arange(start=0, end=self.batch_size, step=1, device=num_predictions.device, dtype=pred_scores.dtype)
+            .view(-1, 1)
+            .repeat(1, pred_scores.shape[1])
+        )  # [B, max_predictions_per_image]
 
-        count_after = len(graph.nodes)
-        if count_before == count_after:
-            # No new folding occurred in this iteration, so we can stop for now.
-            break
-        logger.debug(f"Folded {count_before - count_after} constants.")
+        preds_indexes = (
+            torch.arange(start=0, end=pred_scores.shape[1], step=1, device=num_predictions.device, dtype=pred_scores.dtype)
+            .view(1, -1, 1)
+            .repeat(self.batch_size, 1, 1)
+        )  # [B, max_predictions_per_image, 1]
+
+        pred_scores = pred_scores.unsqueeze(dim=-1)
+        pred_classes = pred_classes.unsqueeze(dim=-1).float()
+
+        flat_predictions = torch.cat(
+            [preds_indexes, batch_indexes.unsqueeze(-1), pred_boxes, pred_scores, pred_classes], dim=-1
+        )  # [B, max_predictions_per_image, 8]
+
+        num_predictions = num_predictions.repeat(1, pred_scores.shape[1])  # [B, max_predictions_per_image]
+
+        mask = (flat_predictions[:, :, 0] < num_predictions) & (flat_predictions[:, :, 1] == batch_indexes)  # [B, max_predictions_per_image]
+
+        flat_predictions = flat_predictions[mask]  # [N, 7]
+        return flat_predictions[:, 1:]
+
+    @classmethod
+    def as_graph(cls, batch_size: int, max_predictions_per_image) -> gs.Graph:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            onnx_file = os.path.join(tmpdirname, "ConvertTRTFormatToFlatTensor.onnx")
+
+            num_predictions = torch.zeros((batch_size, 1), dtype=torch.int64)
+            pred_boxes = torch.zeros((batch_size, max_predictions_per_image, 4), dtype=torch.float32)
+            pred_scores = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.float32)
+            pred_classes = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.int64)
+
+            torch.onnx.export(
+                ConvertTRTFormatToFlatTensor(batch_size=batch_size),
+                args=(num_predictions, pred_boxes, pred_scores, pred_classes),
+                f=onnx_file,
+                input_names=["num_predictions", "pred_boxes", "pred_scores", "pred_classes"],
+                output_names=["flat_predictions"],
+                dynamic_axes={"flat_predictions": {0: "num_predictions"}},
+            )
+
+            onnxsim.simplify(onnx_file)
+            convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
+            return convert_format_graph
 
 
 def attach_tensorrt_nms(
     onnx_model_path: str,
     output_onnx_model_path,
-    detections_per_img: int,
+    max_predictions_per_image: int,
     confidence_threshold: float,
     nms_threshold: float,
+    batch_size: int,
+    output_predictions_format: str,
     precision: str = "fp32",
-    batch_size: int = 1,
 ):
     """
     Attach TensorRT NMS plugin to the ONNX model
 
     :param onnx_model_path:
     :param output_onnx_model_path:
+    :param max_predictions_per_image: Maximum number of predictions per image
     :param precision:
     :param batch_size:
     :return:
@@ -71,7 +110,7 @@ def attach_tensorrt_nms(
     attrs = {
         "plugin_version": "1",
         "background_class": -1,  # no background class
-        "max_output_boxes": detections_per_img,
+        "max_output_boxes": max_predictions_per_image,
         "score_threshold": confidence_threshold,
         "iou_threshold": nms_threshold,
         "score_activation": False,
@@ -94,17 +133,17 @@ def attach_tensorrt_nms(
     output_boxes = gs.Variable(
         name="det_boxes",
         dtype=dtype_output,
-        shape=[batch_size, detections_per_img, 4],
+        shape=[batch_size, max_predictions_per_image, 4],
     )
     output_scores = gs.Variable(
         name="det_scores",
         dtype=dtype_output,
-        shape=[batch_size, detections_per_img],
+        shape=[batch_size, max_predictions_per_image],
     )
     output_labels = gs.Variable(
         name="det_classes",
         dtype=np.int32,
-        shape=[batch_size, detections_per_img],
+        shape=[batch_size, max_predictions_per_image],
     )
 
     op_outputs = [output_num_detections, output_boxes, output_scores, output_labels]
@@ -115,6 +154,14 @@ def attach_tensorrt_nms(
     logger.info(f"Created NMS plugin '{op}' with attributes: {attrs}")
 
     graph.outputs = op_outputs
+
+    if output_predictions_format == "flat":
+        convert_format_graph = ConvertTRTFormatToFlatTensor.as_graph(batch_size=batch_size, max_predictions_per_image=max_predictions_per_image)
+        graph = append_graphs(graph, convert_format_graph)
+    elif output_predictions_format == "batched":
+        pass
+    else:
+        raise NotImplementedError(f"Currently not supports output_predictions_format: {output_predictions_format}")
 
     iteratively_infer_shapes(graph)
 

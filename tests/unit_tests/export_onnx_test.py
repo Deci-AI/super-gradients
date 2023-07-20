@@ -1,21 +1,22 @@
 import logging
+import os
 import tempfile
 import unittest
 
 import cv2
 import numpy as np
+import onnx
 import onnxruntime
-
-from super_gradients.common.object_names import Models
-from super_gradients.training import models
-from super_gradients.training.utils.media.image import load_image
+import torch
 from torchvision.transforms import Compose, Normalize, Resize
 
+from super_gradients.common.object_names import Models
+from super_gradients.conversion.onnx.nms import ConvertFlatTensorToTRTFormat
+from super_gradients.conversion.tensorrt.nms import ConvertTRTFormatToFlatTensor
+from super_gradients.training import models
 from super_gradients.training.dataloaders import coco2017_val
 from super_gradients.training.transforms import Standardize
-import os
-
-from super_gradients.training.utils.export_utils import infer_image_shape_from_model
+from super_gradients.training.utils.media.image import load_image
 
 
 class TestModelsONNXExport(unittest.TestCase):
@@ -40,165 +41,177 @@ class TestModelsONNXExport(unittest.TestCase):
             )
             self.assertTrue(os.path.exists(out_path))
 
-    def test_export_ppyolo_e_onnx_nms(self):
-        # with tempfile.TemporaryDirectory() as tmpdirname:
-        tmpdirname = "."
+    def _export_and_benchmark(self, onnx_filename: str, run_benchmark: bool, run_inference_with_onnxruntime: bool, export_kwargs=None, benchmark_kwargs=None):
+        if export_kwargs is None:
+            export_kwargs = {}
+        if benchmark_kwargs is None:
+            benchmark_kwargs = {}
+
         ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
 
-        onnx_file = os.path.join(tmpdirname, "ppyoloe_s_torchvision_nms.onnx")
         ppyolo_e.export(
-            onnx_file,
-            batch_size=1,
-            image_shape=(640, 640),
-            preprocessing=False,
-            postprocessing=True,
-            quantize=False,
+            onnx_filename,
+            **export_kwargs,
+            # batch_size=1,
+            # image_shape=(640, 640),
+            # preprocessing=False,
+            # postprocessing=True,
+            # quantize=False,
+            # output_predictions_format="flat",
         )
 
-        image = load_image("../data/tinycoco/images/val2017/000000444010.jpg")
-        image = cv2.resize(image, (640, 640))
-        image = np.transpose(np.expand_dims(image, 0), (0, 3, 1, 2)) / 255.0
+        if run_inference_with_onnxruntime:
+            image = load_image("../data/tinycoco/images/val2017/000000444010.jpg")
+            image = cv2.resize(image, (640, 640))
+            image = np.transpose(np.expand_dims(image, 0), (0, 3, 1, 2)) / 255.0
 
-        session = onnxruntime.InferenceSession(onnx_file)
-        inputs = [o.name for o in session.get_inputs()]
-        outputs = [o.name for o in session.get_outputs()]
-        result = session.run(outputs, {inputs[0]: image.astype(np.float32)})
-        for r in result:
-            print(r.shape, r.dtype, r)
-
-    def test_export_ppyolo_e_onnx_no_nms_and_benchmark(self):
-        tmpdirname = "."
-        ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
-
-        onnx_file = os.path.join(tmpdirname, "ppyoloe_s_no_nms.onnx")
-        ppyolo_e.export(
-            onnx_file,
-            batch_size=1,
-            image_shape=(640, 640),
-            preprocessing=False,
-            postprocessing=False,
-            quantize=False,
-        )
-
-        image = load_image("../data/tinycoco/images/val2017/000000444010.jpg")
-        image = cv2.resize(image, (640, 640))
-        image = np.transpose(np.expand_dims(image, 0), (0, 3, 1, 2)) / 255.0
-
-        session = onnxruntime.InferenceSession(onnx_file)
-        inputs = [o.name for o in session.get_inputs()]
-        outputs = [o.name for o in session.get_outputs()]
-        result = session.run(outputs, {inputs[0]: image.astype(np.float32)})
-        for r in result:
-            print(r.shape, r.dtype, r)
-
-        self._benchmark_onnx(onnx_file)
-
-    def test_export_ppyolo_e_onnx_nms_and_benchmark(self):
-        tmpdirname = "."
-        ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
-
-        onnx_file = os.path.join(tmpdirname, "ppyoloe_s_torchvision_nms.onnx")
-        ppyolo_e.export(
-            onnx_file,
-            batch_size=1,
-            image_shape=(640, 640),
-            preprocessing=False,
-            postprocessing=True,
-            quantize=False,
-        )
-
-        image = load_image("../data/tinycoco/images/val2017/000000444010.jpg")
-        image = cv2.resize(image, (640, 640))
-        image = np.transpose(np.expand_dims(image, 0), (0, 3, 1, 2)) / 255.0
-
-        session = onnxruntime.InferenceSession(onnx_file)
-        inputs = [o.name for o in session.get_inputs()]
-        outputs = [o.name for o in session.get_outputs()]
-        result = session.run(outputs, {inputs[0]: image.astype(np.float32)})
-        for r in result:
-            print(r.shape, r.dtype, r)
-
-        self._benchmark_onnx(onnx_file)
-
-    def test_export_ppyolo_e_trt_nms_and_benchmark(self):
-        # with tempfile.TemporaryDirectory() as tmpdirname:
-        tmpdirname = "."
-        ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
-
-        onnx_file = os.path.join(tmpdirname, "ppyoloe_s_trt_nms.onnx")
-        ppyolo_e.export(
-            onnx_file,
-            engine="tensorrt",
-            batch_size=1,
-            image_shape=(640, 640),
-            preprocessing=False,
-            postprocessing=True,
-            quantize=False,
-        )
-
-        self._benchmark_onnx(onnx_file)
-
-    def test_export_ppyoloe_s_onnx_nms_quantized(self):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
-            print(infer_image_shape_from_model(ppyolo_e))
-
-            onnx_file = os.path.join(tmpdirname, "ppyoloe_s_onnx_nms_quantized.onnx")
-            ppyolo_e.export(
-                onnx_file,
-                image_shape=(640, 640),
-                preprocessing=False,
-                postprocessing=True,
-                quantize=True,
-            )
-
-            session = onnxruntime.InferenceSession(onnx_file)
+            session = onnxruntime.InferenceSession(onnx_filename)
             inputs = [o.name for o in session.get_inputs()]
             outputs = [o.name for o in session.get_outputs()]
-            result = session.run(outputs, {inputs[0]: np.random.rand(1, 3, 640, 640).astype(np.float32)})
-            print(result, result[0].shape)
+            result = session.run(outputs, {inputs[0]: image.astype(np.float32)})
+            for r in result:
+                print(r.shape, r.dtype, r)
 
-            self._benchmark_onnx(onnx_file, precision="--int8")
+        if run_benchmark:
+            self._benchmark_onnx(onnx_filename, **benchmark_kwargs)
 
-    def test_export_ppyoloe_s_trt_nms_quantized(self):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
-            print(infer_image_shape_from_model(ppyolo_e))
-
-            onnx_file = os.path.join(tmpdirname, "ppyoloe_s_trt_nms_quantized.onnx")
-            ppyolo_e.export(
-                onnx_file,
-                engine="tensorrt",
-                image_shape=(640, 640),
-                preprocessing=False,
-                postprocessing=True,
-                quantize=True,
-            )
-
-            self._benchmark_onnx(onnx_file, precision="--int8")
+    def test_export_ppyolo_e_all_export_variants(self):
+        for output_predictions_format in ["flat", "batched"]:
+            for engine in {"onnx", "tensorrt"}:
+                for quantize in {False, True}:
+                    precision = "quantized" if quantize else "full_precision"
+                    self._export_and_benchmark(
+                        onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
+                        run_benchmark=False,
+                        run_inference_with_onnxruntime=engine != "tensorrt",
+                        export_kwargs=dict(
+                            batch_size=1,
+                            image_shape=(640, 640),
+                            preprocessing=False,
+                            postprocessing=True,
+                            quantize=False,
+                            output_predictions_format=output_predictions_format,
+                        ),
+                        benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
+                    )
 
     def test_export_ppyolo_e_quantized_with_calibration(self):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            ppyolo_e = models.get(Models.PP_YOLOE_S, pretrained_weights="coco").cuda()
-            print(infer_image_shape_from_model(ppyolo_e))
+        quantize = True
+        engine = "onnx"
+        output_predictions_format = "flat"
+        precision = "quantized" if quantize else "full_precision"
+        calibration_loader = coco2017_val(dataset_params=dict(data_dir="e:/coco2017"), dataloader_params=dict(num_workers=0))
 
-            calibration_loader = coco2017_val(dataset_params=dict(data_dir="e:/coco2017"), dataloader_params=dict(num_workers=0))
-
-            onnx_file = os.path.join(tmpdirname, "ppyoloe_s_quantized.onnx")
-            ppyolo_e.export(
-                onnx_file,
+        self._export_and_benchmark(
+            onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}_calibrated.onnx",
+            run_benchmark=False,
+            run_inference_with_onnxruntime=engine != "tensorrt",
+            export_kwargs=dict(
+                batch_size=1,
                 image_shape=(640, 640),
                 preprocessing=False,
                 postprocessing=True,
-                quantize=True,
+                quantize=quantize,
                 calibration_loader=calibration_loader,
-            )
+                output_predictions_format=output_predictions_format,
+            ),
+            benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
+        )
 
-            session = onnxruntime.InferenceSession(onnx_file)
-            inputs = [o.name for o in session.get_inputs()]
-            outputs = [o.name for o in session.get_outputs()]
-            result = session.run(outputs, {inputs[0]: np.random.rand(1, 3, 640, 640).astype(np.float32)})
-            print(result, result[0].shape)
+    def test_flat_tensor_to_trt_format(self):
+        predictions = torch.tensor(
+            [[0, 1, 2, 3, 4, 5, 6], [0, 11, 12, 13, 14, 15, 16], [1, 21, 22, 23, 24, 25, 26], [2, 31, 32, 33, 34, 35, 36], [3, 31, 32, 33, 34, 35, 36]]
+        ).float()
+
+        flat_to_batched_predictions = ConvertFlatTensorToTRTFormat(batch_size=4, max_predictions_per_image=20)
+        batched_to_flat_predictions = ConvertTRTFormatToFlatTensor(batch_size=4)
+
+        num_predictions, pred_boxes, pred_scores, pred_classes = flat_to_batched_predictions(predictions)
+        np.testing.assert_allclose(predictions, batched_to_flat_predictions(num_predictions, pred_boxes, pred_scores, pred_classes))
+
+        num_predictions, pred_boxes, pred_scores, pred_classes = flat_to_batched_predictions(torch.zeros((0, 7), dtype=torch.float32))
+        np.testing.assert_allclose(
+            torch.zeros((0, 7), dtype=torch.float32), batched_to_flat_predictions(num_predictions, pred_boxes, pred_scores, pred_classes)
+        )
+
+        torch.onnx.export(
+            ConvertFlatTensorToTRTFormat(batch_size=4, max_predictions_per_image=20),
+            args=predictions,
+            f="flat_tensor_to_trt_format.onnx",
+            input_names=["flat_predictions"],
+            output_names=["num_predictions", "pred_boxes", "pred_scores", "pred_classes"],
+            dynamic_axes={"flat_predictions": {0: "num_predictions"}},
+        )
+
+        onnx.checker.check_model(onnx.load("flat_tensor_to_trt_format.onnx"))
+
+        session = onnxruntime.InferenceSession("flat_tensor_to_trt_format.onnx")
+
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+
+        result = session.run(outputs, {inputs[0]: predictions.numpy()})
+        for r in result:
+            print(r.shape, r.dtype, r)
+
+        result = session.run(outputs, {inputs[0]: np.zeros((1, 7), dtype=np.float32)})
+        for r in result:
+            print(r.shape, r.dtype, r)
+
+        result = session.run(outputs, {inputs[0]: np.zeros((0, 7), dtype=np.float32)})
+        for r in result:
+            print(r.shape, r.dtype, r)
+
+    def test_trt_format_to_flat_format(self):
+        predictions = torch.tensor(
+            [[0, 1, 2, 3, 4, 5, 6], [0, 11, 12, 13, 14, 15, 16], [0, 21, 22, 23, 24, 25, 26], [2, 31, 32, 33, 34, 35, 36], [3, 31, 32, 33, 34, 35, 36]]
+        ).float()
+
+        flat_to_batched_predictions = ConvertFlatTensorToTRTFormat(batch_size=4, max_predictions_per_image=20)
+        batched_to_flat_predictions = ConvertTRTFormatToFlatTensor(batch_size=4)
+
+        num_predictions, pred_boxes, pred_scores, pred_classes = flat_to_batched_predictions(torch.zeros((0, 7), dtype=torch.float32))
+        assert num_predictions.eq(0).all()
+        assert pred_boxes.eq(0).all()
+        assert pred_scores.eq(0).all()
+        assert pred_classes.eq(0).all()
+        preds = batched_to_flat_predictions(num_predictions, pred_boxes, pred_scores, pred_classes)
+        assert preds.shape == (0, 7)
+
+        num_predictions, pred_boxes, pred_scores, pred_classes = flat_to_batched_predictions(predictions)
+        assert num_predictions[0].item() == 3
+        assert num_predictions[1].item() == 0
+        assert num_predictions[2].item() == 1
+        assert num_predictions[3].item() == 1
+
+        batch_size = 4
+        max_predictions_per_image = 100
+        num_predictions = torch.zeros((batch_size, 1), dtype=torch.int64)
+        pred_boxes = torch.zeros((batch_size, max_predictions_per_image, 4), dtype=torch.float32)
+        pred_scores = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.float32)
+        pred_classes = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.int64)
+
+        torch.onnx.export(
+            ConvertTRTFormatToFlatTensor(batch_size=4),
+            args=(num_predictions, pred_boxes, pred_scores, pred_classes),
+            f="ConvertTRTFormatToFlatTensor.onnx",
+            input_names=["num_predictions", "pred_boxes", "pred_scores", "pred_classes"],
+            output_names=["flat_predictions"],
+            dynamic_axes={"flat_predictions": {0: "num_predictions"}},
+        )
+
+        onnx.checker.check_model(onnx.load("flat_tensor_to_trt_format.onnx"))
+
+        session = onnxruntime.InferenceSession("ConvertTRTFormatToFlatTensor.onnx")
+
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+
+        result = session.run(
+            outputs, {inputs[0]: num_predictions.numpy(), inputs[1]: pred_boxes.numpy(), inputs[2]: pred_scores.numpy(), inputs[3]: pred_classes.numpy()}
+        )
+        for r in result:
+            print(r.shape, r.dtype, r)
 
     def _benchmark_onnx(self, onnx_file, precision="--fp16"):
         from decibenchmark.api.client_manager import ClientManager
