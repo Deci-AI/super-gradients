@@ -4,12 +4,11 @@ import tempfile
 import numpy as np
 import onnx
 import onnx_graphsurgeon as gs
-import onnxsim
 import torch
 from torch import nn, Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.conversion.onnx.utils import append_graphs, iteratively_infer_shapes
+from super_gradients.conversion.onnx.utils import append_graphs
 
 logger = get_logger(__name__)
 
@@ -41,7 +40,7 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
         )  # [B, max_predictions_per_image, 1]
 
         pred_scores = pred_scores.unsqueeze(dim=-1)
-        pred_classes = pred_classes.unsqueeze(dim=-1).float()
+        pred_classes = pred_classes.unsqueeze(dim=-1).to(pred_scores.dtype)
 
         flat_predictions = torch.cat(
             [preds_indexes, batch_indexes.unsqueeze(-1), pred_boxes, pred_scores, pred_classes], dim=-1
@@ -59,10 +58,10 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "ConvertTRTFormatToFlatTensor.onnx")
 
-            num_predictions = torch.zeros((batch_size, 1), dtype=torch.int64)
+            num_predictions = torch.zeros((batch_size, 1), dtype=torch.int32)
             pred_boxes = torch.zeros((batch_size, max_predictions_per_image, 4), dtype=torch.float32)
             pred_scores = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.float32)
-            pred_classes = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.int64)
+            pred_classes = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.int32)
 
             torch.onnx.export(
                 ConvertTRTFormatToFlatTensor(batch_size=batch_size),
@@ -73,7 +72,6 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
                 dynamic_axes={"flat_predictions": {0: "num_predictions"}},
             )
 
-            onnxsim.simplify(onnx_file)
             convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
             return convert_format_graph
 
@@ -99,10 +97,10 @@ def attach_tensorrt_nms(
     :return:
     """
     graph = gs.import_onnx(onnx.load(onnx_model_path))
-    graph.fold_constants()
+    # graph.fold_constants()
 
     # Do shape inference
-    iteratively_infer_shapes(graph)
+    # iteratively_infer_shapes(graph)
 
     op_inputs = graph.outputs
     logger.debug(f"op_inputs: {op_inputs}")
@@ -163,13 +161,12 @@ def attach_tensorrt_nms(
     else:
         raise NotImplementedError(f"Currently not supports output_predictions_format: {output_predictions_format}")
 
-    iteratively_infer_shapes(graph)
-
     # Final cleanup & save
     graph.cleanup().toposort()
+    # iteratively_infer_shapes(graph)
+
+    logger.debug(f"Final graph outputs: {graph.outputs}")
+
     model = gs.export_onnx(graph)
     onnx.save(model, output_onnx_model_path)
     logger.debug(f"Saved ONNX model to {output_onnx_model_path}")
-
-    onnxsim.simplify(output_onnx_model_path)
-    logger.debug(f"Ran onnxsim.simplify on {output_onnx_model_path}")

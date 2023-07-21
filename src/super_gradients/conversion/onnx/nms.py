@@ -10,7 +10,7 @@ import torch
 from torch import nn, Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.conversion.onnx.utils import iteratively_infer_shapes, append_graphs
+from super_gradients.conversion.onnx.utils import append_graphs
 
 logger = get_logger(__name__)
 
@@ -249,9 +249,6 @@ def attach_onnx_nms(
     graph = gs.import_onnx(onnx.load(onnx_model_path))
     graph.fold_constants()
 
-    # Do shape inference
-    iteratively_infer_shapes(graph)
-
     pred_boxes, pred_scores = graph.outputs
 
     permute_scores = gs.Variable(
@@ -272,7 +269,7 @@ def attach_onnx_nms(
     output_selected_indices = gs.Variable(
         name="selected_indices",
         dtype=np.int64,
-        # shape=[num_selected_indices, 3],
+        shape=["num_selected_indices", 3],
     )  # A scalar indicating the number of valid detections per batch image.
 
     # Create the NMS Plugin node with the selected inputs. The outputs of the node will also
@@ -301,7 +298,7 @@ def attach_onnx_nms(
     # Final cleanup & save
     graph.cleanup().toposort()
 
-    iteratively_infer_shapes(graph)
+    # iteratively_infer_shapes(graph)
 
     model = gs.export_onnx(graph)
     onnx.save(model, output_onnx_model_path)

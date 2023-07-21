@@ -30,7 +30,7 @@ def append_graphs(graph1: gs.Graph, graph2: gs.Graph) -> gs.Graph:
     merged_graph.outputs = graph2.outputs
 
     merged_graph.toposort()
-    iteratively_infer_shapes(merged_graph)
+    # iteratively_infer_shapes(merged_graph)
 
     return merged_graph
 

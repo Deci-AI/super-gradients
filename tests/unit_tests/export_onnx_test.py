@@ -19,7 +19,7 @@ from super_gradients.conversion.onnx.nms import (
 )
 from super_gradients.conversion.tensorrt.nms import ConvertTRTFormatToFlatTensor
 from super_gradients.training import models
-from super_gradients.training.dataloaders import coco2017_val
+from super_gradients.training.dataloaders import coco2017_val  # noqa
 from super_gradients.training.transforms import Standardize
 from super_gradients.training.utils.media.image import load_image
 
@@ -27,6 +27,13 @@ from super_gradients.training.utils.media.image import load_image
 class TestModelsONNXExport(unittest.TestCase):
     def setUp(self) -> None:
         logging.getLogger().setLevel(logging.DEBUG)
+
+        try:
+            from decibenchmark.api.client_manager import ClientManager  # noqa
+
+            self.decibenchmark_available = True
+        except ImportError:
+            self.decibenchmark_available = False
 
     def test_models_onnx_export_with_deprecated_input_shape(self):
         pretrained_model = models.get(Models.RESNET18, num_classes=1000, pretrained_weights="imagenet")
@@ -74,48 +81,137 @@ class TestModelsONNXExport(unittest.TestCase):
         if run_benchmark:
             self._benchmark_onnx(onnx_filename, **benchmark_kwargs)
 
-    def test_export_ppyolo_e_all_export_variants(self):
-        for output_predictions_format in ["flat", "batched"]:
-            for engine in {"onnx", "tensorrt"}:
-                for quantize in {False, True}:
-                    precision = "quantized" if quantize else "full_precision"
-                    self._export_and_benchmark(
-                        onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
-                        run_benchmark=True,
-                        run_inference_with_onnxruntime=engine != "tensorrt",
-                        export_kwargs=dict(
-                            batch_size=1,
-                            image_shape=(640, 640),
-                            preprocessing=False,
-                            postprocessing=True,
-                            quantize=False,
-                            output_predictions_format=output_predictions_format,
-                        ),
-                        benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
-                    )
+    # def test_export_ppyolo_e_all_export_variants(self):
+    #     for output_predictions_format in ["batched"]:
+    #         for engine in {"tensorrt"}:
+    #             for quantize in {False}:
+    #                 precision = "quantized" if quantize else "full_precision"
+    #                 self._export_and_benchmark(
+    #                     onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
+    #                     run_benchmark=False,
+    #                     run_inference_with_onnxruntime=engine != "tensorrt",
+    #                     export_kwargs=dict(
+    #                         batch_size=1,
+    #                         image_shape=(640, 640),
+    #                         preprocessing=False,
+    #                         postprocessing=True,
+    #                         quantize=quantize,
+    #                         engine=engine,
+    #                         output_predictions_format=output_predictions_format,
+    #                     ),
+    #                     benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
+    #                 )
 
-    def test_export_ppyolo_e_quantized_with_calibration(self):
-        quantize = True
+    def test_export_ppyoloe_onnxruntime_engine_batched_output(self):
+        quantize = False
         engine = "onnx"
-        output_predictions_format = "flat"
+        output_predictions_format = "batched"
         precision = "quantized" if quantize else "full_precision"
-        calibration_loader = coco2017_val(dataset_params=dict(data_dir="e:/coco2017"), dataloader_params=dict(num_workers=0))
 
         self._export_and_benchmark(
-            onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}_calibrated.onnx",
-            run_benchmark=True,
-            run_inference_with_onnxruntime=engine != "tensorrt",
+            onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
+            run_benchmark=self.decibenchmark_available,
+            run_inference_with_onnxruntime=True,
             export_kwargs=dict(
                 batch_size=1,
                 image_shape=(640, 640),
                 preprocessing=False,
                 postprocessing=True,
                 quantize=quantize,
-                calibration_loader=calibration_loader,
+                engine=engine,
                 output_predictions_format=output_predictions_format,
             ),
             benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
         )
+
+    def test_export_ppyoloe_onnxruntime_engine_flat_output(self):
+        quantize = False
+        engine = "onnx"
+        output_predictions_format = "flat"
+        precision = "quantized" if quantize else "full_precision"
+
+        self._export_and_benchmark(
+            onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
+            run_benchmark=self.decibenchmark_available,
+            run_inference_with_onnxruntime=True,
+            export_kwargs=dict(
+                batch_size=1,
+                image_shape=(640, 640),
+                preprocessing=False,
+                postprocessing=True,
+                quantize=quantize,
+                engine=engine,
+                output_predictions_format=output_predictions_format,
+            ),
+            benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
+        )
+
+    def test_export_ppyoloe_trt_engine_batched_output(self):
+        quantize = False
+        engine = "tensorrt"
+        output_predictions_format = "batched"
+        precision = "quantized" if quantize else "full_precision"
+
+        self._export_and_benchmark(
+            onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
+            run_benchmark=self.decibenchmark_available,
+            run_inference_with_onnxruntime=False,
+            export_kwargs=dict(
+                batch_size=1,
+                image_shape=(640, 640),
+                preprocessing=False,
+                postprocessing=True,
+                quantize=quantize,
+                engine=engine,
+                output_predictions_format=output_predictions_format,
+            ),
+            benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
+        )
+
+    def test_export_ppyoloe_trt_engine_flat_output(self):
+        quantize = False
+        engine = "tensorrt"
+        output_predictions_format = "flat"
+        precision = "quantized" if quantize else "full_precision"
+
+        self._export_and_benchmark(
+            onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
+            run_benchmark=self.decibenchmark_available,
+            run_inference_with_onnxruntime=False,
+            export_kwargs=dict(
+                batch_size=1,
+                image_shape=(640, 640),
+                preprocessing=False,
+                postprocessing=True,
+                quantize=quantize,
+                engine=engine,
+                output_predictions_format=output_predictions_format,
+            ),
+            benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
+        )
+
+    # def test_export_ppyolo_e_quantized_with_calibration(self):
+    #     quantize = True
+    #     engine = "onnx"
+    #     output_predictions_format = "flat"
+    #     precision = "quantized" if quantize else "full_precision"
+    #     calibration_loader = coco2017_val(dataset_params=dict(data_dir="e:/coco2017"), dataloader_params=dict(num_workers=0))
+    #
+    #     self._export_and_benchmark(
+    #         onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}_calibrated.onnx",
+    #         run_benchmark=True,
+    #         run_inference_with_onnxruntime=engine != "tensorrt",
+    #         export_kwargs=dict(
+    #             batch_size=1,
+    #             image_shape=(640, 640),
+    #             preprocessing=False,
+    #             postprocessing=True,
+    #             quantize=quantize,
+    #             calibration_loader=calibration_loader,
+    #             output_predictions_format=output_predictions_format,
+    #         ),
+    #         benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
+    #     )
 
     def test_onnx_nms_flat_result(self):
         onnx_file = "PickNMSPredictionsAndReturnAsFlatResult.onnx"

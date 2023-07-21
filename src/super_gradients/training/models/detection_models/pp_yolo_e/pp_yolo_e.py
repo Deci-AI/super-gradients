@@ -2,6 +2,7 @@ import copy
 from typing import Union, Optional, List, Tuple
 from functools import lru_cache
 
+import onnxsim
 import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
@@ -226,6 +227,7 @@ class PPYoloE(SgModule):
         image_shape: Optional[Tuple[int, int]] = None,
         onnx_opset_version: Optional[int] = None,
         onnx_export_kwargs: Optional[dict] = None,
+        onnx_simplify: bool = True,
         device: Optional[torch.device] = None,
         output_predictions_format: Optional[str] = None,
     ):
@@ -253,8 +255,6 @@ class PPYoloE(SgModule):
                                If instance of nn.Module - uses given postprocessing module.
         :param postprocessing_kwargs: (dict) Optional keyword arguments for model.get_post_processing_callback(),
                used only when `postprocessing=True`.
-        :param include_nms: (bool) If True, export a model with NMS postprocessing, otherwise export a model
-               without NMS (model will output raw predictions without decoding and NMS).
         :param batch_size: (int) Batch size for the exported model.
         :param image_shape: (tuple) Input image shape (height, width) for the exported model.
                If None, the function will infer the image shape from the model's preprocessing params.
@@ -264,6 +264,7 @@ class PPYoloE(SgModule):
         :param onnx_opset_version: (int) ONNX opset version for the exported model.
                If not specified, the default opset is used (defined by torch version installed).
         :param device: (torch.device) Device to use for exporting the model. If not specified, the device is inferred from the model itself.
+        :param onnx_simplify: (bool) If True, apply onnx-simplifier to the exported model.
         :return:
         """
         if not isinstance(self, nn.Module):
@@ -374,6 +375,15 @@ class PPYoloE(SgModule):
                 # Stitch ONNX graph with NMS postprocessing
                 if postprocessing:
                     if engine == "tensorrt":
+
+                        if onnx_simplify:
+                            # If TRT engine is used, we need to run onnxsim.simplify BEFORE attaching NMS,
+                            # because EfficientNMS_TRT is not supported by onnxsim and would lead to a runtime error.
+                            onnxsim.simplify(output)
+                            logger.debug(f"Ran onnxsim.simplify on model {output}")
+                            # Disable onnx_simplify to avoid running it twice.
+                            onnx_simplify = False
+
                         nms_attach_method = attach_tensorrt_nms
                         output_predictions_format = output_predictions_format or "batched"
                     elif engine == "onnx":
@@ -392,6 +402,9 @@ class PPYoloE(SgModule):
                         output_predictions_format=output_predictions_format,
                     )
 
+                if onnx_simplify:
+                    onnxsim.simplify(output)
+                    logger.debug(f"Ran onnxsim.simplify on {output}")
             finally:
                 if quantize:
                     # Restore functions of quant_nn back as expected
