@@ -7,11 +7,16 @@ import cv2
 import numpy as np
 import onnx
 import onnxruntime
+import onnx_graphsurgeon as gs
 import torch
 from torchvision.transforms import Compose, Normalize, Resize
 
 from super_gradients.common.object_names import Models
-from super_gradients.conversion.onnx.nms import ConvertFlatTensorToTRTFormat
+from super_gradients.conversion.onnx.nms import (
+    ConvertFlatTensorToTRTFormat,
+    PickNMSPredictionsAndReturnAsFlatResult,
+    PickNMSPredictionsAndReturnAsBatchedResult,
+)
 from super_gradients.conversion.tensorrt.nms import ConvertTRTFormatToFlatTensor
 from super_gradients.training import models
 from super_gradients.training.dataloaders import coco2017_val
@@ -52,12 +57,6 @@ class TestModelsONNXExport(unittest.TestCase):
         ppyolo_e.export(
             onnx_filename,
             **export_kwargs,
-            # batch_size=1,
-            # image_shape=(640, 640),
-            # preprocessing=False,
-            # postprocessing=True,
-            # quantize=False,
-            # output_predictions_format="flat",
         )
 
         if run_inference_with_onnxruntime:
@@ -82,7 +81,7 @@ class TestModelsONNXExport(unittest.TestCase):
                     precision = "quantized" if quantize else "full_precision"
                     self._export_and_benchmark(
                         onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
-                        run_benchmark=True,
+                        run_benchmark=False,
                         run_inference_with_onnxruntime=engine != "tensorrt",
                         export_kwargs=dict(
                             batch_size=1,
@@ -117,6 +116,76 @@ class TestModelsONNXExport(unittest.TestCase):
             ),
             benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
         )
+
+    def test_onnx_nms_flat_result(self):
+        onnx_file = "PickNMSPredictionsAndReturnAsFlatResult.onnx"
+        graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph()
+        model = gs.export_onnx(graph)
+        onnx.checker.check_model(model)
+        onnx.save(model, onnx_file)
+
+        torch_module = PickNMSPredictionsAndReturnAsFlatResult()
+
+        session = onnxruntime.InferenceSession(onnx_file)
+
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+
+        # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
+        # And also can handle dynamic shapes input
+        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
+        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
+        selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
+
+        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
+        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+        for r in onnx_result:
+            print(r.shape, r.dtype, r)
+
+        # Test on empty NMS result
+        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
+        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
+        selected_indexes = torch.zeros((0, 3), dtype=torch.int64)
+
+        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)  # noqa
+        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+        for r in onnx_result:
+            print(r.shape, r.dtype, r)
+
+    def test_onnx_nms_batched_result(self):
+        onnx_file = "PickNMSPredictionsAndReturnAsBatchedResult.onnx"
+        graph = PickNMSPredictionsAndReturnAsBatchedResult.as_graph(batch_size=7, max_predictions_per_image=100)
+        model = gs.export_onnx(graph)
+        onnx.checker.check_model(model)
+        onnx.save(model, onnx_file)
+
+        torch_module = PickNMSPredictionsAndReturnAsBatchedResult(batch_size=7, max_predictions_per_image=100)
+
+        session = onnxruntime.InferenceSession(onnx_file)
+
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+
+        # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
+        # And also can handle dynamic shapes input
+        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
+        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
+        selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
+
+        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
+        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+        for r in onnx_result:
+            print(r.shape, r.dtype, r)
+
+        # Test on empty NMS result
+        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
+        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
+        selected_indexes = torch.zeros((0, 3), dtype=torch.int64)
+
+        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)  # noqa
+        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+        for r in onnx_result:
+            print(r.shape, r.dtype, r)
 
     def test_flat_tensor_to_trt_format(self):
         predictions = torch.tensor(

@@ -7,7 +7,6 @@ import onnx
 import onnx_graphsurgeon as gs
 import onnxsim
 import torch
-from onnx import TensorProto
 from torch import nn, Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -82,6 +81,130 @@ class ConvertFlatTensorToTRTFormat(nn.Module):
             )
 
             onnxsim.simplify(onnx_file)
+            convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
+            return convert_format_graph
+
+
+class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
+    __constants__ = ("batch_size", "max_predictions_per_image")
+
+    def __init__(self, batch_size: int, max_predictions_per_image: int):
+        super().__init__()
+        self.batch_size = batch_size
+        self.max_predictions_per_image = max_predictions_per_image
+
+    def forward(self, pred_boxes: Tensor, pred_scores: Tensor, selected_indexes: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        """
+        Select the predictions that are output by the NMS plugin.
+        :param pred_boxes: [B, N, 4] tensor, float32
+        :param pred_scores: [B, N, C] tensor, float32
+        :param selected_indexes: [num_selected_indices, 3], int64 - each row is [batch_indexes, label_indexes, boxes_indexes]
+        :return:
+
+        """
+        batch_indexes, label_indexes, boxes_indexes = selected_indexes[:, 0], selected_indexes[:, 1], selected_indexes[:, 2]
+
+        selected_boxes = pred_boxes[batch_indexes, boxes_indexes]
+        selected_scores = pred_scores[batch_indexes, boxes_indexes, label_indexes]
+
+        predictions = torch.cat([batch_indexes.unsqueeze(1), selected_boxes, selected_scores.unsqueeze(1), label_indexes.unsqueeze(1)], dim=1)
+
+        predictions = torch.nn.functional.pad(
+            predictions, (0, 0, 0, self.max_predictions_per_image * self.batch_size - predictions.size(0)), value=-1, mode="constant"
+        )
+
+        batched_predictions = torch.zeros((self.batch_size, self.max_predictions_per_image, 6), dtype=predictions.dtype, device=predictions.device)
+
+        batch_indexes = torch.arange(start=0, end=self.batch_size, step=1, device=predictions.device, dtype=predictions.dtype)
+        masks = batch_indexes.view(-1, 1).eq(predictions[:, 0].view(1, -1))  # [B, N]
+
+        num_predictions = torch.sum(masks, dim=1).long()
+
+        for i in range(self.batch_size):
+            selected_predictions = predictions[masks[i]]
+            selected_predictions = selected_predictions[:, 1:]
+            batched_predictions[i] = torch.nn.functional.pad(
+                selected_predictions, (0, 0, 0, self.max_predictions_per_image - selected_predictions.size(0)), value=0, mode="constant"
+            )
+
+        pred_boxes = batched_predictions[:, :, 0:4]
+        pred_scores = batched_predictions[:, :, 4]
+        pred_classes = batched_predictions[:, :, 5].long()
+
+        return num_predictions.unsqueeze(1), pred_boxes, pred_scores, pred_classes
+
+    @classmethod
+    def as_graph(cls, batch_size: int, max_predictions_per_image) -> gs.Graph:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            onnx_file = os.path.join(tmpdirname, "PickNMSPredictionsAndReturnAsBatchedResult.onnx")
+            pred_boxes = torch.zeros((batch_size, 300, 4))
+            pred_scores = torch.zeros((batch_size, 300, 91))
+            selected_indexes = torch.zeros((100, 3), dtype=torch.int64)
+
+            torch.onnx.export(
+                PickNMSPredictionsAndReturnAsBatchedResult(batch_size=batch_size, max_predictions_per_image=max_predictions_per_image),
+                args=(pred_boxes, pred_scores, selected_indexes),
+                f=onnx_file,
+                input_names=["raw_boxes", "raw_scores", "selected_indexes"],
+                output_names=["num_predictions", "pred_boxes", "pred_scores", "pred_classes"],
+                dynamic_axes={
+                    "raw_boxes": {
+                        # 0: "batch_size",
+                        1: "num_anchors"
+                    },
+                    "raw_scores": {
+                        # 0: "batch_size",
+                        1: "num_anchors",
+                        2: "num_classes",
+                    },
+                    "selected_indexes": {0: "num_predictions"},
+                },
+            )
+
+            convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
+            return convert_format_graph
+
+
+class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, pred_boxes: Tensor, pred_scores: Tensor, selected_indexes: Tensor):
+        """
+        Select the predictions that are output by the NMS plugin.
+        :param pred_boxes: [B, N, 4] tensor
+        :param pred_scores: [B, N, C] tensor
+        :param selected_indexes: [num_selected_indices, 3] - each row is [batch_indexes, label_indexes, boxes_indexes]
+        :return:
+        """
+        batch_indexes, label_indexes, boxes_indexes = selected_indexes[:, 0], selected_indexes[:, 1], selected_indexes[:, 2]
+
+        selected_boxes = pred_boxes[batch_indexes, boxes_indexes]
+        selected_scores = pred_scores[batch_indexes, boxes_indexes, label_indexes]
+
+        return torch.cat([batch_indexes.unsqueeze(1), selected_boxes, selected_scores.unsqueeze(1), label_indexes.unsqueeze(1)], dim=1)
+
+    @classmethod
+    def as_graph(cls) -> gs.Graph:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            onnx_file = os.path.join(tmpdirname, "PickNMSPredictionsAndReturnAsFlatTensor.onnx")
+            pred_boxes = torch.zeros((2, 100, 4))
+            pred_scores = torch.zeros((2, 100, 91))
+
+            torch.onnx.export(
+                PickNMSPredictionsAndReturnAsFlatResult(),
+                args=(pred_boxes, pred_scores, torch.zeros((100, 3), dtype=torch.int64)),
+                f=onnx_file,
+                input_names=["pred_boxes", "pred_scores", "selected_indexes"],
+                output_names=["flat_predictions"],
+                dynamic_axes={
+                    "pred_boxes": {0: "batch_size", 1: "num_anchors"},
+                    "pred_scores": {0: "batch_size", 1: "num_anchors", 2: "num_classes"},
+                    "selected_indexes": {0: "num_predictions"},
+                    "flat_predictions": {0: "num_predictions"},
+                },
+            )
+
             convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
             return convert_format_graph
 
@@ -164,90 +287,14 @@ def attach_onnx_nms(
         },
     )
 
-    selected_label_scores = gs.Variable(
-        name="selected_label_scores",
-        dtype=np.float32,
-    )
-
-    graph.layer(op="GatherND", name="gather", inputs=[pred_scores, output_selected_indices], outputs=[selected_label_scores])
-
-    batch_indexes = gs.Variable(
-        name="batch_indexes",
-        dtype=np.int64,
-    )
-
-    boxes_indexes = gs.Variable(
-        name="boxes_indexes",
-        dtype=np.int64,
-    )
-
-    label_indexes = gs.Variable(
-        name="label_indexes",
-        dtype=np.int64,
-    )
-
-    graph.layer(
-        op="Split",
-        name="split_predictions",
-        inputs=[output_selected_indices],
-        outputs=[batch_indexes, label_indexes, boxes_indexes],
-        attrs={"axis": 1},
-    )
-
-    batch_and_boxes_indexes = gs.Variable(
-        name="batch_and_boxes_indexes",
-        dtype=np.int64,
-    )
-
-    graph.layer(op="Concat", name="concat", inputs=[batch_indexes, boxes_indexes], outputs=[batch_and_boxes_indexes], attrs={"axis": 1})
-
-    selected_boxes_coordinates = gs.Variable(
-        name="selected_boxes_coordinates",
-        dtype=np.float32,
-    )
-
-    graph.layer(op="GatherND", name="take_boxes_coordinates", inputs=[pred_boxes, batch_and_boxes_indexes], outputs=[selected_boxes_coordinates])
-
-    batch_indexes_fp32 = gs.Variable(
-        name="batch_indexes_fp32",
-        dtype=np.float32,
-    )
-    graph.layer(op="Cast", name="cast_batch_indexes", inputs=[batch_indexes], outputs=[batch_indexes_fp32], attrs={"to": TensorProto.FLOAT})
-
-    label_indexes_fp32 = gs.Variable(
-        name="label_indexes_fp32",
-        dtype=np.float32,
-    )
-    graph.layer(op="Cast", name="cast_label_indexes", inputs=[label_indexes], outputs=[label_indexes_fp32], attrs={"to": TensorProto.FLOAT})
-
-    final_decoded_boxes = gs.Variable(name="final_decoded_boxes", dtype=np.float32, shape=[gs.Variable.DYNAMIC, 7])
-
-    selected_label_scores_rank_2 = gs.Variable(
-        name="selected_label_scores_rank_2",
-        dtype=np.float32,
-    )
-    unsqueeze_dim_1 = gs.Constant(name="unsqueeze_dim_1", values=np.array([1], dtype=np.int64))
-    graph.layer(
-        op="Unsqueeze", name="expand_selected_label_scores_to_rank_2", inputs=[selected_label_scores, unsqueeze_dim_1], outputs=[selected_label_scores_rank_2]
-    )
-
-    graph.layer(
-        op="Concat",
-        inputs=[batch_indexes_fp32, selected_boxes_coordinates, label_indexes_fp32, selected_label_scores_rank_2],
-        outputs=[final_decoded_boxes],
-        attrs={"axis": 1},
-    )
-    graph.outputs = [final_decoded_boxes]
-
-    # Final cleanup & save
-    graph.cleanup().toposort()
-    iteratively_infer_shapes(graph)
+    graph.outputs = [pred_boxes, pred_boxes, output_selected_indices]
 
     if output_predictions_format == "batched":
-        convert_format_graph = ConvertFlatTensorToTRTFormat.as_graph(batch_size=batch_size, max_predictions_per_image=max_predictions_per_image)
+        convert_format_graph = PickNMSPredictionsAndReturnAsBatchedResult.as_graph(batch_size=batch_size, max_predictions_per_image=max_predictions_per_image)
         graph = append_graphs(graph, convert_format_graph)
     elif output_predictions_format == "flat":
-        pass
+        convert_format_graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph()
+        graph = append_graphs(graph, convert_format_graph)
     else:
         raise ValueError(f"Invalid output_predictions_format: {output_predictions_format}")
 
