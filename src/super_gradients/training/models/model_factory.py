@@ -51,26 +51,30 @@ def get_architecture(
     pretrained_weights_path = None
     is_remote = False
     if not isinstance(model_name, str):
-        raise ValueError("Parameter model_name is expected to be a string.")
+        raise ValueError(f"Input parameter `model_name` should be a string. Got {model_name} of type {type(model_name)}.")
 
     architecture = get_param(ARCHITECTURES, model_name)
     if model_name not in ARCHITECTURES.keys() and architecture is None:
         if client_enabled:
-            logger.info(f'The required model, "{model_name}", was not found in SuperGradients. Trying to load a model from remote deci-lab')
+            logger.info(f'The requested model "{model_name}" was not found in SuperGradients. Trying to load a model from the Platform...')
             deci_client = DeciClient()
 
             _arch_params = deci_client.get_model_arch_params(model_name)
             if _arch_params is None:
                 raise ValueError(
-                    f'The required model "{model_name}", was not found in SuperGradients and remote deci-lab. '
-                    f"See docs or all_architectures.py for supported model names."
+                    f'The requested model "{model_name}" was not found in the Platform. See docs or all_architectures.py for supported model names.'
                 )
+            else:
+                logger.info(f'The requested model "{model_name}" is available in the platform and will now be downloaded...')
 
             if download_required_code:  # Some extra code might be required to instantiate the arch params.
                 deci_client.download_and_load_model_additional_code(model_name, target_path=str(Path.cwd()))
+                logger.debug(f'Additional code for model "{model_name}" has been downloaded from the platform.')
+
             _arch_params = hydra.utils.instantiate(_arch_params)
             if download_platform_weights:
                 pretrained_weights_path = deci_client.get_model_weights(model_name)
+                logger.info("The model weights were downloaded from the platform.")
             else:
                 pretrained_weights_path = None
             model_name = _arch_params["model_name"]
@@ -80,7 +84,7 @@ def get_architecture(
             arch_params, is_remote = _arch_params, True
         else:
             raise UnknownTypeException(
-                message=f'The required model, "{model_name}", was not found in SuperGradients. See docs or all_architectures.py for supported model names.',
+                message=f'The requested model "{model_name}" was not found in SuperGradients. See docs or all_architectures.py for supported model names.',
                 unknown_type=model_name,
                 choices=list(ARCHITECTURES.keys()),
             )
@@ -188,7 +192,7 @@ def get(
     :param model_name:          Defines the model's architecture from models/ALL_ARCHITECTURES
     :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
     :param num_classes:         Number of classes (defines the net's structure).
-                                    If None is given, will try to derrive from pretrained_weight's corresponding dataset.
+                                    If None is given, will try to derive from pretrained_weight's corresponding dataset.
     :param strict_load:         See super_gradients.common.data_types.enum.strict_load.StrictLoad class documentation for details
                                     (default=NO_KEY_MATCHING to suport SG trained checkpoints)
     :param checkpoint_path:     The path to the external checkpoint to be loaded. Can be absolute or relative (ie: path/to/checkpoint.pth) path or URL.
