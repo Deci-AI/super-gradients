@@ -367,10 +367,10 @@ class PPYoloE(SgModule):
                 if postprocessing:
                     if engine == "tensorrt":
                         nms_attach_method = attach_tensorrt_nms
-                        output_predictions_format = output_predictions_format or "flat"
+                        output_predictions_format = output_predictions_format or "batched"
                     elif engine == "onnx":
                         nms_attach_method = attach_onnx_nms
-                        output_predictions_format = output_predictions_format or "batched"
+                        output_predictions_format = output_predictions_format or "flat"
                     else:
                         raise KeyError(f"Unsupported engine: {engine}")
 

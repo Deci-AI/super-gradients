@@ -81,7 +81,7 @@ class TestModelsONNXExport(unittest.TestCase):
                     precision = "quantized" if quantize else "full_precision"
                     self._export_and_benchmark(
                         onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
-                        run_benchmark=False,
+                        run_benchmark=True,
                         run_inference_with_onnxruntime=engine != "tensorrt",
                         export_kwargs=dict(
                             batch_size=1,
