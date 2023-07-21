@@ -40,15 +40,15 @@ class PPYoloEPostprocessingModuleForTRT(nn.Module):
     * scores [batch_size, number_boxes, number_classes]
     """
 
-    __constants__ = ["pre_nms_top_k", "multi_label_per_box"]
+    __constants__ = ["num_pre_nms_predictions", "multi_label_per_box"]
 
     def __init__(
         self,
-        pre_nms_top_k: int = 300,
+        num_pre_nms_predictions: int = 300,
         multi_label_per_box: bool = False,
     ):
         super().__init__()
-        self.pre_nms_top_k = pre_nms_top_k
+        self.num_pre_nms_predictions = num_pre_nms_predictions
         self.multi_label_per_box = multi_label_per_box
 
     def forward(self, inputs: Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
@@ -63,7 +63,7 @@ class PPYoloEPostprocessingModuleForTRT(nn.Module):
         """
         pred_bboxes, pred_scores = inputs
 
-        nms_top_k = self.pre_nms_top_k
+        nms_top_k = self.num_pre_nms_predictions
 
         if self.multi_label_per_box:
             pred_cls_conf, _ = torch.max(pred_scores, dim=2)
@@ -225,6 +225,7 @@ class PPYoloE(SgModule):
         postprocessing_kwargs: Optional[dict] = None,
         batch_size: int = 1,
         image_shape: Optional[Tuple[int, int]] = None,
+        max_predictions_per_image: Optional[int] = None,
         onnx_opset_version: Optional[int] = None,
         onnx_export_kwargs: Optional[dict] = None,
         onnx_simplify: bool = True,
@@ -318,6 +319,14 @@ class PPYoloE(SgModule):
             postprocessing_kwargs = postprocessing_kwargs or {}
             postprocessing = self.get_postprocessing_module(**postprocessing_kwargs)
             output_names = postprocessing.get_output_names()
+            num_pre_nms_predictions = postprocessing.num_pre_nms_predictions
+            max_predictions_per_image = max_predictions_per_image or num_pre_nms_predictions
+            if max_predictions_per_image > num_pre_nms_predictions:
+                raise ValueError(
+                    f"max_predictions_per_image={max_predictions_per_image} is greater than "
+                    f"num_pre_nms_predictions={num_pre_nms_predictions}. "
+                    f"Please specify max_predictions_per_image <= {num_pre_nms_predictions}."
+                )
         else:
             postprocessing = None
 
@@ -395,7 +404,8 @@ class PPYoloE(SgModule):
                     nms_attach_method(
                         onnx_model_path=output,
                         output_onnx_model_path=output,
-                        max_predictions_per_image=100,
+                        num_pre_nms_predictions=num_pre_nms_predictions,
+                        max_predictions_per_image=max_predictions_per_image,
                         nms_threshold=0.5,
                         confidence_threshold=0.6,
                         batch_size=batch_size,

@@ -215,7 +215,7 @@ class TestModelsONNXExport(unittest.TestCase):
 
     def test_onnx_nms_flat_result(self):
         onnx_file = "PickNMSPredictionsAndReturnAsFlatResult.onnx"
-        graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph()
+        graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph(batch_size=7)
         model = gs.export_onnx(graph)
         onnx.checker.check_model(model)
         onnx.save(model, onnx_file)

@@ -47,9 +47,9 @@ def iteratively_infer_shapes(graph: gs.Graph) -> None:
 
         graph.cleanup().toposort()
         try:
-            for node in graph.nodes:
-                for o in node.outputs:
-                    o.shape = None
+            # for node in graph.nodes:
+            #     for o in node.outputs:
+            #         o.shape = None
             model = gs.export_onnx(graph)
             model = shape_inference.infer_shapes(model)
             graph = gs.import_onnx(model)
