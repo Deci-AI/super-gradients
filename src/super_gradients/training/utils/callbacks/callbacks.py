@@ -971,7 +971,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
     :param metric_component_name: In case metric returns multiple values (as Mapping),
      the value at metric.compute()[metric_component_name] will be the one monitored.
 
-    :param loss_name: str, loss_name corresponfing to the 'criterion' passed through training_params in Trainer.train(...).
+    :param loss_to_monitor: str, loss_to_monitor corresponfing to the 'criterion' passed through training_params in Trainer.train(...).
      Monitoring loss follows the same logic as metric_to_watch in Trainer.train(..), when watching the loss and should be:
 
         if hasattr(criterion, "component_names") and criterion.forward(..) returns a tuple:
@@ -996,16 +996,16 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self,
         metric: Optional[Metric] = None,
         metric_component_name: Optional[str] = None,
-        loss_name: Optional[str] = None,
+        loss_to_monitor: Optional[str] = None,
         max: bool = False,
         freq: int = 1,
     ):
         super(ExtremeBatchCaseVisualizationCallback, self).__init__()
 
-        if (metric and loss_name) or (metric is None and loss_name is None):
+        if (metric and loss_to_monitor) or (metric is None and loss_to_monitor is None):
             raise RuntimeError("Must pass exactly one of: loss, metric != None")
 
-        self._set_tag_attr(loss_name, max, metric, metric_component_name)
+        self._set_tag_attr(loss_to_monitor, max, metric, metric_component_name)
         self.metric = metric
         if self.metric:
             self.metric = MetricCollection(self.metric)
@@ -1013,7 +1013,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
 
         self.metric_component_name = metric_component_name
 
-        self.loss_name = loss_name
+        self.loss_to_monitor = loss_to_monitor
         self.max = max
         self.freq = freq
         self.extreme_score = -1 * np.inf if max else np.inf
@@ -1025,13 +1025,13 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self._first_call = True
         self._idx_loss_tuple = None
 
-    def _set_tag_attr(self, loss_name, max, metric, metric_component_name):
+    def _set_tag_attr(self, loss_to_monitor, max, metric, metric_component_name):
         if metric_component_name:
             monitored_val_name = metric_component_name
         elif metric:
             monitored_val_name = metric.__class__.__name__
         else:
-            monitored_val_name = loss_name
+            monitored_val_name = loss_to_monitor
         self._tag = f"max_{monitored_val_name}_batch" if max else f"min_{monitored_val_name}_batch"
 
     @abstractmethod
@@ -1078,8 +1078,8 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
                 self.extreme_targets = context.target
 
     def _init_loss_attributes(self, context: PhaseContext):
-        if self.loss_name not in context.loss_logging_items_names:
-            raise ValueError(f"{self.loss_name} not a loss or loss component.")
+        if self.loss_to_monitor not in context.loss_logging_items_names:
+            raise ValueError(f"{self.loss_to_monitor} not a loss or loss component.")
         self._idx_loss_tuple = context.loss_logging_items_names.index(self.metric_name)
         self._first_call = False
 
@@ -1127,7 +1127,7 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
                 max=False
                 ignore_idx=19),
             ExtremeBatchSegVisualizationCallback(
-                loss_name="LabelSmoothingCrossEntropyLoss"
+                loss_to_monitor="LabelSmoothingCrossEntropyLoss"
                 max=True
                 ignore_idx=19)]
                 ...}
@@ -1137,7 +1137,7 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
         training_hyperparams:
           phase_callbacks:
             - ExtremeBatchSegVisualizationCallback:
-                loss_name: DiceCEEdgeLoss/aux_loss0
+                loss_to_monitor: DiceCEEdgeLoss/aux_loss0
                 ignore_idx: 19
 
     :param metric: Metric, will be the metric which is monitored.
@@ -1145,7 +1145,7 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
     :param metric_component_name: In case metric returns multiple values (as Mapping),
      the value at metric.compute()[metric_component_name] will be the one monitored.
 
-    :param loss_name: str, loss_name corresponfing to the 'criterion' passed through training_params in Trainer.train(...).
+    :param loss_to_monitor: str, loss_to_monitor corresponfing to the 'criterion' passed through training_params in Trainer.train(...).
      Monitoring loss follows the same logic as metric_to_watch in Trainer.train(..), when watching the loss and should be:
 
         if hasattr(criterion, "component_names") and criterion.forward(..) returns a tuple:
@@ -1169,13 +1169,13 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
         self,
         metric: Optional[Metric] = None,
         metric_component_name: Optional[str] = None,
-        loss_name: Optional[str] = None,
+        loss_to_monitor: Optional[str] = None,
         max: bool = False,
         freq: int = 1,
         ignore_idx: int = -1,
     ):
         super(ExtremeBatchSegVisualizationCallback, self).__init__(
-            metric=metric, metric_component_name=metric_component_name, loss_name=loss_name, max=max, freq=freq
+            metric=metric, metric_component_name=metric_component_name, loss_to_monitor=loss_to_monitor, max=max, freq=freq
         )
         self.ignore_idx = ignore_idx
 
