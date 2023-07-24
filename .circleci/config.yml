@@ -21,7 +21,7 @@ release_tag_filter: &release_tag_filter
 release_candidate_filter: &release_candidate_filter
   filters:
     branches:
-      only: master
+      only: hotfix_pycoc_tools_req
 
 
 jobs:
@@ -107,24 +107,17 @@ jobs:
       - image: cimg/python:<< parameters.py_version >>
     steps:
       - deci-common/checkout_and_skip_build:
-          check_version_file: true
-      - deci-common/get_persisted_version_info
+          check_version_file: false
       - run:
           name: edit package version
           command: |
-            echo $NEW_VERSION > version.txt
+            echo 3.0.1e1 > version.txt
       - deci-common/pip_upload_package_codeartifact_dev:
           codeartifact_repository: "deci-packages"
       - deci-common/pip_test_package_installation_codeartifact_dev:
           package_name: "super-gradients"
-          version: $NEW_VERSION
-      - deci-common/git_config_automation_user
-      - run:
-          name: "commit version file"
-          command: | 
-            git commit version.txt -m "Deci Services - Changed version to $NEW_VERSION"
-      - deci-common/git_commit_and_tag:
-          version: $NEW_VERSION
+          version: 3.0.1e1
+
 
   release_version:
     parameters:
