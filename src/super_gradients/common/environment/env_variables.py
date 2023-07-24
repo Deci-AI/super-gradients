@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 
 class EnvironmentVariables:
@@ -35,6 +36,14 @@ class EnvironmentVariables:
     @property
     def CONSOLE_LOG_LEVEL(self) -> str:
         return os.getenv("CONSOLE_LOG_LEVEL", default="INFO").upper()
+
+    @property
+    def HYDRA_FULL_ERROR(self) -> Optional[str]:
+        return os.getenv("HYDRA_FULL_ERROR")
+
+    @HYDRA_FULL_ERROR.setter
+    def HYDRA_FULL_ERROR(self, value: str):
+        os.environ["HYDRA_FULL_ERROR"] = value
 
 
 env_variables = EnvironmentVariables()

@@ -16,7 +16,7 @@ In summary, top-down approach starts with detecting an object and then estimates
 
 | Model                                    | Model class                                                                                                                                                          | Target Generator                                                                                                                                                      | Loss Class                                                                                                     | Decoding Callback                                                                                                                                                                        | Visualization Callback                                                                                                                                                            |
 |------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| 
-| [DEKR](https://arxiv.org/abs/2104.02300) | [DEKRPoseEstimationModel](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.pose_estimation_models.dekr_hrnet.DEKRPoseEstimationModel) | [DEKRTargetsGenerator](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/pose_estimation_datasets/target_generators.py#L8) | [DEKRLoss](https://docs.deci.ai/super-gradients/docstring/training/losses/#training.losses.dekr_loss.DEKRLoss) | [DEKRPoseEstimationDecodeCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback) | [DEKRVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_visualization_callbacks.DEKRVisualizationCallback) |
+| [DEKR](https://arxiv.org/abs/2104.02300) | [DEKRPoseEstimationModel](https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.pose_estimation_models.dekr_hrnet.DEKRPoseEstimationModel) | [DEKRTargetsGenerator](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/pose_estimation_datasets/target_generators.py#L8) | [DEKRLoss](https://docs.deci.ai/super-gradients/docstring/training/losses.html#training.losses.dekr_loss.DEKRLoss) | [DEKRPoseEstimationDecodeCallback](https://docs.deci.ai/super-gradients/docstring/training/utils.html#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback) | [DEKRVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils.html#training.utils.pose_estimation.dekr_visualization_callbacks.DEKRVisualizationCallback) |
 
 ## Training
 
@@ -57,15 +57,15 @@ Here we define the default values for the following parameters:
     You can refer to the [default_train_params.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml) for more details.
    In our example we use  [coco2017_dekr_pose_train_params.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/coco2017_dekr_pose_train_params.yaml) that sets
    training parameters as in [DEKR](https://arxiv.org/abs/2104.02300) paper.
-* `dataset_params` - These are the parameters for the training on COCO2017. The dataset configuration sets the dataset transformations (augmentations & preprocessing) and [target generator](https://docs.deci.ai/super-gradients/docstring/training/datasets/#training.datasets.pose_estimation_datasets.target_generators.DEKRTargetsGenerator) for training the model.
-* `arch_params` - These are the parameters for the model architecture. In our example we use [DEKRPoseEstimationModel](https://docs.deci.ai/super-gradients/docstring/training/models/#training.models.pose_estimation_models.dekr_hrnet.DEKRPoseEstimationModel) that is a HRNet-based model with DEKR decoder.
+* `dataset_params` - These are the parameters for the training on COCO2017. The dataset configuration sets the dataset transformations (augmentations & preprocessing) and [target generator](https://docs.deci.ai/super-gradients/docstring/training/datasets.html#training.datasets.pose_estimation_datasets.target_generators.DEKRTargetsGenerator) for training the model.
+* `arch_params` - These are the parameters for the model architecture. In our example we use [DEKRPoseEstimationModel](https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.pose_estimation_models.dekr_hrnet.DEKRPoseEstimationModel) that is a HRNet-based model with DEKR decoder.
 * `checkpoint_params` - These are the default parameters for resuming of training and using pretrained checkpoints. 
 You can refer to the [default_checkpoint_params.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/checkpoint_params/default_checkpoint_params.yaml).
  
 ### Datasets
 
 There are several well-known datasets for pose estimation: COCO, MPII Human Pose, Hands in the Wild, CrowdPose, etc. 
-SuperGradients provide ready-to-use dataloaders for the COCO dataset [COCOKeypointsDataset](https://docs.deci.ai/super-gradients/docstring/training/datasets/#training.datasets.pose_estimation_datasets.coco_keypoints.COCOKeypointsDataset) 
+SuperGradients provide ready-to-use dataloaders for the COCO dataset [COCOKeypointsDataset](https://docs.deci.ai/super-gradients/docstring/training/datasets.html#training.datasets.pose_estimation_datasets.coco_keypoints.COCOKeypointsDataset) 
 and more general `BaseKeypointsDataset` implementation that you can subclass from for your specific dataset format.
 
 ### Target generators
@@ -102,7 +102,7 @@ class KeypointsTargetsGenerator:
         raise NotImplementedError()
 ```
 
-SuperGradients provide implementation of [DEKRTargetGenerator](https://docs.deci.ai/super-gradients/docstring/training/datasets/#training.datasets.pose_estimation_datasets.target_generators.DEKRTargetsGenerator) that is compatible with `DEKR` model.
+SuperGradients provide implementation of [DEKRTargetGenerator](https://docs.deci.ai/super-gradients/docstring/training/datasets.html#training.datasets.pose_estimation_datasets.target_generators.DEKRTargetsGenerator) that is compatible with `DEKR` model.
 
 If you need to implement your own target generator, please refer to documentation of `KeypointsTargetsGenerator` base class. 
 
@@ -126,7 +126,7 @@ In order to use `PoseEstimationMetrics` you have to pass a so-called `post_predi
 ### Postprocessing
 
 Postprocessing refers to a process of transforming the model's raw output into final predictions. Postprocessing is also model-specific and depends on the model's output format. 
-For `DEKR` model, the postprocessing step is implemented in [DEKRPoseEstimationDecodeCallback]((https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback)) class. 
+For `DEKR` model, the postprocessing step is implemented in [DEKRPoseEstimationDecodeCallback]((https://docs.deci.ai/super-gradients/docstring/training/utils.html#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback)) class. 
 When instantiating the metric, one has to pass a postprocessing callback as an argument:
 
 ```yaml
@@ -403,10 +403,10 @@ A custom target generator class should inherit from `KeypointsTargetsGenerator` 
 See  [DEKRTargetsGenerator](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/pose_estimation_datasets/target_generators.py#L8) for more details.
 
 A custom postprocessing callback class should have a `forward` method which takes raw model predictions and decode them into a final pose predictions. 
-See [DEKRPoseEstimationDecodeCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback) for more details.
+See [DEKRPoseEstimationDecodeCallback](https://docs.deci.ai/super-gradients/docstring/training/utils.html#training.utils.pose_estimation.dekr_decode_callbacks.DEKRPoseEstimationDecodeCallback) for more details.
 
 A custom visualization callback class can inherit from `PhaseCallback` or `Callback` base class to generate a visualization of the model predictions. 
-See [DEKRVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils/#training.utils.pose_estimation.dekr_visualization_callbacks.DEKRVisualizationCallback) for more details.
+See [DEKRVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils.html#training.utils.pose_estimation.dekr_visualization_callbacks.DEKRVisualizationCallback) for more details.
 
 
 ## Rescoring
