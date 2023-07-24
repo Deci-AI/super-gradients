@@ -21,7 +21,7 @@ release_tag_filter: &release_tag_filter
 release_candidate_filter: &release_candidate_filter
   filters:
     branches:
-      only: hotfix_pycoc_tools_req
+      only: hotfix_pycoco_tools_req
 
 
 jobs:
