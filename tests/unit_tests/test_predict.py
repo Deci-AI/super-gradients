@@ -1,13 +1,13 @@
+import os
 import unittest
 import tempfile
+
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
 
 class TrainWithTorchSchedulerTest(unittest.TestCase):
     def setUp(self) -> None:
-        import os
-
         rootdir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.images = [
             os.path.join(rootdir, "documentation", "source", "images", "examples", "countryside.jpg"),
