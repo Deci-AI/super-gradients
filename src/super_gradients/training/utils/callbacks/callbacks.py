@@ -994,7 +994,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
     @resolve_param("metric", MetricsFactory())
     def __init__(
         self,
-        metric: Optional[Union[Metric, Mapping, str]] = None,
+        metric: Optional[Metric] = None,
         metric_component_name: Optional[str] = None,
         loss_name: Optional[str] = None,
         max: bool = False,
@@ -1123,7 +1123,7 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
           ...
           "phase_callbacks":
             [ExtremeBatchSegVisualizationCallback(
-                metrice=IoU(20, ignore_idx=19)
+                metric=IoU(20, ignore_idx=19)
                 max=False
                 ignore_idx=19),
             ExtremeBatchSegVisualizationCallback(
@@ -1167,7 +1167,7 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
 
     def __init__(
         self,
-        metric: Optional[Union[Metric, Mapping, str]] = None,
+        metric: Optional[Metric] = None,
         metric_component_name: Optional[str] = None,
         loss_name: Optional[str] = None,
         max: bool = False,
