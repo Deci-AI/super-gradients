@@ -4,7 +4,7 @@ from functools import lru_cache
 from super_gradients.training.models import SgModule
 from super_gradients.training.pipelines.pipelines import ClassificationPipeline
 from super_gradients.training.utils.media.image import ImageSource
-from super_gradients.training.utils.predict import ClassificationPrediction
+from super_gradients.training.utils.predict import ImagesClassificationPrediction
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.training.processing.processing import Processing
@@ -46,7 +46,7 @@ class BaseClassifier(SgModule):
         )
         return pipeline
 
-    def predict(self, images: ImageSource, batch_size: int = 32, fuse_model: bool = True) -> ClassificationPrediction:
+    def predict(self, images: ImageSource, batch_size: int = 32, fuse_model: bool = True) -> ImagesClassificationPrediction:
         """Predict an image or a list of images.
 
         :param images:      Images to predict.

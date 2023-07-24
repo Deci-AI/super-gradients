@@ -6,7 +6,7 @@ from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
 
-class TrainWithTorchSchedulerTest(unittest.TestCase):
+class TestModelPredict(unittest.TestCase):
     def setUp(self) -> None:
         rootdir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.images = [
@@ -20,7 +20,6 @@ class TrainWithTorchSchedulerTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dirname:
             predictions = model.predict(self.images)
-            predictions.draw()
             predictions.show()
             predictions.save(output_folder=tmp_dirname)
 

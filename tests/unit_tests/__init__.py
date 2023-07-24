@@ -24,6 +24,7 @@ from tests.unit_tests.training_params_factory_test import TrainingParamsTest
 from tests.unit_tests.config_inspector_test import ConfigInspectTest
 from tests.unit_tests.transforms_test import TestTransforms
 from tests.unit_tests.post_prediction_callback_test import TestPostPredictionCallback
+from test_predict import TestModelPredict
 
 __all__ = [
     "CrashTipTest",
@@ -51,4 +52,5 @@ __all__ = [
     "ConfigInspectTest",
     "TestTransforms",
     "TestPostPredictionCallback",
+    "TestModelPredict",
 ]
