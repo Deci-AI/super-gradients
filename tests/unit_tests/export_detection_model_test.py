@@ -53,12 +53,12 @@ class TestDetectionModelExport(unittest.TestCase):
             flat_predictions = result[0]
             assert flat_predictions.shape[1] == 7
 
-    def test_export_to_onnxruntime_batched(self):
+    def test_export_to_onnxruntime_batch_format(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
             out_path = os.path.join(tmpdirname, "ppyoloe_s.onnx")
 
             ppyolo_e: ExportableObjectDetectionModel = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
-            ppyolo_e.export(out_path, engine="onnxruntime", input_image_shape=(640, 640), output_predictions_format="flat")
+            ppyolo_e.export(out_path, engine="onnxruntime", input_image_shape=(640, 640), output_predictions_format="batch")
 
             image = self._get_test_image()
 
@@ -69,8 +69,11 @@ class TestDetectionModelExport(unittest.TestCase):
             for r in result:
                 print(r.shape, r.dtype, r)
 
-            flat_predictions = result[0]
-            assert flat_predictions.shape[1] == 7
+            num_predictions, pred_boxes, pred_scores, pred_classes = result
+            assert num_predictions.shape == (1, 1)
+            assert pred_boxes.shape == (1, 300, 4)
+            assert pred_scores.shape == (1, 300)
+            assert pred_classes.shape == (1, 300)
 
     def test_export_model_with_custom_input_image_shape(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
