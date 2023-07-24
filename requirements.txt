@@ -22,7 +22,7 @@ onnx>=1.10.1
 pip-tools>=6.4.0
 pyparsing==2.4.5
 einops==0.3.2
-pycocotools==2.0.4
+pycocotools==2.0.6
 protobuf~=3.19.0
 treelib==1.6.1
 termcolor==1.1.0
