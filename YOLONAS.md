@@ -33,6 +33,21 @@ import super_gradients
 yolo_nas = super_gradients.training.models.get("yolo_nas_l", pretrained_weights="coco").cuda()
 yolo_nas.predict("https://deci-pretrained-models.s3.amazonaws.com/sample_images/beatles-abbeyroad.jpg").show()
 ```
+## Extract bounding boxes 
+```python
+
+output = yolo_nas.predict("https://deci-pretrained-models.s3.amazonaws.com/sample_images/beatles-abbeyroad.jpg")
+'''
+output._images_prediction_lst = [ImageDetectionPrediction(image=array([[[.,.,.],[.,.,.],[.,.,.]...],...],dtype=float32),
+                                prediction=DetectionPrediciton(bboxes_xyxy=array([],shape(0,4),dtype=float32),confidence=array([],dtype=float32),labels=array([],dtype=float32)),class_names=['name','of','all','classes'])]
+'''
+predicton_lst = list(output._images_prediction_lst)[0]
+bboxes = prediction_lst.prediction.bboxes_xyxy #bboxes = [[Xmin,Ymin,Xmax,Ymax],..] list of all annotation(s) for detected object(s) 
+class_names = prediction_lst.class_names = ['name','of','all','classes'] #all the class name(s)
+class_name_indexes = prediction_lst.prediction.labels.astype(int) #index of each detected object in class_names(corresponding to each bounding box)
+confidences =  prediction_lst.prediction.confidence.astype(float) #confidence value(s) in float for each bounding boxes
+
+```
 
 ![YOLO-NAS Predict Demo](documentation/source/images/yolo_nas_predict_demo.png)
 
