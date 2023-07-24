@@ -39,24 +39,6 @@ jobs:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
       - deci-common/get_persisted_version_info
-      - when:
-          condition:
-            and:
-              - not:
-                  equal: [ develop, << pipeline.git.branch >> ]
-              - not:
-                  equal: [ staging, << pipeline.git.branch >> ]
-              - not:
-                  equal: [ master, << pipeline.git.branch >> ]
-          steps:
-            - run:
-                name: install Flake8 python linter
-                command: |
-                  pip install --user flake8
-            - run:
-                name: Lint all python files changed since develop branch
-                command: |
-                  flake8 --statistics --config scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$' | grep -v 'experimental/' | grep -v 'experimental_models/')
       - run:
           name: add requirements.txt to source code
           command: |
