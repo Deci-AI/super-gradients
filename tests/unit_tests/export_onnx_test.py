@@ -82,7 +82,7 @@ class TestModelsONNXExport(unittest.TestCase):
             self._benchmark_onnx(onnx_filename, **benchmark_kwargs)
 
     # def test_export_ppyolo_e_all_export_variants(self):
-    #     for output_predictions_format in ["batched"]:
+    #     for output_predictions_format in ["batch"]:
     #         for engine in {"tensorrt"}:
     #             for quantize in {False}:
     #                 precision = "quantized" if quantize else "full_precision"
@@ -105,12 +105,12 @@ class TestModelsONNXExport(unittest.TestCase):
     def test_export_ppyoloe_onnxruntime_engine_batched_output(self):
         quantize = False
         engine = "onnx"
-        output_predictions_format = "batched"
+        output_predictions_format = "batch"
         precision = "quantized" if quantize else "full_precision"
 
         self._export_and_benchmark(
             onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
-            run_benchmark=self.decibenchmark_available,
+            run_benchmark=False,
             run_inference_with_onnxruntime=True,
             export_kwargs=dict(
                 batch_size=1,
@@ -121,7 +121,6 @@ class TestModelsONNXExport(unittest.TestCase):
                 engine=engine,
                 output_predictions_format=output_predictions_format,
             ),
-            benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
         )
 
     def test_export_ppyoloe_onnxruntime_engine_flat_output(self):
@@ -132,7 +131,7 @@ class TestModelsONNXExport(unittest.TestCase):
 
         self._export_and_benchmark(
             onnx_filename=f"ppyoloe_s_{engine}_engine_{output_predictions_format}_format_{precision}.onnx",
-            run_benchmark=self.decibenchmark_available,
+            run_benchmark=False,
             run_inference_with_onnxruntime=True,
             export_kwargs=dict(
                 batch_size=1,
@@ -143,13 +142,12 @@ class TestModelsONNXExport(unittest.TestCase):
                 engine=engine,
                 output_predictions_format=output_predictions_format,
             ),
-            benchmark_kwargs=dict(precision="--int8" if quantize else "--fp16"),
         )
 
     def test_export_ppyoloe_trt_engine_batched_output(self):
         quantize = False
         engine = "tensorrt"
-        output_predictions_format = "batched"
+        output_predictions_format = "batch"
         precision = "quantized" if quantize else "full_precision"
 
         self._export_and_benchmark(

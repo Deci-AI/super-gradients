@@ -30,7 +30,7 @@ def fuse_conv_bn(model: nn.Module, replace_bn_with_identity: bool = False):
 
 def infer_format_from_file_name(output_filename: str) -> Optional[str]:
     if isinstance(output_filename, str) and output_filename.endswith(".onnx"):
-        return "onnx"
+        return "onnxruntime"
 
     return None
 

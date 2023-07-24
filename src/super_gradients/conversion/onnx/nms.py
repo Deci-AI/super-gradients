@@ -115,7 +115,7 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
             predictions, (0, 0, 0, self.max_predictions_per_image * self.batch_size - predictions.size(0)), value=-1, mode="constant"
         )
 
-        batched_predictions = torch.zeros((self.batch_size, self.max_predictions_per_image, 6), dtype=predictions.dtype, device=predictions.device)
+        batch_predictions = torch.zeros((self.batch_size, self.max_predictions_per_image, 6), dtype=predictions.dtype, device=predictions.device)
 
         batch_indexes = torch.arange(start=0, end=self.batch_size, step=1, device=predictions.device, dtype=predictions.dtype)
         masks = batch_indexes.view(-1, 1).eq(predictions[:, 0].view(1, -1))  # [B, N]
@@ -125,13 +125,13 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
         for i in range(self.batch_size):
             selected_predictions = predictions[masks[i]]
             selected_predictions = selected_predictions[:, 1:]
-            batched_predictions[i] = torch.nn.functional.pad(
+            batch_predictions[i] = torch.nn.functional.pad(
                 selected_predictions, (0, 0, 0, self.max_predictions_per_image - selected_predictions.size(0)), value=0, mode="constant"
             )
 
-        pred_boxes = batched_predictions[:, :, 0:4]
-        pred_scores = batched_predictions[:, :, 4]
-        pred_classes = batched_predictions[:, :, 5].long()
+        pred_boxes = batch_predictions[:, :, 0:4]
+        pred_scores = batch_predictions[:, :, 4]
+        pred_classes = batch_predictions[:, :, 5].long()
 
         return num_predictions.unsqueeze(1), pred_boxes, pred_scores, pred_classes
 
@@ -243,13 +243,13 @@ def attach_onnx_nms(
     :param max_predictions_per_image: Maximum number of predictions per image
     :param confidence_threshold: The confidence threshold to use for detections.
     :param nms_threshold: The NMS threshold to use for detections.
-    :param output_predictions_format: The output format of the predictions. Can be "flat" or "batched".
+    :param output_predictions_format: The output format of the predictions. Can be "flat" or "batch".
 
     If output_format equals to "flat":
     A single tensor of [N, 7] will be returned, where N is the total number of detections across all images in the batch.
     Each row will contain [image_index, x1, y1, x2, y2, class_index, confidence].
 
-    If output_format equals to "batched" format:
+    If output_format equals to "batch" format:
     A tuple of 4 tensors (num_detections, detection_boxes, detection_scores, detection_classes) will be returned:
     - A tensor of [batch_size, 1] containing the image indices for each detection.
     - A tensor of [batch_size, max_output_boxes, 4] containing the bounding box coordinates for each detection in [x1, y1, x2, y2] format.
@@ -298,7 +298,7 @@ def attach_onnx_nms(
 
     graph.outputs = [pred_boxes, pred_boxes, output_selected_indices]
 
-    if output_predictions_format == "batched":
+    if output_predictions_format == "batch":
         convert_format_graph = PickNMSPredictionsAndReturnAsBatchedResult.as_graph(
             batch_size=batch_size, num_pre_nms_predictions=num_pre_nms_predictions, max_predictions_per_image=max_predictions_per_image
         )

@@ -20,7 +20,7 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
 
     def forward(self, num_predictions: Tensor, pred_boxes: Tensor, pred_scores: Tensor, pred_classes: Tensor) -> Tensor:
         """
-        Convert the predictions from batched format to flat tensor.
+        Convert the predictions from "batch" format to "flat" tensor.
         :param num_predictions: [B,1] The number of predictions for each image in the batch.
         :param pred_boxes: [B, max_predictions_per_image, 4] The predicted bounding boxes for each image in the batch.
         :param pred_scores: [B, max_predictions_per_image] The predicted scores for each image in the batch.
@@ -156,7 +156,7 @@ def attach_tensorrt_nms(
     if output_predictions_format == "flat":
         convert_format_graph = ConvertTRTFormatToFlatTensor.as_graph(batch_size=batch_size, max_predictions_per_image=max_predictions_per_image)
         graph = append_graphs(graph, convert_format_graph)
-    elif output_predictions_format == "batched":
+    elif output_predictions_format == "batch":
         pass
     else:
         raise NotImplementedError(f"Currently not supports output_predictions_format: {output_predictions_format}")
