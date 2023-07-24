@@ -79,6 +79,7 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
 def attach_tensorrt_nms(
     onnx_model_path: str,
     output_onnx_model_path,
+    num_pre_nms_predictions: int,
     max_predictions_per_image: int,
     confidence_threshold: float,
     nms_threshold: float,

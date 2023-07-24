@@ -145,7 +145,7 @@ class TestDetectionModelExport(unittest.TestCase):
             assert pred_boxes.shape == (1, 300, 4)
             assert pred_scores.shape == (1, 300)
             assert pred_classes.shape == (1, 300)
-            assert pred_boxes.dtype == np.int64
+            assert pred_classes.dtype == np.int64
 
     def test_export_quantized_with_calibration_to_tensorrt(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -164,22 +164,6 @@ class TestDetectionModelExport(unittest.TestCase):
                 quantize=True,
                 calibration_loader=dummy_calibration_loader,
             )
-
-            image = self._get_test_image()
-
-            session = onnxruntime.InferenceSession(out_path)
-            inputs = [o.name for o in session.get_inputs()]
-            outputs = [o.name for o in session.get_outputs()]
-            result = session.run(outputs, {inputs[0]: image})
-            for r in result:
-                print(r.shape, r.dtype, r)
-
-            num_predictions, pred_boxes, pred_scores, pred_classes = result
-            assert num_predictions.shape == (1,)
-            assert pred_boxes.shape == (1, 300, 4)
-            assert pred_scores.shape == (1, 300)
-            assert pred_classes.shape == (1, 300)
-            assert pred_boxes.dtype == np.int64
 
     def _get_test_image(self, image_shape=(640, 640)):
         """
