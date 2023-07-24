@@ -1068,7 +1068,8 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
 
                 # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
                 device = next(context.net.parameters()).device
-                score = maybe_all_reduce_tensor_average(device, score)
+                score.to(device)
+                score = maybe_all_reduce_tensor_average(score)
 
             if self._is_more_extreme(score):
                 self.extreme_score = score

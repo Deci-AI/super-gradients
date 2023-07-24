@@ -416,17 +416,16 @@ class DDPNotSetupException(Exception):
         super().__init__(self.message)
 
 
-def maybe_all_reduce_tensor_average(device: str, tensor: torch.Tensor) -> torch.Tensor:
+def maybe_all_reduce_tensor_average(tensor: torch.Tensor) -> torch.Tensor:
     """
     When in DDP- mean-reduces tensor from all devices.
     When not in DDP - returns the input tensor.
 
-    :param device:
-    :param tensor:
+    :param tensor:tensor to (maybe) reduce
     :return:
     """
     if is_distributed():
-        tensor = distributed_all_reduce_tensor_average(tensor=tensor.to(device), n=torch.distributed.get_world_size())
+        tensor = distributed_all_reduce_tensor_average(tensor=tensor, n=torch.distributed.get_world_size())
     return tensor
 
 
