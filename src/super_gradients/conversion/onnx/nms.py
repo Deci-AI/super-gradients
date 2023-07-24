@@ -6,7 +6,6 @@ import numpy as np
 import onnx
 import onnx.shape_inference
 import onnx_graphsurgeon as gs
-import onnxsim
 import torch
 from torch import nn, Tensor
 
@@ -14,76 +13,6 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion.onnx.utils import append_graphs
 
 logger = get_logger(__name__)
-
-
-class ConvertFlatTensorToTRTFormat(nn.Module):
-    __constants__ = ("batch_size", "max_predictions")
-
-    def __init__(self, batch_size: int, max_predictions_per_image: int):
-        """
-
-        :param batch_size: Fixed batch size (B)
-        :param max_predictions_per_image: Fixed maximum number of predictions per image (N)
-        """
-        super().__init__()
-        self.batch_size = batch_size
-        self.max_predictions = max_predictions_per_image
-        # This is the upper limit of predictions across all images in the batch
-        self.total_max = self.max_predictions * self.batch_size
-
-    def forward(self, predictions: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-        """
-        Convert the predictions tensor in flat format to the format output by the TRT plugin
-
-        :param predictions: [L, 7] tensor
-            L - is the total number of predictions across all images in the batch
-            Each row is [batch_index, x1, y1, x2, y2, score, class]
-
-        :return: Tuple of tensors:
-            - num_predictions: [B, 1] tensor (int64)
-            - pred_boxes: [B, N, 4] tensor (float32)
-            - pred_scores: [B, N] tensor (float32)
-            - pred_classes: [B, N] tensor (int64)
-        """
-        predictions = torch.nn.functional.pad(predictions, (0, 0, 0, self.max_predictions * self.batch_size - predictions.size(0)), value=-1, mode="constant")
-
-        batched_predictions = torch.zeros((self.batch_size, self.max_predictions, 6), dtype=predictions.dtype, device=predictions.device)
-
-        batch_indexes = torch.arange(start=0, end=self.batch_size, step=1, device=predictions.device, dtype=predictions.dtype)
-        masks = batch_indexes.view(-1, 1).eq(predictions[:, 0].view(1, -1))  # [B, N]
-
-        num_predictions = torch.sum(masks, dim=1).long()
-
-        for i in range(self.batch_size):
-            selected_predictions = predictions[masks[i], 1:]
-            batched_predictions[i] = torch.nn.functional.pad(
-                selected_predictions, (0, 0, 0, self.max_predictions - selected_predictions.size(0)), value=0, mode="constant"
-            )
-
-        pred_boxes = batched_predictions[:, :, 0:4]
-        pred_scores = batched_predictions[:, :, 4]
-        pred_classes = batched_predictions[:, :, 5].long()
-
-        return num_predictions.unsqueeze(1), pred_boxes, pred_scores, pred_classes
-
-    @classmethod
-    def as_graph(cls, batch_size: int, max_predictions_per_image) -> gs.Graph:
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            onnx_file = os.path.join(tmpdirname, "ConvertFlatTensorToTRTFormat.onnx")
-            predictions = torch.zeros((batch_size * max_predictions_per_image // 2, 7))
-
-            torch.onnx.export(
-                ConvertFlatTensorToTRTFormat(batch_size=batch_size, max_predictions_per_image=max_predictions_per_image),
-                args=predictions,
-                f=onnx_file,
-                input_names=["flat_predictions"],
-                output_names=["num_predictions", "pred_boxes", "pred_scores", "pred_classes"],
-                dynamic_axes={"flat_predictions": {0: "batch_size"}},
-            )
-
-            onnxsim.simplify(onnx_file)
-            convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
-            return convert_format_graph
 
 
 class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):

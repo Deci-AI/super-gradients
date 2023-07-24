@@ -6,18 +6,16 @@ import unittest
 import cv2
 import numpy as np
 import onnx
-import onnxruntime
 import onnx_graphsurgeon as gs
+import onnxruntime
 import torch
 from torchvision.transforms import Compose, Normalize, Resize
 
 from super_gradients.common.object_names import Models
 from super_gradients.conversion.onnx.nms import (
-    ConvertFlatTensorToTRTFormat,
     PickNMSPredictionsAndReturnAsFlatResult,
     PickNMSPredictionsAndReturnAsBatchedResult,
 )
-from super_gradients.conversion.tensorrt.nms import ConvertTRTFormatToFlatTensor
 from super_gradients.training import models
 from super_gradients.training.dataloaders import coco2017_val  # noqa
 from super_gradients.training.transforms import Standardize
@@ -279,101 +277,6 @@ class TestModelsONNXExport(unittest.TestCase):
         torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)  # noqa
         onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
         for r in onnx_result:
-            print(r.shape, r.dtype, r)
-
-    def test_flat_tensor_to_trt_format(self):
-        predictions = torch.tensor(
-            [[0, 1, 2, 3, 4, 5, 6], [0, 11, 12, 13, 14, 15, 16], [1, 21, 22, 23, 24, 25, 26], [2, 31, 32, 33, 34, 35, 36], [3, 31, 32, 33, 34, 35, 36]]
-        ).float()
-
-        flat_to_batched_predictions = ConvertFlatTensorToTRTFormat(batch_size=4, max_predictions_per_image=20)
-        batched_to_flat_predictions = ConvertTRTFormatToFlatTensor(batch_size=4)
-
-        num_predictions, pred_boxes, pred_scores, pred_classes = flat_to_batched_predictions(predictions)
-        np.testing.assert_allclose(predictions, batched_to_flat_predictions(num_predictions, pred_boxes, pred_scores, pred_classes))
-
-        num_predictions, pred_boxes, pred_scores, pred_classes = flat_to_batched_predictions(torch.zeros((0, 7), dtype=torch.float32))
-        np.testing.assert_allclose(
-            torch.zeros((0, 7), dtype=torch.float32), batched_to_flat_predictions(num_predictions, pred_boxes, pred_scores, pred_classes)
-        )
-
-        torch.onnx.export(
-            ConvertFlatTensorToTRTFormat(batch_size=4, max_predictions_per_image=20),
-            args=predictions,
-            f="ConvertFlatTensorToTRTFormat.onnx",
-            input_names=["flat_predictions"],
-            output_names=["num_predictions", "pred_boxes", "pred_scores", "pred_classes"],
-            dynamic_axes={"flat_predictions": {0: "num_predictions"}},
-        )
-
-        onnx.checker.check_model(onnx.load("ConvertFlatTensorToTRTFormat.onnx"))
-
-        session = onnxruntime.InferenceSession("ConvertFlatTensorToTRTFormat.onnx")
-
-        inputs = [o.name for o in session.get_inputs()]
-        outputs = [o.name for o in session.get_outputs()]
-
-        result = session.run(outputs, {inputs[0]: predictions.numpy()})
-        for r in result:
-            print(r.shape, r.dtype, r)
-
-        result = session.run(outputs, {inputs[0]: np.zeros((1, 7), dtype=np.float32)})
-        for r in result:
-            print(r.shape, r.dtype, r)
-
-        result = session.run(outputs, {inputs[0]: np.zeros((0, 7), dtype=np.float32)})
-        for r in result:
-            print(r.shape, r.dtype, r)
-
-    def test_trt_format_to_flat_format(self):
-        predictions = torch.tensor(
-            [[0, 1, 2, 3, 4, 5, 6], [0, 11, 12, 13, 14, 15, 16], [0, 21, 22, 23, 24, 25, 26], [2, 31, 32, 33, 34, 35, 36], [3, 31, 32, 33, 34, 35, 36]]
-        ).float()
-
-        flat_to_batched_predictions = ConvertFlatTensorToTRTFormat(batch_size=4, max_predictions_per_image=20)
-        batched_to_flat_predictions = ConvertTRTFormatToFlatTensor(batch_size=4)
-
-        num_predictions, pred_boxes, pred_scores, pred_classes = flat_to_batched_predictions(torch.zeros((0, 7), dtype=torch.float32))
-        assert num_predictions.eq(0).all()
-        assert pred_boxes.eq(0).all()
-        assert pred_scores.eq(0).all()
-        assert pred_classes.eq(0).all()
-        preds = batched_to_flat_predictions(num_predictions, pred_boxes, pred_scores, pred_classes)
-        assert preds.shape == (0, 7)
-
-        num_predictions, pred_boxes, pred_scores, pred_classes = flat_to_batched_predictions(predictions)
-        assert num_predictions[0].item() == 3
-        assert num_predictions[1].item() == 0
-        assert num_predictions[2].item() == 1
-        assert num_predictions[3].item() == 1
-
-        batch_size = 4
-        max_predictions_per_image = 100
-        num_predictions = torch.zeros((batch_size, 1), dtype=torch.int64)
-        pred_boxes = torch.zeros((batch_size, max_predictions_per_image, 4), dtype=torch.float32)
-        pred_scores = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.float32)
-        pred_classes = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.int64)
-
-        torch.onnx.export(
-            ConvertTRTFormatToFlatTensor(batch_size=4),
-            args=(num_predictions, pred_boxes, pred_scores, pred_classes),
-            f="ConvertTRTFormatToFlatTensor.onnx",
-            input_names=["num_predictions", "pred_boxes", "pred_scores", "pred_classes"],
-            output_names=["flat_predictions"],
-            dynamic_axes={"flat_predictions": {0: "num_predictions"}},
-        )
-
-        onnx.checker.check_model(onnx.load("ConvertTRTFormatToFlatTensor.onnx"))
-
-        session = onnxruntime.InferenceSession("ConvertTRTFormatToFlatTensor.onnx")
-
-        inputs = [o.name for o in session.get_inputs()]
-        outputs = [o.name for o in session.get_outputs()]
-
-        result = session.run(
-            outputs, {inputs[0]: num_predictions.numpy(), inputs[1]: pred_boxes.numpy(), inputs[2]: pred_scores.numpy(), inputs[3]: pred_classes.numpy()}
-        )
-        for r in result:
             print(r.shape, r.dtype, r)
 
     def _benchmark_onnx(self, onnx_file, precision="--fp16"):
