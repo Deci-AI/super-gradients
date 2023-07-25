@@ -425,3 +425,4 @@ class Processings:
     ComposeProcessing = "ComposeProcessing"
     CenterCrop = "CenterCrop"
     Resize = "Resize"
+    SegRescaleWithPadding = "SegRescaleWithPadding"

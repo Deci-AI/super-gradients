@@ -19,7 +19,7 @@ from super_gradients.training.transforms.utils import (
     _rescale_keypoints,
     _shift_keypoints,
 )
-from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
+from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction, SegmentationPrediction
 
 
 @dataclass
@@ -42,6 +42,13 @@ class RescaleMetadata(ProcessingMetadata):
     original_shape: Tuple[int, int]
     scale_factor_h: float
     scale_factor_w: float
+
+
+@dataclass
+class SegRescaleMetadata(ProcessingMetadata):
+    original_shape: Tuple[int, int]
+    scale_factor: float
+    padding_coordinates: PaddingCoordinates
 
 
 class Processing(ABC):
@@ -357,6 +364,41 @@ class CenterCrop(ClassificationProcess):
         return cropped_image, None
 
 
+@register_processing(Processings.SegRescaleWithPadding)
+class SegRescaleWithPadding(Processing, ABC):
+    """Resize image to given image dimensions while preserving aspect ratio (padding might be used).
+
+    :param output_shape:    (H, W)
+    :param pad_value:    padding value(if padding needed)
+    """
+
+    def __init__(self, output_shape: Tuple[int, int], pad_value: int):
+        self.output_shape = output_shape
+        self.pad_value = pad_value
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
+        height, width = image.shape[:2]
+        scale_factor = min(self.output_shape[0] / height, self.output_shape[1] / width)
+
+        if scale_factor != 1.0:
+            new_height, new_width = round(height * scale_factor), round(width * scale_factor)
+            image = _rescale_image(image, target_shape=(new_height, new_width))
+
+        padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=self.output_shape)
+        processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
+
+        return processed_image, SegRescaleMetadata(original_shape=(height, width), scale_factor=scale_factor, padding_coordinates=padding_coordinates)
+
+    def postprocess_predictions(self, predictions: SegmentationPrediction, metadata: SegRescaleMetadata) -> SegmentationPrediction:
+        predictions.segmentation_map = predictions.segmentation_map[
+            metadata.padding_coordinates.top : predictions.segmentation_map_shape[0] - metadata.padding_coordinates.bottom,
+            metadata.padding_coordinates.left : predictions.segmentation_map_shape[1] - metadata.padding_coordinates.right,
+        ]
+        predictions.segmentation_map = _rescale_image(predictions.segmentation_map.astype(np.uint8), target_shape=metadata.original_shape)
+        predictions.segmentation_map = predictions.segmentation_map.astype(np.int64)
+        return predictions
+
+
 def default_yolox_coco_processing_params() -> dict:
     """Processing parameters commonly used for training YoloX on COCO dataset.
     TODO: remove once we load it from the checkpoint
@@ -519,6 +561,46 @@ def default_resnet_imagenet_processing_params() -> dict:
     return params
 
 
+def default_ppliteseg_cityscapes_processing_params() -> dict:
+    """Processing parameters commonly used for training ppliteseg on Cityscapes dataset."""
+    # image_processor = ComposeProcessing(
+    #     [Resize(size=256), CenterCrop(size=224), NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), StandardizeImage(), ImagePermute()]
+    # )
+    image_processor = ComposeProcessing(
+        [
+            SegRescaleWithPadding(output_shape=(768, 1536), pad_value=0),
+            NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            StandardizeImage(),
+            ImagePermute(),
+        ]
+    )
+    params = dict(
+        class_names=[
+            "road",
+            "sidewalk",
+            "building",
+            "wall",
+            "fence",
+            "pole",
+            "traffic light",
+            "traffic sign",
+            "vegetation",
+            "terrain",
+            "sky",
+            "person",
+            "rider",
+            "car",
+            "truck",
+            "bus",
+            "train",
+            "motorcycle",
+            "bicycle",
+        ],
+        image_processor=image_processor,
+    )
+    return params
+
+
 def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -> dict:
     """Get the processing parameters for a pretrained model.
     TODO: remove once we load it from the checkpoint
@@ -536,5 +618,8 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
 
     if pretrained_weights == "imagenet" and model_name == "resnet18":
         return default_resnet_imagenet_processing_params()
+
+    if pretrained_weights == "cityscapes" and model_name == "pp_lite_t_seg75":
+        return default_ppliteseg_cityscapes_processing_params()
 
     return dict()

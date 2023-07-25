@@ -9,9 +9,10 @@ from super_gradients.training.utils.media.image import show_image, save_image
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.visualization.detection import draw_bbox
 from super_gradients.training.utils.visualization.classification import draw_label
+from super_gradients.training.utils.visualization.segmentation import overlay_segmentation
 
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
-from .predictions import Prediction, DetectionPrediction, ClassificationPrediction
+from .predictions import Prediction, DetectionPrediction, ClassificationPrediction, SegmentationPrediction
 
 
 @dataclass
@@ -154,6 +155,56 @@ class ImageDetectionPrediction(ImagePrediction):
                                 Default is None, which generates a default color mapping based on the number of class names.
         """
         image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
+        save_image(image=image, path=output_path)
+
+
+@dataclass
+class ImageSegmentationPrediction(ImagePrediction):
+    """Object wrapping an image and a segmentation model's prediction.
+
+    :attr image:        Input image
+    :attr predictions:  Predictions of the model
+    :attr class_names:  List of the class names to predict
+    """
+
+    image: np.ndarray
+    prediction: SegmentationPrediction
+    class_names: List[str]
+
+    def draw(self, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None, class_names: Optional[List[str]] = None) -> np.ndarray:
+        """Draw the predicted segmentation on the image.
+
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        :return:                Image with predicted segmentation. Note that this does not modify the original image.
+        """
+        image = self.image.copy()
+        color_mapping = color_mapping or generate_color_mapping(len(self.class_names))
+
+        return overlay_segmentation(
+            image=image, pred_mask=self.prediction, num_classes=len(self.class_names), alpha=alpha, colors=color_mapping, class_names=class_names
+        )
+
+    def show(self, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+        """Display the image with segmentation prediction overlay.
+
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
+        image = self.draw(alpha=alpha, color_mapping=color_mapping, class_names=self.class_names)
+        show_image(image)
+
+    def save(self, output_path: str, alpha=0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+        """Save the predicted segmentation on the images.
+
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param output_path:     Path to the output file.
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
+        image = self.draw(alpha=alpha, color_mapping=color_mapping, class_names=self.class_names)
         save_image(image=image, path=output_path)
 
 
@@ -324,3 +375,36 @@ class VideoDetectionPrediction(VideoPredictions):
         """
         frames = self.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping)
         save_video(output_path=output_path, frames=frames, fps=self.fps)
+
+
+@dataclass
+class ImagesSegmentationPrediction(ImagesPredictions):
+    """Object wrapping the list of image segmentation predictions.
+
+    :attr _images_prediction_lst:  List of the predictions results
+    """
+
+    _images_prediction_lst: List[ImageSegmentationPrediction]
+
+    def show(self, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+        """Display the predicted segmentation on the images.
+
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
+        for prediction in self._images_prediction_lst:
+            prediction.show(color_mapping=color_mapping)
+
+    def save(self, output_folder: str, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
+        """Save the predicted bboxes on the images.
+
+        :param output_folder:     Folder path, where the images will be saved.
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        """
+        if output_folder:
+            os.makedirs(output_folder, exist_ok=True)
+
+        for i, prediction in enumerate(self._images_prediction_lst):
+            image_output_path = os.path.join(output_folder, f"pred_{i}.jpg")
+            prediction.save(output_path=image_output_path, color_mapping=color_mapping)
