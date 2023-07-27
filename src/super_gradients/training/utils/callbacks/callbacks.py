@@ -1057,7 +1057,12 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
                             f"of the monitored metric: {self.metric.__class__.__name__}"
                         )
                     score = score[self.metric_component_name]
+                elif len(score) > 1:
+                    raise RuntimeError(f"returned multiple values from {self.metric} but no metric_component_name has been passed to __init__.")
+                else:
+                    score = score.pop(list(score.keys())[0])
                 self.metric.reset()
+
             else:
 
                 # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
@@ -1080,7 +1085,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
     def _init_loss_attributes(self, context: PhaseContext):
         if self.loss_to_monitor not in context.loss_logging_items_names:
             raise ValueError(f"{self.loss_to_monitor} not a loss or loss component.")
-        self._idx_loss_tuple = context.loss_logging_items_names.index(self.metric_name)
+        self._idx_loss_tuple = context.loss_logging_items_names.index(self.loss_to_monitor)
         self._first_call = False
 
     def on_validation_loader_end(self, context: PhaseContext) -> None:
