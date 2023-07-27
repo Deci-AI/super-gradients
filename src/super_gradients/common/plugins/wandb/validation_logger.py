@@ -19,6 +19,7 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
         class_names,
         max_predictions_plotted: Optional[int] = None,
         post_prediction_callback: Optional[DetectionPostPredictionCallback] = None,
+        reverse_channel_order: bool = True,
     ) -> None:
         """A callback for logging object detection predictions to Weights & Biases during training.
 
@@ -34,6 +35,7 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
         self.class_names = class_names
         self.max_predictions_plotted = max_predictions_plotted
         self.post_prediction_callback = post_prediction_callback
+        self.reverse_channel_order = reverse_channel_order
         self.wandb_images = []
         self.epoch_count = 0
         self.mean_prediction_dicts = []
@@ -48,6 +50,7 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
             self.post_prediction_callback = (
                 unwrap_model(context.net).get_post_prediction_callback() if self.post_prediction_callback is None else self.post_prediction_callback
             )
+            self.post_prediction_callback.fuse_layers = False
             post_nms_predictions = self.post_prediction_callback(context.preds, device=context.device)
         if self.max_predictions_plotted is not None:
             post_nms_predictions = post_nms_predictions[: self.max_predictions_plotted]
@@ -73,7 +76,9 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
                 mean_prediction_dict[self.class_names[int(predicted_label)]] += prediction_confidence
             mean_prediction_dict = {k: v / len(prediction[:, 4]) for k, v in mean_prediction_dict.items()}
             self.mean_prediction_dicts.append(mean_prediction_dict)
-            wandb_image = visualize_image_detection_prediction_on_wandb(prediction=image_prediction, show_confidence=True)
+            wandb_image = visualize_image_detection_prediction_on_wandb(
+                prediction=image_prediction, show_confidence=True, reverse_channel_order=self.reverse_channel_order
+            )
             self.wandb_images.append(wandb_image)
 
     def on_validation_loader_end(self, context: PhaseContext) -> None:

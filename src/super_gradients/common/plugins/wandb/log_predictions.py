@@ -13,7 +13,7 @@ from super_gradients.training.datasets.detection_datasets import DetectionDatase
 from super_gradients.training.utils.predict import ImageDetectionPrediction, ImagesDetectionPrediction
 
 
-def visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPrediction, show_confidence: bool):
+def visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPrediction, show_confidence: bool, reverse_channels: bool = False):
     """Visualize detection results on a single image.
 
     :param prediction:      Prediction results of a single image (a `super_gradients.training.models.prediction_results.ImageDetectionPrediction` object)
@@ -21,6 +21,7 @@ def visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPred
     """
     boxes = []
     image = prediction.image.copy()
+    image = image[:, :, ::-1] if reverse_channels else image
     height, width, _ = image.shape
     class_id_to_labels = {int(_id): str(_class_name) for _id, _class_name in enumerate(prediction.class_names)}
 
