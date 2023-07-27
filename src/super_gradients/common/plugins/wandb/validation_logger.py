@@ -5,46 +5,35 @@ import torch
 import numpy as np
 
 from super_gradients.training.utils.callbacks import Callback, PhaseContext
-from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
 from super_gradients.common.plugins.wandb.log_predictions import visualize_image_detection_prediction_on_wandb
 from super_gradients.training.models.predictions import DetectionPrediction
 from super_gradients.training.utils.predict import ImageDetectionPrediction
+from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
+from super_gradients.module_interfaces import HasPredict
+from super_gradients.training.utils.utils import unwrap_model
 
 
 class WandBDetectionValidationPredictionLoggerCallback(Callback):
     def __init__(
         self,
         class_names,
-        score_threshold: float = 0.001,
-        nms_threshold: float = 0.6,
-        nms_top_k: int = 1000,
-        max_predictions: int = 300,
         max_predictions_plotted: Optional[int] = None,
-        multi_label_per_box: bool = True,
+        post_prediction_callback: Optional[DetectionPostPredictionCallback] = None,
     ) -> None:
         """A callback for logging object detection predictions to Weights & Biases during training.
 
-        :param class_names:             A list of class names.
-        :param score_threshold:         Predictions confidence threshold. Predictions with score lower than score_threshold will not participate in Top-K & NMS
-        :param iou:                     IoU threshold for NMS step.
-        :param nms_top_k:               Number of predictions participating in NMS step
-        :param max_predictions:         Maximum number of boxes to return after NMS step
-        :param max_predictions_plotted: Maximum number of predictions to be plotted per epoch. This is set to `None` by default which means thatthe predictions
-                                        corresponding to all images from `context.inputs` is logged, otherwise only `max_predictions_plotted` number of images
-                                        is logged. Since `WandBDetectionValidationPredictionLoggerCallback` accumulates the generated images in the RAM, it is
-                                        advisable that the value of this parameter be explicitly specified for larger datasets in order to avoid out-of-memory
-                                        errors.
+        :param class_names:              A list of class names.
+        :param max_predictions_plotted:  Maximum number of predictions to be plotted per epoch. This is set to `None` by default which means thatthe predictions
+                                         corresponding to all images from `context.inputs` is logged, otherwise only `max_predictions_plotted` number of images
+                                         is logged. Since `WandBDetectionValidationPredictionLoggerCallback` accumulates the generated images in the RAM, it is
+                                         advisable that the value of this parameter be explicitly specified for larger datasets in order to avoid out-of-memory
+                                         errors.
+        :param post_prediction_callback: `DetectionPostPredictionCallback` for post-processing outputs of the model.
         """
         super().__init__()
         self.class_names = class_names
         self.max_predictions_plotted = max_predictions_plotted
-        self.post_prediction_callback = PPYoloEPostPredictionCallback(
-            score_threshold=score_threshold,
-            nms_threshold=nms_threshold,
-            nms_top_k=nms_top_k,
-            max_predictions=max_predictions,
-            multi_label_per_box=multi_label_per_box,
-        )
+        self.post_prediction_callback = post_prediction_callback
         self.wandb_images = []
         self.epoch_count = 0
         self.mean_prediction_dicts = []
@@ -53,7 +42,13 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
     def on_validation_batch_end(self, context: PhaseContext) -> None:
         self.wandb_images = []
         mean_prediction_dict = {class_name: 0.0 for class_name in self.class_names}
-        post_nms_predictions = self.post_prediction_callback(context.preds, device=context.device)
+        if isinstance(context.net, HasPredict):
+            post_nms_predictions = context.net(context.inputs)
+        else:
+            self.post_prediction_callback = (
+                unwrap_model(context.net).get_post_prediction_callback() if self.post_prediction_callback is None else self.post_prediction_callback
+            )
+            post_nms_predictions = self.post_prediction_callback(context.preds, device=context.device)
         if self.max_predictions_plotted is not None:
             post_nms_predictions = post_nms_predictions[: self.max_predictions_plotted]
             input_images = context.inputs[: self.max_predictions_plotted]
