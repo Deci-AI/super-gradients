@@ -1,6 +1,5 @@
 from typing import Optional
 
-import wandb
 import torch
 import numpy as np
 
@@ -12,6 +11,11 @@ from super_gradients.training.utils.detection_utils import DetectionPostPredicti
 from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.utils.utils import unwrap_model
 
+try:
+    import wandb
+except (ModuleNotFoundError, ImportError, NameError):
+    pass  # no action or logging - this is normal in most cases
+
 
 class WandBDetectionValidationPredictionLoggerCallback(Callback):
     def __init__(
@@ -21,10 +25,13 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
         post_prediction_callback: Optional[DetectionPostPredictionCallback] = None,
         reverse_channel_order: bool = True,
     ) -> None:
-        """A callback for logging object detection predictions to Weights & Biases during training.
+        """A callback for logging object detection predictions to Weights & Biases during training. This callback is logging images on each batch in validation
+        and accumulating generated images in a `wandb.Table` in the RAM. This could potentially cause OOM errors for very large datasets like COCO. In order to
+        avoid this, it is recommended to explicitly set the parameter `max_predictions_plotted` to a small value, thus limiting the number of images logged in
+        the table.
 
         :param class_names:              A list of class names.
-        :param max_predictions_plotted:  Maximum number of predictions to be plotted per epoch. This is set to `None` by default which means thatthe predictions
+        :param max_predictions_plotted:  Maximum number of predictions to be plotted per epoch. This is set to `None` by default which means that the predictions
                                          corresponding to all images from `context.inputs` is logged, otherwise only `max_predictions_plotted` number of images
                                          is logged. Since `WandBDetectionValidationPredictionLoggerCallback` accumulates the generated images in the RAM, it is
                                          advisable that the value of this parameter be explicitly specified for larger datasets in order to avoid out-of-memory
