@@ -23,7 +23,7 @@ from super_gradients.common.exceptions.dataset_exceptions import EmptyDatasetExc
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
-from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
+from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, LabelTensorSliceItem
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 logger = get_logger(__name__)
@@ -232,9 +232,9 @@ class DetectionDataset(Dataset):
         :param annotation: Dict representing the annotation of a specific image
         :return:           Subclassed annotation if non empty after subclassing, otherwise None
         """
-        cls_posx = get_cls_posx_in_target(self.original_target_format)
+        cls_index = _get_cls_index_in_target(target_format=self.original_target_format)
         for field in self.target_fields:
-            annotation[field] = self._sub_class_target(targets=annotation[field], cls_posx=cls_posx)
+            annotation[field] = self._sub_class_target(targets=annotation[field], cls_posx=cls_index)
         return annotation
 
     def _sub_class_target(self, targets: np.ndarray, cls_posx: int) -> np.ndarray:
@@ -505,3 +505,14 @@ class DetectionDataset(Dataset):
             conf=0.5,
         )
         return params
+
+
+def _get_cls_index_in_target(target_format: DetectionTargetsFormat) -> int:
+    if isinstance(target_format, ConcatenatedTensorFormat):
+        return target_format.indexes[LabelTensorSliceItem.NAME][0]
+    elif isinstance(target_format, DetectionTargetsFormat):
+        return get_cls_posx_in_target(target_format)
+    else:
+        raise NotImplementedError(
+            f"{target_format} is not supported. Supported formats are: {ConcatenatedTensorFormat.__name__}, {DetectionTargetsFormat.__name__}"
+        )

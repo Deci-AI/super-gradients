@@ -1,5 +1,5 @@
 from super_gradients.common.object_names import ConcatenatedTensorFormats
-from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, LabelTensorSliceItem
 from super_gradients.training.datasets.data_formats.bbox_formats import (
     XYXYCoordinateFormat,
     XYWHCoordinateFormat,
@@ -12,72 +12,72 @@ from super_gradients.training.datasets.data_formats.bbox_formats import (
 XYXY_LABEL = ConcatenatedTensorFormat(
     layout=(
         BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
     )
 )
 XYWH_LABEL = ConcatenatedTensorFormat(
     layout=(
         BoundingBoxesTensorSliceItem(name="bboxes", format=XYWHCoordinateFormat()),
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
     )
 )
 CXCYWH_LABEL = ConcatenatedTensorFormat(
     layout=(
         BoundingBoxesTensorSliceItem(name="bboxes", format=CXCYWHCoordinateFormat()),
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
     )
 )
 LABEL_XYXY = ConcatenatedTensorFormat(
     layout=(
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
         BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
     )
 )
 LABEL_XYWH = ConcatenatedTensorFormat(
     layout=(
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
         BoundingBoxesTensorSliceItem(name="bboxes", format=XYWHCoordinateFormat()),
     )
 )
 LABEL_CXCYWH = ConcatenatedTensorFormat(
     layout=(
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
         BoundingBoxesTensorSliceItem(name="bboxes", format=CXCYWHCoordinateFormat()),
     )
 )
 NORMALIZED_XYXY_LABEL = ConcatenatedTensorFormat(
     layout=(
         BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedXYXYCoordinateFormat()),
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
     )
 )
 NORMALIZED_XYWH_LABEL = ConcatenatedTensorFormat(
     layout=(
         BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedXYWHCoordinateFormat()),
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
     )
 )
 NORMALIZED_CXCYWH_LABEL = ConcatenatedTensorFormat(
     layout=(
         BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedCXCYWHCoordinateFormat()),
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
     )
 )
 LABEL_NORMALIZED_XYXY = ConcatenatedTensorFormat(
     layout=(
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
         BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedXYXYCoordinateFormat()),
     )
 )
 LABEL_NORMALIZED_XYWH = ConcatenatedTensorFormat(
     layout=(
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
         BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedXYWHCoordinateFormat()),
     )
 )
 LABEL_NORMALIZED_CXCYWH = ConcatenatedTensorFormat(
     layout=(
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
         BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedCXCYWHCoordinateFormat()),
     )
 )
