@@ -93,7 +93,7 @@ class ExportableObjectDetectionModel:
         max_predictions_per_image: Optional[int] = None,
         onnx_export_kwargs: Optional[dict] = None,
         onnx_simplify: bool = True,
-        device: Optional[torch.device] = None,
+        device: Optional[Union[torch.device, str]] = None,
         output_predictions_format: DetectionOutputFormatMode = DetectionOutputFormatMode.BATCH_FORMAT,
         num_pre_nms_predictions: int = 1000,
     ):
@@ -162,7 +162,7 @@ class ExportableObjectDetectionModel:
 
         logger.debug(f"Using device: {device} for exporting model {self.__class__.__name__}")
 
-        model: nn.Module = copy.deepcopy(self).to(device).eval()
+        model: nn.Module = copy.deepcopy(self).eval()
 
         engine: ExportTargetBackend = engine or infer_format_from_file_name(output)
         if engine is None:
@@ -318,15 +318,16 @@ class ExportableObjectDetectionModel:
 
             try:
                 with torch.no_grad():
-                    onnx_input = torch.randn(input_shape, device=device).to(input_image_dtype)
-                    complete_model(onnx_input)
+                    onnx_input = torch.randn(input_shape).to(device=device, dtype=input_image_dtype)
+                    # Sanity check that model works
+                    _ = complete_model(onnx_input)
 
                     for name, p in complete_model.named_parameters():
                         if p.device != device:
                             logger.warning(f"Model parameter {name} is on device {p.device} but expected to be on device {device}")
 
                     for name, p in complete_model.named_buffers():
-                        if p.device != torch.device(device):
+                        if p.device != device:
                             logger.warning(f"Model buffer {name} is on device {p.device} but expected to be on device {device}")
 
                     logger.debug("Exporting model to ONNX")
