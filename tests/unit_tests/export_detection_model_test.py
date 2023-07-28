@@ -534,8 +534,8 @@ class TestDetectionModelExport(unittest.TestCase):
                     for model_type in [Models.YOLOX_S, Models.PP_YOLOE_S, Models.YOLO_NAS_S]:
                         model_name = str(model_type).lower()
                         model = models.get(model_type, pretrained_weights="coco")
-                        quantization_suffix = str(quantization) if quantization is not None else ""
-                        onnx_filename = f"{model_name}_{engine}_{output_predictions_format}_{quantization_suffix}.onnx"
+                        quantization_suffix = f"_{quantization.value}" if quantization is not None else ""
+                        onnx_filename = f"{model_name}_{engine.value}_{output_predictions_format.value}{quantization_suffix}.onnx"
 
                         with self.subTest(msg=onnx_filename):
 
