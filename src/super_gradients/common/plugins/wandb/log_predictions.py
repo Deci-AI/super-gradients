@@ -16,8 +16,10 @@ from super_gradients.training.utils.predict import ImageDetectionPrediction, Ima
 def visualize_image_detection_prediction_on_wandb(prediction: ImageDetectionPrediction, show_confidence: bool, reverse_channels: bool = False):
     """Visualize detection results on a single image.
 
-    :param prediction:      Prediction results of a single image (a `super_gradients.training.models.prediction_results.ImageDetectionPrediction` object)
-    :param show_confidence: Whether to log confidence scores to Weights & Biases or not.
+    :param prediction:          Prediction results of a single image
+                                (a `super_gradients.training.models.prediction_results.ImageDetectionPrediction` object)
+    :param show_confidence:     Whether to log confidence scores to Weights & Biases or not.
+    :param reverse_channels:    Reverse the order of channels on the images while plotting.
     """
     boxes = []
     image = prediction.image.copy()
@@ -57,12 +59,13 @@ def log_detection_results_to_wandb(prediction: ImagesDetectionPrediction, show_c
         wandb.log({"Predictions": wandb_image})
 
 
-def plot_detection_dataset_on_wandb(detection_dataset: DetectionDataset, max_examples: int = None, dataset_name: str = None):
+def plot_detection_dataset_on_wandb(detection_dataset: DetectionDataset, max_examples: int = None, dataset_name: str = None, reverse_channels: bool = True):
     """Log a detection dataset to Weights & Biases Table.
 
     :param detection_dataset:       The Detection Dataset (a `super_gradients.training.datasets.detection_datasets.DetectionDataset` object)
     :param max_examples:            Maximum number of examples from the detection dataset to plot (an `int`).
     :param dataset_name:            Name of the dataset (a `str`).
+    :param reverse_channels:        Reverse the order of channels on the images while plotting.
     """
     max_examples = len(detection_dataset) if max_examples is None else max_examples
     wandb_table = wandb.Table(columns=["Images", "Class-Frequencies"])
@@ -92,6 +95,7 @@ def plot_detection_dataset_on_wandb(detection_dataset: DetectionDataset, max_exa
                 }
             )
             class_frequencies[str(class_id_to_labels[int(classes[idx])])] += 1
+        image = image[:, :, ::-1] if reverse_channels else image
         wandb_table.add_data(wandb.Image(image, boxes={"ground_truth": {"box_data": wandb_boxes, "class_labels": class_id_to_labels}}), class_frequencies)
     dataset_name = "Dataset" if dataset_name is None else dataset_name
     wandb.log({dataset_name: wandb_table}, commit=False)

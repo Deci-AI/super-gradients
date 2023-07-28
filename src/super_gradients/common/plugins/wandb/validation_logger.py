@@ -23,26 +23,27 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
         class_names,
         max_predictions_plotted: Optional[int] = None,
         post_prediction_callback: Optional[DetectionPostPredictionCallback] = None,
-        reverse_channel_order: bool = True,
+        reverse_channels: bool = True,
     ) -> None:
         """A callback for logging object detection predictions to Weights & Biases during training. This callback is logging images on each batch in validation
         and accumulating generated images in a `wandb.Table` in the RAM. This could potentially cause OOM errors for very large datasets like COCO. In order to
         avoid this, it is recommended to explicitly set the parameter `max_predictions_plotted` to a small value, thus limiting the number of images logged in
         the table.
 
-        :param class_names:             A list of class names.
-        :param max_predictions_plotted: Maximum number of predictions to be plotted per epoch. This is set to `None` by default which means that the predictions
-                                        corresponding to all images from `context.inputs` is logged, otherwise only `max_predictions_plotted` number of images
-                                        is logged. Since `WandBDetectionValidationPredictionLoggerCallback` accumulates the generated images in the RAM, it is
-                                        advisable that the value of this parameter be explicitly specified for larger datasets in order to avoid out-of-memory
-                                        errors.
-        :param post_prediction_callback: `DetectionPostPredictionCallback` for post-processing outputs of the model.
+        :param class_names:                 A list of class names.
+        :param max_predictions_plotted:     Maximum number of predictions to be plotted per epoch. This is set to `None` by default which means that the
+                                            predictions corresponding to all images from `context.inputs` is logged, otherwise only `max_predictions_plotted`
+                                            number of images is logged. Since `WandBDetectionValidationPredictionLoggerCallback` accumulates the generated images
+                                            in the RAM, it is advisable that the value of this parameter be explicitly specified for larger datasets in order to
+                                            avoid out-of-memory errors.
+        :param post_prediction_callback:    `DetectionPostPredictionCallback` for post-processing outputs of the model.
+        :param reverse_channels:            Reverse the order of channels on the images while plotting.
         """
         super().__init__()
         self.class_names = class_names
         self.max_predictions_plotted = max_predictions_plotted
         self.post_prediction_callback = post_prediction_callback
-        self.reverse_channel_order = reverse_channel_order
+        self.reverse_channels = reverse_channels
         self.wandb_images = []
         self.epoch_count = 0
         self.mean_prediction_dicts = []
@@ -84,7 +85,7 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
             mean_prediction_dict = {k: v / len(prediction[:, 4]) for k, v in mean_prediction_dict.items()}
             self.mean_prediction_dicts.append(mean_prediction_dict)
             wandb_image = visualize_image_detection_prediction_on_wandb(
-                prediction=image_prediction, show_confidence=True, reverse_channel_order=self.reverse_channel_order
+                prediction=image_prediction, show_confidence=True, reverse_channels=self.reverse_channels
             )
             self.wandb_images.append(wandb_image)
 
