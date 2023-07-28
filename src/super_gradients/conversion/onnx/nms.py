@@ -7,9 +7,12 @@ import onnx
 import onnx.shape_inference
 import onnx_graphsurgeon as gs
 import torch
+from onnx import TensorProto
 from torch import nn, Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
+from super_gradients.conversion.conversion_utils import numpy_dtype_to_torch_dtype
 from super_gradients.conversion.onnx.utils import append_graphs
 
 logger = get_logger(__name__)
@@ -65,11 +68,11 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
         return num_predictions.unsqueeze(1), pred_boxes, pred_scores, pred_classes
 
     @classmethod
-    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image) -> gs.Graph:
+    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image, dtype: torch.dtype) -> gs.Graph:
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "PickNMSPredictionsAndReturnAsBatchedResult.onnx")
-            pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4))
-            pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 91))
+            pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype)
+            pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 3), dtype=dtype)
             selected_indexes = torch.zeros((max_predictions_per_image, 3), dtype=torch.int64)
 
             torch.onnx.export(
@@ -113,7 +116,9 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
         :param pred_boxes: [B, N, 4] tensor
         :param pred_scores: [B, N, C] tensor
         :param selected_indexes: [num_selected_indices, 3] - each row is [batch_indexes, label_indexes, boxes_indexes]
-        :return:
+        :return: A single tensor of [Nout, 7] shape, where Nout is the total number of detections across all images in the batch.
+        Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
+
         """
         batch_indexes, label_indexes, boxes_indexes = selected_indexes[:, 0], selected_indexes[:, 1], selected_indexes[:, 2]
 
@@ -123,11 +128,11 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
         return torch.cat([batch_indexes.unsqueeze(1), selected_boxes, selected_scores.unsqueeze(1), label_indexes.unsqueeze(1)], dim=1)
 
     @classmethod
-    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int) -> gs.Graph:
+    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int, dtype: torch.dtype) -> gs.Graph:
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "PickNMSPredictionsAndReturnAsFlatTensor.onnx")
-            pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4))
-            pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 91))
+            pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype)
+            pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 91), dtype=dtype)
 
             torch.onnx.export(
                 PickNMSPredictionsAndReturnAsFlatResult(
@@ -157,17 +162,18 @@ def attach_onnx_nms(
     confidence_threshold: float,
     nms_threshold: float,
     batch_size: int,
-    output_predictions_format: str,
+    output_predictions_format: DetectionOutputFormatMode,
 ):
     """
     Attach ONNX NMS plugin to the detection model.
     The model should have exactly two outputs: pred_boxes and pred_scores.
-        - pred_boxes: [batch_size, num_anchors, 4]
-        - pred_scores: [batch_size, num_anchors, num_classes]
+        - pred_boxes: [batch_size, num_pre_nms_predictions, 4]
+        - pred_scores: [batch_size, num_pre_nms_predictions, num_classes]
     This function will add the NMS layer to the model and return predictions in the format defined by output_format.
 
     :param onnx_model_path: Input ONNX model path
     :param output_onnx_model_path: Output ONNX model path. Can be the same as input model path.
+    :param num_pre_nms_predictions:
     :param batch_size: The batch size used for the inference.
     :param max_predictions_per_image: Maximum number of predictions per image
     :param confidence_threshold: The confidence threshold to use for detections.
@@ -191,6 +197,29 @@ def attach_onnx_nms(
     graph.fold_constants()
 
     pred_boxes, pred_scores = graph.outputs
+
+    graph_output_dtype = pred_scores.dtype
+
+    if graph_output_dtype == np.float16:
+        pred_scores_f32 = gs.Variable(
+            name="pred_scores_f32",
+            dtype=np.float32,
+            shape=pred_scores.shape,
+        )
+        pred_boxes_f32 = gs.Variable(
+            name="pred_boxes_f32",
+            dtype=np.float32,
+            shape=pred_boxes.shape,
+        )
+        graph.layer(op="Cast", name="cast_boxes_to_fp32", inputs=[pred_boxes], outputs=[pred_boxes_f32], attrs={"to": TensorProto.FLOAT})
+        graph.layer(op="Cast", name="cast_scores_to_fp32", inputs=[pred_scores], outputs=[pred_scores_f32], attrs={"to": TensorProto.FLOAT})
+
+        pred_scores = pred_scores_f32
+        pred_boxes = pred_boxes_f32
+    elif graph_output_dtype == np.float32:
+        pass
+    else:
+        raise ValueError(f"Invalid dtype: {graph_output_dtype}")
 
     permute_scores = gs.Variable(
         name="permuted_scores",
@@ -225,16 +254,22 @@ def attach_onnx_nms(
         },
     )
 
-    graph.outputs = [pred_boxes, pred_boxes, output_selected_indices]
+    graph.outputs = [pred_boxes, pred_scores, output_selected_indices]
 
-    if output_predictions_format == "batch":
+    if output_predictions_format == DetectionOutputFormatMode.BATCH_FORMAT:
         convert_format_graph = PickNMSPredictionsAndReturnAsBatchedResult.as_graph(
-            batch_size=batch_size, num_pre_nms_predictions=num_pre_nms_predictions, max_predictions_per_image=max_predictions_per_image
+            batch_size=batch_size,
+            num_pre_nms_predictions=num_pre_nms_predictions,
+            max_predictions_per_image=max_predictions_per_image,
+            dtype=numpy_dtype_to_torch_dtype(np.float32),
         )
         graph = append_graphs(graph, convert_format_graph)
-    elif output_predictions_format == "flat":
+    elif output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
         convert_format_graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph(
-            batch_size=batch_size, num_pre_nms_predictions=num_pre_nms_predictions, max_predictions_per_image=max_predictions_per_image
+            batch_size=batch_size,
+            num_pre_nms_predictions=num_pre_nms_predictions,
+            max_predictions_per_image=max_predictions_per_image,
+            dtype=numpy_dtype_to_torch_dtype(np.float32),
         )
         graph = append_graphs(graph, convert_format_graph)
     else:

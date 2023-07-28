@@ -2,6 +2,8 @@ from typing import Optional, Union, Tuple
 
 import torch
 import torch.nn as nn
+
+from super_gradients.conversion.conversion_enums import ExportTargetBackend
 from super_gradients.module_interfaces import HasPredict
 
 
@@ -28,10 +30,17 @@ def fuse_conv_bn(model: nn.Module, replace_bn_with_identity: bool = False):
     return counter
 
 
-def infer_format_from_file_name(output_filename: str) -> Optional[str]:
+def infer_format_from_file_name(output_filename: str) -> Optional[ExportTargetBackend]:
     if isinstance(output_filename, str) and output_filename.endswith(".onnx"):
-        return "onnxruntime"
+        return ExportTargetBackend.ONNXRUNTIME
 
+    return None
+
+
+def infer_image_input_channels(model: Union[nn.Module, HasPredict]) -> Optional[int]:
+    if isinstance(model, HasPredict):
+        input_channels = model.get_input_channels()
+        return input_channels
     return None
 
 
@@ -42,7 +51,9 @@ def infer_image_shape_from_model(model: Union[nn.Module, HasPredict]) -> Optiona
     :param model:
     :return: A tuple of (height, width) or None
     """
-    if not isinstance(model, HasPredict):
-        return None
+    if isinstance(model, HasPredict):
+        processing = model.get_processing_params()
+        if processing is not None:
+            return processing.infer_image_input_shape()
 
     return None

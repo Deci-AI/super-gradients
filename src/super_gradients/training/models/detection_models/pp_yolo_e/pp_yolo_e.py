@@ -9,7 +9,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import register_model
-from super_gradients.module_interfaces import AbstractObjectDetectionDecodingModule, ExportableObjectDetectionModel
+from super_gradients.module_interfaces import AbstractObjectDetectionDecodingModule, ExportableObjectDetectionModel, HasPredict
 from super_gradients.modules import RepVGGBlock
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
@@ -52,7 +52,7 @@ class PPYoloEDecodingModule(AbstractObjectDetectionDecodingModule):
     def get_num_pre_nms_predictions(self) -> int:
         return self.num_pre_nms_predictions
 
-    def forward(self, inputs: Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
+    def forward(self, inputs: Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]) -> Tuple[Tensor, Tensor]:
         """
 
         :param inputs: Tuple [Tensor, Tensor]
@@ -62,7 +62,10 @@ class PPYoloEDecodingModule(AbstractObjectDetectionDecodingModule):
             * boxes [B, Nout, 4], boxes are in format (x1, y1, x2, y2)
             * scores [B, Nout, C]
         """
-        pred_bboxes, pred_scores = inputs
+        if torch.jit.is_tracing():
+            pred_bboxes, pred_scores = inputs
+        else:
+            pred_bboxes, pred_scores = inputs[0]
 
         nms_top_k = self.num_pre_nms_predictions
 
@@ -79,7 +82,7 @@ class PPYoloEDecodingModule(AbstractObjectDetectionDecodingModule):
         return output_pred_bboxes, output_pred_scores
 
 
-class PPYoloE(SgModule, ExportableObjectDetectionModel):
+class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
     def __init__(self, arch_params):
         super().__init__()
         if isinstance(arch_params, HpmStruct):
@@ -88,6 +91,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel):
         self.backbone = CSPResNetBackbone(**arch_params["backbone"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
         self.neck = PPYoloECSPPAN(**arch_params["neck"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
         self.head = PPYOLOEHead(**arch_params["head"], width_mult=arch_params["width_mult"], num_classes=arch_params["num_classes"])
+        self.in_channels = 3
 
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
@@ -97,6 +101,17 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel):
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
+
+    def get_preprocessing_callback(self, **kwargs):
+        processing = self.get_processing_params()
+        preprocessing_module = processing.get_equivalent_photometric_module()
+        return preprocessing_module
+
+    def get_input_channels(self) -> int:
+        return self.in_channels
+
+    def get_processing_params(self) -> Optional[Processing]:
+        return self._image_processor
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(

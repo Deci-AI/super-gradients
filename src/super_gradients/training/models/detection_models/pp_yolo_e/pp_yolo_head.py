@@ -8,7 +8,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.modules import ConvBNAct
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
-from super_gradients.training.utils.utils import infer_model_device
+from super_gradients.training.utils.utils import infer_model_device, infer_model_dtype
 from super_gradients.training.utils.version_utils import torch_version_is_greater_or_equal
 
 
@@ -156,10 +156,11 @@ class PPYOLOEHead(nn.Module):
     def cache_anchors(self, input_size: Tuple[int, int]):
         b, c, h, w = input_size
         self.eval_size = (h, w)
-        anchor_points, stride_tensor = self._generate_anchors()
         device = infer_model_device(self.pred_cls)
-        self.anchor_points = anchor_points.to(device)
-        self.stride_tensor = stride_tensor.to(device)
+        dtype = infer_model_dtype(self.pred_cls)
+        anchor_points, stride_tensor = self._generate_anchors(dtype=dtype, device=device)
+        self.register_buffer("anchor_points", anchor_points, persistent=False)
+        self.register_buffer("stride_tensor", stride_tensor, persistent=False)
 
     @torch.jit.ignore
     def _init_weights(self):
@@ -171,7 +172,10 @@ class PPYOLOEHead(nn.Module):
             torch.nn.init.constant_(reg_.bias, 1.0)
 
         if self.eval_size:
-            anchor_points, stride_tensor = self._generate_anchors()
+            device = infer_model_device(self.pred_cls)
+            dtype = infer_model_dtype(self.pred_cls)
+
+            anchor_points, stride_tensor = self._generate_anchors(dtype=dtype, device=device)
             self.anchor_points = anchor_points
             self.stride_tensor = stride_tensor
 
@@ -253,10 +257,14 @@ class PPYOLOEHead(nn.Module):
         raw_predictions = cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor
         return decoded_predictions, raw_predictions
 
-    def _generate_anchors(self, feats=None, dtype=torch.float):
+    def _generate_anchors(self, feats=None, dtype=None, device=None):
         # just use in eval time
         anchor_points = []
         stride_tensor = []
+
+        dtype = dtype or feats[0].dtype
+        device = device or feats[0].device
+
         for i, stride in enumerate(self.fpn_strides):
             if feats is not None:
                 _, _, h, w = feats[i].shape
@@ -275,9 +283,10 @@ class PPYOLOEHead(nn.Module):
             stride_tensor.append(torch.full([h * w, 1], stride, dtype=dtype))
         anchor_points = torch.cat(anchor_points)
         stride_tensor = torch.cat(stride_tensor)
-        if feats is not None:
-            anchor_points = anchor_points.to(feats[0].device)
-            stride_tensor = stride_tensor.to(feats[0].device)
+
+        if device is not None:
+            anchor_points = anchor_points.to(device)
+            stride_tensor = stride_tensor.to(device)
         return anchor_points, stride_tensor
 
     def forward(self, feats: Tuple[Tensor]):

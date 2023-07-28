@@ -8,6 +8,8 @@ import torch
 from torch import nn, Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
+from super_gradients.conversion.conversion_utils import numpy_dtype_to_torch_dtype
 from super_gradients.conversion.onnx.utils import append_graphs
 
 logger = get_logger(__name__)
@@ -54,13 +56,13 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
         return flat_predictions[:, 1:]
 
     @classmethod
-    def as_graph(cls, batch_size: int, max_predictions_per_image) -> gs.Graph:
+    def as_graph(cls, batch_size: int, max_predictions_per_image: int, dtype: torch.dtype) -> gs.Graph:
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "ConvertTRTFormatToFlatTensor.onnx")
 
             num_predictions = torch.zeros((batch_size, 1), dtype=torch.int32)
-            pred_boxes = torch.zeros((batch_size, max_predictions_per_image, 4), dtype=torch.float32)
-            pred_scores = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.float32)
+            pred_boxes = torch.zeros((batch_size, max_predictions_per_image, 4), dtype=dtype)
+            pred_scores = torch.zeros((batch_size, max_predictions_per_image), dtype=dtype)
             pred_classes = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.int32)
 
             torch.onnx.export(
@@ -84,8 +86,7 @@ def attach_tensorrt_nms(
     confidence_threshold: float,
     nms_threshold: float,
     batch_size: int,
-    output_predictions_format: str,
-    precision: str = "fp32",
+    output_predictions_format: DetectionOutputFormatMode,
 ):
     """
     Attach TensorRT NMS plugin to the ONNX model
@@ -103,8 +104,8 @@ def attach_tensorrt_nms(
     # Do shape inference
     # iteratively_infer_shapes(graph)
 
-    op_inputs = graph.outputs
-    logger.debug(f"op_inputs: {op_inputs}")
+    pred_boxes, pred_scores = graph.outputs
+    logger.debug(f"op_inputs: {pred_boxes}, {pred_scores}")
     op = "EfficientNMS_TRT"
     attrs = {
         "plugin_version": "1",
@@ -116,13 +117,6 @@ def attach_tensorrt_nms(
         "box_coding": 0,
     }
 
-    if precision == "fp32":
-        dtype_output = np.float32
-    elif precision == "fp16":
-        dtype_output = np.float16
-    else:
-        raise NotImplementedError(f"Currently not supports precision: {precision}")
-
     # NMS Outputs
     output_num_detections = gs.Variable(
         name="num_dets",
@@ -131,12 +125,12 @@ def attach_tensorrt_nms(
     )  # A scalar indicating the number of valid detections per batch image.
     output_boxes = gs.Variable(
         name="det_boxes",
-        dtype=dtype_output,
+        dtype=pred_boxes.dtype,
         shape=[batch_size, max_predictions_per_image, 4],
     )
     output_scores = gs.Variable(
         name="det_scores",
-        dtype=dtype_output,
+        dtype=pred_scores.dtype,
         shape=[batch_size, max_predictions_per_image],
     )
     output_labels = gs.Variable(
@@ -149,15 +143,17 @@ def attach_tensorrt_nms(
 
     # Create the NMS Plugin node with the selected inputs. The outputs of the node will also
     # become the final outputs of the graph.
-    graph.layer(op=op, name="batched_nms", inputs=op_inputs, outputs=op_outputs, attrs=attrs)
+    graph.layer(op=op, name="batched_nms", inputs=[pred_boxes, pred_scores], outputs=op_outputs, attrs=attrs)
     logger.info(f"Created NMS plugin '{op}' with attributes: {attrs}")
 
     graph.outputs = op_outputs
 
-    if output_predictions_format == "flat":
-        convert_format_graph = ConvertTRTFormatToFlatTensor.as_graph(batch_size=batch_size, max_predictions_per_image=max_predictions_per_image)
+    if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
+        convert_format_graph = ConvertTRTFormatToFlatTensor.as_graph(
+            batch_size=batch_size, max_predictions_per_image=max_predictions_per_image, dtype=numpy_dtype_to_torch_dtype(pred_boxes.dtype)
+        )
         graph = append_graphs(graph, convert_format_graph)
-    elif output_predictions_format == "batch":
+    elif output_predictions_format == DetectionOutputFormatMode.BATCH_FORMAT:
         pass
     else:
         raise NotImplementedError(f"Currently not supports output_predictions_format: {output_predictions_format}")

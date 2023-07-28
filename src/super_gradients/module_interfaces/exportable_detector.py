@@ -1,6 +1,7 @@
 import abc
 import copy
-from typing import Protocol, runtime_checkable, Any
+import dataclasses
+from typing import Any
 from typing import Union, Optional, List, Tuple
 
 import onnxsim
@@ -9,14 +10,17 @@ from torch import nn, Tensor
 from torch.utils.data import DataLoader
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.conversion.conversion_enums import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
 from super_gradients.conversion.onnx.nms import attach_onnx_nms
+from super_gradients.conversion.preprocessing_modules import CastTensorTo
 from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
-from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model
+from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
+from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
 from super_gradients.training.utils.utils import infer_model_device
 
 logger = get_logger(__name__)
 
-__all__ = ["ExportableObjectDetectionModel", "AbstractObjectDetectionDecodingModule"]
+__all__ = ["ExportableObjectDetectionModel", "AbstractObjectDetectionDecodingModule", "ModelExportResult"]
 
 
 class AbstractObjectDetectionDecodingModule(nn.Module):
@@ -42,8 +46,20 @@ class AbstractObjectDetectionDecodingModule(nn.Module):
         ...
 
 
-@runtime_checkable
-class ExportableObjectDetectionModel(Protocol):
+@dataclasses.dataclass
+class ModelExportResult:
+    input_image_channels: int
+    input_image_dtype: torch.dtype
+    input_image_shape: Tuple[int, int]
+
+    engine: ExportTargetBackend
+    quantization_mode: Optional[ExportQuantizationMode]
+
+    output: str
+    output_predictions_format: DetectionOutputFormatMode
+
+
+class ExportableObjectDetectionModel:
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         """
         Gets the decoding module for the object detection model.
@@ -54,27 +70,31 @@ class ExportableObjectDetectionModel(Protocol):
          - scores: [B, N, C] - All predicted scores ([0..1] range) for each box and class.
         :return: An instance of AbstractObjectDetectionDecodingModule
         """
-        ...
+        raise NotImplementedError()
+
+    def get_preprocessing_callback(self, **kwargs) -> Optional[nn.Module]:
+        raise NotImplementedError(f"get_preprocessing_callback is not implemented for class {self.__class__.__name__}.")
 
     def export(
         self,
         output: str,
         confidence_threshold: Optional[float] = None,
         nms_threshold: Optional[float] = None,
-        engine: Optional[str] = None,
-        quantize: bool = False,
+        engine: Optional[ExportTargetBackend] = None,
+        quantization_mode: ExportQuantizationMode = Optional[None],
         calibration_loader: Optional[DataLoader] = None,
-        preprocessing: Union[bool, nn.Module] = False,
+        preprocessing: Union[bool, nn.Module] = True,
         postprocessing: Union[bool, nn.Module] = True,
         postprocessing_kwargs: Optional[dict] = None,
         batch_size: int = 1,
         input_image_shape: Optional[Tuple[int, int]] = None,
         input_image_channels: Optional[int] = None,
+        input_image_dtype: Optional[torch.dtype] = None,
         max_predictions_per_image: Optional[int] = None,
         onnx_export_kwargs: Optional[dict] = None,
         onnx_simplify: bool = True,
         device: Optional[torch.device] = None,
-        output_predictions_format: str = "batch",
+        output_predictions_format: DetectionOutputFormatMode = DetectionOutputFormatMode.BATCH_FORMAT,
         num_pre_nms_predictions: int = 1000,
     ):
         """
@@ -91,7 +111,11 @@ class ExportableObjectDetectionModel(Protocol):
                        - "tensorrt" - export to ONNX format with TensorRT  as inference engine.
                        This mode enables use of efficient TensorRT NMS plugin. Note, models that are using NMS exported in this
                        mode ARE NOT COMPATIBLE with ONNX runtime.
-        :param quantize: (bool) If True, export a quantized model, otherwise export a model in full precision.
+        :param quantization_mode: (QuantizationMode) Sets the quantization mode for the exported model.
+            If None, the model is exported as-is without any changes to mode weights.
+            If QuantizationMode.FP16, the model is exported with weights converted to half precision.
+            If QuantizationMode.INT8, the model is exported with weights quantized to INT8. For this mode you can use calibration_loader
+            to specify a data loader for calibrating the model.
         :param calibration_loader: (torch.utils.data.DataLoader) An optional data loader for calibrating a quantized model.
         :param preprocessing: (bool or nn.Module)
                               If True, export a model with preprocessing that matches preprocessing params during training,
@@ -109,6 +133,9 @@ class ExportableObjectDetectionModel(Protocol):
         :param input_image_channels: (int) Number of input image channels for the exported model.
                If None, the function will infer the number of channels from the model itself
                (No implemented now, will use hard-coded value of 3 for now).
+        :param input_image_dtype: (torch.dtype) Type of the input image for the exported model.
+                If None, the function will infer the dtype from the model's preprocessing and other parameters.
+                If preprocessing is True, dtype will be torch.uint8, otherwise torch.float32.
         :param max_predictions_per_image: (int) Maximum number of detections per image for the exported model.
         :param device: (torch.device) Device to use for exporting the model. If not specified, the device is inferred from the model itself.
         :param onnx_export_kwargs: (dict) Optional keyword arguments for torch.onnx.export() function.
@@ -123,14 +150,18 @@ class ExportableObjectDetectionModel(Protocol):
         device: torch.device = device or infer_model_device(self)
         model: nn.Module = copy.deepcopy(self).to(device).eval()
 
-        engine: str = engine or infer_format_from_file_name(output)
+        engine: ExportTargetBackend = engine or infer_format_from_file_name(output)
         if engine is None:
             raise ValueError(
                 "Export format is not specified and cannot be inferred from the output file name. "
-                "Please specify the format explicitly: model.export(..., format='onnx|coreml')"
+                "Please specify the format explicitly: model.export(..., format=ExportTargetBackend.ONNXRUNTIME)"
             )
 
-        input_image_shape: Tuple[int, int] = input_image_shape or infer_image_shape_from_model(model)
+        # Infer the input image shape from the model
+        if input_image_shape is None:
+            input_image_shape = infer_image_shape_from_model(model)
+            logger.debug(f"Inferred input image shape: {input_image_shape} from model {model.__class__.__name__}")
+
         if input_image_shape is None:
             raise ValueError(
                 "Image shape is not specified and cannot be inferred from the model. "
@@ -142,19 +173,33 @@ class ExportableObjectDetectionModel(Protocol):
         except ValueError:
             raise ValueError(f"Image shape must be a tuple of two integers (height, width), got {input_image_shape} instead")
 
-        input_image_channels = input_image_channels or 3
+        # Infer the number of input channels from the model
+        if input_image_channels is None:
+            input_image_channels = infer_image_input_channels(model)
+            logger.debug(f"Inferred input image channels: {input_image_channels} from model {model.__class__.__name__}")
+
+        if input_image_channels is None:
+            raise ValueError(
+                "Number of input channels is not specified and cannot be inferred from the model. "
+                "Please specify the number of input channels explicitly: model.export(..., input_image_channels=NUM_CHANNELS_YOUR_MODEL_TAKES)"
+            )
 
         input_shape = (batch_size, input_image_channels, rows, cols)
         prep_model_for_conversion_kwargs = {
             "input_size": input_shape,
         }
 
+        model_type = torch.half if quantization_mode == ExportQuantizationMode.FP16 else torch.float32
+
         if isinstance(preprocessing, nn.Module):
             pass
         elif preprocessing is True:
-            preprocessing = self.get_preprocessing_callback()
+            preprocessing = model.get_preprocessing_callback()
+            preprocessing = nn.Sequential(CastTensorTo(model_type), preprocessing)
+            input_image_dtype = input_image_dtype or torch.uint8
         else:
             preprocessing = None
+            input_image_dtype = input_image_dtype or model_type
 
         # This variable holds the output names of the model.
         # If postprocessing is enabled, it will be set to the output names of the postprocessing module.
@@ -202,11 +247,12 @@ class ExportableObjectDetectionModel(Protocol):
         if hasattr(model, "prep_model_for_conversion"):
             model.prep_model_for_conversion(**prep_model_for_conversion_kwargs)
 
-        if quantize:
-            logger.debug("Quantizing model")
+        if quantization_mode == ExportQuantizationMode.INT8:
             from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
             from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
             from pytorch_quantization import nn as quant_nn
+
+            patch_pytorch_quantization_modules_if_needed()
 
             q_util = SelectiveQuantizer(
                 default_quant_modules_calibrator_weights="max",
@@ -233,28 +279,41 @@ class ExportableObjectDetectionModel(Protocol):
 
         # The model.prep_model_for_conversion will be called inside ConvertableCompletePipelineModel once more,
         # but as long as implementation of prep_model_for_conversion is idempotent, it should be fine.
-        complete_model = ConvertableCompletePipelineModel(
-            model=model, pre_process=preprocessing, post_process=postprocessing, **prep_model_for_conversion_kwargs
+        complete_model = (
+            ConvertableCompletePipelineModel(model=model, pre_process=preprocessing, post_process=postprocessing, **prep_model_for_conversion_kwargs)
+            .to(device)
+            .eval()
         )
 
-        if engine in {"onnxruntime", "tensorrt"}:
+        if quantization_mode == ExportQuantizationMode.FP16:
+            # For FP16 quantization, we simply can to convert the whole model to half precision
+            complete_model = complete_model.half()
+
+            if calibration_loader is not None:
+                logger.warning(
+                    "It seems you've passed calibration_loader to export function, but quantization_mode is set to FP16. "
+                    "FP16 quantization is done by calling model.half() so you don't need to pass calibration_loader, as it will be ignored."
+                )
+
+        if engine in {ExportTargetBackend.ONNXRUNTIME, ExportTargetBackend.TENSORRT}:
             onnx_export_kwargs = onnx_export_kwargs or {}
 
-            if quantize:
+            if quantization_mode == ExportQuantizationMode.INT8:
                 use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
                 quant_nn.TensorQuantizer.use_fb_fake_quant = True
 
             try:
                 with torch.no_grad():
-                    onnx_input = torch.randn(input_shape, device=device)
+                    onnx_input = torch.randn(input_shape, device=device).to(input_image_dtype)
                     logger.debug("Exporting model to ONNX")
-                    logger.debug("ONNX input shape: %s", input_shape)
-                    logger.debug("ONNX output names: %s", output_names)
+                    logger.debug(f"ONNX input shape: {input_shape} with dtype: {input_image_dtype}")
+                    logger.debug(f"ONNX output names: {output_names}")
+                    logger.debug(f"ONNX export kwargs: {onnx_export_kwargs}")
                     torch.onnx.export(model=complete_model, args=onnx_input, f=output, output_names=output_names, **onnx_export_kwargs)
 
                 # Stitch ONNX graph with NMS postprocessing
                 if attach_nms_postprocessing:
-                    if engine == "tensorrt":
+                    if engine == ExportTargetBackend.TENSORRT:
 
                         if onnx_simplify:
                             # If TRT engine is used, we need to run onnxsim.simplify BEFORE attaching NMS,
@@ -266,15 +325,15 @@ class ExportableObjectDetectionModel(Protocol):
 
                         nms_attach_method = attach_tensorrt_nms
 
-                        if output_predictions_format == "flat":
+                        if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
                             logger.warning(
                                 "Support of flat predictions format in TensorRT is experimental and may not work on all versions of TensorRT. "
                                 "We recommend using TensorRT 8.4.1 or newer. On older versions this format will not work. "
                                 "If you encountering issues loading exported model in TensorRT, please try upgrading TensorRT to latest version. "
                                 "Alternatively, you can export the model to output predictions in batch format by "
-                                "specifying output_predictions_format='batch'"
+                                "specifying output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT. "
                             )
-                    elif engine == "onnxruntime":
+                    elif engine == ExportTargetBackend.ONNXRUNTIME:
                         nms_attach_method = attach_onnx_nms
                     else:
                         raise KeyError(f"Unsupported engine: {engine}")
@@ -294,9 +353,19 @@ class ExportableObjectDetectionModel(Protocol):
                     onnxsim.simplify(output)
                     logger.debug(f"Ran onnxsim.simplify on {output}")
             finally:
-                if quantize:
+                if quantization_mode == ExportQuantizationMode.INT8:
                     # Restore functions of quant_nn back as expected
                     quant_nn.TensorQuantizer.use_fb_fake_quant = use_fb_fake_quant_state
 
         else:
             raise ValueError(f"Unsupported export format: {engine}. Supported formats: onnxruntime, tensorrt")
+
+        return ModelExportResult(
+            input_image_channels=input_image_channels,
+            input_image_dtype=input_image_dtype,
+            input_image_shape=input_image_shape,
+            engine=engine,
+            quantization_mode=quantization_mode,
+            output=output,
+            output_predictions_format=output_predictions_format,
+        )
