@@ -56,17 +56,17 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
         return flat_predictions[:, 1:]
 
     @classmethod
-    def as_graph(cls, batch_size: int, max_predictions_per_image: int, dtype: torch.dtype) -> gs.Graph:
+    def as_graph(cls, batch_size: int, max_predictions_per_image: int, dtype: torch.dtype, device: torch.device) -> gs.Graph:
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "ConvertTRTFormatToFlatTensor.onnx")
 
-            num_predictions = torch.zeros((batch_size, 1), dtype=torch.int32)
-            pred_boxes = torch.zeros((batch_size, max_predictions_per_image, 4), dtype=dtype)
-            pred_scores = torch.zeros((batch_size, max_predictions_per_image), dtype=dtype)
-            pred_classes = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.int32)
+            num_predictions = torch.zeros((batch_size, 1), dtype=torch.int32, device=device)
+            pred_boxes = torch.zeros((batch_size, max_predictions_per_image, 4), dtype=dtype, device=device)
+            pred_scores = torch.zeros((batch_size, max_predictions_per_image), dtype=dtype, device=device)
+            pred_classes = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.int32, device=device)
 
             torch.onnx.export(
-                ConvertTRTFormatToFlatTensor(batch_size=batch_size),
+                ConvertTRTFormatToFlatTensor(batch_size=batch_size).to(device=device, dtype=dtype),
                 args=(num_predictions, pred_boxes, pred_scores, pred_classes),
                 f=onnx_file,
                 input_names=["num_predictions", "pred_boxes", "pred_scores", "pred_classes"],
@@ -87,6 +87,7 @@ def attach_tensorrt_nms(
     nms_threshold: float,
     batch_size: int,
     output_predictions_format: DetectionOutputFormatMode,
+    device: torch.device,
 ):
     """
     Attach TensorRT NMS plugin to the ONNX model
@@ -150,7 +151,7 @@ def attach_tensorrt_nms(
 
     if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
         convert_format_graph = ConvertTRTFormatToFlatTensor.as_graph(
-            batch_size=batch_size, max_predictions_per_image=max_predictions_per_image, dtype=numpy_dtype_to_torch_dtype(pred_boxes.dtype)
+            batch_size=batch_size, max_predictions_per_image=max_predictions_per_image, dtype=numpy_dtype_to_torch_dtype(pred_boxes.dtype), device=device
         )
         graph = append_graphs(graph, convert_format_graph)
     elif output_predictions_format == DetectionOutputFormatMode.BATCH_FORMAT:

@@ -68,17 +68,17 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
         return num_predictions.unsqueeze(1), pred_boxes, pred_scores, pred_classes
 
     @classmethod
-    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image, dtype: torch.dtype) -> gs.Graph:
+    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image, dtype: torch.dtype, device: torch.device) -> gs.Graph:
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "PickNMSPredictionsAndReturnAsBatchedResult.onnx")
-            pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype)
-            pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 3), dtype=dtype)
-            selected_indexes = torch.zeros((max_predictions_per_image, 3), dtype=torch.int64)
+            pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
+            pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 3), dtype=dtype, device=device)
+            selected_indexes = torch.zeros((max_predictions_per_image, 3), dtype=torch.int64, device=device)
 
             torch.onnx.export(
                 PickNMSPredictionsAndReturnAsBatchedResult(
                     batch_size=batch_size, num_pre_nms_predictions=num_pre_nms_predictions, max_predictions_per_image=max_predictions_per_image
-                ),
+                ).to(device=device, dtype=dtype),
                 args=(pred_boxes, pred_scores, selected_indexes),
                 f=onnx_file,
                 input_names=["raw_boxes", "raw_scores", "selected_indexes"],
@@ -128,11 +128,11 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
         return torch.cat([batch_indexes.unsqueeze(1), selected_boxes, selected_scores.unsqueeze(1), label_indexes.unsqueeze(1)], dim=1)
 
     @classmethod
-    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int, dtype: torch.dtype) -> gs.Graph:
+    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int, dtype: torch.dtype, device: torch.device) -> gs.Graph:
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "PickNMSPredictionsAndReturnAsFlatTensor.onnx")
-            pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype)
-            pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 91), dtype=dtype)
+            pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
+            pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 91), dtype=dtype, device=device)
 
             torch.onnx.export(
                 PickNMSPredictionsAndReturnAsFlatResult(
@@ -163,6 +163,7 @@ def attach_onnx_nms(
     nms_threshold: float,
     batch_size: int,
     output_predictions_format: DetectionOutputFormatMode,
+    device: torch.device,
 ):
     """
     Attach ONNX NMS plugin to the detection model.
@@ -262,6 +263,7 @@ def attach_onnx_nms(
             num_pre_nms_predictions=num_pre_nms_predictions,
             max_predictions_per_image=max_predictions_per_image,
             dtype=numpy_dtype_to_torch_dtype(np.float32),
+            device=device,
         )
         graph = append_graphs(graph, convert_format_graph)
     elif output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
@@ -270,6 +272,7 @@ def attach_onnx_nms(
             num_pre_nms_predictions=num_pre_nms_predictions,
             max_predictions_per_image=max_predictions_per_image,
             dtype=numpy_dtype_to_torch_dtype(np.float32),
+            device=device,
         )
         graph = append_graphs(graph, convert_format_graph)
     else:

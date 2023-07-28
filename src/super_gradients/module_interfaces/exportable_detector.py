@@ -148,6 +148,20 @@ class ExportableObjectDetectionModel:
             raise TypeError(f"Export is only supported for torch.nn.Module. Got type {type(self)}")
 
         device: torch.device = device or infer_model_device(self)
+        if device is None:
+            raise ValueError(
+                "Device is not specified and cannot be inferred from the model. "
+                "Please specify the device explicitly: model.export(..., device=torch.device(...))"
+            )
+
+        # The following is a trick to infer the exact device index in order to make sure the model using right device.
+        # User may pass device="cuda", which is not explicitly specifying device index.
+        # Using this trick, we can infer the correct device (cuda:3 for instance) and use it later for checking
+        # whether model places all it's parameters on the right device.
+        device = torch.zeros(1).to(device).device
+
+        logger.debug(f"Using device: {device} for exporting model {self.__class__.__name__}")
+
         model: nn.Module = copy.deepcopy(self).to(device).eval()
 
         engine: ExportTargetBackend = engine or infer_format_from_file_name(output)
@@ -305,6 +319,16 @@ class ExportableObjectDetectionModel:
             try:
                 with torch.no_grad():
                     onnx_input = torch.randn(input_shape, device=device).to(input_image_dtype)
+                    complete_model(onnx_input)
+
+                    for name, p in complete_model.named_parameters():
+                        if p.device != device:
+                            logger.warning(f"Model parameter {name} is on device {p.device} but expected to be on device {device}")
+
+                    for name, p in complete_model.named_buffers():
+                        if p.device != torch.device(device):
+                            logger.warning(f"Model buffer {name} is on device {p.device} but expected to be on device {device}")
+
                     logger.debug("Exporting model to ONNX")
                     logger.debug(f"ONNX input shape: {input_shape} with dtype: {input_image_dtype}")
                     logger.debug(f"ONNX output names: {output_names}")
@@ -347,6 +371,7 @@ class ExportableObjectDetectionModel:
                         confidence_threshold=confidence_threshold,
                         batch_size=batch_size,
                         output_predictions_format=output_predictions_format,
+                        device=device,
                     )
 
                 if onnx_simplify:

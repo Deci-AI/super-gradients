@@ -194,6 +194,66 @@ class TestDetectionModelExport(unittest.TestCase):
                 )
                 self._benchmark_onnx(export_result)
 
+    def test_export_to_tensorrt_batch_format_yolox_s(self):
+        output_predictions_format = DetectionOutputFormatMode.BATCH_FORMAT
+        confidence_threshold = 0.25
+        nms_threshold = 0.6
+        model_type = Models.YOLOX_S
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            model_name = str(model_type).lower().replace(".", "_")
+            out_path = os.path.join(tmpdirname, f"{model_name}_tensorrt_batch.onnx")
+
+            model_arch: ExportableObjectDetectionModel = models.get(model_name, pretrained_weights="coco")
+            export_result = model_arch.export(
+                out_path,
+                input_image_shape=None,  # Force .export() to infer image shape from the model itself
+                engine=ExportTargetBackend.TENSORRT,
+                output_predictions_format=output_predictions_format,
+                nms_threshold=nms_threshold,
+                confidence_threshold=confidence_threshold,
+            )
+            self._benchmark_onnx(export_result)
+
+    def test_export_to_tensorrt_batch_format_yolo_nas_s(self):
+        output_predictions_format = DetectionOutputFormatMode.BATCH_FORMAT
+        confidence_threshold = 0.25
+        nms_threshold = 0.6
+        model_type = Models.YOLO_NAS_S
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            model_name = str(model_type).lower().replace(".", "_")
+            out_path = os.path.join(tmpdirname, f"{model_name}_tensorrt_batch.onnx")
+
+            model_arch: ExportableObjectDetectionModel = models.get(model_name, pretrained_weights="coco")
+            export_result = model_arch.export(
+                out_path,
+                input_image_shape=None,  # Force .export() to infer image shape from the model itself
+                engine=ExportTargetBackend.TENSORRT,
+                output_predictions_format=output_predictions_format,
+                nms_threshold=nms_threshold,
+                confidence_threshold=confidence_threshold,
+            )
+            self._benchmark_onnx(export_result)
+
+    def test_export_to_tensorrt_batch_format_ppyolo_e(self):
+        output_predictions_format = DetectionOutputFormatMode.BATCH_FORMAT
+        confidence_threshold = 0.25
+        nms_threshold = 0.6
+        model_type = Models.PP_YOLOE_S
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            model_name = str(model_type).lower().replace(".", "_")
+            out_path = os.path.join(tmpdirname, f"{model_name}_tensorrt_batch.onnx")
+
+            model_arch: ExportableObjectDetectionModel = models.get(model_name, pretrained_weights="coco")
+            export_result = model_arch.export(
+                out_path,
+                input_image_shape=None,  # Force .export() to infer image shape from the model itself
+                engine=ExportTargetBackend.TENSORRT,
+                output_predictions_format=output_predictions_format,
+                nms_threshold=nms_threshold,
+                confidence_threshold=confidence_threshold,
+            )
+            self._benchmark_onnx(export_result)
+
     def test_export_model_with_custom_input_image_shape(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
             out_path = os.path.join(tmpdirname, "ppyoloe_s_custom_image_shape.onnx")
@@ -453,6 +513,40 @@ class TestDetectionModelExport(unittest.TestCase):
 
         return result
 
+    def test_export_export_all_variants(self):
+        for output_predictions_format in [DetectionOutputFormatMode.BATCH_FORMAT, DetectionOutputFormatMode.FLAT_FORMAT]:
+            for engine in [ExportTargetBackend.ONNXRUNTIME, ExportTargetBackend.TENSORRT]:
+                for quantization in [None, ExportQuantizationMode.FP16, ExportQuantizationMode.INT8]:
+                    device = "cpu"
+                    if torch.cuda.is_available():
+                        device = "cuda"
+                    elif torch.backends.mps.is_available() and quantization == ExportQuantizationMode.FP16:
+                        # Skip this case because when using MPS device we are getting:
+                        # RuntimeError: Placeholder storage has not been allocated on MPS device!
+                        # And when using CPU:
+                        # RuntimeError: RuntimeError: "slow_conv2d_cpu" not implemented for 'Half'
+                        continue
+
+                    # if quantization == ExportQuantizationMode.FP16 and device == "cpu":
+                    #     # Skip this case because the FP16 quantization uses model inference
+                    #     pass
+
+                    for model_type in [Models.YOLOX_S, Models.PP_YOLOE_S, Models.YOLO_NAS_S]:
+                        model_name = str(model_type).lower()
+                        model = models.get(model_type, pretrained_weights="coco")
+                        quantization_suffix = str(quantization) if quantization is not None else ""
+                        onnx_filename = f"{model_name}_{engine}_{output_predictions_format}_{quantization_suffix}.onnx"
+
+                        with self.subTest(msg=onnx_filename):
+
+                            model.export(
+                                onnx_filename,
+                                device=device,
+                                quantization_mode=quantization,
+                                engine=engine,
+                                output_predictions_format=output_predictions_format,
+                            )
+
     def _benchmark_onnx(self, export_result: ModelExportResult):
         if not self.decibenchmark_available:
             print("DeciBenchMark is not available, skipping benchmark")
@@ -460,8 +554,9 @@ class TestDetectionModelExport(unittest.TestCase):
 
         from decibenchmark.api.client_manager import ClientManager
         from decibenchmark.api.hardware.jetson.jetson_device_filter import JetsonDeviceFilter
+        from decibenchmark.api.hardware.nvidia_gpu.nvidia_gpu_device_filter import NvidiaGpuDeviceFilter  # noqa
+        from decibenchmark.common.hardware.nvidia_gpu.nvidia_gpu_model import NvidiaGpuModel  # noqa
 
-        # from decibenchmark.api.hardware.nvidia_gpu.nvidia_gpu_device_filter import NvidiaGpuDeviceFilter
         from decibenchmark.common.hardware.jetson.jetson_model import JetsonModel
         from decibenchmark.common.execmethod.trt_exec_params import TrtExecParams
 
@@ -476,20 +571,22 @@ class TestDetectionModelExport(unittest.TestCase):
         precision = "--int8" if export_result.quantization_mode == ExportQuantizationMode.INT8 else "--fp16"
 
         job = client.benchmark.trt_exec(
-            JetsonDeviceFilter(jetson_model=JetsonModel.XAVIER_NX),
-            # NvidiaGpuDeviceFilter(nvidia_gpu_model=NvidiaGpuModel.TESLA_T4),
+            # JetsonDeviceFilter(jetson_model=JetsonModel.XAVIER_NX),
+            JetsonDeviceFilter(jetson_model=JetsonModel.AGX_ORIN),
+            # NvidiaGpuDeviceFilter(nvidia_gpu_model=NvidiaGpuModel.RTX_A5000),
             TrtExecParams(extra_cmd_params=[precision, "--avgRuns=100", "--duration=15"]),
         ).dispatch(export_result.output)
 
         benchmark_result = job.wait_for_result(timeout=-1)
 
-        print(benchmark_result)
-
-        print(f"Input: {export_result.input_image_shape} (rows, cols)")
-
         # Get the latency and throughput
-        print(f"Latency: {benchmark_result.latency}")
+        print(f"Model     : {os.path.basename(export_result.output)}")
+        print(f"Input     : {export_result.input_image_shape} (rows, cols)")
+        print(f"Latency   : {benchmark_result.latency}")
         print(f"Throughput: {benchmark_result.throughput}")
+        print(f"Extra     : {benchmark_result.extra}")
+        if not benchmark_result.success:
+            print(f"Error     : {benchmark_result}")
         assert benchmark_result.success
 
     def _get_image_as_bchw(self, image_shape=(640, 640)):
