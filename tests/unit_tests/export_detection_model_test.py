@@ -483,13 +483,14 @@ class TestDetectionModelExport(unittest.TestCase):
 
         benchmark_result = job.wait_for_result(timeout=-1)
 
-        # print(result)
-        print(benchmark_result.output)
+        print(benchmark_result)
+
         print(f"Input: {export_result.input_image_shape} (rows, cols)")
+
         # Get the latency and throughput
         print(f"Latency: {benchmark_result.latency}")
         print(f"Throughput: {benchmark_result.throughput}")
-        assert benchmark_result.latency is not None
+        assert benchmark_result.success
 
     def _get_image_as_bchw(self, image_shape=(640, 640)):
         """
