@@ -33,9 +33,9 @@ class WandBDetectionValidationPredictionLoggerCallback(Callback):
         :param class_names:                 A list of class names.
         :param max_predictions_plotted:     Maximum number of predictions to be plotted per epoch. This is set to `None` by default which means that the
                                             predictions corresponding to all images from `context.inputs` is logged, otherwise only `max_predictions_plotted`
-                                            number of images is logged. Since `WandBDetectionValidationPredictionLoggerCallback` accumulates the generated images
-                                            in the RAM, it is advisable that the value of this parameter be explicitly specified for larger datasets in order to
-                                            avoid out-of-memory errors.
+                                            number of images is logged. Since `WandBDetectionValidationPredictionLoggerCallback` accumulates the generated
+                                            images in the RAM, it is advisable that the value of this parameter be explicitly specified for larger datasets in
+                                            order to avoid out-of-memory errors.
         :param post_prediction_callback:    `DetectionPostPredictionCallback` for post-processing outputs of the model.
         :param reverse_channels:            Reverse the order of channels on the images while plotting.
         """
