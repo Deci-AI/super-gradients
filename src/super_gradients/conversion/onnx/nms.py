@@ -125,7 +125,15 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
         selected_boxes = pred_boxes[batch_indexes, boxes_indexes]
         selected_scores = pred_scores[batch_indexes, boxes_indexes, label_indexes]
 
-        return torch.cat([batch_indexes.unsqueeze(1), selected_boxes, selected_scores.unsqueeze(1), label_indexes.unsqueeze(1)], dim=1)
+        return torch.cat(
+            [
+                batch_indexes.unsqueeze(1).to(selected_boxes.dtype),
+                selected_boxes,
+                selected_scores.unsqueeze(1),
+                label_indexes.unsqueeze(1).to(selected_boxes.dtype),
+            ],
+            dim=1,
+        )
 
     @classmethod
     def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int, dtype: torch.dtype, device: torch.device) -> gs.Graph:
@@ -133,12 +141,13 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
             onnx_file = os.path.join(tmpdirname, "PickNMSPredictionsAndReturnAsFlatTensor.onnx")
             pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
             pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 91), dtype=dtype, device=device)
+            selected_indexes = torch.zeros((max_predictions_per_image // 2, 3), dtype=torch.int64, device=device)
 
             torch.onnx.export(
                 PickNMSPredictionsAndReturnAsFlatResult(
                     batch_size=batch_size, num_pre_nms_predictions=num_pre_nms_predictions, max_predictions_per_image=max_predictions_per_image
                 ),
-                args=(pred_boxes, pred_scores, torch.zeros((max_predictions_per_image // 2, 3), dtype=torch.int64)),
+                args=(pred_boxes, pred_scores, selected_indexes),
                 f=onnx_file,
                 input_names=["pred_boxes", "pred_scores", "selected_indexes"],
                 output_names=["flat_predictions"],

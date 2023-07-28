@@ -16,9 +16,12 @@ logger = get_logger(__name__)
 
 
 class ConvertTRTFormatToFlatTensor(nn.Module):
-    def __init__(self, batch_size: int):
+    __constants__ = ["batch_size", "max_predictions_per_image"]
+
+    def __init__(self, batch_size: int, max_predictions_per_image: int):
         super().__init__()
         self.batch_size = batch_size
+        self.max_predictions_per_image = max_predictions_per_image
 
     def forward(self, num_predictions: Tensor, pred_boxes: Tensor, pred_scores: Tensor, pred_classes: Tensor) -> Tensor:
         """
@@ -30,25 +33,27 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
         :return: Tensor of shape [N, 7] The predictions in flat tensor format.
         """
         batch_indexes = (
-            torch.arange(start=0, end=self.batch_size, step=1, device=num_predictions.device, dtype=pred_scores.dtype)
-            .view(-1, 1)
-            .repeat(1, pred_scores.shape[1])
+            torch.arange(start=0, end=self.batch_size, step=1, device=num_predictions.device).view(-1, 1).repeat(1, pred_scores.shape[1])
         )  # [B, max_predictions_per_image]
 
         preds_indexes = (
-            torch.arange(start=0, end=pred_scores.shape[1], step=1, device=num_predictions.device, dtype=pred_scores.dtype)
+            torch.arange(start=0, end=self.max_predictions_per_image, step=1, device=num_predictions.device, dtype=pred_scores.dtype)
             .view(1, -1, 1)
             .repeat(self.batch_size, 1, 1)
         )  # [B, max_predictions_per_image, 1]
 
-        pred_scores = pred_scores.unsqueeze(dim=-1)
-        pred_classes = pred_classes.unsqueeze(dim=-1).to(pred_scores.dtype)
-
         flat_predictions = torch.cat(
-            [preds_indexes, batch_indexes.unsqueeze(-1), pred_boxes, pred_scores, pred_classes], dim=-1
+            [
+                preds_indexes.to(dtype=pred_scores.dtype),
+                batch_indexes.unsqueeze(-1).to(dtype=pred_scores.dtype),
+                pred_boxes,
+                pred_scores.unsqueeze(dim=-1),
+                pred_classes.unsqueeze(dim=-1).to(pred_scores.dtype),
+            ],
+            dim=-1,
         )  # [B, max_predictions_per_image, 8]
 
-        num_predictions = num_predictions.repeat(1, pred_scores.shape[1])  # [B, max_predictions_per_image]
+        num_predictions = num_predictions.repeat(1, self.max_predictions_per_image)  # [B, max_predictions_per_image]
 
         mask = (flat_predictions[:, :, 0] < num_predictions) & (flat_predictions[:, :, 1] == batch_indexes)  # [B, max_predictions_per_image]
 
@@ -60,16 +65,16 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "ConvertTRTFormatToFlatTensor.onnx")
 
-            num_predictions = torch.zeros((batch_size, 1), dtype=torch.int32, device=device)
+            num_detections = torch.randint(1, max_predictions_per_image, (batch_size, 1), dtype=torch.int32, device=device)
             pred_boxes = torch.zeros((batch_size, max_predictions_per_image, 4), dtype=dtype, device=device)
             pred_scores = torch.zeros((batch_size, max_predictions_per_image), dtype=dtype, device=device)
             pred_classes = torch.zeros((batch_size, max_predictions_per_image), dtype=torch.int32, device=device)
 
             torch.onnx.export(
-                ConvertTRTFormatToFlatTensor(batch_size=batch_size).to(device=device, dtype=dtype),
-                args=(num_predictions, pred_boxes, pred_scores, pred_classes),
+                ConvertTRTFormatToFlatTensor(batch_size=batch_size, max_predictions_per_image=max_predictions_per_image).to(device=device, dtype=dtype),
+                args=(num_detections, pred_boxes, pred_scores, pred_classes),
                 f=onnx_file,
-                input_names=["num_predictions", "pred_boxes", "pred_scores", "pred_classes"],
+                input_names=["num_detections", "pred_boxes", "pred_scores", "pred_classes"],
                 output_names=["flat_predictions"],
                 dynamic_axes={"flat_predictions": {0: "num_predictions"}},
             )
