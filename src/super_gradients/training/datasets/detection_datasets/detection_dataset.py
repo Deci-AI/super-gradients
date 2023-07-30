@@ -161,11 +161,6 @@ class DetectionDataset(Dataset):
 
         self._required_annotation_fields = {"target", "img_path", "resized_img_shape"}
 
-        # CACHE IMAGE
-        self.cache = cache
-        self.cache_dir = cache_dir
-        self.cached_imgs_padded = self._cache_images() if self.cache else None
-
         self.transforms = transforms
 
         self.output_fields = output_fields or ["image", "target"]
@@ -180,7 +175,7 @@ class DetectionDataset(Dataset):
         transform_require_non_empty_annotations = any(getattr(transform, "non_empty_annotations", False) for transform in self.transforms)
 
         # Run over the whole dataset to index the images with/without annotations.
-        if self._ignore_empty_annotations or transform_require_non_empty_annotations:
+        if self._cache_annotations or self._ignore_empty_annotations or transform_require_non_empty_annotations:
             if self._ignore_empty_annotations:
                 logger.info(
                     "Dataset Initialization in progress. `ignore_empty_annotations=True` causes the process to take longer due to full dataset indexing."
@@ -201,6 +196,11 @@ class DetectionDataset(Dataset):
                     self._cached_annotations = {**non_empty_annotations, **empty_annotations}
             self._non_empty_sample_ids = list(non_empty_annotations.keys())
         self._n_samples = n_samples
+
+        # CACHE IMAGE
+        self.cache = cache
+        self.cache_dir = cache_dir
+        self.cached_imgs_padded = self._cache_images(n_samples=n_samples, ignore_empty_annotations=ignore_empty_annotations) if self.cache else None
 
     @property
     def _all_classes(self):
@@ -223,10 +223,12 @@ class DetectionDataset(Dataset):
         """
         raise NotImplementedError
 
-    def _get_sample_annotations(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
+    def _get_sample_annotations(self, index: int, ignore_empty_annotations: bool) -> Dict[str, Union[np.ndarray, Any]]:
         """Get the annotation associated to a specific sample. Use cache if enabled."""
+        sample_id = self._non_empty_sample_ids[index] if ignore_empty_annotations else index
         if self._cache_annotations:
             if sample_id not in self._cached_annotations:
+                # TODO: Check if there is a way to make this work.
                 self._cached_annotations[sample_id] = self._load_sample_annotation(sample_id=sample_id)
             return self._cached_annotations[sample_id]
         else:
@@ -306,11 +308,10 @@ class DetectionDataset(Dataset):
 
         return np.array(targets_kept) if len(targets_kept) > 0 else np.zeros((0, 5), dtype=np.float32)
 
-    def _cache_images(self) -> np.ndarray:
+    def _cache_images(self, n_samples: int, ignore_empty_annotations: bool) -> np.ndarray:
         """Cache the images. The cached image are stored in a file to be loaded faster mext time.
         :return: Cached images
         """
-        # TODO: Do we want to remove this ?
         cache_dir = Path(self.cache_dir)
         if cache_dir is None:
             raise ValueError("You must specify a cache_dir if you want to cache your images." "If you did not mean to use cache, please set cache=False ")
@@ -340,8 +341,12 @@ class DetectionDataset(Dataset):
         if not img_resized_cache_path.exists():
             logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
             NUM_THREADs = min(8, os.cpu_count())
-            # FIXME: _load_resized_img required image_path
-            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_resized_img(x), iterable=range(len(self)))
+
+            def load_image(index: int) -> np.ndarray:
+                annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=ignore_empty_annotations)
+                return self._load_resized_img(image_path=annotations["img_path"])
+
+            loaded_images = ThreadPool(NUM_THREADs).imap(func=load_image, iterable=range(n_samples))
 
             # Initialize placeholder for images
             cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="w+")
@@ -369,8 +374,6 @@ class DetectionDataset(Dataset):
         return img
 
     def _load_image(self, image_path: str) -> np.ndarray:
-        # img_path = self.annotations[index]["img_path"]
-
         img_file = os.path.join(image_path)
         img = cv2.imread(img_file)
 
@@ -398,35 +401,23 @@ class DetectionDataset(Dataset):
 
     def get_sample(self, index: int, ignore_empty_annotations: bool) -> Dict[str, Union[np.ndarray, Any]]:
         """Get raw sample, before any transform (beside subclassing).
-        :param index:   Image index
+        :param index:                   Image index
         :param ignore_empty_annotations:
         :return:        Sample, i.e. a dictionary including at least "image" and "target"
         """
-        sample_id = self._non_empty_sample_ids[index] if ignore_empty_annotations else index
-
-        sample_annotations = self._get_sample_annotations(sample_id=sample_id)
-        # Idea: remove `get_resized_image` and replace it with `_load_resized_img`
-        image = self._load_resized_img(image_path=sample_annotations["img_path"])
-
+        sample_annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=ignore_empty_annotations)
+        if self.cache:  # Do we want to still support image caching ? Is there any realistic situation where this would help?
+            image = self._get_cached_image(index=index, cached_image_shape=sample_annotations["resized_img_shape"])
+        else:
+            image = self._load_resized_img(image_path=sample_annotations["img_path"])
         return {"image": image, **deepcopy(sample_annotations)}
 
-    def get_resized_image(self, index: int) -> np.ndarray:
-        """
-        Get the resized image (i.e. either width or height reaches its input_dim) at a specific sample_id,
-        either from cache or by loading from disk, based on self.cached_imgs_padded
-        :param index:  Image index
-        :return:       Resized image
-        """
-        # FIXME: Remove?
-        pass
-        # if self.cache:
-        #     padded_image = self.cached_imgs_padded[index]
-        #     resized_height, resized_width = self.annotations[index]["resized_img_shape"]
-        #     resized_image = padded_image[:resized_height, :resized_width, :]
-        #     return resized_image.copy()
-        # else:
-        #     annotation = self._get_sample_annotations(sample_id=index)
-        #     return self._load_resized_img(image_path=annotation["img_path"])
+    def _get_cached_image(self, index: int, cached_image_shape: Tuple[int, int]) -> np.ndarray:
+        """Load an image from cache."""
+        padded_image = self.cached_imgs_padded[index]
+        cached_height, cached_width = cached_image_shape
+        resized_image = padded_image[:cached_height, :cached_width, :]
+        return resized_image.copy()
 
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
@@ -539,3 +530,13 @@ class DetectionDataset(Dataset):
             conf=0.5,
         )
         return params
+
+
+# TODO:
+# - Add extensive tests
+# - Go over code, remove unused code
+# - Add docstring, explain motivation
+# - Add description in PRs
+# - Update recipes
+
+# - Add new COCO annotations
