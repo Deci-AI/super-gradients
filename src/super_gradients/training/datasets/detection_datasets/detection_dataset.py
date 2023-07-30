@@ -169,7 +169,11 @@ class DetectionDataset(Dataset):
 
         self._cache_annotations = cache_annotations
         self._cached_annotations: Dict[int, Dict] = {}  # We use a dict and not a list because when `ignore_empty_annotations=True` we may ignore some indexes.
-        self._non_empty_sample_ids: Optional[List[int]] = None  # Useful
+
+        # Note:
+        # Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        # Sample ID refers to the index of the sample in the dataset, WITHOUT considering any filtering. 0<=sample_id<=len(source)-1
+        self._non_empty_sample_ids: Optional[List[int]] = None  # This maps (dataset index) to (non-empty sample ids)
 
         # Some transform may require non-empty annotations to be indexed.
         transform_require_non_empty_annotations = any(getattr(transform, "non_empty_annotations", False) for transform in self.transforms)
@@ -223,24 +227,27 @@ class DetectionDataset(Dataset):
         """Load annotations associated to a specific sample.
         Please note that the targets should be resized according to self.input_dim!
 
-        :param sample_id:   Id of the sample to load annotations from.
+        :param sample_id:   Sample ID refers to the index of the sample in the dataset, WITHOUT considering any filtering. 0<=sample_id<=len(source)-1
         :return:            Annotation, a dict with any field but has to include at least the fields specified in self._required_annotation_fields.
         """
         raise NotImplementedError
 
     def _get_sample_annotations(self, index: int, ignore_empty_annotations: bool) -> Dict[str, Union[np.ndarray, Any]]:
-        """Get the annotation associated to a specific sample. Use cache if enabled."""
+        """Get the annotation associated to a specific sample. Use cache if enabled.
+        :param index:                       Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        :param ignore_empty_annotations:    Whether to ignore empty annotations or not.
+        :return:                            Dict representing the annotation of a specific image
+        """
         sample_id = self._non_empty_sample_ids[index] if ignore_empty_annotations else index
         if self._cache_annotations:
-            if sample_id not in self._cached_annotations:
-                # TODO: Check if there is a way to make this work.
-                self._cached_annotations[sample_id] = self._load_sample_annotation(sample_id=sample_id)
             return self._cached_annotations[sample_id]
         else:
             return self._load_sample_annotation(sample_id=sample_id)
 
     def _load_sample_annotation(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
-        """Load the annotation associated to a specific sample."""
+        """Load the annotation associated to a specific sample.
+        :param sample_id:   Sample ID refers to the index of the sample in the dataset, WITHOUT considering any filtering. 0<=sample_id<=len(source)-1
+        """
         sample_annotations = self._load_annotation(sample_id=sample_id)
         if not self._required_annotation_fields.issubset(set(sample_annotations.keys())):
             raise KeyError(
@@ -348,11 +355,13 @@ class DetectionDataset(Dataset):
             logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
             NUM_THREADs = min(8, os.cpu_count())
 
-            def load_image(index: int) -> np.ndarray:
+            # Inline-function because we should not to pollute the rest of the class with this function.
+            # This function is required because of legacy design - ideally we should not have to load annotations in order to get the image path.
+            def _load_image_from_index(index: int) -> np.ndarray:
                 annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=self._ignore_empty_annotations)
                 return self._load_resized_img(image_path=annotations["img_path"])
 
-            loaded_images = ThreadPool(NUM_THREADs).imap(func=load_image, iterable=range(len(self)))
+            loaded_images = ThreadPool(NUM_THREADs).imap(func=_load_image_from_index, iterable=range(len(self)))
 
             # Initialize placeholder for images
             cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="w+")
@@ -370,6 +379,7 @@ class DetectionDataset(Dataset):
         return cached_imgs
 
     def _load_resized_img(self, image_path: str) -> np.ndarray:
+        """Load an image and resize it to the desired size (If relevant)."""
         img = self._load_image(image_path=image_path)
 
         if self.input_dim is not None:
@@ -393,12 +403,16 @@ class DetectionDataset(Dataset):
             del self.cached_imgs_padded
 
     def __len__(self) -> int:
-        """Get the length of the dataset."""
-        return self._n_samples if not self._ignore_empty_annotations else len(self._non_empty_sample_ids)
+        """Get the length of the dataset. Note that this is the number of samples AFTER filtering (if relevant)."""
+        return len(self._non_empty_sample_ids) if self._ignore_empty_annotations else self._n_samples
 
     def __getitem__(self, index: int) -> Tuple:
         """Get the sample post transforms at a specific index of the dataset.
-        The output of this function will be collated to form batches."""
+        The output of this function will be collated to form batches.
+
+        :param index:   Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        :return:        Sample, i.e. a dictionary including at least "image" and "target"
+        """
         sample = self.apply_transforms(self.get_sample(index=index, ignore_empty_annotations=self._ignore_empty_annotations))
         for field in self.output_fields:
             if field not in sample.keys():
@@ -407,19 +421,23 @@ class DetectionDataset(Dataset):
 
     def get_sample(self, index: int, ignore_empty_annotations: bool) -> Dict[str, Union[np.ndarray, Any]]:
         """Get raw sample, before any transform (beside subclassing).
-        :param index:                   Image index
-        :param ignore_empty_annotations:
-        :return:        Sample, i.e. a dictionary including at least "image" and "target"
+        :param index:                       Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        :param ignore_empty_annotations:    If True, empty annotations will be ignored
+        :return:                            Sample, i.e. a dictionary including at least "image" and "target"
         """
         sample_annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=ignore_empty_annotations)
-        if self.cache:  # Do we want to still support image caching ? Is there any realistic situation where this would help?
+        if self.cache:
             image = self._get_cached_image(index=index, cached_image_shape=sample_annotations["resized_img_shape"])
         else:
             image = self._load_resized_img(image_path=sample_annotations["img_path"])
         return {"image": image, **deepcopy(sample_annotations)}
 
     def _get_cached_image(self, index: int, cached_image_shape: Tuple[int, int]) -> np.ndarray:
-        """Load an image from cache."""
+        """Load an image from cache.
+        :param index:               Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        :param cached_image_shape:  Shape of the cached image (after resizing if input_dim is set)
+        :return:                    Image
+        """
         padded_image = self.cached_imgs_padded[index]
         cached_height, cached_width = cached_image_shape
         resized_image = padded_image[:cached_height, :cached_width, :]
@@ -536,13 +554,3 @@ class DetectionDataset(Dataset):
             conf=0.5,
         )
         return params
-
-
-# TODO:
-# - Add extensive tests
-# - Go over code, remove unused code
-# - Add docstring, explain motivation
-# - Add description in PRs
-# - Update recipes
-
-# - Add new COCO annotations
