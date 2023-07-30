@@ -1,4 +1,3 @@
-import os
 import logging
 import atexit
 
@@ -36,10 +35,6 @@ def setup_pro_user_monitoring() -> bool:
             logger.info(
                 "If you do not have a deci-platform-client credentials or you wish to disable this feature, please set the env variable UPLOAD_LOGS=FALSE"
             )
-
-            # This prevents hydra.main to catch errors that happen in the decorated function
-            # (which leads sys.excepthook to never be called)
-            os.environ["HYDRA_FULL_ERROR"] = "1"
 
             logger.info("Connecting to the deci platform ...")
             platform_client = DeciClient()
