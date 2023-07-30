@@ -60,13 +60,8 @@ class DetectionDataset(Dataset):
         - SAMPLE:       Outout of the dataset:
                             > Has to include the fields "target" and "image"
                             > Can include other fields like "crowd_target", "image_info", "segmentation", ...
-        - INDEX:        Refers to the index in the dataset.
-        - SAMPLE ID:    Refers to the id of sample before droping any annotaion.
-                            Let's imagine a situation where the downloaded data is made of 120 images but 20 were drop
-                            because they had no annotation. In that case:
-                                > We have 120 samples so sample_id will be between 0 and 119
-                                > But only 100 will be indexed so index will be between 0 and 99
-                                > Therefore, we also have len(self) = 100
+        - Index:        Index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        - Sample ID:    Index of the sample in the dataset, WITHOUT considering any filtering. 0<=sample_id<=len(source)-1
     """
 
     @resolve_param("transforms", ListFactory(TransformsFactory()))
@@ -294,7 +289,7 @@ class DetectionDataset(Dataset):
         """Subclass every field listed in self.target_fields. It could be targets, crowd_targets, ...
 
         :param annotation: Dict representing the annotation of a specific image
-        :return:           Subclassed annotation if non empty after subclassing, otherwise None
+        :return:           Subclassed annotation if non-empty after subclassing, otherwise None
         """
         cls_posx = get_cls_posx_in_target(self.original_target_format)
         for field in self.target_fields:
