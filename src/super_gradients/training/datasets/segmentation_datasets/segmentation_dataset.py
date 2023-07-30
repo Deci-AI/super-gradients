@@ -226,6 +226,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         pipeline += [{Processings.NormalizeImage: {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}}]
         if self.output_image_shape:
             pipeline += [{Processings.SegResizeWithPadding: {"output_shape": self.output_image_shape, "pad_value": 0}}]
+            # Resize image to same image-shape as model input. default shape should be defined in dataset class under "output_image_shape"
         pipeline += [Processings.StandardizeImage()]
         for t in self.transforms:
             pipeline += t.get_equivalent_preprocessing()
