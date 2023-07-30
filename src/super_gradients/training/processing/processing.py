@@ -508,7 +508,7 @@ class SegmentationPadToDivisible(Processing):
         self.fill_image = fill_image
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        h, w = image.shape
+        h, w = image.shape[:2]
         padded_h = int(math.ceil(h / self.divisible_value) * self.divisible_value)
         padded_w = int(math.ceil(w / self.divisible_value) * self.divisible_value)
 
