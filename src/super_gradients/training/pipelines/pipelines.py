@@ -26,6 +26,7 @@ from super_gradients.training.utils.predict import (
     ImageSegmentationPrediction,
     ImagesSegmentationPrediction,
     SegmentationPrediction,
+    VideoSegmentationPrediction,
 )
 from torch.nn.functional import softmax
 from super_gradients.training.utils.utils import generate_batch
@@ -509,7 +510,6 @@ class SegmentationPipeline(Pipeline):
 
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageSegmentationPrediction], fps: float, n_images: Optional[int] = None
-    ) -> VideoDetectionPrediction:  # change to VideoSegmentationPrediction when implemented
-        raise NotImplementedError("This feature is not available for Segmentation task")
-        # images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
-        # return VideoSegmentationPrediction(_images_prediction_lst=images_predictions, fps=fps)
+    ) -> VideoSegmentationPrediction:
+        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
+        return VideoSegmentationPrediction(_images_prediction_lst=images_predictions, fps=fps)

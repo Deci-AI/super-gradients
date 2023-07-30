@@ -10,6 +10,7 @@ from .prediction_results import (
     ImagesClassificationPrediction,
     ImageSegmentationPrediction,
     ImagesSegmentationPrediction,
+    VideoSegmentationPrediction,
 )
 from .prediction_pose_estimation_results import (
     ImagePoseEstimationPrediction,
@@ -37,4 +38,5 @@ __all__ = [
     "ImagesClassificationPrediction",
     "ImageSegmentationPrediction",
     "ImagesSegmentationPrediction",
+    "VideoSegmentationPrediction",
 ]

@@ -177,6 +177,7 @@ class ImageSegmentationPrediction(ImagePrediction):
         :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
+        :param class_names:     List of class names to predict (segmentation classes)
         :return:                Image with predicted segmentation. Note that this does not modify the original image.
         """
         image = self.image.copy()
@@ -408,3 +409,52 @@ class ImagesSegmentationPrediction(ImagesPredictions):
         for i, prediction in enumerate(self._images_prediction_lst):
             image_output_path = os.path.join(output_folder, f"pred_{i}.jpg")
             prediction.save(output_path=image_output_path, color_mapping=color_mapping)
+
+
+@dataclass
+class VideoSegmentationPrediction(VideoPredictions):
+    """Object wrapping the list of image segmentation predictions as a Video.
+
+    :attr _images_prediction_lst:   List of the predictions results
+    :att fps:                       Frames per second of the video
+    """
+
+    _images_prediction_lst: List[ImageSegmentationPrediction]
+    fps: int
+
+    def draw(self, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None, class_names: Optional[List[str]] = None) -> List[np.ndarray]:
+        """Draw the predicted segmentation on the images.
+
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        :param class_names:     List of class names to predict (segmentation classes).
+        :return:                List of images with predicted segmentation. Note that this does not modify the original image.
+        """
+        frames_with_segmentation = [result.draw(alpha=alpha, color_mapping=color_mapping, class_names=class_names) for result in self._images_prediction_lst]
+        return frames_with_segmentation
+
+    def show(self, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None, class_names: Optional[List[str]] = None) -> None:
+        """Display the predicted segmentation on the images.
+
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        :param class_names:     List of class names to predict (segmentation classes).
+        """
+        frames = self.draw(alpha=alpha, color_mapping=color_mapping, class_names=class_names)
+        show_video_from_frames(window_name="Segmentation", frames=frames, fps=self.fps)
+
+    def save(
+        self, output_path: str, alpha: float = 0.6, color_mapping: Optional[List[Tuple[int, int, int]]] = None, class_names: Optional[List[str]] = None
+    ) -> None:
+        """Save the predicted bboxes on the images.
+
+        :param output_path:     Path to the output video file.
+        :param alpha:           Float number between [0,1] denoting the transparency of the masks (0 means full transparency, 1 means opacity).
+        :param color_mapping:   List of tuples representing the colors for each class.
+                                Default is None, which generates a default color mapping based on the number of class names.
+        :param class_names:     List of class names to predict (segmentation classes).
+        """
+        frames = self.draw(alpha=alpha, color_mapping=color_mapping, class_names=class_names)
+        save_video(output_path=output_path, frames=frames, fps=self.fps)
