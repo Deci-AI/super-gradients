@@ -60,14 +60,7 @@ class SegResize(SegmentationTransform):
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
-        return [
-            {
-                Processings.SegmentationResize: {
-                    "new_h": self.h,
-                    "new_w": self.w,
-                }
-            }
-        ]
+        return [{Processings.SegmentationResize: {"output_shape": (self.h, self.w)}}]
 
 
 @register_transform(Transforms.SegRandomFlip)

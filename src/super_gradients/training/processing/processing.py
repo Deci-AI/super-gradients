@@ -372,7 +372,7 @@ class CenterCrop(ClassificationProcess):
 
 
 @register_processing(Processings.SegResizeWithPadding)
-class SegResizeWithPadding(Processing, ABC):
+class SegResizeWithPadding(Processing):
     """Resize image to given image dimensions while preserving aspect ratio (padding might be used).
 
     :param output_shape:    (H, W)
@@ -409,7 +409,7 @@ class SegResizeWithPadding(Processing, ABC):
 
 
 @register_processing(Processings.SegmentationRescale)
-class SegmentationRescale(Processing, ABC):
+class SegmentationRescale(Processing):
     """Rescale image by scaling factor while preserving aspect ratio.
     The rescaling can be done according to scale_factor, short_size or long_size.
     If more than one argument is given, the rescaling mode is determined by this order: scale_factor, then short_size,
@@ -443,20 +443,18 @@ class SegmentationRescale(Processing, ABC):
 
 
 @register_processing(Processings.SegmentationResize)
-class SegmentationResize(Processing, ABC):
+class SegmentationResize(Processing):
     """Resize image to given image dimensions.
 
-    :param output_h:    output shape will be (output_h, output_w)
-    :param output_w:    output shape will be (output_h, output_w)
+    :param output_shape:    output shape will be (output_h, output_w)
     """
 
-    def __init__(self, output_h: int, output_w: int):
-        self.output_h = output_h
-        self.output_w = output_w
+    def __init__(self, output_shape: Tuple[int, int]):
+        self.output_shape = output_shape
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, SegmentationResizeMetadata]:
         height, width = image.shape[:2]
-        image = _rescale_image(image, target_shape=(self.output_h, self.output_w))
+        image = _rescale_image(image, target_shape=self.output_shape)
 
         return image, SegmentationResizeMetadata(original_shape=(height, width))
 
@@ -467,7 +465,7 @@ class SegmentationResize(Processing, ABC):
 
 
 @register_processing(Processings.SegmentationPadShortToCropSize)
-class SegmentationPadShortToCropSize(Processing, ABC):
+class SegmentationPadShortToCropSize(Processing):
     """
         Pads image to 'crop_size'.
         Should be called only after "SegRescale" or "SegRandomRescale" in augmentations pipeline.
@@ -497,7 +495,7 @@ class SegmentationPadShortToCropSize(Processing, ABC):
 
 
 @register_processing(Processings.SegmentationPadToDivisible)
-class SegmentationPadToDivisible(Processing, ABC):
+class SegmentationPadToDivisible(Processing):
     """
         Pads image to a size divisible by the defined parameter.
 
