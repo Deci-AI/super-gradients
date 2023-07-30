@@ -194,7 +194,12 @@ class DetectionDataset(Dataset):
                 else:
                     # Non overlapping dicts. since they map unique sample_ids -> sample
                     self._cached_annotations = {**non_empty_annotations, **empty_annotations}
+
+            if self._ignore_empty_annotations and len(non_empty_annotations) == 0:
+                raise EmptyDatasetException(f"Out of {n_samples} images, not a single one was found with any of these classes: {self.class_inclusion_list}")
+
             self._non_empty_sample_ids = list(non_empty_annotations.keys())
+
         self._n_samples = n_samples
 
         # CACHE IMAGE
