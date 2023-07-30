@@ -463,13 +463,11 @@ class SegmentationPipeline(Pipeline):
         self,
         model: SgModule,
         class_names: List[str],
-        # post_prediction_callback, #post_prediction_callback: DetectionPostPredictionCallback,
         device: Optional[str] = None,
         image_processor: Optional[Processing] = None,
         fuse_model: bool = True,
     ):
         super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
-        # self.post_prediction_callback = post_prediction_callback
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
         """Decode the model output, by applying post prediction callback. This includes NMS.
@@ -481,7 +479,6 @@ class SegmentationPipeline(Pipeline):
 
         if type(model_output) is tuple:
             model_output = model_output(0)
-        # model_output = torch.nn.functional.softmax(model_output, dim=1)
         class_predication = torch.argmax(model_output, dim=1)
         class_predication = class_predication.detach().cpu().numpy()
         predictions = []
