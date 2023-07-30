@@ -209,6 +209,11 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
 
     @property
     def output_image_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Image default shape - (H,W)
+        Default shape (model's input) should be defined for additional processing that might be needed
+        when using "predict" any input-image/s can be used, the images should be rescaled to match the model's training-data shape
+        """
         return
 
     def get_dataset_preprocessing_params(self):
