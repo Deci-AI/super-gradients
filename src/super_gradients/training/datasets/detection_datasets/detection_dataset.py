@@ -200,7 +200,7 @@ class DetectionDataset(Dataset):
         # CACHE IMAGE
         self.cache = cache
         self.cache_dir = cache_dir
-        self.cached_imgs_padded = self._cache_images(n_samples=n_samples, ignore_empty_annotations=ignore_empty_annotations) if self.cache else None
+        self.cached_imgs_padded = self._cache_images() if self.cache else None
 
     @property
     def _all_classes(self):
@@ -308,7 +308,7 @@ class DetectionDataset(Dataset):
 
         return np.array(targets_kept) if len(targets_kept) > 0 else np.zeros((0, 5), dtype=np.float32)
 
-    def _cache_images(self, n_samples: int, ignore_empty_annotations: bool) -> np.ndarray:
+    def _cache_images(self) -> np.ndarray:
         """Cache the images. The cached image are stored in a file to be loaded faster mext time.
         :return: Cached images
         """
@@ -330,7 +330,8 @@ class DetectionDataset(Dataset):
 
         # The cache should be the same as long as the images and their sizes are the same
         hash = hashlib.sha256()
-        for annotation in self.annotations:
+        for index in range(len(self)):
+            annotation = self._get_sample_annotations(index=index, ignore_empty_annotations=self._ignore_empty_annotations)
             values_to_hash = [annotation["resized_img_shape"][0], annotation["resized_img_shape"][1], Path(annotation["img_path"]).name]
             for value in values_to_hash:
                 hash.update(str(value).encode("utf-8"))
@@ -343,10 +344,10 @@ class DetectionDataset(Dataset):
             NUM_THREADs = min(8, os.cpu_count())
 
             def load_image(index: int) -> np.ndarray:
-                annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=ignore_empty_annotations)
+                annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=self._ignore_empty_annotations)
                 return self._load_resized_img(image_path=annotations["img_path"])
 
-            loaded_images = ThreadPool(NUM_THREADs).imap(func=load_image, iterable=range(n_samples))
+            loaded_images = ThreadPool(NUM_THREADs).imap(func=load_image, iterable=range(len(self)))
 
             # Initialize placeholder for images
             cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="w+")

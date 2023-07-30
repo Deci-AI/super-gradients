@@ -29,8 +29,8 @@ class DummyDetectionDataset(DetectionDataset):
         return {"img_path": str(sample_id), "target": np.array([[0, 0, 10, 10, cls_id]]), "resized_img_shape": self.image_size, "seed": sample_id}
 
     # We overwrite this to fake images
-    def _load_image(self, index: int) -> np.ndarray:
-        np.random.seed(self.annotations[index]["seed"])  # Make sure that the generated random tensor of a given index will be the same over the runs
+    def _load_image(self, image_path: str) -> np.ndarray:
+        np.random.seed(int(image_path))
         return np.random.random((self.image_size[0], self.image_size[1], 3)) * 255
 
 
