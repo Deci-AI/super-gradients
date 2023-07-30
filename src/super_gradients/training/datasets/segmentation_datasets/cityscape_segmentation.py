@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import os
 import cv2
 import numpy as np
@@ -149,7 +149,7 @@ class CityscapesDataset(SegmentationDataSet):
         out[out == 255] = CITYSCAPES_IGNORE_LABEL
         return out
 
-    def output_image_shape(self):
+    def output_image_shape(self) -> Tuple[int, int]:
         """
         returns image shape when data set contains images of uniform shape.
         """
