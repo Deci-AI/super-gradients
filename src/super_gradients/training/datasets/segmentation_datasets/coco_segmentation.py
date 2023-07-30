@@ -158,3 +158,9 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
         print("Number of images in sub-dataset: ", len(sub_dataset_image_ids))
         torch.save(sub_dataset_image_ids, sub_dataset_image_ids_file_path)
         return sub_dataset_image_ids
+
+    def output_image_shape(self):
+        """
+        returns image shape when data set contains images of uniform shape.
+        """
+        return [512, 512]

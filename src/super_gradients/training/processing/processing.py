@@ -4,6 +4,7 @@ from typing import Tuple, List, Union
 
 import numpy as np
 from PIL import Image
+import math
 
 from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_processing
@@ -18,6 +19,7 @@ from super_gradients.training.transforms.utils import (
     PaddingCoordinates,
     _rescale_keypoints,
     _shift_keypoints,
+    _compute_scale_factor,
 )
 from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction, SegmentationPrediction
 
@@ -45,10 +47,15 @@ class RescaleMetadata(ProcessingMetadata):
 
 
 @dataclass
-class SegRescaleMetadata(ProcessingMetadata):
+class SegmentationRescaleWithPaddingMetadata(ProcessingMetadata):
     original_shape: Tuple[int, int]
     scale_factor: float
     padding_coordinates: PaddingCoordinates
+
+
+@dataclass
+class SegmentationResizeMetadata(ProcessingMetadata):
+    original_shape: Tuple[int, int]
 
 
 class Processing(ABC):
@@ -364,19 +371,19 @@ class CenterCrop(ClassificationProcess):
         return cropped_image, None
 
 
-@register_processing(Processings.SegRescaleWithPadding)
-class SegRescaleWithPadding(Processing, ABC):
+@register_processing(Processings.SegResizeWithPadding)
+class SegResizeWithPadding(Processing, ABC):
     """Resize image to given image dimensions while preserving aspect ratio (padding might be used).
 
     :param output_shape:    (H, W)
-    :param pad_value:    padding value(if padding needed)
+    :param pad_value:    padding value (will be used if padding needed)
     """
 
     def __init__(self, output_shape: Tuple[int, int], pad_value: int):
         self.output_shape = output_shape
         self.pad_value = pad_value
 
-    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, SegmentationRescaleWithPaddingMetadata]:
         height, width = image.shape[:2]
         scale_factor = min(self.output_shape[0] / height, self.output_shape[1] / width)
 
@@ -387,15 +394,136 @@ class SegRescaleWithPadding(Processing, ABC):
         padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=self.output_shape)
         processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
 
-        return processed_image, SegRescaleMetadata(original_shape=(height, width), scale_factor=scale_factor, padding_coordinates=padding_coordinates)
+        return processed_image, SegmentationRescaleWithPaddingMetadata(
+            original_shape=(height, width), scale_factor=scale_factor, padding_coordinates=padding_coordinates
+        )
 
-    def postprocess_predictions(self, predictions: SegmentationPrediction, metadata: SegRescaleMetadata) -> SegmentationPrediction:
+    def postprocess_predictions(self, predictions: SegmentationPrediction, metadata: SegmentationRescaleWithPaddingMetadata) -> SegmentationPrediction:
         predictions.segmentation_map = predictions.segmentation_map[
             metadata.padding_coordinates.top : predictions.segmentation_map_shape[0] - metadata.padding_coordinates.bottom,
             metadata.padding_coordinates.left : predictions.segmentation_map_shape[1] - metadata.padding_coordinates.right,
         ]
         predictions.segmentation_map = _rescale_image(predictions.segmentation_map.astype(np.uint8), target_shape=metadata.original_shape)
         predictions.segmentation_map = predictions.segmentation_map.astype(np.int64)
+        return predictions
+
+
+@register_processing(Processings.SegmentationRescale)
+class SegmentationRescale(Processing, ABC):
+    """Rescale image by scaling factor while preserving aspect ratio.
+    The rescaling can be done according to scale_factor, short_size or long_size.
+    If more than one argument is given, the rescaling mode is determined by this order: scale_factor, then short_size,
+    then long_size.
+
+    :param scale_factor: Rescaling is done by multiplying input size by scale_factor:
+        out_size = (scale_factor * w, scale_factor * h)
+    :param short_size:  Rescaling is done by determining the scale factor by the ratio short_size / min(h, w).
+    :param long_size:   Rescaling is done by determining the scale factor by the ratio long_size / max(h, w).
+    """
+
+    def __init__(self, scale_factor: float, short_size: int, long_size: int):
+        self.scale_factor = scale_factor
+        self.short_size = short_size
+        self.long_size = long_size
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, SegmentationResizeMetadata]:
+        height, width = image.shape[:2]
+        scale_factor = _compute_scale_factor(self.scale_factor, self.short_size, self.long_size, width, height)
+
+        if scale_factor != 1.0:
+            new_width, new_height = int(scale_factor * width), int(scale_factor * height)
+            resized_image = _rescale_image(image, target_shape=(new_height, new_width))
+
+        return resized_image, SegmentationResizeMetadata(original_shape=(height, width))
+
+    def postprocess_predictions(self, predictions: SegmentationPrediction, metadata: SegmentationResizeMetadata) -> SegmentationPrediction:
+        predictions.segmentation_map = _rescale_image(predictions.segmentation_map.astype(np.uint8), target_shape=metadata.original_shape)
+        predictions.segmentation_map = predictions.segmentation_map.astype(np.int64)
+        return predictions
+
+
+@register_processing(Processings.SegmentationResize)
+class SegmentationResize(Processing, ABC):
+    """Resize image to given image dimensions.
+
+    :param output_h:    output shape will be (output_h, output_w)
+    :param output_w:    output shape will be (output_h, output_w)
+    """
+
+    def __init__(self, output_h: int, output_w: int):
+        self.output_h = output_h
+        self.output_w = output_w
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, SegmentationResizeMetadata]:
+        height, width = image.shape[:2]
+        image = _rescale_image(image, target_shape=(self.output_h, self.output_w))
+
+        return image, SegmentationResizeMetadata(original_shape=(height, width))
+
+    def postprocess_predictions(self, predictions: SegmentationPrediction, metadata: SegmentationResizeMetadata) -> SegmentationPrediction:
+        predictions.segmentation_map = _rescale_image(predictions.segmentation_map.astype(np.uint8), target_shape=metadata.original_shape)
+        predictions.segmentation_map = predictions.segmentation_map.astype(np.int64)
+        return predictions
+
+
+@register_processing(Processings.SegmentationPadShortToCropSize)
+class SegmentationPadShortToCropSize(Processing, ABC):
+    """
+        Pads image to 'crop_size'.
+        Should be called only after "SegRescale" or "SegRandomRescale" in augmentations pipeline.
+
+        :param crop_size:   Tuple of (width, height) for the final crop size, if is scalar size is a square (crop_size, crop_size)
+    =    :param fill_image:  Grey value to fill image padded background.
+    """
+
+    def __init__(self, crop_size: Union[float, Tuple, List], fill_image: Union[int, Tuple, List]):
+        self.crop_size = crop_size
+        self.fill_image = fill_image
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
+        # pad images from center symmetrically
+        output_shape = max(image.shape[0], self.crop_size[0]), max(image.shape[1], self.crop_size[1])
+        padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=output_shape)
+        padded_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.fill_image)
+
+        return padded_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
+
+    def postprocess_predictions(self, predictions: SegmentationPrediction, metadata: DetectionPadToSizeMetadata) -> SegmentationPrediction:
+        predictions.segmentation_map = predictions.segmentation_map[
+            metadata.padding_coordinates.top : predictions.segmentation_map_shape[0] - metadata.padding_coordinates.bottom,
+            metadata.padding_coordinates.left : predictions.segmentation_map_shape[1] - metadata.padding_coordinates.right,
+        ]
+        return predictions
+
+
+@register_processing(Processings.SegmentationPadToDivisible)
+class SegmentationPadToDivisible(Processing, ABC):
+    """
+        Pads image to a size divisible by the defined parameter.
+
+        :param divisible_value:   the divisible value, new image size is an int multiplication of this number
+    =    :param fill_image:  Grey value to fill image padded background.
+    """
+
+    def __init__(self, divisible_value: int, fill_image: Union[int, Tuple, List]):
+        self.divisible_value = divisible_value
+        self.fill_image = fill_image
+
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
+        h, w = image.shape
+        padded_h = int(math.ceil(h / self.divisible_value) * self.divisible_value)
+        padded_w = int(math.ceil(w / self.divisible_value) * self.divisible_value)
+
+        padding_coordinates = _get_bottom_right_padding_coordinates(input_shape=image.shape, output_shape=(padded_h, padded_w))
+        padded_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.fill_image)
+
+        return padded_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
+
+    def postprocess_predictions(self, predictions: SegmentationPrediction, metadata: DetectionPadToSizeMetadata) -> SegmentationPrediction:
+        predictions.segmentation_map = predictions.segmentation_map[
+            metadata.padding_coordinates.top : predictions.segmentation_map_shape[0] - metadata.padding_coordinates.bottom,
+            metadata.padding_coordinates.left : predictions.segmentation_map_shape[1] - metadata.padding_coordinates.right,
+        ]
         return predictions
 
 
@@ -568,7 +696,7 @@ def default_ppliteseg_cityscapes_processing_params() -> dict:
     # )
     image_processor = ComposeProcessing(
         [
-            SegRescaleWithPadding(output_shape=(768, 1536), pad_value=0),
+            SegResizeWithPadding(output_shape=(768, 1536), pad_value=0),
             NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             StandardizeImage(),
             ImagePermute(),

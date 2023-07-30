@@ -149,6 +149,12 @@ class CityscapesDataset(SegmentationDataSet):
         out[out == 255] = CITYSCAPES_IGNORE_LABEL
         return out
 
+    def output_image_shape(self):
+        """
+        returns image shape when data set contains images of uniform shape.
+        """
+        return [1024, 2048]
+
 
 @register_dataset(Datasets.CITYSCAPES_CONCAT_DATASET)
 class CityscapesConcatDataset(ConcatDataset):

@@ -28,6 +28,7 @@ from super_gradients.training.transforms.utils import (
     _pad_image,
     _shift_bboxes,
     _rescale_xyxy_bboxes,
+    _compute_scale_factor,
 )
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
@@ -57,6 +58,16 @@ class SegResize(SegmentationTransform):
         sample["image"] = image.resize((self.w, self.h), IMAGE_RESAMPLE_MODE)
         sample["mask"] = mask.resize((self.w, self.h), MASK_RESAMPLE_MODE)
         return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [
+            {
+                Processings.SegmentationResize: {
+                    "new_h": self.h,
+                    "new_w": self.w,
+                }
+            }
+        ]
 
 
 @register_transform(Transforms.SegRandomFlip)
@@ -106,14 +117,7 @@ class SegRescale(SegmentationTransform):
         image = sample["image"]
         mask = sample["mask"]
         w, h = image.size
-        if self.scale_factor is not None:
-            scale = self.scale_factor
-        elif self.short_size is not None:
-            short_size = min(w, h)
-            scale = self.short_size / short_size
-        else:
-            long_size = max(w, h)
-            scale = self.long_size / long_size
+        scale = _compute_scale_factor(self.scale_factor, self.short_size, self.long_size, w, h)
 
         out_size = int(scale * w), int(scale * h)
 
@@ -135,6 +139,9 @@ class SegRescale(SegmentationTransform):
             raise ValueError(f"Short size must be a positive number, found: {self.short_size}")
         if self.long_size is not None and self.long_size <= 0:
             raise ValueError(f"Long size must be a positive number, found: {self.long_size}")
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.SegmentationRescale: {"scale_factor": self.scale_factor, "short_size": self.short_size, "long_size": self.long_size}}]
 
 
 @register_transform(Transforms.SegRandomRescale)
@@ -340,6 +347,9 @@ class SegPadShortToCropSize(SegmentationTransform):
 
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.SegmentationPadShortToCropSize: {"crop_size": self.crop_size, "fill_image": self.fill_image}}]
+
 
 @register_transform(Transforms.SegPadToDivisible)
 class SegPadToDivisible(SegmentationTransform):
@@ -374,6 +384,9 @@ class SegPadToDivisible(SegmentationTransform):
 
     def check_valid_arguments(self):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        return [{Processings.SegmentationPadToDivisible: {"divisible_value": self.divisible_value, "fill_image": self.fill_image}}]
 
 
 @register_transform(Transforms.SegColorJitter)

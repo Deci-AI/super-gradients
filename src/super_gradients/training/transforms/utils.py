@@ -175,3 +175,30 @@ def _rescale_and_pad_to_size(image: np.ndarray, output_shape: Tuple[int, int], s
     padded_image = padded_image.transpose(swap)
     padded_image = np.ascontiguousarray(padded_image, dtype=np.float32)
     return padded_image, r
+
+
+def _compute_scale_factor(scale_factor: float, short_size: int, long_size: int, image_width: int, image_height: int):
+    """
+    Calculates rescale factor for SegResacle transform (and the equivalent processing).
+    The rescaling can be done according to scale_factor, short_size or long_size.
+    If more than one argument is given, the rescaling factor is determined by this order: scale_factor, then short_size,
+    then long_size.
+
+    :param scale_factor: Rescaling is done  in "SegRescale" by multiplying input size by scale_factor:
+            out_size = (scale_factor * w, scale_factor * h)
+    :param short_size:  Rescaling is done by determining the scale factor by the ratio short_size / min(h, w).
+    :param long_size:   Rescaling is done by determining the scale factor by the ratio long_size / max(h, w).
+    :param image_width: W
+    :param image_height: H
+    :return:
+        - Rescaling factor to be used by the transform / processing.
+    """
+    if scale_factor is not None:
+        scale = scale_factor
+    elif short_size is not None:
+        img_short_size = min(image_width, image_height)
+        scale = short_size / img_short_size
+    else:
+        img_long_size = max(image_width, image_height)
+        scale = long_size / img_long_size
+    return scale

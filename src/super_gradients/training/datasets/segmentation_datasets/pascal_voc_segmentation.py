@@ -174,6 +174,12 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
             ]
         )
 
+    def output_image_shape(self):
+        """
+        returns image shape when data set contains images of uniform shape.
+        """
+        return [512, 512]
+
 
 @register_dataset(Datasets.PASCAL_AUG_2012_SEGMENTATION_DATASET)
 class PascalAUG2012SegmentationDataSet(PascalVOC2012SegmentationDataSet):
