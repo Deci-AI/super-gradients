@@ -135,10 +135,6 @@ class DetectionDataset(Dataset):
         if not isinstance(n_dataset_samples, int) or n_dataset_samples < 1:
             raise ValueError(f"_setup_data_source() should return the number of available samples but got {n_dataset_samples}")
         n_samples = n_dataset_samples if max_num_samples is None else min(n_dataset_samples, max_num_samples)
-        # TODO: question: how to handle `max_num_samples` ?
-        # Should
-        # Let's imagine: n_dataset_samples=100, max_num_samples=10, ignore_empty_annotations=True, AND one transform is set with non_empty_annotations=False
-        # In this case, we have 10 samples for training
 
         self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.original_target_format = original_target_format
@@ -198,8 +194,6 @@ class DetectionDataset(Dataset):
             # Map indexes to sample annotations.
             non_empty_annotations, empty_annotations = self._load_all_annotations(n_samples=n_samples)
             if self._cache_annotations:
-                # TODO: question. If _ignore_empty_annotations=True, but transforms have `non_empty_annotations=False`;
-                # TODO:             should we filter the empty annotations from the transforms ?
                 if self._ignore_empty_annotations:
                     self._cached_annotations = non_empty_annotations
                 else:
