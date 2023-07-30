@@ -199,7 +199,7 @@ class Pipeline(ABC):
             postprocessed_predictions.append(prediction)
 
         # Yield results one by one
-        for image, prediction, preprocessed_image in zip(images, postprocessed_predictions, preprocessed_images):
+        for image, prediction in zip(images, postprocessed_predictions):
             yield self._instantiate_image_prediction(image=image, prediction=prediction)
 
     @abstractmethod
