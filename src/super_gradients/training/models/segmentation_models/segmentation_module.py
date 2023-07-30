@@ -105,11 +105,10 @@ class SegmentationModule(SgModule, ABC):
 
     def predict(self, images: ImageSource, batch_size: int = 32, fuse_model: bool = True) -> ImagesSegmentationPrediction:
         """Predict an image or a list of images.
-        #
-        #     :param images:  Images to predict.
-        #     :param batch_size:  Maximum number of images to process at the same time.
-        #     :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
-        #"""
+        :param images:  Images to predict.
+        :param batch_size:  Maximum number of images to process at the same time.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        """
         pipeline = self._get_pipeline(fuse_model=fuse_model)
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
