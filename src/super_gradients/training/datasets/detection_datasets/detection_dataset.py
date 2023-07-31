@@ -165,10 +165,8 @@ class DetectionDataset(Dataset):
         self._cache_annotations = cache_annotations
         self._cached_annotations: Dict[int, Dict] = {}  # We use a dict and not a list because when `ignore_empty_annotations=True` we may ignore some indexes.
 
-        # Note:
-        # Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
-        # Sample ID refers to the index of the sample in the dataset, WITHOUT considering any filtering. 0<=sample_id<=len(source)-1
-        self._non_empty_sample_ids: Optional[List[int]] = None  # This maps (dataset index) to (non-empty sample ids)
+        # Maps (dataset index) -> (non-empty sample ids)
+        self._non_empty_sample_ids: Optional[List[int]] = None
 
         # Some transform may require non-empty annotations to be indexed.
         transform_require_non_empty_annotations = any(getattr(transform, "non_empty_annotations", False) for transform in self.transforms)
