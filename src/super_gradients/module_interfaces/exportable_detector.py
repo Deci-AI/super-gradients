@@ -17,6 +17,7 @@ from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
 from super_gradients.training.utils.utils import infer_model_device
+from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 
 logger = get_logger(__name__)
 
@@ -82,6 +83,7 @@ class ExportableObjectDetectionModel:
         nms_threshold: Optional[float] = None,
         engine: Optional[ExportTargetBackend] = None,
         quantization_mode: ExportQuantizationMode = Optional[None],
+        selective_quantizer: Optional[SelectiveQuantizer] = None,
         calibration_loader: Optional[DataLoader] = None,
         preprocessing: Union[bool, nn.Module] = True,
         postprocessing: Union[bool, nn.Module] = True,
@@ -116,6 +118,7 @@ class ExportableObjectDetectionModel:
             If QuantizationMode.FP16, the model is exported with weights converted to half precision.
             If QuantizationMode.INT8, the model is exported with weights quantized to INT8. For this mode you can use calibration_loader
             to specify a data loader for calibrating the model.
+        :param selective_quantizer: (SelectiveQuantizer) An optional quantizer for selectively quantizing model weights.
         :param calibration_loader: (torch.utils.data.DataLoader) An optional data loader for calibrating a quantized model.
         :param preprocessing: (bool or nn.Module)
                               If True, export a model with preprocessing that matches preprocessing params during training,
@@ -262,13 +265,12 @@ class ExportableObjectDetectionModel:
             model.prep_model_for_conversion(**prep_model_for_conversion_kwargs)
 
         if quantization_mode == ExportQuantizationMode.INT8:
-            from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
             from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
             from pytorch_quantization import nn as quant_nn
 
             patch_pytorch_quantization_modules_if_needed()
 
-            q_util = SelectiveQuantizer(
+            q_util = selective_quantizer or SelectiveQuantizer(
                 default_quant_modules_calibrator_weights="max",
                 default_quant_modules_calibrator_inputs="histogram",
                 default_per_channel_quant_weights=True,

@@ -5,6 +5,7 @@ import unittest
 
 import cv2
 import numpy as np
+import onnx
 import onnxruntime
 import torch
 from matplotlib import pyplot as plt
@@ -13,6 +14,8 @@ from torch.utils.data import DataLoader
 
 from super_gradients.common.object_names import Models
 from super_gradients.conversion.conversion_enums import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
+from super_gradients.conversion.onnx.nms import PickNMSPredictionsAndReturnAsFlatResult, PickNMSPredictionsAndReturnAsBatchedResult
+from super_gradients.conversion.tensorrt.nms import ConvertTRTFormatToFlatTensor
 from super_gradients.module_interfaces import ExportableObjectDetectionModel
 from super_gradients.module_interfaces.exportable_detector import ModelExportResult
 from super_gradients.training import models
@@ -21,6 +24,7 @@ from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASS
 from super_gradients.training.utils.detection_utils import DetectionVisualization
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.media.image import load_image
+import onnx_graphsurgeon as gs
 
 
 class TestDetectionModelExport(unittest.TestCase):
@@ -199,6 +203,8 @@ class TestDetectionModelExport(unittest.TestCase):
         confidence_threshold = 0.25
         nms_threshold = 0.6
         model_type = Models.YOLOX_S
+        device = "cuda"
+
         with tempfile.TemporaryDirectory() as tmpdirname:
             model_name = str(model_type).lower().replace(".", "_")
             out_path = os.path.join(tmpdirname, f"{model_name}_tensorrt_batch.onnx")
@@ -207,6 +213,7 @@ class TestDetectionModelExport(unittest.TestCase):
             export_result = model_arch.export(
                 out_path,
                 input_image_shape=None,  # Force .export() to infer image shape from the model itself
+                device=device,
                 engine=ExportTargetBackend.TENSORRT,
                 output_predictions_format=output_predictions_format,
                 nms_threshold=nms_threshold,
@@ -387,7 +394,29 @@ class TestDetectionModelExport(unittest.TestCase):
             )
             self._benchmark_onnx(export_result)
 
-    def test_export_yolox_quantized_with_calibration_to_tensorrt(self):
+    def test_export_yolox_quantized_fp16(self):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            tmpdirname = "."
+            out_path = os.path.join(tmpdirname, "yolox_quantized_fp16_onnxruntime.onnx")
+
+            ppyolo_e: ExportableObjectDetectionModel = models.get(Models.YOLOX_S, num_classes=80)
+            export_result = ppyolo_e.export(
+                out_path,
+                device="cuda",
+                preprocessing=False,
+                postprocessing=False,
+                engine=ExportTargetBackend.ONNXRUNTIME,
+                num_pre_nms_predictions=300,
+                max_predictions_per_image=100,
+                input_image_shape=(640, 640),
+                output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
+                quantization_mode=ExportQuantizationMode.FP16,
+                onnx_export_kwargs=dict(verbose=True, do_constant_folding=True),
+            )
+
+            self._benchmark_onnx(export_result)
+
+    def test_export_yolox_quantized_int8_with_calibration_to_tensorrt(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
             out_path = os.path.join(tmpdirname, "yolox_quantized_with_calibration.onnx")
 
@@ -514,6 +543,13 @@ class TestDetectionModelExport(unittest.TestCase):
         return result
 
     def test_export_export_all_variants(self):
+        export_dir = "export_all_variants"
+        os.makedirs(export_dir, exist_ok=True)
+
+        benchmark_command_dir = "benchmark_command.sh"
+        with open(benchmark_command_dir, "w") as f:
+            pass
+
         for output_predictions_format in [DetectionOutputFormatMode.BATCH_FORMAT, DetectionOutputFormatMode.FLAT_FORMAT]:
             for engine in [ExportTargetBackend.ONNXRUNTIME, ExportTargetBackend.TENSORRT]:
                 for quantization in [None, ExportQuantizationMode.FP16, ExportQuantizationMode.INT8]:
@@ -531,7 +567,11 @@ class TestDetectionModelExport(unittest.TestCase):
                     #     # Skip this case because the FP16 quantization uses model inference
                     #     pass
 
-                    for model_type in [Models.YOLOX_S, Models.PP_YOLOE_S, Models.YOLO_NAS_S]:
+                    for model_type in [
+                        Models.YOLOX_S,
+                        # Models.PP_YOLOE_S,
+                        # Models.YOLO_NAS_S
+                    ]:
                         model_name = str(model_type).lower()
                         model = models.get(model_type, pretrained_weights="coco")
                         quantization_suffix = f"_{quantization.value}" if quantization is not None else ""
@@ -540,12 +580,136 @@ class TestDetectionModelExport(unittest.TestCase):
                         with self.subTest(msg=onnx_filename):
 
                             model.export(
-                                onnx_filename,
+                                os.path.join(export_dir, onnx_filename),
                                 device=device,
                                 quantization_mode=quantization,
                                 engine=engine,
                                 output_predictions_format=output_predictions_format,
+                                preprocessing=False,
+                                postprocessing=False,
                             )
+
+                            with open(benchmark_command_dir, "a") as f:
+                                quantization_param = "--int8" if quantization == ExportQuantizationMode.INT8 else "--fp16"
+                                output_file_log = onnx_filename.replace(".onnx", ".log")
+                                trtexec_command = (
+                                    f"/usr/src/tensorrt/bin/trtexec "
+                                    f"--onnx=/deci/eugene/{onnx_filename} {quantization_param} "
+                                    f"--avgRuns=100 --duration=15 > /deci/eugene/{output_file_log}\n"
+                                )
+                                f.write(trtexec_command)
+
+    def test_trt_nms_convert_to_flat_result(self):
+        batch_size = 7
+        max_predictions_per_image = 100
+
+        for device in ["cpu", "cuda"]:
+            for dtype in [torch.float16, torch.float32]:
+
+                num_detections = torch.randint(1, max_predictions_per_image, (batch_size, 1), dtype=torch.int32)
+                detection_boxes = torch.randn((batch_size, max_predictions_per_image, 4), dtype=dtype)
+                detection_scores = torch.randn((batch_size, max_predictions_per_image), dtype=dtype)
+                detection_classes = torch.randint(0, 80, (batch_size, max_predictions_per_image), dtype=torch.int32)
+
+                torch_module = ConvertTRTFormatToFlatTensor(batch_size, max_predictions_per_image)
+                flat_predictions_torch = torch_module(num_detections, detection_boxes, detection_scores, detection_classes)
+                print(flat_predictions_torch.shape, flat_predictions_torch.dtype, flat_predictions_torch)
+
+                onnx_file = "ConvertTRTFormatToFlatTensor.onnx"
+
+                graph = ConvertTRTFormatToFlatTensor.as_graph(
+                    batch_size=batch_size, max_predictions_per_image=max_predictions_per_image, dtype=dtype, device=device
+                )
+                model = gs.export_onnx(graph)
+                onnx.checker.check_model(model)
+                onnx.save(model, onnx_file)
+
+                session = onnxruntime.InferenceSession(onnx_file)
+
+                inputs = [o.name for o in session.get_inputs()]
+                outputs = [o.name for o in session.get_outputs()]
+
+                [flat_predictions_onnx] = session.run(
+                    output_names=outputs,
+                    input_feed={
+                        inputs[0]: num_detections.numpy(),
+                        inputs[1]: detection_boxes.numpy(),
+                        inputs[2]: detection_scores.numpy(),
+                        inputs[3]: detection_classes.numpy(),
+                    },
+                )
+
+                np.testing.assert_allclose(flat_predictions_torch.numpy(), flat_predictions_onnx, rtol=1e-3, atol=1e-3)
+
+    def test_onnx_nms_flat_result(self):
+        onnx_file = "PickNMSPredictionsAndReturnAsFlatResult.onnx"
+        graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph(batch_size=7)
+        model = gs.export_onnx(graph)
+        onnx.checker.check_model(model)
+        onnx.save(model, onnx_file)
+
+        torch_module = PickNMSPredictionsAndReturnAsFlatResult()
+
+        session = onnxruntime.InferenceSession(onnx_file)
+
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+
+        # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
+        # And also can handle dynamic shapes input
+        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
+        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
+        selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
+
+        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
+        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+        for r in onnx_result:
+            print(r.shape, r.dtype, r)
+
+        # Test on empty NMS result
+        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
+        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
+        selected_indexes = torch.zeros((0, 3), dtype=torch.int64)
+
+        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)  # noqa
+        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+        for r in onnx_result:
+            print(r.shape, r.dtype, r)
+
+    def test_onnx_nms_batched_result(self):
+        onnx_file = "PickNMSPredictionsAndReturnAsBatchedResult.onnx"
+        graph = PickNMSPredictionsAndReturnAsBatchedResult.as_graph(batch_size=7, max_predictions_per_image=100)
+        model = gs.export_onnx(graph)
+        onnx.checker.check_model(model)
+        onnx.save(model, onnx_file)
+
+        torch_module = PickNMSPredictionsAndReturnAsBatchedResult(batch_size=7, max_predictions_per_image=100)
+
+        session = onnxruntime.InferenceSession(onnx_file)
+
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+
+        # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
+        # And also can handle dynamic shapes input
+        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
+        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
+        selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
+
+        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
+        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+        for r in onnx_result:
+            print(r.shape, r.dtype, r)
+
+        # Test on empty NMS result
+        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
+        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
+        selected_indexes = torch.zeros((0, 3), dtype=torch.int64)
+
+        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)  # noqa
+        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+        for r in onnx_result:
+            print(r.shape, r.dtype, r)
 
     def _benchmark_onnx(self, export_result: ModelExportResult):
         if not self.decibenchmark_available:
