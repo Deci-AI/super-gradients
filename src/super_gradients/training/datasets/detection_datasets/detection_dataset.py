@@ -171,13 +171,16 @@ class DetectionDataset(Dataset):
         # Some transform may require non-empty annotations to be indexed.
         transform_require_non_empty_annotations = any(getattr(transform, "non_empty_annotations", False) for transform in self.transforms)
 
-        # Run over the whole dataset to index the images with/without annotations.
+        # Iterate over the whole dataset to index the images with/without annotations.
         if self._cache_annotations or self._ignore_empty_annotations or transform_require_non_empty_annotations:
-            if self._ignore_empty_annotations:
+
+            if self._cache_annotations:
+                logger.info("Dataset Initialization in progress. `cache_annotations=True` causes the process to take longer due to full dataset indexing.")
+            elif self._ignore_empty_annotations:
                 logger.info(
                     "Dataset Initialization in progress. `ignore_empty_annotations=True` causes the process to take longer due to full dataset indexing."
                 )
-            if transform_require_non_empty_annotations:
+            elif transform_require_non_empty_annotations:
                 logger.info(
                     "Dataset Initialization in progress. "
                     "Having a transform with `non_empty_annotations=True` set causes the process to take longer due to the need for a full dataset indexing."
@@ -186,7 +189,7 @@ class DetectionDataset(Dataset):
             # Map indexes to sample annotations.
             non_empty_annotations, empty_annotations = self._load_all_annotations(n_samples=n_samples)
             if self._cache_annotations:
-                if self._ignore_empty_annotations:
+                if self._ignore_empty_annotations and transform_require_non_empty_annotations:
                     self._cached_annotations = non_empty_annotations
                 else:
                     # Non overlapping dicts. since they map unique sample_ids -> sample
@@ -197,7 +200,7 @@ class DetectionDataset(Dataset):
 
             self._non_empty_sample_ids = list(non_empty_annotations.keys())
 
-        self._n_samples = n_samples
+        self._n_samples = n_samples  # Regardless of any filtering
 
         # CACHE IMAGE
         self.cache = cache
@@ -233,6 +236,7 @@ class DetectionDataset(Dataset):
         """
         sample_id = self._non_empty_sample_ids[index] if ignore_empty_annotations else index
         if self._cache_annotations:
+            # TODO: Check if we could support on-the-fly caching (without preloading all)
             return self._cached_annotations[sample_id]
         else:
             return self._load_sample_annotation(sample_id=sample_id)
@@ -372,7 +376,10 @@ class DetectionDataset(Dataset):
         return cached_imgs
 
     def _load_resized_img(self, image_path: str) -> np.ndarray:
-        """Load an image and resize it to the desired size (If relevant)."""
+        """Load an image and resize it to the desired size (If relevant).
+        :param image_path:  Full path of the image
+        :return:            Image in BGR format, and channel last (HWC).
+        """
         img = self._load_image(image_path=image_path)
 
         if self.input_dim is not None:
@@ -383,6 +390,10 @@ class DetectionDataset(Dataset):
         return img
 
     def _load_image(self, image_path: str) -> np.ndarray:
+        """Load an image.
+        :param image_path:  Full path of the image
+        :return:            Image in BGR format, and channel last (HWC).
+        """
         img_file = os.path.join(image_path)
         img = cv2.imread(img_file)
 
