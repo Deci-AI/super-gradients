@@ -10,12 +10,12 @@ from collections import OrderedDict
 
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models import BaseClassifier
 
 GoogLeNetOutputs = namedtuple("GoogLeNetOutputs", ["log_", "aux_logits2", "aux_logits1"])
 
 
-class GoogLeNet(SgModule):
+class GoogLeNet(BaseClassifier):
     def __init__(self, num_classes=1000, aux_logits=True, init_weights=True, backbone_mode=False, dropout=0.3):
         super(GoogLeNet, self).__init__()
 

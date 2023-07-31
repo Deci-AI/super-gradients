@@ -9,7 +9,7 @@ Based on https://github.com/kuangliu/pytorch-cifar/blob/master/models/preact_res
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models import BaseClassifier
 
 
 class PreActBlock(nn.Module):
@@ -63,7 +63,7 @@ class PreActBottleneck(nn.Module):
         return out
 
 
-class PreActResNet(SgModule):
+class PreActResNet(BaseClassifier):
     def __init__(self, block, num_blocks, num_classes=10):
         super(PreActResNet, self).__init__()
         self.in_planes = 64
