@@ -315,7 +315,7 @@ class SegFormer(SegmentationModule):
         overlap_patch_stride: List[int],
         overlap_patch_pad: List[int],
         in_channels: int = 3,
-        sliding_window_size: Tuple[int, int] = (1024, 1024),
+        sliding_window_crop_size: Tuple[int, int] = (1024, 1024),
         sliding_window_stride: Tuple[int, int] = (768, 768),
     ):
         """
@@ -328,6 +328,9 @@ class SegFormer(SegmentationModule):
         :param overlap_patch_stride:  the patch stride of the overlapping patch embedding in each stage
         :param overlap_patch_pad:  the patch padding of the overlapping patch embedding in each stage
         :param in_channels:  number of input channels
+        :param sliding_window_crop_size:  (width, height) the crop size to take from the image for forward with sliding window
+        :param sliding_window_stride:  (rows, cols) the stride size between crops for forward with sliding window
+
         """
 
         super().__init__(use_aux_heads=False)
@@ -351,8 +354,8 @@ class SegFormer(SegmentationModule):
 
         self.num_classes = num_classes
 
-        self.is_SWI = False
-        self.sliding_window_size = sliding_window_size
+        self.use_sliding_window_validation = False
+        self.sliding_window_crop_size = sliding_window_crop_size
         self.sliding_window_stride = sliding_window_stride
 
     def init_params(self):
@@ -370,11 +373,11 @@ class SegFormer(SegmentationModule):
                 nn.init.ones_(m.weight)
                 nn.init.zeros_(m.bias)
 
-    def enable_swi(self):
-        self.is_SWI = True
+    def enable_sliding_window_validation(self):
+        self.use_sliding_window_validation = True
 
-    def disable_swi(self):
-        self.is_SWI = False
+    def disable_sliding_window_validation(self):
+        self.use_sliding_window_validation = False
 
     @property
     def backbone(self):
@@ -393,27 +396,31 @@ class SegFormer(SegmentationModule):
         return out
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.is_SWI:
-            return self.sliding_window(x, self.num_classes, self.sliding_window_stride, self.sliding_window_size)
+        if self.use_sliding_window_validation:
+            return self.forward_with_sliding_window(x)
         else:
             return self._forward(x)
 
-    def sliding_window(self, img: torch.Tensor, num_classes: int, stride: Tuple[int, int], crop_size: Tuple[int, int]) -> torch.Tensor:
+    def forward_with_sliding_window(self, img: torch.Tensor) -> torch.Tensor:
         """
-        Inference by sliding-window with overlap.
+        Inference by sliding-window with overlap. It involves systematically moving a window with a fixed crop-size over
+        the input image. As the window moves across the image, features or patterns within the window are extracted by
+        running a forward pass of the crop image through the net.
 
-        If h_crop > h_img or w_crop > w_img, the small patch will be used to
-        decode without padding.
+        If h_crop > h_img or w_crop > w_img, the small patch will be used to decode without padding.
+
+        :param img: a batch of images to benchmark the model on using sliding window.
+        return: predictions tensor
         """
 
-        h_stride, w_stride = stride
-        h_crop, w_crop = crop_size
+        h_stride, w_stride = self.sliding_window_stride
+        h_crop, w_crop = self.sliding_window_crop_size
         batch_size, _, h_img, w_img = img.size()
 
         h_grids = max(h_img - h_crop + h_stride - 1, 0) // h_stride + 1
         w_grids = max(w_img - w_crop + w_stride - 1, 0) // w_stride + 1
 
-        preds = torch.zeros((batch_size, num_classes, h_img, w_img), device=img.device)
+        preds = torch.zeros((batch_size, self.num_classes, h_img, w_img), device=img.device)
         count_mat = torch.zeros((batch_size, 1, h_img, w_img), device=img.device)
 
         for h_idx in range(h_grids):
@@ -492,7 +499,7 @@ class SegFormerCustom(SegFormer):
             overlap_patch_stride=arch_params.overlap_patch_stride,
             overlap_patch_pad=arch_params.overlap_patch_pad,
             in_channels=arch_params.in_channels,
-            sliding_window_size=arch_params.sliding_window_size,
+            sliding_window_crop_size=arch_params.sliding_window_crop_size,
             sliding_window_stride=arch_params.sliding_window_stride,
         )
 
@@ -504,7 +511,7 @@ DEFAULT_SEGFORMER_PARAMS = {
     "overlap_patch_pad": [3, 1, 1, 1],
     "eff_self_att_reduction_ratio": [8, 4, 2, 1],
     "eff_self_att_heads": [1, 2, 5, 8],
-    "sliding_window_size": (1024, 1024),
+    "sliding_window_crop_size": (1024, 1024),
     "sliding_window_stride": (768, 768),
 }
 

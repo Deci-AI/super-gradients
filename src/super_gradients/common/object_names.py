@@ -148,7 +148,7 @@ class Callbacks:
     DEKR_VISUALIZATION = "DEKRVisualizationCallback"
     ROBOFLOW_RESULT_CALLBACK = "RoboflowResultCallback"
     TIMER = "TimerCallback"
-    SLIDING_WINDOW_INFERENCE = "ChangeToSWI"
+    SLIDING_WINDOW_VALIDATION = "SlidingWindowValidationCallback"
 
 
 class LRSchedulers:

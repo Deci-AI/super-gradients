@@ -856,20 +856,29 @@ class TimerCallback(Callback):
             return total_steps_in_done + train_loader_length + context.batch_idx
 
 
-@register_callback(Callbacks.SLIDING_WINDOW_INFERENCE)
-class ChangeToSWI(Callback):
+@register_callback(Callbacks.SLIDING_WINDOW_VALIDATION)
+class SlidingWindowValidationCallback(Callback):
     """
     Performing single-scale sliding window during inference at the end of training on the validation set.
     """
 
     def on_validation_loader_start(self, context: PhaseContext) -> None:
         if context.training_params.max_epochs - 1 == context.epoch:
-            unwrap_model(context.net).enable_swi()
+            unwrap_model(context.net).enable_sliding_window_validation()
             context.valid_loader.dataset.transforms.transforms = []
 
     def on_validation_loader_end(self, context: PhaseContext) -> None:
         if context.training_params.max_epochs - 1 == context.epoch:
-            unwrap_model(context.net).disable_swi()
+            unwrap_model(context.net).disable_sliding_window_validation()
+
+    def on_average_best_models_validation_start(self, context: PhaseContext) -> None:
+        if context.training_params.max_epochs - 1 == context.epoch and context.training_params.average_best_models:
+            unwrap_model(context.net).enable_sliding_window_validation()
+            context.valid_loader.dataset.transforms.transforms = []
+
+    def on_average_best_models_validation_end(self, context: PhaseContext) -> None:
+        if context.training_params.max_epochs - 1 == context.epoch and context.training_params.average_best_models:
+            unwrap_model(context.net).disable_sliding_window_validation()
 
 
 def create_lr_scheduler_callback(

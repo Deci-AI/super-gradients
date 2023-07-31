@@ -1448,9 +1448,15 @@ class Trainer:
                         },
                     )
 
+            # PHASE.AVERAGE_BEST_MODELS_VALIDATION_START
+            self.phase_callback_handler.on_average_best_models_validation_start(context)
+
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
                 self._validate_final_average_model(context, cleanup_snapshots_pkl_file=True)
+
+            # PHASE.AVERAGE_BEST_MODELS_VALIDATION_END
+            self.phase_callback_handler.on_average_best_models_validation_end(context)
 
         except KeyboardInterrupt:
             logger.info(
