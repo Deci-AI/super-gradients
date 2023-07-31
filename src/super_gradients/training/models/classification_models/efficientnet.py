@@ -28,7 +28,7 @@ from collections import OrderedDict
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.training.utils import HpmStruct
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models import BaseClassifier
 
 # Parameters for an individual model block
 BlockArgs = collections.namedtuple(
@@ -393,7 +393,7 @@ class MBConvBlock(nn.Module):
         return x
 
 
-class EfficientNet(SgModule):
+class EfficientNet(BaseClassifier):
     """
     EfficientNet model.
 
