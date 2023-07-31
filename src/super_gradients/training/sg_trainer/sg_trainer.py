@@ -1815,7 +1815,6 @@ class Trainer:
             "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader, "dataloader_params") else None,
         }
         hyper_param_config = {
-            "arch_params": self.arch_params.__dict__,
             "checkpoint_params": self.checkpoint_params.__dict__,
             "training_hyperparams": self.training_params.__dict__,
             "dataset_params": dataset_params,
