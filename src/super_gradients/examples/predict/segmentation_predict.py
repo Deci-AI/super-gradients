@@ -1,8 +1,7 @@
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
-# Note that currently only XXX, YYY and ZZZ are supported.
-# model = models.get(Models.PP_LITE_B_SEG, pretrained_weights="cityscapes")
+
 model = models.get(model_name=Models.PP_LITE_T_SEG75, arch_params={"use_aux_heads": False}, num_classes=19, pretrained_weights="cityscapes")
 
 IMAGES = [
