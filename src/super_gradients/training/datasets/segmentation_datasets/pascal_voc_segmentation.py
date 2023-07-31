@@ -175,11 +175,12 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
             ]
         )
 
-    def output_image_shape(self) -> Tuple[int, int]:
+    @property
+    def _original_dataset_image_shape(self) -> Tuple[int, int]:
         """
         returns image shape when data set contains images of uniform shape.
         """
-        return [512, 512]
+        return 512, 512
 
 
 @register_dataset(Datasets.PASCAL_AUG_2012_SEGMENTATION_DATASET)

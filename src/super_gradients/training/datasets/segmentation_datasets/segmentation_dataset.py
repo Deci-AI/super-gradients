@@ -208,7 +208,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         return transformed["image"], transformed["mask"]
 
     @property
-    def output_image_shape(self) -> Optional[Tuple[int, int]]:
+    def _original_dataset_image_shape(self) -> Optional[Tuple[int, int]]:
         """
         Image default shape - (H,W)
         Default shape (model's input) should be defined for additional processing that might be needed
@@ -224,8 +224,8 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         """
         pipeline = [Processings.ImagePermute()]
         pipeline += [{Processings.NormalizeImage: {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}}]
-        if self.output_image_shape:
-            pipeline += [{Processings.SegResizeWithPadding: {"output_shape": self.output_image_shape, "pad_value": 0}}]
+        if self._original_dataset_image_shape:
+            pipeline += [{Processings.SegResizeWithPadding: {"output_shape": self._original_dataset_image_shape, "pad_value": 0}}]
             # Resize image to same image-shape as model input. default shape should be defined in dataset class under "output_image_shape"
         pipeline += [Processings.StandardizeImage()]
         for t in self.transforms:

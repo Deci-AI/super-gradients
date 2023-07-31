@@ -160,8 +160,9 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
         torch.save(sub_dataset_image_ids, sub_dataset_image_ids_file_path)
         return sub_dataset_image_ids
 
-    def output_image_shape(self) -> Tuple[int, int]:
+    @property
+    def _original_dataset_image_shape(self) -> Tuple[int, int]:
         """
         returns image shape when data set contains images of uniform shape.
         """
-        return [512, 512]
+        return 512, 512
