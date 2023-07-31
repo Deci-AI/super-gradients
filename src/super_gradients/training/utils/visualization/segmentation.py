@@ -3,7 +3,7 @@ import torch
 from torchvision.utils import draw_segmentation_masks
 from typing import List, Optional, Tuple, Union, Set
 from super_gradients.training.utils.segmentation_utils import to_one_hot
-from data_gradients.visualize.detection.detection_legend import draw_legend_on_canvas
+from super_gradients.training.utils.visualization.legend import draw_legend_on_canvas
 
 
 def overlay_segmentation(
