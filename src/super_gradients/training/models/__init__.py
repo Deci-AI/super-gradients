@@ -1,6 +1,7 @@
 import warnings
 
 from .sg_module import SgModule
+from .classification_models.base_classifer import BaseClassifier
 
 # Classification models
 from super_gradients.training.models.classification_models.beit import Beit, BeitLargePatch16_224, BeitBasePatch16_224
@@ -197,6 +198,7 @@ __all__ = [
     "NDFLHeads",
     "YoloNASPANNeckWithC2",
     "SgModule",
+    "BaseClassifier",
     "Beit",
     "BeitLargePatch16_224",
     "BeitBasePatch16_224",
