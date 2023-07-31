@@ -1,13 +1,17 @@
+from super_gradients.common.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
+
 import unittest
 import numpy as np
+from typing import Union
 
 from super_gradients.training.datasets import DetectionDataset
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
-from super_gradients.common.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
+from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
+from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 
 
 class DummyDetectionDataset(DetectionDataset):
-    def __init__(self, input_dim, *args, **kwargs):
+    def __init__(self, input_dim, target_format: Union[DetectionTargetsFormat, ConcatenatedTensorFormat], *args, **kwargs):
         """Dummy Dataset testing subclassing, designed with no annotation that includes class_2."""
 
         self.dummy_targets = [
@@ -17,7 +21,7 @@ class DummyDetectionDataset(DetectionDataset):
 
         self.image_size = input_dim
         kwargs["all_classes_list"] = ["class_0", "class_1", "class_2"]
-        kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
+        kwargs["original_target_format"] = target_format
         super().__init__(data_dir="", input_dim=input_dim, *args, **kwargs)
 
     def _setup_data_source(self):
@@ -53,28 +57,45 @@ class TestDetectionDatasetSubclassing(unittest.TestCase):
     def test_subclass_keep_empty(self):
         """Check that subclassing only keeps annotations of wanted class"""
         for config in self.config_keep_empty_annotation:
-            test_dataset = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=False, class_inclusion_list=config["class_inclusion_list"])
+            test_dataset = DummyDetectionDataset(
+                input_dim=(640, 512), ignore_empty_annotations=False, class_inclusion_list=config["class_inclusion_list"], target_format=XYXY_LABEL
+            )
             n_targets_after_subclass = _count_targets_after_subclass_per_index(test_dataset)
             self.assertListEqual(config["expected_n_targets_after_subclass"], n_targets_after_subclass)
 
     def test_subclass_drop_empty(self):
         """Check that empty annotations are not indexed (i.e. ignored) when ignore_empty_annotations=True"""
         for config in self.config_ignore_empty_annotation:
-            test_dataset = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True, class_inclusion_list=config["class_inclusion_list"])
+            test_dataset = DummyDetectionDataset(
+                input_dim=(640, 512), ignore_empty_annotations=True, class_inclusion_list=config["class_inclusion_list"], target_format=XYXY_LABEL
+            )
             n_targets_after_subclass = _count_targets_after_subclass_per_index(test_dataset)
             self.assertListEqual(config["expected_n_targets_after_subclass"], n_targets_after_subclass)
 
         # Check last case when class_2, which should raise EmptyDatasetException because not a single image has
         # a target in class_inclusion_list
         with self.assertRaises(EmptyDatasetException):
-            DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True, class_inclusion_list=["class_2"])
+            DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True, class_inclusion_list=["class_2"], target_format=XYXY_LABEL)
 
     def test_wrong_subclass(self):
         """Check that ValueError is raised when class_inclusion_list includes a class that does not exist."""
         with self.assertRaises(DatasetValidationException):
-            DummyDetectionDataset(input_dim=(640, 512), class_inclusion_list=["non_existing_class"])
+            DummyDetectionDataset(input_dim=(640, 512), class_inclusion_list=["non_existing_class"], target_format=XYXY_LABEL)
         with self.assertRaises(DatasetValidationException):
-            DummyDetectionDataset(input_dim=(640, 512), class_inclusion_list=["class_0", "non_existing_class"])
+            DummyDetectionDataset(input_dim=(640, 512), class_inclusion_list=["class_0", "non_existing_class"], target_format=XYXY_LABEL)
+
+    def test_legacy_detection_targets_format(self):
+        """Check that ValueError is raised when class_inclusion_list includes a class that does not exist."""
+
+        for config in self.config_keep_empty_annotation:
+            test_dataset = DummyDetectionDataset(
+                input_dim=(640, 512),
+                ignore_empty_annotations=False,
+                class_inclusion_list=config["class_inclusion_list"],
+                target_format=DetectionTargetsFormat.XYXY_LABEL,
+            )
+            n_targets_after_subclass = _count_targets_after_subclass_per_index(test_dataset)
+            self.assertListEqual(config["expected_n_targets_after_subclass"], n_targets_after_subclass)
 
 
 def _count_targets_after_subclass_per_index(test_dataset: DummyDetectionDataset):
