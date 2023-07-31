@@ -11,16 +11,17 @@
 #      https://github.com/sithu31296/semantic-segmentation
 #
 # Instructions:
-#   1. Choose SegFormer architecture (b0 - b5) by changing the value of the "architecture" field below
+# In the recipe of the specif variant you would like to train:
+#   1. Choose SegFormer architecture (b0 - b5) by changing the value of the "architecture".
 #   2. We recommend preparing the data according to SG's CityScapes readme file:
 #      https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/Dataset_Setup_Instructions.md
 #   3. Note: if you change the dataset's internal directory structure, make changes to the fields "list_file" and
 #      "labels_csv_path" of both "train_dataset_params" and "val_dataset_params" accordingly
-#   4. Edit the "data_root_dir" field below to point to the absolute path of the data root directory
+#   4. Edit the "data_root_dir" field to point to the absolute path of the data root directory
 #   5. Edit the "ckpt_root_dir" field to the path where you want to save checkpoints and logs
 #   6. Move to the project root (where you will find the ReadMe and src folder)
-#   7. Run the command (change:
-#       python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer
+#   7. Run the command (change the config_name according to the variant):
+#       python -m super_gradients.train_from_recipe --config-name=cityscapes_segformer_b0
 #
 #
 # Imagenet-1K pre-trained backbone:
@@ -31,13 +32,24 @@
 #                         B4:   https://deci-pretrained-models.s3.amazonaws.com/mit_backbones/mit_b4.pth
 #                         B5:   https://deci-pretrained-models.s3.amazonaws.com/mit_backbones/mit_b5.pth
 #
-#   1. Download the weights from the above link and put them in a directory of your choice
-#   2. Below, insert the weights file's full path to checkpoint_params.checkpoint_path
-#   3. Ensure checkpoint_params.load_backbone: True
+#   8. Download the weights from the above link and put them in a directory of your choice
+#   9. Insert the weights file's full path to checkpoint_params.checkpoint_path:
+#   10. Ensure checkpoint_params.load_backbone: True
+#
 #
 # Performance and training details:
-#      SegFormer-B0: mIoU (sliding-window inference) on validation set: 76.25
-#                    training time: 17 hours with 3 A10G GPUs with DDP, ~3 minuets / epoch
+#      SegFormer-B0: mIoU (sliding-window inference) on validation set: 76.14
+#                    training time: 6 hours with 8 NVIDIA RTX A5000 GPUs with DDP, ~1 minutes / epoch
+#      SegFormer-B1: mIoU (sliding-window inference) on validation set: 77.80
+#                    training time: 8 hours with 8 NVIDIA RTX A5000 GPUs with DDP, ~1 minutes / epoch
+#      SegFormer-B2: mIoU (sliding-window inference) on validation set: 81.43
+#                    training time: 26 hours with 4 NVIDIA RTX A5000 GPUs with DDP, ~4 minutes / epoch
+#      SegFormer-B3: mIoU (sliding-window inference) on validation set: 82.24
+#                    training time: 36 hours with 4 NVIDIA RTX A5000 GPUs with DDP, ~3 minutes / epoch
+#      SegFormer-B4: mIoU (sliding-window inference) on validation set: 82.39
+#                    training time: 25 hours with 4 NVIDIA RTX A5000 GPUs with DDP, ~3 minutes / epoch
+#      SegFormer-B5: mIoU (sliding-window inference) on validation set: 82.33
+#                    training time: 41 hours with 4 NVIDIA RTX A5000 GPUs with DDP, ~3 minutes / epoch
 
 
 defaults:
@@ -46,8 +58,6 @@ defaults:
   - checkpoint_params: default_checkpoint_params
   - _self_
   - variable_setup
-
-architecture: segformer_b0    # segformer_b1, segformer_b2, segformer_b3, segformer_b4, segformer_b5
 
 data_root_dir: /data/cityscapes
 dataset_params:
@@ -80,11 +90,6 @@ training_hyperparams:
 
   resume: ${resume}
 
-  max_epochs: 400
-
-  lr_mode: poly
-  initial_lr: 0.0002   # for effective batch_size=8
-
   optimizer: AdamW
   zero_weight_decay_on_bias_and_bn: True
 
@@ -93,6 +98,9 @@ training_hyperparams:
   loss: cross_entropy
   criterion_params:
     ignore_index: ${cityscapes_ignored_label}
+
+  phase_callbacks:
+    - SlidingWindowValidationCallback
 
   train_metrics_list:
     - IoU:
@@ -106,6 +114,3 @@ training_hyperparams:
 
   metric_to_watch: IoU
   greater_metric_to_watch_is_better: True
-
-multi_gpu: DDP
-num_gpus: 4
