@@ -8,6 +8,8 @@ train_dataset_params:
   input_dim: [320, 320]
   cache_dir:
   cache: False
+  cache_annotations: True
+  ignore_empty_annotations: True
   transforms:
     - DetectionRandomAffine:
         degrees: 0.                   # rotation degrees, randomly sampled from [-degrees, degrees]
@@ -56,6 +58,8 @@ val_dataset_params:
   input_dim: [320, 320]
   cache_dir:
   cache: False
+  cache_annotations: True
+  ignore_empty_annotations: True
   transforms:
     - DetectionPaddedRescale:
         input_dim: ${dataset_params.val_dataset_params.input_dim}

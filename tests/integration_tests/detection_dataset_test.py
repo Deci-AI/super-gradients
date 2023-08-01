@@ -19,7 +19,7 @@ from super_gradients.common.environment.path_utils import normalize_path
 
 
 class COCODetectionDataset6Channels(COCODetectionDataset):
-    def get_sample(self, index: int) -> Dict[str, Union[np.ndarray, Any]]:
+    def get_sample(self, index: int, ignore_empty_annotations: bool = False) -> Dict[str, Union[np.ndarray, Any]]:
         img = self.get_resized_image(index)
         img = np.concatenate((img, img), 2)
         annotation = deepcopy(self.annotations[index])
