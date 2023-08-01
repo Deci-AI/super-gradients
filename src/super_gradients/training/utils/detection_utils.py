@@ -39,7 +39,7 @@ class DetectionTargetsFormat(Enum):
     NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
 
 
-def get_cls_posx_in_target(target_format: DetectionTargetsFormat) -> int:
+def get_class_index_in_target(target_format: DetectionTargetsFormat) -> int:
     """Get the label of a given target
     :param target_format:   Representation of the target (ex: LABEL_XYXY)
     :return:                Position of the class id in a bbox
