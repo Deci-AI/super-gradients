@@ -94,7 +94,7 @@ class DetectionDataset(Dataset):
                                         differ based on transforms.
         :param max_num_samples:         If not None, set the maximum size of the dataset by only indexing the first n annotations/images.
         :param cache:                   Whether to cache images or not.
-        :param cache_annotations:       Whether to cache annotations or not. This reduces training time by pre-loading all the annotations,
+        :param `cache_annotations`:       Whether to cache annotations or not. This reduces training time by pre-loading all the annotations,
                                         but requires more RAM and more time to instantiate the dataset when working on very large datasets.
         :param cache_dir:              Path to the directory where cached images will be stored in an optimized format.
         :param transforms:              List of transforms to apply sequentially on sample.
