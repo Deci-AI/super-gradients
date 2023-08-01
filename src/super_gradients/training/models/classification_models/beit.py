@@ -34,7 +34,7 @@ from super_gradients.training.models.classification_models.vit import PatchEmbed
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils import HpmStruct, torch_version_is_greater_or_equal
-from super_gradients.training.models import SgModule
+from super_gradients.training.models import BaseClassifier
 
 logger = get_logger(__name__)
 
@@ -290,7 +290,7 @@ class RelativePositionBias(nn.Module):
         return relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
 
 
-class Beit(SgModule):
+class Beit(BaseClassifier):
     """Vision Transformer with support for patch or hybrid CNN input stage"""
 
     def __init__(
