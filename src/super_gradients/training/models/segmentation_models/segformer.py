@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Optional
 
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils import get_param
@@ -274,6 +275,7 @@ class SegFormerHead(nn.Module):
         :param num_classes: number of predicted classes
         """
         super().__init__()
+        self.embed_dim = embed_dim
 
         self.linear_layers = []
         for idx, dim in enumerate(encoder_dims):
@@ -369,7 +371,8 @@ class SegFormer(SegmentationModule):
     def _remove_auxiliary_heads(self):
         pass
 
-    def replace_head(self, new_num_classes: int, new_decoder_embed_dim: int):
+    def replace_head(self, new_num_classes: int, new_decoder_embed_dim: Optional[int] = None):
+        new_decoder_embed_dim = new_decoder_embed_dim or self.decode_head.embed_dim
         self.decode_head = SegFormerHead(encoder_dims=self.encoder_embed_dims, embed_dim=new_decoder_embed_dim, num_classes=new_num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
