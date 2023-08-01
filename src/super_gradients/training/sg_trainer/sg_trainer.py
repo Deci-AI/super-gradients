@@ -1319,6 +1319,15 @@ class Trainer:
         )
         self.phase_callback_handler.on_training_start(context)
 
+        # Check if the model supports sliding window inference.
+        model = unwrap_model(context.net)
+        if not hasattr(model, "enable_sliding_window_validation") or not hasattr(model, "disable_sliding_window_validation"):
+            raise ValueError(
+                "You can use sliding window validation callback, but your model does not support sliding window "
+                "inference. Please either remove the callback or use the model that supports sliding inference: "
+                "Segformer"
+            )
+
         first_batch = next(iter(self.train_loader))
         inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_batch)
 

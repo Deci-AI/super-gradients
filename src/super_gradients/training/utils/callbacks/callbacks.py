@@ -859,7 +859,7 @@ class TimerCallback(Callback):
 @register_callback(Callbacks.SLIDING_WINDOW_VALIDATION)
 class SlidingWindowValidationCallback(Callback):
     """
-    Performing single-scale sliding window during inference at the end of training on the validation set.
+    Performing single-scale sliding window during inference at the last epoch on the validation set and on the average model.
     """
 
     def on_validation_loader_start(self, context: PhaseContext) -> None:
