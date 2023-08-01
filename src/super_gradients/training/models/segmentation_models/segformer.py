@@ -337,6 +337,8 @@ class SegFormer(SegmentationModule):
 
         self.encoder_embed_dims = encoder_embed_dims
 
+        self.decoder_embed_dim = decoder_embed_dim
+
         self._backbone = MiTBackBone(
             embed_dims=encoder_embed_dims,
             encoder_layers=encoder_layers,
@@ -386,8 +388,8 @@ class SegFormer(SegmentationModule):
     def _remove_auxiliary_heads(self):
         pass
 
-    def replace_head(self, new_num_classes: int, new_decoder_embed_dim: int):
-        self.decode_head = SegFormerHead(encoder_dims=self.encoder_embed_dims, embed_dim=new_decoder_embed_dim, num_classes=new_num_classes)
+    def replace_head(self, new_num_classes: int):
+        self.decode_head = SegFormerHead(encoder_dims=self.encoder_embed_dims, embed_dim=self.decoder_embed_dim, num_classes=new_num_classes)
 
     def _forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self._backbone(x)
