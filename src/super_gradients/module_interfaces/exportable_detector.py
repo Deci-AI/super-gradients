@@ -1,6 +1,7 @@
 import abc
 import copy
 import dataclasses
+import gc
 from typing import Any
 from typing import Union, Optional, List, Tuple
 
@@ -25,30 +26,56 @@ __all__ = ["ExportableObjectDetectionModel", "AbstractObjectDetectionDecodingMod
 
 
 class AbstractObjectDetectionDecodingModule(nn.Module):
+    """
+    Abstract class for decoding outputs from object detection models to a tuple of two tensors (boxes, scores)
+    """
+
     @abc.abstractmethod
     def forward(self, predictions: Any) -> Tuple[Tensor, Tensor]:
         """
+        The implementation of this method must take raw predictions from the model and convert / postprocess them
+        to output candidates for NMS. This method may filter out predictions based on confidence threshold and
+        it must obey the contract that the number of predictions per image is fixed and equal to
+        value returned by self.get_num_pre_nms_predictions().
 
-        :param predictions:
-        :return:
+        :param predictions: Input predictions from the model itself.
+        The value of this argument is model-specific
+
+        :return: Implementation of this method must return a tuple of two tensors (boxes, scores) with
+        the following semantics:
+        - boxes - [B, N, 4]
+        - scores - [B, N, C]
+        Where N is the maximum number of predictions per image (see self.get_num_pre_nms_predictions()),
+        and C is the number of classes.
+
         """
-        ...
+        raise NotImplementedError(f"forward() method is not implemented for class {self.__class__.__name__}. ")
 
     def get_output_names(self) -> List[str]:
         """
         Returns the names of the outputs of the module.
+        Usually you don't need to override this method.
+        Export API uses this method internally to give meaningful names to the outputs of the exported model.
 
-        :return:
+        :return: A list of output names.
         """
         return ["pre_nms_bboxes_xyxy", "pre_nms_scores"]
 
     @abc.abstractmethod
     def get_num_pre_nms_predictions(self) -> int:
-        ...
+        """
+        Returns the number of predictions per image that this module produces.
+        :return: Number of predictions per image.
+        """
+        raise NotImplementedError(f"get_num_pre_nms_predictions() method is not implemented for class {self.__class__.__name__}. ")
 
 
 @dataclasses.dataclass
 class ModelExportResult:
+    """
+    A dataclass that holds the result of model export.
+    """
+
     input_image_channels: int
     input_image_dtype: torch.dtype
     input_image_shape: Tuple[int, int]
@@ -61,6 +88,15 @@ class ModelExportResult:
 
 
 class ExportableObjectDetectionModel:
+    """
+    A mixin class that adds export functionality to the object detection models.
+    Classes that inherit from this mixin must implement the following methods:
+    - get_decoding_module()
+    - get_preprocessing_callback()
+    Providing these methods are implemented correctly, the model can be exported to ONNX or TensorRT formats
+    using model.export(...) method.
+    """
+
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         """
         Gets the decoding module for the object detection model.
@@ -71,7 +107,7 @@ class ExportableObjectDetectionModel:
          - scores: [B, N, C] - All predicted scores ([0..1] range) for each box and class.
         :return: An instance of AbstractObjectDetectionDecodingModule
         """
-        raise NotImplementedError()
+        raise NotImplementedError(f"get_decoding_module() is not implemented for class {self.__class__.__name__}.")
 
     def get_preprocessing_callback(self, **kwargs) -> Optional[nn.Module]:
         raise NotImplementedError(f"get_preprocessing_callback is not implemented for class {self.__class__.__name__}.")
@@ -138,12 +174,27 @@ class ExportableObjectDetectionModel:
                (No implemented now, will use hard-coded value of 3 for now).
         :param input_image_dtype: (torch.dtype) Type of the input image for the exported model.
                 If None, the function will infer the dtype from the model's preprocessing and other parameters.
-                If preprocessing is True, dtype will be torch.uint8, otherwise torch.float32.
+                If preprocessing is True, dtype will default to torch.uint8.
+                If preprocessing is False and requested quantization mode is FP16 a torch.float16 will be used,
+                otherwise a default torch.float32 dtype will be used.
         :param max_predictions_per_image: (int) Maximum number of detections per image for the exported model.
         :param device: (torch.device) Device to use for exporting the model. If not specified, the device is inferred from the model itself.
         :param onnx_export_kwargs: (dict) Optional keyword arguments for torch.onnx.export() function.
         :param onnx_simplify: (bool) If True, apply onnx-simplifier to the exported model.
-        :param output_predictions_format: (str) Format of the output predictions after NMS. Supported values: batch, flat.
+        :param output_predictions_format: (DetectionOutputFormatMode) Format of the output predictions after NMS.
+                Possible values:
+                DetectionOutputFormatMode.BATCH_FORMAT - A tuple of 4 tensors will be returned
+                (num_detections, detection_boxes, detection_scores, detection_classes)
+                - A tensor of [batch_size, 1] containing the image indices for each detection.
+                - A tensor of [batch_size, max_output_boxes, 4] containing the bounding box coordinates for each detection in [x1, y1, x2, y2] format.
+                - A tensor of [batch_size, max_output_boxes] containing the confidence scores for each detection.
+                - A tensor of [batch_size, max_output_boxes] containing the class indices for each detection.
+
+                DetectionOutputFormatMode.FLAT_FORMAT - Tensor of shape [N, 7], where N is the total number of
+                predictions in the entire batch.
+                Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
+
+
         :param num_pre_nms_predictions: (int) Number of predictions to keep before NMS.
         :return:
         """
@@ -264,6 +315,7 @@ class ExportableObjectDetectionModel:
         if hasattr(model, "prep_model_for_conversion"):
             model.prep_model_for_conversion(**prep_model_for_conversion_kwargs)
 
+        # TODO: Check whether model is quantized, if yes - skip
         if quantization_mode == ExportQuantizationMode.INT8:
             from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
             from pytorch_quantization import nn as quant_nn
@@ -286,7 +338,7 @@ class ExportableObjectDetectionModel:
                     model,
                     method="percentile",
                     calib_data_loader=calibration_loader,
-                    num_calib_batches=16,
+                    num_calib_batches=16,  # TODO: How do we choose that ????
                     percentile=99.99,
                 )
                 logger.debug("Calibrating model complete")
@@ -336,6 +388,12 @@ class ExportableObjectDetectionModel:
                     logger.debug(f"ONNX input shape: {input_shape} with dtype: {input_image_dtype}")
                     logger.debug(f"ONNX output names: {output_names}")
                     logger.debug(f"ONNX export kwargs: {onnx_export_kwargs}")
+
+                    if onnx_export_kwargs is not None and "args" in onnx_export_kwargs:
+                        raise ValueError(
+                            "`args` key found in onnx_export_kwargs. We explicitly construct dummy input (`args`) inside export() method. "
+                            "Overriding args is not supported so please remove it from the `onnx_export_kwargs`."
+                        )
                     torch.onnx.export(model=complete_model, args=onnx_input, f=output, output_names=output_names, **onnx_export_kwargs)
 
                 # Stitch ONNX graph with NMS postprocessing
@@ -387,6 +445,11 @@ class ExportableObjectDetectionModel:
 
         else:
             raise ValueError(f"Unsupported export format: {engine}. Supported formats: onnxruntime, tensorrt")
+
+        # Cleanup memory, not sure whether it is necessary but just in case
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
         return ModelExportResult(
             input_image_channels=input_image_channels,

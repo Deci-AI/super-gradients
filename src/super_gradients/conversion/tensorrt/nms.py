@@ -31,6 +31,9 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
         :param pred_scores: [B, max_predictions_per_image] The predicted scores for each image in the batch.
         :param pred_classes: [B, max_predictions_per_image] The predicted classes for each image in the batch.
         :return: Tensor of shape [N, 7] The predictions in flat tensor format.
+            N is the total number of predictions in the entire batch.
+            Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
+
         """
         batch_indexes = (
             torch.arange(start=0, end=self.batch_size, step=1, device=num_predictions.device).view(-1, 1).repeat(1, pred_scores.shape[1])

@@ -33,7 +33,11 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
         :param pred_boxes: [B, N, 4] tensor, float32
         :param pred_scores: [B, N, C] tensor, float32
         :param selected_indexes: [num_selected_indices, 3], int64 - each row is [batch_indexes, label_indexes, boxes_indexes]
-        :return:
+        :return: A tuple of 4 tensors (num_detections, detection_boxes, detection_scores, detection_classes) will be returned:
+            - A tensor of [batch_size, 1] containing the image indices for each detection.
+            - A tensor of [batch_size, max_output_boxes, 4] containing the bounding box coordinates for each detection in [x1, y1, x2, y2] format.
+            - A tensor of [batch_size, max_output_boxes] containing the confidence scores for each detection.
+            - A tensor of [batch_size, max_output_boxes] containing the class indices for each detection.
 
         """
         batch_indexes, label_indexes, boxes_indexes = selected_indexes[:, 0], selected_indexes[:, 1], selected_indexes[:, 2]
@@ -192,7 +196,7 @@ def attach_onnx_nms(
 
     If output_format equals to "flat":
     A single tensor of [N, 7] will be returned, where N is the total number of detections across all images in the batch.
-    Each row will contain [image_index, x1, y1, x2, y2, class_index, confidence].
+    Each row will contain [image_index, x1, y1, x2, y2, confidence, class_index].
 
     If output_format equals to "batch" format:
     A tuple of 4 tensors (num_detections, detection_boxes, detection_scores, detection_classes) will be returned:
