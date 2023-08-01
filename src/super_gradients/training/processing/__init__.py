@@ -8,6 +8,11 @@ from .processing import (
     ReverseImageChannels,
     NormalizeImage,
     ComposeProcessing,
+    SegResizeWithPadding,
+    SegmentationRescale,
+    SegmentationResize,
+    SegmentationPadShortToCropSize,
+    SegmentationPadToDivisible,
 )
 
 __all__ = [
@@ -20,4 +25,9 @@ __all__ = [
     "ReverseImageChannels",
     "NormalizeImage",
     "ComposeProcessing",
+    "SegResizeWithPadding",
+    "SegmentationRescale",
+    "SegmentationResize",
+    "SegmentationPadShortToCropSize",
+    "SegmentationPadToDivisible",
 ]

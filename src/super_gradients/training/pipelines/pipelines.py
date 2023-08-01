@@ -488,7 +488,7 @@ class SegmentationPipeline(Pipeline):
                 SegmentationPrediction(
                     segmentation_map=prediction,
                     segmentation_map_shape=prediction.shape,
-                    image_shape=image.shape,
+                    image_shape=image.shape[-2:],
                 )
             )
 

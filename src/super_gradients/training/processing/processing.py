@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Optional
 
 import numpy as np
 from PIL import Image
@@ -421,7 +421,7 @@ class SegmentationRescale(Processing):
     :param long_size:   Rescaling is done by determining the scale factor by the ratio long_size / max(h, w).
     """
 
-    def __init__(self, scale_factor: float, short_size: int, long_size: int):
+    def __init__(self, scale_factor: Optional[float] = None, short_size: Optional[int] = None, long_size: Optional[int] = None):
         self.scale_factor = scale_factor
         self.short_size = short_size
         self.long_size = long_size

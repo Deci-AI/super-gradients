@@ -160,5 +160,5 @@ class SegmentationPrediction(Prediction):
         self.image_shape = image_shape
 
     def _validate_input(self, segmentation_map_shape: Tuple[int, int], image_shape: Tuple[int, int]) -> None:
-        if segmentation_map_shape[0] != image_shape[1] or segmentation_map_shape[1] != image_shape[2]:
+        if segmentation_map_shape[0] != image_shape[0] or segmentation_map_shape[1] != image_shape[1]:
             raise ValueError("The shape of the segmentation map does not match the shape of the input image.")
