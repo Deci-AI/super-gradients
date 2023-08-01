@@ -328,8 +328,8 @@ class SegFormer(SegmentationModule):
         :param overlap_patch_stride:  the patch stride of the overlapping patch embedding in each stage
         :param overlap_patch_pad:  the patch padding of the overlapping patch embedding in each stage
         :param in_channels:  number of input channels
-        :param sliding_window_crop_size:  (width, height) the crop size to take from the image for forward with sliding window
-        :param sliding_window_stride:  (rows, cols) the stride size between crops for forward with sliding window
+        :param sliding_window_crop_size:  (height, width) the crop size to take from the image for forward with sliding window
+        :param sliding_window_stride:  (height, width) the stride size between crops for forward with sliding window
 
         """
 
