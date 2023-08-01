@@ -357,8 +357,8 @@ class SegFormer(SegmentationModule):
         self.num_classes = num_classes
 
         self.use_sliding_window_validation = False
-        self.sliding_window_crop_size = sliding_window_crop_size
-        self.sliding_window_stride = sliding_window_stride
+        self.sliding_window_crop_size = tuple(sliding_window_crop_size)
+        self.sliding_window_stride = tuple(sliding_window_stride)
 
     def init_params(self):
 
