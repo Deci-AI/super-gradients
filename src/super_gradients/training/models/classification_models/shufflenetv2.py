@@ -15,7 +15,7 @@ import torch.nn as nn
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.training.utils import HpmStruct
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models import BaseClassifier
 
 
 __all__ = ["ShuffleNetV2Base", "ShufflenetV2_x0_5", "ShufflenetV2_x1_0", "ShufflenetV2_x1_5", "ShufflenetV2_x2_0", "CustomizedShuffleNetV2"]
@@ -112,7 +112,7 @@ class ChannelShuffleInvertedResidual(nn.Module):
         return out
 
 
-class ShuffleNetV2Base(SgModule):
+class ShuffleNetV2Base(BaseClassifier):
     def __init__(
         self,
         structure: List[int],
