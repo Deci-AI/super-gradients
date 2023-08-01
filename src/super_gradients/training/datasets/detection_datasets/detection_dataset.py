@@ -60,13 +60,8 @@ class DetectionDataset(Dataset):
         - SAMPLE:       Outout of the dataset:
                             > Has to include the fields "target" and "image"
                             > Can include other fields like "crowd_target", "image_info", "segmentation", ...
-        - INDEX:        Refers to the index in the dataset.
-        - SAMPLE ID:    Refers to the id of sample before droping any annotaion.
-                            Let's imagine a situation where the downloaded data is made of 120 images but 20 were drop
-                            because they had no annotation. In that case:
-                                > We have 120 samples so sample_id will be between 0 and 119
-                                > But only 100 will be indexed so index will be between 0 and 99
-                                > Therefore, we also have len(self) = 100
+        - Index:        Index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        - Sample ID:    Index of the sample in the dataset, WITHOUT considering any filtering. 0<=sample_id<=len(source)-1
     """
 
     @resolve_param("transforms", ListFactory(TransformsFactory()))
@@ -76,6 +71,7 @@ class DetectionDataset(Dataset):
         original_target_format: Union[ConcatenatedTensorFormat, DetectionTargetsFormat],
         max_num_samples: int = None,
         cache: bool = False,
+        cache_annotations: bool = True,
         cache_dir: str = None,
         input_dim: Union[int, Tuple[int, int], None] = None,
         transforms: List[DetectionTransform] = [],
@@ -98,6 +94,8 @@ class DetectionDataset(Dataset):
                                         differ based on transforms.
         :param max_num_samples:         If not None, set the maximum size of the dataset by only indexing the first n annotations/images.
         :param cache:                   Whether to cache images or not.
+        :param cache_annotations:       Whether to cache annotations or not. This reduces training time by pre-loading all the annotations,
+                                        but requires more RAM and more time to instantiate the dataset when working on very large datasets.
         :param cache_dir:              Path to the directory where cached images will be stored in an optimized format.
         :param transforms:              List of transforms to apply sequentially on sample.
         :param all_classes_list:        All the class names.
@@ -129,13 +127,13 @@ class DetectionDataset(Dataset):
             raise RuntimeError(f"data_dir={data_dir} not found. Please make sure that data_dir points toward your dataset.")
 
         # Number of images that are available (regardless of ignored images)
-        self.n_available_samples = self._setup_data_source()
-        if not isinstance(self.n_available_samples, int) or self.n_available_samples < 1:
-            raise ValueError(f"_setup_data_source() should return the number of available samples but got {self.n_available_samples}")
+        n_dataset_samples = self._setup_data_source()
+        if not isinstance(n_dataset_samples, int) or n_dataset_samples < 1:
+            raise ValueError(f"_setup_data_source() should return the number of available samples but got {n_dataset_samples}")
+        n_samples = n_dataset_samples if max_num_samples is None else min(n_dataset_samples, max_num_samples)
 
         self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.original_target_format = original_target_format
-        self.max_num_samples = max_num_samples
 
         if len(all_classes_list) != len(set(all_classes_list)):
             raise DatasetValidationException(f"all_classes_list contains duplicate class names: {collections.Counter(all_classes_list)}")
@@ -148,7 +146,9 @@ class DetectionDataset(Dataset):
         self.classes = self.class_inclusion_list or self.all_classes_list
         if len(set(self.classes) - set(self.all_classes_list)) > 0:
             wrong_classes = set(self.classes) - set(all_classes_list)
-            raise DatasetValidationException(f"class_inclusion_list includes classes that are not in all_classes_list: {wrong_classes}")
+            raise DatasetValidationException(
+                f"{wrong_classes} defined in `class_inclusion_list` were not found among `all_classes_list={self.all_classes_list}`"
+            )
 
         self.ignore_empty_annotations = ignore_empty_annotations
         self.target_fields = target_fields or ["target"]
@@ -156,17 +156,57 @@ class DetectionDataset(Dataset):
             raise KeyError('"target" is expected to be in the fields to subclass but it was not included')
 
         self._required_annotation_fields = {"target", "img_path", "resized_img_shape"}
-        self.annotations = self._cache_annotations()
-
-        self.cache = cache
-        self.cache_dir = cache_dir
-        self.cached_imgs_padded = self._cache_images() if self.cache else None
 
         self.transforms = transforms
 
         self.output_fields = output_fields or ["image", "target"]
         if len(self.output_fields) < 2 or self.output_fields[0] != "image" or self.output_fields[1] != "target":
             raise ValueError('output_fields must start with "image" and then "target", followed by any other field')
+
+        self._cache_annotations = cache_annotations
+        self._cached_annotations: Dict[int, Dict] = {}  # We use a dict and not a list because when `ignore_empty_annotations=True` we may ignore some indexes.
+
+        # Maps (dataset index) -> (non-empty sample ids)
+        self._non_empty_sample_ids: Optional[List[int]] = None
+
+        # Some transform may require non-empty annotations to be indexed.
+        transform_require_non_empty_annotations = any(getattr(transform, "non_empty_annotations", False) for transform in self.transforms)
+
+        # Iterate over the whole dataset to index the images with/without annotations.
+        if self._cache_annotations or self.ignore_empty_annotations or transform_require_non_empty_annotations:
+
+            if self._cache_annotations:
+                logger.info("Dataset Initialization in progress. `cache_annotations=True` causes the process to take longer due to full dataset indexing.")
+            elif self.ignore_empty_annotations:
+                logger.info(
+                    "Dataset Initialization in progress. `ignore_empty_annotations=True` causes the process to take longer due to full dataset indexing."
+                )
+            elif transform_require_non_empty_annotations:
+                logger.info(
+                    "Dataset Initialization in progress. "
+                    "Having a transform with `non_empty_annotations=True` set causes the process to take longer due to the need for a full dataset indexing."
+                )
+
+            # Map indexes to sample annotations.
+            non_empty_annotations, empty_annotations = self._load_all_annotations(n_samples=n_samples)
+            if self._cache_annotations:
+                if self.ignore_empty_annotations and transform_require_non_empty_annotations:
+                    self._cached_annotations = non_empty_annotations
+                else:
+                    # Non overlapping dicts. since they map unique sample_ids -> sample
+                    self._cached_annotations = {**non_empty_annotations, **empty_annotations}
+
+            if self.ignore_empty_annotations and len(non_empty_annotations) == 0:
+                raise EmptyDatasetException(f"Out of {n_samples} images, not a single one was found with any of these classes: {self.class_inclusion_list}")
+
+            self._non_empty_sample_ids = list(non_empty_annotations.keys())
+
+        self._n_samples = n_samples  # Regardless of any filtering
+
+        # CACHE IMAGE
+        self.cache = cache
+        self.cache_dir = cache_dir
+        self.cached_imgs_padded = self._cache_images() if self.cache else None
 
     @property
     def _all_classes(self):
@@ -184,53 +224,79 @@ class DetectionDataset(Dataset):
         """Load annotations associated to a specific sample.
         Please note that the targets should be resized according to self.input_dim!
 
-        :param sample_id:   Id of the sample to load annotations from.
+        :param sample_id:   Sample ID refers to the index of the sample in the dataset, WITHOUT considering any filtering. 0<=sample_id<=len(source)-1
         :return:            Annotation, a dict with any field but has to include at least the fields specified in self._required_annotation_fields.
         """
         raise NotImplementedError
 
-    def _cache_annotations(self) -> List[Dict[str, Union[np.ndarray, Any]]]:
-        """Load all the annotations to memory to avoid opening files back and forth.
-        :return: List of annotations
+    def _get_sample_annotations(self, index: int, ignore_empty_annotations: bool) -> Dict[str, Union[np.ndarray, Any]]:
+        """Get the annotation associated to a specific sample. Use cache if enabled.
+        :param index:                       Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        :param ignore_empty_annotations:    Whether to ignore empty annotations or not.
+        :return:                            Dict representing the annotation of a specific image
+        """
+        sample_id = self._non_empty_sample_ids[index] if ignore_empty_annotations else index
+        if self._cache_annotations:
+            return self._cached_annotations[sample_id]
+        else:
+            return self._load_sample_annotation(sample_id=sample_id)
+
+    def _load_sample_annotation(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
+        """Load the annotation associated to a specific sample and apply subclassing.
+        :param sample_id:   Sample ID refers to the index of the sample in the dataset, WITHOUT considering any filtering. 0<=sample_id<=len(source)-1
+        """
+        sample_annotations = self._load_annotation(sample_id=sample_id)
+        if not self._required_annotation_fields.issubset(set(sample_annotations.keys())):
+            raise KeyError(
+                f"_load_annotation is expected to return at least the fields {self._required_annotation_fields}, but got {set(sample_annotations.keys())}"
+            )
+
+        # Filter out classes that are not in self.class_inclusion_list
+        if self.class_inclusion_list is not None:
+            sample_annotations = self._sub_class_annotation(annotation=sample_annotations)
+        return sample_annotations
+
+    def _load_all_annotations(self, n_samples: int) -> Tuple[Dict[int, Dict[str, Any]], Dict[int, Dict[str, Any]]]:
+        """Load ALL the annotations into memory. This is usually required when `ignore_empty_annotations=True`,
+        because we have to iterate over the whole dataset once in order to know which sample is empty and which is not.
+        Question: Why not just check if annotation is empty on the fly ?
+        Answer: When running with DDP, we split the dataset into small chunks.
+                Therefore, we need to make sure that each chunk includes a similar subset of index.
+                If we were to check on the fly, we would not know in advance the size of dataset/chunks
+                and this means that some chunks would be smaller than others
+
+        :param n_samples:   Number of samples in the datasets (including samples without annotations).
+        :return:            A tuple of two dicts, one for non-empty annotations and one for empty annotations
+                                - non_empty_annotations: Dict mapping dataset index -> non-empty annotations
+                                - empty_annotations:     Dict mapping dataset index -> empty annotations
         """
         n_invalid_bbox = 0
-        annotations = []
-        for sample_id, img_id in enumerate(tqdm(range(self.n_available_samples), desc="Caching annotations", disable=not self.verbose)):
+        non_empty_annotations, empty_annotations = {}, {}
 
-            if self.max_num_samples is not None and len(annotations) >= self.max_num_samples:
-                break
+        for index in tqdm(range(n_samples), desc="Indexing dataset annotations", disable=not self.verbose):
 
-            img_annotation = self._load_annotation(img_id)
-            n_invalid_bbox += img_annotation.get("n_invalid_labels", 0)
+            sample_annotations = self._load_sample_annotation(sample_id=index)
+            n_invalid_bbox += sample_annotations.get("n_invalid_labels", 0)
 
-            if not self._required_annotation_fields.issubset(set(img_annotation.keys())):
-                raise KeyError(
-                    f"_load_annotation is expected to return at least the fields {self._required_annotation_fields} " f"but got {set(img_annotation.keys())}"
-                )
+            is_annotation_non_empty = any(len(sample_annotations[field]) != 0 for field in self.target_fields)
+            if is_annotation_non_empty:
+                non_empty_annotations[index] = sample_annotations if self._cache_annotations else None
+            else:
+                empty_annotations[index] = sample_annotations if self._cache_annotations else None
 
-            if self.class_inclusion_list is not None:
-                img_annotation = self._sub_class_annotation(img_annotation)
-
-            is_annotation_empty = all(len(img_annotation[field]) == 0 for field in self.target_fields)
-            if self.ignore_empty_annotations and is_annotation_empty:
-                continue
-            annotations.append(img_annotation)
-
-        if len(annotations) == 0:
-            raise EmptyDatasetException(
-                f"Out of {self.n_available_samples} images, not a single one was found with any of these classes: {self.class_inclusion_list}"
-            )
+        if len(non_empty_annotations) + len(empty_annotations) == 0:
+            raise EmptyDatasetException(f"Out of {n_samples} images, not a single one was found with any of these classes: {self.class_inclusion_list}")
 
         if n_invalid_bbox > 0:
             logger.warning(f"Found {n_invalid_bbox} invalid bbox that were ignored. For more information, please set `show_all_warnings=True`.")
 
-        return annotations
+        return non_empty_annotations, empty_annotations
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
         """Subclass every field listed in self.target_fields. It could be targets, crowd_targets, ...
 
         :param annotation: Dict representing the annotation of a specific image
-        :return:           Subclassed annotation if non empty after subclassing, otherwise None
+        :return:           Subclassed annotation if non-empty after subclassing, otherwise None
         """
         class_index = _get_class_index_in_target(target_format=self.original_target_format)
         for field in self.target_fields:
@@ -278,7 +344,8 @@ class DetectionDataset(Dataset):
 
         # The cache should be the same as long as the images and their sizes are the same
         hash = hashlib.sha256()
-        for annotation in self.annotations:
+        for index in range(len(self)):
+            annotation = self._get_sample_annotations(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
             values_to_hash = [annotation["resized_img_shape"][0], annotation["resized_img_shape"][1], Path(annotation["img_path"]).name]
             for value in values_to_hash:
                 hash.update(str(value).encode("utf-8"))
@@ -289,7 +356,14 @@ class DetectionDataset(Dataset):
         if not img_resized_cache_path.exists():
             logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
             NUM_THREADs = min(8, os.cpu_count())
-            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_resized_img(x), iterable=range(len(self)))
+
+            # Inline-function because we should not to pollute the rest of the class with this function.
+            # This function is required because of legacy design - ideally we should not have to load annotations in order to get the image path.
+            def _load_image_from_index(index: int) -> np.ndarray:
+                annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
+                return self._load_resized_img(image_path=annotations["img_path"])
+
+            loaded_images = ThreadPool(NUM_THREADs).imap(func=_load_image_from_index, iterable=range(len(self)))
 
             # Initialize placeholder for images
             cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="w+")
@@ -306,12 +380,12 @@ class DetectionDataset(Dataset):
         cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="r+")
         return cached_imgs
 
-    def _load_resized_img(self, index: int) -> np.ndarray:
-        """Load image, and resizes it to self.input_dim
-        :param index:   Image index
-        :return:        Resized image
+    def _load_resized_img(self, image_path: str) -> np.ndarray:
+        """Load an image and resize it to the desired size (If relevant).
+        :param image_path:  Full path of the image
+        :return:            Image in BGR format, and channel last (HWC).
         """
-        img = self._load_image(index)
+        img = self._load_image(image_path=image_path)
 
         if self.input_dim is not None:
             r = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
@@ -320,14 +394,12 @@ class DetectionDataset(Dataset):
 
         return img
 
-    def _load_image(self, index: int) -> np.ndarray:
-        """Loads image at index with its original resolution.
-        :param index:   Image index
-        :return:        Image in array format
+    def _load_image(self, image_path: str) -> np.ndarray:
+        """Load an image.
+        :param image_path:  Full path of the image
+        :return:            Image in BGR format, and channel last (HWC).
         """
-        img_path = self.annotations[index]["img_path"]
-
-        img_file = os.path.join(img_path)
+        img_file = os.path.join(image_path)
         img = cv2.imread(img_file)
 
         if img is None:
@@ -339,45 +411,49 @@ class DetectionDataset(Dataset):
         if hasattr(self, "cached_imgs_padded"):
             del self.cached_imgs_padded
 
-    def __len__(self):
-        """Get the length of the dataset."""
-        return len(self.annotations)
+    def __len__(self) -> int:
+        """Get the length of the dataset. Note that this is the number of samples AFTER filtering (if relevant)."""
+        return len(self._non_empty_sample_ids) if self.ignore_empty_annotations else self._n_samples
 
     def __getitem__(self, index: int) -> Tuple:
         """Get the sample post transforms at a specific index of the dataset.
-        The output of this function will be collated to form batches."""
-        sample = self.apply_transforms(self.get_sample(index))
+        The output of this function will be collated to form batches.
+
+        :param index:   Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        :return:        Sample, i.e. a dictionary including at least "image" and "target"
+        """
+        sample = self.apply_transforms(self.get_sample(index=index, ignore_empty_annotations=self.ignore_empty_annotations))
         for field in self.output_fields:
             if field not in sample.keys():
                 raise KeyError(f"The field {field} must be present in the sample but was not found." "Please check the output fields of your transforms.")
         return tuple(sample[field] for field in self.output_fields)
 
     def get_random_item(self):
-        return self[self._random_index()]
+        return self[self.get_random_sample(ignore_empty_annotations=self.ignore_empty_annotations)]
 
-    def get_sample(self, index: int) -> Dict[str, Union[np.ndarray, Any]]:
+    def get_sample(self, index: int, ignore_empty_annotations: bool = False) -> Dict[str, Union[np.ndarray, Any]]:
         """Get raw sample, before any transform (beside subclassing).
-        :param index:   Image index
-        :return:        Sample, i.e. a dictionary including at least "image" and "target"
+        :param index:                       Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        :param ignore_empty_annotations:    If True, empty annotations will be ignored
+        :return:                            Sample, i.e. a dictionary including at least "image" and "target"
         """
-        img = self.get_resized_image(index)
-        annotation = deepcopy(self.annotations[index])
-        return {"image": img, **annotation}
-
-    def get_resized_image(self, index: int) -> np.ndarray:
-        """
-        Get the resized image (i.e. either width or height reaches its input_dim) at a specific sample_id,
-        either from cache or by loading from disk, based on self.cached_imgs_padded
-        :param index:  Image index
-        :return:       Resized image
-        """
+        sample_annotations = self._get_sample_annotations(index=index, ignore_empty_annotations=ignore_empty_annotations)
         if self.cache:
-            padded_image = self.cached_imgs_padded[index]
-            resized_height, resized_width = self.annotations[index]["resized_img_shape"]
-            resized_image = padded_image[:resized_height, :resized_width, :]
-            return resized_image.copy()
+            image = self._get_cached_image(index=index, cached_image_shape=sample_annotations["resized_img_shape"])
         else:
-            return self._load_resized_img(index)
+            image = self._load_resized_img(image_path=sample_annotations["img_path"])
+        return {"image": image, **deepcopy(sample_annotations)}
+
+    def _get_cached_image(self, index: int, cached_image_shape: Tuple[int, int]) -> np.ndarray:
+        """Load an image from cache.
+        :param index:               Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
+        :param cached_image_shape:  Shape of the cached image (after resizing if input_dim is set)
+        :return:                    Image
+        """
+        padded_image = self.cached_imgs_padded[index]
+        cached_height, cached_width = cached_image_shape
+        resized_image = padded_image[:cached_height, :cached_width, :]
+        return resized_image.copy()
 
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
@@ -391,45 +467,30 @@ class DetectionDataset(Dataset):
         :return: Transformed sample
         """
         for transform in self.transforms:
-            self._add_additional_inputs_for_transform(sample, transform)
-            sample = transform(sample)
+            sample["additional_samples"] = self._get_additional_inputs_for_transform(transform=transform)
+            sample = transform(sample=sample)
             sample.pop("additional_samples")  # additional_samples is not useful after the transform
         return sample
 
-    def _add_additional_inputs_for_transform(self, sample: Dict[str, Union[np.ndarray, Any]], transform: DetectionTransform):
+    def _get_additional_inputs_for_transform(self, transform: DetectionTransform) -> List[Dict[str, Union[np.ndarray, Any]]]:
         """Add additional inputs required by a transform to the sample"""
         additional_samples_count = transform.additional_samples_count if hasattr(transform, "additional_samples_count") else 0
         non_empty_annotations = transform.non_empty_annotations if hasattr(transform, "non_empty_annotations") else False
-        additional_samples = self.get_random_samples(additional_samples_count, non_empty_annotations)
-        sample["additional_samples"] = additional_samples
+        return self.get_random_samples(count=additional_samples_count, ignore_empty_annotations=non_empty_annotations)
 
-    def get_random_samples(self, count: int, non_empty_annotations_only: bool = False) -> List[Dict[str, Union[np.ndarray, Any]]]:
+    def get_random_samples(self, count: int, ignore_empty_annotations: bool = False) -> List[Dict[str, Union[np.ndarray, Any]]]:
         """Load random samples.
 
         :param count: The number of samples wanted
-        :param non_empty_annotations_only: If true, only return samples with at least 1 annotation
+        :param ignore_empty_annotations: If true, only return samples with at least 1 annotation
         :return: A list of samples satisfying input params
         """
-        return [self.get_random_sample(non_empty_annotations_only) for _ in range(count)]
+        return [self.get_random_sample(ignore_empty_annotations) for _ in range(count)]
 
-    def get_random_sample(self, non_empty_annotations_only: bool = False):
-        if non_empty_annotations_only:
-            return self.get_sample(self._get_random_non_empty_annotation_available_indexes())
-        else:
-            return self.get_sample(self._random_index())
-
-    def _get_random_non_empty_annotation_available_indexes(self) -> int:
-        """Get the index of a non-empty annotation.
-        :return: Image index"""
-        target, index = [], -1
-        while len(target) == 0:
-            index = self._random_index()
-            target = self.annotations[index]["target"]
-        return index
-
-    def _random_index(self):
-        """Get a random index of this dataset"""
-        return random.randint(0, len(self) - 1)
+    def get_random_sample(self, ignore_empty_annotations: bool = False) -> Dict[str, Union[np.ndarray, Any]]:
+        n_relevant_samples = len(self._non_empty_sample_ids) if ignore_empty_annotations else self._n_samples
+        random_index = random.randint(0, n_relevant_samples - 1)
+        return self.get_sample(index=random_index, ignore_empty_annotations=ignore_empty_annotations)
 
     @property
     def output_target_format(self):
@@ -466,7 +527,7 @@ class DetectionDataset(Dataset):
                     image, targets, *_ = self[img_i + plot_i * 16]
                     image = image.transpose(1, 2, 0).astype(np.int32)
                 else:
-                    sample = self.get_sample(index)
+                    sample = self.get_sample(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
                     image, targets = sample["image"], sample["target"]
 
                 sample = target_format_transform({"image": image, "target": targets})

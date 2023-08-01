@@ -36,7 +36,7 @@ class DummyDetectionDataset(DetectionDataset):
 
     # DetectionDatasetV2 will call _load_image but since we don't have any image we patch this method with
     # tensor of image shape
-    def _load_image(self, index: int) -> np.ndarray:
+    def _load_image(self, image_path: str) -> np.ndarray:
         return np.random.random(self.image_size)
 
 

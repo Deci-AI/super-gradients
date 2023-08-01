@@ -5,6 +5,8 @@ train_dataset_params:
   input_dim: [640, 640]
   cache_dir:
   cache: False
+  cache_annotations: True
+  ignore_empty_annotations: True
   transforms:
     - DetectionRandomAffine:
         degrees: 0                    # rotation degrees, randomly sampled from [-degrees, degrees]
@@ -59,6 +61,8 @@ val_dataset_params:
   input_dim: [636, 636]
   cache_dir:
   cache: False
+  cache_annotations: True
+  ignore_empty_annotations: True
   transforms:
     - DetectionRGB2BGR:
         prob: 1
