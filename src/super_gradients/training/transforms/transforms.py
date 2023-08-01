@@ -297,6 +297,8 @@ class SegPadShortToCropSize(SegmentationTransform):
     """
     Pads image to 'crop_size'.
     Should be called only after "SegRescale" or "SegRandomRescale" in augmentations pipeline.
+    Please note that if input image size > crop size no change will be made to the image.
+    This transform only pads the image and mask into "crop_size" if it's larger than image size
     """
 
     def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
