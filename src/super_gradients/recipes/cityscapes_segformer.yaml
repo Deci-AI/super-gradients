@@ -100,7 +100,8 @@ training_hyperparams:
     ignore_index: ${cityscapes_ignored_label}
 
   phase_callbacks:
-    - SlidingWindowValidationCallback
+    - SlidingWindowValidationCallback:
+        transforms_for_sliding_window: []
 
   train_metrics_list:
     - IoU:
