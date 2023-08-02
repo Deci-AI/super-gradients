@@ -14,6 +14,9 @@ from itertools import islice
 from pathlib import Path
 from typing import Mapping, Optional, Tuple, Union, List, Dict, Any, Iterable
 from zipfile import ZipFile
+
+from pytorch_quantization.nn.modules._utils import QuantMixin
+from super_gradients.training.utils.quantization.core import SGQuantMixin
 from torch.nn.parallel import DistributedDataParallel
 
 import numpy as np
@@ -663,3 +666,17 @@ def infer_model_device(model: nn.Module) -> Optional[torch.device]:
             return first_buffer.device
         except StopIteration:
             return None
+
+
+def check_model_contains_quantized_modules(model: nn.Module) -> bool:
+    """
+    Check if the model contains any quantized modules.
+    :param model: Model to check.
+    :return: True if the model contains any quantized modules, False otherwise.
+    """
+    model = unwrap_model(model)
+    for m in model.modules():
+        if isinstance(m, (QuantMixin, SGQuantMixin)):
+            return True
+
+    return False

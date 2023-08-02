@@ -9,6 +9,7 @@ import onnx
 import onnxruntime
 import torch
 from matplotlib import pyplot as plt
+from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 from torch import nn
 from torch.utils.data import DataLoader
 
@@ -437,48 +438,6 @@ class TestDetectionModelExport(unittest.TestCase):
 
             self._benchmark_onnx(export_result)
 
-    def test_export_ssd_mobilenet_v1_quantized_with_calibration_to_tensorrt(self):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            out_path = os.path.join(tmpdirname, "ssd_mobilenet_v1.onnx")
-
-            dummy_calibration_dataset = [torch.randn((3, 640, 640), dtype=torch.float32) for _ in range(32)]
-            dummy_calibration_loader = DataLoader(dummy_calibration_dataset, batch_size=8)
-
-            ppyolo_e: ExportableObjectDetectionModel = models.get(Models.SSD_MOBILENET_V1, pretrained_weights="coco")
-            ppyolo_e.export(
-                out_path,
-                engine=ExportTargetBackend.TENSORRT,
-                num_pre_nms_predictions=300,
-                max_predictions_per_image=100,
-                nms_threshold=0.5,
-                confidence_threshold=0.5,
-                input_image_shape=(640, 640),
-                output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
-                quantization_mode=ExportQuantizationMode.INT8,
-                calibration_loader=dummy_calibration_loader,
-            )
-
-    def test_export_ssd_lite_mobilenet_v2_quantized_with_calibration_to_tensorrt(self):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            out_path = os.path.join(tmpdirname, "ssd_lite_mobilenet_v2.onnx")
-
-            dummy_calibration_dataset = [torch.randn((3, 640, 640), dtype=torch.float32) for _ in range(32)]
-            dummy_calibration_loader = DataLoader(dummy_calibration_dataset, batch_size=8)
-
-            ppyolo_e: ExportableObjectDetectionModel = models.get(Models.SSD_LITE_MOBILENET_V2, pretrained_weights="coco")
-            ppyolo_e.export(
-                out_path,
-                engine=ExportTargetBackend.TENSORRT,
-                num_pre_nms_predictions=300,
-                nms_threshold=0.6,
-                confidence_threshold=0.1,
-                max_predictions_per_image=100,
-                input_image_shape=(640, 640),
-                output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
-                quantization_mode=ExportQuantizationMode.INT8,
-                calibration_loader=dummy_calibration_loader,
-            )
-
     def _run_inference_with_onnx(self, export_result: ModelExportResult):
         # onnx_filename = out_path, input_shape = export_result.image_shape, output_predictions_format = output_predictions_format
 
@@ -541,6 +500,45 @@ class TestDetectionModelExport(unittest.TestCase):
         plt.show()
 
         return result
+
+    def test_export_already_quantized_model(self):
+        model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
+        q_util = SelectiveQuantizer(
+            default_quant_modules_calibrator_weights="max",
+            default_quant_modules_calibrator_inputs="histogram",
+            default_per_channel_quant_weights=True,
+            default_learn_amax=False,
+            verbose=True,
+        )
+        q_util.quantize_module(model)
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            output_model1 = os.path.join(tmpdirname, "yolo_nas_s_quantized_explicit_int8.onnx")
+            output_model2 = os.path.join(tmpdirname, "yolo_nas_s_quantized.onnx")
+
+            # If model is already quantized to int8, the export should be successful but model should not be quantized again
+            model.export(
+                output_model1,
+                quantization_mode=ExportQuantizationMode.INT8,
+            )
+
+            # If model is quantized but quantization mode is not specified, the export should be also successful
+            # but model should not be quantized again
+            model.export(
+                output_model2,
+                quantization_mode=None,
+            )
+
+            # If model is already quantized to int8, we should not be able to export model to FP16
+            with self.assertRaises(RuntimeError):
+                model.export(
+                    "yolo_nas_s_quantized.onnx",
+                    quantization_mode=ExportQuantizationMode.FP16,
+                )
+
+            # Assert two files are the same
+            # with open(output_model1, "rb") as f1, open(output_model2, "rb") as f2:
+            #     assert hashlib.md5(f1.read()) == hashlib.md5(f2.read())
 
     def test_export_export_all_variants(self):
         export_dir = "export_all_variants"

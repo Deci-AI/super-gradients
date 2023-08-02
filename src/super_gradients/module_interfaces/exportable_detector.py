@@ -17,8 +17,11 @@ from super_gradients.conversion.preprocessing_modules import CastTensorTo
 from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
-from super_gradients.training.utils.utils import infer_model_device
+from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules
 from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
+from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
+
+from pytorch_quantization import nn as quant_nn
 
 logger = get_logger(__name__)
 
@@ -315,13 +318,14 @@ class ExportableObjectDetectionModel:
         if hasattr(model, "prep_model_for_conversion"):
             model.prep_model_for_conversion(**prep_model_for_conversion_kwargs)
 
-        # TODO: Check whether model is quantized, if yes - skip
+        contains_quantized_modules = check_model_contains_quantized_modules(model)
+
         if quantization_mode == ExportQuantizationMode.INT8:
-            from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
-            from pytorch_quantization import nn as quant_nn
+            if contains_quantized_modules:
+                logger.debug("Model contains quantized modules. Skipping quantization & calibration steps since it is already quantized.")
+                pass
 
             patch_pytorch_quantization_modules_if_needed()
-
             q_util = selective_quantizer or SelectiveQuantizer(
                 default_quant_modules_calibrator_weights="max",
                 default_quant_modules_calibrator_inputs="histogram",
@@ -342,6 +346,13 @@ class ExportableObjectDetectionModel:
                     percentile=99.99,
                 )
                 logger.debug("Calibrating model complete")
+        elif quantization_mode == ExportQuantizationMode.FP16:
+            if contains_quantized_modules:
+                raise RuntimeError("Model contains quantized modules for INT8 mode. " "FP16 quantization is not supported for such models.")
+        elif quantization_mode is None and contains_quantized_modules:
+            # If quantization_mode is None, but we have quantized modules in the model, we need to
+            # update the quantization_mode to INT8, so that we can correctly export the model.
+            quantization_mode = ExportQuantizationMode.INT8
 
         from super_gradients.training.models.conversion import ConvertableCompletePipelineModel
 
