@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils import get_param
+from super_gradients.training.utils.segmentation_utils import forward_with_sliding_window_wrapper
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.modules.conv_bn_relu_block import ConvBNReLU
@@ -399,53 +400,15 @@ class SegFormer(SegmentationModule):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.use_sliding_window_validation:
-            return self.forward_with_sliding_window(x)
+            return forward_with_sliding_window_wrapper(
+                forward=self._forward,
+                img=x,
+                sliding_window_stride=self.sliding_window_stride,
+                sliding_window_crop_size=self.sliding_window_crop_size,
+                num_classes=self.num_classes,
+            )
         else:
             return self._forward(x)
-
-    def forward_with_sliding_window(self, img: torch.Tensor) -> torch.Tensor:
-        """
-        Inference by sliding-window with overlap. It involves systematically moving a window with a fixed crop-size over
-        the input image. As the window moves across the image, features or patterns within the window are extracted by
-        running a forward pass of the crop image through the net.
-
-        If h_crop > h_img or w_crop > w_img, the small patch will be used to decode without padding.
-
-        :param img: a batch of images to benchmark the model on using sliding window.
-        return: predictions tensor
-        """
-
-        h_stride, w_stride = self.sliding_window_stride
-        h_crop, w_crop = self.sliding_window_crop_size
-        batch_size, _, h_img, w_img = img.size()
-
-        h_grids = max(h_img - h_crop + h_stride - 1, 0) // h_stride + 1
-        w_grids = max(w_img - w_crop + w_stride - 1, 0) // w_stride + 1
-
-        preds = torch.zeros((batch_size, self.num_classes, h_img, w_img), device=img.device)
-        count_mat = torch.zeros((batch_size, 1, h_img, w_img), device=img.device)
-
-        for h_idx in range(h_grids):
-            for w_idx in range(w_grids):
-                y1 = h_idx * h_stride
-                x1 = w_idx * w_stride
-                y2 = min(y1 + h_crop, h_img)
-                x2 = min(x1 + w_crop, w_img)
-                y1 = max(y2 - h_crop, 0)
-                x1 = max(x2 - w_crop, 0)
-                crop_img = img[:, :, y1:y2, x1:x2]
-                crop_logits = self._forward(crop_img)
-
-                if isinstance(crop_logits, torch.Tensor):
-                    crop_logits = (crop_logits,)
-
-                crop_logits = crop_logits[0]
-
-                preds += F.pad(crop_logits, pad=(int(x1), int(preds.shape[3] - x2), int(y1), int(preds.shape[2] - y2)))
-
-                count_mat[:, :, y1:y2, x1:x2] += 1
-        preds = preds / count_mat
-        return preds
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
