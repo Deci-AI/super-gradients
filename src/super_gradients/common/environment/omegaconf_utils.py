@@ -72,6 +72,7 @@ def get_cls(cls_path: str):
 
 
 def hydra_output_dir_resolver(ckpt_root_dir: str, experiment_name: str) -> str:
+    # TODO: Think how to move this to a config file.
     return get_checkpoints_dir_path(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
 
 

@@ -226,7 +226,10 @@ def prepare_conversion_cfgs(cfg: DictConfig):
     """
     cfg = hydra.utils.instantiate(cfg)
     # CREATE THE EXPERIMENT CFG
-    experiment_cfg = load_experiment_cfg(cfg.experiment_name, cfg.ckpt_root_dir)
+
+    # Load the latest experiment config
+    experiment_cfg = load_experiment_cfg(ckpt_root_dir=cfg.ckpt_root_dir, experiment_name=cfg.experiment_name)
+
     hydra.utils.instantiate(experiment_cfg)
     if cfg.checkpoint_path is None:
         logger.info(

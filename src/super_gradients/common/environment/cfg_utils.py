@@ -52,7 +52,7 @@ def load_recipe(config_name: str, recipes_dir_path: Optional[str] = None, overri
     return cfg
 
 
-def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> DictConfig:
+def load_experiment_cfg(experiment_name: str, ckpt_root_dir: Optional[str] = None, run_id: Optional[str] = None) -> DictConfig:
     """
     Load the hydra config associated to a specific experiment.
 
@@ -65,12 +65,13 @@ def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> Dict
 
     :param experiment_name:     Name of the experiment to resume
     :param ckpt_root_dir:       Directory including the checkpoints
+    :param run_id:              Optional. Run id of the experiment. If None, the most recent run will be loaded.
     :return:                    The config that was used for that experiment
     """
     if not experiment_name:
         raise ValueError(f"experiment_name should be non empty string but got :{experiment_name}")
 
-    checkpoints_dir_path = Path(get_checkpoints_dir_path(experiment_name, ckpt_root_dir))
+    checkpoints_dir_path = Path(get_checkpoints_dir_path(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id))
     if not checkpoints_dir_path.exists():
         raise FileNotFoundError(f"Impossible to find checkpoint dir ({checkpoints_dir_path})")
 

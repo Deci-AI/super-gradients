@@ -2,7 +2,6 @@ import copy
 import inspect
 import os
 from copy import deepcopy
-from pathlib import Path
 from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
 
 import hydra
@@ -21,7 +20,12 @@ from torchmetrics import MetricCollection, Metric
 from tqdm import tqdm
 
 from super_gradients import is_distributed
-from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_ckpt_local_path
+from super_gradients.common.environment.checkpoints_dir_utils import (
+    generate_run_id,
+    get_latest_run_id,
+    validate_run_id,
+    get_checkpoints_dir_path,
+)
 from super_gradients.module_interfaces import HasPreprocessingParams, HasPredict
 from super_gradients.modules.repvgg_block import fuse_repvgg_blocks_residual_branches
 
@@ -124,10 +128,10 @@ class Trainer:
         returns the test loss, accuracy and runtime
     """
 
-    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = None, ckpt_root_dir: str = None):
+    def __init__(self, experiment_name: str, device: Optional[str] = None, multi_gpu: Union[MultiGPUMode, str] = None, ckpt_root_dir: Optional[str] = None):
         """
 
-        :param experiment_name:                      Used for logging and loading purposes
+        :param experiment_name:                 Used for logging and loading purposes
         :param device:                          If equal to 'cpu' runs on the CPU otherwise on GPU
         :param multi_gpu:                       If True, runs on all available devices
                                                 otherwise saves the Checkpoints Locally
@@ -165,7 +169,6 @@ class Trainer:
 
         # SET THE DEFAULT PROPERTIES
         self.half_precision = False
-        self.load_checkpoint = False
         self.load_backbone = False
         self.load_weights_only = False
         self.ddp_silent_mode = is_ddp_subprocess()
@@ -174,10 +177,8 @@ class Trainer:
         self.average_model_checkpoint_filename = "average_model.pth"
         self.start_epoch = 0
         self.best_metric = np.inf
-        self.external_checkpoint_path = None
-        self.strict_load = StrictLoad.ON
         self.load_ema_as_net = False
-        self.ckpt_best_name = "ckpt_best.pth"
+
         self._first_backward = True
 
         # METRICS
@@ -190,11 +191,12 @@ class Trainer:
         self.greater_train_metrics_is_better: Dict[str, bool] = {}  # For each metric, indicates if greater is better
         self.greater_valid_metrics_is_better: Dict[str, bool] = {}
 
-        # SETTING THE PROPERTIES FROM THE CONSTRUCTOR
+        # Checkpoint Attributes
+        self.ckpt_root_dir = ckpt_root_dir
         self.experiment_name = experiment_name
-        self.ckpt_name = None
+        self.load_checkpoint = False
+        self.ckpt_best_name = "ckpt_best.pth"
 
-        self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
         self.phase_callback_handler: CallbackHandler = None
 
         # SET THE DEFAULTS
@@ -230,6 +232,7 @@ class Trainer:
         :return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
+        # TODO: bind checkpoint_run_id
         setup_device(
             device=core_utils.get_param(cfg, "device"),
             multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
@@ -291,16 +294,23 @@ class Trainer:
         return cfg
 
     @classmethod
-    def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> Tuple[nn.Module, Tuple]:
+    def resume_experiment(cls, experiment_name: str, ckpt_root_dir: Optional[str] = None, run_id: Optional[str] = None) -> Tuple[nn.Module, Tuple]:
         """
         Resume a training that was run using our recipes.
 
         :param experiment_name:     Name of the experiment to resume
         :param ckpt_root_dir:       Directory including the checkpoints
+        :return:                    The config that was used for that experiment
         """
         logger.info("Resume training using the checkpoint recipe, ignoring the current recipe")
-        cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
+
+        # Load the latest config
+        cfg = load_experiment_cfg(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)
+
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
+        if run_id:
+            validate_run_id(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)
+            add_params_to_cfg(cfg, params=[f"training_hyperparams.run_id={run_id}"])
         return cls.train_from_config(cfg)
 
     @classmethod
@@ -331,9 +341,19 @@ class Trainer:
 
         if cfg.checkpoint_params.checkpoint_path is None:
             logger.info(
-                "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
+                "`checkpoint_params.checkpoint_path` was not provided. The recipe will be evaluated using checkpoints_dir.training_hyperparams.ckpt_name"
             )
-            checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+
+            eval_run_id = core_utils.get_param(cfg, "training_hyperparams.run_id", None)
+            if eval_run_id is None:
+                logger.info("`training_hyperparams.run_id` was not provided. Evaluating the latest run.")
+                # NOTE: `eval_run_id` will be None if no latest run directory was found.
+                # We want to support this case out of backward compatibility with SG < 3.1.3 which did not include a directory per run
+                eval_run_id = get_latest_run_id(checkpoints_root_dir=cfg.ckpt_root_dir, experiment_name=cfg.experiment_name)
+
+            # NOTE: If run_id is None, the checkpoint directory will be ckpt_root_dir/experiment_name.
+            # This ensures backward compatibility with SG < 3.1.3 which did not include a directory per run.
+            checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir, run_id=eval_run_id)
             checkpoint_path = os.path.join(checkpoints_dir, cfg.training_hyperparams.ckpt_name)
             if os.path.exists(checkpoint_path):
                 cfg.checkpoint_params.checkpoint_path = checkpoint_path
@@ -361,7 +381,13 @@ class Trainer:
         return model, valid_metrics_dict
 
     @classmethod
-    def evaluate_checkpoint(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
+    def evaluate_checkpoint(
+        cls,
+        experiment_name: str,
+        ckpt_name: str = "ckpt_latest.pth",
+        ckpt_root_dir: Optional[str] = None,
+        run_id: Optional[str] = None,
+    ) -> None:
         """
         Evaluate a checkpoint resulting from one of your previous experiment, using the same parameters (dataset, valid_metrics,...)
         as used during the training of the experiment
@@ -376,9 +402,13 @@ class Trainer:
         :param experiment_name:     Name of the experiment to validate
         :param ckpt_name:           Name of the checkpoint to test ("ckpt_latest.pth", "average_model.pth" or "ckpt_best.pth" for instance)
         :param ckpt_root_dir:       Directory including the checkpoints
+        :return:                    The config that was used for that experiment
         """
         logger.info("Evaluate checkpoint")
-        cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
+
+        # Load the latest config
+        cfg = load_experiment_cfg(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)
+
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
         cls.evaluate_from_recipe(cfg)
 
@@ -656,15 +686,6 @@ class Trainer:
 
         # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
         self.update_param_groups = hasattr(unwrap_model(self.net), "update_param_groups")
-
-        self.checkpoint = {}
-        self.strict_load = core_utils.get_param(self.training_params, "resume_strict_load", StrictLoad.ON)
-        self.load_ema_as_net = False
-        self.load_checkpoint = core_utils.get_param(self.training_params, "resume", False)
-        self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
-        self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
-        self.resume_from_remote_sg_logger = core_utils.get_param(self.training_params, "resume_from_remote_sg_logger", False)
-        self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None or self.resume_from_remote_sg_logger
 
         if self.training_params.torch_compile:
             if torch_version_is_greater_or_equal(2, 0):
@@ -1077,6 +1098,7 @@ class Trainer:
 
         :return:
         """
+
         global logger
         if training_params is None:
             training_params = dict()
@@ -1121,9 +1143,9 @@ class Trainer:
         self.net = model
 
         self._prep_net_for_train()
+        self._load_checkpoint_to_model()
         if not self.ddp_silent_mode:
             self._initialize_sg_logger_objects(additional_configs_to_log)
-        self._load_checkpoint_to_model()
 
         # SET RANDOM SEED
         random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
@@ -1450,7 +1472,7 @@ class Trainer:
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
-                self._validate_final_average_model(context, cleanup_snapshots_pkl_file=True)
+                self._validate_final_average_model(context, checkpoint_dir_path=self.checkpoints_dir_path, cleanup_snapshots_pkl_file=True)
 
         except KeyboardInterrupt:
             logger.info(
@@ -1541,7 +1563,7 @@ class Trainer:
                 else:
                     self.scaler.load_state_dict(scaler_state_dict)
 
-    def _validate_final_average_model(self, context: PhaseContext, cleanup_snapshots_pkl_file=False):
+    def _validate_final_average_model(self, checkpoint_dir_path: str, context: PhaseContext, cleanup_snapshots_pkl_file=False):
         """
         Testing the averaged model by loading the last saved average checkpoint and running test.
         Will be loaded to each of DDP processes
@@ -1551,7 +1573,7 @@ class Trainer:
 
         keep_state_dict = deepcopy(self.net.state_dict())
         # SETTING STATE DICT TO THE AVERAGE MODEL FOR EVALUATION
-        average_model_ckpt_path = os.path.join(self.checkpoints_dir_path, self.average_model_checkpoint_filename)
+        average_model_ckpt_path = os.path.join(checkpoint_dir_path, self.average_model_checkpoint_filename)
         local_rank = get_local_rank()
 
         # WAIT FOR MASTER RANK TO SAVE THE CKPT BEFORE WE TRY TO READ IT.
@@ -1633,39 +1655,47 @@ class Trainer:
         self.net.to(device_config.device)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def _load_checkpoint_to_model(self):  # noqa: C901 - too complex
-        """
-        Copies the source checkpoint to a local folder and loads the checkpoint's data to the model using the
-         attributes:
+    def _load_checkpoint_to_model(self):
 
-         strict:           See StrictLoad class documentation for details.
-         load_backbone:    loads the provided checkpoint to self.net.backbone instead of self.net
+        self.checkpoint = {}
+        strict_load = core_utils.get_param(self.training_params, "resume_strict_load", StrictLoad.ON)
+        ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
 
-        NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params
-         is True
-        """
+        resume = core_utils.get_param(self.training_params, "resume", False)
+        run_id = core_utils.get_param(self.training_params, "run_id", None)
+        resume_path = core_utils.get_param(self.training_params, "resume_path")
+        resume_from_remote_sg_logger = core_utils.get_param(self.training_params, "resume_from_remote_sg_logger", False)
+        self.load_checkpoint = resume or (run_id is not None) or (resume_path is not None) or resume_from_remote_sg_logger
+
+        if run_id is None:  # User did not specify a `run_id`
+            if self.load_checkpoint:
+                run_id = get_latest_run_id(checkpoints_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name)
+                if run_id is None:  # No previous run folder found
+                    run_id = generate_run_id()
+            else:
+                run_id = generate_run_id()
+
+        self.checkpoints_dir_path = get_checkpoints_dir_path(
+            ckpt_root_dir=self.ckpt_root_dir,
+            experiment_name=self.experiment_name,
+            run_id=run_id,
+        )
+
         with wait_for_the_master(get_local_rank()):
-            if self.resume_from_remote_sg_logger and not self.ddp_silent_mode:
-                self.sg_logger.download_remote_ckpt(ckpt_name=self.ckpt_name)
+            if resume_from_remote_sg_logger and not self.ddp_silent_mode:
+                self.sg_logger.download_remote_ckpt(ckpt_name=ckpt_name)
 
-        if self.load_checkpoint or self.external_checkpoint_path:
-            # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST
-            ckpt_root_dir = str(Path(self.checkpoints_dir_path).parent)
-            ckpt_local_path = get_ckpt_local_path(
-                ckpt_root_dir=ckpt_root_dir,
-                experiment_name=self.experiment_name,
-                ckpt_name=self.ckpt_name,
-                external_checkpoint_path=self.external_checkpoint_path,
-            )
+        if self.load_checkpoint or resume_path:
+            checkpoint_path = resume_path if resume_path else os.path.join(self.checkpoints_dir_path, ckpt_name)
 
             # LOAD CHECKPOINT TO MODEL
             self.checkpoint = load_checkpoint_to_model(
-                ckpt_local_path=ckpt_local_path,
+                ckpt_local_path=checkpoint_path,
                 load_backbone=self.load_backbone,
                 net=self.net,
-                strict=self.strict_load.value if isinstance(self.strict_load, StrictLoad) else self.strict_load,
+                strict=strict_load.value if isinstance(strict_load, StrictLoad) else strict_load,
                 load_weights_only=self.load_weights_only,
-                load_ema_as_net=self.load_ema_as_net,
+                load_ema_as_net=False,
             )
 
             if "ema_net" in self.checkpoint.keys():
@@ -1779,8 +1809,6 @@ class Trainer:
                 "Please make sure the provided sg_logger writes to disk or compose your sg_logger to BaseSGLogger"
             )
 
-        # IN CASE SG_LOGGER UPDATED THE DIR PATH
-        self.checkpoints_dir_path = self.sg_logger.local_dir()
         hyper_param_config = self._get_hyper_param_config()
         if additional_configs_to_log is not None:
             hyper_param_config["additional_configs_to_log"] = additional_configs_to_log
