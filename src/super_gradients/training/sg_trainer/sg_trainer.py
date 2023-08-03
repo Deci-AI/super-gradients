@@ -1667,19 +1667,20 @@ class Trainer:
         resume_from_remote_sg_logger = core_utils.get_param(self.training_params, "resume_from_remote_sg_logger", False)
         self.load_checkpoint = resume or (run_id is not None) or (resume_path is not None) or resume_from_remote_sg_logger
 
+        print(resume, run_id, resume_path, resume_from_remote_sg_logger, self.load_checkpoint)
         if run_id is None:  # User did not specify a `run_id`
-            if self.load_checkpoint:
+            if resume and not (resume_from_remote_sg_logger or resume_path):
                 run_id = get_latest_run_id(checkpoints_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name)
-                if run_id is None:  # No previous run folder found
-                    run_id = generate_run_id()
+                print("A")
             else:
                 run_id = generate_run_id()
+                print("B", resume_from_remote_sg_logger, resume_path)
+        else:
+            validate_run_id(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
+            print("C")
 
-        self.checkpoints_dir_path = get_checkpoints_dir_path(
-            ckpt_root_dir=self.ckpt_root_dir,
-            experiment_name=self.experiment_name,
-            run_id=run_id,
-        )
+        self.checkpoints_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
+        logger.info(f"Checkpoints directory: {self.checkpoints_dir_path}")
 
         with wait_for_the_master(get_local_rank()):
             if resume_from_remote_sg_logger and not self.ddp_silent_mode:

@@ -65,6 +65,54 @@ class ResumeTrainingTest(unittest.TestCase):
         # ASSERT WE START FROM THE RIGHT EPOCH NUMBER
         self.assertTrue(first_epoch_cb.first_epoch == 2)
 
+    def test_resume_run_id_training(self):
+        train_params = {
+            "max_epochs": 2,
+            "lr_updates": [1],
+            "lr_decay_factor": 0.1,
+            "lr_mode": "step",
+            "lr_warmup_epochs": 0,
+            "initial_lr": 0.1,
+            "loss": "cross_entropy",
+            "optimizer": "SGD",
+            "criterion_params": {},
+            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+            "train_metrics_list": [Accuracy(), Top5()],
+            "valid_metrics_list": [Accuracy(), Top5()],
+            "metric_to_watch": "Accuracy",
+            "greater_metric_to_watch_is_better": True,
+        }
+
+        # from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
+
+        # Define Model
+        net = LeNet()
+        experiment_name = "test_resume_training"
+        ckpt_root_dir = ""
+        trainer = Trainer(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name)
+        # checkpoints_dir = get_checkpoints_dir_path(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name)
+        # import
+
+        trainer.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
+
+        # TRAIN FOR 1 MORE EPOCH AND COMPARE THE NET AT THE BEGINNING OF EPOCH 3 AND THE END OF EPOCH NUMBER 2
+        resume_net = LeNet()
+        trainer = Trainer("test_resume_training")
+        first_epoch_cb = FirstEpochInfoCollector()
+
+        train_params["run_id"] = ""
+        train_params["max_epochs"] = 3
+        train_params["phase_callbacks"] = [first_epoch_cb]
+        trainer.train(
+            model=resume_net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
+
+        # ASSERT RELOADED MODEL HAS THE SAME WEIGHTS AS THE MODEL SAVED IN FIRST PART OF TRAINING
+        self.assertTrue(check_models_have_same_weights(net, first_epoch_cb.first_epoch_net))
+
+        # ASSERT WE START FROM THE RIGHT EPOCH NUMBER
+        self.assertTrue(first_epoch_cb.first_epoch == 2)
+
     def test_resume_external_training(self):
         train_params = {
             "max_epochs": 2,
@@ -107,6 +155,8 @@ class ResumeTrainingTest(unittest.TestCase):
         # ASSERT WE START FROM THE RIGHT EPOCH NUMBER
         self.assertTrue(first_epoch_cb.first_epoch == 2)
 
+
+# TODO
 
 if __name__ == "__main__":
     unittest.main()
