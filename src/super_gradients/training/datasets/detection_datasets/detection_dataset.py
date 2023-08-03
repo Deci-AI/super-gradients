@@ -16,14 +16,14 @@ from torch.utils.data import Dataset
 from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.training.utils.detection_utils import get_cls_posx_in_target
+from super_gradients.training.utils.detection_utils import get_class_index_in_target
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
 from super_gradients.common.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
-from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat
+from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, LabelTensorSliceItem
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 logger = get_logger(__name__)
@@ -298,26 +298,26 @@ class DetectionDataset(Dataset):
         :param annotation: Dict representing the annotation of a specific image
         :return:           Subclassed annotation if non-empty after subclassing, otherwise None
         """
-        cls_posx = get_cls_posx_in_target(self.original_target_format)
+        class_index = _get_class_index_in_target(target_format=self.original_target_format)
         for field in self.target_fields:
-            annotation[field] = self._sub_class_target(targets=annotation[field], cls_posx=cls_posx)
+            annotation[field] = self._sub_class_target(targets=annotation[field], class_index=class_index)
         return annotation
 
-    def _sub_class_target(self, targets: np.ndarray, cls_posx: int) -> np.ndarray:
+    def _sub_class_target(self, targets: np.ndarray, class_index: int) -> np.ndarray:
         """Sublass targets of a specific image.
 
         :param targets:     Target array to subclass of shape [n_targets, 5], 5 representing a bbox
-        :param cls_posx:    Position of the class id in a bbox
+        :param class_index:    Position of the class id in a bbox
                                 ex: 0 if bbox of format label_xyxy | -1 if bbox of format xyxy_label
         :return:            Subclassed target
         """
         targets_kept = []
         for target in targets:
-            cls_id = int(target[cls_posx])
+            cls_id = int(target[class_index])
             cls_name = self.all_classes_list[cls_id]
             if cls_name in self.class_inclusion_list:
                 # Replace the target cls_id in self.all_classes_list by cls_id in self.class_inclusion_list
-                target[cls_posx] = self.class_inclusion_list.index(cls_name)
+                target[class_index] = self.class_inclusion_list.index(cls_name)
                 targets_kept.append(target)
 
         return np.array(targets_kept) if len(targets_kept) > 0 else np.zeros((0, 5), dtype=np.float32)
@@ -568,5 +568,16 @@ class DetectionDataset(Dataset):
         return params
 
 
-# TODO
-# - Integration Test
+def _get_class_index_in_target(target_format: DetectionTargetsFormat) -> int:
+    """Get the index of the class in the target format.
+    :param target_format: format of the target. E.g. XYXY_LABEL, LABEL_NORMALIZED_XYXY, ect...
+    :return: index of the class in the target format. E.g. XYXY_LABEL -> 4, LABEL_NORMALIZED_XYXY -> 0, ect....
+    """
+    if isinstance(target_format, ConcatenatedTensorFormat):
+        return target_format.indexes[LabelTensorSliceItem.NAME][0]
+    elif isinstance(target_format, DetectionTargetsFormat):
+        return get_class_index_in_target(target_format)
+    else:
+        raise NotImplementedError(
+            f"{target_format} is not supported. Supported formats are: {ConcatenatedTensorFormat.__name__}, {DetectionTargetsFormat.__name__}"
+        )

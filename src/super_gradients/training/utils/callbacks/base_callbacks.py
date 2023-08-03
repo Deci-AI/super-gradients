@@ -53,6 +53,7 @@ class PhaseContext:
         metric_to_watch=None,
         valid_metrics=None,
         ema_model=None,
+        loss_logging_items_names=None,
     ):
         self.epoch = epoch
         self.batch_idx = batch_idx
@@ -82,6 +83,7 @@ class PhaseContext:
         self.metric_to_watch = metric_to_watch
         self.valid_metrics = valid_metrics
         self.ema_model = ema_model
+        self.loss_logging_items_names = loss_logging_items_names
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():
