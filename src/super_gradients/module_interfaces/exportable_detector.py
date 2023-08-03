@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion.conversion_enums import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
+from super_gradients.conversion.conversion_utils import torch_dtype_to_numpy_dtype
 from super_gradients.conversion.onnx.nms import attach_onnx_nms
 from super_gradients.conversion.preprocessing_modules import CastTensorTo
 from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
@@ -88,6 +89,11 @@ class ModelExportResult:
 
     output: str
     output_predictions_format: DetectionOutputFormatMode
+
+    usage_instructions: str = ""
+
+    def __repr__(self):
+        return self.usage_instructions
 
 
 class ExportableObjectDetectionModel:
@@ -201,6 +207,8 @@ class ExportableObjectDetectionModel:
         :param num_pre_nms_predictions: (int) Number of predictions to keep before NMS.
         :return:
         """
+        usage_instructions = []
+
         if not isinstance(self, nn.Module):
             raise TypeError(f"Export is only supported for torch.nn.Module. Got type {type(self)}")
 
@@ -262,33 +270,41 @@ class ExportableObjectDetectionModel:
 
         model_type = torch.half if quantization_mode == ExportQuantizationMode.FP16 else torch.float32
 
+        preprocessing_module: Optional[nn.Module] = None
+
         if isinstance(preprocessing, nn.Module):
-            pass
+            preprocessing_module = preprocessing
         elif preprocessing is True:
-            preprocessing = model.get_preprocessing_callback()
-            preprocessing = nn.Sequential(CastTensorTo(model_type), preprocessing)
+            preprocessing_module = model.get_preprocessing_callback()
+            if isinstance(preprocessing_module, nn.Sequential):
+                preprocessing_module = nn.Sequential(CastTensorTo(model_type), *iter(preprocessing_module))
+            else:
+                preprocessing_module = nn.Sequential(CastTensorTo(model_type), preprocessing_module)
             input_image_dtype = input_image_dtype or torch.uint8
         else:
-            preprocessing = None
+            preprocessing_module = None
             input_image_dtype = input_image_dtype or model_type
 
         # This variable holds the output names of the model.
         # If postprocessing is enabled, it will be set to the output names of the postprocessing module.
         output_names: Optional[List[str]] = None
 
+        postprocessing_module: Optional[nn.Module] = None
+
         if isinstance(postprocessing, nn.Module):
             # If a user-specified postprocessing module is provided, we will attach is to the model and not
             # attempt to attach NMS step, since we do not know what the user-specified postprocessing module does,
             # and what outputs it produces.
             attach_nms_postprocessing = False
+            postprocessing_module = postprocessing
         elif postprocessing is True:
             attach_nms_postprocessing = True
             postprocessing_kwargs = postprocessing_kwargs or {}
             postprocessing_kwargs["num_pre_nms_predictions"] = num_pre_nms_predictions
-            postprocessing: AbstractObjectDetectionDecodingModule = model.get_decoding_module(**postprocessing_kwargs)
+            postprocessing_module: AbstractObjectDetectionDecodingModule = model.get_decoding_module(**postprocessing_kwargs)
 
-            output_names = postprocessing.get_output_names()
-            num_pre_nms_predictions = postprocessing.num_pre_nms_predictions
+            output_names = postprocessing_module.get_output_names()
+            num_pre_nms_predictions = postprocessing_module.num_pre_nms_predictions
             max_predictions_per_image = max_predictions_per_image or num_pre_nms_predictions
 
             nms_threshold = nms_threshold or getattr(model, "_default_nms_iou", None)
@@ -313,7 +329,7 @@ class ExportableObjectDetectionModel:
                 )
         else:
             attach_nms_postprocessing = False
-            postprocessing = None
+            postprocessing_module = None
 
         if hasattr(model, "prep_model_for_conversion"):
             model.prep_model_for_conversion(**prep_model_for_conversion_kwargs)
@@ -359,7 +375,9 @@ class ExportableObjectDetectionModel:
         # The model.prep_model_for_conversion will be called inside ConvertableCompletePipelineModel once more,
         # but as long as implementation of prep_model_for_conversion is idempotent, it should be fine.
         complete_model = (
-            ConvertableCompletePipelineModel(model=model, pre_process=preprocessing, post_process=postprocessing, **prep_model_for_conversion_kwargs)
+            ConvertableCompletePipelineModel(
+                model=model, pre_process=preprocessing_module, post_process=postprocessing_module, **prep_model_for_conversion_kwargs
+            )
             .to(device)
             .eval()
         )
@@ -462,6 +480,101 @@ class ExportableObjectDetectionModel:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
+        # Add usage instructions
+        usage_instructions.append(f"Model exported successfully to {output}")
+        usage_instructions.append(f"Model expects input image of shape [{batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}]")
+        usage_instructions.append(f"Input image dtype is {input_image_dtype}")
+
+        if preprocessing:
+            usage_instructions.append("Exported model already contains preprocessing (normalization) step, so you don't need to do it manually.")
+            usage_instructions.append("Preprocessing steps to be applied to input image are:")
+            usage_instructions.append(repr(preprocessing_module))
+            usage_instructions.append("")
+
+        if postprocessing:
+            usage_instructions.append("Exported model contains postprocessing (NMS) step with the following parameters:")
+            usage_instructions.append(f"    num_pre_nms_predictions={num_pre_nms_predictions}")
+            usage_instructions.append(f"    max_predictions_per_image={max_predictions_per_image}")
+            usage_instructions.append(f"    nms_threshold={nms_threshold}")
+            usage_instructions.append(f"    confidence_threshold={confidence_threshold}")
+            usage_instructions.append(f"    output_predictions_format={output_predictions_format}")
+            usage_instructions.append("")
+
+        if engine == ExportTargetBackend.ONNXRUNTIME:
+            usage_instructions.append("Exported model is in ONNX format and can be used with ONNXRuntime")
+            usage_instructions.append("To run inference with ONNXRuntime, please use the following code snippet:")
+            usage_instructions.append("")
+            usage_instructions.append("    import onnxruntime")
+            usage_instructions.append("    import numpy as np")
+            usage_instructions.append(f'    session = onnxruntime.InferenceSession("{output}")')
+            usage_instructions.append("    inputs = [o.name for o in session.get_inputs()]")
+            usage_instructions.append("    outputs = [o.name for o in session.get_outputs()]")
+            if preprocessing:
+                usage_instructions.append(
+                    f"    example_input_image = np.zeros({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}).astype({torch_dtype_to_numpy_dtype(input_image_dtype)})"  # noqa
+                )
+            else:
+                usage_instructions.append(
+                    f"    example_input_image = np.zeros({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}).astype({torch_dtype_to_numpy_dtype(input_image_dtype)})"  # noqa
+                )
+            usage_instructions.append("    predictions = session.run(outputs, {{inputs[0]: example_input_image}})")
+            usage_instructions.append("")
+
+        elif engine == ExportTargetBackend.TENSORRT:
+            usage_instructions.append("Exported model is in ONNX format and can be used with TensorRT")
+            usage_instructions.append("To run inference with TensorRT, please see TensorRT deployment documentation")
+            usage_instructions.append("You can benchmark the model using the following code snippet:")
+            usage_instructions.append("")
+            usage_instructions.append(
+                f"    trtexec --onnx={output} {'--int8' if quantization_mode == ExportQuantizationMode.INT8 else '--fp16'} --avgRuns=100 --duration=15"
+            )
+            usage_instructions.append("")
+
+        if postprocessing is True:
+            if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
+                usage_instructions.append(f"Exported model outputs predictions in {output_predictions_format} format:")
+                usage_instructions.append("")
+                usage_instructions.append("    # flat_predictions is a 2D array of [N,7] shape")
+                usage_instructions.append("    # Each row represents (image_index, x_min, y_min, x_max, y_max, confidence, class_id)")
+                usage_instructions.append("    # Please note all values are floats, so you have to convert them to integers if needed")
+                usage_instructions.append("    [flat_predictions] = predictions")
+                if batch_size == 1:
+                    # fmt: off
+                    usage_instructions.append("    for (_, x_min, y_min, x_max, y_max, confidence, class_id) in flat_predictions[0]:")
+                    usage_instructions.append("        class_id = int(class_id)")
+                    usage_instructions.append('        print(f"Detected object with class_id={class_id}, confidence={confidence}, x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")') # noqa
+                    # fmt: on
+                else:
+                    # fmt: off
+                    usage_instructions.append(f"    for current_sample in range({batch_size}):")
+                    usage_instructions.append("      predictions_for_current_sample = predictions[predictions[0] == current_sample]")
+                    usage_instructions.append('      print("Predictions for sample " + str(current_sample))')
+                    usage_instructions.append("      for (_, x_min, y_min, x_max, y_max, confidence, class_id) in predictions_for_current_sample:")
+                    usage_instructions.append("        class_id = int(class_id)")
+                    usage_instructions.append('        print(f"Detected object with class_id={class_id}, confidence={confidence}, x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")') # noqa
+                    # fmt: on
+
+            elif output_predictions_format == DetectionOutputFormatMode.BATCH_FORMAT:
+                # fmt: off
+                usage_instructions.append(f"Exported model outputs predictions in {output_predictions_format} format")
+                usage_instructions.append("    num_detections, pred_boxes, pred_scores, pred_classes = predictions")
+                usage_instructions.append("    for image_index in range(num_detections.shape[0]):")
+                usage_instructions.append("      for i in range(num_detections[image_index,0]):")
+                usage_instructions.append("        class_id = pred_classes[image_index, i]")
+                usage_instructions.append("        confidence = pred_scores[image_index, i]")
+                usage_instructions.append("        x_min, y_min, x_max, y_max = pred_boxes[image_index, i]")
+                usage_instructions.append('        print(f"Detected object with class_id={class_id}, confidence={confidence}, x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")') # noqa
+                # fmt: on
+        elif postprocessing is False:
+            usage_instructions.append("Model exported with postprocessing=False")
+            usage_instructions.append("No decoding or NMS is added to the model, so you will have to decode predictions manually.")
+            usage_instructions.append("Please refer to the documentation for the model you exported")
+        elif isinstance(postprocessing, nn.Module):
+            usage_instructions.append("Exported model contains a custom postprocessing step.")
+            usage_instructions.append("We are unable to provide usage instructions to user-provided postprocessing module")
+            usage_instructions.append("But here is the human-friendly representation of the postprocessing module:")
+            usage_instructions.append(repr(postprocessing))
+
         return ModelExportResult(
             input_image_channels=input_image_channels,
             input_image_dtype=input_image_dtype,
@@ -470,4 +583,5 @@ class ExportableObjectDetectionModel:
             quantization_mode=quantization_mode,
             output=output,
             output_predictions_format=output_predictions_format,
+            usage_instructions="\n".join(usage_instructions),
         )

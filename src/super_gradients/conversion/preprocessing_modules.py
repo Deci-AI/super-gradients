@@ -19,15 +19,24 @@ class CastTensorTo(nn.Module):
         self.dtype = torch.float16
         return self
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(dtype={self.dtype})"
+
 
 class ApplyMeanStd(nn.Module):
     def __init__(self, mean: np.ndarray, std: np.ndarray):
         super().__init__()
+        self._mean_for_repr = mean
+        self._std_for_repr = std
+
         self.register_buffer("mean", torch.tensor(mean).float().reshape((1, -1, 1, 1)), persistent=True)
         self.register_buffer("scale", torch.reciprocal(torch.tensor(std).float()).reshape((1, -1, 1, 1)), persistent=True)
 
     def forward(self, inputs: Tensor) -> Tensor:
         return (inputs - self.mean) * self.scale
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(mean={self._mean_for_repr}, scale={self._std_for_repr})"
 
 
 class ChannelSelect(nn.Module):
@@ -37,3 +46,6 @@ class ChannelSelect(nn.Module):
 
     def forward(self, inputs: Tensor) -> Tensor:
         return inputs[:, self.channels_indexes, :, :]
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(channels_indexes={self.channels_indexes})"
