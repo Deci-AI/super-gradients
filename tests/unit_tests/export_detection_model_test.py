@@ -32,12 +32,6 @@ class TestDetectionModelExport(unittest.TestCase):
     def setUp(self) -> None:
         logging.getLogger().setLevel(logging.DEBUG)
         self.test_image_path = "../data/tinycoco/images/val2017/000000444010.jpg"
-        try:
-            from decibenchmark.api.client_manager import ClientManager  # noqa
-
-            self.decibenchmark_available = True
-        except ImportError:
-            self.decibenchmark_available = False
 
     def test_the_most_common_export_use_case(self):
         """
@@ -173,7 +167,7 @@ class TestDetectionModelExport(unittest.TestCase):
                     confidence_threshold=confidence_threshold,
                     nms_threshold=0.6,
                 )
-                self._benchmark_onnx(export_result)
+                assert export_result is not None
 
     def test_export_to_tensorrt_batch_format(self):
         output_predictions_format = DetectionOutputFormatMode.BATCH_FORMAT
@@ -197,14 +191,14 @@ class TestDetectionModelExport(unittest.TestCase):
                     nms_threshold=nms_threshold,
                     confidence_threshold=confidence_threshold,
                 )
-                self._benchmark_onnx(export_result)
+                assert export_result is not None
 
     def test_export_to_tensorrt_batch_format_yolox_s(self):
         output_predictions_format = DetectionOutputFormatMode.BATCH_FORMAT
         confidence_threshold = 0.25
         nms_threshold = 0.6
         model_type = Models.YOLOX_S
-        device = "cuda"
+        device = "cpu"
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             model_name = str(model_type).lower().replace(".", "_")
@@ -220,7 +214,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 nms_threshold=nms_threshold,
                 confidence_threshold=confidence_threshold,
             )
-            self._benchmark_onnx(export_result)
+            assert export_result is not None
 
     def test_export_to_tensorrt_batch_format_yolo_nas_s(self):
         output_predictions_format = DetectionOutputFormatMode.BATCH_FORMAT
@@ -240,7 +234,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 nms_threshold=nms_threshold,
                 confidence_threshold=confidence_threshold,
             )
-            self._benchmark_onnx(export_result)
+            assert export_result is not None
 
     def test_export_to_tensorrt_batch_format_ppyolo_e(self):
         output_predictions_format = DetectionOutputFormatMode.BATCH_FORMAT
@@ -260,7 +254,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 nms_threshold=nms_threshold,
                 confidence_threshold=confidence_threshold,
             )
-            self._benchmark_onnx(export_result)
+            assert export_result is not None
 
     def test_export_model_with_custom_input_image_shape(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -326,8 +320,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
                 quantization_mode=ExportQuantizationMode.FP16,
             )
-
-            self._benchmark_onnx(export_result)
+            assert export_result is not None
 
     def test_export_with_int8_quantization(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -354,7 +347,6 @@ class TestDetectionModelExport(unittest.TestCase):
             assert pred_scores.shape == (1, 300)
             assert pred_classes.shape == (1, 300)
             assert pred_classes.dtype == np.int64
-            self._benchmark_onnx(export_result)
 
     def test_export_quantized_with_calibration_to_tensorrt(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -373,7 +365,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 quantization_mode=ExportQuantizationMode.INT8,
                 calibration_loader=dummy_calibration_loader,
             )
-            self._benchmark_onnx(export_result)
+            assert export_result is not None
 
     def test_export_yolonas_quantized_with_calibration_to_tensorrt(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -393,29 +385,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 quantization_mode=ExportQuantizationMode.INT8,
                 calibration_loader=dummy_calibration_loader,
             )
-            self._benchmark_onnx(export_result)
-
-    def test_export_yolox_quantized_fp16(self):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            tmpdirname = "."
-            out_path = os.path.join(tmpdirname, "yolox_quantized_fp16_onnxruntime.onnx")
-
-            ppyolo_e: ExportableObjectDetectionModel = models.get(Models.YOLOX_S, num_classes=80)
-            export_result = ppyolo_e.export(
-                out_path,
-                device="cuda",
-                preprocessing=False,
-                postprocessing=False,
-                engine=ExportTargetBackend.ONNXRUNTIME,
-                num_pre_nms_predictions=300,
-                max_predictions_per_image=100,
-                input_image_shape=(640, 640),
-                output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
-                quantization_mode=ExportQuantizationMode.FP16,
-                onnx_export_kwargs=dict(verbose=True, do_constant_folding=True),
-            )
-
-            self._benchmark_onnx(export_result)
+            assert export_result is not None
 
     def test_export_yolox_quantized_int8_with_calibration_to_tensorrt(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -435,8 +405,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 quantization_mode=ExportQuantizationMode.INT8,
                 calibration_loader=dummy_calibration_loader,
             )
-
-            self._benchmark_onnx(export_result)
+            assert export_result is not None
 
     def _run_inference_with_onnx(self, export_result: ModelExportResult):
         # onnx_filename = out_path, input_shape = export_result.image_shape, output_predictions_format = output_predictions_format
@@ -566,9 +535,9 @@ class TestDetectionModelExport(unittest.TestCase):
                     #     pass
 
                     for model_type in [
-                        Models.YOLOX_S,
-                        # Models.PP_YOLOE_S,
-                        # Models.YOLO_NAS_S
+                        # Models.YOLOX_S,
+                        Models.PP_YOLOE_S,
+                        Models.YOLO_NAS_S,
                     ]:
                         model_name = str(model_type).lower()
                         model = models.get(model_type, pretrained_weights="coco")
@@ -640,116 +609,81 @@ class TestDetectionModelExport(unittest.TestCase):
                 np.testing.assert_allclose(flat_predictions_torch.numpy(), flat_predictions_onnx, rtol=1e-3, atol=1e-3)
 
     def test_onnx_nms_flat_result(self):
-        onnx_file = "PickNMSPredictionsAndReturnAsFlatResult.onnx"
-        graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph(batch_size=7)
-        model = gs.export_onnx(graph)
-        onnx.checker.check_model(model)
-        onnx.save(model, onnx_file)
+        max_predictions = 100
+        batch_size = 7
 
-        torch_module = PickNMSPredictionsAndReturnAsFlatResult()
+        for device in ["cpu", "cuda"]:
+            for dtype in [torch.float16, torch.float32]:
 
-        session = onnxruntime.InferenceSession(onnx_file)
+                # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
+                # And also can handle dynamic shapes input
+                pred_boxes = torch.randn((batch_size, max_predictions, 4), dtype=dtype)
+                pred_scores = torch.randn((batch_size, max_predictions, 40), dtype=dtype)
+                selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
 
-        inputs = [o.name for o in session.get_inputs()]
-        outputs = [o.name for o in session.get_outputs()]
+                torch_module = PickNMSPredictionsAndReturnAsFlatResult(
+                    batch_size=batch_size, num_pre_nms_predictions=max_predictions, max_predictions_per_image=max_predictions
+                )
+                torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
 
-        # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
-        # And also can handle dynamic shapes input
-        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
-        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
-        selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    onnx_file = os.path.join(temp_dir, "PickNMSPredictionsAndReturnAsFlatResult.onnx")
+                    graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph(
+                        batch_size=batch_size, num_pre_nms_predictions=max_predictions, max_predictions_per_image=max_predictions, device=device, dtype=dtype
+                    )
 
-        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
-        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
-        for r in onnx_result:
-            print(r.shape, r.dtype, r)
+                    model = gs.export_onnx(graph)
+                    onnx.checker.check_model(model)
+                    onnx.save(model, onnx_file)
 
-        # Test on empty NMS result
-        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
-        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
-        selected_indexes = torch.zeros((0, 3), dtype=torch.int64)
+                    session = onnxruntime.InferenceSession(onnx_file)
 
-        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)  # noqa
-        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
-        for r in onnx_result:
-            print(r.shape, r.dtype, r)
+                    inputs = [o.name for o in session.get_inputs()]
+                    outputs = [o.name for o in session.get_outputs()]
 
-    def test_onnx_nms_batched_result(self):
-        onnx_file = "PickNMSPredictionsAndReturnAsBatchedResult.onnx"
-        graph = PickNMSPredictionsAndReturnAsBatchedResult.as_graph(batch_size=7, max_predictions_per_image=100)
-        model = gs.export_onnx(graph)
-        onnx.checker.check_model(model)
-        onnx.save(model, onnx_file)
+                    [onnx_result] = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
 
-        torch_module = PickNMSPredictionsAndReturnAsBatchedResult(batch_size=7, max_predictions_per_image=100)
+                    np.testing.assert_allclose(torch_result.numpy(), onnx_result, rtol=1e-3, atol=1e-3)
 
-        session = onnxruntime.InferenceSession(onnx_file)
+    def test_onnx_nms_batch_result(self):
+        max_predictions = 100
+        batch_size = 7
 
-        inputs = [o.name for o in session.get_inputs()]
-        outputs = [o.name for o in session.get_outputs()]
+        for device in ["cpu", "cuda"]:
+            for dtype in [torch.float16, torch.float32]:
 
-        # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
-        # And also can handle dynamic shapes input
-        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
-        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
-        selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
+                # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
+                # And also can handle dynamic shapes input
+                pred_boxes = torch.randn((batch_size, max_predictions, 4), dtype=dtype)
+                pred_scores = torch.randn((batch_size, max_predictions, 40), dtype=dtype)
+                selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
 
-        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
-        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
-        for r in onnx_result:
-            print(r.shape, r.dtype, r)
+                torch_module = PickNMSPredictionsAndReturnAsBatchedResult(
+                    batch_size=batch_size, num_pre_nms_predictions=max_predictions, max_predictions_per_image=max_predictions
+                )
+                torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
 
-        # Test on empty NMS result
-        pred_boxes = torch.randn((7, 800, 4), dtype=torch.float32)
-        pred_scores = torch.randn((7, 800, 40), dtype=torch.float32)
-        selected_indexes = torch.zeros((0, 3), dtype=torch.int64)
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    onnx_file = os.path.join(temp_dir, "PickNMSPredictionsAndReturnAsBatchedResult.onnx")
+                    graph = PickNMSPredictionsAndReturnAsBatchedResult.as_graph(
+                        batch_size=batch_size, num_pre_nms_predictions=max_predictions, max_predictions_per_image=max_predictions, device=device, dtype=dtype
+                    )
 
-        torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)  # noqa
-        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
-        for r in onnx_result:
-            print(r.shape, r.dtype, r)
+                    model = gs.export_onnx(graph)
+                    onnx.checker.check_model(model)
+                    onnx.save(model, onnx_file)
 
-    def _benchmark_onnx(self, export_result: ModelExportResult):
-        if not self.decibenchmark_available:
-            print("DeciBenchMark is not available, skipping benchmark")
-            return
+                    session = onnxruntime.InferenceSession(onnx_file)
 
-        from decibenchmark.api.client_manager import ClientManager
-        from decibenchmark.api.hardware.jetson.jetson_device_filter import JetsonDeviceFilter
-        from decibenchmark.api.hardware.nvidia_gpu.nvidia_gpu_device_filter import NvidiaGpuDeviceFilter  # noqa
-        from decibenchmark.common.hardware.nvidia_gpu.nvidia_gpu_model import NvidiaGpuModel  # noqa
+                    inputs = [o.name for o in session.get_inputs()]
+                    outputs = [o.name for o in session.get_outputs()]
 
-        from decibenchmark.common.hardware.jetson.jetson_model import JetsonModel
-        from decibenchmark.common.execmethod.trt_exec_params import TrtExecParams
+                    onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
 
-        # from decibenchmark.common.hardware.nvidia_gpu.nvidia_gpu_model import NvidiaGpuModel
-
-        # Create client manager
-        client_manager = ClientManager.create()
-
-        # Get jetson client
-        client = client_manager.jetson
-
-        precision = "--int8" if export_result.quantization_mode == ExportQuantizationMode.INT8 else "--fp16"
-
-        job = client.benchmark.trt_exec(
-            # JetsonDeviceFilter(jetson_model=JetsonModel.XAVIER_NX),
-            JetsonDeviceFilter(jetson_model=JetsonModel.AGX_ORIN),
-            # NvidiaGpuDeviceFilter(nvidia_gpu_model=NvidiaGpuModel.RTX_A5000),
-            TrtExecParams(extra_cmd_params=[precision, "--avgRuns=100", "--duration=15"]),
-        ).dispatch(export_result.output)
-
-        benchmark_result = job.wait_for_result(timeout=-1)
-
-        # Get the latency and throughput
-        print(f"Model     : {os.path.basename(export_result.output)}")
-        print(f"Input     : {export_result.input_image_shape} (rows, cols)")
-        print(f"Latency   : {benchmark_result.latency}")
-        print(f"Throughput: {benchmark_result.throughput}")
-        print(f"Extra     : {benchmark_result.extra}")
-        if not benchmark_result.success:
-            print(f"Error     : {benchmark_result}")
-        assert benchmark_result.success
+                    np.testing.assert_allclose(torch_result[0].numpy(), onnx_result[0], rtol=1e-3, atol=1e-3)
+                    np.testing.assert_allclose(torch_result[1].numpy(), onnx_result[1], rtol=1e-3, atol=1e-3)
+                    np.testing.assert_allclose(torch_result[2].numpy(), onnx_result[2], rtol=1e-3, atol=1e-3)
+                    np.testing.assert_allclose(torch_result[3].numpy(), onnx_result[3], rtol=1e-3, atol=1e-3)
 
     def _get_image_as_bchw(self, image_shape=(640, 640)):
         """

@@ -197,6 +197,14 @@ jobs:
           command: |
             . venv/bin/activate
             python3 -m pip install --extra-index-url https://pypi.ngc.nvidia.com .[pro]
+
+      - run:
+          name: install pytorch quantization package
+          no_output_timeout: 30m
+          command: |
+            . venv/bin/activate
+            python3 -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
+
       - run:
           name: run tests with coverage
           no_output_timeout: 30m
