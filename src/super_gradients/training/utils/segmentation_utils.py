@@ -243,6 +243,9 @@ def forward_with_sliding_window_wrapper(
     h_stride, w_stride = sliding_window_stride
     h_crop, w_crop = sliding_window_crop_size
 
+    if h_stride > h_crop or w_stride > w_crop:
+        raise ValueError("sliding_window_stride cannot be larger than sliding_window_crop_size.")
+
     batch_size, _, h_img, w_img = img.size()
 
     h_grids = max(h_img - h_crop + h_stride - 1, 0) // h_stride + 1
@@ -268,7 +271,8 @@ def forward_with_sliding_window_wrapper(
 
             crop_logits = crop_logits[0]
 
-            preds += F.pad(crop_logits, pad=(int(x1), int(preds.shape[3] - x2), int(y1), int(preds.shape[2] - y2)))
+            # preds += F.pad(crop_logits, pad=(int(x1), int(preds.shape[3] - x2), int(y1), int(preds.shape[2] - y2)))
+            preds[:, :, y1:y2, x1:x2] += crop_logits
 
             count_mat[:, :, y1:y2, x1:x2] += 1
     preds = preds / count_mat
