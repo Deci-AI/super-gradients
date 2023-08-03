@@ -9,6 +9,7 @@ train_dataset_params:
   input_dim: [640, 640]
   cache_dir:
   cache: False
+  cache_annotations: True
   ignore_empty_annotations: False
   transforms:
     - DetectionMosaic:
@@ -70,6 +71,7 @@ val_dataset_params:
   input_dim: [640, 640]
   cache_dir:
   cache: False
+  cache_annotations: True
   ignore_empty_annotations: False
   transforms:
   - DetectionPaddedRescale:
