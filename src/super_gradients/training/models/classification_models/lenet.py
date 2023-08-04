@@ -5,10 +5,10 @@ https://yann.lecun.com/exdb/lenet/
 """
 import torch.nn as nn
 import torch.nn.functional as F
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models import BaseClassifier
 
 
-class LeNet(SgModule):
+class LeNet(BaseClassifier):
     def __init__(self):
         super(LeNet, self).__init__()
         self.conv1 = nn.Conv2d(3, 6, 5)

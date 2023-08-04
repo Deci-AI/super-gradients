@@ -1,6 +1,6 @@
 from .format_converter import ConcatenatedTensorFormatConverter
 from .output_adapters import DetectionOutputAdapter
-from .formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from .formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem, LabelTensorSliceItem
 from .bbox_formats import (
     CXCYWHCoordinateFormat,
     NormalizedCXCYWHCoordinateFormat,
@@ -21,6 +21,7 @@ __all__ = [
     "NormalizedXYWHCoordinateFormat",
     "NormalizedXYXYCoordinateFormat",
     "TensorSliceItem",
+    "LabelTensorSliceItem",
     "XYWHCoordinateFormat",
     "XYXYCoordinateFormat",
     "YXYXCoordinateFormat",

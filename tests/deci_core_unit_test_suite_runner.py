@@ -22,11 +22,13 @@ from tests.unit_tests import (
     CrashTipTest,
     TestTransforms,
     TestPostPredictionCallback,
+    TestModelPredict,
 )
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.detection_utils_test import TestDetectionUtils
 from tests.unit_tests.detection_dataset_test import DetectionDatasetTest
 from tests.unit_tests.export_onnx_test import TestModelsONNXExport
+from tests.unit_tests.extreme_batch_cb_test import ExtremeBatchSanityTest
 from tests.unit_tests.load_checkpoint_test import LoadCheckpointTest
 from tests.unit_tests.local_ckpt_head_replacement_test import LocalCkptHeadReplacementTest
 from tests.unit_tests.max_batches_loop_break_test import MaxBatchesLoopBreakTest
@@ -145,6 +147,8 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPostPredictionCallback))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationMetricsMultipleIgnored))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainWithTorchSchedulerTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ExtremeBatchSanityTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestModelPredict))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
