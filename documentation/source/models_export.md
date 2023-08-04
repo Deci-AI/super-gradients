@@ -36,13 +36,57 @@ from super_gradients.training import models
 model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
 
 export_result = model.export("yolo_nas_s.onnx")
+```
+
+A returned value of `export()` method is an instance of `ModelExportResult` class. 
+First of all it serves the purpose of storing all the information about the exported model in a single place. 
+It also provides a convenient way to get an example of running the model and getting the output:
+
+
+```python
 export_result
 ```
 
 
 
 
-    ModelExportResult(input_image_channels=3, input_image_dtype=torch.uint8, input_image_shape=(640, 640), engine=<ExportTargetBackend.ONNXRUNTIME: 'onnxruntime'>, quantization_mode=<class 'NoneType'>, output='yolo_nas_s.onnx', output_predictions_format=<DetectionOutputFormatMode.BATCH_FORMAT: 'batch'>)
+    Model exported successfully to yolo_nas_s.onnx
+    Model expects input image of shape [1, 3, 640, 640]
+    Input image dtype is torch.uint8
+    Exported model already contains preprocessing (normalization) step, so you don't need to do it manually.
+    Preprocessing steps to be applied to input image are:
+    Sequential(
+      (0): CastTensorTo(dtype=torch.float32)
+      (1): ApplyMeanStd(mean=[0.], scale=[255.])
+    )
+    
+    Exported model contains postprocessing (NMS) step with the following parameters:
+        num_pre_nms_predictions=1000
+        max_predictions_per_image=1000
+        nms_threshold=0.7
+        confidence_threshold=0.25
+        output_predictions_format=batch
+    
+    Exported model is in ONNX format and can be used with ONNXRuntime
+    To run inference with ONNXRuntime, please use the following code snippet:
+    
+        import onnxruntime
+        import numpy as np
+        session = onnxruntime.InferenceSession("yolo_nas_s.onnx")
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+        example_input_image = np.zeros(1, 3, 640, 640).astype(np.uint8)
+        predictions = session.run(outputs, {inputs[0]: example_input_image})
+    
+    Exported model has predictions in batch format:
+    
+        num_detections, pred_boxes, pred_scores, pred_classes = predictions
+        for image_index in range(num_detections.shape[0]):
+          for i in range(num_detections[image_index,0]):
+            class_id = pred_classes[image_index, i]
+            confidence = pred_scores[image_index, i]
+            x_min, y_min, x_max, y_max = pred_boxes[image_index, i]
+            print(f"Detected object with class_id={class_id}, confidence={confidence}, x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")
 
 
 
@@ -245,7 +289,7 @@ show_predictions_from_batch_format(image, result)
 
 
     
-![png](models_export_files/models_export_15_0.png)
+![png](models_export_files/models_export_17_0.png)
     
 
 
@@ -265,7 +309,43 @@ export_result
 
 
 
-    ModelExportResult(input_image_channels=3, input_image_dtype=torch.uint8, input_image_shape=(640, 640), engine=<ExportTargetBackend.ONNXRUNTIME: 'onnxruntime'>, quantization_mode=<class 'NoneType'>, output='yolo_nas_s.onnx', output_predictions_format=<DetectionOutputFormatMode.FLAT_FORMAT: 'flat'>)
+    Model exported successfully to yolo_nas_s.onnx
+    Model expects input image of shape [1, 3, 640, 640]
+    Input image dtype is torch.uint8
+    Exported model already contains preprocessing (normalization) step, so you don't need to do it manually.
+    Preprocessing steps to be applied to input image are:
+    Sequential(
+      (0): CastTensorTo(dtype=torch.float32)
+      (1): ApplyMeanStd(mean=[0.], scale=[255.])
+    )
+    
+    Exported model contains postprocessing (NMS) step with the following parameters:
+        num_pre_nms_predictions=1000
+        max_predictions_per_image=1000
+        nms_threshold=0.7
+        confidence_threshold=0.25
+        output_predictions_format=flat
+    
+    Exported model is in ONNX format and can be used with ONNXRuntime
+    To run inference with ONNXRuntime, please use the following code snippet:
+    
+        import onnxruntime
+        import numpy as np
+        session = onnxruntime.InferenceSession("yolo_nas_s.onnx")
+        inputs = [o.name for o in session.get_inputs()]
+        outputs = [o.name for o in session.get_outputs()]
+        example_input_image = np.zeros(1, 3, 640, 640).astype(np.uint8)
+        predictions = session.run(outputs, {inputs[0]: example_input_image})
+    
+    Exported model has predictions in flat format:
+    
+        # flat_predictions is a 2D array of [N,7] shape
+        # Each row represents (image_index, x_min, y_min, x_max, y_max, confidence, class_id)
+        # Please note all values are floats, so you have to convert them to integers if needed
+        [flat_predictions] = predictions
+        for (_, x_min, y_min, x_max, y_max, confidence, class_id) in flat_predictions[0]:
+            class_id = int(class_id)
+            print(f"Detected object with class_id={class_id}, confidence={confidence}, x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")
 
 
 
@@ -325,7 +405,7 @@ show_predictions_from_flat_format(image, result)
 
 
     
-![png](models_export_files/models_export_21_0.png)
+![png](models_export_files/models_export_23_0.png)
     
 
 
@@ -361,7 +441,7 @@ show_predictions_from_flat_format(image, result)
 
 
     
-![png](models_export_files/models_export_23_0.png)
+![png](models_export_files/models_export_25_0.png)
     
 
 
@@ -395,7 +475,7 @@ show_predictions_from_flat_format(image, result)
 
 
     
-![png](models_export_files/models_export_25_0.png)
+![png](models_export_files/models_export_27_0.png)
     
 
 
@@ -436,12 +516,12 @@ result = session.run(outputs, {inputs[0]: image_bchw})
 show_predictions_from_flat_format(image, result)
 ```
 
-     25%|████████████████████████████████████████████████████████▎                                                                                                                                                                        | 4/16 [00:12<00:38,  3.21s/it]
+     25%|████████████████████████████████████████████████████████▎                                                                                                                                                                        | 4/16 [00:12<00:37,  3.15s/it]
     
 
 
     
-![png](models_export_files/models_export_27_1.png)
+![png](models_export_files/models_export_29_1.png)
     
 
 

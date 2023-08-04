@@ -1,6 +1,4 @@
-import pytorch_quantization.nn.modules.quant_conv
 import torch.nn.functional as F
-from pytorch_quantization.version import __version__ as pytorch_quantization_version
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -40,6 +38,9 @@ def patch_pytorch_quantization_modules_if_needed():
 
     :return:
     """
+    import pytorch_quantization.nn.modules.quant_conv
+    from pytorch_quantization.version import __version__ as pytorch_quantization_version
+
     if pytorch_quantization_version == "2.1.2":
         logger.debug("Patching pytorch_quantization modules")
 

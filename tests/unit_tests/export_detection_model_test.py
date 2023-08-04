@@ -47,6 +47,9 @@ class TestDetectionModelExport(unittest.TestCase):
             assert result.input_image_channels == 3
 
     def test_models_produce_half(self):
+        if not torch.cuda.is_available():
+            self.skipTest("This test was skipped because target machine has not CUDA devices")
+
         input = torch.randn(1, 3, 640, 640).half().cuda()
 
         model = models.get(Models.YOLO_NAS_S, num_classes=80, pretrained_weights=None)
@@ -509,7 +512,11 @@ class TestDetectionModelExport(unittest.TestCase):
             # with open(output_model1, "rb") as f1, open(output_model2, "rb") as f2:
             #     assert hashlib.md5(f1.read()) == hashlib.md5(f2.read())
 
-    def test_export_export_all_variants(self):
+    def manual_test_export_export_all_variants(self):
+        """
+        This test is not run automatically, it is used to generate all possible export variants of the model
+        for benchmarking purposes.
+        """
         export_dir = "export_all_variants"
         os.makedirs(export_dir, exist_ok=True)
 
@@ -535,7 +542,7 @@ class TestDetectionModelExport(unittest.TestCase):
                     #     pass
 
                     for model_type in [
-                        # Models.YOLOX_S,
+                        # Models.YOLOX_S don't have full support for YOLOX so it's commented out,
                         Models.PP_YOLOE_S,
                         Models.YOLO_NAS_S,
                     ]:

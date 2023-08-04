@@ -5,6 +5,7 @@ import gc
 from typing import Any
 from typing import Union, Optional, List, Tuple
 
+import numpy as np
 import onnxsim
 import torch
 from torch import nn, Tensor
@@ -22,7 +23,6 @@ from super_gradients.training.utils.utils import infer_model_device, check_model
 from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
 
-from pytorch_quantization import nn as quant_nn
 
 logger = get_logger(__name__)
 
@@ -209,6 +209,17 @@ class ExportableObjectDetectionModel:
         """
         usage_instructions = []
 
+        try:
+            from pytorch_quantization import nn as quant_nn
+
+            patch_pytorch_quantization_modules_if_needed()
+        except ImportError:
+            if quantization_mode is not None:
+                raise ImportError(
+                    "pytorch_quantization package is not installed. "
+                    "Please install it via `pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com`"
+                )
+
         if not isinstance(self, nn.Module):
             raise TypeError(f"Export is only supported for torch.nn.Module. Got type {type(self)}")
 
@@ -341,7 +352,6 @@ class ExportableObjectDetectionModel:
                 logger.debug("Model contains quantized modules. Skipping quantization & calibration steps since it is already quantized.")
                 pass
 
-            patch_pytorch_quantization_modules_if_needed()
             q_util = selective_quantizer or SelectiveQuantizer(
                 default_quant_modules_calibrator_weights="max",
                 default_quant_modules_calibrator_inputs="histogram",
@@ -509,15 +519,17 @@ class ExportableObjectDetectionModel:
             usage_instructions.append(f'    session = onnxruntime.InferenceSession("{output}")')
             usage_instructions.append("    inputs = [o.name for o in session.get_inputs()]")
             usage_instructions.append("    outputs = [o.name for o in session.get_outputs()]")
+
+            dtype_name = np.dtype(torch_dtype_to_numpy_dtype(input_image_dtype)).name
             if preprocessing:
                 usage_instructions.append(
-                    f"    example_input_image = np.zeros({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}).astype({torch_dtype_to_numpy_dtype(input_image_dtype)})"  # noqa
+                    f"    example_input_image = np.zeros({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}).astype(np.{dtype_name})"  # noqa
                 )
             else:
                 usage_instructions.append(
-                    f"    example_input_image = np.zeros({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}).astype({torch_dtype_to_numpy_dtype(input_image_dtype)})"  # noqa
+                    f"    example_input_image = np.zeros({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}).astype(np.{dtype_name})"  # noqa
                 )
-            usage_instructions.append("    predictions = session.run(outputs, {{inputs[0]: example_input_image}})")
+            usage_instructions.append("    predictions = session.run(outputs, {inputs[0]: example_input_image})")
             usage_instructions.append("")
 
         elif engine == ExportTargetBackend.TENSORRT:
@@ -532,7 +544,7 @@ class ExportableObjectDetectionModel:
 
         if postprocessing is True:
             if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
-                usage_instructions.append(f"Exported model outputs predictions in {output_predictions_format} format:")
+                usage_instructions.append(f"Exported model has predictions in {output_predictions_format} format:")
                 usage_instructions.append("")
                 usage_instructions.append("    # flat_predictions is a 2D array of [N,7] shape")
                 usage_instructions.append("    # Each row represents (image_index, x_min, y_min, x_max, y_max, confidence, class_id)")
@@ -556,7 +568,8 @@ class ExportableObjectDetectionModel:
 
             elif output_predictions_format == DetectionOutputFormatMode.BATCH_FORMAT:
                 # fmt: off
-                usage_instructions.append(f"Exported model outputs predictions in {output_predictions_format} format")
+                usage_instructions.append(f"Exported model has predictions in {output_predictions_format} format:")
+                usage_instructions.append("")
                 usage_instructions.append("    num_detections, pred_boxes, pred_scores, pred_classes = predictions")
                 usage_instructions.append("    for image_index in range(num_detections.shape[0]):")
                 usage_instructions.append("      for i in range(num_detections[image_index,0]):")
