@@ -168,6 +168,7 @@ def convert_to_onnx(
     prep_model_for_conversion_kwargs=None,
     torch_onnx_export_kwargs=None,
     simplify: bool = True,
+    batch_size:int = 1
 ):
     """
     Exports model to ONNX.
@@ -193,7 +194,7 @@ def convert_to_onnx(
     prep_model_for_conversion_kwargs = prep_model_for_conversion_kwargs or dict()
 
     if input_shape is not None:
-        input_size = (1, *input_shape)
+        input_size = (batch_size, *input_shape)
         logger.warning(
             f"input_shape is deprecated and will be removed in the next major release."
             f"Use the convert_to_onnx(..., prep_model_for_conversion_kwargs(input_size={input_size})) instead"
@@ -205,7 +206,12 @@ def convert_to_onnx(
 
     input_size = prep_model_for_conversion_kwargs["input_size"]
 
+
+
     onnx_input = torch.Tensor(np.zeros(input_size))
+    #print("input shape is 5x3x640x640")
+    #onnx_input = torch.zeros(5, 3, 640, 640)
+
     if not out_path.endswith(".onnx"):
         out_path = out_path + ".onnx"
     complete_model = ConvertableCompletePipelineModel(model, pre_process, post_process, **prep_model_for_conversion_kwargs)
