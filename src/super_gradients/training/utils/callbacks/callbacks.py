@@ -1201,11 +1201,16 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
             metric=metric, metric_component_name=metric_component_name, loss_to_monitor=loss_to_monitor, max=max, freq=freq
         )
         self.post_prediction_callback = post_prediction_callback
+        if classes is None:
+            logger.info(
+                "No classes have been passed to ExtremeBatchDetectionVisualizationCallback. "
+                "Will try to fetch them through context.valid_loader.dataset classes attribute if it exists."
+            )
         self.classes = classes
         self.normalize_targets = normalize_targets
 
     @staticmethod
-    def universal_undo_preprocessing_fn(inputs):
+    def universal_undo_preprocessing_fn(inputs: torch.Tensor) -> np.ndarray:
         """
         A universal reversing of preprocessing to be passed to DetectionVisualization.visualize_batch's undo_preprocessing_func kwarg.
         :param inputs:

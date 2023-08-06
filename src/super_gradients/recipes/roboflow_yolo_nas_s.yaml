@@ -64,28 +64,7 @@ training_hyperparams:
     num_classes: ${num_classes}
 
 
-  phase_callbacks:
-    - ExtremeBatchDetectionVisualizationCallback:
-        metric:
-          DetectionMetrics_050:
-            score_thres: 0.1
-            top_k_predictions: 300
-            num_cls: ${num_classes}
-            normalize_targets: True
-            post_prediction_callback:
-              _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
-              score_threshold: 0.01
-              nms_top_k: 1000
-              max_predictions: 300
-              nms_threshold: 0.7
-        metric_component_name: 'mAP@0.50'
-        post_prediction_callback:
-          _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
-          score_threshold: 0.25
-          nms_top_k: 1000
-          max_predictions: 300
-          nms_threshold: 0.7
-        normalize_targets: True
+  phase_callbacks: []
   loss:
     ppyoloe_loss:
       num_classes: ${num_classes}
@@ -104,14 +83,6 @@ training_hyperparams:
           max_predictions: 300
           nms_threshold: 0.7
 
-  sg_logger: "wandb_sg_logger"
-  sg_logger_params:
-    project_name: worst_batch_experiments
-    entity: super-gradients
-    api_server: "https://wandb.research.deci.ai"
-    save_checkpoints_remote: True
-    save_tensorboard_remote: True
-    save_logs_remote: True
   metric_to_watch: 'mAP@0.50'
 
 multi_gpu: Off
