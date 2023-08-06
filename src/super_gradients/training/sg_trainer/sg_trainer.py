@@ -471,7 +471,7 @@ class Trainer:
                     # COMPUTE THE LOSS FOR BACK PROP + EXTRA METRICS COMPUTED DURING THE LOSS FORWARD PASS
                     loss, loss_log_items = self._get_losses(outputs, targets)
 
-                context.update_context(preds=outputs, loss_log_items=loss_log_items)
+                context.update_context(preds=outputs, loss_log_items=loss_log_items, loss_logging_items_names=self.loss_logging_items_names)
                 self.phase_callback_handler.on_train_batch_loss_end(context)
 
                 if not self.ddp_silent_mode and batch_idx == 0:
@@ -1338,6 +1338,7 @@ class Trainer:
             metric_to_watch=self.metric_to_watch,
             device=device_config.device,
             ema_model=self.ema_model,
+            valid_metrics=self.valid_metrics,
         )
         self.phase_callback_handler.on_training_start(context)
 
@@ -2014,6 +2015,7 @@ class Trainer:
 
         lr_warmup_epochs = self.training_params.lr_warmup_epochs if self.training_params else None
         context = PhaseContext(
+            net=self.net,
             epoch=epoch,
             metrics_compute_fn=metrics,
             loss_avg_meter=loss_avg_meter,
@@ -2023,6 +2025,7 @@ class Trainer:
             sg_logger=self.sg_logger,
             train_loader=self.train_loader,
             valid_loader=self.valid_loader,
+            loss_logging_items_names=self.loss_logging_items_names,
         )
 
         with tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_data_loader:

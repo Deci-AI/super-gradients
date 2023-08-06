@@ -17,6 +17,7 @@ from super_gradients.training.datasets.data_formats import (
     YXYXCoordinateFormat,
     NormalizedCXCYWHCoordinateFormat,
     DetectionOutputAdapter,
+    LabelTensorSliceItem,
 )
 
 from super_gradients.training.datasets.data_formats.bbox_formats.normalized_cxcywh import xyxy_to_normalized_cxcywh
@@ -25,7 +26,7 @@ NORMALIZED_XYWH_SCORES_LABELS = ConcatenatedTensorFormat(
     layout=(
         BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedXYWHCoordinateFormat()),
         TensorSliceItem(length=1, name="scores"),
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
     )
 )
 
@@ -33,14 +34,14 @@ CXCYWH_SCORES_LABELS = ConcatenatedTensorFormat(
     layout=(
         BoundingBoxesTensorSliceItem(name="bboxes", format=CXCYWHCoordinateFormat()),
         TensorSliceItem(length=1, name="scores"),
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
     )
 )
 
 CXCYWH_LABELS_SCORES_DISTANCE_ATTR = ConcatenatedTensorFormat(
     layout=(
         BoundingBoxesTensorSliceItem(name="bboxes", format=CXCYWHCoordinateFormat()),
-        TensorSliceItem(length=1, name="labels"),
+        LabelTensorSliceItem(),
         TensorSliceItem(length=1, name="scores"),
         TensorSliceItem(length=1, name="distance"),
         TensorSliceItem(length=4, name="attributes"),
