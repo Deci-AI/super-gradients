@@ -31,9 +31,6 @@ from super_gradients.training.models.detection_models.yolo_base import YoloXPost
 from super_gradients.training import models
 import super_gradients
 from super_gradients.training.utils.callbacks.callbacks import SlidingWindowValidationCallback
-import torch
-
-torch.cuda.set_device(2)
 
 
 class PretrainedModelsTest(unittest.TestCase):
