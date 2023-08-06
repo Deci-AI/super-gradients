@@ -271,7 +271,6 @@ def forward_with_sliding_window_wrapper(
 
             crop_logits = crop_logits[0]
 
-            # preds += F.pad(crop_logits, pad=(int(x1), int(preds.shape[3] - x2), int(y1), int(preds.shape[2] - y2)))
             preds[:, :, y1:y2, x1:x2] += crop_logits
 
             count_mat[:, :, y1:y2, x1:x2] += 1
