@@ -30,6 +30,10 @@ from super_gradients.training.losses.stdc_loss import STDCLoss
 from super_gradients.training.models.detection_models.yolo_base import YoloXPostPredictionCallback
 from super_gradients.training import models
 import super_gradients
+from super_gradients.training.utils.callbacks.callbacks import SlidingWindowValidationCallback
+import torch
+
+torch.cuda.set_device(2)
 
 
 class PretrainedModelsTest(unittest.TestCase):
@@ -162,12 +166,24 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_segmentation_subclass_pretrained_mious = {"shelfnet34_lw": 0.651}
         self.coco_segmentation_dataset = coco_segmentation_val()
 
-        self.cityscapes_pretrained_models = [Models.DDRNET_23, Models.DDRNET_23_SLIM, Models.STDC1_SEG50, Models.REGSEG48]
+        self.cityscapes_pretrained_models = [
+            Models.DDRNET_23,
+            Models.DDRNET_23_SLIM,
+            Models.STDC1_SEG50,
+            Models.REGSEG48,
+            Models.SEGFORMER_B0,
+            Models.SEGFORMER_B1,
+            Models.SEGFORMER_B2,
+            Models.SEGFORMER_B3,
+            Models.SEGFORMER_B4,
+            Models.SEGFORMER_B5,
+        ]
         self.cityscapes_pretrained_arch_params = {
             Models.DDRNET_23: {"use_aux_heads": True},
             Models.REGSEG48: {},
             "stdc": {"use_aux_heads": True},
             "pplite_seg": {"use_aux_heads": True},
+            "segformer": {"num_classes": 19},
         }
 
         self.cityscapes_pretrained_ckpt_params = {"pretrained_weights": "cityscapes"}
@@ -184,6 +200,12 @@ class PretrainedModelsTest(unittest.TestCase):
             Models.PP_LITE_T_SEG75: 0.7756,
             Models.PP_LITE_B_SEG50: 0.7648,
             Models.PP_LITE_B_SEG75: 0.7852,
+            Models.SEGFORMER_B0: 0.7614,
+            Models.SEGFORMER_B1: 0.778,
+            Models.SEGFORMER_B2: 0.8143,
+            Models.SEGFORMER_B3: 0.8224,
+            Models.SEGFORMER_B4: 0.8239,
+            Models.SEGFORMER_B5: 0.8233,
         }
 
         self.cityscapes_dataset = cityscapes_val()
@@ -238,6 +260,78 @@ class PretrainedModelsTest(unittest.TestCase):
             "metric_to_watch": "IoU",
             "greater_metric_to_watch_is_better": True,
         }
+
+    def test_pretrained_segformer_b0_cityscapes(self):
+        trainer = Trainer("cityscapes_pretrained_segformer_b0")
+        model = models.get(Models.SEGFORMER_B0, arch_params=self.cityscapes_pretrained_arch_params["segformer"], **self.cityscapes_pretrained_ckpt_params)
+        res = trainer.test(
+            model=model,
+            test_loader=self.cityscapes_dataset,
+            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+            metrics_progress_verbose=True,
+            test_phase_callbacks=[SlidingWindowValidationCallback(transforms_for_sliding_window=[])],
+        )
+        self.assertAlmostEqual(res["IoU"], self.cityscapes_pretrained_mious[Models.SEGFORMER_B0], delta=0.001)
+
+    def test_pretrained_segformer_b1_cityscapes(self):
+        trainer = Trainer("cityscapes_pretrained_segformer_b1")
+        model = models.get(Models.SEGFORMER_B1, arch_params=self.cityscapes_pretrained_arch_params["segformer"], **self.cityscapes_pretrained_ckpt_params)
+        res = trainer.test(
+            model=model,
+            test_loader=self.cityscapes_dataset,
+            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+            metrics_progress_verbose=True,
+            test_phase_callbacks=[SlidingWindowValidationCallback(transforms_for_sliding_window=[])],
+        )
+        self.assertAlmostEqual(res["IoU"], self.cityscapes_pretrained_mious[Models.SEGFORMER_B1], delta=0.001)
+
+    def test_pretrained_segformer_b2_cityscapes(self):
+        trainer = Trainer("cityscapes_pretrained_segformer_b2")
+        model = models.get(Models.SEGFORMER_B2, arch_params=self.cityscapes_pretrained_arch_params["segformer"], **self.cityscapes_pretrained_ckpt_params)
+        res = trainer.test(
+            model=model,
+            test_loader=self.cityscapes_dataset,
+            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+            metrics_progress_verbose=True,
+            test_phase_callbacks=[SlidingWindowValidationCallback(transforms_for_sliding_window=[])],
+        )
+        self.assertAlmostEqual(res["IoU"], self.cityscapes_pretrained_mious[Models.SEGFORMER_B2], delta=0.001)
+
+    def test_pretrained_segformer_b3_cityscapes(self):
+        trainer = Trainer("cityscapes_pretrained_segformer_b3")
+        model = models.get(Models.SEGFORMER_B3, arch_params=self.cityscapes_pretrained_arch_params["segformer"], **self.cityscapes_pretrained_ckpt_params)
+        res = trainer.test(
+            model=model,
+            test_loader=self.cityscapes_dataset,
+            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+            metrics_progress_verbose=True,
+            test_phase_callbacks=[SlidingWindowValidationCallback(transforms_for_sliding_window=[])],
+        )
+        self.assertAlmostEqual(res["IoU"], self.cityscapes_pretrained_mious[Models.SEGFORMER_B3], delta=0.001)
+
+    def test_pretrained_segformer_b4_cityscapes(self):
+        trainer = Trainer("cityscapes_pretrained_segformer_b4")
+        model = models.get(Models.SEGFORMER_B4, arch_params=self.cityscapes_pretrained_arch_params["segformer"], **self.cityscapes_pretrained_ckpt_params)
+        res = trainer.test(
+            model=model,
+            test_loader=self.cityscapes_dataset,
+            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+            metrics_progress_verbose=True,
+            test_phase_callbacks=[SlidingWindowValidationCallback(transforms_for_sliding_window=[])],
+        )
+        self.assertAlmostEqual(res["IoU"], self.cityscapes_pretrained_mious[Models.SEGFORMER_B4], delta=0.001)
+
+    def test_pretrained_segformer_b5_cityscapes(self):
+        trainer = Trainer("cityscapes_pretrained_segformer_b5")
+        model = models.get(Models.SEGFORMER_B5, arch_params=self.cityscapes_pretrained_arch_params["segformer"], **self.cityscapes_pretrained_ckpt_params)
+        res = trainer.test(
+            model=model,
+            test_loader=self.cityscapes_dataset,
+            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+            metrics_progress_verbose=True,
+            test_phase_callbacks=[SlidingWindowValidationCallback(transforms_for_sliding_window=[])],
+        )
+        self.assertAlmostEqual(res["IoU"], self.cityscapes_pretrained_mious[Models.SEGFORMER_B5], delta=0.001)
 
     def test_pretrained_resnet50_imagenet(self):
         trainer = Trainer("imagenet_pretrained_resnet50")

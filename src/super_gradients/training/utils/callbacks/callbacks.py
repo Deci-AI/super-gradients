@@ -872,6 +872,7 @@ class SlidingWindowValidationCallback(Callback):
     def __init__(self, transforms_for_sliding_window) -> None:
         self.transforms_for_sliding_window = transforms_for_sliding_window
         self.valid_loader_transforms = []
+        self.test_loader_transforms = []
 
     def on_validation_loader_start(self, context: PhaseContext) -> None:
         if context.training_params.max_epochs - 1 == context.epoch:
@@ -895,6 +896,17 @@ class SlidingWindowValidationCallback(Callback):
             unwrap_model(context.net).disable_sliding_window_validation()
             context.valid_loader.dataset.transforms.transforms = self.valid_loader_transforms
             iter(context.valid_loader)
+
+    def on_test_loader_start(self, context: PhaseContext) -> None:
+        unwrap_model(context.net).enable_sliding_window_validation()
+        self.test_loader_transforms = context.test_loader.dataset.transforms.transforms
+        context.test_loader.dataset.transforms.transforms = self.transforms_for_sliding_window
+        iter(context.test_loader)
+
+    def on_test_loader_end(self, context: PhaseContext) -> None:
+        unwrap_model(context.net).disable_sliding_window_validation()
+        context.test_loader.dataset.transforms.transforms = self.test_loader_transforms
+        iter(context.test_loader)
 
 
 def create_lr_scheduler_callback(

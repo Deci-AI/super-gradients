@@ -1919,6 +1919,9 @@ class Trainer:
         )
         if test_metrics_list:
             context.update_context(test_metrics=self.test_metrics)
+        if test_phase_callbacks:
+            context.update_context(net=self.net)
+            context.update_context(test_loader=test_loader)
 
         self.phase_callback_handler.on_test_loader_start(context)
         test_results = self.evaluate(

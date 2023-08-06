@@ -47,6 +47,7 @@ class PhaseContext:
         sg_logger=None,
         train_loader=None,
         valid_loader=None,
+        test_loader=None,
         training_params=None,
         ddp_silent_mode=None,
         checkpoint_params=None,
@@ -77,6 +78,7 @@ class PhaseContext:
         self.sg_logger = sg_logger
         self.train_loader = train_loader
         self.valid_loader = valid_loader
+        self.test_loader = test_loader
         self.training_params = training_params
         self.ddp_silent_mode = ddp_silent_mode
         self.checkpoint_params = checkpoint_params
