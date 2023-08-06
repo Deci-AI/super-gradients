@@ -7,7 +7,7 @@ https://github.com/kuangliu/pytorch-cifar/blob/master/models/shufflenet.py
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models import BaseClassifier
 
 
 class ShuffleBlock(nn.Module):
@@ -51,7 +51,7 @@ class Bottleneck(nn.Module):
         return out
 
 
-class ShuffleNet(SgModule):
+class ShuffleNet(BaseClassifier):
     def __init__(self, cfg):
         super(ShuffleNet, self).__init__()
         out_planes = cfg["out_planes"]

@@ -7,7 +7,7 @@ Code adapted from https://github.com/fastai/imagenet-fast/blob/master/cifar10/mo
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models import BaseClassifier
 
 
 class BasicBlock(nn.Module):
@@ -74,7 +74,7 @@ class PreActBlock(nn.Module):
         return out
 
 
-class SENet(SgModule):
+class SENet(BaseClassifier):
     def __init__(self, block, num_blocks, num_classes=10):
         super(SENet, self).__init__()
         self.in_planes = 64
