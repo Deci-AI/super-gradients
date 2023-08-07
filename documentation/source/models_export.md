@@ -246,7 +246,6 @@ pred_classes, pred_classes.shape
 For sake of this tutorial we will use a simple visualization function that is tailored for batch_size=1 only.
 You can use it as a starting point for your own visualization code.
 
-
 ```python
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.utils.detection_utils import DetectionVisualization
@@ -267,8 +266,9 @@ def show_predictions_from_batch_format(image, predictions):
     class_names = COCO_DETECTION_CLASSES_LIST
     color_mapping = DetectionVisualization._generate_color_mapping(len(class_names))
 
-    for (x1, y1, x2, y2, class_score, class_index) in zip(pred_boxes[:, 0], pred_boxes[:, 1], pred_boxes[:, 2], pred_boxes[:, 3], pred_scores, pred_classes):
-        image = DetectionVisualization._draw_box_title(
+    for (x1, y1, x2, y2, class_score, class_index) in zip(pred_boxes[:, 0], pred_boxes[:, 1], pred_boxes[:, 2],
+                                                          pred_boxes[:, 3], pred_scores, pred_classes):
+        image = DetectionVisualization.draw_box_title(
             image_np=image,
             x1=int(x1),
             y1=int(y1),
@@ -371,9 +371,6 @@ result[0].shape
 
     (25, 7)
 
-
-
-
 ```python
 def show_predictions_from_flat_format(image, predictions):
     [flat_predictions] = predictions
@@ -384,18 +381,18 @@ def show_predictions_from_flat_format(image, predictions):
 
     for (sample_index, x1, y1, x2, y2, class_score, class_index) in flat_predictions[flat_predictions[:, 0] == 0]:
         class_index = int(class_index)
-        image = DetectionVisualization._draw_box_title(
-                    image_np=image,
-                    x1=int(x1),
-                    y1=int(y1),
-                    x2=int(x2),
-                    y2=int(y2),
-                    class_id=class_index,
-                    class_names=class_names,
-                    color_mapping=color_mapping,
-                    box_thickness=2,
-                    pred_conf=class_score,
-                )
+        image = DetectionVisualization.draw_box_title(
+            image_np=image,
+            x1=int(x1),
+            y1=int(y1),
+            x2=int(x2),
+            y2=int(y2),
+            class_id=class_index,
+            class_names=class_names,
+            color_mapping=color_mapping,
+            box_thickness=2,
+            pred_conf=class_score,
+        )
 
     plt.figure(figsize=(8, 8))
     plt.imshow(image)

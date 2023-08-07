@@ -433,7 +433,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 class_score = flat_predictions[i, 5]
                 class_label = int(flat_predictions[i, 6])
 
-                image_8u = DetectionVisualization._draw_box_title(
+                image_8u = DetectionVisualization.draw_box_title(
                     image_np=image_8u,
                     x1=int(x1),
                     y1=int(y1),
@@ -452,7 +452,7 @@ class TestDetectionModelExport(unittest.TestCase):
                 class_score = pred_scores[0, pred_index]
                 class_label = pred_classes[0, pred_index]
 
-                image_8u = DetectionVisualization._draw_box_title(
+                image_8u = DetectionVisualization.draw_box_title(
                     image_np=image_8u,
                     x1=int(x1),
                     y1=int(y1),

@@ -387,7 +387,7 @@ class DetectionVisualization:
         return generate_color_mapping(num_classes=num_classes)
 
     @staticmethod
-    def _draw_box_title(
+    def draw_box_title(
         color_mapping: List[Tuple[int]],
         class_names: List[str],
         box_thickness: int,
@@ -400,6 +400,21 @@ class DetectionVisualization:
         pred_conf: float = None,
         is_target: bool = False,
     ):
+        """
+        Draw a rectangle with class name, confidence on the image
+        :param color_mapping: A list of N RGB colors for each class
+        :param class_names: A list of N class names
+        :param box_thickness: Thickness of the bounding box (in pixels)
+        :param image_np: Image in RGB format (H, W, C) where to draw the bounding box
+        :param x1: X coordinate of the top left corner of the bounding box
+        :param y1: Y coordinate of the top left corner of the bounding box
+        :param x2: X coordinate of the bottom right corner of the bounding box
+        :param y2: Y coordinate of the bottom right corner of the bounding box
+        :param class_id: A corresponding class id
+        :param pred_conf: Class confidence score (optional)
+        :param is_target: Indicate if the bounding box is a ground-truth box or not
+
+        """
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
@@ -429,14 +444,14 @@ class DetectionVisualization:
         # Draw predictions
         pred_boxes[:, :4] *= image_scale
         for box in pred_boxes:
-            image_np = DetectionVisualization._draw_box_title(
+            image_np = DetectionVisualization.draw_box_title(
                 color_mapping, class_names, box_thickness, image_np, *box[:4].astype(int), class_id=int(box[5]), pred_conf=box[4]
             )
 
         # Draw ground truths
         target_boxes_image = np.zeros_like(image_np, np.uint8)
         for box in target_boxes:
-            target_boxes_image = DetectionVisualization._draw_box_title(
+            target_boxes_image = DetectionVisualization.draw_box_title(
                 color_mapping, class_names, box_thickness, target_boxes_image, *box[2:], class_id=box[1], is_target=True
             )
 
