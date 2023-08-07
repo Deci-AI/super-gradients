@@ -180,8 +180,7 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             python3 -m pip install pip==23.1.2
-            python3 -m pip install -r requirements.txt --progress-bar off
-            # cat requirements.txt | cut -f1 -d"#" | xargs -n 1 -L 1 pip install --progress-bar off
+            python3 -m pip install -r requirements.txt
       - run:
           name: edit package version
           command: |
@@ -190,7 +189,6 @@ jobs:
       - run:
           name: setup custom environment variables
           command: |
-            # echo 'export PYTHONPATH=/home/circleci/super_gradients' >> $BASH_ENV
             echo 'export UPLOAD_LOGS=FALSE' >> $BASH_ENV
       - run:
           name: install package
