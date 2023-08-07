@@ -34,6 +34,13 @@ class BoundingBoxesTensorSliceItem(TensorSliceItem):
         return f"name={self.name} length={self.length} format={self.format}"
 
 
+class LabelTensorSliceItem(TensorSliceItem):
+    NAME = "labels"
+
+    def __init__(self):
+        super().__init__(name=self.NAME, length=1)
+
+
 class ConcatenatedTensorFormat(DetectionOutputFormat):
     """
     Define the output format that return a single tensor of shape [N,M] (N - number of detections,
