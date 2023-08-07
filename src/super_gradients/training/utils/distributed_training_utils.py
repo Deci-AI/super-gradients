@@ -4,10 +4,12 @@ import itertools
 from typing import List, Tuple
 from contextlib import contextmanager
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch import distributed as dist
 from torch.cuda.amp import autocast
+from torch.distributed import get_rank, all_gather_object
 from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
@@ -412,3 +414,35 @@ class DDPNotSetupException(Exception):
             ">>> setup_device(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=...)"
         )
         super().__init__(self.message)
+
+
+def maybe_all_reduce_tensor_average(tensor: torch.Tensor) -> torch.Tensor:
+    """
+    When in DDP- mean-reduces tensor from all devices.
+    When not in DDP - returns the input tensor.
+
+    :param tensor:tensor to (maybe) reduce
+    :return:
+    """
+    if is_distributed():
+        tensor = distributed_all_reduce_tensor_average(tensor=tensor, n=torch.distributed.get_world_size())
+    return tensor
+
+
+def maybe_all_gather_np_images(image: np.ndarray) -> np.ndarray:
+    """
+    When in DDP- gathers images (as np.ndarray objects) from all processes.
+     Returns the concatenated np.array across dim=0.
+    When not in DDP - returns the input tensor.
+
+    :param image: np.ndarray, the local rank's tensor to gather
+
+    :return: np.ndarray, the output image as described above
+    """
+    if is_distributed():
+        rank = get_rank()
+        output_container = [None for _ in range(get_world_size())]
+        all_gather_object(output_container, image)
+        if rank == 0:
+            image = np.concatenate(output_container, 0)
+    return image
