@@ -68,7 +68,9 @@ def get_requirements(use_pro_requirements: bool) -> Optional[List[str]]:
     with open(pro_requirements_path, "r") as f:
         pro_requirements = f.read().splitlines()
 
-    return requirements + pro_requirements if use_pro_requirements else requirements
+    lines = requirements + pro_requirements if use_pro_requirements else requirements
+    lines = [line for line in lines if not line.startswith("--extra-index-url")]  # Remove index-url lines
+    return lines
 
 
 def check_packages():
