@@ -13,7 +13,7 @@ from collections import OrderedDict
 
 import torch.nn as nn
 import torch.nn.functional as F
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models import BaseClassifier
 
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import register_model
@@ -83,7 +83,7 @@ class Bottleneck(nn.Module):
         return out
 
 
-class CifarResNet(SgModule):
+class CifarResNet(BaseClassifier):
     def __init__(self, block, num_blocks, num_classes=10, width_mult=1, expansion=1):
         super(CifarResNet, self).__init__()
         self.expansion = expansion
@@ -126,7 +126,7 @@ class CifarResNet(SgModule):
         return out
 
 
-class ResNet(SgModule):
+class ResNet(BaseClassifier):
     def __init__(
         self,
         block,
