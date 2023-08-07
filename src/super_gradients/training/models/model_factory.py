@@ -103,7 +103,10 @@ def instantiate_model(
     :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
     :param num_classes:         Number of classes (defines the net's structure).
                                     If None is given, will try to derrive from pretrained_weight's corresponding dataset.
-    :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent")
+    :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent").
+                                Add `platform/` prefix if the weights are stored in the platform -
+                                Please note that in this case, `num_classes` is expected to be the checkpoints number of classes, and not the number of class
+                                that you want to use - you will need to replace the head afterward if you want to work with a different number of classes.
     :param download_required_code: if model is not found in SG and is downloaded from a remote client, overriding this parameter with False
                                 will prevent additional code from being downloaded. This affects only models from remote client.
 
