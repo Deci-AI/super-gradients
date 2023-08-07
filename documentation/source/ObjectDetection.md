@@ -19,7 +19,8 @@ In SuperGradients, we aim to collect such models and make them very convenient a
 
 ## Understanding model's predictions
 
-This section covers what is the output of each model class in train, eval and tracing modes.
+This section covers what is the output of each model class in train, eval and tracing modes. A tracing mode is enabled
+when exporting model to ONNX or when using `torch.jit.trace()` call
 Corresponding loss functions and post-prediction callbacks from the table above are written to match the output format of the models.
 That being said, if you're using YoloX model, you should use YoloX loss and post-prediction callback for YoloX model. 
 Mixing them with other models will result in an error.
@@ -44,7 +45,7 @@ Box regression in these outputs are NOT in pixel coordinates.
 X and Y coordinates are normalized coordinates.
 Width and height values are the power factor for the base of `e`
 
-`raw_predictions_0, raw_predictions_1, raw_predictions_2 = yolo_x_model(images)`
+`output_feature_map_at_index_0, output_feature_map_at_index_1, output_feature_map_at_index_2 = yolo_x_model(images)`
 
 In this mode, predictions decoding is not performed.
 
