@@ -406,7 +406,7 @@ They correspond to output feature maps of the prediction heads:
 
 Value `C` corresponds to the number of classes in the dataset. 
 And remaining `5`elements are box coordinates and objectness score.
-Layout of elements in the last dimension is as follows: `[x, y, w, h, obj_score, class_scores...]`
+Layout of elements in the last dimension is as follows: `[cx, cy, w, h, obj_score, class_scores...]`
 Box regression in these outputs are NOT in pixel coordinates.
 X and Y coordinates are normalized coordinates.
 Width and height values are the power factor for the base of `e`
@@ -423,8 +423,8 @@ In eval mode, YoloX returns a tuple of decoded predictions and raw intermediates
 
 `predictions` is a single tensor of shape `[B, num_predictions, C + 5]` where `num_predictions` is the total number of predictions across all 3 output feature maps.
 
-The layout of the last dimension is the same as in training mode: `[x, y, w, h, obj_score, class_scores...]`.
-Values of `x`, `y`, `w`, `h` are in absolute pixel coordinates and confidence scores are in range `[0, 1]`.
+The layout of the last dimension is the same as in training mode: `[cx, cy, w, h, obj_score, class_scores...]`.
+Values of `cx`, `cy`, `w`, `h` are in absolute pixel coordinates and confidence scores are in range `[0, 1]`.
 
 #### Tracing mode
 
