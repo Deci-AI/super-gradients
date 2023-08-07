@@ -1,7 +1,12 @@
 # This tutorial shows how to export SG models to ONNX format for deployment to ONNX-compatible runtimes and accelerators.
 
 
+From this tutorial you will learn:
 
+* How to export Object Detection model to ONNX and it with ONNXRuntime / TensorRT
+* How to enable FP16 / INT8 quantization and export a model with calibration
+* How to customize NMS parameters and number of detections per image
+* How to choose whether to use TensorRT or ONNXRuntime as a backend
 
 ## New Export API
 
@@ -37,6 +42,14 @@ model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
 
 export_result = model.export("yolo_nas_s.onnx")
 ```
+
+A lot of work just happened under the hood:
+
+* A model was exported to ONNX format using default batch size of 1 and input image shape that was used during training
+* A preprocessing and postprocessing steps were attached to ONNX graph
+* For pre-processing step, the normalization parameters were extracted from the model itself (to be consistent with the image normalization and channel order used during training)
+* For post-processing step, the NMS parameters were also extracted from the model and NMS module was attached to the graph
+* ONNX graph was checked and simplified to improve compatibility with ONNX runtimes.
 
 A returned value of `export()` method is an instance of `ModelExportResult` class. 
 First of all it serves the purpose of storing all the information about the exported model in a single place. 
@@ -90,15 +103,8 @@ export_result
 
 
 
-A lot of work just happened under the hood:
-
-* A model was exported to ONNX format using default batch size of 1 and input image shape that was used during training
-* A preprocessing and postprocessing steps were attached to ONNX graph
-* For pre-processing step, the normalization parameters were extracted from the model itself (to be consistent with the image normalization and channel order used during training)
-* For post-processing step, the NMS parameters were also extracted from the model and NMS module was attached to the graph
-* ONNX graph was checked and simlified to improve compatibility with ONNX runtimes.
-
 That's it. You can now use the exported model with any ONNX-compatible runtime or accelerator.
+
 
 
 ```python
@@ -289,7 +295,7 @@ show_predictions_from_batch_format(image, result)
 
 
     
-![png](models_export_files/models_export_17_0.png)
+![png](models_export_files/models_export_18_0.png)
     
 
 
@@ -405,7 +411,7 @@ show_predictions_from_flat_format(image, result)
 
 
     
-![png](models_export_files/models_export_23_0.png)
+![png](models_export_files/models_export_24_0.png)
     
 
 
@@ -441,7 +447,7 @@ show_predictions_from_flat_format(image, result)
 
 
     
-![png](models_export_files/models_export_25_0.png)
+![png](models_export_files/models_export_26_0.png)
     
 
 
@@ -475,7 +481,7 @@ show_predictions_from_flat_format(image, result)
 
 
     
-![png](models_export_files/models_export_27_0.png)
+![png](models_export_files/models_export_28_0.png)
     
 
 
@@ -516,12 +522,12 @@ result = session.run(outputs, {inputs[0]: image_bchw})
 show_predictions_from_flat_format(image, result)
 ```
 
-     25%|████████████████████████████████████████████████████████▎                                                                                                                                                                        | 4/16 [00:12<00:37,  3.15s/it]
+     25%|████████████████████████████████████████████████████████▎                                                                                                                                                                        | 4/16 [00:12<00:36,  3.08s/it]
     
 
 
     
-![png](models_export_files/models_export_29_1.png)
+![png](models_export_files/models_export_30_1.png)
     
 
 
@@ -562,6 +568,8 @@ model.export(..., engine=ExportTargetBackend.TENSORRT)
 
 ## Legacy low-level export API
 
+The .export() API is a new high-level API that is recommended for most use-cases.
+However old low-level API is still available for advanced users:
 
-https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.conversion.convert_to_onnx
-https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.conversion.convert_to_coreml
+* https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.conversion.convert_to_onnx
+* https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.conversion.convert_to_coreml
