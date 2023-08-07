@@ -39,7 +39,7 @@ class DetectionTargetsFormat(Enum):
     NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
 
 
-def get_cls_posx_in_target(target_format: DetectionTargetsFormat) -> int:
+def get_class_index_in_target(target_format: DetectionTargetsFormat) -> int:
     """Get the label of a given target
     :param target_format:   Representation of the target (ex: LABEL_XYXY)
     :return:                Position of the class id in a bbox
@@ -501,7 +501,7 @@ class DetectionVisualization:
         :param image_tensor:            rgb images, (B, H, W, 3)
         :param pred_boxes:              boxes after NMS for each image in a batch, each (Num_boxes, 6),
                                         values on dim 1 are: x1, y1, x2, y2, confidence, class
-        :param target_boxes:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, x y w h
+        :param target_boxes:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, cx cy w h
                                         (coordinates scaled to [0, 1])
         :param batch_name:              id of the current batch to use for image naming
 
@@ -518,6 +518,8 @@ class DetectionVisualization:
         """
         image_np = undo_preprocessing_func(image_tensor.detach())
         targets = DetectionVisualization._scaled_ccwh_to_xyxy(target_boxes.detach().cpu().numpy(), *image_np.shape[1:3], image_scale)
+        if pred_boxes is None:
+            pred_boxes = [None for _ in range(image_np.shape[0])]
 
         out_images = []
         for i in range(image_np.shape[0]):

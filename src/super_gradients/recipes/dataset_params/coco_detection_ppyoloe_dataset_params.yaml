@@ -5,6 +5,8 @@ train_dataset_params:
   input_dim: # None, do not resize dataset on load
   cache_dir:
   cache: False
+  cache_annotations: True
+  ignore_empty_annotations: True
   transforms:
     - DetectionRandomAffine:
         degrees: 0                    # rotation degrees, randomly sampled from [-degrees, degrees]
@@ -70,6 +72,8 @@ val_dataset_params:
   input_dim:
   cache_dir:
   cache: False
+  cache_annotations: True
+  ignore_empty_annotations: True
   transforms:
     - DetectionRescale:
         output_shape: [640, 640]
