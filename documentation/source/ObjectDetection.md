@@ -17,151 +17,6 @@ In SuperGradients, we aim to collect such models and make them very convenient a
 | [PPYolo](https://arxiv.org/abs/2007.12099)   | [ppyoloe_arch_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/arch_params/ppyoloe_arch_params.yaml)                           | [PPYoloE](https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.detection_models.pp_yolo_e.pp_yolo_e.PPYoloE)  | [PPYoloELoss](https://docs.deci.ai/super-gradients/docstring/training/losses.html#training.losses.ppyolo_loss.PPYoloELoss)                      | [PPYoloEPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.detection_models.pp_yolo_e.post_prediction_callback.PPYoloEPostPredictionCallback) |
 | YoloNAS                                      | [yolo_nas_s_arch_params](https://github.com/Deci-AI/super-gradients/blob/e1db4d99492a25f8e65b5d3e17a6ff2672c5467b/src/super_gradients/recipes/arch_params/yolo_nas_s_arch_params.yaml) | [Yolo NAS S](https://github.com/Deci-AI/super-gradients/blob/e1db4d99492a25f8e65b5d3e17a6ff2672c5467b/src/super_gradients/training/models/detection_models/yolo_nas/yolo_nas_variants.py#L16) | [PPYoloELoss](https://docs.deci.ai/super-gradients/docstring/training/losses.html#training.losses.ppyolo_loss.PPYoloELoss)                      | [PPYoloEPostPredictionCallback](https://docs.deci.ai/super-gradients/docstring/training/models.html#training.models.detection_models.pp_yolo_e.post_prediction_callback.PPYoloEPostPredictionCallback) |
 
-## Understanding model's predictions
-
-This section covers what is the output of each model class in train, eval and tracing modes. A tracing mode is enabled
-when exporting model to ONNX or when using `torch.jit.trace()` call
-Corresponding loss functions and post-prediction callbacks from the table above are written to match the output format of the models.
-That being said, if you're using YoloX model, you should use YoloX loss and post-prediction callback for YoloX model. 
-Mixing them with other models will result in an error.
-
-It is important to understand the output of the model class in order to use it correctly in the training process and especially
-if you are going to use the model's prediction in a custom callback or loss.
-
-
-### YoloX
-#### Training mode
-
-In training mode, YoloX returns a list of 3 tensors that contains the intermediates required for the loss calculation.
-They correspond to output feature maps of the prediction heads:
-- Output feature map at index 0: `[B, 1, H/8, W/8, C + 5]`
-- Output feature map at index 1: `[B, 1, H/16, W/16, C + 5]`
-- Output feature map at index 2: `[B, 1, H/32, W/32, C + 5]`
-
-Value `C` corresponds to the number of classes in the dataset. 
-And remaining `5`elements are box coordinates and objectness score.
-Layout of elements in the last dimension is as follows: `[x, y, w, h, obj_score, class_scores...]`
-Box regression in these outputs are NOT in pixel coordinates.
-X and Y coordinates are normalized coordinates.
-Width and height values are the power factor for the base of `e`
-
-`output_feature_map_at_index_0, output_feature_map_at_index_1, output_feature_map_at_index_2 = yolo_x_model(images)`
-
-In this mode, predictions decoding is not performed.
-
-#### Eval mode
-
-In eval mode, YoloX returns a tuple of decoded predictions and raw intermediates.
-
-`predictions, (raw_predictions_0, raw_predictions_1, raw_predictions_2) = yolo_x_model(images)`
-
-`predictions` is a single tensor of shape `[B, num_predictions, C + 5]` where `num_predictions` is the total number of predictions across all 3 output feature maps.
-
-The layout of the last dimension is the same as in training mode: `[x, y, w, h, obj_score, class_scores...]`.
-Values of `x`, `y`, `w`, `h` are in absolute pixel coordinates and confidence scores are in range `[0, 1]`.
-
-#### Tracing mode
-
-Same as in Eval mode.
-
-
-### PPYolo-E
-#### Training mode
-
-In training mode, PPYoloE returns a tuple of 6 tensors that contains the intermediates required for the loss calculation.
-You can access individual components of the model's output using the following snippet:
-
-`cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor = yolo_nas_model(images)`
-
-They are as follows:
-  * `cls_score_list` - `[B, num_anchors, num_classes]`
-  * `reg_distri_list` - `[B, num_anchors, num_regression_dims]`
-  * `anchors` - `[num_anchors, 4]`
-  * `anchor_points` - `[num_anchors, 2]`
-  * `num_anchors_list` - `[num_anchors]`
-  * `stride_tensor` - `[num_anchors]`
-
-In this mode, predictions decoding is not performed.
-
-#### Eval mode
-
-In eval mode, Yolo-NAS returns a tuple of 2 tensors that contains the decoded predictions and the intermediates as in train mode:
-
-`(pred_bboxes, pred_scores), (cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor) = yolo_nas_model(images)`
-
-New outputs `pred_bboxes` and `pred_scores` are decoded predictions of the model. They are as follows:
-
-  * `pred_bboxes` - `[B, num_anchors, 4]` - decoded bounding boxes in the format `[x1, y1, x2, y2]` in absolute (pixel) coordinates
-  * `pred_scores` - `[B, num_anchors, num_classes]` - class scores `(0..1)` for each bounding box
-
-Please note that box predictions are not clipped and may extend beyond the image boundaries.
-Additionally, the NMS is not performed yet at this stage. This is where the post-prediction callback comes into play.
-
-#### Tracing mode
-
-In tracing mode, Yolo-NAS returns only decoded predictions:
-
-`pred_bboxes, pred_scores = yolo_nas_model(images)`
-
-### Yolo NAS
-#### Training mode
-
-In training mode, Yolo-NAS returns a tuple of 6 tensors that contains the intermediates required for the loss calculation.
-You can access individual components of the model's output using the following snippet:
-
-`cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor = yolo_nas_model(images)`
-
-They are as follows:
-  * `cls_score_list` - `[B, num_anchors, num_classes]`
-  * `reg_distri_list` - `[B, num_anchors, num_regression_dims]`
-  * `anchors` - `[num_anchors, 4]`
-  * `anchor_points` - `[num_anchors, 2]`
-  * `num_anchors_list` - `[num_anchors]`
-  * `stride_tensor` - `[num_anchors]`
-
-In this mode, predictions decoding is not performed.
-
-
-#### Eval mode
-
-In eval mode, Yolo-NAS returns a tuple of 2 tensors that contains the decoded predictions and the intermediates as in train mode:
-
-`(pred_bboxes, pred_scores), (cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor) = yolo_nas_model(images)`
-
-New outputs `pred_bboxes` and `pred_scores` are decoded predictions of the model. They are as follows:
-
-  * `pred_bboxes` - `[B, num_anchors, 4]` - decoded bounding boxes in the format `[x1, y1, x2, y2]` in absolute (pixel) coordinates
-  * `pred_scores` - `[B, num_anchors, num_classes]` - class scores `(0..1)` for each bounding box
-
-Please note that box predictions are not clipped and may extend beyond the image boundaries.
-Additionally, the NMS is not performed yet at this stage. This is where the post-prediction callback comes into play.
-
-#### Tracing mode
-
-In tracing mode, Yolo-NAS returns only decoded predictions:
-
-`pred_bboxes, pred_scores = yolo_nas_model(images)`
-
-## Training
-
-The easiest way to start training any mode in SuperGradients is to use a pre-defined recipe. In this tutorial, we will see how to train `YOLOX-S` model, other models can be trained by analogy.
-
-### Prerequisites
-
-1. You have to install SuperGradients first. Please refer to the [Installation](installation.md) section for more details.
-2. Prepare the COCO dataset as described in the [Computer Vision Datasets Setup](https://docs.deci.ai/super-gradients/src/super_gradients/training/datasets/Dataset_Setup_Instructions/) under Detection Datasets section. 
-
-After you meet the prerequisites, you can start training the model by running from the root of the repository:
-
-### Training from recipe
-
-```bash
-python -m super_gradients.train_from_recipe --config-name=coco2017_yolox multi_gpu=Off num_gpus=1
-```
-
-Note, the default configuration for this recipe is to use 8 GPUs in DDP mode. This hardware configuration may not be for everyone, so in the example above we override GPU settings to use a single GPU.
-It is highly recommended to read through the recipe file [coco2017_yolox](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_yolox.yaml) to get better understanding of the hyperparameters we use here.
-If you're unfamiliar with config files, we recommend you to read the [Configuration Files](configuration_files.md) part first.
 
 ### Datasets
 
@@ -527,6 +382,155 @@ num_classes: 3
 ```
 
 And you should be good to go!
+
+## Understanding model's predictions
+
+This section covers what is the output of each model class in train, eval and tracing modes. A tracing mode is enabled
+when exporting model to ONNX or when using `torch.jit.trace()` call
+Corresponding loss functions and post-prediction callbacks from the table above are written to match the output format of the models.
+That being said, if you're using YoloX model, you should use YoloX loss and post-prediction callback for YoloX model. 
+Mixing them with other models will result in an error.
+
+It is important to understand the output of the model class in order to use it correctly in the training process and especially
+if you are going to use the model's prediction in a custom callback or loss.
+
+
+### YoloX
+#### Training mode
+
+In training mode, YoloX returns a list of 3 tensors that contains the intermediates required for the loss calculation.
+They correspond to output feature maps of the prediction heads:
+- Output feature map at index 0: `[B, 1, H/8, W/8, C + 5]`
+- Output feature map at index 1: `[B, 1, H/16, W/16, C + 5]`
+- Output feature map at index 2: `[B, 1, H/32, W/32, C + 5]`
+
+Value `C` corresponds to the number of classes in the dataset. 
+And remaining `5`elements are box coordinates and objectness score.
+Layout of elements in the last dimension is as follows: `[x, y, w, h, obj_score, class_scores...]`
+Box regression in these outputs are NOT in pixel coordinates.
+X and Y coordinates are normalized coordinates.
+Width and height values are the power factor for the base of `e`
+
+`output_feature_map_at_index_0, output_feature_map_at_index_1, output_feature_map_at_index_2 = yolo_x_model(images)`
+
+In this mode, predictions decoding is not performed.
+
+#### Eval mode
+
+In eval mode, YoloX returns a tuple of decoded predictions and raw intermediates.
+
+`predictions, (raw_predictions_0, raw_predictions_1, raw_predictions_2) = yolo_x_model(images)`
+
+`predictions` is a single tensor of shape `[B, num_predictions, C + 5]` where `num_predictions` is the total number of predictions across all 3 output feature maps.
+
+The layout of the last dimension is the same as in training mode: `[x, y, w, h, obj_score, class_scores...]`.
+Values of `x`, `y`, `w`, `h` are in absolute pixel coordinates and confidence scores are in range `[0, 1]`.
+
+#### Tracing mode
+
+Same as in Eval mode.
+
+
+### PPYolo-E
+#### Training mode
+
+In training mode, PPYoloE returns a tuple of 6 tensors that contains the intermediates required for the loss calculation.
+You can access individual components of the model's output using the following snippet:
+
+`cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor = yolo_nas_model(images)`
+
+They are as follows:
+  * `cls_score_list` - `[B, num_anchors, num_classes]`
+  * `reg_distri_list` - `[B, num_anchors, num_regression_dims]`
+  * `anchors` - `[num_anchors, 4]`
+  * `anchor_points` - `[num_anchors, 2]`
+  * `num_anchors_list` - `[num_anchors]`
+  * `stride_tensor` - `[num_anchors]`
+
+In this mode, predictions decoding is not performed.
+
+#### Eval mode
+
+In eval mode, Yolo-NAS returns a tuple of 2 tensors: `decoded_predictions, raw_intermediates`. 
+A `decoded_predictions` itself is a tuple of 2 tensors with decoded bounding boxes and class scores.
+And `raw_intermediates` is a tuple of 6 tensors that contains the intermediates required for the loss calculation (Same as in training mode).
+
+`(pred_bboxes, pred_scores), (cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor) = yolo_nas_model(images)`
+
+New outputs `pred_bboxes` and `pred_scores` are decoded predictions of the model. They are as follows:
+
+  * `pred_bboxes` - `[B, num_anchors, 4]` - decoded bounding boxes in the format `[x1, y1, x2, y2]` in absolute (pixel) coordinates
+  * `pred_scores` - `[B, num_anchors, num_classes]` - class scores `(0..1)` for each bounding box
+
+Please note that box predictions are not clipped and may extend beyond the image boundaries.
+Additionally, the NMS is not performed yet at this stage. This is where the post-prediction callback comes into play.
+
+#### Tracing mode
+
+In tracing mode, Yolo-NAS returns only decoded predictions:
+
+`pred_bboxes, pred_scores = yolo_nas_model(images)`
+
+### Yolo NAS
+#### Training mode
+
+In training mode, Yolo-NAS returns a tuple of 6 tensors that contains the intermediates required for the loss calculation.
+You can access individual components of the model's output using the following snippet:
+
+`cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor = yolo_nas_model(images)`
+
+They are as follows:
+  * `cls_score_list` - `[B, num_anchors, num_classes]`
+  * `reg_distri_list` - `[B, num_anchors, num_regression_dims]`
+  * `anchors` - `[num_anchors, 4]`
+  * `anchor_points` - `[num_anchors, 2]`
+  * `num_anchors_list` - `[num_anchors]`
+  * `stride_tensor` - `[num_anchors]`
+
+In this mode, predictions decoding is not performed.
+
+
+#### Eval mode
+
+In eval mode, Yolo-NAS returns a tuple of 2 tensors that contains the decoded predictions and the intermediates as in train mode:
+
+`(pred_bboxes, pred_scores), (cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor) = yolo_nas_model(images)`
+
+New outputs `pred_bboxes` and `pred_scores` are decoded predictions of the model. They are as follows:
+
+  * `pred_bboxes` - `[B, num_anchors, 4]` - decoded bounding boxes in the format `[x1, y1, x2, y2]` in absolute (pixel) coordinates
+  * `pred_scores` - `[B, num_anchors, num_classes]` - class scores `(0..1)` for each bounding box
+
+Please note that box predictions are not clipped and may extend beyond the image boundaries.
+Additionally, the NMS is not performed yet at this stage. This is where the post-prediction callback comes into play.
+
+#### Tracing mode
+
+In tracing mode, Yolo-NAS returns only decoded predictions:
+
+`pred_bboxes, pred_scores = yolo_nas_model(images)`
+
+## Training
+
+The easiest way to start training any mode in SuperGradients is to use a pre-defined recipe. In this tutorial, we will see how to train `YOLOX-S` model, other models can be trained by analogy.
+
+### Prerequisites
+
+1. You have to install SuperGradients first. Please refer to the [Installation](installation.md) section for more details.
+2. Prepare the COCO dataset as described in the [Computer Vision Datasets Setup](https://docs.deci.ai/super-gradients/src/super_gradients/training/datasets/Dataset_Setup_Instructions/) under Detection Datasets section. 
+
+After you meet the prerequisites, you can start training the model by running from the root of the repository:
+
+### Training from recipe
+
+```bash
+python -m super_gradients.train_from_recipe --config-name=coco2017_yolox multi_gpu=Off num_gpus=1
+```
+
+Note, the default configuration for this recipe is to use 8 GPUs in DDP mode. This hardware configuration may not be for everyone, so in the example above we override GPU settings to use a single GPU.
+It is highly recommended to read through the recipe file [coco2017_yolox](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_yolox.yaml) to get better understanding of the hyperparameters we use here.
+If you're unfamiliar with config files, we recommend you to read the [Configuration Files](configuration_files.md) part first.
+
 
 ## How to add a new model
 
