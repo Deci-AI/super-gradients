@@ -65,6 +65,12 @@ from super_gradients.training.models.detection_models.yolo_base import YoloXPost
 post_prediction_callback = YoloXPostPredictionCallback(conf=0.001, iou=0.6)
 ```
 
+All post prediction callbacks returns a list of lists with decoded boxes after NMS: `List[torch.Tensor]`.
+The first list wraps all images in the batch, and each tensor holds all predictions for each image in the batch.
+The shape of predictions tensor is `[N, 6]` where N is the number of predictions for the image and each row is holds values of `[X1, Y1, X2, Y2, confidence, class_id]`.
+
+Box coordinates are in absolute (pixel) units.
+
 ### Visualization
 
 Visualization of the model predictions is a very important part of the training process for any computer vision task. 
