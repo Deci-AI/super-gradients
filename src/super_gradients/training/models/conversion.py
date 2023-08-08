@@ -228,6 +228,7 @@ def prepare_conversion_cfgs(cfg: DictConfig):
     # CREATE THE EXPERIMENT CFG
 
     # Load the latest experiment config
+    # TODO: check if we can load the cfg from run
     experiment_cfg = load_experiment_cfg(ckpt_root_dir=cfg.ckpt_root_dir, experiment_name=cfg.experiment_name)
 
     hydra.utils.instantiate(experiment_cfg)

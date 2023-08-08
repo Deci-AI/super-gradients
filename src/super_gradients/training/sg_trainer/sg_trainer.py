@@ -305,12 +305,14 @@ class Trainer:
         """
         logger.info("Resume training using the checkpoint recipe, ignoring the current recipe")
 
+        if run_id is None:
+            run_id = get_latest_run_id(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
+
         # Load the latest config
         cfg = load_experiment_cfg(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)
 
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
         if run_id:
-            validate_run_id(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)
             add_params_to_cfg(cfg, params=[f"training_hyperparams.run_id={run_id}"])
         return cls.train_from_config(cfg)
 
