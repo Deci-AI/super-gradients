@@ -1,6 +1,7 @@
 from typing import Optional, List
 from functools import lru_cache
 
+from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.models import SgModule
 from super_gradients.training.pipelines.pipelines import ClassificationPipeline
 from super_gradients.training.utils.media.image import ImageSource
@@ -10,7 +11,7 @@ from super_gradients.common.factories.processing_factory import ProcessingFactor
 from super_gradients.training.processing.processing import Processing
 
 
-class BaseClassifier(SgModule):
+class BaseClassifier(SgModule, HasPredict):
     def __init__(
         self,
     ):

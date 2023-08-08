@@ -14,6 +14,7 @@ from super_gradients.modules.utils import width_multiplier
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell
 from super_gradients.training.utils import HpmStruct, torch_version_is_greater_or_equal
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
+from super_gradients.training.utils.utils import infer_model_dtype, infer_model_device
 
 
 @register_detection_module()
@@ -178,14 +179,20 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
     @torch.jit.ignore
     def cache_anchors(self, input_size: Tuple[int, int]):
         self.eval_size = input_size
-        anchor_points, stride_tensor = self._generate_anchors()
-        self.anchor_points = anchor_points
-        self.stride_tensor = stride_tensor
+        device = infer_model_device(self)
+        dtype = infer_model_dtype(self)
+
+        anchor_points, stride_tensor = self._generate_anchors(dtype=dtype, device=device)
+        self.register_buffer("anchor_points", anchor_points, persistent=False)
+        self.register_buffer("stride_tensor", stride_tensor, persistent=False)
 
     @torch.jit.ignore
     def _init_weights(self):
         if self.eval_size:
-            anchor_points, stride_tensor = self._generate_anchors()
+            device = infer_model_device(self)
+            dtype = infer_model_dtype(self)
+
+            anchor_points, stride_tensor = self._generate_anchors(dtype=dtype, device=device)
             self.anchor_points = anchor_points
             self.stride_tensor = stride_tensor
 
@@ -260,10 +267,14 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         else:
             return self.forward_eval(feats)
 
-    def _generate_anchors(self, feats=None, dtype=torch.float):
+    def _generate_anchors(self, feats=None, dtype=None, device=None):
         # just use in eval time
         anchor_points = []
         stride_tensor = []
+
+        dtype = dtype or feats[0].dtype
+        device = device or feats[0].device
+
         for i, stride in enumerate(self.fpn_strides):
             if feats is not None:
                 _, _, h, w = feats[i].shape
@@ -282,7 +293,8 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             stride_tensor.append(torch.full([h * w, 1], stride, dtype=dtype))
         anchor_points = torch.cat(anchor_points)
         stride_tensor = torch.cat(stride_tensor)
-        if feats is not None:
-            anchor_points = anchor_points.to(feats[0].device)
-            stride_tensor = stride_tensor.to(feats[0].device)
+
+        if device is not None:
+            anchor_points = anchor_points.to(device)
+            stride_tensor = stride_tensor.to(device)
         return anchor_points, stride_tensor
