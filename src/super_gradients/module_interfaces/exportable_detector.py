@@ -130,6 +130,9 @@ class ExportableObjectDetectionModel:
         quantization_mode: ExportQuantizationMode = Optional[None],
         selective_quantizer: Optional[SelectiveQuantizer] = None,
         calibration_loader: Optional[DataLoader] = None,
+        calibration_method: str = "percentile",
+        calibration_batches: int = 16,
+        calibration_percentile: float = 99.99,
         preprocessing: Union[bool, nn.Module] = True,
         postprocessing: Union[bool, nn.Module] = True,
         postprocessing_kwargs: Optional[dict] = None,
@@ -165,6 +168,9 @@ class ExportableObjectDetectionModel:
             to specify a data loader for calibrating the model.
         :param selective_quantizer: (SelectiveQuantizer) An optional quantizer for selectively quantizing model weights.
         :param calibration_loader: (torch.utils.data.DataLoader) An optional data loader for calibrating a quantized model.
+        :param calibration_method: (str) Calibration method for quantized models. See QuantizationCalibrator for details.
+        :param calibration_batches: (int) Number of batches to use for calibration. Default is 16.
+        :param calibration_percentile: (float) Percentile for percentile calibration method. Default is 99.99.
         :param preprocessing: (bool or nn.Module)
                               If True, export a model with preprocessing that matches preprocessing params during training,
                               If False - do not use any preprocessing at all
@@ -281,8 +287,6 @@ class ExportableObjectDetectionModel:
 
         model_type = torch.half if quantization_mode == ExportQuantizationMode.FP16 else torch.float32
 
-        preprocessing_module: Optional[nn.Module] = None
-
         if isinstance(preprocessing, nn.Module):
             preprocessing_module = preprocessing
         elif preprocessing is True:
@@ -299,8 +303,6 @@ class ExportableObjectDetectionModel:
         # This variable holds the output names of the model.
         # If postprocessing is enabled, it will be set to the output names of the postprocessing module.
         output_names: Optional[List[str]] = None
-
-        postprocessing_module: Optional[nn.Module] = None
 
         if isinstance(postprocessing, nn.Module):
             # If a user-specified postprocessing module is provided, we will attach is to the model and not
@@ -366,10 +368,10 @@ class ExportableObjectDetectionModel:
                 calibrator = QuantizationCalibrator(verbose=True)
                 calibrator.calibrate_model(
                     model,
-                    method="percentile",
+                    method=calibration_method,
                     calib_data_loader=calibration_loader,
-                    num_calib_batches=16,  # TODO: How do we choose that ????
-                    percentile=99.99,
+                    num_calib_batches=calibration_batches,
+                    percentile=calibration_percentile,
                 )
                 logger.debug("Calibrating model complete")
         elif quantization_mode == ExportQuantizationMode.FP16:
