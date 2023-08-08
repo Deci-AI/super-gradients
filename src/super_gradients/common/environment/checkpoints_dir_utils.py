@@ -36,9 +36,12 @@ def get_latest_run_id(experiment_name: str, checkpoints_root_dir: Optional[str] 
 
     run_dirs = [os.path.join(experiment_dir, folder) for folder in os.listdir(experiment_dir) if folder.startswith("RUN_")]
     for run_dir in sorted(run_dirs, reverse=True):
-        if any(".pkl" in x for x in os.listdir(run_dir)):
-            print("________________________________")
-            print(run_dir)
+        if "ckpt_latest.pth" not in os.listdir(run_dir):
+            logger.warning(
+                f"Latest run directory {run_dir} does not contain a `ckpt_latest.pth` file, so it cannot be resumed. "
+                f"Trying to load the n-1 most recent run..."
+            )
+        else:
             return run_dir
 
 

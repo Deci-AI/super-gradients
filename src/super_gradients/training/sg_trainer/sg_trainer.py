@@ -347,12 +347,11 @@ class Trainer:
             eval_run_id = core_utils.get_param(cfg, "training_hyperparams.run_id", None)
             if eval_run_id is None:
                 logger.info("`training_hyperparams.run_id` was not provided. Evaluating the latest run.")
-                # NOTE: `eval_run_id` will be None if no latest run directory was found.
-                # We want to support this case out of backward compatibility with SG < 3.1.3 which did not include a directory per run
                 eval_run_id = get_latest_run_id(checkpoints_root_dir=cfg.ckpt_root_dir, experiment_name=cfg.experiment_name)
+                # NOTE: `eval_run_id` will be None if no latest run directory was found.
 
-            # NOTE: If run_id is None, the checkpoint directory will be ckpt_root_dir/experiment_name.
-            # This ensures backward compatibility with SG < 3.1.3 which did not include a directory per run.
+            # NOTE: If eval_run_id is None here, the checkpoint directory will be ckpt_root_dir/experiment_name.
+            # This ensures backward compatibility with `super-gradients<=3.1.2` which did not include one directory per run.
             checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir, run_id=eval_run_id)
             checkpoint_path = os.path.join(checkpoints_dir, cfg.training_hyperparams.ckpt_name)
             if os.path.exists(checkpoint_path):
@@ -1668,17 +1667,13 @@ class Trainer:
         resume_from_remote_sg_logger = core_utils.get_param(self.training_params, "resume_from_remote_sg_logger", False)
         self.load_checkpoint = resume or (run_id is not None) or (resume_path is not None) or resume_from_remote_sg_logger
 
-        print(resume, run_id, resume_path, resume_from_remote_sg_logger, self.load_checkpoint)
         if run_id is None:  # User did not specify a `run_id`
             if resume and not (resume_from_remote_sg_logger or resume_path):
                 run_id = get_latest_run_id(checkpoints_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name)
-                print("A")
             else:
                 run_id = generate_run_id()
-                print("B", resume_from_remote_sg_logger, resume_path)
         else:
             validate_run_id(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
-            print("C")
 
         self.checkpoints_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
         logger.info(f"Checkpoints directory: {self.checkpoints_dir_path}")
