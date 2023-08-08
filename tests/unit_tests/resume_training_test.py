@@ -82,25 +82,28 @@ class ResumeTrainingTest(unittest.TestCase):
             "metric_to_watch": "Accuracy",
             "greater_metric_to_watch_is_better": True,
         }
+        net = LeNet()
 
-        # from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
+        from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_latest_run_id
 
         # Define Model
-        net = LeNet()
         experiment_name = "test_resume_training"
         ckpt_root_dir = ""
+
+        experiment_dir = get_checkpoints_dir_path(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name)
+        original_dir_count = len(os.listdir(experiment_dir))
         trainer = Trainer(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name)
-        # checkpoints_dir = get_checkpoints_dir_path(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name)
-        # import
 
         trainer.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
 
+        self.assertEqual(original_dir_count + 1, len(os.listdir(experiment_dir)), "You should have 1 run folder created only after calling `Trainer.train`.")
+
         # TRAIN FOR 1 MORE EPOCH AND COMPARE THE NET AT THE BEGINNING OF EPOCH 3 AND THE END OF EPOCH NUMBER 2
         resume_net = LeNet()
-        trainer = Trainer("test_resume_training")
+        trainer = Trainer(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name)
         first_epoch_cb = FirstEpochInfoCollector()
 
-        train_params["run_id"] = ""
+        train_params["run_id"] = get_latest_run_id(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
         train_params["max_epochs"] = 3
         train_params["phase_callbacks"] = [first_epoch_cb]
         trainer.train(
@@ -112,6 +115,13 @@ class ResumeTrainingTest(unittest.TestCase):
 
         # ASSERT WE START FROM THE RIGHT EPOCH NUMBER
         self.assertTrue(first_epoch_cb.first_epoch == 2)
+
+        # Resuming should not create a new run
+        self.assertEqual(
+            original_dir_count + 1,
+            len(os.listdir(experiment_dir)),
+            "You should have only 1 run folder created only after calling `Trainer.train` and resuming it.",
+        )
 
     def test_resume_external_training(self):
         train_params = {

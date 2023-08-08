@@ -92,7 +92,7 @@ class BaseSGLogger(AbstractSGLogger):
         self.max_global_steps = training_params.max_epochs
         self._local_dir = checkpoints_dir_path
 
-        self._make_dir()
+        self._setup_dir()
         self._init_tensorboard(resumed, tb_files_user_prompt)
         self._init_log_file()
 
@@ -122,7 +122,7 @@ class BaseSGLogger(AbstractSGLogger):
             self.system_monitor = None
 
     @multi_process_safe
-    def _make_dir(self):
+    def _setup_dir(self):
         if not os.path.isdir(self._local_dir):
             os.makedirs(self._local_dir)
 

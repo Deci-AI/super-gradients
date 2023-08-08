@@ -43,7 +43,7 @@ def get_latest_run_id(experiment_name: str, checkpoints_root_dir: Optional[str] 
     """
     experiment_dir = get_experiment_dir_path(checkpoints_root_dir=checkpoints_root_dir, experiment_name=experiment_name)
 
-    run_dirs = [os.path.join(experiment_dir, folder) for folder in os.listdir(experiment_dir) if is_run_dir("RUN_")]
+    run_dirs = [os.path.join(experiment_dir, folder) for folder in os.listdir(experiment_dir) if is_run_dir(folder)]
     for run_dir in sorted(run_dirs, reverse=True):
         if "ckpt_latest.pth" not in os.listdir(run_dir):
             logger.warning(

@@ -1479,7 +1479,7 @@ class Trainer:
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
-                self._validate_final_average_model(context, checkpoint_dir_path=self.checkpoints_dir_path, cleanup_snapshots_pkl_file=True)
+                self._validate_final_average_model(context=context, checkpoint_dir_path=self.checkpoints_dir_path, cleanup_snapshots_pkl_file=True)
 
         except KeyboardInterrupt:
             logger.info(
@@ -1570,7 +1570,7 @@ class Trainer:
                 else:
                     self.scaler.load_state_dict(scaler_state_dict)
 
-    def _validate_final_average_model(self, checkpoint_dir_path: str, context: PhaseContext, cleanup_snapshots_pkl_file=False):
+    def _validate_final_average_model(self, context: PhaseContext, checkpoint_dir_path: str, cleanup_snapshots_pkl_file=False):
         """
         Testing the averaged model by loading the last saved average checkpoint and running test.
         Will be loaded to each of DDP processes
@@ -1677,10 +1677,13 @@ class Trainer:
         if run_id is None:  # User did not specify a `run_id`
             if resume and not (resume_from_remote_sg_logger or resume_path):
                 run_id = get_latest_run_id(checkpoints_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name)
+                logger.info("Resuming training from latest run.")
             else:
                 run_id = generate_run_id()
+                logger.info(f"Starting a new run with run_id: {run_id}")
         else:
             validate_run_id(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
+            logger.info(f"Resuming training from `run_id={run_id}`")
 
         self.checkpoints_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
         logger.info(f"Checkpoints directory: {self.checkpoints_dir_path}")
