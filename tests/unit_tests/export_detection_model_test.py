@@ -31,7 +31,8 @@ import onnx_graphsurgeon as gs
 class TestDetectionModelExport(unittest.TestCase):
     def setUp(self) -> None:
         logging.getLogger().setLevel(logging.DEBUG)
-        self.test_image_path = "../data/tinycoco/images/val2017/000000444010.jpg"
+        this_dir = os.path.dirname(__file__)
+        self.test_image_path = os.path.join(this_dir, "../data/tinycoco/images/val2017/000000444010.jpg")
 
     def test_the_most_common_export_use_case(self):
         """
@@ -577,8 +578,15 @@ class TestDetectionModelExport(unittest.TestCase):
         batch_size = 7
         max_predictions_per_image = 100
 
-        for device in ["cpu", "cuda"]:
-            for dtype in [torch.float16, torch.float32]:
+        if torch.cuda.is_available():
+            available_devices = ["cpu", "cuda"]
+            available_dtypes = [torch.float16, torch.float32]
+        else:
+            available_devices = ["cpu"]
+            available_dtypes = [torch.float32]
+
+        for device in available_devices:
+            for dtype in available_dtypes:
 
                 num_detections = torch.randint(1, max_predictions_per_image, (batch_size, 1), dtype=torch.int32)
                 detection_boxes = torch.randn((batch_size, max_predictions_per_image, 4), dtype=dtype)
@@ -619,8 +627,15 @@ class TestDetectionModelExport(unittest.TestCase):
         max_predictions = 100
         batch_size = 7
 
-        for device in ["cpu", "cuda"]:
-            for dtype in [torch.float16, torch.float32]:
+        if torch.cuda.is_available():
+            available_devices = ["cpu", "cuda"]
+            available_dtypes = [torch.float16, torch.float32]
+        else:
+            available_devices = ["cpu"]
+            available_dtypes = [torch.float32]
+
+        for device in available_devices:
+            for dtype in available_dtypes:
 
                 # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
                 # And also can handle dynamic shapes input
@@ -656,8 +671,15 @@ class TestDetectionModelExport(unittest.TestCase):
         max_predictions = 100
         batch_size = 7
 
-        for device in ["cpu", "cuda"]:
-            for dtype in [torch.float16, torch.float32]:
+        if torch.cuda.is_available():
+            available_devices = ["cpu", "cuda"]
+            available_dtypes = [torch.float16, torch.float32]
+        else:
+            available_devices = ["cpu"]
+            available_dtypes = [torch.float32]
+
+        for device in available_devices:
+            for dtype in available_dtypes:
 
                 # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
                 # And also can handle dynamic shapes input
