@@ -2,12 +2,23 @@ import os
 import unittest
 from pathlib import Path
 
+import numpy as np
+
 from super_gradients import Trainer
+from super_gradients.common.factories.list_factory import ListFactory
+from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.training import models
 from super_gradients.training.datasets import COCODetectionDataset
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.models import YoloXPostPredictionCallback
-from super_gradients.training.processing import ReverseImageChannels, DetectionLongestMaxSizeRescale, DetectionBottomRightPadding, ImagePermute
+from super_gradients.training.processing import (
+    ReverseImageChannels,
+    DetectionLongestMaxSizeRescale,
+    DetectionBottomRightPadding,
+    ImagePermute,
+    ComposeProcessing,
+)
+from super_gradients.training.transforms import DetectionPaddedRescale, DetectionRGB2BGR
 from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
 from super_gradients.training import dataloaders
 
@@ -175,6 +186,18 @@ class PreprocessingUnitTest(unittest.TestCase):
         self.assertTrue(len(processing_list), 5)
         self.assertEqual(model._default_nms_iou, 0.65)
         self.assertEqual(model._default_nms_conf, 0.5)
+
+    def test_processings_from_dataset_params(self):
+        transforms = [DetectionRGB2BGR(prob=1), DetectionPaddedRescale(input_dim=(512, 512))]
+
+        processings = []
+        for t in transforms:
+            processings += t.get_equivalent_preprocessing()
+
+        instantiated_processing = ListFactory(ProcessingFactory()).get(processings)
+        processing_pipeline = ComposeProcessing(instantiated_processing)
+        result = processing_pipeline.preprocess_image(np.zeros((480, 640, 3)))
+        print(result)
 
 
 if __name__ == "__main__":
