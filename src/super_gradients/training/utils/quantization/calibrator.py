@@ -15,6 +15,8 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
 from torch.distributed import all_gather
 
+from super_gradients.training.utils.utils import infer_model_device
+
 logger = get_logger(__name__)
 
 try:
@@ -86,13 +88,20 @@ class QuantizationCalibrator:
         local_rank = get_local_rank()
         world_size = get_world_size()
 
-        device = next(model.parameters()).device
+        device = infer_model_device(model)
 
         # Enable calibrators
         self._enable_calibrators(model)
 
         # Feed data to the network for collecting stats
-        for i, (image, *_) in tqdm(enumerate(data_loader), total=num_batches, disable=local_rank > 0):
+        for i, batch in tqdm(enumerate(data_loader), total=num_batches, disable=local_rank > 0):
+            if isinstance(batch, (list, tuple)):
+                image = batch[0]
+            elif torch.is_tensor(batch):
+                image = batch
+            else:
+                raise ValueError("Unsupported batch type")
+
             if world_size > 1:
                 all_batches = [torch.zeros_like(image, device=device) for _ in range(world_size)]
                 all_gather(all_batches, image.to(device=device))

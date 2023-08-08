@@ -1,28 +1,88 @@
-from typing import Union, Optional, List
 from functools import lru_cache
+from typing import Union, Optional, List, Tuple
 
 import torch
 from torch import Tensor
 
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
-from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
+from super_gradients.common.registry.registry import register_model
+from super_gradients.module_interfaces import AbstractObjectDetectionDecodingModule, ExportableObjectDetectionModel, HasPredict
 from super_gradients.modules import RepVGGBlock
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import PPYoloECSPPAN
-from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
-from super_gradients.training.utils import HpmStruct
-from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.pp_yolo_e.post_prediction_callback import PPYoloEPostPredictionCallback, DetectionPostPredictionCallback
-from super_gradients.training.utils.predict import ImagesDetectionPrediction
+from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
+from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
+from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.training.utils.predict import ImagesDetectionPrediction
+
+logger = get_logger(__name__)
 
 
-class PPYoloE(SgModule):
+class PPYoloEDecodingModule(AbstractObjectDetectionDecodingModule):
+    """
+    Decoding module for PPYoloE model. This module used only to export model to ONNX/TensorRT and is not used during training.
+
+    Takes in the output of the model and returns the decoded boxes in the format Tuple[Tensor, Tensor]
+    * boxes [batch_size, number_boxes, 4], boxes are in format (x1, y1, x2, y2)
+    * scores [batch_size, number_boxes, number_classes]
+    """
+
+    __constants__ = ["num_pre_nms_predictions"]
+
+    def __init__(
+        self,
+        num_pre_nms_predictions: int = 1000,
+    ):
+        """
+        :param num_pre_nms_predictions: Number of predictions to keep before NMS. This is mainly to reject
+        low-confidence predictions and thus reduce the number of boxes to process in NMS.
+
+        """
+        super().__init__()
+        self.num_pre_nms_predictions = num_pre_nms_predictions
+
+    def get_num_pre_nms_predictions(self) -> int:
+        return self.num_pre_nms_predictions
+
+    def forward(self, inputs: Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]) -> Tuple[Tensor, Tensor]:
+        """
+
+        :param inputs: Tuple [Tensor, Tensor]
+            * boxes [B, N, 4], boxes are in format (x1, y1, x2, y2)
+            * scores [B, N, C]
+        :return:
+            * boxes [B, Nout, 4], boxes are in format (x1, y1, x2, y2)
+            * scores [B, Nout, C]
+        """
+        if torch.jit.is_tracing():
+            pred_bboxes, pred_scores = inputs
+        else:
+            pred_bboxes, pred_scores = inputs[0]
+
+        nms_top_k = self.num_pre_nms_predictions
+
+        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
+        topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
+
+        offsets = nms_top_k * torch.arange(pred_cls_conf.size(0), device=pred_cls_conf.device)
+        flat_indices = topk_candidates.indices + offsets.reshape(pred_cls_conf.size(0), 1)
+        flat_indices = torch.flatten(flat_indices)
+
+        output_pred_bboxes = pred_bboxes.reshape(-1, pred_bboxes.size(2))[flat_indices, :].reshape(pred_bboxes.size(0), nms_top_k, pred_bboxes.size(2))
+        output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
+
+        return output_pred_bboxes, output_pred_scores
+
+
+class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
     def __init__(self, arch_params):
         super().__init__()
         if isinstance(arch_params, HpmStruct):
@@ -31,6 +91,7 @@ class PPYoloE(SgModule):
         self.backbone = CSPResNetBackbone(**arch_params["backbone"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
         self.neck = PPYoloECSPPAN(**arch_params["neck"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
         self.head = PPYOLOEHead(**arch_params["head"], width_mult=arch_params["width_mult"], num_classes=arch_params["num_classes"])
+        self.in_channels = 3
 
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
@@ -40,6 +101,17 @@ class PPYoloE(SgModule):
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return PPYoloEPostPredictionCallback(score_threshold=conf, nms_threshold=iou, nms_top_k=1000, max_predictions=300)
+
+    def get_preprocessing_callback(self, **kwargs):
+        processing = self.get_processing_params()
+        preprocessing_module = processing.get_equivalent_photometric_module()
+        return preprocessing_module
+
+    def get_input_channels(self) -> int:
+        return self.in_channels
+
+    def get_processing_params(self) -> Optional[Processing]:
+        return self._image_processor
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(
@@ -147,6 +219,9 @@ class PPYoloE(SgModule):
             self.head = new_head
         else:
             self.head.replace_num_classes(new_num_classes)
+
+    def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
+        return PPYoloEDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions)
 
 
 @register_model(Models.PP_YOLOE_S)
