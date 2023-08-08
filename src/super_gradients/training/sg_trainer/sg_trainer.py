@@ -300,6 +300,7 @@ class Trainer:
 
         :param experiment_name:     Name of the experiment to resume
         :param ckpt_root_dir:       Directory including the checkpoints
+        :param run_id:              Optional. Run id of the experiment. If None, the most recent run will be loaded.
         :return:                    The config that was used for that experiment
         """
         logger.info("Resume training using the checkpoint recipe, ignoring the current recipe")
@@ -400,10 +401,14 @@ class Trainer:
 
         :param experiment_name:     Name of the experiment to validate
         :param ckpt_name:           Name of the checkpoint to test ("ckpt_latest.pth", "average_model.pth" or "ckpt_best.pth" for instance)
-        :param ckpt_root_dir:       Directory including the checkpoints
+        :param ckpt_root_dir:       Optional. Directory including the checkpoints
+        :param run_id:              Optional. Run id of the experiment. If None, the most recent run will be loaded.
         :return:                    The config that was used for that experiment
         """
         logger.info("Evaluate checkpoint")
+
+        if run_id is None:
+            run_id = get_latest_run_id(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
 
         # Load the latest config
         cfg = load_experiment_cfg(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)

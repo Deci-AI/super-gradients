@@ -9,6 +9,7 @@ import numpy as np
 import psutil
 import torch
 from PIL import Image
+import shutil
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
@@ -22,6 +23,7 @@ from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogge
 from super_gradients.common.sg_loggers.time_units import TimeUnit
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils import sg_trainer_utils, get_param
+from super_gradients.common.environment.checkpoints_dir_utils import is_run_dir
 
 logger = get_logger(__name__)
 
@@ -123,6 +125,15 @@ class BaseSGLogger(AbstractSGLogger):
     def _make_dir(self):
         if not os.path.isdir(self._local_dir):
             os.makedirs(self._local_dir)
+
+        # If we are not logging in the root of the experiment directory, and instead we do in a run directory,
+        # we need to ensure that we copy the `.hydra` folder
+        if is_run_dir(self._local_dir):
+            source_hydra_path = os.path.join(os.path.dirname(self._local_dir), ".hydra")
+            # Only if it exists, i.e. if hydra was used.
+            if os.path.exists(source_hydra_path):
+                destination_hydra_path = os.path.join(self._local_dir, ".hydra")
+                shutil.copytree(source_hydra_path, destination_hydra_path)
 
     @multi_process_safe
     def _init_log_file(self):

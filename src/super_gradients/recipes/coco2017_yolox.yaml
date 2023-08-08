@@ -45,9 +45,9 @@ val_dataloader: coco2017_val
 
 
 load_checkpoint: False
-resume: True
+resume: False
 training_hyperparams:
-  resume: True
+  resume: ${resume}
 
 architecture: yolox_s
 

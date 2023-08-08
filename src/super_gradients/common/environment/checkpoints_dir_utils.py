@@ -24,6 +24,15 @@ def generate_run_id() -> str:
     return datetime.now().strftime("RUN_%Y%m%d_%H%M%S_%f")
 
 
+def is_run_dir(dirname: str) -> bool:
+    """Check if a directory is a run directory.
+
+    :param dirname: Directory name.
+    :return:        True if the directory is a run directory, False otherwise.
+    """
+    return os.path.basename(dirname).startswith("RUN_")
+
+
 def get_latest_run_id(experiment_name: str, checkpoints_root_dir: Optional[str] = None) -> Optional[str]:
     """
     :param experiment_name:     Name of the experiment.
@@ -34,7 +43,7 @@ def get_latest_run_id(experiment_name: str, checkpoints_root_dir: Optional[str] 
     """
     experiment_dir = get_experiment_dir_path(checkpoints_root_dir=checkpoints_root_dir, experiment_name=experiment_name)
 
-    run_dirs = [os.path.join(experiment_dir, folder) for folder in os.listdir(experiment_dir) if folder.startswith("RUN_")]
+    run_dirs = [os.path.join(experiment_dir, folder) for folder in os.listdir(experiment_dir) if is_run_dir("RUN_")]
     for run_dir in sorted(run_dirs, reverse=True):
         if "ckpt_latest.pth" not in os.listdir(run_dir):
             logger.warning(
@@ -52,12 +61,6 @@ def validate_run_id(run_id: str, experiment_name: str, ckpt_root_dir: Optional[s
         raise FileNotFoundError(
             f'Invalid run directory "{run_dir}", with `ckpt_root_dir={ckpt_root_dir}`, `experiment_name={experiment_name}`, `run_dir={run_dir}`.'
         )
-
-
-def is_valid_run_id(run_id: str, experiment_name: str, ckpt_root_dir: Optional[str] = None):
-    experiment_dir = get_experiment_dir_path(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
-    run_dir = os.path.join(experiment_dir, run_id)
-    return os.path.exists(run_dir) and os.path.isdir(run_dir)
 
 
 def _get_project_root_path() -> Optional[str]:
@@ -104,8 +107,6 @@ def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: Optional[str] 
     :return:                    Path of folder where the experiment checkpoints and logs will be stored.
     """
     experiment_dir = get_experiment_dir_path(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
-
-    # TODO: Load LATEST instead. Only load base dir of no LATEST
     checkpoint_dir = experiment_dir if run_id is None else os.path.join(experiment_dir, run_id)
     return checkpoint_dir
 
