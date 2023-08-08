@@ -194,6 +194,7 @@ class Trainer:
         # Checkpoint Attributes
         self.ckpt_root_dir = ckpt_root_dir
         self.experiment_name = experiment_name
+        self.checkpoints_dir_path = None
         self.load_checkpoint = False
         self.ckpt_best_name = "ckpt_best.pth"
 
