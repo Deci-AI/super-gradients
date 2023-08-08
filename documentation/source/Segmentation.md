@@ -134,8 +134,10 @@ Notes
 
 
 ### Setup training parameters
+
 The training parameters includes loss, metrics, learning rates and much more. You can check out the [default training parameters](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml).
 For this task, we will train for 30 epoch, using Binary IoU using the SGD optimizer.
+
 ```py
 from super_gradients.training.metrics.segmentation_metrics import BinaryIOU
 
@@ -209,5 +211,16 @@ display(mask)
 
 ## Going further
 
+### Troubleshooting
+
+If you encounter any issues, please check out our [troubleshooting guide](https://docs.deci.ai/super-gradients/documentation/source/troubleshooting.html).
+
 ### How to launch on multiple GPUs (DDP) ?
+
 Please check out our tutorial on [how to use multiple GPUs'](https://docs.deci.ai/super-gradients/documentation/source/device.html#4-ddp-distributed-data-parallel)
+
+### How to train models with limited GPU memory?
+
+In case you have a GPU with limited memory, you can use the gradients accumulation technique to "fake" larger batch sizes.
+This is not 100% equivalent to training with larger batch sizes, but it is a good approximation. 
+You can set the desired number of batches to accumulate by changing the `training_hyperparams.batch_accumulate` parameter.
