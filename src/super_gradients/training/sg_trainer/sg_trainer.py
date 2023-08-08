@@ -1676,11 +1676,12 @@ class Trainer:
 
         if run_id is None:  # User did not specify a `run_id`
             if resume and not (resume_from_remote_sg_logger or resume_path):
+                # If `resume_from_remote_sg_logger` or `resume_path` is used, we want to create a new run_id.
                 run_id = get_latest_run_id(checkpoints_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name)
                 logger.info("Resuming training from latest run.")
             else:
                 run_id = generate_run_id()
-                logger.info(f"Starting a new run with run_id: {run_id}")
+                logger.info(f"Starting a new run with `run_id={run_id}`")
         else:
             validate_run_id(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
             logger.info(f"Resuming training from `run_id={run_id}`")
