@@ -12,11 +12,7 @@ from torch import nn, Tensor
 from torch.utils.data import DataLoader
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.conversion.conversion_enums import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
-from super_gradients.conversion.conversion_utils import torch_dtype_to_numpy_dtype
-from super_gradients.conversion.onnx.nms import attach_onnx_nms
-from super_gradients.conversion.preprocessing_modules import CastTensorTo
-from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
+from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
 from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules
@@ -213,6 +209,13 @@ class ExportableObjectDetectionModel:
         :param num_pre_nms_predictions: (int) Number of predictions to keep before NMS.
         :return:
         """
+
+        # Do imports here to avoid raising error of missing onnx_graphsurgeon package if it is not needed.
+        from super_gradients.conversion.conversion_utils import torch_dtype_to_numpy_dtype
+        from super_gradients.conversion.onnx.nms import attach_onnx_nms
+        from super_gradients.conversion.preprocessing_modules import CastTensorTo
+        from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
+
         usage_instructions = []
 
         try:
