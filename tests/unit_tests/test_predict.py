@@ -23,6 +23,22 @@ class TestModelPredict(unittest.TestCase):
             predictions.show()
             predictions.save(output_folder=tmp_dirname)
 
+    def test_pose_estimation_models(self):
+        model = models.get(Models.DEKR_W32_NO_DC, pretrained_weights="coco_pose")
+
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            predictions = model.predict(self.images)
+            predictions.show()
+            predictions.save(output_folder=tmp_dirname)
+
+    def test_detection_models(self):
+        model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
+
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            predictions = model.predict(self.images)
+            predictions.show()
+            predictions.save(output_folder=tmp_dirname)
+
 
 if __name__ == "__main__":
     unittest.main()
