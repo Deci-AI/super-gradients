@@ -1,9 +1,11 @@
-import onnx_graphsurgeon as gs
 from onnx import shape_inference
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
 
 logger = get_logger(__name__)
+
+gs = import_onnx_graphsurgeon_or_fail_with_instructions()
 
 
 def append_graphs(graph1: gs.Graph, graph2: gs.Graph) -> gs.Graph:

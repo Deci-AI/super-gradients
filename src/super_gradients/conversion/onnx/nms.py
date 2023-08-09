@@ -5,7 +5,6 @@ from typing import Tuple
 import numpy as np
 import onnx
 import onnx.shape_inference
-import onnx_graphsurgeon as gs
 import torch
 from onnx import TensorProto
 from torch import nn, Tensor
@@ -13,9 +12,12 @@ from torch import nn, Tensor
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
 from super_gradients.conversion.conversion_utils import numpy_dtype_to_torch_dtype
+from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
 from super_gradients.conversion.onnx.utils import append_graphs
 
 logger = get_logger(__name__)
+
+gs = import_onnx_graphsurgeon_or_fail_with_instructions()
 
 
 class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
