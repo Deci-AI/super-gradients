@@ -1,5 +1,3 @@
---extra-index-url https://pypi.ngc.nvidia.com
-
 torch>=1.9.0
 tqdm>=4.57.0
 boto3>=1.17.15

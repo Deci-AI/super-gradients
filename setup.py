@@ -3,7 +3,6 @@
 """
     Deci Training Toolkit
 """
-
 from setuptools import setup
 from setuptools import find_packages
 
@@ -61,6 +60,7 @@ setup(
         "super_gradients.examples": ["*.ipynb", "**/*.ipynb"],
         "super_gradients": ["requirements.txt", "requirements.pro.txt"],
     },
+    dependency_links=["https://pypi.ngc.nvidia.com"],
     long_description=readme(),
     long_description_content_type="text/markdown",
     extras_require={"pro": get_pro_requirements()},
