@@ -23,7 +23,7 @@ def readme():
 def get_requirements():
     with open(REQ_LOCATION, encoding="utf-8") as f:
         requirements = f.read().splitlines()
-        return [r for r in requirements if not r.startswith("--") and not r.startswith("#")]
+        return [r for r in requirements if not r.startswith("#")]
 
 
 def get_pro_requirements():
@@ -53,7 +53,6 @@ setup(
     url="https://docs.deci.ai/super-gradients/documentation/source/welcome.html",
     keywords=["Deci", "AI", "Training", "Deep Learning", "Computer Vision", "PyTorch", "SOTA", "Recipes", "Pre Trained", "Models"],
     install_requires=get_requirements(),
-    dependency_links=["https://pypi.ngc.nvidia.com"],
     packages=find_packages(where="./src"),
     package_dir={"": "src"},
     package_data={
