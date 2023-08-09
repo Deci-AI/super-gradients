@@ -74,7 +74,7 @@ def get_requirements(use_pro_requirements: bool) -> Optional[List[str]]:
     # Process entries like
     # onnx_graphsurgeon>=0.3.8,<0.4 --extra-index-url https://pypi.ngc.nvidia.com
     # and leave only package version
-    lines = [line.split("--extra-index-url")[0] for line in lines]  # If package has extra-index-url, remove it
+    # lines = [line.split("--extra-index-url")[0] for line in lines]  # If package has extra-index-url, remove it
 
     # Trim whitespaces
     return [line.strip() for line in lines]
