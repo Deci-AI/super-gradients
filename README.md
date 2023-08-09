@@ -40,6 +40,7 @@ ________________________________________________________________________________
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Segmentation 1500x900 .png" width="250px">
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Object detection 1500X900.png" width="250px">
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Classification 1500x900.png" width="250px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Classification 1500x900.png" width="250px">
 </div>
 
 
@@ -121,6 +122,16 @@ pip install super-gradients
 ```
 
 ## What's New
+
+__________________________________________________________________________________________________________
+Version 3.1.3 (July 19, 2023)
+
+* [Pose Estimation Task Support](https://docs.deci.ai/super-gradients/documentation/source/PoseEstimation.html) - Check out fine-tuning [notebook example](https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On) 
+* Pre-trained modified [DEKR](super_gradients/recipes/coco2017_pose_dekr_w32_no_dc.yaml) model for pose estimation (TensorRT-compatible)
+* Support for Python 3.10
+* Support for torch.compile
+* Other bugfixes & minor improvements. Check out [release notes](https://github.com/Deci-AI/super-gradients/releases/tag/3.1.3)
+
 __________________________________________________________________________________________________________
 30th of May
 * [Quantization Aware Training YoloNAS on Custom Dataset](https://bit.ly/3MIKdTy)
@@ -232,6 +243,20 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
  </br></br>
 
 
+### Pose Estimation
+
+#### Transfer Learning
+
+<table class="tfo-notebook-buttons" align="left">
+    <td width="500">   
+        <a target="_blank" href="https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On">
+            <img src="./documentation/assets/SG_img/colab_logo.png" /> Pose Estimation Transfer Learning
+        </a>
+    </td>
+</table>
+</br></br>
+
+https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On
 
 ###  Object Detection
 
@@ -637,7 +662,12 @@ Detailed list can be found [here](http://bit.ly/3GnJwgZ)
 - [DarkNet-53](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/darknet53.py)
 - [SSD (Single Shot Detector)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py) 
 - [YOLOX](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolox.py)
-  
+
+
+### Pose Estimation
+
+- [DEKR-W32-NO-DC](super_gradients/recipes/coco2017_pose_dekr_w32_no_dc.yaml)
+
   
 
 __________________________________________________________________________________________________________
@@ -667,7 +697,9 @@ Deci provides implementation for various datasets. If you need to download any o
 - [Coco](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/detection_datasets/coco_detection.py)
 - [PascalVOC 2007 & 2012](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/datasets/detection_datasets/pascal_voc_detection.py)
   
-  
+### Pose Estimation
+
+- [COCO](https://github.com/Deci-AI/super-gradients/blob/cadcfdd64e7808d21cccddbfaeb26acb8267699b/src/super_gradients/recipes/dataset_params/coco_pose_estimation_dekr_dataset_params.yaml)
 
 __________________________________________________________________________________________________________
 
