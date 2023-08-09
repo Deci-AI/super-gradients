@@ -53,6 +53,7 @@ setup(
     url="https://docs.deci.ai/super-gradients/documentation/source/welcome.html",
     keywords=["Deci", "AI", "Training", "Deep Learning", "Computer Vision", "PyTorch", "SOTA", "Recipes", "Pre Trained", "Models"],
     install_requires=get_requirements(),
+    dependency_links=["https://pypi.ngc.nvidia.com"],
     packages=find_packages(where="./src"),
     package_dir={"": "src"},
     package_data={
