@@ -8,13 +8,21 @@ import torch.nn as nn
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
+from super_gradients.module_interfaces import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule, HasPredict
 from super_gradients.modules import CrossModelSkipConnection, Conv
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils import torch_version_is_greater_or_equal
-from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
-from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
+from super_gradients.training.utils.detection_utils import (
+    non_max_suppression,
+    matrix_non_max_suppression,
+    NMS_Type,
+    DetectionPostPredictionCallback,
+    Anchors,
+    convert_cxcywh_bbox_to_xyxy,
+)
+from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param, infer_model_dtype, infer_model_device
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
@@ -251,7 +259,7 @@ class DetectX(nn.Module):
             if not self.training:
                 outputs_logits.append(output.clone())
                 if self.grid[i].shape[2:4] != output.shape[2:4]:
-                    self.grid[i] = self._make_grid(nx, ny).to(output.device)
+                    self.grid[i] = self._make_grid(nx, ny, dtype=reg_output.dtype).to(output.device)
 
                 xy = (output[..., :2] + self.grid[i].to(output.device)) * self.stride[i]
                 wh = torch.exp(output[..., 2:4]) * self.stride[i]
@@ -263,13 +271,13 @@ class DetectX(nn.Module):
         return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
 
     @staticmethod
-    def _make_grid(nx=20, ny=20):
+    def _make_grid(nx: int, ny: int, dtype: torch.dtype):
         if torch_version_is_greater_or_equal(1, 10):
             # https://github.com/pytorch/pytorch/issues/50276
             yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)], indexing="ij")
         else:
             yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
-        return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
+        return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).to(dtype)
 
 
 class AbstractYoloBackbone:
@@ -442,7 +450,7 @@ class YoloHead(nn.Module):
         )
 
 
-class YoloBase(SgModule):
+class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
     def __init__(self, backbone: Type[nn.Module], arch_params: HpmStruct, initialize_module: bool = True):
         super().__init__()
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params
@@ -451,6 +459,7 @@ class YoloBase(SgModule):
         self.arch_params.anchors = COCO_DETECTION_80_CLASSES_BBOX_ANCHORS
         self.arch_params.override(**arch_params.to_dict())
         self.arch_params.skip_connections_dict = {k: v for k, v in self.arch_params.skip_connections_list}
+        self.in_channels = 3
 
         self.num_classes = self.arch_params.num_classes
         # THE MODEL'S MODULES
@@ -476,6 +485,17 @@ class YoloBase(SgModule):
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return YoloXPostPredictionCallback(conf=conf, iou=iou)
+
+    def get_input_channels(self) -> int:
+        return self.in_channels
+
+    def get_processing_params(self) -> Optional[Processing]:
+        return self._image_processor
+
+    def get_preprocessing_callback(self, **kwargs):
+        processing = self.get_processing_params()
+        preprocessing_module = processing.get_equivalent_photometric_module()
+        return preprocessing_module
 
     @resolve_param("image_processor", ProcessingFactory())
     def set_dataset_processing_params(
@@ -586,8 +606,12 @@ class YoloBase(SgModule):
         m = self._head._modules_list[-1]  # DetectX()
         # Do inference in train mode on a dummy image to get output stride of each head output layer
         s = 128  # twice the minimum acceptable image size
-        dummy_input = torch.zeros(1, self.arch_params.channels_in, s, s)
+        device = infer_model_device(m)
+        dtype = infer_model_dtype(m)
+
+        dummy_input = torch.zeros((1, self.arch_params.channels_in, s, s), device=device, dtype=dtype)
         dummy_input = dummy_input.to(next(self._backbone.parameters()).device)
+
         stride = torch.tensor([s / x.shape[-2] for x in self.forward(dummy_input)])
         stride = stride.to(m.stride.device)
         if not torch.equal(m.stride, stride):
@@ -669,3 +693,40 @@ class YoloBase(SgModule):
             self._check_strides()
             self._initialize_biases()
             self._initialize_weights()
+
+    def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
+        return YoloXDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions, **kwargs)
+
+
+class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):
+    __constants__ = ["num_pre_nms_predictions", "with_confidence"]
+
+    def __init__(self, num_pre_nms_predictions: int, with_confidence: bool = True):
+        super().__init__()
+        self.num_pre_nms_predictions = num_pre_nms_predictions
+        self.with_confidence = with_confidence
+
+    def forward(self, predictions):
+        if isinstance(predictions, (tuple, list)):
+            predictions = predictions[0]
+
+        cxcywh = predictions[:, :, :4]
+        conf = predictions[:, :, 4:5]
+        pred_scores = predictions[:, :, 5:]
+        pred_bboxes = convert_cxcywh_bbox_to_xyxy(cxcywh)
+
+        if self.with_confidence:
+            pred_scores = pred_scores * conf
+
+        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
+        nms_top_k = self.num_pre_nms_predictions
+        topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
+
+        offsets = nms_top_k * torch.arange(pred_cls_conf.size(0), device=pred_cls_conf.device)
+        flat_indices = topk_candidates.indices + offsets.reshape(pred_cls_conf.size(0), 1)
+        flat_indices = torch.flatten(flat_indices)
+
+        output_pred_bboxes = pred_bboxes.reshape(-1, pred_bboxes.size(2))[flat_indices, :].reshape(pred_bboxes.size(0), nms_top_k, pred_bboxes.size(2))
+        output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
+
+        return output_pred_bboxes, output_pred_scores

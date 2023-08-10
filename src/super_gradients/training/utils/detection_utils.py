@@ -39,7 +39,7 @@ class DetectionTargetsFormat(Enum):
     NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
 
 
-def get_cls_posx_in_target(target_format: DetectionTargetsFormat) -> int:
+def get_class_index_in_target(target_format: DetectionTargetsFormat) -> int:
     """Get the label of a given target
     :param target_format:   Representation of the target (ex: LABEL_XYXY)
     :return:                Position of the class id in a bbox
@@ -387,7 +387,7 @@ class DetectionVisualization:
         return generate_color_mapping(num_classes=num_classes)
 
     @staticmethod
-    def _draw_box_title(
+    def draw_box_title(
         color_mapping: List[Tuple[int]],
         class_names: List[str],
         box_thickness: int,
@@ -400,6 +400,21 @@ class DetectionVisualization:
         pred_conf: float = None,
         is_target: bool = False,
     ):
+        """
+        Draw a rectangle with class name, confidence on the image
+        :param color_mapping: A list of N RGB colors for each class
+        :param class_names: A list of N class names
+        :param box_thickness: Thickness of the bounding box (in pixels)
+        :param image_np: Image in RGB format (H, W, C) where to draw the bounding box
+        :param x1: X coordinate of the top left corner of the bounding box
+        :param y1: Y coordinate of the top left corner of the bounding box
+        :param x2: X coordinate of the bottom right corner of the bounding box
+        :param y2: Y coordinate of the bottom right corner of the bounding box
+        :param class_id: A corresponding class id
+        :param pred_conf: Class confidence score (optional)
+        :param is_target: Indicate if the bounding box is a ground-truth box or not
+
+        """
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
@@ -429,14 +444,14 @@ class DetectionVisualization:
         # Draw predictions
         pred_boxes[:, :4] *= image_scale
         for box in pred_boxes:
-            image_np = DetectionVisualization._draw_box_title(
+            image_np = DetectionVisualization.draw_box_title(
                 color_mapping, class_names, box_thickness, image_np, *box[:4].astype(int), class_id=int(box[5]), pred_conf=box[4]
             )
 
         # Draw ground truths
         target_boxes_image = np.zeros_like(image_np, np.uint8)
         for box in target_boxes:
-            target_boxes_image = DetectionVisualization._draw_box_title(
+            target_boxes_image = DetectionVisualization.draw_box_title(
                 color_mapping, class_names, box_thickness, target_boxes_image, *box[2:], class_id=box[1], is_target=True
             )
 
@@ -501,7 +516,7 @@ class DetectionVisualization:
         :param image_tensor:            rgb images, (B, H, W, 3)
         :param pred_boxes:              boxes after NMS for each image in a batch, each (Num_boxes, 6),
                                         values on dim 1 are: x1, y1, x2, y2, confidence, class
-        :param target_boxes:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, x y w h
+        :param target_boxes:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, cx cy w h
                                         (coordinates scaled to [0, 1])
         :param batch_name:              id of the current batch to use for image naming
 
@@ -518,6 +533,8 @@ class DetectionVisualization:
         """
         image_np = undo_preprocessing_func(image_tensor.detach())
         targets = DetectionVisualization._scaled_ccwh_to_xyxy(target_boxes.detach().cpu().numpy(), *image_np.shape[1:3], image_scale)
+        if pred_boxes is None:
+            pred_boxes = [None for _ in range(image_np.shape[0])]
 
         out_images = []
         for i in range(image_np.shape[0]):

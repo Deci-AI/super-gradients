@@ -987,7 +987,7 @@ class DetectionRGB2BGR(DetectionTransform):
     def get_equivalent_preprocessing(self) -> List:
         if self.prob < 1:
             raise RuntimeError("Cannot set preprocessing pipeline with randomness. Set prob to 1.")
-        return [{Processings.ReverseImageChannels}]
+        return [{Processings.ReverseImageChannels: {}}]
 
 
 @register_transform(Transforms.DetectionHSV)
