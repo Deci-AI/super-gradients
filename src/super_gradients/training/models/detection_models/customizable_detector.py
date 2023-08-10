@@ -8,6 +8,7 @@ A base for a detection network built according to the following scheme:
 from typing import Union, Optional, List
 from functools import lru_cache
 
+import numpy as np
 import torch
 from torch import nn
 from omegaconf import DictConfig
@@ -171,6 +172,9 @@ class CustomizableDetector(SgModule):
         conf: Optional[float] = None,
         batch_size: int = 32,
         fuse_model: bool = True,
+        target_bboxes: Optional[List[np.ndarray]] = None,
+        target_bboxes_format: Optional[str] = None,
+        target_class_ids: Optional[List[np.ndarray]] = None,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
@@ -182,7 +186,9 @@ class CustomizableDetector(SgModule):
         :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
-        return pipeline(images, batch_size=batch_size)  # type: ignore
+        return pipeline(
+            images, batch_size=batch_size, target_bboxes=target_bboxes, target_bboxes_format=target_bboxes_format, target_class_ids=target_class_ids
+        )  # type: ignore
 
     def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
         """Predict using webcam.

@@ -114,12 +114,12 @@ class ImageDetectionPrediction(ImagePrediction):
         :return:                Image with predicted bboxes. Note that this does not modify the original image.
         """
         image = self.image.copy()
+        plot_targets = any([len(tbbx) > 0 for tbbx in self.prediction.target_bboxes_xyxy])
         color_mapping = color_mapping or generate_color_mapping(len(self.class_names))
 
         for pred_i in np.argsort(self.prediction.confidence):
             class_id = int(self.prediction.labels[pred_i])
             score = "" if not show_confidence else str(round(self.prediction.confidence[pred_i], 2))
-
             image = draw_bbox(
                 image=image,
                 title=f"{self.class_names[class_id]} {score}",
@@ -130,6 +130,22 @@ class ImageDetectionPrediction(ImagePrediction):
                 x2=int(self.prediction.bboxes_xyxy[pred_i, 2]),
                 y2=int(self.prediction.bboxes_xyxy[pred_i, 3]),
             )
+
+        if plot_targets:
+            target_image = self.image.copy()
+            for target_idx in range(len(self.prediction.target_bboxes_xyxy)):
+                class_id = int(self.prediction.target_labels[target_idx])
+                target_image = draw_bbox(
+                    image=target_image,
+                    title=f"{self.class_names[class_id]}_GT",
+                    color=color_mapping[class_id],
+                    box_thickness=box_thickness * 3,
+                    x1=int(self.prediction.target_bboxes_xyxy[target_idx, 0]),
+                    y1=int(self.prediction.target_bboxes_xyxy[target_idx, 1]),
+                    x2=int(self.prediction.target_bboxes_xyxy[target_idx, 2]),
+                    y2=int(self.prediction.target_bboxes_xyxy[target_idx, 3]),
+                )
+            image = np.concatenate((image, target_image), 1)
 
         return image
 
