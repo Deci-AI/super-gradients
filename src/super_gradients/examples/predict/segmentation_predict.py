@@ -7,7 +7,7 @@ model = models.get(model_name=Models.PP_LITE_T_SEG75, arch_params={"use_aux_head
 IMAGES = [
     "../../../../documentation/source/images/examples/countryside.jpg",
     "../../../../documentation/source/images/examples/street_busy.jpg",
-    "https://cdn-attachments.timesofmalta.com/cc1eceadde40d2940bc5dd20692901371622153217-1301777007-4d978a6f-620x348.jpg",
+    "https://deci-pretrained-models.s3.amazonaws.com/sample_images/beatles-abbeyroad.jpg",
 ]
 
 predictions = model.predict(IMAGES)

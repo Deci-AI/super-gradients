@@ -1203,3 +1203,26 @@ IMAGENET_CLASSES = [
     "ear, spike, capitulum",
     "toilet tissue, toilet paper, bathroom tissue",
 ]
+
+
+CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST = [
+    "road",
+    "sidewalk",
+    "building",
+    "wall",
+    "fence",
+    "pole",
+    "traffic light",
+    "traffic sign",
+    "vegetation",
+    "terrain",
+    "sky",
+    "person",
+    "rider",
+    "car",
+    "truck",
+    "bus",
+    "train",
+    "motorcycle",
+    "bicycle",
+]

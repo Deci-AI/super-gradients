@@ -9,9 +9,10 @@ from super_gradients.common.factories.processing_factory import ProcessingFactor
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.predict import ImagesSegmentationPrediction
 from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.module_interfaces import HasPredict
 
 
-class SegmentationModule(SgModule, ABC):
+class SegmentationModule(SgModule, ABC, HasPredict):
     """
     Base SegmentationModule class
     """

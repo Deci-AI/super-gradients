@@ -9,7 +9,7 @@ import cv2
 
 from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_processing
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST, IMAGENET_CLASSES
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST, IMAGENET_CLASSES, CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST
 from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
@@ -694,7 +694,7 @@ def default_resnet_imagenet_processing_params() -> dict:
     return params
 
 
-def default_ppliteseg_cityscapes_processing_params() -> dict:
+def default_ppliteseg75_cityscapes_processing_params() -> dict:
     """Processing parameters commonly used for training ppliteseg on Cityscapes dataset."""
     image_processor = ComposeProcessing(
         [
@@ -705,27 +705,41 @@ def default_ppliteseg_cityscapes_processing_params() -> dict:
         ]
     )
     params = dict(
-        class_names=[
-            "road",
-            "sidewalk",
-            "building",
-            "wall",
-            "fence",
-            "pole",
-            "traffic light",
-            "traffic sign",
-            "vegetation",
-            "terrain",
-            "sky",
-            "person",
-            "rider",
-            "car",
-            "truck",
-            "bus",
-            "train",
-            "motorcycle",
-            "bicycle",
-        ],
+        class_names=CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST,
+        image_processor=image_processor,
+    )
+    return params
+
+
+def default_ppliteseg50_cityscapes_processing_params() -> dict:
+    """Processing parameters commonly used for training ppliteseg on Cityscapes dataset."""
+    image_processor = ComposeProcessing(
+        [
+            SegResizeWithPadding(output_shape=(512, 1024), pad_value=0),
+            NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            StandardizeImage(),
+            ImagePermute(),
+        ]
+    )
+    params = dict(
+        class_names=CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST,
+        image_processor=image_processor,
+    )
+    return params
+
+
+def default_ddrnet23_cityscapes_processing_params() -> dict:
+    """Processing parameters commonly used for training ppliteseg on Cityscapes dataset."""
+    image_processor = ComposeProcessing(
+        [
+            SegResizeWithPadding(output_shape=(1024, 2048), pad_value=0),
+            NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            StandardizeImage(),
+            ImagePermute(),
+        ]
+    )
+    params = dict(
+        class_names=CITYSCAPES_DEFAULT_SEGMENTATION_CLASSES_LIST,
         image_processor=image_processor,
     )
     return params
@@ -749,7 +763,12 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
     if pretrained_weights == "imagenet" and model_name == "resnet18":
         return default_resnet_imagenet_processing_params()
 
-    if pretrained_weights == "cityscapes" and model_name == "pp_lite_t_seg75":
-        return default_ppliteseg_cityscapes_processing_params()
+    if pretrained_weights == "cityscapes":
+        if model_name == "pp_lite_t_seg75":
+            return default_ppliteseg75_cityscapes_processing_params()
+        elif model_name == "pp_lite_t_seg50":
+            return default_ppliteseg50_cityscapes_processing_params()
+        elif model_name == "ddrnet_23":
+            return default_ddrnet23_cityscapes_processing_params()
 
     return dict()
