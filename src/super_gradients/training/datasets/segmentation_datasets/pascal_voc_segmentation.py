@@ -4,6 +4,7 @@ import numpy as np
 import scipy.io
 from PIL import Image
 from torch.utils.data import ConcatDataset
+from typing import Tuple
 
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry.registry import register_dataset
@@ -173,6 +174,13 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
                 [0, 64, 128],
             ]
         )
+
+    @property
+    def _original_dataset_image_shape(self) -> Tuple[int, int]:
+        """
+        returns image shape when data set contains images of uniform shape.
+        """
+        return 512, 512
 
 
 @register_dataset(Datasets.PASCAL_AUG_2012_SEGMENTATION_DATASET)

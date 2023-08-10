@@ -1,5 +1,5 @@
 import os
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Optional, Tuple
 
 import numpy as np
 import torch
@@ -7,7 +7,7 @@ import torchvision.transforms as transform
 from PIL import Image
 from tqdm import tqdm
 
-from super_gradients.common.object_names import Datasets
+from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
@@ -206,3 +206,29 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         """
         transformed = self.transforms({"image": image, "mask": mask})
         return transformed["image"], transformed["mask"]
+
+    @property
+    def _original_dataset_image_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Image default shape - (H,W)
+        Default shape (model's input) should be defined for additional processing that might be needed
+        when using "predict" any input-image/s can be used, the images should be rescaled to match the model's training-data shape
+        """
+        return
+
+    def get_dataset_preprocessing_params(self):
+        """
+        Return any hardcoded preprocessing + adaptation for PIL.Image image reading (RGB).
+         image_processor as returned as a list of dicts to be resolved by processing factory.
+        :return:
+        """
+        pipeline = [Processings.ImagePermute()]
+        pipeline += [{Processings.NormalizeImage: {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}}]
+        if self._original_dataset_image_shape:
+            pipeline += [{Processings.SegResizeWithPadding: {"output_shape": self._original_dataset_image_shape, "pad_value": 0}}]
+            # Resize image to same image-shape as model input. default shape should be defined in dataset class under "output_image_shape"
+        pipeline += [Processings.StandardizeImage()]
+        for t in self.transforms:
+            pipeline += t.get_equivalent_preprocessing()
+        params = dict(class_names=self.classes, image_processor={Processings.ComposeProcessing: {"processings": pipeline}})
+        return params

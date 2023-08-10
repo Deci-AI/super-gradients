@@ -23,6 +23,10 @@ from super_gradients.training.utils.predict import (
     ImageClassificationPrediction,
     ImagesClassificationPrediction,
     ClassificationPrediction,
+    ImageSegmentationPrediction,
+    ImagesSegmentationPrediction,
+    SegmentationPrediction,
+    VideoSegmentationPrediction,
 )
 from torch.nn.functional import softmax
 from super_gradients.training.utils.utils import generate_batch
@@ -442,3 +446,70 @@ class ClassificationPipeline(Pipeline):
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> ImagesClassificationPrediction:
         raise NotImplementedError("This feature is not available for Classification task")
+
+
+class SegmentationPipeline(Pipeline):
+    """Pipeline specifically designed for segmentation tasks.
+    The pipeline includes loading images, preprocessing, prediction, and postprocessing.
+
+    :param model:                       The object detection model (instance of SgModule) used for making predictions.
+    :param class_names:                 List of class names corresponding to the model's output classes.
+    :param post_prediction_callback:    Callback function to process raw predictions from the model.
+    :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
+    :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
+    :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    """
+
+    def __init__(
+        self,
+        model: SgModule,
+        class_names: List[str],
+        device: Optional[str] = None,
+        image_processor: Optional[Processing] = None,
+        fuse_model: bool = True,
+    ):
+        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
+
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
+        """Decode the model output, by applying post prediction callback. This includes NMS.
+
+        :param model_output:    Direct output of the model, without any post-processing.
+        :param model_input:     Model input (i.e. images after preprocessing).
+        :return:                Predicted Bboxes.
+        """
+
+        if type(model_output) is tuple:
+            model_output = model_output(0)
+        class_predication = torch.argmax(model_output, dim=1)
+        class_predication = class_predication.detach().cpu().numpy()
+        predictions = []
+        for prediction, image in zip(class_predication, model_input):
+            predictions.append(
+                SegmentationPrediction(
+                    segmentation_map=prediction,
+                    segmentation_map_shape=prediction.shape,
+                    image_shape=image.shape[-2:],
+                )
+            )
+
+        return predictions
+
+    def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
+        return ImageSegmentationPrediction(image=image, prediction=prediction, class_names=self.class_names)
+
+    def _combine_image_prediction_to_images(
+        self, images_predictions: Iterable[ImageSegmentationPrediction], n_images: Optional[int] = None
+    ) -> ImagesSegmentationPrediction:
+        if n_images is not None and n_images == 1:
+            # Do not show tqdm progress bar if there is only one image
+            images_predictions = [next(iter(images_predictions))]
+        else:
+            images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+
+        return ImagesSegmentationPrediction(_images_prediction_lst=images_predictions)
+
+    def _combine_image_prediction_to_video(
+        self, images_predictions: Iterable[ImageSegmentationPrediction], fps: float, n_images: Optional[int] = None
+    ) -> VideoSegmentationPrediction:
+        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
+        return VideoSegmentationPrediction(_images_prediction_lst=images_predictions, fps=fps)

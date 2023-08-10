@@ -425,3 +425,8 @@ class Processings:
     ComposeProcessing = "ComposeProcessing"
     CenterCrop = "CenterCrop"
     Resize = "Resize"
+    SegResizeWithPadding = "SegResizeWithPadding"
+    SegmentationRescale = "SegmentationRescale"
+    SegmentationResize = "SegmentationResize"
+    SegmentationPadShortToCropSize = "SegmentationPadShortToCropSize"
+    SegmentationPadToDivisible = "SegmentationPadToDivisible"
