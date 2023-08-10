@@ -17,6 +17,6 @@ dataset = COCODetectionDataset(
 x, y, _ = dataset[0]
 x = x[:, :, ::-1]
 
-predictions = model.predict(x, target_bboxes=[y[:, :4]], target_class_ids=[y[:, 4]], target_bboxes_format="xyxy")
+predictions = model.predict(x, target_bboxes=y[:, :4], target_class_ids=y[:, 4], target_bboxes_format="xyxy")
 predictions.show()
 predictions.save(output_folder="")  # Save in working directory

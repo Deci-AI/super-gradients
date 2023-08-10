@@ -280,9 +280,21 @@ class DetectionPipeline(Pipeline):
 
         :param model_output:    Direct output of the model, without any post-processing.
         :param model_input:     Model input (i.e. images after preprocessing).
+
+        :param target_bboxes: Optional[List[np.ndarray]], ground truth bounding boxes. Can either be an np.ndarray of shape
+         (image_i_object_count, 4) when predicting a single image, or a list of length len(target_bboxes), containing such arrays.
+         When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one).
+
+        :param target_class_ids: Optional[List[np.ndarray]], ground truth target class indices. Can either be an np.ndarray of shape
+         (image_i_target_count) when predicting a single image, or a list of length len(target_bboxes), containing such arrays (default=None).
+
+        :param target_bboxes_format: Optional[str], bounding box format of target_bboxes, one of ['xyxy','xywh',
+        'yxyx' 'cxcywh' 'normalized_xyxy' 'normalized_xywh', 'normalized_yxyx', 'normalized_cxcywh']. Will raise an
+        error if not None and target_bboxes is None.
+
         :return:                Predicted Bboxes.
         """
-        self._check_target_args(target_bboxes, target_bboxes_format, target_class_ids)
+        target_bboxes, target_class_ids = self._check_target_args(target_bboxes, target_bboxes_format, target_class_ids)
 
         post_nms_predictions = self.post_prediction_callback(model_output, device=self.device)
         if target_bboxes is None:
@@ -312,7 +324,11 @@ class DetectionPipeline(Pipeline):
         return predictions
 
     @staticmethod
-    def _check_target_args(target_bboxes, target_bboxes_format, target_class_ids):
+    def _check_target_args(
+        target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
+        target_bboxes_format: Optional[str] = None,
+        target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
+    ):
         if (
             (target_bboxes is None and target_bboxes_format is not None)
             or (target_bboxes is not None and target_bboxes_format is None)
@@ -320,6 +336,13 @@ class DetectionPipeline(Pipeline):
             or (target_class_ids is not None and (target_bboxes is None or target_bboxes_format is None))
         ):
             raise ValueError("target_bboxes, target_bboxes_format, and target_class_ids should either all be None or all not None.")
+
+        if isinstance(target_bboxes, np.ndarray):
+            target_bboxes = [target_bboxes]
+        if isinstance(target_class_ids, np.ndarray):
+            target_class_ids = [target_class_ids]
+
+        return target_bboxes, target_class_ids
 
     def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
         return ImageDetectionPrediction(image=image, prediction=prediction, class_names=self.class_names)
