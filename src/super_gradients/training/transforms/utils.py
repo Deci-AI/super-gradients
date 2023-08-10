@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 from dataclasses import dataclass
 import cv2
 
@@ -15,7 +15,7 @@ class PaddingCoordinates:
     right: int
 
 
-def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarray:
+def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int], interpolation_method: Optional = cv2.INTER_LINEAR) -> np.ndarray:
     """Rescale image to target_shape, without preserving aspect ratio.
 
     :param image:           Image to rescale. (H, W, C) or (H, W).
@@ -23,7 +23,7 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarr
     :return:                Rescaled image.
     """
     height, width = target_shape[:2]
-    return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_LINEAR)
+    return cv2.resize(image, dsize=(width, height), interpolation=interpolation_method)
 
 
 def _rescale_bboxes(targets: np.ndarray, scale_factors: Tuple[float, float]) -> np.ndarray:

@@ -5,6 +5,7 @@ from typing import Tuple, List, Union, Optional
 import numpy as np
 from PIL import Image
 import math
+import cv2
 
 from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_processing
@@ -403,7 +404,9 @@ class SegResizeWithPadding(Processing):
             metadata.padding_coordinates.top : predictions.segmentation_map_shape[0] - metadata.padding_coordinates.bottom,
             metadata.padding_coordinates.left : predictions.segmentation_map_shape[1] - metadata.padding_coordinates.right,
         ]
-        predictions.segmentation_map = _rescale_image(predictions.segmentation_map.astype(np.uint8), target_shape=metadata.original_shape)
+        predictions.segmentation_map = _rescale_image(
+            predictions.segmentation_map.astype(np.uint8), target_shape=metadata.original_shape, interpolation_method=cv2.INTER_NEAREST
+        )
         predictions.segmentation_map = predictions.segmentation_map.astype(np.int64)
         return predictions
 
@@ -437,7 +440,9 @@ class SegmentationRescale(Processing):
         return resized_image, SegmentationResizeMetadata(original_shape=(height, width))
 
     def postprocess_predictions(self, predictions: SegmentationPrediction, metadata: SegmentationResizeMetadata) -> SegmentationPrediction:
-        predictions.segmentation_map = _rescale_image(predictions.segmentation_map.astype(np.uint8), target_shape=metadata.original_shape)
+        predictions.segmentation_map = _rescale_image(
+            predictions.segmentation_map.astype(np.uint8), target_shape=metadata.original_shape, interpolation_method=cv2.INTER_NEAREST
+        )
         predictions.segmentation_map = predictions.segmentation_map.astype(np.int64)
         return predictions
 
@@ -459,7 +464,9 @@ class SegmentationResize(Processing):
         return image, SegmentationResizeMetadata(original_shape=(height, width))
 
     def postprocess_predictions(self, predictions: SegmentationPrediction, metadata: SegmentationResizeMetadata) -> SegmentationPrediction:
-        predictions.segmentation_map = _rescale_image(predictions.segmentation_map.astype(np.uint8), target_shape=metadata.original_shape)
+        predictions.segmentation_map = _rescale_image(
+            predictions.segmentation_map.astype(np.uint8), target_shape=metadata.original_shape, interpolation_method=cv2.INTER_NEAREST
+        )
         predictions.segmentation_map = predictions.segmentation_map.astype(np.int64)
         return predictions
 
