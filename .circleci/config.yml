@@ -203,7 +203,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             . venv/bin/activate
-            python3 -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
+            python3 -m pip install pytorch-quantization==2.1.2 onnx_graphsurgeon>=0.3.8,<0.4 --extra-index-url https://pypi.ngc.nvidia.com
 
       - run:
           name: run tests with coverage
