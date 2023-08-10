@@ -39,6 +39,7 @@ nav:
   - Automatic Mixed Precision (AMP): ./documentation/source/average_mixed_precision.md
   - Knowledge Distillation (KD): ./documentation/source/KD.md
   - Quantization (PTQ & QAT): ./documentation/source/ptq_qat.md
+  - Model Export (ONNX & TensorRT): ./documentation/source/models_export.md
 - Troubleshooting: ./documentation/source/troubleshooting.md
 - Contribution: ./documentation/source/CONTRIBUTING.md
 - Code: this_is_automatically_generated.md
