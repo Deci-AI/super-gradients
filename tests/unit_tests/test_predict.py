@@ -39,6 +39,14 @@ class TestModelPredict(unittest.TestCase):
             predictions.show()
             predictions.save(output_folder=tmp_dirname)
 
+    def test_segmentation_model(self):
+        model = models.get(model_name=Models.PP_LITE_T_SEG75, arch_params={"use_aux_heads": False}, num_classes=19, pretrained_weights="cityscapes")
+
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            predictions = model.predict(self.images)
+            predictions.show()
+            predictions.save(output_folder=tmp_dirname)
+
 
 if __name__ == "__main__":
     unittest.main()

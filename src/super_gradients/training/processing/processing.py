@@ -544,6 +544,9 @@ class SegResizeWithPadding(Processing):
         predictions.segmentation_map = predictions.segmentation_map.astype(np.int64)
         return predictions
 
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
 
 @register_processing(Processings.SegmentationRescale)
 class SegmentationRescale(Processing):
@@ -580,6 +583,9 @@ class SegmentationRescale(Processing):
         predictions.segmentation_map = predictions.segmentation_map.astype(np.int64)
         return predictions
 
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
 
 @register_processing(Processings.SegmentationResize)
 class SegmentationResize(Processing):
@@ -603,6 +609,9 @@ class SegmentationResize(Processing):
         )
         predictions.segmentation_map = predictions.segmentation_map.astype(np.int64)
         return predictions
+
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
 
 
 @register_processing(Processings.SegmentationPadShortToCropSize)
@@ -634,6 +643,9 @@ class SegmentationPadShortToCropSize(Processing):
         ]
         return predictions
 
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
 
 @register_processing(Processings.SegmentationPadToDivisible)
 class SegmentationPadToDivisible(Processing):
@@ -664,6 +676,9 @@ class SegmentationPadToDivisible(Processing):
             metadata.padding_coordinates.left : predictions.segmentation_map_shape[1] - metadata.padding_coordinates.right,
         ]
         return predictions
+
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
 
 
 def default_yolox_coco_processing_params() -> dict:
