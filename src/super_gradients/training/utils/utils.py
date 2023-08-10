@@ -14,6 +14,9 @@ from itertools import islice
 from pathlib import Path
 from typing import Mapping, Optional, Tuple, Union, List, Dict, Any, Iterable
 from zipfile import ZipFile
+
+from pytorch_quantization.nn.modules._utils import QuantMixin
+from super_gradients.training.utils.quantization.core import SGQuantMixin
 from torch.nn.parallel import DistributedDataParallel
 
 import numpy as np
@@ -623,3 +626,57 @@ def ensure_is_tuple_of_two(inputs: Union[Any, Iterable[Any], None]) -> Union[Tup
         return a, b
 
     return inputs, inputs
+
+
+def infer_model_dtype(model: nn.Module) -> Optional[torch.device]:
+    """
+    Get the device where the model's parameters are stored.
+    This function returns device of the first parameter of the model, assuming there is no
+    cross-device parameter movement inside the model.
+    :param model: Model to get the device from.
+    :return: Device where the model's parameters are stored.
+             The function may return None if the model has no parameters or buffers.
+    """
+    try:
+        first_parameter = next(iter(model.parameters()))
+        return first_parameter.dtype
+    except StopIteration:
+        try:
+            first_buffer = next(iter(model.buffers()))
+            return first_buffer.dtype
+        except StopIteration:
+            return None
+
+
+def infer_model_device(model: nn.Module) -> Optional[torch.device]:
+    """
+    Get the device where the model's parameters are stored.
+    This function returns device of the first parameter of the model, assuming there is no
+    cross-device parameter movement inside the model.
+    :param model: Model to get the device from.
+    :return: Device where the model's parameters are stored.
+             The function may return None if the model has no parameters or buffers.
+    """
+    try:
+        first_parameter = next(iter(model.parameters()))
+        return first_parameter.device
+    except StopIteration:
+        try:
+            first_buffer = next(iter(model.buffers()))
+            return first_buffer.device
+        except StopIteration:
+            return None
+
+
+def check_model_contains_quantized_modules(model: nn.Module) -> bool:
+    """
+    Check if the model contains any quantized modules.
+    :param model: Model to check.
+    :return: True if the model contains any quantized modules, False otherwise.
+    """
+    model = unwrap_model(model)
+    for m in model.modules():
+        if isinstance(m, (QuantMixin, SGQuantMixin)):
+            return True
+
+    return False
