@@ -3,6 +3,7 @@ import warnings
 from typing import Union, Type, List, Tuple, Optional
 from functools import lru_cache
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -177,7 +178,7 @@ class DetectX(nn.Module):
     def __init__(
         self,
         num_classes: int,
-        stride: torch.Tensor,
+        stride: np.ndarray,
         activation_func_type: type,
         channels: list,
         depthwise=False,
@@ -203,7 +204,7 @@ class DetectX(nn.Module):
         self.n_anchors = 1
         self.grid = [torch.zeros(1)] * self.detection_layers_num  # init grid
 
-        self.register_buffer("stride", stride)
+        self.register_buffer("stride", torch.tensor(stride), persistent=False)
 
         self.cls_convs = nn.ModuleList()
         self.reg_convs = nn.ModuleList()
@@ -409,7 +410,7 @@ class YoloHead(nn.Module):
         )  # 24
 
         self._shortcuts = nn.ModuleList([CrossModelSkipConnection() for _ in range(len(self._skip_connections_dict.keys()) - 1)])
-        self.anchors = anchors
+
         self.width_mult = width_mult
 
     def forward(self, intermediate_output):
@@ -481,6 +482,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         self._image_processor: Optional[Processing] = None
         self._default_nms_iou: Optional[float] = None
         self._default_nms_conf: Optional[float] = None
+        self.register_buffer("strides", torch.tensor(self.arch_params.anchors.stride), persistent=False)
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
@@ -617,7 +619,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         if not torch.equal(m.stride, stride):
             raise RuntimeError("Provided anchor strides do not match the model strides")
 
-        self.register_buffer("stride", m.stride)  # USED ONLY FOR CONVERSION
+        # self.register_buffer("stride", m.stride)  # USED ONLY FOR CONVERSION
 
     def _initialize_biases(self):
         """initialize biases into DetectX()"""
@@ -650,7 +652,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         assert not self.training, "model has to be in eval mode to be converted"
 
         # Verify dummy_input from converter is of multiple of the grid size
-        max_stride = int(max(self.stride))
+        max_stride = int(max(self.strides))
 
         # Validate the image size
         image_dims = input_size[-2:]  # assume torch uses channels first layout

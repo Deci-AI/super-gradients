@@ -44,6 +44,12 @@ def transfer_weights(model: nn.Module, model_state_dict: Mapping[str, Tensor]) -
             pass
 
 
+def maybe_remove_module_prefix(state_dict):
+    if all([key.startswith("module.") for key in state_dict.keys()]):
+        state_dict = collections.OrderedDict([(key[7:], value) for key, value in state_dict.items()])
+    return state_dict
+
+
 def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Union[bool, StrictLoad], solver=None):
     """
     Adaptively loads state_dict to net, by adapting the state_dict to net's layer names first.
@@ -59,8 +65,7 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Uni
     # This is a backward compatibility fix for checkpoints that were saved with DataParallel/DistributedDataParallel wrapper
     # and contains "module." prefix in all keys
     # If all keys start with "module.", then we remove it.
-    if all([key.startswith("module.") for key in state_dict.keys()]):
-        state_dict = collections.OrderedDict([(key[7:], value) for key, value in state_dict.items()])
+    state_dict = maybe_remove_module_prefix(state_dict)
 
     try:
         strict_bool = strict if isinstance(strict, bool) else strict != StrictLoad.OFF
@@ -156,6 +161,427 @@ def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> Mapping[str, torch.Ten
         return state_dict
 
 
+class DefaultCheckpointSolver:
+    def __call__(self, model_state_dict: Mapping[str, Tensor], checkpoint_state_dict: Mapping[str, Tensor]) -> Mapping[str, Tensor]:
+        new_ckpt_dict = {}
+        for (ckpt_key, ckpt_val), (model_key, model_val) in zip(checkpoint_state_dict.items(), model_state_dict.items()):
+
+            if ckpt_val.shape != model_val.shape:
+                raise ValueError(f"ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}" f" with shape {model_val.shape} in the model")
+            new_ckpt_dict[model_key] = ckpt_val
+        return {"net": new_ckpt_dict}
+
+
+class YoloXCheckpointSolver:
+    def __init__(self):
+        self.layers_rename_table = {
+            "_backbone._modules_list.0.conv.bn.weight": "_backbone._modules_list.0.bn.weight",
+            "_backbone._modules_list.0.conv.bn.bias": "_backbone._modules_list.0.bn.bias",
+            "_backbone._modules_list.0.conv.bn.running_mean": "_backbone._modules_list.0.bn.running_mean",
+            "_backbone._modules_list.0.conv.bn.running_var": "_backbone._modules_list.0.bn.running_var",
+            "_backbone._modules_list.0.conv.bn.num_batches_tracked": "_backbone._modules_list.0.bn.num_batches_tracked",
+            "_backbone._modules_list.1.conv.weight": "_backbone._modules_list.1.conv.weight",
+            "_backbone._modules_list.1.bn.weight": "_backbone._modules_list.1.bn.weight",
+            "_backbone._modules_list.1.bn.bias": "_backbone._modules_list.1.bn.bias",
+            "_backbone._modules_list.1.bn.running_mean": "_backbone._modules_list.1.bn.running_mean",
+            "_backbone._modules_list.1.bn.running_var": "_backbone._modules_list.1.bn.running_var",
+            "_backbone._modules_list.1.bn.num_batches_tracked": "_backbone._modules_list.1.bn.num_batches_tracked",
+            "_backbone._modules_list.2.cv1.conv.weight": "_backbone._modules_list.2.conv1.conv.weight",
+            "_backbone._modules_list.2.cv1.bn.weight": "_backbone._modules_list.2.conv1.bn.weight",
+            "_backbone._modules_list.2.cv1.bn.bias": "_backbone._modules_list.2.conv1.bn.bias",
+            "_backbone._modules_list.2.cv1.bn.running_mean": "_backbone._modules_list.2.conv1.bn.running_mean",
+            "_backbone._modules_list.2.cv1.bn.running_var": "_backbone._modules_list.2.conv1.bn.running_var",
+            "_backbone._modules_list.2.cv1.bn.num_batches_tracked": "_backbone._modules_list.2.conv1.bn.num_batches_tracked",
+            "_backbone._modules_list.2.cv2.conv.weight": "_backbone._modules_list.2.conv2.conv.weight",
+            "_backbone._modules_list.2.cv2.bn.weight": "_backbone._modules_list.2.conv2.bn.weight",
+            "_backbone._modules_list.2.cv2.bn.bias": "_backbone._modules_list.2.conv2.bn.bias",
+            "_backbone._modules_list.2.cv2.bn.running_mean": "_backbone._modules_list.2.conv2.bn.running_mean",
+            "_backbone._modules_list.2.cv2.bn.running_var": "_backbone._modules_list.2.conv2.bn.running_var",
+            "_backbone._modules_list.2.cv2.bn.num_batches_tracked": "_backbone._modules_list.2.conv2.bn.num_batches_tracked",
+            "_backbone._modules_list.2.cv3.conv.weight": "_backbone._modules_list.2.conv3.conv.weight",
+            "_backbone._modules_list.2.cv3.bn.weight": "_backbone._modules_list.2.conv3.bn.weight",
+            "_backbone._modules_list.2.cv3.bn.bias": "_backbone._modules_list.2.conv3.bn.bias",
+            "_backbone._modules_list.2.cv3.bn.running_mean": "_backbone._modules_list.2.conv3.bn.running_mean",
+            "_backbone._modules_list.2.cv3.bn.running_var": "_backbone._modules_list.2.conv3.bn.running_var",
+            "_backbone._modules_list.2.cv3.bn.num_batches_tracked": "_backbone._modules_list.2.conv3.bn.num_batches_tracked",
+            "_backbone._modules_list.2.m.0.cv1.conv.weight": "_backbone._modules_list.2.bottlenecks.0.cv1.conv.weight",
+            "_backbone._modules_list.2.m.0.cv1.bn.weight": "_backbone._modules_list.2.bottlenecks.0.cv1.bn.weight",
+            "_backbone._modules_list.2.m.0.cv1.bn.bias": "_backbone._modules_list.2.bottlenecks.0.cv1.bn.bias",
+            "_backbone._modules_list.2.m.0.cv1.bn.running_mean": "_backbone._modules_list.2.bottlenecks.0.cv1.bn.running_mean",
+            "_backbone._modules_list.2.m.0.cv1.bn.running_var": "_backbone._modules_list.2.bottlenecks.0.cv1.bn.running_var",
+            "_backbone._modules_list.2.m.0.cv1.bn.num_batches_tracked": "_backbone._modules_list.2.bottlenecks.0.cv1.bn.num_batches_tracked",
+            "_backbone._modules_list.2.m.0.cv2.conv.weight": "_backbone._modules_list.2.bottlenecks.0.cv2.conv.weight",
+            "_backbone._modules_list.2.m.0.cv2.bn.weight": "_backbone._modules_list.2.bottlenecks.0.cv2.bn.weight",
+            "_backbone._modules_list.2.m.0.cv2.bn.bias": "_backbone._modules_list.2.bottlenecks.0.cv2.bn.bias",
+            "_backbone._modules_list.2.m.0.cv2.bn.running_mean": "_backbone._modules_list.2.bottlenecks.0.cv2.bn.running_mean",
+            "_backbone._modules_list.2.m.0.cv2.bn.running_var": "_backbone._modules_list.2.bottlenecks.0.cv2.bn.running_var",
+            "_backbone._modules_list.2.m.0.cv2.bn.num_batches_tracked": "_backbone._modules_list.2.bottlenecks.0.cv2.bn.num_batches_tracked",
+            "_backbone._modules_list.3.conv.weight": "_backbone._modules_list.3.conv.weight",
+            "_backbone._modules_list.3.bn.weight": "_backbone._modules_list.3.bn.weight",
+            "_backbone._modules_list.3.bn.bias": "_backbone._modules_list.3.bn.bias",
+            "_backbone._modules_list.3.bn.running_mean": "_backbone._modules_list.3.bn.running_mean",
+            "_backbone._modules_list.3.bn.running_var": "_backbone._modules_list.3.bn.running_var",
+            "_backbone._modules_list.3.bn.num_batches_tracked": "_backbone._modules_list.3.bn.num_batches_tracked",
+            "_backbone._modules_list.4.cv1.conv.weight": "_backbone._modules_list.4.conv1.conv.weight",
+            "_backbone._modules_list.4.cv1.bn.weight": "_backbone._modules_list.4.conv1.bn.weight",
+            "_backbone._modules_list.4.cv1.bn.bias": "_backbone._modules_list.4.conv1.bn.bias",
+            "_backbone._modules_list.4.cv1.bn.running_mean": "_backbone._modules_list.4.conv1.bn.running_mean",
+            "_backbone._modules_list.4.cv1.bn.running_var": "_backbone._modules_list.4.conv1.bn.running_var",
+            "_backbone._modules_list.4.cv1.bn.num_batches_tracked": "_backbone._modules_list.4.conv1.bn.num_batches_tracked",
+            "_backbone._modules_list.4.cv2.conv.weight": "_backbone._modules_list.4.conv2.conv.weight",
+            "_backbone._modules_list.4.cv2.bn.weight": "_backbone._modules_list.4.conv2.bn.weight",
+            "_backbone._modules_list.4.cv2.bn.bias": "_backbone._modules_list.4.conv2.bn.bias",
+            "_backbone._modules_list.4.cv2.bn.running_mean": "_backbone._modules_list.4.conv2.bn.running_mean",
+            "_backbone._modules_list.4.cv2.bn.running_var": "_backbone._modules_list.4.conv2.bn.running_var",
+            "_backbone._modules_list.4.cv2.bn.num_batches_tracked": "_backbone._modules_list.4.conv2.bn.num_batches_tracked",
+            "_backbone._modules_list.4.cv3.conv.weight": "_backbone._modules_list.4.conv3.conv.weight",
+            "_backbone._modules_list.4.cv3.bn.weight": "_backbone._modules_list.4.conv3.bn.weight",
+            "_backbone._modules_list.4.cv3.bn.bias": "_backbone._modules_list.4.conv3.bn.bias",
+            "_backbone._modules_list.4.cv3.bn.running_mean": "_backbone._modules_list.4.conv3.bn.running_mean",
+            "_backbone._modules_list.4.cv3.bn.running_var": "_backbone._modules_list.4.conv3.bn.running_var",
+            "_backbone._modules_list.4.cv3.bn.num_batches_tracked": "_backbone._modules_list.4.conv3.bn.num_batches_tracked",
+            "_backbone._modules_list.4.m.0.cv1.conv.weight": "_backbone._modules_list.4.bottlenecks.0.cv1.conv.weight",
+            "_backbone._modules_list.4.m.0.cv1.bn.weight": "_backbone._modules_list.4.bottlenecks.0.cv1.bn.weight",
+            "_backbone._modules_list.4.m.0.cv1.bn.bias": "_backbone._modules_list.4.bottlenecks.0.cv1.bn.bias",
+            "_backbone._modules_list.4.m.0.cv1.bn.running_mean": "_backbone._modules_list.4.bottlenecks.0.cv1.bn.running_mean",
+            "_backbone._modules_list.4.m.0.cv1.bn.running_var": "_backbone._modules_list.4.bottlenecks.0.cv1.bn.running_var",
+            "_backbone._modules_list.4.m.0.cv1.bn.num_batches_tracked": "_backbone._modules_list.4.bottlenecks.0.cv1.bn.num_batches_tracked",
+            "_backbone._modules_list.4.m.0.cv2.conv.weight": "_backbone._modules_list.4.bottlenecks.0.cv2.conv.weight",
+            "_backbone._modules_list.4.m.0.cv2.bn.weight": "_backbone._modules_list.4.bottlenecks.0.cv2.bn.weight",
+            "_backbone._modules_list.4.m.0.cv2.bn.bias": "_backbone._modules_list.4.bottlenecks.0.cv2.bn.bias",
+            "_backbone._modules_list.4.m.0.cv2.bn.running_mean": "_backbone._modules_list.4.bottlenecks.0.cv2.bn.running_mean",
+            "_backbone._modules_list.4.m.0.cv2.bn.running_var": "_backbone._modules_list.4.bottlenecks.0.cv2.bn.running_var",
+            "_backbone._modules_list.4.m.0.cv2.bn.num_batches_tracked": "_backbone._modules_list.4.bottlenecks.0.cv2.bn.num_batches_tracked",
+            "_backbone._modules_list.4.m.1.cv1.conv.weight": "_backbone._modules_list.4.bottlenecks.1.cv1.conv.weight",
+            "_backbone._modules_list.4.m.1.cv1.bn.weight": "_backbone._modules_list.4.bottlenecks.1.cv1.bn.weight",
+            "_backbone._modules_list.4.m.1.cv1.bn.bias": "_backbone._modules_list.4.bottlenecks.1.cv1.bn.bias",
+            "_backbone._modules_list.4.m.1.cv1.bn.running_mean": "_backbone._modules_list.4.bottlenecks.1.cv1.bn.running_mean",
+            "_backbone._modules_list.4.m.1.cv1.bn.running_var": "_backbone._modules_list.4.bottlenecks.1.cv1.bn.running_var",
+            "_backbone._modules_list.4.m.1.cv1.bn.num_batches_tracked": "_backbone._modules_list.4.bottlenecks.1.cv1.bn.num_batches_tracked",
+            "_backbone._modules_list.4.m.1.cv2.conv.weight": "_backbone._modules_list.4.bottlenecks.1.cv2.conv.weight",
+            "_backbone._modules_list.4.m.1.cv2.bn.weight": "_backbone._modules_list.4.bottlenecks.1.cv2.bn.weight",
+            "_backbone._modules_list.4.m.1.cv2.bn.bias": "_backbone._modules_list.4.bottlenecks.1.cv2.bn.bias",
+            "_backbone._modules_list.4.m.1.cv2.bn.running_mean": "_backbone._modules_list.4.bottlenecks.1.cv2.bn.running_mean",
+            "_backbone._modules_list.4.m.1.cv2.bn.running_var": "_backbone._modules_list.4.bottlenecks.1.cv2.bn.running_var",
+            "_backbone._modules_list.4.m.1.cv2.bn.num_batches_tracked": "_backbone._modules_list.4.bottlenecks.1.cv2.bn.num_batches_tracked",
+            "_backbone._modules_list.4.m.2.cv1.conv.weight": "_backbone._modules_list.4.bottlenecks.2.cv1.conv.weight",
+            "_backbone._modules_list.4.m.2.cv1.bn.weight": "_backbone._modules_list.4.bottlenecks.2.cv1.bn.weight",
+            "_backbone._modules_list.4.m.2.cv1.bn.bias": "_backbone._modules_list.4.bottlenecks.2.cv1.bn.bias",
+            "_backbone._modules_list.4.m.2.cv1.bn.running_mean": "_backbone._modules_list.4.bottlenecks.2.cv1.bn.running_mean",
+            "_backbone._modules_list.4.m.2.cv1.bn.running_var": "_backbone._modules_list.4.bottlenecks.2.cv1.bn.running_var",
+            "_backbone._modules_list.4.m.2.cv1.bn.num_batches_tracked": "_backbone._modules_list.4.bottlenecks.2.cv1.bn.num_batches_tracked",
+            "_backbone._modules_list.4.m.2.cv2.conv.weight": "_backbone._modules_list.4.bottlenecks.2.cv2.conv.weight",
+            "_backbone._modules_list.4.m.2.cv2.bn.weight": "_backbone._modules_list.4.bottlenecks.2.cv2.bn.weight",
+            "_backbone._modules_list.4.m.2.cv2.bn.bias": "_backbone._modules_list.4.bottlenecks.2.cv2.bn.bias",
+            "_backbone._modules_list.4.m.2.cv2.bn.running_mean": "_backbone._modules_list.4.bottlenecks.2.cv2.bn.running_mean",
+            "_backbone._modules_list.4.m.2.cv2.bn.running_var": "_backbone._modules_list.4.bottlenecks.2.cv2.bn.running_var",
+            "_backbone._modules_list.4.m.2.cv2.bn.num_batches_tracked": "_backbone._modules_list.4.bottlenecks.2.cv2.bn.num_batches_tracked",
+            "_backbone._modules_list.5.conv.weight": "_backbone._modules_list.5.conv.weight",
+            "_backbone._modules_list.5.bn.weight": "_backbone._modules_list.5.bn.weight",
+            "_backbone._modules_list.5.bn.bias": "_backbone._modules_list.5.bn.bias",
+            "_backbone._modules_list.5.bn.running_mean": "_backbone._modules_list.5.bn.running_mean",
+            "_backbone._modules_list.5.bn.running_var": "_backbone._modules_list.5.bn.running_var",
+            "_backbone._modules_list.5.bn.num_batches_tracked": "_backbone._modules_list.5.bn.num_batches_tracked",
+            "_backbone._modules_list.6.cv1.conv.weight": "_backbone._modules_list.6.conv1.conv.weight",
+            "_backbone._modules_list.6.cv1.bn.weight": "_backbone._modules_list.6.conv1.bn.weight",
+            "_backbone._modules_list.6.cv1.bn.bias": "_backbone._modules_list.6.conv1.bn.bias",
+            "_backbone._modules_list.6.cv1.bn.running_mean": "_backbone._modules_list.6.conv1.bn.running_mean",
+            "_backbone._modules_list.6.cv1.bn.running_var": "_backbone._modules_list.6.conv1.bn.running_var",
+            "_backbone._modules_list.6.cv1.bn.num_batches_tracked": "_backbone._modules_list.6.conv1.bn.num_batches_tracked",
+            "_backbone._modules_list.6.cv2.conv.weight": "_backbone._modules_list.6.conv2.conv.weight",
+            "_backbone._modules_list.6.cv2.bn.weight": "_backbone._modules_list.6.conv2.bn.weight",
+            "_backbone._modules_list.6.cv2.bn.bias": "_backbone._modules_list.6.conv2.bn.bias",
+            "_backbone._modules_list.6.cv2.bn.running_mean": "_backbone._modules_list.6.conv2.bn.running_mean",
+            "_backbone._modules_list.6.cv2.bn.running_var": "_backbone._modules_list.6.conv2.bn.running_var",
+            "_backbone._modules_list.6.cv2.bn.num_batches_tracked": "_backbone._modules_list.6.conv2.bn.num_batches_tracked",
+            "_backbone._modules_list.6.cv3.conv.weight": "_backbone._modules_list.6.conv3.conv.weight",
+            "_backbone._modules_list.6.cv3.bn.weight": "_backbone._modules_list.6.conv3.bn.weight",
+            "_backbone._modules_list.6.cv3.bn.bias": "_backbone._modules_list.6.conv3.bn.bias",
+            "_backbone._modules_list.6.cv3.bn.running_mean": "_backbone._modules_list.6.conv3.bn.running_mean",
+            "_backbone._modules_list.6.cv3.bn.running_var": "_backbone._modules_list.6.conv3.bn.running_var",
+            "_backbone._modules_list.6.cv3.bn.num_batches_tracked": "_backbone._modules_list.6.conv3.bn.num_batches_tracked",
+            "_backbone._modules_list.6.m.0.cv1.conv.weight": "_backbone._modules_list.6.bottlenecks.0.cv1.conv.weight",
+            "_backbone._modules_list.6.m.0.cv1.bn.weight": "_backbone._modules_list.6.bottlenecks.0.cv1.bn.weight",
+            "_backbone._modules_list.6.m.0.cv1.bn.bias": "_backbone._modules_list.6.bottlenecks.0.cv1.bn.bias",
+            "_backbone._modules_list.6.m.0.cv1.bn.running_mean": "_backbone._modules_list.6.bottlenecks.0.cv1.bn.running_mean",
+            "_backbone._modules_list.6.m.0.cv1.bn.running_var": "_backbone._modules_list.6.bottlenecks.0.cv1.bn.running_var",
+            "_backbone._modules_list.6.m.0.cv1.bn.num_batches_tracked": "_backbone._modules_list.6.bottlenecks.0.cv1.bn.num_batches_tracked",
+            "_backbone._modules_list.6.m.0.cv2.conv.weight": "_backbone._modules_list.6.bottlenecks.0.cv2.conv.weight",
+            "_backbone._modules_list.6.m.0.cv2.bn.weight": "_backbone._modules_list.6.bottlenecks.0.cv2.bn.weight",
+            "_backbone._modules_list.6.m.0.cv2.bn.bias": "_backbone._modules_list.6.bottlenecks.0.cv2.bn.bias",
+            "_backbone._modules_list.6.m.0.cv2.bn.running_mean": "_backbone._modules_list.6.bottlenecks.0.cv2.bn.running_mean",
+            "_backbone._modules_list.6.m.0.cv2.bn.running_var": "_backbone._modules_list.6.bottlenecks.0.cv2.bn.running_var",
+            "_backbone._modules_list.6.m.0.cv2.bn.num_batches_tracked": "_backbone._modules_list.6.bottlenecks.0.cv2.bn.num_batches_tracked",
+            "_backbone._modules_list.6.m.1.cv1.conv.weight": "_backbone._modules_list.6.bottlenecks.1.cv1.conv.weight",
+            "_backbone._modules_list.6.m.1.cv1.bn.weight": "_backbone._modules_list.6.bottlenecks.1.cv1.bn.weight",
+            "_backbone._modules_list.6.m.1.cv1.bn.bias": "_backbone._modules_list.6.bottlenecks.1.cv1.bn.bias",
+            "_backbone._modules_list.6.m.1.cv1.bn.running_mean": "_backbone._modules_list.6.bottlenecks.1.cv1.bn.running_mean",
+            "_backbone._modules_list.6.m.1.cv1.bn.running_var": "_backbone._modules_list.6.bottlenecks.1.cv1.bn.running_var",
+            "_backbone._modules_list.6.m.1.cv1.bn.num_batches_tracked": "_backbone._modules_list.6.bottlenecks.1.cv1.bn.num_batches_tracked",
+            "_backbone._modules_list.6.m.1.cv2.conv.weight": "_backbone._modules_list.6.bottlenecks.1.cv2.conv.weight",
+            "_backbone._modules_list.6.m.1.cv2.bn.weight": "_backbone._modules_list.6.bottlenecks.1.cv2.bn.weight",
+            "_backbone._modules_list.6.m.1.cv2.bn.bias": "_backbone._modules_list.6.bottlenecks.1.cv2.bn.bias",
+            "_backbone._modules_list.6.m.1.cv2.bn.running_mean": "_backbone._modules_list.6.bottlenecks.1.cv2.bn.running_mean",
+            "_backbone._modules_list.6.m.1.cv2.bn.running_var": "_backbone._modules_list.6.bottlenecks.1.cv2.bn.running_var",
+            "_backbone._modules_list.6.m.1.cv2.bn.num_batches_tracked": "_backbone._modules_list.6.bottlenecks.1.cv2.bn.num_batches_tracked",
+            "_backbone._modules_list.6.m.2.cv1.conv.weight": "_backbone._modules_list.6.bottlenecks.2.cv1.conv.weight",
+            "_backbone._modules_list.6.m.2.cv1.bn.weight": "_backbone._modules_list.6.bottlenecks.2.cv1.bn.weight",
+            "_backbone._modules_list.6.m.2.cv1.bn.bias": "_backbone._modules_list.6.bottlenecks.2.cv1.bn.bias",
+            "_backbone._modules_list.6.m.2.cv1.bn.running_mean": "_backbone._modules_list.6.bottlenecks.2.cv1.bn.running_mean",
+            "_backbone._modules_list.6.m.2.cv1.bn.running_var": "_backbone._modules_list.6.bottlenecks.2.cv1.bn.running_var",
+            "_backbone._modules_list.6.m.2.cv1.bn.num_batches_tracked": "_backbone._modules_list.6.bottlenecks.2.cv1.bn.num_batches_tracked",
+            "_backbone._modules_list.6.m.2.cv2.conv.weight": "_backbone._modules_list.6.bottlenecks.2.cv2.conv.weight",
+            "_backbone._modules_list.6.m.2.cv2.bn.weight": "_backbone._modules_list.6.bottlenecks.2.cv2.bn.weight",
+            "_backbone._modules_list.6.m.2.cv2.bn.bias": "_backbone._modules_list.6.bottlenecks.2.cv2.bn.bias",
+            "_backbone._modules_list.6.m.2.cv2.bn.running_mean": "_backbone._modules_list.6.bottlenecks.2.cv2.bn.running_mean",
+            "_backbone._modules_list.6.m.2.cv2.bn.running_var": "_backbone._modules_list.6.bottlenecks.2.cv2.bn.running_var",
+            "_backbone._modules_list.6.m.2.cv2.bn.num_batches_tracked": "_backbone._modules_list.6.bottlenecks.2.cv2.bn.num_batches_tracked",
+            "_backbone._modules_list.7.conv.weight": "_backbone._modules_list.7.conv.weight",
+            "_backbone._modules_list.7.bn.weight": "_backbone._modules_list.7.bn.weight",
+            "_backbone._modules_list.7.bn.bias": "_backbone._modules_list.7.bn.bias",
+            "_backbone._modules_list.7.bn.running_mean": "_backbone._modules_list.7.bn.running_mean",
+            "_backbone._modules_list.7.bn.running_var": "_backbone._modules_list.7.bn.running_var",
+            "_backbone._modules_list.7.bn.num_batches_tracked": "_backbone._modules_list.7.bn.num_batches_tracked",
+            "_backbone._modules_list.8.cv1.conv.weight": "_backbone._modules_list.8.cv1.conv.weight",
+            "_backbone._modules_list.8.cv1.bn.weight": "_backbone._modules_list.8.cv1.bn.weight",
+            "_backbone._modules_list.8.cv1.bn.bias": "_backbone._modules_list.8.cv1.bn.bias",
+            "_backbone._modules_list.8.cv1.bn.running_mean": "_backbone._modules_list.8.cv1.bn.running_mean",
+            "_backbone._modules_list.8.cv1.bn.running_var": "_backbone._modules_list.8.cv1.bn.running_var",
+            "_backbone._modules_list.8.cv1.bn.num_batches_tracked": "_backbone._modules_list.8.cv1.bn.num_batches_tracked",
+            "_backbone._modules_list.8.cv2.conv.weight": "_backbone._modules_list.8.cv2.conv.weight",
+            "_backbone._modules_list.8.cv2.bn.weight": "_backbone._modules_list.8.cv2.bn.weight",
+            "_backbone._modules_list.8.cv2.bn.bias": "_backbone._modules_list.8.cv2.bn.bias",
+            "_backbone._modules_list.8.cv2.bn.running_mean": "_backbone._modules_list.8.cv2.bn.running_mean",
+            "_backbone._modules_list.8.cv2.bn.running_var": "_backbone._modules_list.8.cv2.bn.running_var",
+            "_backbone._modules_list.8.cv2.bn.num_batches_tracked": "_backbone._modules_list.8.cv2.bn.num_batches_tracked",
+            "_backbone._modules_list.9.cv1.conv.weight": "_backbone._modules_list.9.conv1.conv.weight",
+            "_backbone._modules_list.9.cv1.bn.weight": "_backbone._modules_list.9.conv1.bn.weight",
+            "_backbone._modules_list.9.cv1.bn.bias": "_backbone._modules_list.9.conv1.bn.bias",
+            "_backbone._modules_list.9.cv1.bn.running_mean": "_backbone._modules_list.9.conv1.bn.running_mean",
+            "_backbone._modules_list.9.cv1.bn.running_var": "_backbone._modules_list.9.conv1.bn.running_var",
+            "_backbone._modules_list.9.cv1.bn.num_batches_tracked": "_backbone._modules_list.9.conv1.bn.num_batches_tracked",
+            "_backbone._modules_list.9.cv2.conv.weight": "_backbone._modules_list.9.conv2.conv.weight",
+            "_backbone._modules_list.9.cv2.bn.weight": "_backbone._modules_list.9.conv2.bn.weight",
+            "_backbone._modules_list.9.cv2.bn.bias": "_backbone._modules_list.9.conv2.bn.bias",
+            "_backbone._modules_list.9.cv2.bn.running_mean": "_backbone._modules_list.9.conv2.bn.running_mean",
+            "_backbone._modules_list.9.cv2.bn.running_var": "_backbone._modules_list.9.conv2.bn.running_var",
+            "_backbone._modules_list.9.cv2.bn.num_batches_tracked": "_backbone._modules_list.9.conv2.bn.num_batches_tracked",
+            "_backbone._modules_list.9.cv3.conv.weight": "_backbone._modules_list.9.conv3.conv.weight",
+            "_backbone._modules_list.9.cv3.bn.weight": "_backbone._modules_list.9.conv3.bn.weight",
+            "_backbone._modules_list.9.cv3.bn.bias": "_backbone._modules_list.9.conv3.bn.bias",
+            "_backbone._modules_list.9.cv3.bn.running_mean": "_backbone._modules_list.9.conv3.bn.running_mean",
+            "_backbone._modules_list.9.cv3.bn.running_var": "_backbone._modules_list.9.conv3.bn.running_var",
+            "_backbone._modules_list.9.cv3.bn.num_batches_tracked": "_backbone._modules_list.9.conv3.bn.num_batches_tracked",
+            "_backbone._modules_list.9.m.0.cv1.conv.weight": "_backbone._modules_list.9.bottlenecks.0.cv1.conv.weight",
+            "_backbone._modules_list.9.m.0.cv1.bn.weight": "_backbone._modules_list.9.bottlenecks.0.cv1.bn.weight",
+            "_backbone._modules_list.9.m.0.cv1.bn.bias": "_backbone._modules_list.9.bottlenecks.0.cv1.bn.bias",
+            "_backbone._modules_list.9.m.0.cv1.bn.running_mean": "_backbone._modules_list.9.bottlenecks.0.cv1.bn.running_mean",
+            "_backbone._modules_list.9.m.0.cv1.bn.running_var": "_backbone._modules_list.9.bottlenecks.0.cv1.bn.running_var",
+            "_backbone._modules_list.9.m.0.cv1.bn.num_batches_tracked": "_backbone._modules_list.9.bottlenecks.0.cv1.bn.num_batches_tracked",
+            "_backbone._modules_list.9.m.0.cv2.conv.weight": "_backbone._modules_list.9.bottlenecks.0.cv2.conv.weight",
+            "_backbone._modules_list.9.m.0.cv2.bn.weight": "_backbone._modules_list.9.bottlenecks.0.cv2.bn.weight",
+            "_backbone._modules_list.9.m.0.cv2.bn.bias": "_backbone._modules_list.9.bottlenecks.0.cv2.bn.bias",
+            "_backbone._modules_list.9.m.0.cv2.bn.running_mean": "_backbone._modules_list.9.bottlenecks.0.cv2.bn.running_mean",
+            "_backbone._modules_list.9.m.0.cv2.bn.running_var": "_backbone._modules_list.9.bottlenecks.0.cv2.bn.running_var",
+            "_backbone._modules_list.9.m.0.cv2.bn.num_batches_tracked": "_backbone._modules_list.9.bottlenecks.0.cv2.bn.num_batches_tracked",
+            "_head._modules_list.0.conv.weight": "_head._modules_list.0.conv.weight",
+            "_head._modules_list.0.bn.weight": "_head._modules_list.0.bn.weight",
+            "_head._modules_list.0.bn.bias": "_head._modules_list.0.bn.bias",
+            "_head._modules_list.0.bn.running_mean": "_head._modules_list.0.bn.running_mean",
+            "_head._modules_list.0.bn.running_var": "_head._modules_list.0.bn.running_var",
+            "_head._modules_list.0.bn.num_batches_tracked": "_head._modules_list.0.bn.num_batches_tracked",
+            "_head._modules_list.3.cv1.conv.weight": "_head._modules_list.3.conv1.conv.weight",
+            "_head._modules_list.3.cv1.bn.weight": "_head._modules_list.3.conv1.bn.weight",
+            "_head._modules_list.3.cv1.bn.bias": "_head._modules_list.3.conv1.bn.bias",
+            "_head._modules_list.3.cv1.bn.running_mean": "_head._modules_list.3.conv1.bn.running_mean",
+            "_head._modules_list.3.cv1.bn.running_var": "_head._modules_list.3.conv1.bn.running_var",
+            "_head._modules_list.3.cv1.bn.num_batches_tracked": "_head._modules_list.3.conv1.bn.num_batches_tracked",
+            "_head._modules_list.3.cv2.conv.weight": "_head._modules_list.3.conv2.conv.weight",
+            "_head._modules_list.3.cv2.bn.weight": "_head._modules_list.3.conv2.bn.weight",
+            "_head._modules_list.3.cv2.bn.bias": "_head._modules_list.3.conv2.bn.bias",
+            "_head._modules_list.3.cv2.bn.running_mean": "_head._modules_list.3.conv2.bn.running_mean",
+            "_head._modules_list.3.cv2.bn.running_var": "_head._modules_list.3.conv2.bn.running_var",
+            "_head._modules_list.3.cv2.bn.num_batches_tracked": "_head._modules_list.3.conv2.bn.num_batches_tracked",
+            "_head._modules_list.3.cv3.conv.weight": "_head._modules_list.3.conv3.conv.weight",
+            "_head._modules_list.3.cv3.bn.weight": "_head._modules_list.3.conv3.bn.weight",
+            "_head._modules_list.3.cv3.bn.bias": "_head._modules_list.3.conv3.bn.bias",
+            "_head._modules_list.3.cv3.bn.running_mean": "_head._modules_list.3.conv3.bn.running_mean",
+            "_head._modules_list.3.cv3.bn.running_var": "_head._modules_list.3.conv3.bn.running_var",
+            "_head._modules_list.3.cv3.bn.num_batches_tracked": "_head._modules_list.3.conv3.bn.num_batches_tracked",
+            "_head._modules_list.3.m.0.cv1.conv.weight": "_head._modules_list.3.bottlenecks.0.cv1.conv.weight",
+            "_head._modules_list.3.m.0.cv1.bn.weight": "_head._modules_list.3.bottlenecks.0.cv1.bn.weight",
+            "_head._modules_list.3.m.0.cv1.bn.bias": "_head._modules_list.3.bottlenecks.0.cv1.bn.bias",
+            "_head._modules_list.3.m.0.cv1.bn.running_mean": "_head._modules_list.3.bottlenecks.0.cv1.bn.running_mean",
+            "_head._modules_list.3.m.0.cv1.bn.running_var": "_head._modules_list.3.bottlenecks.0.cv1.bn.running_var",
+            "_head._modules_list.3.m.0.cv1.bn.num_batches_tracked": "_head._modules_list.3.bottlenecks.0.cv1.bn.num_batches_tracked",
+            "_head._modules_list.3.m.0.cv2.conv.weight": "_head._modules_list.3.bottlenecks.0.cv2.conv.weight",
+            "_head._modules_list.3.m.0.cv2.bn.weight": "_head._modules_list.3.bottlenecks.0.cv2.bn.weight",
+            "_head._modules_list.3.m.0.cv2.bn.bias": "_head._modules_list.3.bottlenecks.0.cv2.bn.bias",
+            "_head._modules_list.3.m.0.cv2.bn.running_mean": "_head._modules_list.3.bottlenecks.0.cv2.bn.running_mean",
+            "_head._modules_list.3.m.0.cv2.bn.running_var": "_head._modules_list.3.bottlenecks.0.cv2.bn.running_var",
+            "_head._modules_list.3.m.0.cv2.bn.num_batches_tracked": "_head._modules_list.3.bottlenecks.0.cv2.bn.num_batches_tracked",
+            "_head._modules_list.4.conv.weight": "_head._modules_list.4.conv.weight",
+            "_head._modules_list.4.bn.weight": "_head._modules_list.4.bn.weight",
+            "_head._modules_list.4.bn.bias": "_head._modules_list.4.bn.bias",
+            "_head._modules_list.4.bn.running_mean": "_head._modules_list.4.bn.running_mean",
+            "_head._modules_list.4.bn.running_var": "_head._modules_list.4.bn.running_var",
+            "_head._modules_list.4.bn.num_batches_tracked": "_head._modules_list.4.bn.num_batches_tracked",
+            "_head._modules_list.7.cv1.conv.weight": "_head._modules_list.7.conv1.conv.weight",
+            "_head._modules_list.7.cv1.bn.weight": "_head._modules_list.7.conv1.bn.weight",
+            "_head._modules_list.7.cv1.bn.bias": "_head._modules_list.7.conv1.bn.bias",
+            "_head._modules_list.7.cv1.bn.running_mean": "_head._modules_list.7.conv1.bn.running_mean",
+            "_head._modules_list.7.cv1.bn.running_var": "_head._modules_list.7.conv1.bn.running_var",
+            "_head._modules_list.7.cv1.bn.num_batches_tracked": "_head._modules_list.7.conv1.bn.num_batches_tracked",
+            "_head._modules_list.7.cv2.conv.weight": "_head._modules_list.7.conv2.conv.weight",
+            "_head._modules_list.7.cv2.bn.weight": "_head._modules_list.7.conv2.bn.weight",
+            "_head._modules_list.7.cv2.bn.bias": "_head._modules_list.7.conv2.bn.bias",
+            "_head._modules_list.7.cv2.bn.running_mean": "_head._modules_list.7.conv2.bn.running_mean",
+            "_head._modules_list.7.cv2.bn.running_var": "_head._modules_list.7.conv2.bn.running_var",
+            "_head._modules_list.7.cv2.bn.num_batches_tracked": "_head._modules_list.7.conv2.bn.num_batches_tracked",
+            "_head._modules_list.7.cv3.conv.weight": "_head._modules_list.7.conv3.conv.weight",
+            "_head._modules_list.7.cv3.bn.weight": "_head._modules_list.7.conv3.bn.weight",
+            "_head._modules_list.7.cv3.bn.bias": "_head._modules_list.7.conv3.bn.bias",
+            "_head._modules_list.7.cv3.bn.running_mean": "_head._modules_list.7.conv3.bn.running_mean",
+            "_head._modules_list.7.cv3.bn.running_var": "_head._modules_list.7.conv3.bn.running_var",
+            "_head._modules_list.7.cv3.bn.num_batches_tracked": "_head._modules_list.7.conv3.bn.num_batches_tracked",
+            "_head._modules_list.7.m.0.cv1.conv.weight": "_head._modules_list.7.bottlenecks.0.cv1.conv.weight",
+            "_head._modules_list.7.m.0.cv1.bn.weight": "_head._modules_list.7.bottlenecks.0.cv1.bn.weight",
+            "_head._modules_list.7.m.0.cv1.bn.bias": "_head._modules_list.7.bottlenecks.0.cv1.bn.bias",
+            "_head._modules_list.7.m.0.cv1.bn.running_mean": "_head._modules_list.7.bottlenecks.0.cv1.bn.running_mean",
+            "_head._modules_list.7.m.0.cv1.bn.running_var": "_head._modules_list.7.bottlenecks.0.cv1.bn.running_var",
+            "_head._modules_list.7.m.0.cv1.bn.num_batches_tracked": "_head._modules_list.7.bottlenecks.0.cv1.bn.num_batches_tracked",
+            "_head._modules_list.7.m.0.cv2.conv.weight": "_head._modules_list.7.bottlenecks.0.cv2.conv.weight",
+            "_head._modules_list.7.m.0.cv2.bn.weight": "_head._modules_list.7.bottlenecks.0.cv2.bn.weight",
+            "_head._modules_list.7.m.0.cv2.bn.bias": "_head._modules_list.7.bottlenecks.0.cv2.bn.bias",
+            "_head._modules_list.7.m.0.cv2.bn.running_mean": "_head._modules_list.7.bottlenecks.0.cv2.bn.running_mean",
+            "_head._modules_list.7.m.0.cv2.bn.running_var": "_head._modules_list.7.bottlenecks.0.cv2.bn.running_var",
+            "_head._modules_list.7.m.0.cv2.bn.num_batches_tracked": "_head._modules_list.7.bottlenecks.0.cv2.bn.num_batches_tracked",
+            "_head._modules_list.8.conv.weight": "_head._modules_list.8.conv.weight",
+            "_head._modules_list.8.bn.weight": "_head._modules_list.8.bn.weight",
+            "_head._modules_list.8.bn.bias": "_head._modules_list.8.bn.bias",
+            "_head._modules_list.8.bn.running_mean": "_head._modules_list.8.bn.running_mean",
+            "_head._modules_list.8.bn.running_var": "_head._modules_list.8.bn.running_var",
+            "_head._modules_list.8.bn.num_batches_tracked": "_head._modules_list.8.bn.num_batches_tracked",
+            "_head._modules_list.10.cv1.conv.weight": "_head._modules_list.10.conv1.conv.weight",
+            "_head._modules_list.10.cv1.bn.weight": "_head._modules_list.10.conv1.bn.weight",
+            "_head._modules_list.10.cv1.bn.bias": "_head._modules_list.10.conv1.bn.bias",
+            "_head._modules_list.10.cv1.bn.running_mean": "_head._modules_list.10.conv1.bn.running_mean",
+            "_head._modules_list.10.cv1.bn.running_var": "_head._modules_list.10.conv1.bn.running_var",
+            "_head._modules_list.10.cv1.bn.num_batches_tracked": "_head._modules_list.10.conv1.bn.num_batches_tracked",
+            "_head._modules_list.10.cv2.conv.weight": "_head._modules_list.10.conv2.conv.weight",
+            "_head._modules_list.10.cv2.bn.weight": "_head._modules_list.10.conv2.bn.weight",
+            "_head._modules_list.10.cv2.bn.bias": "_head._modules_list.10.conv2.bn.bias",
+            "_head._modules_list.10.cv2.bn.running_mean": "_head._modules_list.10.conv2.bn.running_mean",
+            "_head._modules_list.10.cv2.bn.running_var": "_head._modules_list.10.conv2.bn.running_var",
+            "_head._modules_list.10.cv2.bn.num_batches_tracked": "_head._modules_list.10.conv2.bn.num_batches_tracked",
+            "_head._modules_list.10.cv3.conv.weight": "_head._modules_list.10.conv3.conv.weight",
+            "_head._modules_list.10.cv3.bn.weight": "_head._modules_list.10.conv3.bn.weight",
+            "_head._modules_list.10.cv3.bn.bias": "_head._modules_list.10.conv3.bn.bias",
+            "_head._modules_list.10.cv3.bn.running_mean": "_head._modules_list.10.conv3.bn.running_mean",
+            "_head._modules_list.10.cv3.bn.running_var": "_head._modules_list.10.conv3.bn.running_var",
+            "_head._modules_list.10.cv3.bn.num_batches_tracked": "_head._modules_list.10.conv3.bn.num_batches_tracked",
+            "_head._modules_list.10.m.0.cv1.conv.weight": "_head._modules_list.10.bottlenecks.0.cv1.conv.weight",
+            "_head._modules_list.10.m.0.cv1.bn.weight": "_head._modules_list.10.bottlenecks.0.cv1.bn.weight",
+            "_head._modules_list.10.m.0.cv1.bn.bias": "_head._modules_list.10.bottlenecks.0.cv1.bn.bias",
+            "_head._modules_list.10.m.0.cv1.bn.running_mean": "_head._modules_list.10.bottlenecks.0.cv1.bn.running_mean",
+            "_head._modules_list.10.m.0.cv1.bn.running_var": "_head._modules_list.10.bottlenecks.0.cv1.bn.running_var",
+            "_head._modules_list.10.m.0.cv1.bn.num_batches_tracked": "_head._modules_list.10.bottlenecks.0.cv1.bn.num_batches_tracked",
+            "_head._modules_list.10.m.0.cv2.conv.weight": "_head._modules_list.10.bottlenecks.0.cv2.conv.weight",
+            "_head._modules_list.10.m.0.cv2.bn.weight": "_head._modules_list.10.bottlenecks.0.cv2.bn.weight",
+            "_head._modules_list.10.m.0.cv2.bn.bias": "_head._modules_list.10.bottlenecks.0.cv2.bn.bias",
+            "_head._modules_list.10.m.0.cv2.bn.running_mean": "_head._modules_list.10.bottlenecks.0.cv2.bn.running_mean",
+            "_head._modules_list.10.m.0.cv2.bn.running_var": "_head._modules_list.10.bottlenecks.0.cv2.bn.running_var",
+            "_head._modules_list.10.m.0.cv2.bn.num_batches_tracked": "_head._modules_list.10.bottlenecks.0.cv2.bn.num_batches_tracked",
+            "_head._modules_list.11.conv.weight": "_head._modules_list.11.conv.weight",
+            "_head._modules_list.11.bn.weight": "_head._modules_list.11.bn.weight",
+            "_head._modules_list.11.bn.bias": "_head._modules_list.11.bn.bias",
+            "_head._modules_list.11.bn.running_mean": "_head._modules_list.11.bn.running_mean",
+            "_head._modules_list.11.bn.running_var": "_head._modules_list.11.bn.running_var",
+            "_head._modules_list.11.bn.num_batches_tracked": "_head._modules_list.11.bn.num_batches_tracked",
+            "_head._modules_list.13.cv1.conv.weight": "_head._modules_list.13.conv1.conv.weight",
+            "_head._modules_list.13.cv1.bn.weight": "_head._modules_list.13.conv1.bn.weight",
+            "_head._modules_list.13.cv1.bn.bias": "_head._modules_list.13.conv1.bn.bias",
+            "_head._modules_list.13.cv1.bn.running_mean": "_head._modules_list.13.conv1.bn.running_mean",
+            "_head._modules_list.13.cv1.bn.running_var": "_head._modules_list.13.conv1.bn.running_var",
+            "_head._modules_list.13.cv1.bn.num_batches_tracked": "_head._modules_list.13.conv1.bn.num_batches_tracked",
+            "_head._modules_list.13.cv2.conv.weight": "_head._modules_list.13.conv2.conv.weight",
+            "_head._modules_list.13.cv2.bn.weight": "_head._modules_list.13.conv2.bn.weight",
+            "_head._modules_list.13.cv2.bn.bias": "_head._modules_list.13.conv2.bn.bias",
+            "_head._modules_list.13.cv2.bn.running_mean": "_head._modules_list.13.conv2.bn.running_mean",
+            "_head._modules_list.13.cv2.bn.running_var": "_head._modules_list.13.conv2.bn.running_var",
+            "_head._modules_list.13.cv2.bn.num_batches_tracked": "_head._modules_list.13.conv2.bn.num_batches_tracked",
+            "_head._modules_list.13.cv3.conv.weight": "_head._modules_list.13.conv3.conv.weight",
+            "_head._modules_list.13.cv3.bn.weight": "_head._modules_list.13.conv3.bn.weight",
+            "_head._modules_list.13.cv3.bn.bias": "_head._modules_list.13.conv3.bn.bias",
+            "_head._modules_list.13.cv3.bn.running_mean": "_head._modules_list.13.conv3.bn.running_mean",
+            "_head._modules_list.13.cv3.bn.running_var": "_head._modules_list.13.conv3.bn.running_var",
+            "_head._modules_list.13.cv3.bn.num_batches_tracked": "_head._modules_list.13.conv3.bn.num_batches_tracked",
+            "_head._modules_list.13.m.0.cv1.conv.weight": "_head._modules_list.13.bottlenecks.0.cv1.conv.weight",
+            "_head._modules_list.13.m.0.cv1.bn.weight": "_head._modules_list.13.bottlenecks.0.cv1.bn.weight",
+            "_head._modules_list.13.m.0.cv1.bn.bias": "_head._modules_list.13.bottlenecks.0.cv1.bn.bias",
+            "_head._modules_list.13.m.0.cv1.bn.running_mean": "_head._modules_list.13.bottlenecks.0.cv1.bn.running_mean",
+            "_head._modules_list.13.m.0.cv1.bn.running_var": "_head._modules_list.13.bottlenecks.0.cv1.bn.running_var",
+            "_head._modules_list.13.m.0.cv1.bn.num_batches_tracked": "_head._modules_list.13.bottlenecks.0.cv1.bn.num_batches_tracked",
+            "_head._modules_list.13.m.0.cv2.conv.weight": "_head._modules_list.13.bottlenecks.0.cv2.conv.weight",
+            "_head._modules_list.13.m.0.cv2.bn.weight": "_head._modules_list.13.bottlenecks.0.cv2.bn.weight",
+            "_head._modules_list.13.m.0.cv2.bn.bias": "_head._modules_list.13.bottlenecks.0.cv2.bn.bias",
+            "_head._modules_list.13.m.0.cv2.bn.running_mean": "_head._modules_list.13.bottlenecks.0.cv2.bn.running_mean",
+            "_head._modules_list.13.m.0.cv2.bn.running_var": "_head._modules_list.13.bottlenecks.0.cv2.bn.running_var",
+            "_head._modules_list.13.m.0.cv2.bn.num_batches_tracked": "_head._modules_list.13.bottlenecks.0.cv2.bn.num_batches_tracked",
+        }
+
+    def __call__(self, model_state_dict: Mapping[str, Tensor], checkpoint_state_dict: Mapping[str, Tensor]) -> Mapping[str, Tensor]:
+        checkpoint_state_dict = self._remove_saved_stride_tensors(checkpoint_state_dict)
+        checkpoint_state_dict = self._reshape_old_focus_weights(checkpoint_state_dict)
+        checkpoint_state_dict = self._rename_layers(checkpoint_state_dict)
+        return checkpoint_state_dict
+
+    def _remove_saved_stride_tensors(self, state_dict):
+        exclude_stride_keys = {"stride", "_head.anchors._anchors", "_head.anchors._anchor_grid", "_head.anchors._stride", "_head._modules_list.14.stride"}
+        return {k: v for k, v in state_dict.items() if k not in exclude_stride_keys}
+
+    def _rename_layers(self, state_dict):
+        new_state_dict = {}
+        for k, v in state_dict.items():
+            k = self.layers_rename_table.get(k, k)
+            new_state_dict[k] = v
+        return new_state_dict
+
+    def _reshape_old_focus_weights(self, state_dict):
+        if "_backbone._modules_list.0.conv.conv.weight" in state_dict:
+            layer = state_dict["_backbone._modules_list.0.conv.conv.weight"]
+            del state_dict["_backbone._modules_list.0.conv.conv.weight"]
+
+            data = torch.zeros((32, 3, 6, 6))
+            data[:, :, ::2, ::2] = layer.data[:, :3]
+            data[:, :, 1::2, ::2] = layer.data[:, 3:6]
+            data[:, :, ::2, 1::2] = layer.data[:, 6:9]
+            data[:, :, 1::2, 1::2] = layer.data[:, 9:12]
+            state_dict["_backbone._modules_list.0.conv.weight"] = data
+
+        return state_dict
+
+    def _yolox_ckpt_solver(self, ckpt_key, ckpt_val, model_key, model_val):
+        """
+        Helper method for reshaping old pretrained checkpoint's focus weights to 6x6 conv weights.
+        """
+
+        if (
+            ckpt_val.shape != model_val.shape
+            and (ckpt_key == "module._backbone._modules_list.0.conv.conv.weight" or ckpt_key == "_backbone._modules_list.0.conv.conv.weight")
+            and model_key == "_backbone._modules_list.0.conv.weight"
+        ):
+            model_val.data[:, :, ::2, ::2] = ckpt_val.data[:, :3]
+            model_val.data[:, :, 1::2, ::2] = ckpt_val.data[:, 3:6]
+            model_val.data[:, :, ::2, 1::2] = ckpt_val.data[:, 6:9]
+            model_val.data[:, :, 1::2, 1::2] = ckpt_val.data[:, 9:12]
+            replacement = model_val
+        else:
+            replacement = ckpt_val
+
+        return replacement
+
+
 def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckpt: dict, exclude: list = [], solver: callable = None):
     """
     Given a model state dict and source checkpoints, the method tries to correct the keys in the model_state_dict to fit
@@ -167,16 +593,16 @@ def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckp
                                         that returns a desired weight for ckpt_val.
         :return: renamed checkpoint dict (if possible)
     """
+    if solver is None:
+        solver = DefaultCheckpointSolver()
+
     if "net" in source_ckpt.keys():
         source_ckpt = source_ckpt["net"]
-    model_state_dict_excluded = {k: v for k, v in model_state_dict.items() if not any(x in k for x in exclude)}
-    new_ckpt_dict = {}
-    for (ckpt_key, ckpt_val), (model_key, model_val) in zip(source_ckpt.items(), model_state_dict_excluded.items()):
-        if solver is not None:
-            ckpt_val = solver(ckpt_key, ckpt_val, model_key, model_val)
-        if ckpt_val.shape != model_val.shape:
-            raise ValueError(f"ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}" f" with shape {model_val.shape} in the model")
-        new_ckpt_dict[model_key] = ckpt_val
+
+    if len(exclude):
+        model_state_dict = {k: v for k, v in model_state_dict.items() if not any(x in k for x in exclude)}
+
+    new_ckpt_dict = solver(model_state_dict, source_ckpt)
     return {"net": new_ckpt_dict}
 
 
@@ -278,27 +704,6 @@ class MissingPretrainedWeightsException(Exception):
         super().__init__(self.message)
 
 
-def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
-    """
-    Helper method for reshaping old pretrained checkpoint's focus weights to 6x6 conv weights.
-    """
-
-    if (
-        ckpt_val.shape != model_val.shape
-        and (ckpt_key == "module._backbone._modules_list.0.conv.conv.weight" or ckpt_key == "_backbone._modules_list.0.conv.conv.weight")
-        and model_key == "_backbone._modules_list.0.conv.weight"
-    ):
-        model_val.data[:, :, ::2, ::2] = ckpt_val.data[:, :3]
-        model_val.data[:, :, 1::2, ::2] = ckpt_val.data[:, 3:6]
-        model_val.data[:, :, ::2, 1::2] = ckpt_val.data[:, 6:9]
-        model_val.data[:, :, 1::2, 1::2] = ckpt_val.data[:, 9:12]
-        replacement = model_val
-    else:
-        replacement = ckpt_val
-
-    return replacement
-
-
 def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretrained_weights: str):
     """
     Loads pretrained weights from the MODEL_URLS dictionary to model
@@ -332,7 +737,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
 def _load_weights(architecture, model, pretrained_state_dict):
     if "ema_net" in pretrained_state_dict.keys():
         pretrained_state_dict["net"] = pretrained_state_dict["ema_net"]
-    solver = _yolox_ckpt_solver if "yolox" in architecture else None
+    solver = YoloXCheckpointSolver() if "yolox" in architecture else DefaultCheckpointSolver()
     adaptive_load_state_dict(net=model, state_dict=pretrained_state_dict, strict=StrictLoad.NO_KEY_MATCHING, solver=solver)
     logger.info(f"Successfully loaded pretrained weights for architecture {architecture}")
 
