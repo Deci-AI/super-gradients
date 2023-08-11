@@ -39,7 +39,10 @@ class TestTrainer(unittest.TestCase):
         for experiment_name in cls.experiment_names:
             experiment_dir = get_checkpoints_dir_path(experiment_name=experiment_name)
             if os.path.isdir(experiment_dir):
-                shutil.rmtree(experiment_dir)
+                # TODO: Occasionally this method fails because log files are still open (See setup_logging() call).
+                # TODO: Need to find a way to close them at the end of training, this is however tricky to achieve
+                # TODO: because setup_logging() called outside of Trainer class.
+                shutil.rmtree(experiment_dir, ignore_errors=True)
 
     @staticmethod
     def get_classification_trainer(name=""):
