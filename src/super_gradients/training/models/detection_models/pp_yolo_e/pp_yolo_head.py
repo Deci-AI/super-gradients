@@ -154,7 +154,7 @@ class PPYOLOEHead(nn.Module):
 
     @torch.jit.ignore
     def cache_anchors(self, input_size: Tuple[int, int]):
-        b, c, h, w = input_size
+        h, w = input_size
         self.eval_size = (h, w)
         device = infer_model_device(self.pred_cls)
         dtype = infer_model_dtype(self.pred_cls)
