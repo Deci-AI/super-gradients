@@ -52,22 +52,27 @@ class TestModelPredict(unittest.TestCase):
             predictions.save(output_folder=tmp_dirname)
 
     def test_detection_models(self):
-        model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
+        for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.PP_YOLOE_S]:
+            model = models.get(model_name, pretrained_weights="coco")
 
-        with tempfile.TemporaryDirectory() as tmp_dirname:
-            predictions = model.predict(self.images)
-            predictions.show()
-            predictions.save(output_folder=tmp_dirname)
+            with tempfile.TemporaryDirectory() as tmp_dirname:
+                predictions = model.predict(self.images)
+                predictions.show()
+                predictions.save(output_folder=tmp_dirname)
 
     def test_detection_models_with_targets(self):
-        model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
+        for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.PP_YOLOE_S]:
+            model = models.get(model_name, pretrained_weights="coco")
 
-        with tempfile.TemporaryDirectory() as tmp_dirname:
-            predictions = model.predict(
-                self.np_array_images, target_bboxes=self.np_array_target_bboxes, target_class_ids=self.np_array_target_class_ids, target_bboxes_format="xyxy"
-            )
-            predictions.show()
-            predictions.save(output_folder=tmp_dirname)
+            with tempfile.TemporaryDirectory() as tmp_dirname:
+                predictions = model.predict(
+                    self.np_array_images,
+                    target_bboxes=self.np_array_target_bboxes,
+                    target_class_ids=self.np_array_target_class_ids,
+                    target_bboxes_format="xyxy",
+                )
+                predictions.show()
+                predictions.save(output_folder=tmp_dirname)
 
 
 if __name__ == "__main__":
