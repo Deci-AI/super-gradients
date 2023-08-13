@@ -1,0 +1,1 @@
+Signature changed for random_affine: ['img', 'targets', 'targets_seg', 'target_size', 'degrees', 'translate', 'scales', 'shear', 'filter_box_candidates', 'wh_thr', 'ar_thr', 'area_thr', 'border_value'] -> ['img', 'targets', 'targets_seg', 'target_size', 'degrees', 'translate', 'scales', 'filter_box_candidates', 'wh_thr', 'ar_thr', 'area_thr']

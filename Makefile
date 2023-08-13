@@ -18,3 +18,7 @@ recipe_accuracy_tests:
 
 examples_to_docs:
 	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute src/super_gradients/examples/model_export/models_export.ipynb
+
+compare:
+    git diff --name-only master..head > changed_files.txt
+    python scripts/test.py changed_files.txt

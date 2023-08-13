@@ -12,7 +12,7 @@ from super_gradients.common.environment.ddp_utils import is_main_process
 logger = get_logger(__name__, "DEBUG")
 
 
-def format_error_msg(test_name: str, error_msg: str) -> str:
+def _format_error_msg(test_name: str, error_msg: str) -> str:
     """Format an error message in the appropriate format.
 
     :param test_name:   Name of the test being tested.
@@ -27,7 +27,7 @@ def check_os():
 
     if "linux" not in sys.platform.lower():
         error = "Deci officially supports only Linux kernels. Some features may not work as expected."
-        logger.warning(msg=format_error_msg(test_name="operating system", error_msg=error))
+        logger.warning(msg=_format_error_msg(test_name="operating system", error_msg=error))
 
 
 def get_requirements_path(requirements_file_name: str) -> Optional[Path]:
@@ -91,7 +91,7 @@ def check_packages():
 
         if package_name not in installed_packages.keys():
             error = f"{package_name} required but not found"
-            logger.warning(msg=format_error_msg(test_name=test_name, error_msg=error))
+            logger.warning(msg=_format_error_msg(test_name=test_name, error_msg=error))
             continue
 
         installed_version_str = installed_packages[package_name]
@@ -106,7 +106,7 @@ def check_packages():
 
                 requires_at_least = operator_str in ("==", "~=", ">=", ">")
                 if requires_at_least and installed_version < req_version:
-                    logger.warning(msg=format_error_msg(test_name=test_name, error_msg=error))
+                    logger.warning(msg=_format_error_msg(test_name=test_name, error_msg=error))
                 else:
                     logger.debug(msg=error)
 
