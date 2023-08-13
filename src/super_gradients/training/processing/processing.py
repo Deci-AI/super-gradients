@@ -831,10 +831,22 @@ def default_dekr_coco_processing_params() -> dict:
     return params
 
 
-def default_resnet_imagenet_processing_params() -> dict:
+def default_imagenet_processing_params() -> dict:
     """Processing parameters commonly used for training resnet on Imagenet dataset."""
     image_processor = ComposeProcessing(
-        [Resize(size=256), CenterCrop(size=224), NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), StandardizeImage(), ImagePermute()]
+        [Resize(size=256), CenterCrop(size=224), StandardizeImage(), NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ImagePermute()]
+    )
+    params = dict(
+        class_names=IMAGENET_CLASSES,
+        image_processor=image_processor,
+    )
+    return params
+
+
+def default_vit_imagenet_processing_params() -> dict:
+    """Processing parameters used by ViT for training resnet on Imagenet dataset."""
+    image_processor = ComposeProcessing(
+        [Resize(size=256), CenterCrop(size=224), StandardizeImage(), NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]), ImagePermute()]
     )
     params = dict(
         class_names=IMAGENET_CLASSES,
@@ -909,8 +921,11 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
     if pretrained_weights == "coco_pose" and model_name in ("dekr_w32_no_dc", "dekr_custom"):
         return default_dekr_coco_processing_params()
 
-    if pretrained_weights == "imagenet" and model_name == "resnet18":
-        return default_resnet_imagenet_processing_params()
+    if pretrained_weights == "imagenet" and model_name in {"vit_base", "vit_large", "vit_huge"}:
+        return default_vit_imagenet_processing_params()
+
+    if pretrained_weights == "imagenet":
+        return default_imagenet_processing_params()
 
     if pretrained_weights == "cityscapes":
         if model_name == "pp_lite_t_seg75":
