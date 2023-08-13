@@ -551,9 +551,9 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         conf: Optional[float] = None,
         batch_size: int = 32,
         fuse_model: bool = True,
-        target_bboxes: Optional[List[np.ndarray]] = None,
+        target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
         target_bboxes_format: Optional[str] = None,
-        target_class_ids: Optional[List[np.ndarray]] = None,
+        target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 

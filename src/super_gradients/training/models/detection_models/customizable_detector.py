@@ -183,9 +183,9 @@ class CustomizableDetector(HasPredict, SgModule):
         conf: Optional[float] = None,
         batch_size: int = 32,
         fuse_model: bool = True,
-        target_bboxes: Optional[List[np.ndarray]] = None,
+        target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
         target_bboxes_format: Optional[str] = None,
-        target_class_ids: Optional[List[np.ndarray]] = None,
+        target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
@@ -199,11 +199,11 @@ class CustomizableDetector(HasPredict, SgModule):
 
         :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
 
-        :param target_bboxes: Optional[List[np.ndarray]], ground truth bounding boxes. Can either be an np.ndarray of shape
+        :param target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]], ground truth bounding boxes. Can either be an np.ndarray of shape
          (image_i_object_count, 4) when predicting a single image, or a list of length len(target_bboxes), containing such arrays.
          When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one).
 
-        :param target_class_ids: Optional[List[np.ndarray]], ground truth target class indices. Can either be an np.ndarray of shape
+        :param target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]], ground truth target class indices. Can either be an np.ndarray of shape
          (image_i_object_count) when predicting a single image, or a list of length len(target_bboxes), containing such arrays (default=None).
 
         :param target_bboxes_format: Optional[str], bounding box format of target_bboxes, one of ['xyxy','xywh',
