@@ -1324,13 +1324,14 @@ def _flip_horizontal_image(image: np.ndarray) -> np.ndarray:
     return image[:, ::-1]
 
 
-def _flip_horizontal_boxes(boxes: np.ndarray, img_width: int) -> np.ndarray:
+def _flip_horizontal_boxes(boxes: np.ndarray, img_width: int, c: int, x=2, y=3) -> np.ndarray:
     """
     Horizontally flips bboxes
     :param boxes: bboxes to be flipped. (xyxy format)
     :return: flipped_boxes
     """
     boxes[:, [0, 2]] = img_width - boxes[:, [2, 0]]
+    print(c, x, y)
     return boxes
 
 
