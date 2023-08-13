@@ -1,43 +1,67 @@
-from typing import Tuple
-
 import cv2
 import numpy as np
 
 
-def draw_label(image: np.ndarray, label: str, confidence: str, image_shape: Tuple) -> np.ndarray:
+def draw_label(image: np.ndarray, label: str, confidence: float) -> np.ndarray:
     """Draw a label and confidence on an image.
-
-    :param image:           Image on which to draw the bounding box.
-    :param label:           Label to display on an image.
-    :param confidence:      Confidence of the predicted label to display on an image
-    :param image_shape:     Image shape of the image
+    :param image:       The image on which to draw the label and confidence, in RGB format, and Channel Last (H, W, C)
+    :param label:       The label to draw.
+    :param confidence:  The confidence of the label.
     """
 
-    # Determine the size of the label text
-    (label_width, label_height), _ = cv2.getTextSize(text=label, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, thickness=1)
+    # Format confidence as a percentage
+    confidence_str = f"{confidence * 100:.3f}%"
 
-    # Calculate the position to draw the label
-    image_width, image_height = image_shape
-    start_point = ((image_width - label_width) // 2, (image_height - label_height) // 4)
+    # Use a slightly smaller font scale and a moderate thickness
+    fontScale = 0.8
+    thickness = 1
 
-    # Draw a filled rectangle as the background for the label
-    label_color = (0, 0, 0)
-    bg_position = (start_point[0], start_point[1] - label_height)
-    bg_size = (label_width, label_height * 2)  # Double the height to accommodate two lines
-    cv2.rectangle(image, bg_position, (bg_position[0] + bg_size[0], bg_position[1] + bg_size[1]), label_color, thickness=-1)
+    # Define additional spacing between the two lines
+    line_spacing = 5
 
-    text_org = [(start_point[0], start_point[1]), (start_point[0], start_point[1] + label_height)]
-    for text, org in zip([label, confidence], text_org):
+    # Determine the size of the label and confidence text
+    label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, fontScale, thickness)[0]
+    confidence_size = cv2.getTextSize(confidence_str, cv2.FONT_HERSHEY_SIMPLEX, fontScale, thickness)[0]
 
-        cv2.putText(
-            img=image,
-            text=text,
-            org=org,
-            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-            fontScale=0.5,
-            color=(255, 255, 255),
-            thickness=1,
-            lineType=cv2.LINE_AA,
-        )
+    # Determine the size of the bounding rectangle
+    text_width = max(label_size[0], confidence_size[0])
+    text_height = label_size[1] + confidence_size[1] + thickness * 3 + line_spacing
+
+    # Calculate the position to draw the label, centered horizontally and at the top
+    start_x = (image.shape[1] - text_width) // 2
+    start_y = 5
+
+    # Draw a filled rectangle with transparency as the background for the label
+    overlay = image.copy()
+    bg_color = (255, 255, 255)  # White
+    bg_start = (start_x, start_y)
+    bg_end = (start_x + text_width, start_y + text_height)
+    cv2.rectangle(overlay, bg_start, bg_end, bg_color, thickness=-1)
+
+    alpha = 0.6
+    cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
+
+    # Center the label and confidence text within the bounding rectangle, with additional spacing
+    text_color = (0, 0, 0)  # Black
+    cv2.putText(
+        image,
+        label,
+        (start_x + (text_width - label_size[0]) // 2, start_y + label_size[1]),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale,
+        text_color,
+        thickness,
+        lineType=cv2.LINE_AA,
+    )
+    cv2.putText(
+        image,
+        confidence_str,
+        (start_x + (text_width - confidence_size[0]) // 2, start_y + label_size[1] + confidence_size[1] + thickness + line_spacing),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale,
+        text_color,
+        thickness,
+        lineType=cv2.LINE_AA,
+    )
 
     return image
