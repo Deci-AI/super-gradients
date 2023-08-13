@@ -328,11 +328,9 @@ class DetectionPipeline(Pipeline):
         target_bboxes_format: Optional[str] = None,
         target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
     ):
-        if (
-            (target_bboxes is None and target_bboxes_format is not None)
-            or (target_bboxes is not None and target_bboxes_format is None)
-            or (target_class_ids is None and (target_bboxes is not None or target_bboxes_format is not None))
-            or (target_class_ids is not None and (target_bboxes is None or target_bboxes_format is None))
+        if not (
+            (target_bboxes is None and target_bboxes_format is None and target_class_ids is None)
+            or (target_bboxes is not None and target_bboxes_format is not None and target_class_ids is not None)
         ):
             raise ValueError("target_bboxes, target_bboxes_format, and target_class_ids should either all be None or all not None.")
 
@@ -340,6 +338,9 @@ class DetectionPipeline(Pipeline):
             target_bboxes = [target_bboxes]
         if isinstance(target_class_ids, np.ndarray):
             target_class_ids = [target_class_ids]
+
+        if target_bboxes is not None and target_class_ids is not None and len(target_bboxes) != len(target_class_ids):
+            raise ValueError(f"target_bboxes and target_class_ids lengths should be equal, got: {len(target_bboxes)} and {len(target_class_ids)}.")
 
         return target_bboxes, target_class_ids
 
