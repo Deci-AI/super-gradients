@@ -46,7 +46,7 @@ class DetectionPrediction(Prediction):
          When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one).
 
         :param target_labels: Optional[List[np.ndarray]], ground truth target class indices. Can either be an np.ndarray of shape
-         (image_i_target_count) when predicting a single image, or a list of length len(target_bboxes), containing such arrays (default=None).
+         (image_i_object_count) when predicting a single image, or a list of length len(target_bboxes), containing such arrays (default=None).
 
         :param target_bbox_format: Optional[str], bounding box format of target_bboxes, one of ['xyxy','xywh',
         'yxyx' 'cxcywh' 'normalized_xyxy' 'normalized_xywh', 'normalized_yxyx', 'normalized_cxcywh']. Will raise an
