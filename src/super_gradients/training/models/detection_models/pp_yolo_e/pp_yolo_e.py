@@ -191,7 +191,9 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         error if not None and target_bboxes is None.
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
-        return pipeline(images, batch_size=batch_size)  # type: ignore
+        return pipeline(
+            images, batch_size=batch_size, target_bboxes=target_bboxes, target_bboxes_format=target_bboxes_format, target_class_ids=target_class_ids
+        )
 
     def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
         """Predict using webcam.
