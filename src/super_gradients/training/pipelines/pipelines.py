@@ -24,7 +24,6 @@ from super_gradients.training.utils.predict import (
     ImagesClassificationPrediction,
     ClassificationPrediction,
 )
-from torch.nn.functional import softmax
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, includes_video_extension
 from super_gradients.training.utils.media.image import ImageSource, check_image_typing
@@ -410,18 +409,18 @@ class ClassificationPipeline(Pipeline):
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[ClassificationPrediction]:
         """Decode the model output
 
-        :param model_output:    Direct output of the model, without any post-processing.
+        :param model_output:    Direct output of the model, without any post-processing. Tensor of shape [B, C]
         :param model_input:     Model input (i.e. images after preprocessing).
         :return:                Predicted Bboxes.
         """
-        confidence_predictions, classifier_predictions = torch.max(model_output, 1)
+        pred_scores, pred_labels = torch.max(model_output.softmax(dim=1), 1)
 
-        classifier_predictions = classifier_predictions.detach().cpu().numpy()
-        confidence_predictions = softmax(confidence_predictions).detach().cpu().numpy()
+        pred_labels = pred_labels.detach().cpu().numpy()  # [B,1]
+        pred_scores = pred_scores.detach().cpu().numpy()  # [B,1]
 
         predictions = list()
-        for prediction, confidence, image_input in zip(classifier_predictions, confidence_predictions, model_input):
-            predictions.append(ClassificationPrediction(confidence=float(confidence), labels=int(prediction), image_shape=image_input.shape))
+        for prediction, confidence, image_input in zip(pred_labels, pred_scores, model_input):
+            predictions.append(ClassificationPrediction(confidence=float(confidence), label=int(prediction), image_shape=image_input.shape))
         return predictions
 
     def _instantiate_image_prediction(self, image: np.ndarray, prediction: ClassificationPrediction) -> ImagePrediction:
