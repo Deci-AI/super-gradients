@@ -13,7 +13,6 @@ from torchvision import transforms as transforms
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.object_names import Transforms, Processings
-from super_gradients.common.registry.registry import register_transform
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
@@ -21,8 +20,6 @@ from super_gradients.training.datasets.data_formats import ConcatenatedTensorFor
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.transforms.utils import (
-    _rescale_and_pad_to_size,
-    _rescale_image,
     _rescale_bboxes,
     _get_center_padding_coordinates,
     _pad_image,
@@ -35,6 +32,11 @@ IMAGE_RESAMPLE_MODE = Image.BILINEAR
 MASK_RESAMPLE_MODE = Image.NEAREST
 
 logger = get_logger(__name__)
+
+
+_rescale_and_pad_to_size = None
+_rescale_image = None
+register_transform = lambda x: x
 
 
 class SegmentationTransform:
