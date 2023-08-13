@@ -280,11 +280,11 @@ class DetectionPipeline(Pipeline):
         :param model_output:    Direct output of the model, without any post-processing.
         :param model_input:     Model input (i.e. images after preprocessing).
 
-        :param target_bboxes: Optional[List[np.ndarray]], ground truth bounding boxes. Can either be an np.ndarray of shape
+        :param target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]], ground truth bounding boxes. Can either be an np.ndarray of shape
          (image_i_object_count, 4) when predicting a single image, or a list of length len(target_bboxes), containing such arrays.
          When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one).
 
-        :param target_class_ids: Optional[List[np.ndarray]], ground truth target class indices. Can either be an np.ndarray of shape
+        :param target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]], ground truth target class indices. Can either be an np.ndarray of shape
          (image_i_object_count) when predicting a single image, or a list of length len(target_bboxes), containing such arrays (default=None).
 
         :param target_bboxes_format: Optional[str], bounding box format of target_bboxes, one of ['xyxy','xywh',
