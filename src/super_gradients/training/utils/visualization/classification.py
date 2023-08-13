@@ -1,21 +1,16 @@
-from typing import Union
-
 import cv2
 import numpy as np
 
 
-def draw_label(image: np.ndarray, label: str, confidence: Union[float, None], show_confidence: bool = True) -> np.ndarray:
+def draw_label(image: np.ndarray, label: str, confidence: float) -> np.ndarray:
     """Draw a label and confidence on an image.
     :param image:       The image on which to draw the label and confidence, in RGB format, and Channel Last (H, W, C)
     :param label:       The label to draw.
-    :param confidence:  The confidence of the label (or None when show_confidence.
-    :param show_confidence: Whether to display the prediction confidence (default=True)
+    :param confidence:  The confidence of the label.
     """
-    if show_confidence and confidence is not None:
-        raise TypeError("Must pass confidence!= None when show_confidence = True")
 
     # Format confidence as a percentage
-    confidence_str = f"{confidence * 100:.3f}%" if show_confidence else ""
+    confidence_str = f"{confidence * 100:.3f}%"
 
     # Use a slightly smaller font scale and a moderate thickness
     fontScale = 0.8
@@ -58,16 +53,15 @@ def draw_label(image: np.ndarray, label: str, confidence: Union[float, None], sh
         thickness,
         lineType=cv2.LINE_AA,
     )
-    if show_confidence:
-        cv2.putText(
-            image,
-            confidence_str,
-            (start_x + (text_width - confidence_size[0]) // 2, start_y + label_size[1] + confidence_size[1] + thickness + line_spacing),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            fontScale,
-            text_color,
-            thickness,
-            lineType=cv2.LINE_AA,
-        )
+    cv2.putText(
+        image,
+        confidence_str,
+        (start_x + (text_width - confidence_size[0]) // 2, start_y + label_size[1] + confidence_size[1] + thickness + line_spacing),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale,
+        text_color,
+        thickness,
+        lineType=cv2.LINE_AA,
+    )
 
     return image
