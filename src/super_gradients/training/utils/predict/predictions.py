@@ -66,14 +66,16 @@ class DetectionPrediction(Prediction):
         self.bboxes_xyxy = bboxes_xyxy
         self.confidence = confidence
         self.labels = labels
-
-        target_bboxes_xyxy = convert_bboxes(
-            bboxes=target_bboxes,
-            image_shape=image_shape,
-            source_format=factory.get(target_bbox_format),
-            target_format=factory.get("xyxy"),
-            inplace=False,
-        )
+        if len(target_bboxes):
+            target_bboxes_xyxy = convert_bboxes(
+                bboxes=target_bboxes,
+                image_shape=image_shape,
+                source_format=factory.get(target_bbox_format),
+                target_format=factory.get("xyxy"),
+                inplace=False,
+            )
+        else:
+            target_bboxes_xyxy = target_bboxes
         self.target_bboxes_xyxy = target_bboxes_xyxy
         self.target_labels = target_labels
 
