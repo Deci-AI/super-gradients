@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Iterator
 
+import cv2
 import numpy as np
 
 from super_gradients.training.utils.media.image import show_image, save_image
@@ -135,7 +136,7 @@ class ImageDetectionPrediction(ImagePrediction):
                 class_id = int(self.prediction.target_labels[target_idx])
                 target_image = draw_bbox(
                     image=target_image,
-                    title=f"{self.class_names[class_id]}_GT",
+                    title=f"{self.class_names[class_id]}",
                     color=color_mapping[class_id],
                     box_thickness=box_thickness,
                     x1=int(self.prediction.target_bboxes_xyxy[target_idx, 0]),
@@ -143,8 +144,24 @@ class ImageDetectionPrediction(ImagePrediction):
                     x2=int(self.prediction.target_bboxes_xyxy[target_idx, 2]),
                     y2=int(self.prediction.target_bboxes_xyxy[target_idx, 3]),
                 )
-            image = np.concatenate((image, target_image), 1)
 
+            height, width, ch = target_image.shape
+            new_width, new_height = int(width + width / 20), int(height + height / 8)
+
+            # Crate a new canvas with new width and height.
+            canvas_image = np.ones((new_height, new_width, ch), dtype=np.uint8) * 255
+            canvas_target = np.ones((new_height, new_width, ch), dtype=np.uint8) * 255
+
+            # New replace the center of canvas with original image
+            padding_top, padding_left = 60, 10
+
+            canvas_image[padding_top : padding_top + height, padding_left : padding_left + width] = image
+            canvas_target[padding_top : padding_top + height, padding_left : padding_left + width] = target_image
+
+            img1 = cv2.putText(canvas_image, "Predictions", (int(0.25 * width), 30), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0))
+            img2 = cv2.putText(canvas_target, "Ground Truth", (int(0.25 * width), 30), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0))
+
+            image = cv2.hconcat((img1, img2))
         return image
 
     def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
