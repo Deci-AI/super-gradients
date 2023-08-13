@@ -137,7 +137,7 @@ class ImageDetectionPrediction(ImagePrediction):
                     image=target_image,
                     title=f"{self.class_names[class_id]}_GT",
                     color=color_mapping[class_id],
-                    box_thickness=box_thickness * 3,
+                    box_thickness=box_thickness,
                     x1=int(self.prediction.target_bboxes_xyxy[target_idx, 0]),
                     y1=int(self.prediction.target_bboxes_xyxy[target_idx, 1]),
                     x2=int(self.prediction.target_bboxes_xyxy[target_idx, 2]),

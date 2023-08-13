@@ -1,10 +1,9 @@
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from pathlib import Path
-
-# Note that currently only YoloX, PPYoloE and YOLO-NAS are supported.
 from super_gradients.training.datasets import COCODetectionDataset
 
+# Note that currently only YoloX, PPYoloE and YOLO-NAS are supported.
 model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
 mini_coco_data_dir = str(Path(__file__).parent.parent.parent.parent.parent / "tests" / "data" / "tinycoco")
 
