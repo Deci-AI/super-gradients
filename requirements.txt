@@ -36,5 +36,3 @@ numpy<=1.23
 rapidfuzz
 json-tricks==3.16.1
 onnx-simplifier>=0.3.6,<1.0
---extra-index-url https://pypi.ngc.nvidia.com
-onnx_graphsurgeon>=0.3.8,<0.4
