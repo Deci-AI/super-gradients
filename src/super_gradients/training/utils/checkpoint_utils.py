@@ -44,9 +44,23 @@ def transfer_weights(model: nn.Module, model_state_dict: Mapping[str, Tensor]) -
             pass
 
 
-def maybe_remove_module_prefix(state_dict):
-    if all([key.startswith("module.") for key in state_dict.keys()]):
-        state_dict = collections.OrderedDict([(key[7:], value) for key, value in state_dict.items()])
+def maybe_remove_module_prefix(state_dict: Mapping[str, Tensor], prefix: str = "module.") -> Mapping[str, Tensor]:
+    """
+    Checks is all the keys in `state_dict` start with `prefix` and if this is true removes this prefix.
+    This function is intended to drop a "module." prefix from all keys in checkpoint that was saved
+    with DataParallel/DistributedDataParallel wrapper.
+
+    Since SG 3.1 we changed this behavior and always unwrap the model before saving the state_dict.
+    However, to keep the compatibility with older checkpoints, we must do the 'cleanup' before loading the state_dict.
+
+    :params: state_dict: The model state_dict
+    :params: prefix: (str) prefix to remove. Default is "module."
+    :return: state_dict: The model state_dict after removing the prefix
+
+    """
+    offset = len(prefix) + 1
+    if all([key.startswith(prefix) for key in state_dict.keys()]):
+        state_dict = collections.OrderedDict([(key[offset:], value) for key, value in state_dict.items()])
     return state_dict
 
 
