@@ -1,6 +1,6 @@
 import os
-import unittest
 import tempfile
+import unittest
 
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
@@ -33,12 +33,13 @@ class TestModelPredict(unittest.TestCase):
             predictions.save(output_folder=tmp_dirname)
 
     def test_detection_models(self):
-        model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
+        for model_name in [Models.YOLOX_S, Models.YOLO_NAS_S, Models.PP_YOLOE_S]:
+            model = models.get(model_name, pretrained_weights="coco")
 
-        with tempfile.TemporaryDirectory() as tmp_dirname:
-            predictions = model.predict(self.images)
-            predictions.show()
-            predictions.save(output_folder=tmp_dirname)
+            with tempfile.TemporaryDirectory() as tmp_dirname:
+                predictions = model.predict(self.images)
+                predictions.show()
+                predictions.save(output_folder=tmp_dirname)
 
 
 if __name__ == "__main__":
