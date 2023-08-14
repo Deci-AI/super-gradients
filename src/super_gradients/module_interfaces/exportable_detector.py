@@ -12,16 +12,11 @@ from torch import nn, Tensor
 from torch.utils.data import DataLoader
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.conversion.conversion_enums import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
-from super_gradients.conversion.conversion_utils import torch_dtype_to_numpy_dtype
-from super_gradients.conversion.onnx.nms import attach_onnx_nms
-from super_gradients.conversion.preprocessing_modules import CastTensorTo
-from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
+from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
+from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
 from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules
-from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
-from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
 
 
 logger = get_logger(__name__)
@@ -128,7 +123,7 @@ class ExportableObjectDetectionModel:
         nms_threshold: Optional[float] = None,
         engine: Optional[ExportTargetBackend] = None,
         quantization_mode: ExportQuantizationMode = Optional[None],
-        selective_quantizer: Optional[SelectiveQuantizer] = None,
+        selective_quantizer: Optional["SelectiveQuantizer"] = None,  # noqa
         calibration_loader: Optional[DataLoader] = None,
         calibration_method: str = "percentile",
         calibration_batches: int = 16,
@@ -213,10 +208,20 @@ class ExportableObjectDetectionModel:
         :param num_pre_nms_predictions: (int) Number of predictions to keep before NMS.
         :return:
         """
+
+        # Do imports here to avoid raising error of missing onnx_graphsurgeon package if it is not needed.
+        import_onnx_graphsurgeon_or_install()
+        from super_gradients.conversion.conversion_utils import torch_dtype_to_numpy_dtype
+        from super_gradients.conversion.onnx.nms import attach_onnx_nms
+        from super_gradients.conversion.preprocessing_modules import CastTensorTo
+        from super_gradients.conversion.tensorrt.nms import attach_tensorrt_nms
+
         usage_instructions = []
 
         try:
             from pytorch_quantization import nn as quant_nn
+            from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
+            from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 
             patch_pytorch_quantization_modules_if_needed()
         except ImportError:
