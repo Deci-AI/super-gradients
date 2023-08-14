@@ -62,14 +62,16 @@ class BreakingChanges:
     required_params_added: List[RequiredParameterAdded] = field(default_factory=list)
 
     def __str__(self) -> str:
-        breaking_changes: List[Any] = self.imports_removed + self.functions_removed + self.params_removed + self.required_params_added
         summary = ""
+
+        breaking_changes = self.imports_removed + self.functions_removed + self.params_removed + self.required_params_added
         if breaking_changes:
             summary += "\n============================================================\n"
             summary += f"{colored(self.module_path, module_path_COLOR)}\n"
             summary += "============================================================\n"
             for breaking_change in breaking_changes:
                 summary += str(breaking_change) + "\n"
+
         return summary
 
     def json(self) -> Dict[str, List[str]]:
@@ -177,8 +179,6 @@ def extract_signatures(code: str) -> Dict[str, FunctionParameters]:
 
     :param code: The Python code to analyze.
     :return:     Dictionary mapping function name to function parameters.
-                 Each parameter is defined as a dictionary with the following keys: 'name' and 'default'.
-                 E.g. {'my_function': [{'name':'my_param', 'default': None}, ...]}
     """
     tree = ast.parse(code)
     functions = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
