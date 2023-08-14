@@ -39,6 +39,8 @@ class TestBreakingChangeDetection(unittest.TestCase):
         self.assertEqual(breaking_change.import_name, "package.my_module")
 
     def test_dependency_version_changed(self):
+        """We want to be sensitive to source, not alias! (i.e. we want to distinguish between v1 and v2)"""
+
         old_code = "import library_v1 as library"
         new_code = "import library_v2 as library"
         self.assertNotEqual(get_imports(old_code), get_imports(new_code))
@@ -96,6 +98,17 @@ class TestBreakingChangeDetection(unittest.TestCase):
         new_code = "def my_function(param1, param2=None): pass"
         breaking_changes = compare_code("module.py", old_code, new_code)
         self.assertEqual(len(breaking_changes.required_params_added), 0)
+
+    def test_optional_param_added2(self):
+        old_code = "def my_function(param=None): pass"
+        new_code = "def my_function(): pass"
+        breaking_changes = compare_code("module.py", old_code, new_code)
+        self.assertEqual(len(breaking_changes.params_removed), 1)
+
+        # Check the attributes of the breaking change
+        breaking_change = breaking_changes.params_removed[0]
+        self.assertEqual(breaking_change.function_name, "my_function")
+        self.assertEqual(breaking_change.parameter_name, "param")
 
     def test_no_changes(self):
         old_code = "def my_function(param1): pass"

@@ -16,7 +16,7 @@ class ImportRemoved:
     import_name: str
 
     def __str__(self) -> str:
-        return f"{colored('IMPORT REMOVED', BREAKING_TYPE_COLOR)}             - " f"{colored(self.import_name, BREAKING_OBJECT_COLOR)} was removed from module."
+        return f"{colored('IMPORT REMOVED', BREAKING_TYPE_COLOR)}             - " f"{colored(self.import_name, BREAKING_OBJECT_COLOR)} was removed from module"
 
 
 @dataclass
@@ -25,7 +25,7 @@ class FunctionRemoved:
 
     def __str__(self) -> str:
         return (
-            f"{colored('FUNCTION REMOVED', BREAKING_TYPE_COLOR)}           - " f"{colored(self.function_name, BREAKING_OBJECT_COLOR)} was removed from module."
+            f"{colored('FUNCTION REMOVED', BREAKING_TYPE_COLOR)}           - " f"{colored(self.function_name, BREAKING_OBJECT_COLOR)} was removed from module"
         )
 
 
@@ -37,7 +37,7 @@ class ParameterRemoved:
     def __str__(self) -> str:
         return (
             f"{colored('FUNCTION PARAMETER REMOVED', BREAKING_TYPE_COLOR)} - "
-            f"{colored(self.parameter_name, BREAKING_OBJECT_COLOR)} removed from function {colored(self.function_name, 'yellow')}."
+            f"{colored(self.parameter_name, BREAKING_OBJECT_COLOR)} removed from function {colored(self.function_name, 'yellow')}"
         )
 
 
@@ -49,7 +49,7 @@ class RequiredParameterAdded:
     def __str__(self) -> str:
         return (
             f"{colored('FUNCTION PARAMETER ADDED', BREAKING_TYPE_COLOR)}   - "
-            f"{colored(self.parameter_name, BREAKING_OBJECT_COLOR)} was added to function {colored(self.function_name, 'yellow')}."
+            f"{colored(self.parameter_name, BREAKING_OBJECT_COLOR)} was added to function {colored(self.function_name, 'yellow')}"
         )
 
 
@@ -62,12 +62,15 @@ class BreakingChanges:
     required_params_added: List[RequiredParameterAdded] = field(default_factory=list)
 
     def __str__(self) -> str:
-        report = "\n============================================================\n"
-        report += f"{colored(self.module_path, module_path_COLOR)}\n"
-        report += "============================================================\n"
-        for breaking_change in self.imports_removed + self.functions_removed + self.params_removed + self.required_params_added:
-            report += str(breaking_change) + "\n"
-        return report
+        breaking_changes: List[Any] = self.imports_removed + self.functions_removed + self.params_removed + self.required_params_added
+        summary = ""
+        if breaking_changes:
+            summary += "\n============================================================\n"
+            summary += f"{colored(self.module_path, module_path_COLOR)}\n"
+            summary += "============================================================\n"
+            for breaking_change in breaking_changes:
+                summary += str(breaking_change) + "\n"
+        return summary
 
     def json(self) -> Dict[str, List[str]]:
         return asdict(self)
@@ -77,10 +80,10 @@ class GitHelper:
     def __init__(self):
         self.repo = git.Repo("./../../..")
 
-    def modified_files(self, source_branch: str, modified_branch: str) -> List[str]:
+    def current_files(self, source_branch: str, current_branch: str) -> List[str]:
         source_commit = self.repo.commit(source_branch)
-        modified_commit = self.repo.commit(modified_branch)
-        return [diff.a_path for diff in source_commit.diff(modified_commit) if ".py" in diff.a_path]
+        current_commit = self.repo.commit(current_branch)
+        return [diff.a_path for diff in source_commit.diff(current_commit) if ".py" in diff.a_path]
 
     def load_branch_file(self, branch: str, file_path: str) -> str:
         tree = self.repo.commit(branch).tree
@@ -132,46 +135,40 @@ def get_imports(code: str) -> Dict[str, str]:
     return imports
 
 
-def compare_code(module_path: str, source_code: str, modified_code: str) -> BreakingChanges:
+def compare_code(module_path: str, source_code: str, current_code: str) -> BreakingChanges:
     """Compares two versions of code to identify breaking changes.
 
     :param module_path: The path to the module being compared.
     :param source_code: The source version of the code.
-    :param modified_code: The modified version of the code.
+    :param current_code: The modified version of the code.
     :return: A BreakingChanges object detailing the differences.
     """
     breaking_changes = BreakingChanges(module_path=module_path)
 
     # FUNCTION SIGNATURES
-    source_signatures = extract_signatures(source_code)
-    modified_signatures = extract_signatures(modified_code)
-    for function_name, source_function_param in source_signatures.items():
-        modified_function_params = modified_signatures.get(function_name)
+    source_functions_signatures = extract_signatures(source_code)
+    current_functions_signatures = extract_signatures(current_code)
+    for function_name, source_function_param in source_functions_signatures.items():
 
-        if modified_function_params:  # TODO: check empty param function
+        if function_name in current_functions_signatures:
+            current_function_params = current_functions_signatures[function_name]
 
-            params_removed = [
-                ParameterRemoved(function_name=function_name, parameter_name=source_param)
-                for source_param in source_function_param.params
-                if source_param not in modified_function_params.params
-            ]
+            for source_param in source_function_param.params:
+                if source_param not in current_function_params.params:
+                    breaking_changes.params_removed.append(ParameterRemoved(function_name=function_name, parameter_name=source_param))
 
-            required_params_added = [
-                RequiredParameterAdded(function_name=function_name, parameter_name=param)
-                for param in modified_function_params.required_params
-                if param not in source_function_param.required_params
-            ]
+            for current_param in current_function_params.required_params:
+                if current_param not in source_function_param.required_params:
+                    breaking_changes.required_params_added.append(RequiredParameterAdded(function_name=function_name, parameter_name=current_param))
 
-            breaking_changes.params_removed.extend(params_removed)
-            breaking_changes.required_params_added.extend(required_params_added)
         else:
             breaking_changes.functions_removed.append(FunctionRemoved(function_name=function_name))
 
     # IMPORTS
-    source_imports = get_imports(source_code)
-    modified_imports = get_imports(modified_code)
+    source_imports = get_imports(code=source_code)
+    current_imports = get_imports(code=current_code)
 
-    breaking_changes.imports_removed = [ImportRemoved(import_name=source_import) for source_import in source_imports if source_import not in modified_imports]
+    breaking_changes.imports_removed = [ImportRemoved(import_name=source_import) for source_import in source_imports if source_import not in current_imports]
     return breaking_changes
 
 
@@ -203,19 +200,19 @@ def extract_parameters(args: ast.arguments) -> FunctionParameters:
 def find_optional_parameters_added(
     function_name: str,
     source_params: List[FunctionParameter],
-    modified_params: List[FunctionParameter],
+    current_params: List[FunctionParameter],
 ) -> List[RequiredParameterAdded]:
     """Identifies non-optional parameters that were added in the modified version.
 
     :param function_name: The name of the function being analyzed.
     :param source_params: The parameters in the source version.
-    :param modified_params: The parameters in the modified version.
+    :param current_params: The parameters in the modified version.
     :return: A list of NonOptionalParameterAdded objects representing the added non-optional parameters.
     """
     required_added_parameters = []
-    for modified_param in modified_params[len(source_params) :]:  # TODO: Check if works
-        if modified_param.default is None:
-            required_added_parameters.append(RequiredParameterAdded(function_name=function_name, parameter_name=modified_param.name))
+    for current_param in current_params[len(source_params) :]:  # TODO: Check if works
+        if current_param.default is None:
+            required_added_parameters.append(RequiredParameterAdded(function_name=function_name, parameter_name=current_param.name))
     return required_added_parameters
 
 
@@ -223,11 +220,11 @@ def main():
     git_explorer = GitHelper()
 
     reports = []
-    for module_path in git_explorer.modified_files(source_branch="master", modified_branch="HEAD"):
+    for module_path in git_explorer.current_files(source_branch="master", current_branch="HEAD"):
 
         master_code = git_explorer.load_branch_file(branch="master", file_path=module_path)
         head_code = git_explorer.load_branch_file(branch="HEAD", file_path=module_path)
-        breaking_changes = compare_code(module_path=module_path, source_code=master_code, modified_code=head_code)
+        breaking_changes = compare_code(module_path=module_path, source_code=master_code, current_code=head_code)
 
         reports.append(breaking_changes.json())
         print(str(breaking_changes))
