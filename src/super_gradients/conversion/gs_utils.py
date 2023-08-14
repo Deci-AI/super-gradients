@@ -4,7 +4,7 @@ def import_onnx_graphsurgeon_or_fail_with_instructions():
     except ImportError:
         raise ImportError(
             "onnx-graphsurgeon is required to use export API. "
-            "Please install it with pip install onnx_graphsurgeon>=0.3.8,<0.4 --extra-index-url https://pypi.ngc.nvidia.com"
+            "Please install it with pip install onnx_graphsurgeon==0.3.27 --extra-index-url https://pypi.ngc.nvidia.com"
         )
     return gs
 
@@ -17,6 +17,6 @@ def import_onnx_graphsurgeon_or_install():
     except ImportError:
         import pip
 
-        pip.main(["install", "onnx_graphsurgeon>=0.3.8,<0.4", "--extra-index-url", "https://pypi.ngc.nvidia.com"])
+        pip.main(["install", "onnx_graphsurgeon==0.3.27", "--extra-index-url", "https://pypi.ngc.nvidia.com"])
 
         return import_onnx_graphsurgeon_or_fail_with_instructions()
