@@ -65,14 +65,14 @@ class TestModelPredict(unittest.TestCase):
             model = models.get(model_name, pretrained_weights="coco")
 
             with tempfile.TemporaryDirectory() as tmp_dirname:
-                predictions = model.predict(
-                    self.np_array_images,
+                predictions = model.predict(self.np_array_images)
+                predictions.show(target_bboxes=self.np_array_target_bboxes, target_class_ids=self.np_array_target_class_ids, target_bboxes_format="xyxy")
+                predictions.save(
+                    output_folder=tmp_dirname,
                     target_bboxes=self.np_array_target_bboxes,
                     target_class_ids=self.np_array_target_class_ids,
                     target_bboxes_format="xyxy",
                 )
-                predictions.show()
-                predictions.save(output_folder=tmp_dirname)
 
 
 if __name__ == "__main__":

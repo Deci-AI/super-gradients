@@ -86,7 +86,7 @@ class Pipeline(ABC):
         self.model.prep_model_for_conversion(input_size=input_example.shape[-2:])
         self.fuse_model = False
 
-    def __call__(self, inputs: Union[str, ImageSource, List[ImageSource]], batch_size: Optional[int] = 32, **kwargs) -> ImagesPredictions:
+    def __call__(self, inputs: Union[str, ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> ImagesPredictions:
         """Predict an image or a list of images.
 
         Supported types include:
@@ -102,13 +102,13 @@ class Pipeline(ABC):
         """
 
         if includes_video_extension(inputs):
-            return self.predict_video(inputs, batch_size, **kwargs)
+            return self.predict_video(inputs, batch_size)
         elif check_image_typing(inputs):
-            return self.predict_images(inputs, batch_size, **kwargs)
+            return self.predict_images(inputs, batch_size)
         else:
             raise ValueError(f"Input {inputs} not supported for prediction.")
 
-    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = 32, **kwargs) -> ImagesPredictions:
+    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> ImagesPredictions:
         """Predict an image or a list of images.
 
         :param images:      Images to predict.
@@ -118,7 +118,7 @@ class Pipeline(ABC):
         from super_gradients.training.utils.media.image import load_images
 
         images = load_images(images)
-        result_generator = self._generate_prediction_result(images=images, batch_size=batch_size, **kwargs)
+        result_generator = self._generate_prediction_result(images=images, batch_size=batch_size)
         return self._combine_image_prediction_to_images(result_generator, n_images=len(images))
 
     def predict_video(self, video_path: str, batch_size: Optional[int] = 32) -> VideoPredictions:
@@ -143,7 +143,7 @@ class Pipeline(ABC):
         video_streaming = WebcamStreaming(frame_processing_fn=_draw_predictions, fps_update_frequency=1)
         video_streaming.run()
 
-    def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None, **kwargs) -> Iterable[ImagePrediction]:
+    def _generate_prediction_result(self, images: Iterable[np.ndarray], batch_size: Optional[int] = None) -> Iterable[ImagePrediction]:
         """Run the pipeline on the images as single batch or through multiple batches.
 
         NOTE: A core motivation to have this function as a generator is that it can be used in a lazy way (if images is generator itself),
@@ -154,12 +154,12 @@ class Pipeline(ABC):
         :return:            Iterable of Results object, each containing the results of the prediction and the image.
         """
         if batch_size is None:
-            yield from self._generate_prediction_result_single_batch(images, **kwargs)
+            yield from self._generate_prediction_result_single_batch(images)
         else:
             for batch_images in generate_batch(images, batch_size):
-                yield from self._generate_prediction_result_single_batch(batch_images, **kwargs)
+                yield from self._generate_prediction_result_single_batch(batch_images)
 
-    def _generate_prediction_result_single_batch(self, images: Iterable[np.ndarray], **kwargs) -> Iterable[ImagePrediction]:
+    def _generate_prediction_result_single_batch(self, images: Iterable[np.ndarray]) -> Iterable[ImagePrediction]:
         """Run the pipeline on images. The pipeline is made of 4 steps:
             1. Load images - Loading the images into a list of numpy arrays.
             2. Preprocess - Encode the image in the shape/format expected by the model
@@ -186,7 +186,7 @@ class Pipeline(ABC):
             if self.fuse_model:
                 self._fuse_model(torch_inputs)
             model_output = self.model(torch_inputs)
-            predictions = self._decode_model_output(model_output, model_input=torch_inputs, **kwargs)
+            predictions = self._decode_model_output(model_output, model_input=torch_inputs)
 
         # Postprocess
         postprocessed_predictions = []
@@ -199,7 +199,7 @@ class Pipeline(ABC):
             yield self._instantiate_image_prediction(image=image, prediction=prediction)
 
     @abstractmethod
-    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray, **kwargs) -> List[Prediction]:
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[Prediction]:
         """Decode the model outputs, move each prediction to numpy and store it in a Prediction object.
 
         :param model_output:    Direct output of the model, without any post-processing.
@@ -266,83 +266,30 @@ class DetectionPipeline(Pipeline):
         super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
         self.post_prediction_callback = post_prediction_callback
 
-    def _decode_model_output(
-        self,
-        model_output: Union[List, Tuple, torch.Tensor],
-        model_input: np.ndarray,
-        target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
-        target_bboxes_format: Optional[str] = None,
-        target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
-    ) -> List[DetectionPrediction]:
-
+    def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
         """Decode the model output, by applying post prediction callback. This includes NMS.
 
         :param model_output:    Direct output of the model, without any post-processing.
         :param model_input:     Model input (i.e. images after preprocessing).
-
-        :param target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]], ground truth bounding boxes. Can either be an np.ndarray of shape
-         (image_i_object_count, 4) when predicting a single image, or a list of length len(target_bboxes), containing such arrays.
-         When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one).
-
-        :param target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]], ground truth target class indices. Can either be an np.ndarray of shape
-         (image_i_object_count) when predicting a single image, or a list of length len(target_bboxes), containing such arrays (default=None).
-
-        :param target_bboxes_format: Optional[str], bounding box format of target_bboxes, one of ['xyxy','xywh',
-        'yxyx' 'cxcywh' 'normalized_xyxy' 'normalized_xywh', 'normalized_yxyx', 'normalized_cxcywh']. Will raise an
-        error if not None and target_bboxes is None.
-
         :return:                Predicted Bboxes.
         """
-        target_bboxes, target_class_ids = self._check_target_args(target_bboxes, target_bboxes_format, target_class_ids)
-
         post_nms_predictions = self.post_prediction_callback(model_output, device=self.device)
-        if target_bboxes is None:
-            target_bboxes = [None for _ in range(len(model_input))]
-            target_class_ids = [None for _ in range(len(model_input))]
 
         predictions = []
-        for prediction, image, target_bbox, target_class_id in zip(post_nms_predictions, model_input, target_bboxes, target_class_ids):
+        for prediction, image in zip(post_nms_predictions, model_input):
             prediction = prediction if prediction is not None else torch.zeros((0, 6), dtype=torch.float32)
-            target_bbox = target_bbox if target_bbox is not None else np.zeros((0, 4))
-            target_class_id = target_class_id if target_class_id is not None else np.zeros((0, 1))
             prediction = prediction.detach().cpu().numpy()
-
             predictions.append(
                 DetectionPrediction(
                     bboxes=prediction[:, :4],
                     confidence=prediction[:, 4],
                     labels=prediction[:, 5],
                     bbox_format="xyxy",
-                    target_bboxes=target_bbox,
-                    target_labels=target_class_id,
-                    target_bbox_format=target_bboxes_format,
                     image_shape=image.shape,
                 )
             )
 
         return predictions
-
-    @staticmethod
-    def _check_target_args(
-        target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
-        target_bboxes_format: Optional[str] = None,
-        target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
-    ):
-        if not (
-            (target_bboxes is None and target_bboxes_format is None and target_class_ids is None)
-            or (target_bboxes is not None and target_bboxes_format is not None and target_class_ids is not None)
-        ):
-            raise ValueError("target_bboxes, target_bboxes_format, and target_class_ids should either all be None or all not None.")
-
-        if isinstance(target_bboxes, np.ndarray):
-            target_bboxes = [target_bboxes]
-        if isinstance(target_class_ids, np.ndarray):
-            target_class_ids = [target_class_ids]
-
-        if target_bboxes is not None and target_class_ids is not None and len(target_bboxes) != len(target_class_ids):
-            raise ValueError(f"target_bboxes and target_class_ids lengths should be equal, got: {len(target_bboxes)} and {len(target_class_ids)}.")
-
-        return target_bboxes, target_class_ids
 
     def _instantiate_image_prediction(self, image: np.ndarray, prediction: DetectionPrediction) -> ImagePrediction:
         return ImageDetectionPrediction(image=image, prediction=prediction, class_names=self.class_names)

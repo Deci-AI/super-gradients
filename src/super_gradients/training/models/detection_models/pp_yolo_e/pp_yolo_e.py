@@ -1,7 +1,6 @@
 from functools import lru_cache
 from typing import Union, Optional, List, Tuple
 
-import numpy as np
 import torch
 from torch import Tensor
 
@@ -166,9 +165,6 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         conf: Optional[float] = None,
         batch_size: int = 32,
         fuse_model: bool = True,
-        target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
-        target_bboxes_format: Optional[str] = None,
-        target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]] = None,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
@@ -178,22 +174,9 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
                             If None, the default value associated to the training is used.
         :param batch_size:  Maximum number of images to process at the same time.
         :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
-
-        :param target_bboxes: Optional[Union[np.ndarray, List[np.ndarray]]], ground truth bounding boxes. Can either be an np.ndarray of shape
-         (image_i_object_count, 4) when predicting a single image, or a list of length len(target_bboxes), containing such arrays.
-         When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one).
-
-        :param target_class_ids: Optional[Union[np.ndarray, List[np.ndarray]]], ground truth target class indices. Can either be an np.ndarray of shape
-         (image_i_object_count) when predicting a single image, or a list of length len(target_bboxes), containing such arrays (default=None).
-
-        :param target_bboxes_format: Optional[str], bounding box format of target_bboxes, one of ['xyxy','xywh',
-        'yxyx' 'cxcywh' 'normalized_xyxy' 'normalized_xywh', 'normalized_yxyx', 'normalized_cxcywh']. Will raise an
-        error if not None and target_bboxes is None.
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
-        return pipeline(
-            images, batch_size=batch_size, target_bboxes=target_bboxes, target_bboxes_format=target_bboxes_format, target_class_ids=target_class_ids
-        )
+        return pipeline(images, batch_size=batch_size)  # type: ignore
 
     def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
         """Predict using webcam.

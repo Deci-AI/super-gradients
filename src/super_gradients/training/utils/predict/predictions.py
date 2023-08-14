@@ -20,20 +20,8 @@ class DetectionPrediction(Prediction):
     bboxes_xyxy: np.ndarray
     confidence: np.ndarray
     labels: np.ndarray
-    target_bboxes_xyxy: np.ndarray
-    target_labels: np.ndarray
 
-    def __init__(
-        self,
-        bboxes: np.ndarray,
-        bbox_format: str,
-        confidence: np.ndarray,
-        labels: np.ndarray,
-        image_shape: Tuple[int, int],
-        target_bboxes: np.ndarray,
-        target_labels: np.ndarray,
-        target_bbox_format: str,
-    ):
+    def __init__(self, bboxes: np.ndarray, bbox_format: str, confidence: np.ndarray, labels: np.ndarray, image_shape: Tuple[int, int]):
         """
         :param bboxes:      BBoxes in the format specified by bbox_format
         :param bbox_format: BBoxes format that can be a string ("xyxy", "cxywh", ...)
@@ -64,18 +52,7 @@ class DetectionPrediction(Prediction):
         self.bboxes_xyxy = bboxes_xyxy
         self.confidence = confidence
         self.labels = labels
-        if len(target_bboxes):
-            target_bboxes_xyxy = convert_bboxes(
-                bboxes=target_bboxes,
-                image_shape=image_shape,
-                source_format=factory.get(target_bbox_format),
-                target_format=factory.get("xyxy"),
-                inplace=False,
-            )
-        else:
-            target_bboxes_xyxy = target_bboxes
-        self.target_bboxes_xyxy = target_bboxes_xyxy
-        self.target_labels = target_labels
+        self.image_shape = image_shape
 
     def _validate_input(self, bboxes: np.ndarray, confidence: np.ndarray, labels: np.ndarray) -> None:
         n_bboxes, n_confidences, n_labels = bboxes.shape[0], confidence.shape[0], labels.shape[0]

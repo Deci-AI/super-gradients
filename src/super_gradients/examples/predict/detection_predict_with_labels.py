@@ -11,8 +11,8 @@ dataset = COCODetectionDataset(
     data_dir=mini_coco_data_dir, subdir="images/val2017", json_file="instances_val2017.json", input_dim=None, transforms=[], cache_annotations=False
 )
 
-# x's are np.ndarrays images of shape (H,W,3)
-# y's are np.ndarrays of shape (num_boxes,x1,y1,x2,y2,class_id)
+# the loaded images are np.ndarrays images of shape (H,W,3)
+# the loaded targets are np.ndarrays of shape (num_boxes,x1,y1,x2,y2,class_id)
 image1, target1, _ = dataset[0]
 image2, target2, _ = dataset[1]
 
@@ -20,8 +20,8 @@ image2, target2, _ = dataset[1]
 image2 = image2[:, :, ::-1]
 image1 = image1[:, :, ::-1]
 
-predictions = model.predict(
-    [image1, image2], target_bboxes=[target1[:, :4], target2[:, :4]], target_class_ids=[target1[:, 4], target2[:, 4]], target_bboxes_format="xyxy"
-)
-predictions.show()
-predictions.save(output_folder="")  # Save in working directory
+predictions = model.predict([image1, image2])
+predictions.show(target_bboxes=[target1[:, :4], target2[:, :4]], target_class_ids=[target1[:, 4], target2[:, 4]], target_bboxes_format="xyxy")
+predictions.save(
+    output_folder="", target_bboxes=[target1[:, :4], target2[:, :4]], target_class_ids=[target1[:, 4], target2[:, 4]], target_bboxes_format="xyxy"
+)  # Save in working directory
