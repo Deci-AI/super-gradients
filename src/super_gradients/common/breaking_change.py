@@ -16,10 +16,7 @@ class ImportRemoved:
     import_name: str
 
     def __str__(self) -> str:
-        return (
-            f"{colored('IMPORT REMOVED', BREAKING_TYPE_COLOR)}                          - "
-            f"{colored(self.import_name, BREAKING_OBJECT_COLOR)} was removed from module."
-        )
+        return f"{colored('IMPORT REMOVED', BREAKING_TYPE_COLOR)}             - " f"{colored(self.import_name, BREAKING_OBJECT_COLOR)} was removed from module."
 
 
 @dataclass
@@ -28,8 +25,7 @@ class FunctionRemoved:
 
     def __str__(self) -> str:
         return (
-            f"{colored('FUNCTION REMOVED', BREAKING_TYPE_COLOR)}                        - "
-            f"{colored(self.function_name, BREAKING_OBJECT_COLOR)} was removed from module."
+            f"{colored('FUNCTION REMOVED', BREAKING_TYPE_COLOR)}           - " f"{colored(self.function_name, BREAKING_OBJECT_COLOR)} was removed from module."
         )
 
 
@@ -40,19 +36,19 @@ class ParameterRemoved:
 
     def __str__(self) -> str:
         return (
-            f"{colored('FUNCTION PARAMETER REMOVED', BREAKING_TYPE_COLOR)}              - "
+            f"{colored('FUNCTION PARAMETER REMOVED', BREAKING_TYPE_COLOR)} - "
             f"{colored(self.parameter_name, BREAKING_OBJECT_COLOR)} removed from function {colored(self.function_name, 'yellow')}."
         )
 
 
 @dataclass
-class NonOptionalParameterAdded:
+class RequiredParameterAdded:
     parameter_name: str
     function_name: str
 
     def __str__(self) -> str:
         return (
-            f"{colored('FUNCTION PARAMETER ADDED (NON-OPTIONAL)', BREAKING_TYPE_COLOR)} - "
+            f"{colored('FUNCTION PARAMETER ADDED', BREAKING_TYPE_COLOR)}   - "
             f"{colored(self.parameter_name, BREAKING_OBJECT_COLOR)} was added to function {colored(self.function_name, 'yellow')}."
         )
 
@@ -61,15 +57,15 @@ class NonOptionalParameterAdded:
 class BreakingChanges:
     module_path: str
     imports_removed: List[ImportRemoved] = field(default_factory=list)
-    function_removed: List[FunctionRemoved] = field(default_factory=list)
-    parameter_removed: List[ParameterRemoved] = field(default_factory=list)
-    non_optional_parameter_added: List[NonOptionalParameterAdded] = field(default_factory=list)
+    functions_removed: List[FunctionRemoved] = field(default_factory=list)
+    params_removed: List[ParameterRemoved] = field(default_factory=list)
+    required_params_added: List[RequiredParameterAdded] = field(default_factory=list)
 
     def __str__(self) -> str:
         report = "\n============================================================\n"
         report += f"{colored(self.module_path, module_path_COLOR)}\n"
         report += "============================================================\n"
-        for breaking_change in self.imports_removed + self.function_removed + self.parameter_removed + self.non_optional_parameter_added:
+        for breaking_change in self.imports_removed + self.functions_removed + self.params_removed + self.required_params_added:
             report += str(breaking_change) + "\n"
         return report
 
@@ -99,6 +95,23 @@ class GitHelper:
 class FunctionParameter:
     name: str
     default: Optional[Any] = None
+
+
+@dataclass
+class FunctionParameters:
+    _params: List[FunctionParameter] = field(default_factory=dict)
+
+    @property
+    def params(self) -> List[str]:
+        return [param.name for param in self._params]
+
+    @property
+    def required_params(self) -> List[str]:
+        return [param.name for param in self._params if param.default is None]
+
+    @property
+    def optional_params(self) -> List[str]:
+        return [param.name for param, value in self._params if param.default is not None]
 
 
 def get_imports(code: str) -> Dict[str, str]:
@@ -135,15 +148,24 @@ def compare_code(module_path: str, source_code: str, modified_code: str) -> Brea
     for function_name, source_function_param in source_signatures.items():
         modified_function_params = modified_signatures.get(function_name)
 
-        if modified_function_params:
-            breaking_changes.parameter_removed.extend(
-                extract_removed_parameters(function_name=function_name, source_params=source_function_param, modified_params=modified_function_params)
-            )
-            breaking_changes.non_optional_parameter_added.extend(
-                find_non_optional_parameters(function_name=function_name, source_params=source_function_param, modified_params=modified_function_params)
-            )
+        if modified_function_params:  # TODO: check empty param function
+
+            params_removed = [
+                ParameterRemoved(function_name=function_name, parameter_name=source_param)
+                for source_param in source_function_param.params
+                if source_param not in modified_function_params.params
+            ]
+
+            required_params_added = [
+                RequiredParameterAdded(function_name=function_name, parameter_name=param)
+                for param in modified_function_params.required_params
+                if param not in source_function_param.required_params
+            ]
+
+            breaking_changes.params_removed.extend(params_removed)
+            breaking_changes.required_params_added.extend(required_params_added)
         else:
-            breaking_changes.function_removed.append(FunctionRemoved(function_name=function_name))
+            breaking_changes.functions_removed.append(FunctionRemoved(function_name=function_name))
 
     # IMPORTS
     source_imports = get_imports(source_code)
@@ -153,7 +175,7 @@ def compare_code(module_path: str, source_code: str, modified_code: str) -> Brea
     return breaking_changes
 
 
-def extract_signatures(code: str) -> Dict[str, List[FunctionParameter]]:
+def extract_signatures(code: str) -> Dict[str, FunctionParameters]:
     """Extracts function signatures from the given code.
 
     :param code: The Python code to analyze.
@@ -167,39 +189,22 @@ def extract_signatures(code: str) -> Dict[str, List[FunctionParameter]]:
     return signatures
 
 
-def extract_parameters(args: ast.arguments) -> List[FunctionParameter]:
+def extract_parameters(args: ast.arguments) -> FunctionParameters:
     """Extracts the parameters from the given args object.
 
     :param args: The arguments object from the AST.
     :return: A list of dictionaries representing the parameters.
     """
     defaults = [None] * (len(args.args) - len(args.defaults)) + args.defaults
-    parameters = [FunctionParameter(name=arg.arg, default=default) for arg, default in zip(args.args, defaults)]
+    parameters = FunctionParameters([FunctionParameter(name=arg.arg, default=default) for arg, default in zip(args.args, defaults)])
     return parameters
 
 
-def extract_removed_parameters(function_name: str, source_params: List[FunctionParameter], modified_params: List[FunctionParameter]) -> List[ParameterRemoved]:
-    """Identifies parameters that were removed in the modified version.
-
-    :param function_name: The name of the function being analyzed.
-    :param source_params: The parameters in the source version.
-    :param modified_params: The parameters in the modified version.
-    :return: A list of ParameterRemoved objects representing the removed parameters.
-    """
-    modified_params_names = {modified_param.name for modified_param in modified_params}
-
-    removed_parameters = []
-    for source_param in source_params:
-        if source_param.name not in modified_params_names:
-            removed_parameters.append(ParameterRemoved(function_name=function_name, parameter_name=source_param.name))
-    return removed_parameters
-
-
-def find_non_optional_parameters(
+def find_optional_parameters_added(
     function_name: str,
     source_params: List[FunctionParameter],
     modified_params: List[FunctionParameter],
-) -> List[NonOptionalParameterAdded]:
+) -> List[RequiredParameterAdded]:
     """Identifies non-optional parameters that were added in the modified version.
 
     :param function_name: The name of the function being analyzed.
@@ -207,11 +212,11 @@ def find_non_optional_parameters(
     :param modified_params: The parameters in the modified version.
     :return: A list of NonOptionalParameterAdded objects representing the added non-optional parameters.
     """
-    non_optional_added_parameters = []
+    required_added_parameters = []
     for modified_param in modified_params[len(source_params) :]:  # TODO: Check if works
         if modified_param.default is None:
-            non_optional_added_parameters.append(NonOptionalParameterAdded(function_name=function_name, parameter_name=modified_param.name))
-    return non_optional_added_parameters
+            required_added_parameters.append(RequiredParameterAdded(function_name=function_name, parameter_name=modified_param.name))
+    return required_added_parameters
 
 
 def main():
