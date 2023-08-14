@@ -25,6 +25,7 @@ from super_gradients.common.factories.processing_factory import ProcessingFactor
 from super_gradients.common.registry.registry import register_model
 from super_gradients.common.object_names import Models
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.utils.predict import ImagesPoseEstimationPrediction
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models.arch_params_factory import get_arch_params
@@ -294,7 +295,7 @@ blocks_dict = {"BASIC": BasicBlock, "BOTTLENECK": Bottleneck, "ADAPTIVE": AdaptB
 
 
 @register_model(Models.DEKR_CUSTOM)
-class DEKRPoseEstimationModel(SgModule):
+class DEKRPoseEstimationModel(SgModule, HasPredict):
     """
     Implementation of HRNet model from DEKR paper (https://arxiv.org/abs/2104.02300).
 

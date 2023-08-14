@@ -95,7 +95,7 @@ class KeypointsImageToTensor(KeypointTransform):
         ]
 
     def __repr__(self):
-        return self.__class__.__name__ + f"(permutation={self.permutation})"
+        return self.__class__.__name__ + "()"
 
 
 @register_transform(Transforms.KeypointsImageStandardize)

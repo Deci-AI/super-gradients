@@ -16,7 +16,24 @@ class TestModelPredict(unittest.TestCase):
         ]
 
     def test_classification_models(self):
-        model = models.get(Models.RESNET18, pretrained_weights="imagenet")
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            for model_name in {Models.RESNET18, Models.EFFICIENTNET_B0, Models.MOBILENET_V2, Models.REGNETY200}:
+                model = models.get(model_name, pretrained_weights="imagenet")
+
+                predictions = model.predict(self.images)
+                predictions.show()
+                predictions.save(output_folder=tmp_dirname)
+
+    def test_pose_estimation_models(self):
+        model = models.get(Models.DEKR_W32_NO_DC, pretrained_weights="coco_pose")
+
+        with tempfile.TemporaryDirectory() as tmp_dirname:
+            predictions = model.predict(self.images)
+            predictions.show()
+            predictions.save(output_folder=tmp_dirname)
+
+    def test_detection_models(self):
+        model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
 
         with tempfile.TemporaryDirectory() as tmp_dirname:
             predictions = model.predict(self.images)
