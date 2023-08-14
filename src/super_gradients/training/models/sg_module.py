@@ -6,11 +6,12 @@ from super_gradients.training.utils.utils import HpmStruct
 
 
 class SgModule(nn.Module):
-    def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
+    def initialize_param_groups(self, lr: float, training_params: HpmStruct, x) -> list:
         """
 
         :return: list of dictionaries containing the key 'named_params' with a list of named params
         """
+        print(x)
         return [{"named_params": self.named_parameters()}]
 
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
