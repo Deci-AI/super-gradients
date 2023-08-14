@@ -150,7 +150,7 @@ def _rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
     return np.concatenate((boxes, targets), 1)
 
 
-def _rescale_and_pad_to_size(image: np.ndarray, output_shape: Tuple[int, int], swap: Tuple[int] = (2, 0, 1), pad_val: int = 114) -> Tuple[np.ndarray, float]:
+def _rescale_and_pad_to_size(image: np.ndarray, output_shape: Tuple[int, int], swap: Tuple[int], pad_val: int = 114) -> Tuple[np.ndarray, float]:
     """
     Rescales image according to minimum ratio input height/width and output height/width rescaled_padded_image,
     pads the image to the target shape and finally swap axis.
