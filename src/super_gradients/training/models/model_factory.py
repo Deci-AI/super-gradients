@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 
 def get_architecture(
-    model_name: str, arch_params: HpmStruct, download_required_code: bool = True, download_platform_weights: bool = True
+    model_name: str, arch_params: HpmStruct, download_required_code: bool, download_platform_weights: bool = True
 ) -> Tuple[Type[torch.nn.Module], HpmStruct, str, bool]:
     """
     Get the corresponding architecture class.
