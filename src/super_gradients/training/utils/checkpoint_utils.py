@@ -203,6 +203,10 @@ class DefaultCheckpointSolver:
 
 
 class YoloXCheckpointSolver:
+    """
+    Implementation of checkpoint solver for old YoloX model checkpoints.
+    """
+
     @classmethod
     def generate_mapping_table(cls) -> Mapping[str, str]:
         """
@@ -233,9 +237,12 @@ class YoloXCheckpointSolver:
                     if checkpoint_key in all_mapping_keys:
                         assert all_mapping_keys[checkpoint_key] == model_key
                     all_mapping_keys[checkpoint_key] = model_key
-                    print(f'"{checkpoint_key}": "{model_key}", ')
                 else:
-                    pass
+                    raise RuntimeError(
+                        "Detected mismatch between model and checkpoint state dict keys."
+                        f"Model key {model_key} of shape {model_value.size()} does not "
+                        f"match checkpoint key {checkpoint_key} of shape {checkpoint_value.size()}"
+                    )
 
         return all_mapping_keys
 
