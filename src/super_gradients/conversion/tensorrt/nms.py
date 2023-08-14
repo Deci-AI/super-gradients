@@ -42,9 +42,7 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
         )  # [B, max_predictions_per_image]
 
         preds_indexes = (
-            torch.arange(start=0, end=self.max_predictions_per_image, step=1, device=num_predictions.device, dtype=pred_scores.dtype)
-            .view(1, -1, 1)
-            .repeat(self.batch_size, 1, 1)
+            torch.arange(start=0, end=self.max_predictions_per_image, step=1, device=num_predictions.device).view(1, -1, 1).repeat(self.batch_size, 1, 1)
         )  # [B, max_predictions_per_image, 1]
 
         flat_predictions = torch.cat(
