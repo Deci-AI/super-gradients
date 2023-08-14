@@ -177,17 +177,29 @@ def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> Mapping[str, torch.Ten
 
 class DefaultCheckpointSolver:
     """
-    Default checkpoint solver class - has same behavior as PyTorch's default checkpoint solver.
+    Implements the default behavior from adaptive_load_state_dict.
+    If the model state dict and checkpoint state dict has no 1:1 matching by name,
+    then default solver uses simple ordered matching.
+    It assumes that order of layers in the checkpoint is the same as in the model and
+    iterates over them simultaneously.
+    If shape of the source and recipient tensors are different, solver raises an error.
     """
 
     def __call__(self, model_state_dict: Mapping[str, Tensor], checkpoint_state_dict: Mapping[str, Tensor]) -> Mapping[str, Tensor]:
+        """
+        Map checkpoint state_dict to model state_dict.
+
+        :param model_state_dict: (Mapping[str, Tensor]) A checkpoint state dict
+        :param checkpoint_state_dict: (Mapping[str, Tensor]) A model state dict
+        :return: (Mapping[str, Tensor]) New checkpoint state dict with keys/values converted to match model state_dict
+        """
         new_ckpt_dict = {}
         for (ckpt_key, ckpt_val), (model_key, model_val) in zip(checkpoint_state_dict.items(), model_state_dict.items()):
 
             if ckpt_val.shape != model_val.shape:
                 raise ValueError(f"ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}" f" with shape {model_val.shape} in the model")
             new_ckpt_dict[model_key] = ckpt_val
-        return {"net": new_ckpt_dict}
+        return new_ckpt_dict
 
 
 class YoloXCheckpointSolver:
