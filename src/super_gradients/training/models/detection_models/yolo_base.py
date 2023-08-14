@@ -619,8 +619,6 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         if not torch.equal(m.stride, stride):
             raise RuntimeError("Provided anchor strides do not match the model strides")
 
-        # self.register_buffer("stride", m.stride)  # USED ONLY FOR CONVERSION
-
     def _initialize_biases(self):
         """initialize biases into DetectX()"""
         detect_module = self._head._modules_list[-1]  # DetectX() module
