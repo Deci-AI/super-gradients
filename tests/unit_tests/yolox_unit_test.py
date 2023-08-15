@@ -1,7 +1,11 @@
+import os
+import tempfile
 import unittest
 
 import torch
 
+from super_gradients.common.object_names import Models
+from super_gradients.training import models
 from super_gradients.training.losses import YoloXDetectionLoss, YoloXFastDetectionLoss
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X
 from super_gradients.training.utils.detection_utils import DetectionCollateFN
@@ -68,6 +72,32 @@ class TestYOLOX(unittest.TestCase):
             ]:
                 result = loss(predictions, targets.to(device))
                 print(result)
+
+    def test_yolo_x_checkpoint_solver(self):
+        """
+        This test checks whether we can:
+        1. load an old pretrained weights for YoloX that has non-matching keys  (Using custom solver under the hood).
+        2. load a regular checkpoint (As if one would train a model from scratch).
+        3. that both models produce the same output.
+
+        :return:
+        """
+        model_variant = [Models.YOLOX_S, Models.YOLOX_M, Models.YOLOX_L, Models.YOLOX_T, Models.YOLOX_N]
+        for model_name in model_variant:
+            model = models.get(model_name, pretrained_weights="coco").eval()
+            input = torch.randn((1, 3, 320, 320))
+
+            output1 = model(input)
+
+            sd = model.state_dict()
+
+            with tempfile.TemporaryDirectory() as tmp_dirname:
+                path = os.path.join(tmp_dirname, f"{model_name}_coco.pth")
+                torch.save({"net": sd}, path)
+                model = models.get(model_name, num_classes=80, checkpoint_path=path).eval()
+                output2 = model(input)
+
+            assert torch.allclose(output1[0], output2[0], atol=1e-4)
 
 
 if __name__ == "__main__":
