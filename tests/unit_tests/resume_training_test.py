@@ -90,17 +90,31 @@ class ResumeTrainingTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
         }
 
-        # Train for 1 more epoch
-        net = LeNet()
+        # FIRST TRAINING - Train for 1 epoch
+        net_v1 = LeNet()
         trainer = Trainer(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name)
-        trainer.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
+        trainer.train(model=net_v1, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
+        first_run_id = get_latest_run_id(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
 
         # Check directory size
         self.assertEqual(original_dir_count + 1, len(os.listdir(experiment_dir)), "You should have 1 run folder created only after calling `Trainer.train`.")
 
+        # SECOND TRAINING - Train for 1 epoch
+        net_v2 = LeNet()  # We don't want to override the first model
+        trainer = Trainer(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name)
+        trainer.train(model=net_v2, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
+        second_run_id = get_latest_run_id(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
+
+        # Check directory size
+        self.assertEqual(
+            original_dir_count + 2, len(os.listdir(experiment_dir)), "You should have 2 run folder created only after calling `Trainer.train` twice."
+        )
+        self.assertNotEqual(first_run_id, second_run_id, "First and Second trainings should have different run ids.")
+
+        # RESUME
         # TRAIN FOR 1 MORE EPOCH AND COMPARE THE NET AT THE BEGINNING OF EPOCH 3 AND THE END OF EPOCH NUMBER 2
         first_epoch_cb = FirstEpochInfoCollector()
-        train_params["run_id"] = get_latest_run_id(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
+        train_params["run_id"] = first_run_id  # Let's run on the first run and make sure it works great
         train_params["max_epochs"] = 3
         train_params["phase_callbacks"] = [first_epoch_cb]
 
@@ -112,14 +126,15 @@ class ResumeTrainingTest(unittest.TestCase):
             valid_loader=classification_test_dataloader(),
         )
 
-        self.assertTrue(check_models_have_same_weights(net, first_epoch_cb.first_epoch_net))
+        self.assertTrue(check_models_have_same_weights(net_v1, first_epoch_cb.first_epoch_net))
+        self.assertFalse(check_models_have_same_weights(net_v2, first_epoch_cb.first_epoch_net))
         self.assertTrue(first_epoch_cb.first_epoch == 2)
 
         # Resuming should not create a new run
         self.assertEqual(
-            original_dir_count + 1,
+            original_dir_count + 2,
             len(os.listdir(experiment_dir)),
-            "You should have only 1 run folder created only after calling `Trainer.train` and resuming it.",
+            "You should have only 2 run folder created only after calling `Trainer.train` twice and resuming it once.",
         )
 
     def test_resume_external_training(self):
