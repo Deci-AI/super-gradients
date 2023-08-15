@@ -547,7 +547,7 @@ class TestDetectionModelExport(unittest.TestCase):
                     #     pass
 
                     for model_type in [
-                        # Models.YOLOX_S don't have full support for YOLOX so it's commented out,
+                        Models.YOLOX_S,
                         Models.PP_YOLOE_S,
                         Models.YOLO_NAS_S,
                     ]:
