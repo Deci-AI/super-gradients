@@ -551,7 +551,7 @@ class DetectionVisualization:
         return out_images
 
 
-class Anchors(nn.Module):
+class Anchors:
     """
     A wrapper function to hold the anchors used by detection models such as Yolo
     """
@@ -568,15 +568,15 @@ class Anchors(nn.Module):
         super().__init__()
 
         self.__anchors_list = anchors_list
-        self.__strides = strides
+        self.__strides = tuple(strides)
 
         self._check_all_lists(anchors_list)
         self._check_all_len_equal_and_even(anchors_list)
 
-        self._stride = nn.Parameter(torch.Tensor(strides).float(), requires_grad=False)
-        anchors = torch.Tensor(anchors_list).float().view(len(anchors_list), -1, 2)
-        self._anchors = nn.Parameter(anchors / self._stride.view(-1, 1, 1), requires_grad=False)
-        self._anchor_grid = nn.Parameter(anchors.clone().view(len(anchors_list), 1, -1, 1, 1, 2), requires_grad=False)
+        self._stride = np.array(strides, dtype=np.float32)
+        anchors = np.array(anchors_list, dtype=np.float32).reshape((len(anchors_list), -1, 2))
+        self._anchors = anchors / self._stride.reshape((-1, 1, 1))
+        self._anchor_grid = anchors.copy().reshape(len(anchors_list), 1, -1, 1, 1, 2)
 
     @staticmethod
     def _check_all_lists(anchors: list) -> bool:
@@ -592,15 +592,15 @@ class Anchors(nn.Module):
                 raise RuntimeError("All objects of anchors_list must be of the same even length")
 
     @property
-    def stride(self) -> nn.Parameter:
+    def stride(self) -> np.ndarray:
         return self._stride
 
     @property
-    def anchors(self) -> nn.Parameter:
+    def anchors(self) -> np.ndarray:
         return self._anchors
 
     @property
-    def anchor_grid(self) -> nn.Parameter:
+    def anchor_grid(self) -> np.ndarray:
         return self._anchor_grid
 
     @property
