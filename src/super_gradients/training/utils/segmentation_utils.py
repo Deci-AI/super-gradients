@@ -109,9 +109,9 @@ class BinarySegmentationVisualization:
         Colors are generated on the fly: uniformly sampled from color wheel to support all given classes.
 
         :param image_tensor:            rgb images, (B, H, W, 3)
-        :param pred_boxes:              boxes after NMS for each image in a batch, each (Num_boxes, 6),
+        :param pred_mask:              boxes after NMS for each image in a batch, each (Num_boxes, 6),
                                         values on dim 1 are: x1, y1, x2, y2, confidence, class
-        :param target_boxes:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, x y w h
+        :param target_mask:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, x y w h
                                         (coordinates scaled to [0, 1])
         :param batch_name:              id of the current batch to use for image naming
 
@@ -120,11 +120,6 @@ class BinarySegmentationVisualization:
 
         :param undo_preprocessing_func: a function to convert preprocessed images tensor into a batch of cv2-like images
         :param image_scale:             scale factor for output image
-
-        Parameters
-        ----------
-        pred_mask
-        target_mask
         """
         image_np = undo_preprocessing_func(image_tensor.detach())
         pred_mask = torch.sigmoid(pred_mask[:, 0, :, :])  # comment out
@@ -208,11 +203,9 @@ def target_to_binary_edge(target: torch.Tensor, num_classes: int, kernel_size: i
     :param flatten_channels: Whether to apply logical or across channels dimension, if at least one pixel class is
         considered as edge pixel flatten value is 1. If set as `False` the output tensor shape is [B, C, H, W], else
         [B, 1, H, W]. Default is `True`.
-    :return: one_hot edge torch.Tensor.
+    :param ignore_index: the index of the class in the dataset to ignore
 
-    Parameters
-    ----------
-    ignore_index
+    :return: one_hot edge torch.Tensor.
     """
     one_hot = to_one_hot(target, num_classes=num_classes, ignore_index=ignore_index)
     return one_hot_to_binary_edge(one_hot, kernel_size=kernel_size, flatten_channels=flatten_channels)

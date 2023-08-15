@@ -190,7 +190,3 @@ cython_debug/
 .idea
 docs/.doctrees
 # End of https://www.toptal.com/developers/gitignore/api/linux,macos,python
-/src/super_gradients/recipes/cityscapes_segformer_yael.yaml
-/src/super_gradients/training/models/segmentation_models/segformer copy.py
-/src/super_gradients/sliding_inference_yael.py
-/src/super_gradients/train_from_recipe_yael.py
