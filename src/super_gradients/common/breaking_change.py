@@ -1,11 +1,13 @@
-from typing import List, Dict, Optional, Any
+import sys
+import argparse
+from typing import List, Dict, Optional, Any, Union
 import json
+from abc import ABC
+import ast
+import git
 from termcolor import colored
 from dataclasses import dataclass, field, asdict
 
-import ast
-import git
-from abc import ABC
 
 module_path_COLOR = "yellow"
 BREAKING_TYPE_COLOR = "blue"
@@ -98,7 +100,7 @@ class BreakingChanges:
         breaking_changes: List[AbstractBreakingChange] = self.imports_removed + self.functions_removed + self.params_removed + self.required_params_added
         for breaking_change in breaking_changes:
 
-            summary += "{:<75} {:<5} {:<75} {}".format(
+            summary += "{:<70} {:<8} {:<30} {}\n".format(
                 module_path_colored, breaking_change.line_num, breaking_change.breaking_type_name, breaking_change.description
             )
 
@@ -109,10 +111,10 @@ class BreakingChanges:
 
 
 class GitHelper:
-    def __init__(self):
-        self.repo = git.Repo("./../../..")
+    def __init__(self, git_path: str):
+        self.repo = git.Repo(git_path)
 
-    def current_files(self, source_branch: str, current_branch: str) -> List[str]:
+    def diff_files(self, source_branch: str, current_branch: str) -> List[str]:
         source_commit = self.repo.commit(source_branch)
         current_commit = self.repo.commit(current_branch)
         return [diff.a_path for diff in source_commit.diff(current_commit) if ".py" in diff.a_path]
@@ -120,7 +122,7 @@ class GitHelper:
     def load_branch_file(self, branch: str, file_path: str) -> str:
         tree = self.repo.commit(branch).tree
 
-        try:  # It looks like there is no simple way to check if a file exists in the tree... So we check with try/except
+        try:  # It looks like there is no simple way to check if a file exists in the tree... So we directly check with try/except
             return tree[file_path].data_stream.read()
         except KeyError:
             return ""
@@ -156,25 +158,7 @@ class FunctionSignature:
     params: FunctionParameters
 
 
-def get_imports(code: str) -> Dict[str, str]:
-    tree = ast.parse(code)
-    imports = {}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                original_name = alias.name
-                aliased_name = alias.asname if alias.asname else alias.name
-                imports[original_name] = aliased_name
-        elif isinstance(node, ast.ImportFrom):
-            module = node.module
-            for alias in node.names:
-                original_name = f"{module}.{alias.name}" if module else alias.name
-                aliased_name = alias.asname if alias.asname else alias.name
-                imports[original_name] = aliased_name
-    return imports
-
-
-def compare_code(module_path: str, source_code: str, current_code: str) -> BreakingChanges:
+def extract_code_breaking_changes(module_path: str, source_code: str, current_code: str) -> BreakingChanges:
     """Compares two versions of code to identify breaking changes.
 
     :param module_path: The path to the module being compared.
@@ -185,8 +169,8 @@ def compare_code(module_path: str, source_code: str, current_code: str) -> Break
     breaking_changes = BreakingChanges(module_path=module_path)
 
     # FUNCTION SIGNATURES
-    source_functions_signatures = extract_signatures(source_code)
-    current_functions_signatures = extract_signatures(current_code)
+    source_functions_signatures = parse_functions_signatures(source_code)
+    current_functions_signatures = parse_functions_signatures(current_code)
     for function_name, source_function_signature in source_functions_signatures.items():
 
         if function_name in current_functions_signatures:
@@ -225,16 +209,45 @@ def compare_code(module_path: str, source_code: str, current_code: str) -> Break
 
     # Check import ONLY if __init__ file.
     if module_path.endswith("__init__.py"):
-        source_imports = get_imports(code=source_code)
-        current_imports = get_imports(code=current_code)
+        source_imports = parse_imports(code=source_code)
+        current_imports = parse_imports(code=current_code)
         breaking_changes.imports_removed = [
             ImportRemoved(import_name=source_import, line_num=0) for source_import in source_imports if source_import not in current_imports
         ]
     return breaking_changes
 
 
-def extract_signatures(code: str) -> Dict[str, FunctionSignature]:
-    """Extracts function signatures from the given code.
+def parse_imports(code: str) -> Dict[str, str]:
+    """Extract function signatures from the given code.
+
+    >>> parse_imports("import package.library_v1 as library")
+    {'package.library_v1': 'library'}
+
+    >>> parse_imports("import package.library")
+    {'package.library_v1': 'package.library'}
+
+    :param code: The Python code to analyze.
+    :return:     Dictionary mapping full imported object/package name to import it's alias.
+    """
+    tree = ast.parse(code)
+    imports = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                original_name = alias.name
+                aliased_name = alias.asname if alias.asname else alias.name
+                imports[original_name] = aliased_name
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module
+            for alias in node.names:
+                original_name = f"{module}.{alias.name}" if module else alias.name
+                aliased_name = alias.asname if alias.asname else alias.name
+                imports[original_name] = aliased_name
+    return imports
+
+
+def parse_functions_signatures(code: str) -> Dict[str, FunctionSignature]:
+    """Extract function signatures from the given code.
 
     :param code: The Python code to analyze.
     :return:     Dictionary mapping function name to function parameters.
@@ -242,12 +255,12 @@ def extract_signatures(code: str) -> Dict[str, FunctionSignature]:
     tree = ast.parse(code)
     functions = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
     signatures = {
-        function.name: FunctionSignature(name=function.name, line_num=function.lineno, params=extract_parameters(function.args)) for function in functions
+        function.name: FunctionSignature(name=function.name, line_num=function.lineno, params=parse_parameters(function.args)) for function in functions
     }
     return signatures
 
 
-def extract_parameters(args: ast.arguments) -> FunctionParameters:
+def parse_parameters(args: ast.arguments) -> FunctionParameters:
     """Extracts the parameters from the given args object.
 
     :param args: The arguments object from the AST.
@@ -258,24 +271,52 @@ def extract_parameters(args: ast.arguments) -> FunctionParameters:
     return parameters
 
 
-def main():
-    git_explorer = GitHelper()
+def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, List]]]:
+    """Analyze changes between the current branch (HEAD) and the master branch.
+    :param verbose: If True, print the summary of breaking changes in a nicely formatted way
+    :return:        List of changes, where each change is a dictionary listing each type of change for each module.
+    """
 
-    reports = []
-    for module_path in git_explorer.current_files(source_branch="master", current_branch="HEAD"):
+    git_explorer = GitHelper(git_path="./../../..")
+
+    summary = "{:<60} {:<8} {:<30} {}\n".format("MODULE", "LINE NO", "BREAKING TYPE", "DESCRIPTION")
+    summary += "-" * 175 + "\n"
+
+    report = []
+    for module_path in git_explorer.diff_files(source_branch="master", current_branch="HEAD"):
 
         master_code = git_explorer.load_branch_file(branch="master", file_path=module_path)
         head_code = git_explorer.load_branch_file(branch="HEAD", file_path=module_path)
-        breaking_changes = compare_code(module_path=module_path, source_code=master_code, current_code=head_code)
+        breaking_changes = extract_code_breaking_changes(module_path=module_path, source_code=master_code, current_code=head_code)
 
-        reports.append(breaking_changes.json())
-        print(str(breaking_changes))
+        report.append(breaking_changes.json())
+        summary += str(breaking_changes)
 
-    with open("report.json", "w") as file:
-        json.dump(reports, file)
+    if verbose:
+        if report:
+            print(summary)
+        else:
+            print(colored("NO BREAKING CHANGE DETECTED!", "green"))
+
+    return report
 
 
-# TODO: change - fail import only oif init - add line number
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--verbose", default=True, type=bool)
+    parser.add_argument("--output-file", default=None, type=str)
+    parser.add_argument("--fail-on-error", default=True, type=bool)
+    args, _ = parser.parse_known_args()
+
+    report = analyze_breaking_changes(verbose=args.verbose)
+
+    if args.output_file:
+        with open(args.output_file, "w") as file:
+            json.dump(report, file)
+
+    if args.fail_on_error:
+        sys.exit(2)
+
 
 if __name__ == "__main__":
     main()
