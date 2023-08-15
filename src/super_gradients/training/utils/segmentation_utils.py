@@ -109,8 +109,7 @@ class BinarySegmentationVisualization:
         Colors are generated on the fly: uniformly sampled from color wheel to support all given classes.
 
         :param image_tensor:            rgb images, (B, H, W, 3)
-        :param pred_mask:              boxes after NMS for each image in a batch, each (Num_boxes, 6),
-                                        values on dim 1 are: x1, y1, x2, y2, confidence, class
+        :param pred_mask:              prediction mask in shape [B, 1, H, W] with C number of classes
         :param target_mask:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, x y w h
                                         (coordinates scaled to [0, 1])
         :param batch_name:              id of the current batch to use for image naming
