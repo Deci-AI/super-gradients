@@ -154,8 +154,7 @@ class PPYOLOEHead(nn.Module):
 
     @torch.jit.ignore
     def cache_anchors(self, input_size: Tuple[int, int]):
-        h, w = input_size
-        self.eval_size = (h, w)
+        self.eval_size = list(input_size)[-2:]
         device = infer_model_device(self.pred_cls)
         dtype = infer_model_dtype(self.pred_cls)
         anchor_points, stride_tensor = self._generate_anchors(dtype=dtype, device=device)
