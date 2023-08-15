@@ -58,7 +58,7 @@ def maybe_remove_module_prefix(state_dict: Mapping[str, Tensor], prefix: str = "
     :return: state_dict: The model state_dict after removing the prefix
 
     """
-    offset = len(prefix) + 1
+    offset = len(prefix)
     if all([key.startswith(prefix) for key in state_dict.keys()]):
         state_dict = collections.OrderedDict([(key[offset:], value) for key, value in state_dict.items()])
     return state_dict
@@ -1372,11 +1372,17 @@ class YoloXCheckpointSolver:
         return checkpoint_state_dict
 
     def _remove_saved_stride_tensors(self, state_dict):
-        exclude_stride_keys = {"stride", "_head.anchors._anchors", "_head.anchors._anchor_grid", "_head.anchors._stride", "_head._modules_list.14.stride"}
-        return {k: v for k, v in state_dict.items() if k not in exclude_stride_keys}
+        exclude_stride_keys = {
+            "stride",
+            "_head.anchors._anchors",
+            "_head.anchors._anchor_grid",
+            "_head.anchors._stride",
+            "_head._modules_list.14.stride",
+        }
+        return collections.OrderedDict([(k, v) for k, v in state_dict.items() if k not in exclude_stride_keys])
 
     def _rename_layers(self, state_dict):
-        new_state_dict = {}
+        new_state_dict = collections.OrderedDict()
         for k, v in state_dict.items():
             k = self.layers_rename_table.get(k, k)
             new_state_dict[k] = v
