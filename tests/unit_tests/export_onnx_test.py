@@ -1,11 +1,12 @@
+import os
 import tempfile
 import unittest
 
+from torchvision.transforms import Compose, Normalize, Resize
+
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
-from torchvision.transforms import Compose, Normalize, Resize
 from super_gradients.training.transforms import Standardize
-import os
 
 
 class TestModelsONNXExport(unittest.TestCase):

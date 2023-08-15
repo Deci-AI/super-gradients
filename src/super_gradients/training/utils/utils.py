@@ -1,26 +1,25 @@
+import inspect
 import math
 import os
 import random
 import re
 import tarfile
 import time
-import inspect
 import typing
 import warnings
 from functools import lru_cache, wraps
 from importlib import import_module
 from itertools import islice
-
 from pathlib import Path
 from typing import Mapping, Optional, Tuple, Union, List, Dict, Any, Iterable
 from zipfile import ZipFile
-from torch.nn.parallel import DistributedDataParallel
 
 import numpy as np
 import torch
 import torch.nn as nn
 from PIL import Image, ExifTags
 from jsonschema import validate
+from torch.nn.parallel import DistributedDataParallel
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -623,3 +622,65 @@ def ensure_is_tuple_of_two(inputs: Union[Any, Iterable[Any], None]) -> Union[Tup
         return a, b
 
     return inputs, inputs
+
+
+def infer_model_dtype(model: nn.Module) -> Optional[torch.device]:
+    """
+    Get the device where the model's parameters are stored.
+    This function returns device of the first parameter of the model, assuming there is no
+    cross-device parameter movement inside the model.
+    :param model: Model to get the device from.
+    :return: Device where the model's parameters are stored.
+             The function may return None if the model has no parameters or buffers.
+    """
+    try:
+        first_parameter = next(iter(model.parameters()))
+        return first_parameter.dtype
+    except StopIteration:
+        try:
+            first_buffer = next(iter(model.buffers()))
+            return first_buffer.dtype
+        except StopIteration:
+            return None
+
+
+def infer_model_device(model: nn.Module) -> Optional[torch.device]:
+    """
+    Get the device where the model's parameters are stored.
+    This function returns device of the first parameter of the model, assuming there is no
+    cross-device parameter movement inside the model.
+    :param model: Model to get the device from.
+    :return: Device where the model's parameters are stored.
+             The function may return None if the model has no parameters or buffers.
+    """
+    try:
+        first_parameter = next(iter(model.parameters()))
+        return first_parameter.device
+    except StopIteration:
+        try:
+            first_buffer = next(iter(model.buffers()))
+            return first_buffer.device
+        except StopIteration:
+            return None
+
+
+def check_model_contains_quantized_modules(model: nn.Module) -> bool:
+    """
+    Check if the model contains any quantized modules.
+    :param model: Model to check.
+    :return: True if the model contains any quantized modules, False otherwise.
+    """
+    try:
+        from pytorch_quantization.nn.modules._utils import QuantMixin
+    except ImportError:
+        # If pytorch_quantization is not installed then by definition the model cannot contain any quantized modules
+        return False
+
+    from super_gradients.training.utils.quantization.core import SGQuantMixin
+
+    model = unwrap_model(model)
+    for m in model.modules():
+        if isinstance(m, (QuantMixin, SGQuantMixin)):
+            return True
+
+    return False

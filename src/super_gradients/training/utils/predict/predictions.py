@@ -28,6 +28,15 @@ class DetectionPrediction(Prediction):
         :param confidence:  Confidence scores for each bounding box
         :param labels:      Labels for each bounding box.
         :param image_shape: Shape of the image the prediction is made on, (H, W). This is used to convert bboxes to xyxy format
+
+        :param target_bboxes: np.ndarray, ground truth bounding boxes as np.ndarray of shape (image_i_object_count, 4)
+         When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one).
+
+        :param target_labels: np.ndarray, ground truth target class indices as an np.ndarray of shape (image_i_object_count).
+
+        :param target_bbox_format: str, bounding box format of target_bboxes, one of ['xyxy','xywh',
+        'yxyx' 'cxcywh' 'normalized_xyxy' 'normalized_xywh', 'normalized_yxyx', 'normalized_cxcywh']. Will raise an
+        error if not None and target_bboxes is None.
         """
         self._validate_input(bboxes, confidence, labels)
 
@@ -43,6 +52,7 @@ class DetectionPrediction(Prediction):
         self.bboxes_xyxy = bboxes_xyxy
         self.confidence = confidence
         self.labels = labels
+        self.image_shape = image_shape
 
     def _validate_input(self, bboxes: np.ndarray, confidence: np.ndarray, labels: np.ndarray) -> None:
         n_bboxes, n_confidences, n_labels = bboxes.shape[0], confidence.shape[0], labels.shape[0]
@@ -113,27 +123,24 @@ class ClassificationPrediction(Prediction):
     """Represents a Classification prediction"""
 
     confidence: float
-    labels: int
+    label: int
     image_shape: Tuple[int, int]
 
-    def __init__(self, confidence: float, labels: int, image_shape: Optional[Tuple[int, int]]):
+    def __init__(self, confidence: float, label: int, image_shape: Optional[Tuple[int, int]]):
         """
 
         :param confidence:  Confidence scores for each bounding box
-        :param labels:      Labels for each bounding box.
+        :param label:      Labels for each bounding box.
         :param image_shape: Shape of the image the prediction is made on, (H, W).
         """
-        self._validate_input(confidence, labels)
+        self._validate_input(confidence, label)
 
         self.confidence = confidence
-        self.labels = labels
+        self.label = label
         self.image_shape = image_shape
 
-    def _validate_input(self, confidence: np.ndarray, labels: np.ndarray) -> None:
+    def _validate_input(self, confidence: float, label: int) -> None:
         if not isinstance(confidence, float):
-            raise ValueError(f"Argument confidence must be a numpy array, not {type(confidence)}")
-        if not isinstance(labels, int):
-            raise ValueError(f"Argument labels must be a numpy array, not {type(labels)}")
-
-    def __len__(self):
-        return len(self.labels)
+            raise ValueError(f"Argument confidence must be a float, not {type(confidence)}")
+        if not isinstance(label, int):
+            raise ValueError(f"Argument labels must be an integer, not {type(label)}")

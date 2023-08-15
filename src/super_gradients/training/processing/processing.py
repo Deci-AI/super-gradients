@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Optional
 
 import numpy as np
 from PIL import Image
+from torch import nn
 
 from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_processing
@@ -62,6 +63,27 @@ class Processing(ABC):
         """Postprocess the model output predictions."""
         pass
 
+    @abstractmethod
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        """
+        Get the equivalent photometric preprocessing module for this processing.
+        A photometric preprocessing apply a transformation to the image pixels, without changing the image size.
+        This includes RGB -> BGR, standardization, normalization etc.
+        If a Processing subclass does not have change pixel values, it should return an nn.Identity module.
+        If a Processing subclass does not have an equivalent photometric preprocessing, it should return None.
+        :return:
+        """
+        pass
+
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the shape (rows, cols) of the image after all the processing steps.
+        This is the effective image size that is fed to model itself
+        :return: Return the image shape (rows, cols), or None if the image shape cannot be inferred (When preprocessing
+        contains no resize/padding operations).
+        """
+        return None
+
 
 @register_processing(Processings.ComposeProcessing)
 class ComposeProcessing(Processing):
@@ -85,6 +107,29 @@ class ComposeProcessing(Processing):
             postprocessed_predictions = processing.postprocess_predictions(postprocessed_predictions, metadata)
         return postprocessed_predictions
 
+    def get_equivalent_photometric_module(self) -> nn.Module:
+        modules = []
+        for p in self.processings:
+            module = p.get_equivalent_photometric_module()
+            if module is not None and not isinstance(module, nn.Identity):
+                modules.append(module)
+
+        return nn.Sequential(*modules)
+
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the output image shape from the processing.
+
+        :return: (rows, cols) Returns the last known output shape for all the processings.
+        """
+        output_shape = None
+        for p in self.processings:
+            new_output_shape = p.infer_image_input_shape()
+            if new_output_shape is not None:
+                output_shape = new_output_shape
+
+        return output_shape
+
 
 @register_processing(Processings.ImagePermute)
 class ImagePermute(Processing):
@@ -102,6 +147,9 @@ class ImagePermute(Processing):
 
     def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
         return predictions
+
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
 
 
 @register_processing(Processings.ReverseImageChannels)
@@ -123,6 +171,11 @@ class ReverseImageChannels(Processing):
 
     def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
         return predictions
+
+    def get_equivalent_photometric_module(self) -> nn.Module:
+        from super_gradients.conversion.preprocessing_modules import ChannelSelect
+
+        return ChannelSelect(channels=np.array([2, 1, 0], dtype=int))
 
 
 @register_processing(Processings.StandardizeImage)
@@ -148,6 +201,16 @@ class StandardizeImage(Processing):
     def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
         return predictions
 
+    def update_mean_std_normalization(self, mean: np.ndarray, std: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        mean = mean / self.max_value
+        std = std / self.max_value
+        return mean, std
+
+    def get_equivalent_photometric_module(self) -> nn.Module:
+        from super_gradients.conversion.preprocessing_modules import ApplyMeanStd
+
+        return ApplyMeanStd(mean=np.array([0], dtype=np.float32), std=np.array([self.max_value], dtype=np.float32))
+
 
 @register_processing(Processings.NormalizeImage)
 class NormalizeImage(Processing):
@@ -166,6 +229,11 @@ class NormalizeImage(Processing):
 
     def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
         return predictions
+
+    def get_equivalent_photometric_module(self) -> nn.Module:
+        from super_gradients.conversion.preprocessing_modules import ApplyMeanStd
+
+        return ApplyMeanStd(mean=self.mean, std=self.std)
 
 
 class _DetectionPadding(Processing, ABC):
@@ -198,6 +266,17 @@ class _DetectionPadding(Processing, ABC):
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
         pass
 
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the output image shape from the processing.
+
+        :return: (rows, cols) Returns the last known output shape for all the processings.
+        """
+        return self.output_shape
+
 
 class _KeypointsPadding(Processing, ABC):
     """Base class for keypoints padding methods. One should implement the `_get_padding_params` method to work with a custom padding method.
@@ -228,6 +307,17 @@ class _KeypointsPadding(Processing, ABC):
     @abstractmethod
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
         pass
+
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the output image shape from the processing.
+
+        :return: (rows, cols) Returns the last known output shape for all the processings.
+        """
+        return self.output_shape
 
 
 @register_processing(Processings.DetectionCenterPadding)
@@ -263,6 +353,17 @@ class _Rescale(Processing, ABC):
 
         return rescaled_image, RescaleMetadata(original_shape=image.shape[:2], scale_factor_h=scale_factor_h, scale_factor_w=scale_factor_w)
 
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the output image shape from the processing.
+
+        :return: (rows, cols) Returns the last known output shape for all the processings.
+        """
+        return self.output_shape
+
 
 class _LongestMaxSizeRescale(Processing, ABC):
     """Resize image to given image dimensions WITH preserving aspect ratio.
@@ -282,6 +383,17 @@ class _LongestMaxSizeRescale(Processing, ABC):
             image = _rescale_image(image, target_shape=(new_height, new_width))
 
         return image, RescaleMetadata(original_shape=(height, width), scale_factor_h=scale_factor, scale_factor_w=scale_factor)
+
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the output image shape from the processing.
+
+        :return: (rows, cols) Returns the last known output shape for all the processings.
+        """
+        return None
 
 
 @register_processing(Processings.DetectionRescale)
@@ -328,6 +440,17 @@ class Resize(ClassificationProcess):
 
         return resized_image, None
 
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the output image shape from the processing.
+
+        :return: (rows, cols) Returns the last known output shape for all the processings.
+        """
+        return (self.size, self.size)
+
 
 @register_processing(Processings.CenterCrop)
 class CenterCrop(ClassificationProcess):
@@ -355,6 +478,17 @@ class CenterCrop(ClassificationProcess):
 
         cropped_image = image[start_y:end_y, start_x:end_x]
         return cropped_image, None
+
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
+    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
+        """
+        Infer the output image shape from the processing.
+
+        :return: (rows, cols) Returns the last known output shape for all the processings.
+        """
+        return (self.size, self.size)
 
 
 def default_yolox_coco_processing_params() -> dict:
@@ -507,10 +641,22 @@ def default_dekr_coco_processing_params() -> dict:
     return params
 
 
-def default_resnet_imagenet_processing_params() -> dict:
+def default_imagenet_processing_params() -> dict:
     """Processing parameters commonly used for training resnet on Imagenet dataset."""
     image_processor = ComposeProcessing(
-        [Resize(size=256), CenterCrop(size=224), NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), StandardizeImage(), ImagePermute()]
+        [Resize(size=256), CenterCrop(size=224), StandardizeImage(), NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ImagePermute()]
+    )
+    params = dict(
+        class_names=IMAGENET_CLASSES,
+        image_processor=image_processor,
+    )
+    return params
+
+
+def default_vit_imagenet_processing_params() -> dict:
+    """Processing parameters used by ViT for training resnet on Imagenet dataset."""
+    image_processor = ComposeProcessing(
+        [Resize(size=256), CenterCrop(size=224), StandardizeImage(), NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]), ImagePermute()]
     )
     params = dict(
         class_names=IMAGENET_CLASSES,
@@ -534,7 +680,10 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
     if pretrained_weights == "coco_pose" and model_name in ("dekr_w32_no_dc", "dekr_custom"):
         return default_dekr_coco_processing_params()
 
-    if pretrained_weights == "imagenet" and model_name == "resnet18":
-        return default_resnet_imagenet_processing_params()
+    if pretrained_weights == "imagenet" and model_name in {"vit_base", "vit_large", "vit_huge"}:
+        return default_vit_imagenet_processing_params()
+
+    if pretrained_weights == "imagenet":
+        return default_imagenet_processing_params()
 
     return dict()
