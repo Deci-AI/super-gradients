@@ -246,6 +246,7 @@ pred_classes, pred_classes.shape
 For sake of this tutorial we will use a simple visualization function that is tailored for batch_size=1 only.
 You can use it as a starting point for your own visualization code.
 
+
 ```python
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.utils.detection_utils import DetectionVisualization
@@ -266,8 +267,7 @@ def show_predictions_from_batch_format(image, predictions):
     class_names = COCO_DETECTION_CLASSES_LIST
     color_mapping = DetectionVisualization._generate_color_mapping(len(class_names))
 
-    for (x1, y1, x2, y2, class_score, class_index) in zip(pred_boxes[:, 0], pred_boxes[:, 1], pred_boxes[:, 2],
-                                                          pred_boxes[:, 3], pred_scores, pred_classes):
+    for (x1, y1, x2, y2, class_score, class_index) in zip(pred_boxes[:, 0], pred_boxes[:, 1], pred_boxes[:, 2], pred_boxes[:, 3], pred_scores, pred_classes):
         image = DetectionVisualization.draw_box_title(
             image_np=image,
             x1=int(x1),
@@ -306,7 +306,7 @@ You can explicitly specify output format of the predictions by setting the `outp
 
 
 ```python
-from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
+from super_gradients.conversion import DetectionOutputFormatMode
 
 export_result = model.export("yolo_nas_s.onnx", output_predictions_format=DetectionOutputFormatMode.FLAT_FORMAT)
 export_result
@@ -371,6 +371,9 @@ result[0].shape
 
     (25, 7)
 
+
+
+
 ```python
 def show_predictions_from_flat_format(image, predictions):
     [flat_predictions] = predictions
@@ -382,17 +385,17 @@ def show_predictions_from_flat_format(image, predictions):
     for (sample_index, x1, y1, x2, y2, class_score, class_index) in flat_predictions[flat_predictions[:, 0] == 0]:
         class_index = int(class_index)
         image = DetectionVisualization.draw_box_title(
-            image_np=image,
-            x1=int(x1),
-            y1=int(y1),
-            x2=int(x2),
-            y2=int(y2),
-            class_id=class_index,
-            class_names=class_names,
-            color_mapping=color_mapping,
-            box_thickness=2,
-            pred_conf=class_score,
-        )
+                    image_np=image,
+                    x1=int(x1),
+                    y1=int(y1),
+                    x2=int(x2),
+                    y2=int(y2),
+                    class_id=class_index,
+                    class_names=class_names,
+                    color_mapping=color_mapping,
+                    box_thickness=2,
+                    pred_conf=class_score,
+                )
 
     plt.figure(figsize=(8, 8))
     plt.imshow(image)
@@ -497,7 +500,7 @@ In the example below we use a dummy data-loader for sake of showing how to use t
 ```python
 import torch
 from torch.utils.data import DataLoader
-from super_gradients.conversion.conversion_enums import ExportQuantizationMode
+from super_gradients.conversion import ExportQuantizationMode
 
 # THIS IS ONLY AN EXAMPLE. YOU SHOULD USE YOUR OWN DATA-LOADER HERE
 dummy_calibration_dataset = [torch.randn((3, 640, 640), dtype=torch.float32) for _ in range(32)]
@@ -519,7 +522,7 @@ result = session.run(outputs, {inputs[0]: image_bchw})
 show_predictions_from_flat_format(image, result)
 ```
 
-     25%|████████████████████████████████████████████████████████▎                                                                                                                                                                        | 4/16 [00:12<00:36,  3.08s/it]
+     25%|█████████████████████████████████████████████████                                                                                                                                                   | 4/16 [00:11<00:34,  2.87s/it]
     
 
 
@@ -552,13 +555,13 @@ Therefore, ONNX Runtime backend is recommended for most use-cases and is used by
 You can specify the desired execution backend by setting the `execution_backend` argument of `export()` method:
 
 ```python
-from super_gradients.conversion.conversion_enums import ExportTargetBackend
+from super_gradients.conversion import ExportTargetBackend
 
 model.export(..., engine=ExportTargetBackend.ONNXRUNTIME)
 ```
 
 ```python
-from super_gradients.conversion.conversion_enums import ExportTargetBackend
+from super_gradients.conversion import ExportTargetBackend
 
 model.export(..., engine=ExportTargetBackend.TENSORRT)
 ```

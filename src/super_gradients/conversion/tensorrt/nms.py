@@ -3,16 +3,18 @@ import tempfile
 
 import numpy as np
 import onnx
-import onnx_graphsurgeon as gs
 import torch
 from torch import nn, Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
 from super_gradients.conversion.conversion_utils import numpy_dtype_to_torch_dtype
+from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
 from super_gradients.conversion.onnx.utils import append_graphs
 
 logger = get_logger(__name__)
+
+gs = import_onnx_graphsurgeon_or_fail_with_instructions()
 
 
 class ConvertTRTFormatToFlatTensor(nn.Module):
@@ -40,9 +42,7 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
         )  # [B, max_predictions_per_image]
 
         preds_indexes = (
-            torch.arange(start=0, end=self.max_predictions_per_image, step=1, device=num_predictions.device, dtype=pred_scores.dtype)
-            .view(1, -1, 1)
-            .repeat(self.batch_size, 1, 1)
+            torch.arange(start=0, end=self.max_predictions_per_image, step=1, device=num_predictions.device).view(1, -1, 1).repeat(self.batch_size, 1, 1)
         )  # [B, max_predictions_per_image, 1]
 
         flat_predictions = torch.cat(
