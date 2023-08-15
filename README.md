@@ -599,8 +599,6 @@ ________________________________________________________________________________
 
 All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/41dkt89)
 
-Detailed list can be found [here](http://bit.ly/3GnJwgZ) 
-
 ### Image Classification
   
 - [DensNet (Densely Connected Convolutional Networks)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/densenet.py) 
