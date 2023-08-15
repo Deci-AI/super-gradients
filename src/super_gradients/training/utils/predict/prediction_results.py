@@ -18,7 +18,6 @@ from .predictions import Prediction, DetectionPrediction, ClassificationPredicti
 from ...datasets.data_formats.bbox_formats import convert_bboxes
 
 
-
 @dataclass
 class ImagePrediction(ABC):
     """Object wrapping an image and a model's prediction.
