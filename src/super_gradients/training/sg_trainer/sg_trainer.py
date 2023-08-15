@@ -747,6 +747,10 @@ class Trainer:
                     Whether to continue training from ckpt with the same experiment name
                      (i.e resume from CKPT_ROOT_DIR/EXPERIMENT_NAME/CKPT_NAME)
 
+                - `run_id` : (Optional) int (default=None)
+
+                    ID of run to resume from the same experiment. When set, the training will be resumed from the checkpoint in the specified run id.
+
                 - `ckpt_name` : str (default=ckpt_latest.pth)
 
                     The checkpoint (.pth file) filename in CKPT_ROOT_DIR/EXPERIMENT_NAME/ to use when resume=True and
