@@ -1,7 +1,9 @@
-from typing import Callable
+from typing import Callable, Optional
 
 from torch import nn
 from typing_extensions import Protocol, runtime_checkable
+
+from super_gradients.training.processing.processing import Processing
 
 
 @runtime_checkable
@@ -17,8 +19,7 @@ class HasPreprocessingParams(Protocol):
         ...
 
 
-@runtime_checkable
-class HasPredict(Protocol):
+class HasPredict:
     """
     Protocol class serves a purpose of explicitly indicating whether a torch model has the functionality of ".predict"
     as defined in SG.
@@ -27,13 +28,23 @@ class HasPredict(Protocol):
 
     def set_dataset_processing_params(self, *args, **kwargs):
         """Set the processing parameters for the dataset."""
-        ...
+        raise NotImplementedError(f"set_dataset_processing_params is not implemented in the derived class {self.__class__.__name__}")
 
     def predict(self, images, *args, **kwargs):
-        ...
+        raise NotImplementedError(f"predict is not implemented in the derived class {self.__class__.__name__}")
 
     def predict_webcam(self, *args, **kwargs):
-        ...
+        raise NotImplementedError(f"predict_webcam is not implemented in the derived class {self.__class__.__name__}")
+
+    def get_input_channels(self) -> int:
+        """
+        Get the number of input channels for the model.
+        :return: (int) Number of input channels.
+        """
+        raise NotImplementedError(f"get_input_channels is not implemented in the derived class {self.__class__.__name__}")
+
+    def get_processing_params(self) -> Optional[Processing]:
+        raise NotImplementedError(f"get_processing_params is not implemented in the derived class {self.__class__.__name__}")
 
 
 @runtime_checkable

@@ -14,7 +14,7 @@ from omegaconf import DictConfig
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
-from super_gradients.module_interfaces import SupportsReplaceNumClasses
+from super_gradients.module_interfaces import SupportsReplaceNumClasses, HasPredict
 from super_gradients.modules.head_replacement_utils import replace_num_classes_with_random_weights
 from super_gradients.training.utils.utils import HpmStruct, arch_params_deprecated
 from super_gradients.training.models.sg_module import SgModule
@@ -26,7 +26,7 @@ from super_gradients.training.utils.detection_utils import DetectionPostPredicti
 from super_gradients.training.utils.media.image import ImageSource
 
 
-class CustomizableDetector(SgModule):
+class CustomizableDetector(HasPredict, SgModule):
     """
     A customizable detector with backbone -> neck -> heads
     Each submodule with its parameters must be defined explicitly.
@@ -61,6 +61,7 @@ class CustomizableDetector(SgModule):
         self.bn_eps = bn_eps
         self.bn_momentum = bn_momentum
         self.inplace_act = inplace_act
+        self.in_channels = in_channels
         factory = det_factory.DetectionModulesFactory()
 
         # move num_classes into heads params
@@ -138,6 +139,16 @@ class CustomizableDetector(SgModule):
         self._image_processor = image_processor or self._image_processor
         self._default_nms_iou = iou or self._default_nms_iou
         self._default_nms_conf = conf or self._default_nms_conf
+
+    def get_input_channels(self) -> int:
+        """
+        Get the number of input channels for the model.
+        :return: (int) Number of input channels.
+        """
+        return self.in_channels
+
+    def get_processing_params(self) -> Optional[Processing]:
+        return self._image_processor
 
     @lru_cache(maxsize=1)
     def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> DetectionPipeline:
