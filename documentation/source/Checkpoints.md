@@ -23,9 +23,13 @@ That's why in SG, multiple checkpoints are saved throughout training:
 
 #### Where are the checkpoint files saved?
 
-The checkpoint files will be saved at <PATH_TO_CKPT_ROOT_DIR>/experiment_name/.
+The checkpoint files will be saved at `<ckpt_root_dir>/<experiment_name>/<run_dir>`.
 
-The user controls the checkpoint root directory, which can be passed to the `Trainer` constructor through the `ckpt_root_dir` argument.
+- `ckpt_root_dir` and `experiment_name` can be set by the user when instantiating the `Trainer`.
+```python
+Trainer(ckpt_root_dir='path/to/ckpt_root_dir', experiment_name="my_experiment")
+```
+- `run_dir` is unique and automatically generated each time you start a new training, with `trainer.train(...)`
 
 When working with a cloned version of SG, one can leave out the `ckpt_root_dir` arg, and checkpoints will be saved under the `super_gradients/checkpoints` directory.
 
@@ -87,14 +91,19 @@ Then at the end of the training, our `ckpt_root_dir` contents will look similar 
 
 ```
 my_checkpoints_folder
-|─── my_resnet18_training_experiment
-│       ckpt_best.pth                     # Model checkpoint on best epoch
-│       ckpt_latest.pth                   # Model checkpoint on last epoch
-│       average_model.pth                 # Model checkpoint averaged over epochs
-|       ckpt_epoch_10.pth                 # Model checkpoint of epoch 10
-|       ckpt_epoch_15.pth                 # Model checkpoint of epoch 15
-│       events.out.tfevents.1659878383... # Tensorflow artifacts of a specific run
-│       log_Aug07_11_52_48.txt            # Trainer logs of a specific run
+├─── my_resnet18_training_experiment
+│   ├── RUN_20230802_131052_651906
+│   │     ├─ ckpt_best.pth                     # Model checkpoint on best epoch
+│   │     ├─ ckpt_latest.pth                   # Model checkpoint on last epoch
+│   │     ├─ average_model.pth                 # Model checkpoint averaged over epochs
+│   │     ├─ ckpt_epoch_10.pth                 # Model checkpoint of epoch 10
+│   │     ├─ ckpt_epoch_15.pth                 # Model checkpoint of epoch 15
+│   │     ├─ events.out.tfevents.1659878383... # Tensorflow artifacts of a specific run
+│   │     └─ log_Aug02_13_10_52.txt            # Trainer logs of a specific run
+│   │
+│   └─ RUN_20230803_121652_243212
+│        └─ ...
+│
 └─── some_other_training_experiment_name
         ...
 ```
@@ -105,7 +114,7 @@ Suppose we wish to load the weights from `ckpt_best.pth`. We can simply pass its
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
 
-model = models.get(model_name=Models.RESNET18, num_classes=10, checkpoint_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
+model = models.get(model_name=Models.RESNET18, num_classes=10, checkpoint_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/RUN_20230802_131052_651906/ckpt_best.pth")
 ```
 
 > Important: when loading SG-trained checkpoints using models.get(...), if the network was trained with EMA, the EMA weights will be the ones loaded. 
@@ -118,7 +127,7 @@ from super_gradients.common.object_names import Models
 from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
 
 model = models.get(model_name=Models.RESNET18, num_classes=10)
-load_checkpoint_to_model(net=model, ckpt_local_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/ckpt_best.pth")
+load_checkpoint_to_model(net=model, ckpt_local_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/RUN_20230802_131052_651906/ckpt_best.pth")
 ```
 ### Extending the Functionality of PyTorch's `strict` Parameter in `load_state_dict()`
 
@@ -237,32 +246,73 @@ def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tup
 
 ## Resuming Training
 
-In SG, we separate the logic of resuming training from loading model weights. Therefore, continuing training is controlled by two arguments, passed through `training_params`: `resume` and `resume_path`:
+Resuming training in SG is a comprehensive process, controlled by three primary parameters that allow flexibility 
+in continuing or branching off from specific training checkpoints. 
+These parameters are used within `training_params`: `resume`, `run_id`, and `resume_path`.
+
 ```yaml
-...
-resume: False # whether to continue training from ckpt with the same experiment name.
-resume_path: # Explicit checkpoint path (.pth file) to resume training.
+resume: False  # Option to continue training from the latest checkpoint.
+run_id:        # ID to resume from a specific run within the same experiment.
+resume_path:   # Direct path to a specific checkpoint file (.pth) to resume training.
+
 ...
 ```
 
-Setting `resume=True` will take the training related state_dicts from `/PATH/TO/MY_CKPT_ROOT_DIR/MY_EXPERIMENT_NAME/ckpt_latest.pth`.
-Stating explicitly a `resume_path` will continue training from an explicit checkpoint.
+- `resume=True`: Continues the latest run within the same experiment.
+- `run_id`: Continues a specific run within the same experiment, identified by the run ID.
+- `resume_path`: Branches off from a specific checkpoint, creating a new run.
 
-In both cases, SG allows flexibility of the other training-related parameters. For example, we can resume a training experiment and run it for more epochs:
 
+#### 1. Resuming the Latest Run
+
+By setting `resume=True`, SG will resume training from the last checkpoint within the same experiment.
+
+Example:
 
 ```shell
-python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=300
+# Continues from the latest run in the cifar_experiment.
+python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True
 ```
+
+#### 2. Resuming a Specific Run
+
+Using `run_id`, you can resume training from a specific run within an experiment, identified by the run ID.
+
+Example:
 
 ```shell
-python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume=True training_hyperparams.max_epochs=400
+# Continues from a specific run identified by the ID within cifar_experiment.
+python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=cifar_experiment run_id=RUN_20230802_131052_651906
 ```
 
-However, this flexibility comes with a price: we must be aware of any change in parameters (by command line overrides or hard-coded changes inside the yaml file configurations) if we wish to resume training.
+#### 3. Resuming from a Specific Checkpoint
 
-For this reason, SG also offers a safer option for resuming interrupted training - the `Trainer.resume_experiment(...)` method. It takes two arguments: `experiment_name` - the experiment's name to continue, and `ckpt_root_dir` - the directory including the checkpoints. It will resume training with the same settings the training was launched with.
-Note that resuming training this way requires the interrupted training to be launched with configuration files (i.e., `Trainer.train_from_config`), which outputs the Hydra final config to the `.hydra` directory inside the checkpoints directory.
+By specifying a `resume_path`, SG will create a new run directory, allowing training to resume from that specific checkpoint, and subsequently save the new checkpoints in this new directory.
+
+Example:
+
+```shell
+# Branches from a specific checkpoint, creating a new run.
+python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=cifar_experiment training_hyperparams.resume_path=/path/to/checkpoint.pth
+```
+
+#### 4. Resuming with original recipe
+Resuming is parameter dependant - you cannot resume the training of a model if there is a mismatch between the model architecture defined in your recipe, and the one in your checkpoint.
+
+Therefore, if you trained a model a while ago, and that in the meantime you changed the model architecture definition,
+then you won't be able to resume its training, loading the model would simply raise an exception.
+
+
+To avoid this issue, SuperGradients provides an option to resume a training based on the recipe that was originally used to train the model. 
+
+```
+Trainer.resume_experiment(ckpt_root_dir=..., experiment_name=..., run_id=...)
+```
+
+- `run_id` is optional. You can use it to chose which run you want to resume. By default, it will resume the latest run of your experiment.
+
+Note that  `Trainer.resume_experiment` can only resume training that were launched with `Trainer.train_from_config`.
+
 See usage in our [resume_experiment_example](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/resume_experiment_example/resume_experiment.py).
 
 ## Resuming Training from SG Logger's Remote Storage (WandB only)
