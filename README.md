@@ -127,7 +127,7 @@ ________________________________________________________________________________
 Version 3.1.3 (July 19, 2023)
 
 * [Pose Estimation Task Support](https://docs.deci.ai/super-gradients/documentation/source/PoseEstimation.html) - Check out fine-tuning [notebook example](https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On) 
-* Pre-trained modified [DEKR](super_gradients/recipes/coco2017_pose_dekr_w32_no_dc.yaml) model for pose estimation (TensorRT-compatible)
+* Pre-trained modified [DEKR](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_pose_dekr_w32_no_dc.yaml) model for pose estimation (TensorRT-compatible)
 * Support for Python 3.10
 * Support for torch.compile
 * Other bugfixes & minor improvements. Check out [release notes](https://github.com/Deci-AI/super-gradients/releases/tag/3.1.3)
@@ -256,7 +256,6 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 </table>
 </br></br>
 
-https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On
 
 ###  Object Detection
 
@@ -666,7 +665,7 @@ Detailed list can be found [here](http://bit.ly/3GnJwgZ)
 
 ### Pose Estimation
 
-- [DEKR-W32-NO-DC](super_gradients/recipes/coco2017_pose_dekr_w32_no_dc.yaml)
+- [DEKR-W32-NO-DC](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/pose_estimation_models/dekr_hrnet.py)
 
   
 
