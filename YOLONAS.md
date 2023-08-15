@@ -27,7 +27,6 @@ YOLO-NAS's architecture employs quantization-aware blocks and selective quantiza
 
 ## Quickstart
 
-```python
 ## Extract bounding boxes 
 ```python
 prediction = output[0].prediction
