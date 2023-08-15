@@ -9,6 +9,8 @@ import onnx
 import onnxruntime
 import torch
 from matplotlib import pyplot as plt
+
+from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
 from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 from torch import nn
 from torch.utils.data import DataLoader
@@ -25,7 +27,9 @@ from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASS
 from super_gradients.training.utils.detection_utils import DetectionVisualization
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.media.image import load_image
-import onnx_graphsurgeon as gs
+
+
+gs = import_onnx_graphsurgeon_or_fail_with_instructions()
 
 
 class TestDetectionModelExport(unittest.TestCase):
