@@ -44,9 +44,23 @@ def transfer_weights(model: nn.Module, model_state_dict: Mapping[str, Tensor]) -
             pass
 
 
-def maybe_remove_module_prefix(state_dict):
-    if all([key.startswith("module.") for key in state_dict.keys()]):
-        state_dict = collections.OrderedDict([(key[7:], value) for key, value in state_dict.items()])
+def maybe_remove_module_prefix(state_dict: Mapping[str, Tensor], prefix: str = "module.") -> Mapping[str, Tensor]:
+    """
+    Checks is all the keys in `state_dict` start with `prefix` and if this is true removes this prefix.
+    This function is intended to drop a "module." prefix from all keys in checkpoint that was saved
+    with DataParallel/DistributedDataParallel wrapper.
+
+    Since SG 3.1 we changed this behavior and always unwrap the model before saving the state_dict.
+    However, to keep the compatibility with older checkpoints, we must do the 'cleanup' before loading the state_dict.
+
+    :params: state_dict: The model state_dict
+    :params: prefix: (str) prefix to remove. Default is "module."
+    :return: state_dict: The model state_dict after removing the prefix
+
+    """
+    offset = len(prefix) + 1
+    if all([key.startswith(prefix) for key in state_dict.keys()]):
+        state_dict = collections.OrderedDict([(key[offset:], value) for key, value in state_dict.items()])
     return state_dict
 
 
@@ -163,20 +177,36 @@ def read_ckpt_state_dict(ckpt_path: str, device="cpu") -> Mapping[str, torch.Ten
 
 class DefaultCheckpointSolver:
     """
-    Default checkpoint solver class - has same behavior as PyTorch's default checkpoint solver.
+    Implements the default behavior from adaptive_load_state_dict.
+    If the model state dict and checkpoint state dict has no 1:1 matching by name,
+    then default solver uses simple ordered matching.
+    It assumes that order of layers in the checkpoint is the same as in the model and
+    iterates over them simultaneously.
+    If shape of the source and recipient tensors are different, solver raises an error.
     """
 
     def __call__(self, model_state_dict: Mapping[str, Tensor], checkpoint_state_dict: Mapping[str, Tensor]) -> Mapping[str, Tensor]:
+        """
+        Map checkpoint state_dict to model state_dict.
+
+        :param model_state_dict: (Mapping[str, Tensor]) A checkpoint state dict
+        :param checkpoint_state_dict: (Mapping[str, Tensor]) A model state dict
+        :return: (Mapping[str, Tensor]) New checkpoint state dict with keys/values converted to match model state_dict
+        """
         new_ckpt_dict = {}
         for (ckpt_key, ckpt_val), (model_key, model_val) in zip(checkpoint_state_dict.items(), model_state_dict.items()):
 
             if ckpt_val.shape != model_val.shape:
                 raise ValueError(f"ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}" f" with shape {model_val.shape} in the model")
             new_ckpt_dict[model_key] = ckpt_val
-        return {"net": new_ckpt_dict}
+        return new_ckpt_dict
 
 
 class YoloXCheckpointSolver:
+    """
+    Implementation of checkpoint solver for old YoloX model checkpoints.
+    """
+
     @classmethod
     def generate_mapping_table(cls) -> Mapping[str, str]:
         """
@@ -207,9 +237,12 @@ class YoloXCheckpointSolver:
                     if checkpoint_key in all_mapping_keys:
                         assert all_mapping_keys[checkpoint_key] == model_key
                     all_mapping_keys[checkpoint_key] = model_key
-                    print(f'"{checkpoint_key}": "{model_key}", ')
                 else:
-                    pass
+                    raise RuntimeError(
+                        "Detected mismatch between model and checkpoint state dict keys."
+                        f"Model key {model_key} of shape {model_value.size()} does not "
+                        f"match checkpoint key {checkpoint_key} of shape {checkpoint_value.size()}"
+                    )
 
         return all_mapping_keys
 
