@@ -5,8 +5,6 @@ from super_gradients.training import models
 model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
 
 IMAGES = [
-    "../../../../documentation/source/images/examples/countryside.jpg",
-    "../../../../documentation/source/images/examples/street_busy.jpg",
     "https://cdn-attachments.timesofmalta.com/cc1eceadde40d2940bc5dd20692901371622153217-1301777007-4d978a6f-620x348.jpg",
 ]
 

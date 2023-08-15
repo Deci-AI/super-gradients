@@ -10,104 +10,8 @@ from dataclasses import dataclass, field, asdict
 
 
 module_path_COLOR = "yellow"
-BREAKING_TYPE_COLOR = "blue"
+SOURCE_CODE_COLOR = "blue"
 BREAKING_OBJECT_COLOR = "red"
-
-
-@dataclass
-class AbstractBreakingChange(ABC):
-    line_num: int
-
-    @property
-    def description(self) -> str:
-        raise NotImplementedError()
-
-    @property
-    def breaking_type_name(self) -> str:
-        raise NotImplementedError()
-
-
-@dataclass
-class ImportRemoved(AbstractBreakingChange):
-    import_name: str
-    line_num: int
-
-    @property
-    def description(self) -> str:
-        return f"{colored(self.import_name, BREAKING_OBJECT_COLOR)} was removed from module"
-
-    @property
-    def breaking_type_name(self) -> str:
-        return "IMPORT REMOVED"
-
-
-@dataclass
-class FunctionRemoved(AbstractBreakingChange):
-    function_name: str
-    line_num: int
-
-    @property
-    def description(self) -> str:
-        return f"{colored(self.function_name, BREAKING_OBJECT_COLOR)} was removed from module"
-
-    @property
-    def breaking_type_name(self) -> str:
-        return "FUNCTION REMOVED"
-
-
-@dataclass
-class ParameterRemoved(AbstractBreakingChange):
-    parameter_name: str
-    function_name: str
-    line_num: int
-
-    @property
-    def description(self) -> str:
-        return f"{colored(self.parameter_name, BREAKING_OBJECT_COLOR)} removed from function {colored(self.function_name, 'yellow')}"
-
-    @property
-    def breaking_type_name(self) -> str:
-        return "FUNCTION PARAMETER REMOVED"
-
-
-@dataclass
-class RequiredParameterAdded(AbstractBreakingChange):
-    parameter_name: str
-    function_name: str
-    line_num: int
-
-    @property
-    def description(self) -> str:
-        return f"{colored(self.parameter_name, BREAKING_OBJECT_COLOR)} was added to function {colored(self.function_name, 'yellow')}"
-
-    @property
-    def breaking_type_name(self) -> str:
-        return "FUNCTION PARAMETER ADDED"
-
-
-@dataclass
-class BreakingChanges:
-    module_path: str
-    imports_removed: List[ImportRemoved] = field(default_factory=list)
-    functions_removed: List[FunctionRemoved] = field(default_factory=list)
-    params_removed: List[ParameterRemoved] = field(default_factory=list)
-    required_params_added: List[RequiredParameterAdded] = field(default_factory=list)
-
-    def __str__(self) -> str:
-        summary = ""
-        module_path_colored = colored(self.module_path, module_path_COLOR)
-
-        breaking_changes: List[AbstractBreakingChange] = self.imports_removed + self.functions_removed + self.params_removed + self.required_params_added
-        for breaking_change in breaking_changes:
-
-            summary += "{:<70} {:<8} {:<30} {}\n".format(
-                module_path_colored, breaking_change.line_num, breaking_change.breaking_type_name, breaking_change.description
-            )
-
-        return summary
-
-    def json(self) -> Dict[str, List[str]]:
-        return asdict(self)
 
 
 class GitHelper:
@@ -126,6 +30,127 @@ class GitHelper:
             return tree[file_path].data_stream.read()
         except KeyError:
             return ""
+
+
+@dataclass
+class AbstractBreakingChange(ABC):
+    line_num: int
+
+    @property
+    def description(self) -> str:
+        raise NotImplementedError()
+
+    @property
+    def breaking_type_name(self) -> str:
+        raise NotImplementedError()
+
+
+@dataclass
+class ClassRemoved(AbstractBreakingChange):
+    class_name: str
+    line_num: int
+
+    @property
+    def description(self) -> str:
+        return f"{colored(self.class_name, SOURCE_CODE_COLOR)} -> {colored('X', BREAKING_OBJECT_COLOR)}"
+
+    @property
+    def breaking_type_name(self) -> str:
+        return "CLASS REMOVED"
+
+
+@dataclass
+class ImportRemoved(AbstractBreakingChange):
+    import_name: str
+    line_num: int
+
+    @property
+    def description(self) -> str:
+        return f"{colored(self.import_name, SOURCE_CODE_COLOR)} -> {colored('X', BREAKING_OBJECT_COLOR)}"
+
+    @property
+    def breaking_type_name(self) -> str:
+        return "IMPORT REMOVED"
+
+
+@dataclass
+class FunctionRemoved(AbstractBreakingChange):
+    function_name: str
+    line_num: int
+
+    @property
+    def description(self) -> str:
+        return f"{colored(self.function_name, SOURCE_CODE_COLOR)} -> {colored('X', BREAKING_OBJECT_COLOR)}"
+
+    @property
+    def breaking_type_name(self) -> str:
+        return "FUNCTION REMOVED"
+
+
+@dataclass
+class ParameterRemoved(AbstractBreakingChange):
+    parameter_name: str
+    function_name: str
+    line_num: int
+
+    @property
+    def description(self) -> str:
+        source_fn_colored = colored(self.function_name, SOURCE_CODE_COLOR)
+        current_fn_colored = colored(self.function_name, "yellow")
+        param_colored = colored(self.parameter_name, BREAKING_OBJECT_COLOR)
+        return f"{source_fn_colored}(..., {param_colored}) -> {current_fn_colored}(...)"
+
+    @property
+    def breaking_type_name(self) -> str:
+        return "FUNCTION PARAMETER REMOVED"
+
+
+@dataclass
+class RequiredParameterAdded(AbstractBreakingChange):
+    parameter_name: str
+    function_name: str
+    line_num: int
+
+    @property
+    def description(self) -> str:
+        source_fn_colored = colored(self.function_name, SOURCE_CODE_COLOR)
+        current_fn_colored = colored(self.function_name, "yellow")
+        param_colored = colored(self.parameter_name, BREAKING_OBJECT_COLOR)
+        # fn_colored = colored(self.function_name, 'yellow')
+        # param_colored = colored(self.parameter_name, BREAKING_OBJECT_COLOR)
+        return f"{source_fn_colored}(...) -> {current_fn_colored}(..., {param_colored})"
+
+    @property
+    def breaking_type_name(self) -> str:
+        return "FUNCTION PARAMETER ADDED"
+
+
+@dataclass
+class BreakingChanges:
+    module_path: str
+    classes_removed: List[ClassRemoved] = field(default_factory=list)
+    imports_removed: List[ImportRemoved] = field(default_factory=list)
+    functions_removed: List[FunctionRemoved] = field(default_factory=list)
+    params_removed: List[ParameterRemoved] = field(default_factory=list)
+    required_params_added: List[RequiredParameterAdded] = field(default_factory=list)
+
+    def __str__(self) -> str:
+        summary = ""
+        module_path_colored = colored(self.module_path, module_path_COLOR)
+
+        breaking_changes: List[AbstractBreakingChange] = (
+            self.classes_removed + self.imports_removed + self.functions_removed + self.params_removed + self.required_params_added
+        )
+        for breaking_change in breaking_changes:
+
+            summary += "{:<70} {:<8} {:<30} {}\n".format(
+                module_path_colored, breaking_change.line_num, breaking_change.breaking_type_name, breaking_change.description
+            )
+
+        return summary
+
+    def json(self) -> Dict[str, List[str]]:
+        return asdict(self)
 
 
 @dataclass
@@ -148,7 +173,7 @@ class FunctionParameters:
 
     @property
     def optional(self) -> List[str]:
-        return [param.name for param, value in self._params if param.default is not None]
+        return [param.name for param in self._params if param.default is not None]
 
 
 @dataclass
@@ -167,6 +192,19 @@ def extract_code_breaking_changes(module_path: str, source_code: str, current_co
     :return: A BreakingChanges object detailing the differences.
     """
     breaking_changes = BreakingChanges(module_path=module_path)
+
+    source_classes = {node.name: node for node in ast.walk(ast.parse(source_code)) if isinstance(node, ast.ClassDef)}
+    current_classes = {node.name: node for node in ast.walk(ast.parse(current_code)) if isinstance(node, ast.ClassDef)}
+
+    # ClassRemoved
+    for class_name, source_class in source_classes.items():
+        if class_name not in current_classes:
+            breaking_changes.classes_removed.append(
+                ClassRemoved(
+                    class_name=class_name,
+                    line_num=source_class.lineno,
+                )
+            )
 
     # FUNCTION SIGNATURES
     source_functions_signatures = parse_functions_signatures(source_code)
@@ -224,7 +262,7 @@ def parse_imports(code: str) -> Dict[str, str]:
     {'package.library_v1': 'library'}
 
     >>> parse_imports("import package.library")
-    {'package.library_v1': 'package.library'}
+    {'package.library': 'package.library'}
 
     :param code: The Python code to analyze.
     :return:     Dictionary mapping full imported object/package name to import it's alias.
@@ -247,24 +285,49 @@ def parse_imports(code: str) -> Dict[str, str]:
 
 
 def parse_functions_signatures(code: str) -> Dict[str, FunctionSignature]:
-    """Extract function signatures from the given code.
+    """Extract function signatures from the given Python code.
+
+    This function returns a dictionary mapping the name of each function in the code to its signature.
+    The signature includes the function name, line number, and parameters (including their names and default values).
+
+    Example:
+        >>> code = "def add(a, b=5):\\n    return a + b"
+        >>> parse_functions_signatures(code)
+        {
+            'add': FunctionSignature(
+                        name='add',
+                        line_num=1,
+                        params=FunctionParameters(
+                            [FunctionParameter(name='a', default=None), FunctionParameter(name='b', default=5)]
+                        )
+                    )
+        }
 
     :param code: The Python code to analyze.
-    :return:     Dictionary mapping function name to function parameters.
+    :return: Dictionary mapping function name to function parameters, encapsulated in a FunctionSignature object.
     """
     tree = ast.parse(code)
-    functions = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
-    signatures = {
-        function.name: FunctionSignature(name=function.name, line_num=function.lineno, params=parse_parameters(function.args)) for function in functions
-    }
+    signatures = {}
+
+    # Extract top-level functions
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef):
+            signatures[node.name] = FunctionSignature(name=node.name, line_num=node.lineno, params=parse_parameters(node.args))
+        # Extract methods from classes
+        elif isinstance(node, ast.ClassDef):
+            for method in node.body:
+                if isinstance(method, ast.FunctionDef):
+                    method_name = f"{node.name}.{method.name}"
+                    signatures[method_name] = FunctionSignature(name=method_name, line_num=method.lineno, params=parse_parameters(method.args))
+
     return signatures
 
 
 def parse_parameters(args: ast.arguments) -> FunctionParameters:
     """Extracts the parameters from the given args object.
 
-    :param args: The arguments object from the AST.
-    :return: A list of dictionaries representing the parameters.
+    :param args:    Object from the AST (Abstract Syntax Tree).
+    :return:        A FunctionParameters object representing the parameters, including their names and default values.
     """
     defaults = [None] * (len(args.args) - len(args.defaults)) + args.defaults
     parameters = FunctionParameters([FunctionParameter(name=arg.arg, default=default) for arg, default in zip(args.args, defaults)])
@@ -276,10 +339,12 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
     :param verbose: If True, print the summary of breaking changes in a nicely formatted way
     :return:        List of changes, where each change is a dictionary listing each type of change for each module.
     """
+    import os
 
-    git_explorer = GitHelper(git_path="./../../..")
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    git_explorer = GitHelper(git_path=root_dir)
 
-    summary = "{:<60} {:<8} {:<30} {}\n".format("MODULE", "LINE NO", "BREAKING TYPE", "DESCRIPTION")
+    summary = "{:<60} {:<8} {:<30} {}\n".format("MODULE", "LINE NO", "BREAKING TYPE", "DESCRIPTION (Master -> HEAD)")
     summary += "-" * 175 + "\n"
 
     report = []
@@ -302,11 +367,12 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--verbose", default=True, type=bool)
-    parser.add_argument("--output-file", default=None, type=str)
-    parser.add_argument("--fail-on-error", default=True, type=bool)
-    args, _ = parser.parse_known_args()
+    parser = argparse.ArgumentParser(description="Example script using flags")
+    parser.add_argument("--verbose", action="store_true", default=True, help="Enable verbose mode")
+    parser.add_argument("--output-file", default=None, type=str, help="Output file name")
+    parser.add_argument("--fail-on-error", action="store_true", default=True, help="Fail on error")
+
+    args = parser.parse_args()
 
     report = analyze_breaking_changes(verbose=args.verbose)
 

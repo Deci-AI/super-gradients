@@ -1,6 +1,13 @@
 import unittest
 
-from super_gradients.common.breaking_change import parse_imports, extract_code_breaking_changes
+from super_gradients.common.breaking_change import (
+    parse_imports,
+    extract_code_breaking_changes,
+    parse_functions_signatures,
+    FunctionSignature,
+    FunctionParameters,
+    FunctionParameter,
+)
 
 
 class TestBreakingChangeDetection(unittest.TestCase):
@@ -156,6 +163,56 @@ class TestBreakingChangeDetection(unittest.TestCase):
         breaking_changes = extract_code_breaking_changes("__init__.py", old_code, new_code)
         self.assertEqual(len(breaking_changes.imports_removed), 2)
         self.assertEqual(len(breaking_changes.required_params_added), 1)
+
+    def test_single_function(self):
+        code = "def add(a, b=5):\n    return a + b"
+
+        functions_signatures = parse_functions_signatures(code)
+        self.assertIn("add", functions_signatures)
+        function_signature = functions_signatures["add"]
+
+        self.assertIsInstance(function_signature, FunctionSignature)
+        self.assertEqual(function_signature.name, "add")
+        self.assertEqual(function_signature.line_num, 1)
+
+        self.assertIsInstance(function_signature.params, FunctionParameters)
+        self.assertEqual(len(function_signature.params.all), 2)
+        self.assertEqual(len(function_signature.params.required), 1)
+        self.assertEqual(len(function_signature.params.optional), 1)
+
+    def test_multiple_functions(self):
+        code = "def add(a, b): pass\ndef subtract(a, b): pass"
+        expected = {
+            "add": FunctionSignature(
+                name="add",
+                line_num=1,
+                params=FunctionParameters([FunctionParameter(name="a", default=None), FunctionParameter(name="b", default=None)]),
+            ),
+            "subtract": FunctionSignature(
+                name="subtract",
+                line_num=2,
+                params=FunctionParameters([FunctionParameter(name="a", default=None), FunctionParameter(name="b", default=None)]),
+            ),
+        }
+        self.assertEqual(parse_functions_signatures(code), expected)
+
+    def test_nested_functions(self):
+        """Make sure that we DON'T detect change in nested functions (this is internal implementation, not API change)."""
+        code = "def outer():\n    def inner(a): pass"
+        expected = {
+            "outer": FunctionSignature(name="outer", line_num=1, params=FunctionParameters([])),
+        }
+        self.assertEqual(parse_functions_signatures(code), expected)
+
+    def test_no_functions(self):
+        code = "a = 5"
+        expected = {}
+        self.assertEqual(parse_functions_signatures(code), expected)
+
+    def test_class(self):
+        code = "\nclass MyClass:\n    def __init__(self, x):\n        pass\n    def f(self):\n        pass\n"
+        print(parse_functions_signatures(code))
+        # self.assertEqual(parse_functions_signatures(code), expected)
 
 
 if __name__ == "__main__":
