@@ -1,0 +1,27 @@
+defaults:
+  - cityscapes_segformer
+  - _self_
+#  - variable_setup
+
+architecture: segformer_b4
+
+checkpoint_params:
+  checkpoint_path:
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
+
+load_checkpoint: False
+
+experiment_name: ${architecture}_cityscapes
+
+training_hyperparams:
+  max_epochs: 2
+
+  lr_mode: poly
+  initial_lr: 0.00006  # for effective batch_size=8
+
+  mixed_precision: True
+
+multi_gpu: DDP
+num_gpus: 4
