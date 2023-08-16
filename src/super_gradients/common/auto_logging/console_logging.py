@@ -6,7 +6,7 @@ from io import StringIO
 import atexit
 from threading import Lock
 
-from super_gradients.common.environment.ddp_utils import multi_process_safe, is_main_process
+from super_gradients.common.environment.ddp_utils import multi_process_safe, _is_main_process
 
 
 class BufferWriter:
@@ -128,7 +128,7 @@ class ConsoleSink:
         self.stderr = StderrTee(filename=self.filename, buffer=buffer, buffer_size=BufferWriter.FILE_BUFFER_SIZE, lock=lock)
 
         # We don't want to rewrite this for subprocesses when using DDP.
-        if is_main_process():
+        if _is_main_process():
             with open(self.filename, mode="w", encoding="utf-8") as f:
                 f.write("============================================================\n")
                 f.write(f'New run started at {datetime.now().strftime("%Y-%m-%d.%H:%M:%S.%f")}\n')

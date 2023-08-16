@@ -7,7 +7,7 @@ from typing import Callable, Tuple, Any
 from torchvision.datasets import VisionDataset
 from torchvision.datasets.folder import default_loader
 
-from super_gradients.training.utils.media.image import IMG_EXTENSIONS
+from super_gradients.training.utils.media.images import IMG_EXTENSIONS
 
 
 class BaseSgVisionDataset(VisionDataset):

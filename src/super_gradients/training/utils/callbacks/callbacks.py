@@ -384,37 +384,6 @@ class BatchStepLinearWarmupLRCallback(Callback):
                 param_group["lr"] = self.lr
 
 
-@register_lr_scheduler(LRSchedulers.STEP)
-class StepLRCallback(LRCallbackBase):
-    """
-    Hard coded step learning rate scheduling (i.e at specific milestones).
-    """
-
-    def __init__(self, lr_updates, lr_decay_factor, step_lr_update_freq=None, **kwargs):
-        super(StepLRCallback, self).__init__(Phase.TRAIN_EPOCH_END, **kwargs)
-        if step_lr_update_freq and len(lr_updates):
-            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor")
-
-        if step_lr_update_freq:
-            max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-            warmup_epochs = self.training_params.lr_warmup_epochs
-            lr_updates = [
-                int(np.ceil(step_lr_update_freq * x)) for x in range(1, max_epochs) if warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs
-            ]
-        elif self.training_params.lr_cooldown_epochs > 0:
-            logger.warning("Specific lr_updates were passed along with cooldown_epochs > 0," " cooldown will have no effect.")
-        self.lr_updates = lr_updates
-        self.lr_decay_factor = lr_decay_factor
-
-    def perform_scheduling(self, context):
-        num_updates_passed = [x for x in self.lr_updates if x <= context.epoch]
-        self.lr = self.initial_lr * self.lr_decay_factor ** len(num_updates_passed)
-        self.update_lr(context.optimizer, context.epoch, None)
-
-    def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch
-
-
 @register_lr_scheduler(LRSchedulers.EXP)
 class ExponentialLRCallback(LRCallbackBase):
     """

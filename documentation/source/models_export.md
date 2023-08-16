@@ -105,12 +105,10 @@ export_result
 
 That's it. You can now use the exported model with any ONNX-compatible runtime or accelerator.
 
-
-
 ```python
 import cv2
 import numpy as np
-from super_gradients.training.utils.media.image import load_image
+from super_gradients.training.utils.media.images import load_image
 import onnxruntime
 
 image = load_image("https://deci-pretrained-models.s3.amazonaws.com/sample_images/beatles-abbeyroad.jpg")

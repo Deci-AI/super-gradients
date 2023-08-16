@@ -26,7 +26,7 @@ from super_gradients.training.utils.predict import (
 )
 from super_gradients.training.utils.utils import generate_batch
 from super_gradients.training.utils.media.video import load_video, includes_video_extension
-from super_gradients.training.utils.media.image import ImageSource, check_image_typing
+from super_gradients.training.utils.media.images import ImageSource, check_image_typing
 from super_gradients.training.utils.media.stream import WebcamStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
@@ -115,7 +115,7 @@ class Pipeline(ABC):
         :param batch_size:  The size of each batch.
         :return:            Results of the prediction.
         """
-        from super_gradients.training.utils.media.image import load_images
+        from super_gradients.training.utils.media.images import load_images
 
         images = load_images(images)
         result_generator = self._generate_prediction_result(images=images, batch_size=batch_size)

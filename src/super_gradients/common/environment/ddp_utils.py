@@ -27,7 +27,7 @@ def is_launched_using_sg():
     return os.environ.get("TORCHELASTIC_RUN_ID") == "sg_initiated"
 
 
-def is_main_process():
+def _is_main_process():
     """Check if current process is considered as the main process (i.e. is responsible for sanity check, atexit upload, ...).
     The definition ensures that 1 and only 1 process follows this condition, regardless of how the run was started.
 

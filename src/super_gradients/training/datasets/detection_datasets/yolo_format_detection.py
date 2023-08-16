@@ -5,7 +5,7 @@ import numpy as np
 from typing import List, Optional, Tuple
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.media.image import is_image
+from super_gradients.training.utils.media.images import is_image
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_NORMALIZED_CXCYWH

@@ -27,7 +27,7 @@ from super_gradients.training.utils.utils import HpmStruct, check_img_size_divis
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
-from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.training.utils.media.images import ImageSource
 
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(

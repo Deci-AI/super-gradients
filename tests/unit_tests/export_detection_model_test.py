@@ -26,7 +26,7 @@ from super_gradients.training.dataloaders import coco2017_val  # noqa
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.utils.detection_utils import DetectionVisualization
 from super_gradients.training.utils.export_utils import infer_image_shape_from_model, infer_image_input_channels
-from super_gradients.training.utils.media.image import load_image
+from super_gradients.training.utils.media.images import load_image
 
 
 gs = import_onnx_graphsurgeon_or_fail_with_instructions()

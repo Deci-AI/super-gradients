@@ -37,7 +37,7 @@ from super_gradients.training.pipelines.pipelines import PoseEstimationPipeline
 from super_gradients.training.processing.processing import Processing
 
 from super_gradients.training.utils import HpmStruct, DEKRPoseEstimationDecodeCallback
-from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.training.utils.media.images import ImageSource
 
 logger = get_logger(__name__)
 

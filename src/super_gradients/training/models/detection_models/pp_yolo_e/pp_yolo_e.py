@@ -20,7 +20,7 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils import HpmStruct
-from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.training.utils.media.images import ImageSource
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 
 logger = get_logger(__name__)
@@ -178,7 +178,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
-    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
+    def predict_webcam(self, iou: float, conf: Optional[float] = None, fuse_model: bool = True):
         """Predict using webcam.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.

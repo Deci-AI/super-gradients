@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.environment.ddp_utils import is_main_process
+from super_gradients.common.environment.ddp_utils import _is_main_process
 
 logger = get_logger(__name__, "DEBUG")
 
@@ -113,7 +113,7 @@ def check_packages():
 
 def env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements."""
-    if is_main_process():
+    if _is_main_process():
         check_os()
         check_packages()
 

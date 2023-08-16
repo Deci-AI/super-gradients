@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 
 from super_gradients.common.factories.bbox_format_factory import BBoxFormatFactory
-from super_gradients.training.utils.media.image import show_image, save_image
+from super_gradients.training.utils.media.images import show_image, save_image
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.visualization.detection import draw_bbox
 from super_gradients.training.utils.visualization.classification import draw_label

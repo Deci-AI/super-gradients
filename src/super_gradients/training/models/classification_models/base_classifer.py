@@ -4,7 +4,7 @@ from functools import lru_cache
 from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.models import SgModule
 from super_gradients.training.pipelines.pipelines import ClassificationPipeline
-from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.training.utils.media.images import ImageSource
 from super_gradients.training.utils.predict import ImagesClassificationPrediction
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
