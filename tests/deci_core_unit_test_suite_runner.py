@@ -23,6 +23,7 @@ from tests.unit_tests import (
     TestTransforms,
     TestPostPredictionCallback,
     TestModelPredict,
+    TestBreakingChangeDetection,
 )
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.detection_utils_test import TestDetectionUtils
@@ -153,6 +154,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestModelPredict))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionModelExport))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(SlidingWindowTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestBreakingChangeDetection))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
