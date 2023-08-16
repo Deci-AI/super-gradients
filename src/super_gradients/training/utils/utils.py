@@ -28,7 +28,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
-def empty_list():
+def empty_list(extra_param):
     """Instantiate an empty list. This is a workaround to generate a list with a function call in hydra, instead of the "[]"."""
     return list()
 
