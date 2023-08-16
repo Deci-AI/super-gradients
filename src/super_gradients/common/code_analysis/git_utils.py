@@ -7,11 +7,10 @@ except ImportError:
 
 
 class GitHelper:
-    """A helper class to interact with a Git repository, providing methods to analyze changes between branches,
-    and load files from a specific branch."""
+    """A helper class to interact with a (local) Git repository."""
 
     def __init__(self, git_path: str):
-        """Initialize GitHelper with the given path to a Git repository.
+        """
         :param git_path: Path to the Git repository.
         """
 
