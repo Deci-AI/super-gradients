@@ -65,9 +65,6 @@ def parse_imports(code: str) -> Dict[str, str]:
 def parse_functions_signatures(code: str) -> Dict[str, FunctionSignature]:
     """Extract function signatures from the given Python code.
 
-    This function returns a dictionary mapping the name of each function in the code to its signature.
-    The signature includes the function name, line number, and parameters (including their names and default values).
-
     Example:
         >>> code = "def add(a, b=5):\\n    return a + b"
         >>> parse_functions_signatures(code)

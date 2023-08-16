@@ -101,8 +101,6 @@ class RequiredParameterAdded(AbstractBreakingChange):
         source_fn_colored = colored(self.function_name, SOURCE_CODE_COLOR)
         current_fn_colored = colored(self.function_name, "yellow")
         param_colored = colored(self.parameter_name, BREAKING_OBJECT_COLOR)
-        # fn_colored = colored(self.function_name, 'yellow')
-        # param_colored = colored(self.parameter_name, BREAKING_OBJECT_COLOR)
         return f"{source_fn_colored}(...) -> {current_fn_colored}(..., {param_colored})"
 
     @property
