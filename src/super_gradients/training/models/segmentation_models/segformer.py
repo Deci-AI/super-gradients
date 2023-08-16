@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils import get_param
+from super_gradients.training.utils.segmentation_utils import forward_with_sliding_window_wrapper
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.modules.conv_bn_relu_block import ConvBNReLU
@@ -315,6 +316,8 @@ class SegFormer(SegmentationModule):
         overlap_patch_stride: List[int],
         overlap_patch_pad: List[int],
         in_channels: int = 3,
+        sliding_window_crop_size: Tuple[int, int] = (1024, 1024),
+        sliding_window_stride: Tuple[int, int] = (768, 768),
     ):
         """
         :param num_classes: number of classes
@@ -326,11 +329,16 @@ class SegFormer(SegmentationModule):
         :param overlap_patch_stride:  the patch stride of the overlapping patch embedding in each stage
         :param overlap_patch_pad:  the patch padding of the overlapping patch embedding in each stage
         :param in_channels:  number of input channels
+        :param sliding_window_crop_size:  (height, width) the crop size to take from the image for forward with sliding window
+        :param sliding_window_stride:  (height, width) the stride size between crops for forward with sliding window
+
         """
 
         super().__init__(use_aux_heads=False)
 
         self.encoder_embed_dims = encoder_embed_dims
+
+        self.decoder_embed_dim = decoder_embed_dim
 
         self._backbone = MiTBackBone(
             embed_dims=encoder_embed_dims,
@@ -347,6 +355,12 @@ class SegFormer(SegmentationModule):
 
         self.init_params()
 
+        self.num_classes = num_classes
+
+        self.use_sliding_window_validation = False
+        self.sliding_window_crop_size = tuple(sliding_window_crop_size)
+        self.sliding_window_stride = tuple(sliding_window_stride)
+
     def init_params(self):
 
         for m in self.modules():
@@ -362,6 +376,12 @@ class SegFormer(SegmentationModule):
                 nn.init.ones_(m.weight)
                 nn.init.zeros_(m.bias)
 
+    def enable_sliding_window_validation(self):
+        self.use_sliding_window_validation = True
+
+    def disable_sliding_window_validation(self):
+        self.use_sliding_window_validation = False
+
     @property
     def backbone(self):
         return self._backbone
@@ -369,14 +389,26 @@ class SegFormer(SegmentationModule):
     def _remove_auxiliary_heads(self):
         pass
 
-    def replace_head(self, new_num_classes: int, new_decoder_embed_dim: int):
-        self.decode_head = SegFormerHead(encoder_dims=self.encoder_embed_dims, embed_dim=new_decoder_embed_dim, num_classes=new_num_classes)
+    def replace_head(self, new_num_classes: int):
+        self.decode_head = SegFormerHead(encoder_dims=self.encoder_embed_dims, embed_dim=self.decoder_embed_dim, num_classes=new_num_classes)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def _forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self._backbone(x)
         out = self.decode_head(features)
         out = F.interpolate(out, size=x.shape[2:], mode="bilinear", align_corners=False)
         return out
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.use_sliding_window_validation:
+            return forward_with_sliding_window_wrapper(
+                forward=self._forward,
+                img=x,
+                sliding_window_stride=self.sliding_window_stride,
+                sliding_window_crop_size=self.sliding_window_crop_size,
+                num_classes=self.num_classes,
+            )
+        else:
+            return self._forward(x)
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
@@ -432,6 +464,8 @@ class SegFormerCustom(SegFormer):
             overlap_patch_stride=arch_params.overlap_patch_stride,
             overlap_patch_pad=arch_params.overlap_patch_pad,
             in_channels=arch_params.in_channels,
+            sliding_window_crop_size=arch_params.sliding_window_crop_size,
+            sliding_window_stride=arch_params.sliding_window_stride,
         )
 
 
@@ -442,6 +476,8 @@ DEFAULT_SEGFORMER_PARAMS = {
     "overlap_patch_pad": [3, 1, 1, 1],
     "eff_self_att_reduction_ratio": [8, 4, 2, 1],
     "eff_self_att_heads": [1, 2, 5, 8],
+    "sliding_window_crop_size": (1024, 1024),
+    "sliding_window_stride": (768, 768),
 }
 
 DEFAULT_SEGFORMER_B0_PARAMS = {**DEFAULT_SEGFORMER_PARAMS, "encoder_embed_dims": [32, 64, 160, 256], "encoder_layers": [2, 2, 2, 2], "decoder_embed_dim": 256}

@@ -1353,6 +1353,19 @@ class Trainer:
         )
         self.phase_callback_handler.on_training_start(context)
 
+        # Check if the model supports sliding window inference.
+        model = unwrap_model(context.net)
+        if (
+            context.training_params.phase_callbacks is not None
+            and "SlidingWindowValidationCallback" in context.training_params.phase_callbacks
+            and (not hasattr(model, "enable_sliding_window_validation") or not hasattr(model, "disable_sliding_window_validation"))
+        ):
+            raise ValueError(
+                "You can use sliding window validation callback, but your model does not support sliding window "
+                "inference. Please either remove the callback or use the model that supports sliding inference: "
+                "Segformer"
+            )
+
         first_batch = next(iter(self.train_loader))
         inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_batch)
 
@@ -1482,9 +1495,15 @@ class Trainer:
                         },
                     )
 
+            # PHASE.AVERAGE_BEST_MODELS_VALIDATION_START
+            self.phase_callback_handler.on_average_best_models_validation_start(context)
+
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
                 self._validate_final_average_model(context=context, checkpoint_dir_path=self.checkpoints_dir_path, cleanup_snapshots_pkl_file=True)
+
+            # PHASE.AVERAGE_BEST_MODELS_VALIDATION_END
+            self.phase_callback_handler.on_average_best_models_validation_end(context)
 
         except KeyboardInterrupt:
             logger.info(
@@ -1940,6 +1959,9 @@ class Trainer:
         )
         if test_metrics_list:
             context.update_context(test_metrics=self.test_metrics)
+        if test_phase_callbacks:
+            context.update_context(net=self.net)
+            context.update_context(test_loader=test_loader)
 
         self.phase_callback_handler.on_test_loader_start(context)
         test_results = self.evaluate(
