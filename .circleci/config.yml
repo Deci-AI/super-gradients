@@ -214,6 +214,14 @@ jobs:
             coverage run --source=super_gradients -m unittest tests/deci_core_unit_test_suite_runner.py
             coverage report
             coverage html  # open htmlcov/index.html in a browser
+
+      - run:
+          name: run breaking change test
+          no_output_timeout: 30m
+          command: |
+            . venv/bin/activate
+            python src/super_gradients/common/breaking_change.py --verbose --fail-on-error
+
       - store_artifacts:
           path: htmlcov
 
