@@ -220,6 +220,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             . venv/bin/activate
+            python -m pip install gitpython==3.1.0
             python src/super_gradients/common/code_analysis/breaking_change.py --verbose --fail-on-error
 
       - store_artifacts:
