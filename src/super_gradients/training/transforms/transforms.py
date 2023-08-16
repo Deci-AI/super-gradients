@@ -1139,7 +1139,7 @@ def get_aug_params(value: Union[tuple, float], center: float = 0) -> float:
         )
 
 
-def _get_affine_matrix(
+def get_affine_matrix(
     input_size: Tuple[int, int],
     target_size: Tuple[int, int],
     degrees: Union[tuple, float] = 10,
@@ -1183,8 +1183,7 @@ def _get_affine_matrix(
     return (translation_m @ shear_m @ rotation_m @ center_m)[:2]
 
 
-def apply_affine_to_bboxes(targets, target_size, M):
-    targets_seg = None
+def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
     num_gts = len(targets)
     twidth, theight = target_size
     # targets_seg = [B x w x h]
@@ -1245,10 +1244,12 @@ def random_affine(
     degrees: Union[float, tuple] = 10,
     translate: Union[float, tuple] = 0.1,
     scales: Union[float, tuple] = 0.1,
+    shear: Union[float, tuple] = 10,
     filter_box_candidates: bool = False,
     wh_thr=2,
     ar_thr=20,
     area_thr=0.1,
+    border_value=114,
 ):
     """
     Performs random affine transform to img, targets
@@ -1281,9 +1282,9 @@ def random_affine(
     """
 
     targets_seg = np.zeros((targets.shape[0], 0)) if targets_seg is None else targets_seg
-    M = _get_affine_matrix(img.shape[:2], target_size, degrees, translate, scales, 2)
+    M = get_affine_matrix(img.shape[:2], target_size, degrees, translate, scales, shear)
 
-    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(114, 114, 114))
+    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(border_value, border_value, border_value))
 
     # Transform label coordinates
     if len(targets) > 0:
@@ -1322,14 +1323,13 @@ def _flip_horizontal_image(image: np.ndarray) -> np.ndarray:
     return image[:, ::-1]
 
 
-def _flip_horizontal_boxes(boxes: np.ndarray, img_width: int, c: int, x=2, y=3) -> np.ndarray:
+def _flip_horizontal_boxes(boxes: np.ndarray, img_width: int) -> np.ndarray:
     """
     Horizontally flips bboxes
     :param boxes: bboxes to be flipped. (xyxy format)
     :return: flipped_boxes
     """
     boxes[:, [0, 2]] = img_width - boxes[:, [2, 0]]
-    print(c, x, y)
     return boxes
 
 

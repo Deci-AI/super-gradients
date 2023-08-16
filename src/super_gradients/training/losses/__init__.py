@@ -6,6 +6,7 @@ from super_gradients.training.losses.shelfnet_ohem_loss import ShelfNetOHEMLoss
 from super_gradients.training.losses.shelfnet_semantic_encoding_loss import ShelfNetSemanticEncodingLoss
 from super_gradients.training.losses.yolox_loss import YoloXDetectionLoss, YoloXFastDetectionLoss
 from super_gradients.training.losses.ssd_loss import SSDLoss
+from super_gradients.training.losses.bce_dice_loss import BCEDiceLoss
 from super_gradients.training.losses.dice_ce_edge_loss import DiceCEEdgeLoss
 from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
 from super_gradients.training.losses.dekr_loss import DEKRLoss
@@ -26,6 +27,7 @@ __all__ = [
     "YoloXFastDetectionLoss",
     "RSquaredLoss",
     "SSDLoss",
+    "BCEDiceLoss",
     "KDLogitsLoss",
     "DiceCEEdgeLoss",
     "PPYoloELoss",
