@@ -1,6 +1,7 @@
 import sys
+import os
 import argparse
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Union
 import json
 from abc import ABC
 import ast
@@ -9,7 +10,7 @@ from termcolor import colored
 from dataclasses import dataclass, field, asdict
 
 
-module_path_COLOR = "yellow"
+MODULE_PATH_COLOR = "yellow"
 SOURCE_CODE_COLOR = "blue"
 BREAKING_OBJECT_COLOR = "red"
 
@@ -136,7 +137,7 @@ class BreakingChanges:
 
     def __str__(self) -> str:
         summary = ""
-        module_path_colored = colored(self.module_path, module_path_COLOR)
+        module_path_colored = colored(self.module_path, MODULE_PATH_COLOR)
 
         breaking_changes: List[AbstractBreakingChange] = (
             self.classes_removed + self.imports_removed + self.functions_removed + self.params_removed + self.required_params_added
@@ -156,7 +157,7 @@ class BreakingChanges:
 @dataclass
 class FunctionParameter:
     name: str
-    default: Optional[Any] = None
+    has_default: bool
 
 
 @dataclass
@@ -169,11 +170,11 @@ class FunctionParameters:
 
     @property
     def required(self) -> List[str]:
-        return [param.name for param in self._params if param.default is None]
+        return [param.name for param in self._params if not param.has_default]
 
     @property
     def optional(self) -> List[str]:
-        return [param.name for param in self._params if param.default is not None]
+        return [param.name for param in self._params if param.has_default]
 
 
 @dataclass
@@ -298,7 +299,7 @@ def parse_functions_signatures(code: str) -> Dict[str, FunctionSignature]:
                         name='add',
                         line_num=1,
                         params=FunctionParameters(
-                            [FunctionParameter(name='a', default=None), FunctionParameter(name='b', default=5)]
+                            [FunctionParameter(name='a', has_default=False), FunctionParameter(name='b', has_default=True)]
                         )
                     )
         }
@@ -330,7 +331,7 @@ def parse_parameters(args: ast.arguments) -> FunctionParameters:
     :return:        A FunctionParameters object representing the parameters, including their names and default values.
     """
     defaults = [None] * (len(args.args) - len(args.defaults)) + args.defaults
-    parameters = FunctionParameters([FunctionParameter(name=arg.arg, default=default) for arg, default in zip(args.args, defaults)])
+    parameters = FunctionParameters([FunctionParameter(name=arg.arg, has_default=default is not None) for arg, default in zip(args.args, defaults)])
     return parameters
 
 
@@ -339,7 +340,6 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
     :param verbose: If True, print the summary of breaking changes in a nicely formatted way
     :return:        List of changes, where each change is a dictionary listing each type of change for each module.
     """
-    import os
 
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
     git_explorer = GitHelper(git_path=root_dir)

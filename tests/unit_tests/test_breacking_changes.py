@@ -186,12 +186,12 @@ class TestBreakingChangeDetection(unittest.TestCase):
             "add": FunctionSignature(
                 name="add",
                 line_num=1,
-                params=FunctionParameters([FunctionParameter(name="a", default=None), FunctionParameter(name="b", default=None)]),
+                params=FunctionParameters([FunctionParameter(name="a", has_default=False), FunctionParameter(name="b", has_default=False)]),
             ),
             "subtract": FunctionSignature(
                 name="subtract",
                 line_num=2,
-                params=FunctionParameters([FunctionParameter(name="a", default=None), FunctionParameter(name="b", default=None)]),
+                params=FunctionParameters([FunctionParameter(name="a", has_default=False), FunctionParameter(name="b", has_default=False)]),
             ),
         }
         self.assertEqual(parse_functions_signatures(code), expected)
