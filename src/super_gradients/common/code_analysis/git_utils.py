@@ -3,7 +3,7 @@ from typing import List
 try:
     import git
 except ImportError:
-    raise ImportError("The 'git' library is required but not found. Please install it using 'pip install gitpython'.")
+    raise ImportError("The 'git' library is required but not found. Please install the `gitpython` with version as specified in `requirements.dev.txt`.")
 
 
 class GitHelper:
