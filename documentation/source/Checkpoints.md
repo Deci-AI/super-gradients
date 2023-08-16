@@ -258,14 +258,10 @@ resume_path:   # Direct path to a specific checkpoint file (.pth) to resume trai
 ...
 ```
 
-- `resume=True`: Continues the latest run within the same experiment.
-- `run_id`: Continues a specific run within the same experiment, identified by the run ID.
-- `resume_path`: Branches off from a specific checkpoint, creating a new run.
-
 
 #### 1. Resuming the Latest Run
 
-By setting `resume=True`, SG will resume training from the last checkpoint within the same experiment.
+By setting `resume=True`, SuperGradients will resume training from the last checkpoint within the same experiment.
 
 Example:
 
@@ -276,7 +272,7 @@ python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experim
 
 #### 2. Resuming a Specific Run
 
-Using `run_id`, you can resume training from a specific run within an experiment, identified by the run ID.
+Using `run_id`, you can resume training from a specific run within the same experiment, identified by the run ID.
 
 Example:
 
@@ -285,9 +281,11 @@ Example:
 python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=cifar_experiment run_id=RUN_20230802_131052_651906
 ```
 
-#### 3. Resuming from a Specific Checkpoint
+#### 3. Branching off from a specific checkpoint
 
-By specifying a `resume_path`, SG will create a new run directory, allowing training to resume from that specific checkpoint, and subsequently save the new checkpoints in this new directory.
+By specifying a `resume_path`, SuperGradients will create a new run directory, 
+allowing training to resume from that specific checkpoint, 
+and subsequently save the new checkpoints in this new directory.
 
 Example:
 
