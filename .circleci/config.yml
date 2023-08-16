@@ -145,15 +145,6 @@ jobs:
         default: latest
       package_name:
         type: string
-      sg_existing_env_path:
-        type: string
-        default: "/env/persistent_env"
-      sg_new_env_name:
-        type: string
-        default: "${CIRCLE_BUILD_NUM}"
-      sg_new_env_python_version:
-        type: string
-        default: "python3.8"
     docker:
       - image: cimg/python:<< parameters.py_version >>
     resource_class: large
