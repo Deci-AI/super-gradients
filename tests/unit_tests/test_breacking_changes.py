@@ -196,7 +196,7 @@ class TestBreakingChangeDetection(unittest.TestCase):
         }
         self.assertEqual(parse_functions_signatures(code), expected)
 
-    def test_nested_functions(self):
+    def test_parse_nested_functions(self):
         """Make sure that we DON'T detect change in nested functions (this is internal implementation, not API change)."""
         code = "def outer():\n    def inner(a): pass"
         expected = {
@@ -213,6 +213,25 @@ class TestBreakingChangeDetection(unittest.TestCase):
         code = "\nclass MyClass:\n    def __init__(self, x):\n        pass\n    def f(self):\n        pass\n"
         print(parse_functions_signatures(code))
         # self.assertEqual(parse_functions_signatures(code), expected)
+
+    def test_class_removed(self):
+        old_code = "class MyClass:\n    def method(self): pass"
+        new_code = ""
+
+        breaking_changes = extract_code_breaking_changes("module.py", old_code, new_code)
+        self.assertEqual(len(breaking_changes.classes_removed), 1)
+        self.assertEqual(breaking_changes.classes_removed[0].class_name, "MyClass")
+
+        self.assertEqual(len(breaking_changes.functions_removed), 1)
+        self.assertEqual(breaking_changes.functions_removed[0].function_name, "MyClass.method")
+
+    def test_class_methods(self):
+        old_code = "class MyClass:\n    def method(self): pass"
+        new_code = "class MyClass:\n    def new_method(self): pass"
+
+        breaking_changes = extract_code_breaking_changes("module.py", old_code, new_code)
+        self.assertEqual(len(breaking_changes.functions_removed), 1)
+        self.assertEqual(breaking_changes.functions_removed[0].function_name, "MyClass.method")
 
 
 if __name__ == "__main__":
