@@ -24,6 +24,6 @@ __all__ = [
     "AutoTrainBatchSizeSelectionCallback",
 ]
 
-__version__ = "3.1.3"
+__version__ = "3.2.0"
 
 env_sanity_check()

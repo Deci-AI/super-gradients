@@ -206,7 +206,14 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         with convertible substitutes and remove all auxiliary or training related parts.
         :param input_size: [H,W]
         """
-        self.head.cache_anchors(input_size)
+
+        # There is some discrepancy of what input_size is.
+        # When exporting to ONNX it is passed as 4-element tuple (B,C,H,W)
+        # When called from predict() it is just (H,W)
+        # So we take two last elements of the tuple which handles both cases but ultimately we should fix this
+        h, w = input_size[-2:]
+
+        self.head.cache_anchors((h, w))
 
         for module in self.modules():
             if isinstance(module, RepVGGBlock):
