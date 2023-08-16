@@ -1,36 +1,20 @@
+import ast
 import sys
 import os
 import argparse
 from typing import List, Dict, Union
 import json
 from abc import ABC
-import ast
-import git
+
 from termcolor import colored
 from dataclasses import dataclass, field, asdict
+
+from super_gradients.common.code_analysis.code_parser import parse_functions_signatures, parse_imports
 
 
 MODULE_PATH_COLOR = "yellow"
 SOURCE_CODE_COLOR = "blue"
 BREAKING_OBJECT_COLOR = "red"
-
-
-class GitHelper:
-    def __init__(self, git_path: str):
-        self.repo = git.Repo(git_path)
-
-    def diff_files(self, source_branch: str, current_branch: str) -> List[str]:
-        source_commit = self.repo.commit(source_branch)
-        current_commit = self.repo.commit(current_branch)
-        return [diff.a_path for diff in source_commit.diff(current_commit) if ".py" in diff.a_path]
-
-    def load_branch_file(self, branch: str, file_path: str) -> str:
-        tree = self.repo.commit(branch).tree
-
-        try:  # It looks like there is no simple way to check if a file exists in the tree... So we directly check with try/except
-            return tree[file_path].data_stream.read()
-        except KeyError:
-            return ""
 
 
 @dataclass
@@ -153,35 +137,9 @@ class BreakingChanges:
     def json(self) -> Dict[str, List[str]]:
         return asdict(self)
 
-
-@dataclass
-class FunctionParameter:
-    name: str
-    has_default: bool
-
-
-@dataclass
-class FunctionParameters:
-    _params: List[FunctionParameter] = field(default_factory=dict)
-
     @property
-    def all(self) -> List[str]:
-        return [param.name for param in self._params]
-
-    @property
-    def required(self) -> List[str]:
-        return [param.name for param in self._params if not param.has_default]
-
-    @property
-    def optional(self) -> List[str]:
-        return [param.name for param in self._params if param.has_default]
-
-
-@dataclass
-class FunctionSignature:
-    name: str
-    line_num: int
-    params: FunctionParameters
+    def is_empty(self) -> bool:
+        return len(self.classes_removed + self.imports_removed + self.functions_removed + self.params_removed + self.required_params_added) == 0
 
 
 def extract_code_breaking_changes(module_path: str, source_code: str, current_code: str) -> BreakingChanges:
@@ -256,114 +214,38 @@ def extract_code_breaking_changes(module_path: str, source_code: str, current_co
     return breaking_changes
 
 
-def parse_imports(code: str) -> Dict[str, str]:
-    """Extract function signatures from the given code.
-
-    >>> parse_imports("import package.library_v1 as library")
-    {'package.library_v1': 'library'}
-
-    >>> parse_imports("import package.library")
-    {'package.library': 'package.library'}
-
-    :param code: The Python code to analyze.
-    :return:     Dictionary mapping full imported object/package name to import it's alias.
-    """
-    tree = ast.parse(code)
-    imports = {}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                original_name = alias.name
-                aliased_name = alias.asname if alias.asname else alias.name
-                imports[original_name] = aliased_name
-        elif isinstance(node, ast.ImportFrom):
-            module = node.module
-            for alias in node.names:
-                original_name = f"{module}.{alias.name}" if module else alias.name
-                aliased_name = alias.asname if alias.asname else alias.name
-                imports[original_name] = aliased_name
-    return imports
-
-
-def parse_functions_signatures(code: str) -> Dict[str, FunctionSignature]:
-    """Extract function signatures from the given Python code.
-
-    This function returns a dictionary mapping the name of each function in the code to its signature.
-    The signature includes the function name, line number, and parameters (including their names and default values).
-
-    Example:
-        >>> code = "def add(a, b=5):\\n    return a + b"
-        >>> parse_functions_signatures(code)
-        {
-            'add': FunctionSignature(
-                        name='add',
-                        line_num=1,
-                        params=FunctionParameters(
-                            [FunctionParameter(name='a', has_default=False), FunctionParameter(name='b', has_default=True)]
-                        )
-                    )
-        }
-
-    :param code: The Python code to analyze.
-    :return: Dictionary mapping function name to function parameters, encapsulated in a FunctionSignature object.
-    """
-    tree = ast.parse(code)
-    signatures = {}
-
-    # Extract top-level functions
-    for node in tree.body:
-        if isinstance(node, ast.FunctionDef):
-            signatures[node.name] = FunctionSignature(name=node.name, line_num=node.lineno, params=parse_parameters(node.args))
-        # Extract methods from classes
-        elif isinstance(node, ast.ClassDef):
-            for method in node.body:
-                if isinstance(method, ast.FunctionDef):
-                    method_name = f"{node.name}.{method.name}"
-                    signatures[method_name] = FunctionSignature(name=method_name, line_num=method.lineno, params=parse_parameters(method.args))
-
-    return signatures
-
-
-def parse_parameters(args: ast.arguments) -> FunctionParameters:
-    """Extracts the parameters from the given args object.
-
-    :param args:    Object from the AST (Abstract Syntax Tree).
-    :return:        A FunctionParameters object representing the parameters, including their names and default values.
-    """
-    defaults = [None] * (len(args.args) - len(args.defaults)) + args.defaults
-    parameters = FunctionParameters([FunctionParameter(name=arg.arg, has_default=default is not None) for arg, default in zip(args.args, defaults)])
-    return parameters
-
-
 def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, List]]]:
     """Analyze changes between the current branch (HEAD) and the master branch.
     :param verbose: If True, print the summary of breaking changes in a nicely formatted way
     :return:        List of changes, where each change is a dictionary listing each type of change for each module.
     """
+    # GitHelper requires `git` library which should NOT be required for the other functions
+    from super_gradients.common.code_analysis.git_utils import GitHelper
 
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
     git_explorer = GitHelper(git_path=root_dir)
 
-    summary = "{:<60} {:<8} {:<30} {}\n".format("MODULE", "LINE NO", "BREAKING TYPE", "DESCRIPTION (Master -> HEAD)")
-    summary += "-" * 175 + "\n"
-
-    report = []
+    summary = ""
+    breaking_changes_list = []
     for module_path in git_explorer.diff_files(source_branch="master", current_branch="HEAD"):
 
         master_code = git_explorer.load_branch_file(branch="master", file_path=module_path)
         head_code = git_explorer.load_branch_file(branch="HEAD", file_path=module_path)
         breaking_changes = extract_code_breaking_changes(module_path=module_path, source_code=master_code, current_code=head_code)
 
-        report.append(breaking_changes.json())
+        if not breaking_changes.is_empty:
+            breaking_changes_list.append(breaking_changes.json())
         summary += str(breaking_changes)
 
     if verbose:
-        if report:
+        if summary:
+            print("{:<60} {:<8} {:<30} {}\n".format("MODULE", "LINE NO", "BREAKING TYPE", "DESCRIPTION (Master -> HEAD)"))
+            print("-" * 175 + "\n")
             print(summary)
         else:
             print(colored("NO BREAKING CHANGE DETECTED!", "green"))
 
-    return report
+    return breaking_changes_list
 
 
 def main():
@@ -374,13 +256,13 @@ def main():
 
     args = parser.parse_args()
 
-    report = analyze_breaking_changes(verbose=args.verbose)
+    breaking_changes_list = analyze_breaking_changes(verbose=args.verbose)
 
     if args.output_file:
         with open(args.output_file, "w") as file:
-            json.dump(report, file)
+            json.dump(breaking_changes_list, file)
 
-    if args.fail_on_error:
+    if len(breaking_changes_list) > 0 and args.fail_on_error:
         sys.exit(2)
 
 

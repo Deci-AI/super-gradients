@@ -1,13 +1,7 @@
 import unittest
 
-from super_gradients.common.breaking_change import (
-    parse_imports,
-    extract_code_breaking_changes,
-    parse_functions_signatures,
-    FunctionSignature,
-    FunctionParameters,
-    FunctionParameter,
-)
+from super_gradients.common.code_analysis.code_parser import FunctionParameter, FunctionParameters, FunctionSignature, parse_imports, parse_functions_signatures
+from super_gradients.common.code_analysis.breaking_change import extract_code_breaking_changes
 
 
 class TestBreakingChangeDetection(unittest.TestCase):
