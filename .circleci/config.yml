@@ -827,7 +827,7 @@ workflows:
   sanity_tests:
     when:  << pipeline.parameters.run_sanity_tests_flow >>
     jobs:
-      - hydra_sweeper_test:
+      - run_hydra_sweeper_test:
           context:
             - slack
       - recipe_sanity_tests_classification_pt1:
