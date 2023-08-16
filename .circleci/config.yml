@@ -880,6 +880,10 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
+      - run_hydra_sweeper_test:
+          context:
+            - slack
+          <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt1:
           context:
             - slack
@@ -908,6 +912,7 @@ workflows:
           py_version: "3.8"
           requires:
             - "build3.8"
+            - run_hydra_sweeper_test
             - recipe_accuracy_tests
             - recipe_sanity_tests_classification_pt1
             - recipe_sanity_tests_classification_pt2
