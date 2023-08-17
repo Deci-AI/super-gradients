@@ -111,7 +111,7 @@ def check_packages():
                     logger.debug(msg=error)
 
 
-def env_sanity_check():
+def _env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements."""
     if is_main_process():
         check_os()
@@ -119,4 +119,4 @@ def env_sanity_check():
 
 
 if __name__ == "__main__":
-    env_sanity_check()
+    _env_sanity_check()
