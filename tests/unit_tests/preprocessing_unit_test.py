@@ -86,11 +86,11 @@ class PreprocessingUnitTest(unittest.TestCase):
             ],
         }
         trainset = COCODetectionDataset(**train_dataset_params)
-        assert isinstance(trainset, HasPreprocessingParams)
+        self.assertIsInstance(trainset, HasPreprocessingParams)
         train_loader = dataloaders.get(dataset=trainset, dataloader_params={"collate_fn": DetectionCollateFN(), "num_workers": 0})
 
         valset = COCODetectionDataset(**val_dataset_params)
-        assert isinstance(valset, HasPreprocessingParams)
+        self.assertIsInstance(valset, HasPreprocessingParams)
         valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": CrowdDetectionCollateFN(), "num_workers": 0})
 
         trainer = Trainer("test_setting_preprocessing_params_from_validation_set")
