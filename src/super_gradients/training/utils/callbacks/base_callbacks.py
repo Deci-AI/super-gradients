@@ -189,7 +189,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.PRE_TRAINING.
         :param context:
-        :return:
         """
         pass
 
@@ -213,7 +212,6 @@ class Callback:
             - valid_metrics
         The corresponding Phase enum value for this event is Phase.TRAIN_EPOCH_START.
         :param context:
-        :return:
         """
         pass
 
@@ -248,7 +246,6 @@ class Callback:
             - valid_metrics
 
         :param context:
-        :return:
         """
         pass
 
@@ -285,7 +282,6 @@ class Callback:
         The corresponding Phase enum value for this event is Phase.TRAIN_BATCH_END.
 
         :param context:
-        :return:
         """
         pass
 
@@ -321,7 +317,6 @@ class Callback:
             - loss_logging_items_names
 
         :param context:
-        :return:
         """
         pass
 
@@ -358,7 +353,6 @@ class Callback:
             - loss_logging_items_names
 
         :param context:
-        :return:
         """
         pass
 
@@ -384,7 +378,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.TRAIN_BATCH_STEP.
         :param context:
-        :return:
         """
         pass
 
@@ -421,7 +414,6 @@ class Callback:
             - loss_logging_items_names
 
         :param context:
-        :return:
         """
         pass
 
@@ -459,7 +451,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.TRAIN_EPOCH_END.
         :param context:
-        :return:
         """
         pass
 
@@ -496,7 +487,6 @@ class Callback:
             - loss_logging_items_names
 
         :param context:
-        :return:
         """
         pass
 
@@ -521,7 +511,6 @@ class Callback:
             - loss_logging_items_names
 
         :param context:
-        :return:
         """
         pass
 
@@ -549,7 +538,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.VALIDATION_BATCH_END.
         :param context:
-        :return:
         """
         pass
 
@@ -587,7 +575,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.VALIDATION_EPOCH_END.
         :param context:
-        :return:
         """
         pass
 
@@ -625,7 +612,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.VALIDATION_END_BEST_EPOCH.
         :param context:
-        :return:
         """
         pass
 
@@ -662,7 +648,6 @@ class Callback:
             - loss_logging_items_names
 
         :param context:
-        :return:
         """
         pass
 
@@ -699,7 +684,6 @@ class Callback:
             - loss_logging_items_names
 
         :param context:
-        :return:
         """
         pass
 
@@ -737,7 +721,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.TEST_BATCH_END.
         :param context:
-        :return:
         """
         pass
 
@@ -775,7 +758,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.TEST_END.
         :param context:
-        :return:
         """
         pass
 
@@ -813,7 +795,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.AVERAGE_BEST_MODELS_VALIDATION_START.
         :param context:
-        :return:
         """
         pass
 
@@ -851,7 +832,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.AVERAGE_BEST_MODELS_VALIDATION_START.
         :param context:
-        :return:
         """
         pass
 
@@ -888,7 +868,6 @@ class Callback:
 
         The corresponding Phase enum value for this event is Phase.POST_TRAINING.
         :param context:
-        :return:
         """
         pass
 

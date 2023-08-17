@@ -113,39 +113,70 @@ You may have notived that the `Callback`'s methods expect a single argument - a 
 `PhaseContext` includes attributes representing a wide range of training attributes at a given point of the training.
 
 ```
-    epoch
-    batch_idx
-    optimizer
-    metrics_dict
-    inputs
-    preds
-    target
-    metrics_compute_fn
-    loss_avg_meter
-    loss_log_items
-    criterion
-    device
-    experiment_name
-    ckpt_dir
-    net
-    lr_warmup_epochs
-    sg_logger
-    train_loader
-    valid_loader
-    test_loader
-    training_params
-    ddp_silent_mode
-    checkpoint_params
-    architecture
-    arch_params
-    metric_to_watch
-    valid_metrics
-    ema_model
-    loss_logging_items_names
+    - epoch
+    - batch_idx
+    - optimizer
+    - metrics_dict
+    - inputs
+    - preds
+    - target
+    - metrics_compute_fn
+    - loss_avg_meter
+    - loss_log_items
+    - criterion
+    - device
+    - experiment_name
+    - ckpt_dir
+    - net
+    - lr_warmup_epochs
+    - sg_logger
+    - train_loader
+    - valid_loader
+    - test_loader
+    - training_params
+    - ddp_silent_mode
+    - checkpoint_params
+    - architecture
+    - arch_params
+    - metric_to_watch
+    - valid_metrics
+    - ema_model
+    - loss_logging_items_names
 ```
 
 Each of these attributes is set to `None` by default, up until the point it computed or defined in the training pipeline.
 - E.g. `epoch` will be `None` within `on_training_start` because, as explained above, this steps happens before the first epoch begins
+
+You can find which context attribute is set by looking into each method docstring:
+```python
+class Callback:
+    
+    ...
+    
+    def on_training_start(self, context: PhaseContext) -> None:
+        """
+        Called once before start of the first epoch
+        At this point, the context argument will have the following attributes:
+            - optimizer
+            - criterion
+            - device
+            - experiment_name
+            - ckpt_dir
+            - net
+            - sg_logger
+            - train_loader
+            - valid_loader
+            - training_params
+            - checkpoint_params
+            - arch_params
+            - metric_to_watch
+            - valid_metrics
+
+        The corresponding Phase enum value for this event is Phase.PRE_TRAINING.
+        :param context:
+        """
+        pass
+```
 
 ### Build your own Callback
 
