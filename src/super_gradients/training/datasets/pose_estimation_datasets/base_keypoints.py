@@ -8,6 +8,7 @@ from torch.utils.data.dataloader import default_collate, Dataset
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_collate_function
+from super_gradients.module_interfaces import HasPreprocessingParams
 from super_gradients.training.datasets.pose_estimation_datasets.target_generators import KeypointsTargetsGenerator
 from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointTransform
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
@@ -15,7 +16,7 @@ from super_gradients.training.utils.visualization.utils import generate_color_ma
 logger = get_logger(__name__)
 
 
-class BaseKeypointsDataset(Dataset):
+class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
     """
     Base class for pose estimation datasets.
     Descendants should implement the load_sample method to read a sample from the disk and return (image, mask, joints, extras) tuple.
@@ -116,7 +117,7 @@ class BaseKeypointsDataset(Dataset):
         """
         pipeline = self.transforms.get_equivalent_preprocessing()
         params = dict(
-            conf=0.25,
+            conf=0.05,
             image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,

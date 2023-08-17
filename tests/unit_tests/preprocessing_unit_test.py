@@ -3,10 +3,13 @@ import unittest
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from super_gradients import Trainer
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.processing_factory import ProcessingFactory
+from super_gradients.module_interfaces import HasPreprocessingParams
+from super_gradients.training import dataloaders
 from super_gradients.training import models
 from super_gradients.training.datasets import COCODetectionDataset
 from super_gradients.training.metrics import DetectionMetrics
@@ -20,7 +23,6 @@ from super_gradients.training.processing import (
 )
 from super_gradients.training.transforms import DetectionPaddedRescale, DetectionRGB2BGR
 from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
-from super_gradients.training import dataloaders
 
 
 class PreprocessingUnitTest(unittest.TestCase):
@@ -84,10 +86,12 @@ class PreprocessingUnitTest(unittest.TestCase):
             ],
         }
         trainset = COCODetectionDataset(**train_dataset_params)
-        train_loader = dataloaders.get(dataset=trainset, dataloader_params={"collate_fn": DetectionCollateFN()})
+        assert isinstance(trainset, HasPreprocessingParams)
+        train_loader = dataloaders.get(dataset=trainset, dataloader_params={"collate_fn": DetectionCollateFN(), "num_workers": 0})
 
         valset = COCODetectionDataset(**val_dataset_params)
-        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": CrowdDetectionCollateFN()})
+        assert isinstance(valset, HasPreprocessingParams)
+        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": CrowdDetectionCollateFN(), "num_workers": 0})
 
         trainer = Trainer("test_setting_preprocessing_params_from_validation_set")
 
@@ -118,6 +122,10 @@ class PreprocessingUnitTest(unittest.TestCase):
         self.assertTrue(len(processing_list), 5)
         self.assertEqual(model._default_nms_iou, 0.65)
         self.assertEqual(model._default_nms_conf, 0.5)
+
+        checkpoint_path = os.path.join(trainer.checkpoints_dir_path, "ckpt_best.pth")
+        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        self.assertTrue("processing_params" in checkpoint)
 
     def test_setting_preprocessing_params_from_checkpoint(self):
         model = models.get("yolox_s", num_classes=80)
@@ -186,6 +194,10 @@ class PreprocessingUnitTest(unittest.TestCase):
         self.assertTrue(len(processing_list), 5)
         self.assertEqual(model._default_nms_iou, 0.65)
         self.assertEqual(model._default_nms_conf, 0.5)
+
+        checkpoint_path = os.path.join(trainer.checkpoints_dir_path, "ckpt_best.pth")
+        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        self.assertTrue("processing_params" in checkpoint)
 
     def test_processings_from_dataset_params(self):
         transforms = [DetectionRGB2BGR(prob=1), DetectionPaddedRescale(input_dim=(512, 512))]
