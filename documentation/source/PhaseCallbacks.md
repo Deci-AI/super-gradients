@@ -108,7 +108,7 @@ method with the wanted behavior.
 
 ### Phase Context
 
-You may have notived that the `Callback`'s methods expect a single argument - a `PhaseContext` instance.
+You may have noticed that the `Callback`'s methods expect a single argument - a `PhaseContext` instance.
 
 `PhaseContext` includes attributes representing a wide range of training attributes at a given point of the training.
 
@@ -218,8 +218,14 @@ class SaveFirstBatchCallback(Callback):
             save_image(context.inputs, os.path.join(self.outputs_path, f"first_validation_batch_epoch_{context.epoch}.png"))
             self.saved_first_validation_batch = True
 ```
+**IMPORTANT**
 
-Note the `@multi_process_safe` decorator, which allows the callback to be triggered precisely once when running distributed training.
+When training on multiple nodes (see [DDP](device.md)), the callback will be called at each step once for every 
+node you are working with. This behaviour may be useful in some specific cases, but in general you will 
+want to have each method to be triggered only once per step. You can add the decorator `@multi_process_safe` to ensure 
+that only the main node will trigger the callback. 
+
+In our example, we want to trigger only once per step, so we need to add the `@multi_process_safe` decorator.
 
 ### Using Custom Callback within Python Script
 The callback can directly be passed through `training_params.phase_callbacks`
