@@ -56,15 +56,14 @@ This configuration alone is not very useful, as we need instances of the classes
 So we would like to somehow instantiate these classes `SegColorJitter`, `SegRandomFlip` and `SegRandomRescale`.
 
 Factories in SuperGradients come into play here! All these objects were registered beforehand in SuperGradients, 
-so that when you write these names in the recipe, SuperGradients will detect and instantiate them. 
+so that when you write these names in the recipe, SuperGradients will detect and instantiate them for you.
 
 ## Registering a Class
 
 As explained above, only registered objects can be instantiated. 
-This registration consists of mapping the object to the corresponding type.
+This registration consists of mapping the object name to the corresponding class type.
 
-In the example above, the string `"SegColorJitter"` was mapped to the class `SegColorJitter`. and 
-this is how SuperGradients knows how to convert the string defined in the recipe, into an object.
+In the example above, the string `"SegColorJitter"` was mapped to the class `SegColorJitter`, and this is how SuperGradients knows how to convert the string defined in the recipe, into an object.
 
 You can register the class using a name different from the actual class name. 
 However, it's generally recommended to use the same name for consistency and clarity.
