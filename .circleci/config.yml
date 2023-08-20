@@ -221,7 +221,7 @@ jobs:
           command: |
             . venv/bin/activate
             python -m pip install gitpython==3.1.0
-            python src/super_gradients/common/code_analysis/breaking_change.py --fail-on-error
+            python src/super_gradients/common/code_analysis/breaking_changes_detection.py --fail-on-error
 
       - store_artifacts:
           path: htmlcov
