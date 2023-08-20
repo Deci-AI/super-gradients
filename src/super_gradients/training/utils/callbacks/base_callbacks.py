@@ -15,6 +15,8 @@ class Phase(Enum):
     VALIDATION_END_BEST_EPOCH = "VALIDATION_END_BEST_EPOCH"  # This event corresponds to Callback.on_validation_end_best_epoch
     TEST_BATCH_END = "TEST_BATCH_END"  # This event corresponds to Callback.on_test_batch_end
     TEST_END = "TEST_END"  # This event corresponds to Callback.on_test_loader_end
+    AVERAGE_BEST_MODELS_VALIDATION_START = "AVERAGE_BEST_MODELS_VALIDATION_START"  # This event corresponds to Callback.on_average_best_models_validation_start
+    AVERAGE_BEST_MODELS_VALIDATION_END = "AVERAGE_MODEL_VALIDATION_END"  # This event corresponds to Callback.on_average_best_models_validation_end
     POST_TRAINING = "POST_TRAINING"  # This event corresponds to Callback.on_training_end
 
 
@@ -45,6 +47,7 @@ class PhaseContext:
         sg_logger=None,
         train_loader=None,
         valid_loader=None,
+        test_loader=None,
         training_params=None,
         ddp_silent_mode=None,
         checkpoint_params=None,
@@ -75,6 +78,7 @@ class PhaseContext:
         self.sg_logger = sg_logger
         self.train_loader = train_loader
         self.valid_loader = valid_loader
+        self.test_loader = test_loader
         self.training_params = training_params
         self.ddp_silent_mode = ddp_silent_mode
         self.checkpoint_params = checkpoint_params
@@ -122,6 +126,9 @@ class Callback:
                 on_test_batch_start(context)
                 on_test_batch_end(context)
         on_test_end(context)
+
+        on_average_best_models_validation_start
+        on_average_best_models_validation_end
 
     on_training_end(context)                    # called once after training ends.
 
@@ -347,6 +354,24 @@ class Callback:
         """
         pass
 
+    def on_average_best_models_validation_start(self, context: PhaseContext) -> None:
+        """
+        Called once after the test was end before the training loop has finished.
+        The corresponding Phase enum value for this event is Phase.AVERAGE_BEST_MODELS_VALIDATION_START.
+        :param context:
+        :return:
+        """
+        pass
+
+    def on_average_best_models_validation_end(self, context: PhaseContext) -> None:
+        """
+        Called once after the average model validation has finished.
+        The corresponding Phase enum value for this event is Phase.AVERAGE_BEST_MODELS_VALIDATION_START.
+        :param context:
+        :return:
+        """
+        pass
+
     def on_training_end(self, context: PhaseContext) -> None:
         """
         Called once after the training loop has finished (Due to reaching optimization criterion or because of an error.)
@@ -374,6 +399,8 @@ class PhaseCallback(Callback):
 
     TEST_BATCH_END = "TEST_BATCH_END"
     TEST_END = "TEST_END"
+    AVERAGE_BEST_MODELS_VALIDATION_START = "AVERAGE_BEST_MODELS_VALIDATION_START"
+    AVERAGE_BEST_MODELS_VALIDATION_END = "AVERAGE_BEST_MODELS_VALIDATION_END"
     POST_TRAINING = "POST_TRAINING"
     """
 
@@ -424,6 +451,14 @@ class PhaseCallback(Callback):
 
     def on_test_loader_end(self, context: PhaseContext) -> None:
         if self.phase == Phase.TEST_END:
+            self(context)
+
+    def on_average_best_models_validation_start(self, context: PhaseContext) -> None:
+        if self.phase == Phase.AVERAGE_BEST_MODELS_VALIDATION_START:
+            self(context)
+
+    def on_average_best_models_validation_end(self, context: PhaseContext) -> None:
+        if self.phase == Phase.AVERAGE_BEST_MODELS_VALIDATION_END:
             self(context)
 
     def on_training_end(self, context: PhaseContext) -> None:
@@ -529,3 +564,11 @@ class CallbackHandler(Callback):
     def on_test_loader_end(self, context: PhaseContext) -> None:
         for callback in self.callbacks:
             callback.on_test_loader_end(context)
+
+    def on_average_best_models_validation_start(self, context: PhaseContext) -> None:
+        for callback in self.callbacks:
+            callback.on_average_best_models_validation_start(context)
+
+    def on_average_best_models_validation_end(self, context: PhaseContext) -> None:
+        for callback in self.callbacks:
+            callback.on_average_best_models_validation_end(context)

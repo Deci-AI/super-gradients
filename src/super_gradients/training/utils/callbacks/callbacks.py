@@ -863,6 +863,52 @@ class TimerCallback(Callback):
             return total_steps_in_done + train_loader_length + context.batch_idx
 
 
+@register_callback(Callbacks.SLIDING_WINDOW_VALIDATION)
+class SlidingWindowValidationCallback(Callback):
+    """
+    Performing single-scale sliding window during inference at the last epoch on the validation set and on the average model.
+    """
+
+    def __init__(self, transforms_for_sliding_window) -> None:
+        self.transforms_for_sliding_window = transforms_for_sliding_window
+        self.valid_loader_transforms = []
+        self.test_loader_transforms = []
+
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
+        if context.training_params.max_epochs - 1 == context.epoch:
+            unwrap_model(context.net).enable_sliding_window_validation()
+            self.valid_loader_transforms = context.valid_loader.dataset.transforms.transforms
+            context.valid_loader.dataset.transforms.transforms = self.transforms_for_sliding_window
+            iter(context.valid_loader)
+
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
+        if context.training_params.max_epochs - 1 == context.epoch:
+            unwrap_model(context.net).disable_sliding_window_validation()
+
+    def on_average_best_models_validation_start(self, context: PhaseContext) -> None:
+        if context.training_params.max_epochs - 1 == context.epoch and context.training_params.average_best_models:
+            unwrap_model(context.net).enable_sliding_window_validation()
+            context.valid_loader.dataset.transforms.transforms = self.transforms_for_sliding_window
+            iter(context.valid_loader)
+
+    def on_average_best_models_validation_end(self, context: PhaseContext) -> None:
+        if context.training_params.max_epochs == context.epoch and context.training_params.average_best_models:
+            unwrap_model(context.net).disable_sliding_window_validation()
+            context.valid_loader.dataset.transforms.transforms = self.valid_loader_transforms
+            iter(context.valid_loader)
+
+    def on_test_loader_start(self, context: PhaseContext) -> None:
+        unwrap_model(context.net).enable_sliding_window_validation()
+        self.test_loader_transforms = context.test_loader.dataset.transforms.transforms
+        context.test_loader.dataset.transforms.transforms = self.transforms_for_sliding_window
+        iter(context.test_loader)
+
+    def on_test_loader_end(self, context: PhaseContext) -> None:
+        unwrap_model(context.net).disable_sliding_window_validation()
+        context.test_loader.dataset.transforms.transforms = self.test_loader_transforms
+        iter(context.test_loader)
+
+
 def create_lr_scheduler_callback(
     lr_mode: Union[str, Mapping],
     train_loader: DataLoader,
