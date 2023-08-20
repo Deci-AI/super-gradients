@@ -8,7 +8,7 @@ import torchvision
 from super_gradients.common.object_names import Losses, Transforms, Samplers, Optimizers
 
 
-def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
+def _create_register_decorator(registry: Dict[str, Callable]) -> Callable:
     """
     Create a decorator that registers object of specified type (model, metric, ...)
 
@@ -41,26 +41,26 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
 
 
 ARCHITECTURES = {}
-register_model = create_register_decorator(registry=ARCHITECTURES)
+register_model = _create_register_decorator(registry=ARCHITECTURES)
 
 KD_ARCHITECTURES = {}
-register_kd_model = create_register_decorator(registry=KD_ARCHITECTURES)
+register_kd_model = _create_register_decorator(registry=KD_ARCHITECTURES)
 
 ALL_DETECTION_MODULES = {}
-register_detection_module = create_register_decorator(registry=ALL_DETECTION_MODULES)
+register_detection_module = _create_register_decorator(registry=ALL_DETECTION_MODULES)
 
 METRICS = {}
-register_metric = create_register_decorator(registry=METRICS)
+register_metric = _create_register_decorator(registry=METRICS)
 
 LOSSES = {Losses.MSE: nn.MSELoss}
-register_loss = create_register_decorator(registry=LOSSES)
+register_loss = _create_register_decorator(registry=LOSSES)
 
 
 ALL_DATALOADERS = {}
-register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)
+register_dataloader = _create_register_decorator(registry=ALL_DATALOADERS)
 
 CALLBACKS = {}
-register_callback = create_register_decorator(registry=CALLBACKS)
+register_callback = _create_register_decorator(registry=CALLBACKS)
 
 TRANSFORMS = {
     Transforms.Compose: torchvision.transforms.Compose,
@@ -99,34 +99,34 @@ TRANSFORMS = {
     Transforms.RandomAutocontrast: torchvision.transforms.RandomAutocontrast,
     Transforms.RandomEqualize: torchvision.transforms.RandomEqualize,
 }
-register_transform = create_register_decorator(registry=TRANSFORMS)
+register_transform = _create_register_decorator(registry=TRANSFORMS)
 
 ALL_DATASETS = {}
-register_dataset = create_register_decorator(registry=ALL_DATASETS)
+register_dataset = _create_register_decorator(registry=ALL_DATASETS)
 
 ALL_PRE_LAUNCH_CALLBACKS = {}
-register_pre_launch_callback = create_register_decorator(registry=ALL_PRE_LAUNCH_CALLBACKS)
+register_pre_launch_callback = _create_register_decorator(registry=ALL_PRE_LAUNCH_CALLBACKS)
 
 BACKBONE_STAGES = {}
-register_unet_backbone_stage = create_register_decorator(registry=BACKBONE_STAGES)
+register_unet_backbone_stage = _create_register_decorator(registry=BACKBONE_STAGES)
 
 UP_FUSE_BLOCKS = {}
-register_unet_up_block = create_register_decorator(registry=UP_FUSE_BLOCKS)
+register_unet_up_block = _create_register_decorator(registry=UP_FUSE_BLOCKS)
 
 ALL_TARGET_GENERATORS = {}
-register_target_generator = create_register_decorator(registry=ALL_TARGET_GENERATORS)
+register_target_generator = _create_register_decorator(registry=ALL_TARGET_GENERATORS)
 
 LR_SCHEDULERS_CLS_DICT = {}
-register_lr_scheduler = create_register_decorator(registry=LR_SCHEDULERS_CLS_DICT)
+register_lr_scheduler = _create_register_decorator(registry=LR_SCHEDULERS_CLS_DICT)
 
 LR_WARMUP_CLS_DICT = {}
-register_lr_warmup = create_register_decorator(registry=LR_WARMUP_CLS_DICT)
+register_lr_warmup = _create_register_decorator(registry=LR_WARMUP_CLS_DICT)
 
 SG_LOGGERS = {}
-register_sg_logger = create_register_decorator(registry=SG_LOGGERS)
+register_sg_logger = _create_register_decorator(registry=SG_LOGGERS)
 
 ALL_COLLATE_FUNCTIONS = {}
-register_collate_function = create_register_decorator(registry=ALL_COLLATE_FUNCTIONS)
+register_collate_function = _create_register_decorator(registry=ALL_COLLATE_FUNCTIONS)
 
 SAMPLERS = {
     Samplers.DISTRIBUTED: torch.utils.data.DistributedSampler,
@@ -135,7 +135,7 @@ SAMPLERS = {
     Samplers.RANDOM: torch.utils.data.RandomSampler,
     Samplers.WEIGHTED_RANDOM: torch.utils.data.WeightedRandomSampler,
 }
-register_sampler = create_register_decorator(registry=SAMPLERS)
+register_sampler = _create_register_decorator(registry=SAMPLERS)
 
 
 OPTIMIZERS = {
@@ -158,7 +158,7 @@ TORCH_LR_SCHEDULERS = {
     "LinearLR": torch.optim.lr_scheduler.LinearLR,
 }
 
-register_optimizer = create_register_decorator(registry=OPTIMIZERS)
+register_optimizer = _create_register_decorator(registry=OPTIMIZERS)
 
 PROCESSINGS = {}
-register_processing = create_register_decorator(registry=PROCESSINGS)
+register_processing = _create_register_decorator(registry=PROCESSINGS)
