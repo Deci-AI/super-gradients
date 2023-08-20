@@ -68,8 +68,9 @@ class Pipeline(ABC):
         fuse_model: bool = True,
         dtype: Optional[torch.dtype] = None,
     ):
-        self.device = device or next(model.parameters()).device
-        self.model = model.to(self.device)
+        model_device: str = next(model.parameters()).device.type
+        self.model = model.to(device) if device and device != model_device else model
+        self.device = device or model_device
         self.dtype = dtype or next(model.parameters()).dtype
         self.class_names = class_names
 
@@ -169,8 +170,12 @@ class Pipeline(ABC):
         :param images:  Iterable of numpy arrays representing images.
         :return:        Iterable of Results object, each containing the results of the prediction and the image.
         """
+        # Make sure the model is on the correct device, as it might have been moved after init
+        model_device = next(self.model.parameters()).device.type
+        if self.device != model_device:
+            self.model = self.model.to(self.device)
+
         images = list(images)  # We need to load all the images into memory, and to reuse it afterwards.
-        self.model = self.model.to(self.device)  # Make sure the model is on the correct device, as it might have been moved after init
 
         # Preprocess
         preprocessed_images, processing_metadatas = [], []
