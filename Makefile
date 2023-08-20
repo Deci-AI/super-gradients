@@ -16,5 +16,39 @@ recipe_accuracy_tests:
 	coverage run --source=super_gradients -m unittest tests/deci_core_recipe_test_suite_runner.py
 
 
+sweeper_test:
+	python -m super_gradients.train_from_recipe -m --config-name=cifar10_resnet \
+	  experiment_name=sweep_cifar10 \
+	  training_hyperparams.max_epochs=1 \
+	  training_hyperparams.initial_lr=0.001,0.01
+
+	# Make sure that experiment_dir includes $$expected_num_dir subdirectories. If not, fail
+	subdir_count=$$(find "sweep_cifar10" -mindepth 1 -maxdepth 1 -type d | wc -l); \
+	if [ "$$subdir_count" -ne 2 ]; then \
+	  echo "Error: sweep_cifar10 should include 2 subdirectories but includes $$subdir_count."; \
+	  exit 1; \
+	fi
+
+
+#     # Define variables
+#     ckpt_root_dir="$PWD" # or specify the full path if different
+#     experiment_name="sweep_cifar10"
+#     experiment_dir="$ckpt_root_dir/$experiment_name"
+#
+#     # Run the specific Python command
+#     expected_num_dir=2
+#     python -m super_gradients.train_from_recipe -m --config-name=cifar10_resnet \
+#       ckpt_root_dir=$ckpt_root_dir\
+#       experiment_name=$experiment_name \
+#       training_hyperparams.max_epochs=1\
+#       training_hyperparams.initial_lr=0.001,0.01
+#
+#     # Make sure that experiment_dir includes $expected_num_dir subdirectories. If not, fail
+#     subdir_count=$(find "$experiment_dir" -mindepth 1 -maxdepth 1 -type d | wc -l)
+#     if [ "$subdir_count" -ne  $expected_num_dir ]; then
+#       echo "Error: $experiment_dir should include $expected_num_dir subdirectories but includes $subdir_count."
+#       exit 1
+#     fi
+
 examples_to_docs:
 	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute src/super_gradients/examples/model_export/models_export.ipynb

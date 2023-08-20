@@ -213,6 +213,7 @@ jobs:
             coverage run --source=super_gradients -m unittest tests/deci_core_unit_test_suite_runner.py
             coverage report
             coverage html  # open htmlcov/index.html in a browser
+            make sweeper_test
       - store_artifacts:
           path: htmlcov
 
@@ -471,39 +472,9 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch torchvision torchaudio
-            
-            # Define variables
-            ckpt_root_dir="$PWD" # or specify the full path if different
-            experiment_name="sweep_cifar10"
-            experiment_dir="$ckpt_root_dir/$experiment_name"
+            python3.8 -m pip install torch torchvision torchaudio   
+            make sweeper_test
 
-            # Step 1: Make sure that the directory experiment_dir doesn't exist
-            if [ -d "$experiment_dir" ]; then
-              echo "Error: Directory $experiment_dir already exists."
-              exit 1
-            fi
-
-            # Run the specific Python command
-            expected_num_dir=2
-            python -m super_gradients.train_from_recipe -m --config-name=cifar10_resnet \
-              ckpt_root_dir=$ckpt_root_dir\
-              experiment_name=$experiment_name \
-              training_hyperparams.max_epochs=1\
-              training_hyperparams.initial_lr=0.001,0.01
-
-            # Step 3: Make sure that the directory experiment_dir was created. If not, fail
-            if [ ! -d "$experiment_dir" ]; then
-              echo "Error: Directory $experiment_dir was not created."
-              exit 1
-            fi
-
-            # Step 4: Make sure that experiment_dir includes $expected_num_dir subdirectories. If not, fail
-            subdir_count=$(find "$experiment_dir" -mindepth 1 -maxdepth 1 -type d | wc -l)
-            if [ "$subdir_count" -ne  $expected_num_dir ]; then
-              echo "Error: $experiment_dir should include $expected_num_dir subdirectories but includes $subdir_count."
-              exit 1
-            fi
       - run:
           name: Remove new environment when failed
           command: "rm -r << parameters.sg_new_env_name >>"
