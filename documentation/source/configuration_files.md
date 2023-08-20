@@ -163,6 +163,7 @@ initial learning-rate. This feature is extremely usefully when experimenting wit
 Note that the arguments are referenced without the `--` prefix and that each parameter is referenced with its full path in the 
 configuration tree, concatenated with a `.`.
 
+
 ## Resolvers 
 Resolvers are converting the strings from the YAML file into Python objects or values. The most basic resolvers are the Hydra native resolvers.
 Here are a few simple examples:

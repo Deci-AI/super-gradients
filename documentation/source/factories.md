@@ -7,9 +7,11 @@ Prerequisites:
 
 In this tutorial, we'll cover how to use existing factories, register new ones, and briefly explore the implementation details.
 
-## Utilizing Existing Factories
+## Using Existing Factories
 
-Let's start by looking at how existing factories can be utilized to define a sequence of transforms for augmenting a dataset.
+If you had a look at the [recipes](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes), you may have noticed that many objects are defined directly in the recipes.
+
+In the [Supervisely dataset recipe](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/dataset_params/supervisely_persons_dataset_params.yaml) you can see the following
 
 ```yaml
 train_dataset_params:
@@ -18,78 +20,170 @@ train_dataset_params:
         brightness: 0.1
         contrast: 0.1
         saturation: 0.1
-
     - SegRandomFlip:
         prob: 0.5
-
     - SegRandomRescale:
         scales: [0.4, 1.6]
 ```
+If you load the `.yaml` recipe as is into a python dictionary, you would get the following
+```python
+{
+  "train_dataset_params": {
+    "transforms": [
+      {
+        "SegColorJitter": {
+          "brightness": 0.1,
+          "contrast": 0.1,
+          "saturation": 0.1
+        }
+      },
+      {
+        "SegRandomFlip": {
+          "prob": 0.5
+        }
+      },
+      {
+        "SegRandomRescale": {
+          "scales": [0.4, 1.6]
+        }
+      }
+    ]
+  }
+}
+```
 
-In this example, SuperGradients will recognize the keys (`SegColorJitter`, `SegRandomFlip`, `SegRandomRescale`) 
-which refer to SuperGradient's classes. They will be instantiated and passed to the Dataset constructor.
+This configuration alone is not very useful, as we need instances of the classes, not just their configurations.
+So we would like to somehow instantiate these classes `SegColorJitter`, `SegRandomFlip` and `SegRandomRescale`.
+
+Factories in SuperGradients come into play here! All these objects were registered beforehand in SuperGradients, 
+so that when you write these names in the recipe, SuperGradients will detect and instantiate them. 
 
 ## Registering a Class
 
-To use a new object from your configuration file, you need to define the mapping of the string to a type. 
-This can be done using a registration functions.
+As explained above, only registered objects can be instantiated. 
+This registration consists of mapping the object to the corresponding type.
 
-Here's an example of how you can register a new model called `MyNet`:
+In the example above, the string `"SegColorJitter"` was mapped to the class `SegColorJitter`. and 
+this is how SuperGradients knows how to convert the string defined in the recipe, into an object.
+
+You can register the class using a name different from the actual class name. 
+However, it's generally recommended to use the same name for consistency and clarity.
+
+### Example
 
 ```python
-from super_gradients.common.registry import register_model
+from super_gradients.common.registry import register_transform
 
-@register_model(name="MyNet")
-class MyExampleNet(nn.Module):
-    def __init__(self, num_classes: int):
-        ....
+@register_transform(name="MyTransformName")
+class MyTransform:
+    def __init__(self, prob: float):
+        ...
 ```
+In this simple example, we register a new transform.
+Note that here we registered (for the sake of the example) the class `MyTransform` to the name `MyTransformName` which is different. 
+We strongly recommend to not do it, and to instead register a class with its own name.
 
-This simple decorator maps the name "MyNet" to the type `MyExampleNet`. If your constructor includes required arguments,
-you will be expected to provide them in your YAML file:
-
+Once you registered a class, you can use it in your recipe. Here, we will add this transform to the original recipe
 ```yaml
-architecture: 
-    MyNet:
-      num_classes: 8
+train_dataset_params:
+  transforms:
+    - SegColorJitter:
+        brightness: 0.1
+        contrast: 0.1
+        saturation: 0.1
+    - SegRandomFlip:
+        prob: 0.5
+    - SegRandomRescale:
+        scales: [0.4, 1.6]
+    - MyTransformName:  # We use the name used to register, which may be different from the name of the class
+        prob: 0.7 
 ```
 
-Last step; make sure that you actually import the module including `MyExampleNet` into your script.
-```python
-from my_module import MyExampleNet # Importing the module is enough as it will trigger the register_model function
+Final Step: Ensure that you import the module containing `MyTransformName` into your script. 
+Doing so will trigger the registration function, allowing SuperGradients to recognize it.
 
-@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-def main(cfg: DictConfig) -> None:
+Here is an example (adapted from the [train_from_recipe script](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/train_from_recipe.py)).
+
+```python
+from .my_module import MyTransform # Importing the module is enough as it will trigger the register_model function
+
+# The code below is the same as the basic `train_from_recipe.py` script
+# See: https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/train_from_recipe.py
+from omegaconf import DictConfig
+import hydra
+
+from super_gradients import Trainer, init_trainer
+
+
+@hydra.main(config_path="recipes", version_base="1.2")
+def _main(cfg: DictConfig) -> None:
     Trainer.train_from_config(cfg)
 
-def run():
-    init_trainer()
-    main()
+
+def main() -> None:
+    init_trainer()  # `init_trainer` needs to be called before `@hydra.main`
+    _main()
+
 
 if __name__ == "__main__":
-    run()
+    main()
+
 ```
 
 ## Under the Hood
 
-Now, let's briefly look at how factories used within SuperGradients. If you want to explore this magic, you can look for the `@resolve_param` decorator in the code.
+Until now, we saw how to use existing Factories, and how to register new ones.
+In some cases, you may want to create objects that would benefit from using the factories.
+
+### Basic
+The basic way to use factories as below.
+```
+from super_gradients.common.factories import TransformsFactory
+factory = TransformsFactory()
+my_transform = factory.get({'MyTransformName': {'prob':  0.7}})
+```
+You may recognize that the input passed to `factory.get` is actually the dictionary that we get after loading the recipe
+(See [Utilizing Existing Factories](#utilizing-existing-factories))
+
+### Recommended
+Factories become even more powerful when used with the `@resolve_param` decorator. 
+This feature allows functions to accept both instantiated objects and their dictionary representations. 
+It means you can pass either the actual python object or a dictionary that describes it straight from the recipe.
 
 ```python
 class ImageNetDataset(torch_datasets.ImageFolder):
     
     @resolve_param("transforms", factory=TransformsFactory())
-    def __init__(self, root: str, transforms: Union[list, dict] = [], *args, **kwargs):
-        ...
+    def __init__(self, root: str, transform: Transform):
         ...
 ```
 
-The `@resolve_param` wraps functions and resolves a string or dictionary argument (in the example above "transforms") to an object. 
-When `__init__(..)` is called, the function will receive an object, not a dictionary. 
-The parameters under "transforms" in the YAML will be passed as arguments for instantiation.
+Now, `ImageNetDataset` can be passed both an instance of `MyTransform`
 
-## Supported Factory Tyoes
-Each of the type 
+```python
+my_transform = MyTransform(prob=0.7)
+ImageNetDataset(root=..., transform=my_transform)
 ```
+
+And a dictionary representing the same object
+```python
+my_transform = {'MyTransformName': {'prob':  0.7}}
+ImageNetDataset(root=..., transform=my_transform)
+```
+
+This second way of instantiating the dataset combines perfectly with the concept `.yaml` recipes.
+
+## Supported Factory Types
+Until here, we focused on a single type of factory, `TransformsFactory`, 
+associated with the registration decorator `register_transform`. 
+
+SuperGradients supports a wide range of factories, used throughout the training process, 
+each with its own registering decorator.
+ 
+SuperGradients offers various types of factories, and each is associated with a specific registration decorator.
+
+``` python
+from super_gradients.common.factories import (
     register_model
     register_kd_model
     register_detection_module
@@ -110,4 +204,5 @@ Each of the type
     register_sampler
     register_optimizer
     register_processing
+)
 ```
