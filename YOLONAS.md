@@ -27,7 +27,7 @@ YOLO-NAS's architecture employs quantization-aware blocks and selective quantiza
 
 ## Quickstart
 
-## Extract bounding boxes 
+### Extract bounding boxes 
 ```python
 import super_gradients
 
@@ -54,7 +54,7 @@ We provide fine-tuning recipies for Roboflow-100 datasets.
 * [super_gradients/recipes/roboflow_yolo_nas_s_qat.yaml](src/super_gradients/recipes/roboflow_yolo_nas_s_qat.yaml)
 
 
-### Great fine-tuning potential
+## Great fine-tuning potential
 
 We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuning on Roboflow-100 our YOLO-NAS model achieves higher mAP than our nearest competitors:
 
