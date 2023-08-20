@@ -248,13 +248,13 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
 
 def main():
     parser = argparse.ArgumentParser(description="Example script using flags")
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose mode")
+    parser.add_argument("--silent", action="store_true", help="Enable verbose mode")
     parser.add_argument("--output-file", default=None, type=str, help="Output file name")
     parser.add_argument("--fail-on-error", action="store_true", help="Fail on error")
 
     args = parser.parse_args()
 
-    breaking_changes_list = analyze_breaking_changes(verbose=args.verbose)
+    breaking_changes_list = analyze_breaking_changes(verbose=not args.silent)
 
     if args.output_file:
         with open(args.output_file, "w") as file:
