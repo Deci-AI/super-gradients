@@ -1,7 +1,7 @@
 import ast
 import sys
-import os
 import argparse
+from pathlib import Path
 from typing import List, Dict, Union
 import json
 from abc import ABC
@@ -220,7 +220,7 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
     # GitHelper requires `git` library which should NOT be required for the other functions
     from super_gradients.common.code_analysis.git_utils import GitHelper
 
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+    root_dir = str(Path(__file__).resolve().parents[4])
     git_explorer = GitHelper(git_path=root_dir)
 
     summary = ""
