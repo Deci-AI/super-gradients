@@ -245,14 +245,43 @@ python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 
 
 
 
-## Using your own recipe
+## Recipe Structure
+
+```yaml
+defaults:
+  - training_hyperparams: cifar10_resnet_train_params
+  - dataset_params: cifar10_dataset_params
+  - arch_params: resnet18_cifar_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+train_dataloader: cifar10_train
+val_dataloader: cifar10_val
+architecture: resnet18_cifar
+experiment_name: resnet18_cifar_interpolation_check
+multi_gpu: Off
+num_gpus: 1
+```
 
 ### Recipe Structure
 SuperGradients expects a very strict recipe structure which you should match.
 
 # File structure
 ```
-
+rf100
+├── 4-fold-defect
+│      ├─ train
+│      │    ├─ 000000000001.jpg
+│      │    ├─ ...
+│      │    └─ _annotations.coco.json
+│      ├─ valid
+│      │    └─ ...
+│      └─ test
+│           └─ ...
+├── abdomen-mri
+│      └─ ...
+└── ...
 
 ```
 
