@@ -24,7 +24,7 @@ from super_gradients.training.utils.predict import (
     ImagesClassificationPrediction,
     ClassificationPrediction,
 )
-from super_gradients.training.utils.utils import generate_batch
+from super_gradients.training.utils.utils import generate_batch, infer_model_device
 from super_gradients.training.utils.media.video import load_video, includes_video_extension
 from super_gradients.training.utils.media.image import ImageSource, check_image_typing
 from super_gradients.training.utils.media.stream import WebcamStreaming
@@ -68,7 +68,7 @@ class Pipeline(ABC):
         fuse_model: bool = True,
         dtype: Optional[torch.dtype] = None,
     ):
-        model_device: str = next(model.parameters()).device.type
+        model_device: str = infer_model_device(model=model).type
         self.model = model.to(device) if device and device != model_device else model
         self.device = device or model_device
         self.dtype = dtype or next(model.parameters()).dtype
@@ -171,7 +171,7 @@ class Pipeline(ABC):
         :return:        Iterable of Results object, each containing the results of the prediction and the image.
         """
         # Make sure the model is on the correct device, as it might have been moved after init
-        model_device = next(self.model.parameters()).device.type
+        model_device: str = infer_model_device(model=self.model).type
         if self.device != model_device:
             self.model = self.model.to(self.device)
 
