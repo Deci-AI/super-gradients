@@ -239,8 +239,8 @@ jobs:
     resource_class: small
     steps:
       - checkout
-      - breaking-change-test:
-          name: run breaking change test
+      - run:
+          name: Detect breaking changes
           no_output_timeout: 30m
           command: |
             python3 -m venv venv
@@ -871,6 +871,7 @@ workflows:
           py_version: "3.8"
           requires:
             - "build3.8"
+            - breaking_change_test
             - recipe_accuracy_tests
             - recipe_sanity_tests_classification_pt1
             - recipe_sanity_tests_classification_pt2
