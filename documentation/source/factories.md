@@ -142,7 +142,7 @@ factory = TransformsFactory()
 my_transform = factory.get({'MyTransformName': {'prob':  0.7}})
 ```
 You may recognize that the input passed to `factory.get` is actually the dictionary that we get after loading the recipe
-(See [Utilizing Existing Factories](#utilizing-existing-factories))
+(See [Using Existing Factories](#using-existing-factories))
 
 ### Recommended
 Factories become even more powerful when used with the `@resolve_param` decorator. 
