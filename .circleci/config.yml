@@ -893,7 +893,7 @@ workflows:
             - deci-common/persist_version_info
 
       - breaking_change_check:
-          name: "Looking for Break Changes"
+          name: "breaking-change-check"
           py_version: << pipeline.parameters.build_py_version >>
           requires:
             - deci-common/persist_version_info
