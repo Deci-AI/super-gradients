@@ -215,21 +215,13 @@ jobs:
             coverage report
             coverage html  # open htmlcov/index.html in a browser
 
-      - run:
-          name: run breaking change test
-          no_output_timeout: 30m
-          command: |
-            . venv/bin/activate
-            python -m pip install gitpython==3.1.0
-            python src/super_gradients/common/code_analysis/breaking_changes_detection.py --fail-on-error
-
       - store_artifacts:
           path: htmlcov
 
       - store_artifacts:
           path: ~/sg_logs
 
-  breaking_change_test:
+  breaking_change_check:
     parameters:
       py_version:
         type: string
@@ -836,7 +828,9 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
-      - breaking_change_test:
+      - breaking_change_check:
+          name: "Looking for Break Changes"
+          py_version: "3.8"
           requires:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
@@ -871,7 +865,7 @@ workflows:
           py_version: "3.8"
           requires:
             - "build3.8"
-            - breaking_change_test
+            - breaking_change_check
             - recipe_accuracy_tests
             - recipe_sanity_tests_classification_pt1
             - recipe_sanity_tests_classification_pt2
@@ -905,6 +899,12 @@ workflows:
           name: "build<< pipeline.parameters.build_py_version >>"
           py_version:  << pipeline.parameters.build_py_version >>
           package_name: "super-gradients"
+          requires:
+            - deci-common/persist_version_info
+
+      - breaking_change_check:
+          name: "Looking for Break Changes"
+          py_version: << pipeline.parameters.build_py_version >>
           requires:
             - deci-common/persist_version_info
 
