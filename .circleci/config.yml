@@ -215,19 +215,40 @@ jobs:
             coverage report
             coverage html  # open htmlcov/index.html in a browser
 
-      - run:
-          name: run breaking change test
-          no_output_timeout: 30m
-          command: |
-            . venv/bin/activate
-            python -m pip install gitpython==3.1.0
-            python src/super_gradients/common/code_analysis/breaking_change.py --verbose --fail-on-error
-
       - store_artifacts:
           path: htmlcov
 
       - store_artifacts:
           path: ~/sg_logs
+
+  breaking_change_check:
+    parameters:
+      py_version:
+        type: string
+        default: latest
+    docker:
+      - image: cimg/python:<< parameters.py_version >>
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          name: Detect breaking changes
+          no_output_timeout: 30m
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            python3 -m pip install pip==23.1.2
+            python3 -m pip install -e .
+            python3 -m pip install gitpython==3.1.0
+            python3 src/super_gradients/common/code_analysis/breaking_changes_detection.py --fail-on-error
+      - run:
+          name: Remove new environment when failed
+          command: "rm -r venv"
+          when: on_fail
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
   change_rc_to_b:
      description: "change rc in the tag to b"
@@ -868,6 +889,12 @@ workflows:
           name: "build<< pipeline.parameters.build_py_version >>"
           py_version:  << pipeline.parameters.build_py_version >>
           package_name: "super-gradients"
+          requires:
+            - deci-common/persist_version_info
+
+      - breaking_change_check:
+          name: "breaking-change-check"
+          py_version: << pipeline.parameters.build_py_version >>
           requires:
             - deci-common/persist_version_info
 

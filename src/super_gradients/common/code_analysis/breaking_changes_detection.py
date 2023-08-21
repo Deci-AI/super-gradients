@@ -1,7 +1,7 @@
 import ast
 import sys
-import os
 import argparse
+from pathlib import Path
 from typing import List, Dict, Union
 import json
 from abc import ABC
@@ -220,7 +220,7 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
     # GitHelper requires `git` library which should NOT be required for the other functions
     from super_gradients.common.code_analysis.git_utils import GitHelper
 
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+    root_dir = str(Path(__file__).resolve().parents[4])
     git_explorer = GitHelper(git_path=root_dir)
 
     summary = ""
@@ -248,13 +248,13 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
 
 def main():
     parser = argparse.ArgumentParser(description="Example script using flags")
-    parser.add_argument("--verbose", action="store_true", default=True, help="Enable verbose mode")
+    parser.add_argument("--silent", action="store_true", help="Enable verbose mode")
     parser.add_argument("--output-file", default=None, type=str, help="Output file name")
-    parser.add_argument("--fail-on-error", action="store_true", default=True, help="Fail on error")
+    parser.add_argument("--fail-on-error", action="store_true", help="Fail on error")
 
     args = parser.parse_args()
 
-    breaking_changes_list = analyze_breaking_changes(verbose=args.verbose)
+    breaking_changes_list = analyze_breaking_changes(verbose=not args.silent)
 
     if args.output_file:
         with open(args.output_file, "w") as file:
