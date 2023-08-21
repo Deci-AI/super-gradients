@@ -75,7 +75,7 @@ class BaseKeypointsDataset(Dataset):
 
         joints = self.filter_joints(joints, img)
 
-        targets = self.target_generator(img, joints, mask)
+        targets = self.target_generator(image=img, joints=joints, bboxes=None, mask=mask)
         return img, targets, {"gt_joints": joints, **extras}
 
     def compute_area(self, joints: np.ndarray) -> np.ndarray:

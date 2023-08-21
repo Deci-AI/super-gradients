@@ -93,10 +93,15 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         image_shape = img.size(1), img.size(2)
         gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.filter_joints(image_shape, gt_joints, gt_areas, gt_bboxes, gt_iscrowd)
 
-        targets = self.target_generator(img, gt_joints, mask)
+        targets = self.target_generator(image=img, joints=gt_joints, bboxes=gt_bboxes, mask=mask)
         return img, targets, {"gt_joints": gt_joints, "gt_bboxes": gt_bboxes, "gt_iscrowd": gt_iscrowd, "gt_areas": gt_areas}
 
     def load_sample(self, index):
+        """
+
+        :param index:
+        :return: Tuple of (image, mask, joints, instance areas, instance bounding boxes, is_crowd)
+        """
         img_id = self.ids[index]
         image_info = self.coco.loadImgs(img_id)[0]
         file_name = image_info["file_name"]

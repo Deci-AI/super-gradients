@@ -1,0 +1,57 @@
+defaults:
+  - default_train_params
+
+max_epochs: 300
+
+warmup_mode: "linear_batch_step"
+warmup_initial_lr:  1e-6
+lr_warmup_steps: 1000
+lr_warmup_epochs: 0
+
+initial_lr:  2e-4
+lr_mode: cosine
+cosine_final_lr_ratio: 0.1
+
+zero_weight_decay_on_bias_and_bn: True
+batch_accumulate: 1
+
+save_ckpt_epoch_list: [100, 200, 250]
+
+loss: yolo_nas_pose_loss
+
+criterion_params:
+    num_classes: ${arch_params.num_classes}
+    reg_max: 16
+    oks_sigmas: ${dataset_params.oks_sigmas}
+
+optimizer: AdamW
+optimizer_params:
+  weight_decay: 0.00001
+
+ema: True
+ema_params:
+  decay: 0.9997
+  decay_type: threshold
+
+mixed_precision: True
+sync_bn: True
+
+valid_metrics_list:
+  - PoseEstimationMetrics:
+      num_joints: ${dataset_params.num_joints}
+      oks_sigmas: ${dataset_params.oks_sigmas}
+      max_objects_per_image: 30
+      post_prediction_callback:
+        _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
+        score_threshold: 0.05
+        nms_threshold: 0.5
+        nms_top_k: 300
+        max_predictions: 30
+
+
+pre_prediction_callback:
+
+metric_to_watch: 'AP'
+greater_metric_to_watch_is_better: True
+
+_convert_: all

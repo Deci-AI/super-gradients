@@ -1,0 +1,21 @@
+defaults:
+  - coco_pose_estimation_dataset_params
+  - _self_
+
+train_dataset_params:
+  target_generator:
+    YoloNASPoseTargetsGenerator
+
+val_dataset_params:
+  data_dir:
+  target_generator:
+    YoloNASPoseTargetsGenerator
+
+
+train_dataloader_params:
+  collate_fn:
+    _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
+
+val_dataloader_params:
+  collate_fn:
+    _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN

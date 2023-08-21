@@ -1,0 +1,38 @@
+defaults:
+  - training_hyperparams: coco2017_yolo_nas_pose_train_params
+  - dataset_params: coco_pose_estimation_yolo_nas_dataset_params
+  - arch_params: yolo_nas_pose_s_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+architecture: yolo_nas_pose_s
+
+multi_gpu: DDP
+num_gpus: 8
+
+experiment_suffix: ""
+experiment_name: coco2017_pose_${architecture}${experiment_suffix}
+
+ckpt_root_dir:
+
+train_dataloader: coco2017_pose_train
+val_dataloader: coco2017_pose_val
+
+arch_params:
+  num_classes: ${dataset_params.num_joints}
+
+checkpoint_params:
+  # For training Yolo-NAS-S pose estimation model we use pretrained weights for Yolo-NAS-S object detection model.
+  # By setting strict_load: key_matching we load only those weights that match the keys of the model.
+  checkpoint_path: https://sghub.deci.ai/models/yolo_nas_s_coco.pth
+  strict_load:
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: key_matching
+
+dataset_params:
+  train_dataloader_params:
+    batch_size: 24
+
+  val_dataloader_params:
+    batch_size: 32

@@ -8,6 +8,7 @@ class Losses:
     SHELFNET_SE_LOSS = "shelfnet_se_loss"
     YOLOX_LOSS = "yolox_loss"
     PPYOLOE_LOSS = "ppyoloe_loss"
+    YOLONAS_POSE_LOSS = "yolo_nas_pose_loss"
     YOLOX_FAST_LOSS = "yolox_fast_loss"
     SSD_LOSS = "ssd_loss"
     STDC_LOSS = "stdc_loss"
@@ -311,6 +312,10 @@ class Models:
     YOLO_NAS_L = "yolo_nas_l"
     POSE_RESCORING = "pose_rescoring_custom"
     POSE_RESCORING_COCO = "pose_rescoring_coco"
+
+    YOLO_NAS_POSE_S = "yolo_nas_pose_s"
+    YOLO_NAS_POSE_M = "yolo_nas_pose_m"
+    YOLO_NAS_POSE_L = "yolo_nas_pose_l"
 
 
 class ConcatenatedTensorFormats:

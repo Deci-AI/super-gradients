@@ -1,5 +1,5 @@
 import abc
-from typing import Tuple, Dict, Union
+from typing import Tuple, Dict, Union, Optional
 
 import cv2
 import numpy as np
@@ -12,12 +12,16 @@ __all__ = ["KeypointsTargetsGenerator", "DEKRTargetsGenerator"]
 
 class KeypointsTargetsGenerator:
     @abc.abstractmethod
-    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray) -> Union[Tensor, Tuple[Tensor, ...], Dict[str, Tensor]]:
+    def __call__(
+        self, *, image: Tensor, joints: np.ndarray, mask: np.ndarray, bboxes: Optional[np.ndarray]
+    ) -> Union[Tensor, Tuple[Tensor, ...], Dict[str, Tensor]]:
         """
         Encode input joints into target tensors
 
         :param image: [C,H,W] Input image tensor
         :param joints: [Num Instances, Num Joints, 3] Last channel represents (x, y, visibility)
+        :param bboxes: [Num Instances, 4] - Corresponding bounding boxes (x, y, w, h) format.
+                       If None targets generator may infer bounding boxes from joints.
         :param mask: [H,W] Mask representing valid image areas. For instance, in COCO dataset crowd targets
                            are not used during training and corresponding instances will be zero-masked.
                            Your implementation may use this mask when generating targets.
@@ -102,7 +106,7 @@ class DEKRTargetsGenerator(KeypointsTargetsGenerator):
         joints = np.array(augmented_joints, dtype=np.float32).reshape((-1, num_joints_with_center, 3))
         return joints
 
-    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def __call__(self, *, image: Tensor, joints: np.ndarray, mask: np.ndarray, bboxes: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Encode the keypoints into dense targets that participate in loss computation.
         :param image: Image tensor [3, H, W]

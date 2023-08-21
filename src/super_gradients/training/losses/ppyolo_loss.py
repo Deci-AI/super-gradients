@@ -1,5 +1,5 @@
 from typing import Mapping, Tuple, Union, Optional
-
+import dataclasses
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -256,6 +256,15 @@ def compute_max_iou_gt(ious: Tensor) -> Tensor:
     return is_max_iou.astype(ious.dtype)
 
 
+@dataclasses.dataclass
+class BoxesAssignmentResult:
+    assigned_labels: Tensor
+    assigned_bboxes: Tensor
+    assigned_scores: Tensor
+    assigned_gt_index: Tensor
+    assigned_gt_index_non_flat: Tensor
+
+
 class ATSSAssigner(nn.Module):
     """Bridging the Gap Between Anchor-based and Anchor-free Detection
     via Adaptive Training Sample Selection
@@ -308,7 +317,7 @@ class ATSSAssigner(nn.Module):
         bg_index: int,
         gt_scores: Optional[Tensor] = None,
         pred_bboxes: Optional[Tensor] = None,
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    ) -> BoxesAssignmentResult:
         """
         This code is based on https://github.com/fcjian/TOOD/blob/master/mmdet/core/bbox/assigners/atss_assigner.py
 
@@ -349,7 +358,14 @@ class ATSSAssigner(nn.Module):
             assigned_labels = torch.full([batch_size, num_anchors], bg_index, dtype=torch.long, device=anchor_bboxes.device)
             assigned_bboxes = torch.zeros([batch_size, num_anchors, 4], device=anchor_bboxes.device)
             assigned_scores = torch.zeros([batch_size, num_anchors, self.num_classes], device=anchor_bboxes.device)
-            return assigned_labels, assigned_bboxes, assigned_scores
+            assigned_gt_index = torch.zeros([batch_size, num_anchors], dtype=torch.long, device=gt_labels.device)
+            return BoxesAssignmentResult(
+                assigned_labels=assigned_labels,
+                assigned_bboxes=assigned_bboxes,
+                assigned_scores=assigned_scores,
+                assigned_gt_index=assigned_gt_index,
+                assigned_gt_index_non_flat=assigned_gt_index,
+            )
 
         # 1. compute iou between gt and anchor bbox, [B, n, L]
         ious = iou_similarity(gt_bboxes.reshape([-1, 4]), anchor_bboxes)
@@ -426,7 +442,9 @@ class ATSSAssigner(nn.Module):
             gather_scores = torch.where(mask_positive_sum > 0, gather_scores, torch.zeros_like(gather_scores))
             assigned_scores *= gather_scores.unsqueeze(-1)
 
-        return assigned_labels, assigned_bboxes, assigned_scores
+        return BoxesAssignmentResult(
+            assigned_labels=assigned_labels, assigned_bboxes=assigned_bboxes, assigned_scores=assigned_scores, assigned_gt_index=assigned_gt_index
+        )
 
 
 class TaskAlignedAssigner(nn.Module):
@@ -458,7 +476,7 @@ class TaskAlignedAssigner(nn.Module):
         pad_gt_mask: Tensor,
         bg_index: int,
         gt_scores: Optional[Tensor] = None,
-    ):
+    ) -> BoxesAssignmentResult:
         """
         This code is based on https://github.com/fcjian/TOOD/blob/master/mmdet/core/bbox/assigners/task_aligned_assigner.py
 
@@ -495,7 +513,10 @@ class TaskAlignedAssigner(nn.Module):
             assigned_labels = torch.full([batch_size, num_anchors], bg_index, dtype=torch.long, device=gt_labels.device)
             assigned_bboxes = torch.zeros([batch_size, num_anchors, 4], device=gt_labels.device)
             assigned_scores = torch.zeros([batch_size, num_anchors, num_classes], device=gt_labels.device)
-            return assigned_labels, assigned_bboxes, assigned_scores
+            assigned_gt_index = torch.zeros([batch_size, num_anchors], dtype=torch.long, device=gt_labels.device)
+            return BoxesAssignmentResult(
+                assigned_labels=assigned_labels, assigned_bboxes=assigned_bboxes, assigned_scores=assigned_scores, assigned_gt_index=assigned_gt_index
+            )
 
         # compute iou between gt and pred bbox, [B, n, L]
         ious = batch_iou_similarity(gt_bboxes, pred_bboxes)
@@ -530,6 +551,7 @@ class TaskAlignedAssigner(nn.Module):
         assigned_gt_index = mask_positive.argmax(dim=-2)
 
         # assigned target
+        assigned_gt_index_non_flat = assigned_gt_index
         assigned_gt_index = assigned_gt_index + batch_ind * num_max_boxes
         assigned_labels = torch.gather(gt_labels.flatten(), index=assigned_gt_index.flatten(), dim=0)
         assigned_labels = assigned_labels.reshape([batch_size, num_anchors])
@@ -550,7 +572,13 @@ class TaskAlignedAssigner(nn.Module):
         alignment_metrics = alignment_metrics.max(dim=-2).values.unsqueeze(-1)
         assigned_scores = assigned_scores * alignment_metrics
 
-        return assigned_labels, assigned_bboxes, assigned_scores
+        return BoxesAssignmentResult(
+            assigned_labels=assigned_labels,
+            assigned_bboxes=assigned_bboxes,
+            assigned_scores=assigned_scores,
+            assigned_gt_index=assigned_gt_index,
+            assigned_gt_index_non_flat=assigned_gt_index_non_flat,
+        )
 
 
 class GIoULoss(object):
