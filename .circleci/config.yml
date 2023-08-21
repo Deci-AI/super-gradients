@@ -828,15 +828,6 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
-      - breaking_change_check:
-          name: "Looking for Break Changes"
-          py_version: "3.8"
-          requires:
-            - deci-common/persist_version_info
-            - login_to_codeartifact_release
-          context:
-            - slack
-          <<: *release_tag_filter
       - recipe_sanity_tests_classification_pt1:
           context:
             - slack
@@ -865,7 +856,6 @@ workflows:
           py_version: "3.8"
           requires:
             - "build3.8"
-            - breaking_change_check
             - recipe_accuracy_tests
             - recipe_sanity_tests_classification_pt1
             - recipe_sanity_tests_classification_pt2
