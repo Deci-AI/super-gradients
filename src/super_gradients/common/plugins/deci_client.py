@@ -151,9 +151,12 @@ class DeciClient:
 
     @staticmethod
     def load_code_from_zipfile(*, file: str, target_path: str, success_message: str, package_name: str = "deci_model_code") -> None:
-        """
-        load additional code files.
-        the zip file is extracted, and code files will be placed in the target_path/package_name and imported dynamically
+        """Load additional code files.
+        The zip file is extracted, and code files will be placed in the target_path/package_name and imported dynamically,
+        :param file:            path to zip file to extract code files from.
+        :param target_path:     path to place code files.
+        :param success_message: message to display when code files are successfully loaded.
+        :param package_name:    name of the package to place code files in.
         """
         package_path = os.path.join(target_path, package_name)
         # create the directory
@@ -188,14 +191,15 @@ class DeciClient:
 
         file = self._get_file(model_name=model_name, file_name=AutoNACFileName.CODE_ZIP)
         package_path = os.path.join(target_path, package_name)
-        self.load_code_from_zipfile(
-            file=file,
-            target_path=target_path,
-            package_name=package_name,
-            success_message=f"*** IMPORTANT ***: files required for the model {model_name} were downloaded and added to your code in:\n{package_path}\n"
-            f"These files will be downloaded to the same location each time the model is fetched from the deci-client.\n"
-            f"you can override this by passing models.get(... download_required_code=False) and importing the files yourself",
-        )
+        if file is not None:
+            self.load_code_from_zipfile(
+                file=file,
+                target_path=target_path,
+                package_name=package_name,
+                success_message=f"*** IMPORTANT ***: files required for the model {model_name} were downloaded and added to your code in:\n{package_path}\n"
+                f"These files will be downloaded to the same location each time the model is fetched from the deci-client.\n"
+                f"you can override this by passing models.get(... download_required_code=False) and importing the files yourself",
+            )
 
     def upload_model(
         self,
