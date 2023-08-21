@@ -240,7 +240,7 @@ jobs:
             python3 -m pip install pip==23.1.2
             python3 -m pip install -e .
             python3 -m pip install gitpython==3.1.0
-            python3 src/super_gradients/common/code_analysis/breaking_changes_detection.py --fail-on-error
+            python3 tests/integration_tests/breaking_change.py --fail-on-error
       - run:
           name: Remove new environment when failed
           command: "rm -r venv"
