@@ -1,13 +1,13 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 
 from torch import nn
-from typing_extensions import Protocol, runtime_checkable
 
-from super_gradients.training.processing.processing import Processing
+if TYPE_CHECKING:
+    # This is a hack to avoid circular imports while still having type hints.
+    from super_gradients.training.processing.processing import Processing
 
 
-@runtime_checkable
-class HasPreprocessingParams(Protocol):
+class HasPreprocessingParams:
     """
     Protocol interface for torch datasets that support getting preprocessing params, later to be passed to a model
     that obeys NeedsPreprocessingParams. This interface class serves a purpose of explicitly indicating whether a torch dataset has
@@ -16,7 +16,7 @@ class HasPreprocessingParams(Protocol):
     """
 
     def get_dataset_preprocessing_params(self):
-        ...
+        raise NotImplementedError(f"get_dataset_preprocessing_params is not implemented in the derived class {self.__class__.__name__}")
 
 
 class HasPredict:
@@ -43,12 +43,11 @@ class HasPredict:
         """
         raise NotImplementedError(f"get_input_channels is not implemented in the derived class {self.__class__.__name__}")
 
-    def get_processing_params(self) -> Optional[Processing]:
+    def get_processing_params(self) -> Optional["Processing"]:
         raise NotImplementedError(f"get_processing_params is not implemented in the derived class {self.__class__.__name__}")
 
 
-@runtime_checkable
-class SupportsReplaceNumClasses(Protocol):
+class SupportsReplaceNumClasses:
     """
     Protocol interface for modules that support replacing the number of classes.
     Derived classes should implement the `replace_num_classes` method.
@@ -69,4 +68,4 @@ class SupportsReplaceNumClasses(Protocol):
             It takes existing nn.Module and returns a new one.
         :return: None
         """
-        ...
+        raise NotImplementedError(f"replace_num_classes is not implemented in the derived class {self.__class__.__name__}")

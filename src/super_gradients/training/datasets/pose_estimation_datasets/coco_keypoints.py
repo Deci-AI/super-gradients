@@ -216,7 +216,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         # to match with the expected input of the model.
         pipeline = [Processings.ReverseImageChannels] + self.transforms.get_equivalent_preprocessing()
         params = dict(
-            conf=0.25,
+            conf=0.05,
             image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,

@@ -16,6 +16,7 @@ from torch.utils.data import Dataset
 from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.module_interfaces import HasPreprocessingParams
 from super_gradients.training.utils.detection_utils import get_class_index_in_target
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
@@ -30,7 +31,7 @@ logger = get_logger(__name__)
 
 
 @register_dataset(Datasets.DETECTION_DATASET)
-class DetectionDataset(Dataset):
+class DetectionDataset(Dataset, HasPreprocessingParams):
     """Detection dataset.
 
     This is a boilerplate class to facilitate the implementation of datasets.
