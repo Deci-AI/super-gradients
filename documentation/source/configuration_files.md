@@ -53,8 +53,8 @@ train_dataset_params:
     - RandomHorizontalFlip
     - ToTensor
     - Normalize:
-        mean: ${dataset_params.img_mean}
-        std: ${dataset_params.img_std}
+        mean: [0.485, 0.456, 0.406] # mean for normalization
+        std: [0.229, 0.224, 0.225]  # std  for normalization
 
 val_dataset_params:
   root: /data/Imagenet/val
@@ -65,8 +65,8 @@ val_dataset_params:
         size: 224
     - ToTensor
     - Normalize:
-        mean: ${dataset_params.img_mean}
-        std: ${dataset_params.img_std}
+        mean: [0.485, 0.456, 0.406] # mean for normalization
+        std: [0.229, 0.224, 0.225]  # std  for normalization
 ```
 
 Configuration file can also help you track the exact settings used for each one of your experiments, tweak and tune these settings, and share them with others.
@@ -107,7 +107,6 @@ python -m super_gradients.evaluate_from_recipe --config-name=cifar10_resnet
 that will run only the evaluation part of the recipe (without any training iterations)
 
 
-
 ## Hydra
 Hydra is an open-source Python framework that provides us with many useful functionalities for YAML management. You can learn about Hydra 
 [here](https://hydra.cc/docs/intro). We use Hydra to load YAML files and convert them into dictionaries, while 
@@ -130,7 +129,6 @@ in the first arg of the command line.
 
 In the experiment directory a `.hydra` subdirectory will be created. The configuration files related to this run will be saved by hydra to that subdirectory.  
 
---------
 Two Hydra features worth mentioning are _YAML Composition_ and _Command-Line Overrides_.
 
 #### YAML Composition
