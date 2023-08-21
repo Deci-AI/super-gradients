@@ -49,6 +49,12 @@ MODEL_URLS = {
     "yolo_nas_l_coco": "https://sghub.deci.ai/models/yolo_nas_l_coco.pth",
     "dekr_w32_no_dc_coco_pose": "https://sghub.deci.ai/models/dekr_w32_no_dc_coco_pose.pth",
     "pose_rescoring_coco_coco_pose": "https://sghub.deci.ai/models/pose_rescoring_coco_coco_pose.pth",
+    "segformer_b0_cityscapes": "https://sghub.deci.ai/models/segformer_b0_cityscapes.pth",
+    "segformer_b1_cityscapes": "https://sghub.deci.ai/models/segformer_b1_cityscapes.pth",
+    "segformer_b2_cityscapes": "https://sghub.deci.ai/models/segformer_b2_cityscapes.pth",
+    "segformer_b3_cityscapes": "https://sghub.deci.ai/models/segformer_b3_cityscapes.pth",
+    "segformer_b4_cityscapes": "https://sghub.deci.ai/models/segformer_b4_cityscapes.pth",
+    "segformer_b5_cityscapes": "https://sghub.deci.ai/models/segformer_b5_cityscapes.pth",
 }
 
 
