@@ -251,7 +251,7 @@ jobs:
             python3 src/super_gradients/common/code_analysis/breaking_changes_detection.py --fail-on-error
       - run:
           name: Remove new environment when failed
-          command: "rm -r << parameters.sg_new_env_name >>"
+          command: "rm -r venv"
           when: on_fail
       - slack/notify:
           channel: "sg-integration-tests"
