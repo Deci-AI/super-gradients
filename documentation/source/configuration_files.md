@@ -182,9 +182,9 @@ last_of_list: "${last: ${my_list}}"
 You can register any additional resolver you want by simply following the official [documentation](https://omegaconf.readthedocs.io/en/latest/usage.html#resolvers).
 
 ## Factories
-Factories a similar to resolvers but were built specifically to instantiate SuperGradients objects within a recipe.
+Factories are similar to resolvers but were built specifically to instantiate SuperGradients objects within a recipe.
 This is a key feature of SuperGradient which is being used in all of our recipes, and we recommend you to 
-go over the [documentation](factories.md).
+go over this [introduction to Factories](factories.md).
 
 ## Required Hyper-Parameters
 Most parameters can be defined by default when including `default_train_params` in you `defaults`.
