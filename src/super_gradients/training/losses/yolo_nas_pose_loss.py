@@ -5,13 +5,14 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
-import super_gradients
+# import super_gradients
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
-from super_gradients.training.utils.distributed_training_utils import (
-    get_world_size,
-)
+
+# from super_gradients.training.utils.distributed_training_utils import (
+#    get_world_size,
+# )
 from .ppyolo_loss import GIoULoss, TaskAlignedAssigner, BoxesAssignmentResult
 
 from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_target_generator import undo_flat_collate_tensors_with_batch_index
@@ -174,9 +175,9 @@ class YoloNASPoseLoss(nn.Module):
             loss_cls = self._focal_loss(pred_scores, assigned_scores, alpha_l)
 
         assigned_scores_sum = assigned_scores.sum()
-        if super_gradients.is_distributed():
-            torch.distributed.all_reduce(assigned_scores_sum, op=torch.distributed.ReduceOp.SUM)
-            assigned_scores_sum /= get_world_size()
+        # if super_gradients.is_distributed():
+        #     torch.distributed.all_reduce(assigned_scores_sum, op=torch.distributed.ReduceOp.SUM)
+        #     assigned_scores_sum /= get_world_size()
         assigned_scores_sum = torch.clip(assigned_scores_sum, min=1.0)
         loss_cls /= assigned_scores_sum
 
