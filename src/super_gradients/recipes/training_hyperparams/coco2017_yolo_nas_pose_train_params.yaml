@@ -43,11 +43,27 @@ valid_metrics_list:
       max_objects_per_image: 30
       post_prediction_callback:
         _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
+        keypoint_confidence_threshold: 0.05
         score_threshold: 0.05
         nms_threshold: 0.5
         nms_top_k: 300
         max_predictions: 30
 
+
+phase_callbacks:
+  - ExtremeBatchPoseEstimationVisualizationCallback:
+      keypoint_colors: ${dataset_params.keypoint_colors}
+      edge_colors: ${dataset_params.edge_colors}
+      edge_links: ${dataset_params.edge_links}
+      loss_to_monitor: YoloNASPoseLoss/loss
+      max: True
+      post_prediction_callback:
+        _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
+        keypoint_confidence_threshold: 0.05
+        score_threshold: 0.05
+        nms_threshold: 0.5
+        nms_top_k: 300
+        max_predictions: 30
 
 pre_prediction_callback:
 

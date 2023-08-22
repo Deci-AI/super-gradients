@@ -8,9 +8,11 @@ class YoloNASPosePostPredictionCallback:
     Performs confidence thresholding, Top-K and NMS steps.
     """
 
-    def __init__(self, score_threshold: float, nms_threshold: float, nms_top_k: int, max_predictions: int):
+    def __init__(self, score_threshold: float, keypoint_confidence_threshold: float, nms_threshold: float, nms_top_k: int, max_predictions: int):
         """
-        :param score_threshold: Predictions confidence threshold. Predictions with score lower than score_threshold will not participate in Top-K & NMS
+        :param score_threshold: Pose detection confidence threshold
+        :param keypoint_confidence_threshold: A minimal confidence threshold for keypoints.
+                                              Confidence scores of individual keypoints below this threshold will be set to 0.
         :param iou: IoU threshold for NMS step.
         :param nms_top_k: Number of predictions participating in NMS step
         :param max_predictions: maximum number of boxes to return after NMS step
@@ -24,6 +26,7 @@ class YoloNASPosePostPredictionCallback:
         self.nms_threshold = nms_threshold
         self.nms_top_k = nms_top_k
         self.max_predictions = max_predictions
+        self.keypoint_confidence_threshold = keypoint_confidence_threshold
 
     def __call__(self, outputs, device: str = None):
         """
@@ -43,6 +46,8 @@ class YoloNASPosePostPredictionCallback:
             # pred_scores [Anchors, 1] confidence scores [0..1]
             # pred_pose_coords [Anchors, 17, 2] in (x,y) format
             # pred_pose_scores [Anchors, 17] confidence scores [0..1]
+
+            pred_pose_scores[pred_pose_scores < self.keypoint_confidence_threshold] = 0.0
 
             pred_bboxes_conf = pred_bboxes_conf.squeeze(-1)  # [Anchors]
             conf_mask = pred_bboxes_conf >= self.score_threshold  # [Anchors]

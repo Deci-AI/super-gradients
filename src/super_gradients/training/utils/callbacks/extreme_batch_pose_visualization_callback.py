@@ -1,19 +1,23 @@
-from typing import Optional, Tuple, Callable
+from typing import Optional, Tuple, Callable, List, Union
 
 import numpy as np
 import torch
+from omegaconf import OmegaConf
+from torch import Tensor
 from torchmetrics import Metric
 
 from super_gradients.common.registry.registry import register_callback
+from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_target_generator import undo_flat_collate_tensors_with_batch_index
 from super_gradients.training.utils.callbacks import PhaseContext
 from super_gradients.training.utils.callbacks.callbacks import ExtremeBatchCaseVisualizationCallback
 from super_gradients.training.utils.distributed_training_utils import maybe_all_gather_np_images
+from super_gradients.training.utils.visualization.pose_estimation import draw_skeleton
 
 
 @register_callback("ExtremeBatchPoseEstimationVisualizationCallback")
 class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizationCallback):
     """
-    ExtremeBatchSegVisualizationCallback
+    ExtremeBatchPoseEstimationVisualizationCallback
 
     Visualizes worst/best batch in an epoch for Object detection.
     For clarity, the batch is saved twice in the SG Logger, once with the model's predictions and once with
@@ -87,6 +91,9 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
     def __init__(
         self,
         post_prediction_callback: Callable,
+        keypoint_colors: List[Tuple[int, int, int]],
+        edge_colors: List[Tuple[int, int, int]],
+        edge_links: List[Tuple[int, int]],
         metric: Optional[Metric] = None,
         metric_component_name: Optional[str] = None,
         loss_to_monitor: Optional[str] = None,
@@ -95,41 +102,99 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
     ):
         super().__init__(metric=metric, metric_component_name=metric_component_name, loss_to_monitor=loss_to_monitor, max=max, freq=freq)
         self.post_prediction_callback = post_prediction_callback
+        self.keypoint_colors = OmegaConf.to_container(keypoint_colors)
+        self.edge_colors = OmegaConf.to_container(edge_colors)
+        self.edge_links = OmegaConf.to_container(edge_links)
 
-    @staticmethod
-    def universal_undo_preprocessing_fn(inputs: torch.Tensor) -> np.ndarray:
+    @classmethod
+    def universal_undo_preprocessing_fn(cls, inputs: torch.Tensor) -> np.ndarray:
         """
         A universal reversing of preprocessing to be passed to DetectionVisualization.visualize_batch's undo_preprocessing_func kwarg.
         :param inputs:
         :return:
         """
-        inputs = (inputs * 255).to(torch.uint8).cpu().numpy()
+        inputs = inputs - inputs.min()
+        inputs /= inputs.max()
+        inputs *= 255
+        inputs = inputs.to(torch.uint8)
+        inputs = inputs.cpu().numpy()
         inputs = inputs[:, ::-1, :, :].transpose(0, 2, 3, 1)
         inputs = np.ascontiguousarray(inputs, dtype=np.uint8)
         return inputs
 
+    @classmethod
+    def visualize_batch(
+        cls,
+        image_tensor: np.ndarray,
+        keypoints: List[Union[np.ndarray, Tensor]],
+        scores: Optional[List[Union[np.ndarray, Tensor]]],
+        keypoint_colors: List[Tuple[int, int, int]],
+        edge_colors: List[Tuple[int, int, int]],
+        edge_links: List[Tuple[int, int]],
+    ):
+
+        out_images = []
+        for i in range(image_tensor.shape[0]):
+            keypoints_i = keypoints[i]
+            scores_i = scores[i] if scores is not None else None
+            if torch.is_tensor(keypoints_i):
+                keypoints_i = keypoints_i.detach().cpu().numpy()
+            if torch.is_tensor(scores_i):
+                scores_i = scores_i.detach().cpu().numpy()
+
+            res_image = image_tensor[i]
+            num_poses = len(keypoints_i)
+            for pose_index in range(num_poses):
+                res_image = draw_skeleton(
+                    image=res_image,
+                    keypoints=keypoints_i[pose_index],
+                    score=scores_i[pose_index] if scores is not None else None,
+                    edge_links=edge_links,
+                    edge_colors=edge_colors,
+                    joint_thickness=2,
+                    keypoint_colors=keypoint_colors,
+                    keypoint_radius=3,
+                    show_confidence=scores is not None,
+                    box_thickness=2,
+                )
+            out_images.append(res_image)
+
+        return out_images
+
+    @torch.no_grad()
     def process_extreme_batch(self) -> Tuple[np.ndarray, np.ndarray]:
         """
         Processes the extreme batch, and returns 2 image batches for visualization - one with predictions and one with GT boxes.
         :return:Tuple[np.ndarray, np.ndarray], the predictions batch, the GT batch
         """
+        inputs = self.universal_undo_preprocessing_fn(self.extreme_batch)
+        target_boxes, target_joints = self.extreme_targets
+        predicted_poses, predicted_scores = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
 
-        raise NotImplementedError("TODO IMPLEMENT ME")
+        images_to_save_preds = self.visualize_batch(
+            inputs,
+            keypoints=predicted_poses,
+            scores=predicted_scores,
+            edge_links=self.edge_links,
+            edge_colors=self.edge_colors,
+            keypoint_colors=self.keypoint_colors,
+        )
+        images_to_save_preds = np.stack(images_to_save_preds)
 
-        # inputs = self.extreme_batch
-        # preds = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
-        # targets = self.extreme_targets.clone()
-        # images_to_save_preds = DetectionVisualization.visualize_batch(
-        #     inputs, preds, targets, "extreme_batch_preds", self.classes, gt_alpha=0.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
-        # )
-        # images_to_save_preds = np.stack(images_to_save_preds)
-        #
-        # images_to_save_gt = DetectionVisualization.visualize_batch(
-        #     inputs, None, targets, "extreme_batch_gt", self.classes, gt_alpha=1.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
-        # )
-        # images_to_save_gt = np.stack(images_to_save_gt)
-        #
-        # return images_to_save_preds, images_to_save_gt
+        batch_size = len(predicted_poses)
+
+        target_joints_unpacked = undo_flat_collate_tensors_with_batch_index(target_joints, batch_size)
+
+        images_to_save_gt = self.visualize_batch(
+            inputs,
+            keypoints=target_joints_unpacked,
+            scores=None,
+            edge_links=self.edge_links,
+            edge_colors=self.edge_colors,
+            keypoint_colors=self.keypoint_colors,
+        )
+        images_to_save_gt = np.stack(images_to_save_gt)
+        return images_to_save_preds, images_to_save_gt
 
     def on_validation_loader_end(self, context: PhaseContext) -> None:
         if context.epoch % self.freq == 0:

@@ -265,16 +265,26 @@ class YoloNASPoseLoss(nn.Module):
         batch_index = true_keypoints[:, 0, 0].long()
         true_keypoints = true_keypoints[:, :, 1:]  # Remove batch index
 
+        # Compute absolute coordinates of keypoints in image space
+        pred_pose_coords = pose_regression_list + 0
+        pred_pose_coords[:, :, :, 0:2] += anchor_points.unsqueeze(0).unsqueeze(2)
+        pred_pose_coords[:, :, :, 0:2] *= stride_tensor.unsqueeze(0).unsqueeze(2)
+
+        # pred_pose_coords = (pose_regression_list[:, :, : ,0:2] + anchor_points.unsqueeze(0).unsqueeze(2)) * stride_tensor.unsqueeze(0).unsqueeze(2)
+
+        # Assigned boxes area divided by stride so to compute area correctly we need to multiply by stride back
+        assigned_bboxes_image_space = assign_result.assigned_bboxes * stride_tensor.unsqueeze(0)
+
         # pos/neg loss
         for i in range(batch_size):
             if mask_positive[i].sum():
                 image_level_mask = mask_positive[i]
                 idx = assign_result.assigned_gt_index_non_flat[i][image_level_mask]
                 gt_kpt = true_keypoints[batch_index == i][idx]
-                gt_kpt[..., 0:1] /= stride_tensor[image_level_mask].unsqueeze(1)
-                gt_kpt[..., 1:2] /= stride_tensor[image_level_mask].unsqueeze(1)
-                area = self._xyxy_box_area(assign_result.assigned_bboxes[i][image_level_mask])
-                pred_kpt = pose_regression_list[i][image_level_mask]
+                # gt_kpt[..., 0:1] /= stride_tensor[image_level_mask].unsqueeze(1)
+                # gt_kpt[..., 1:2] /= stride_tensor[image_level_mask].unsqueeze(1)
+                area = self._xyxy_box_area(assigned_bboxes_image_space[i][image_level_mask])
+                pred_kpt = pred_pose_coords[i][image_level_mask]
                 loss = self._keypoint_loss(pred_kpt, gt_kpt, area=area, sigmas=self.oks_sigmas.to(pred_kpt.device))  # pose loss
                 loss_pose_cls += loss[0]
                 loss_pose_reg += loss[1]

@@ -22,7 +22,7 @@ class YoloNASPoseTargetsGenerator(KeypointsTargetsGenerator):
     def __init__(self):
         pass
 
-    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray, bboxes: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray, bboxes: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Encode the keypoints into dense targets that participate in loss computation.
         :param image: Image tensor [3, H, W]
@@ -82,3 +82,20 @@ def flat_collate_tensors_with_batch_index(labels_batch: List[Tensor]) -> Tensor:
         labels = torch.cat((batch_column, labels), dim=-1)
         labels_batch_indexed.append(labels)
     return torch.cat(labels_batch_indexed, 0)
+
+
+def undo_flat_collate_tensors_with_batch_index(flat_tensor, batch_size: int) -> List[Tensor]:
+    """
+    Unrolls the flat tensor into list of tensors per batch item.
+    As name suggest it undoes what flat_collate_tensors_with_batch_index does.
+    :param flat_tensor:
+    :param batch_size:
+    :return: List of tensors
+    """
+    items = []
+    batch_index_roi = [slice(None)] + [0] * (flat_tensor.ndim - 1)
+    batch_index = flat_tensor[batch_index_roi]
+    for i in range(batch_size):
+        mask = batch_index == i
+        items.append(flat_tensor[mask][..., 1:])
+    return items

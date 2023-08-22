@@ -1,14 +1,20 @@
 import unittest
 from pprint import pprint
-from typing import List
 
+import matplotlib.pyplot as plt
 import torch
-from torch import Tensor
 from torch.optim import Adam
 
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
+from super_gradients.training.dataloaders import get_data_loader
+from super_gradients.training.datasets import COCOKeypointsDataset
+from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_target_generator import (
+    flat_collate_tensors_with_batch_index,
+    undo_flat_collate_tensors_with_batch_index,
+)
 from super_gradients.training.losses import YoloNASPoseLoss
+from super_gradients.training.utils.callbacks import ExtremeBatchPoseEstimationVisualizationCallback
 
 
 class YoloNASPoseTests(unittest.TestCase):
@@ -70,20 +76,75 @@ class YoloNASPoseTests(unittest.TestCase):
             pprint(loss)
             optimizer.step()
 
+    def test_flat_collate_2d(self):
+        values = [
+            torch.randn([1, 4]),
+            torch.randn([2, 4]),
+            torch.randn([0, 4]),
+            torch.randn([3, 4]),
+        ]
 
-def flat_collate_tensors_with_batch_index(labels_batch: List[Tensor]) -> Tensor:
-    """
-    Stack a batch id column to targets and concatenate
-    :param labels_batch: a list of targets per image (each of arbitrary length: [N1, ..., C], [N2, ..., C], [N3, ..., C],...)
-    :return: A single tensor of shape [N1+N2+N3+..., ..., C+1], where N is the total number of targets in a batch
-             and the 1st column is batch item index
-    """
-    labels_batch_indexed = []
-    for i, labels in enumerate(labels_batch):
-        batch_column = labels.new_ones(labels.shape[:-1] + (1,)) * i
-        labels = torch.cat((batch_column, labels), dim=-1)
-        labels_batch_indexed.append(labels)
-    return torch.cat(labels_batch_indexed, 0)
+        flat_tensor = flat_collate_tensors_with_batch_index(values)
+        undo_values = undo_flat_collate_tensors_with_batch_index(flat_tensor, 4)
+        assert len(undo_values) == len(values)
+        assert (undo_values[0] == values[0]).all()
+        assert (undo_values[1] == values[1]).all()
+        assert (undo_values[2] == values[2]).all()
+        assert (undo_values[3] == values[3]).all()
+
+    def test_flat_collate_3d(self):
+        values = [
+            torch.randn([1, 17, 3]),
+            torch.randn([2, 17, 3]),
+            torch.randn([0, 17, 3]),
+            torch.randn([3, 17, 3]),
+        ]
+
+        flat_tensor = flat_collate_tensors_with_batch_index(values)
+        undo_values = undo_flat_collate_tensors_with_batch_index(flat_tensor, 4)
+        assert len(undo_values) == len(values)
+        assert (undo_values[0] == values[0]).all()
+        assert (undo_values[1] == values[1]).all()
+        assert (undo_values[2] == values[2]).all()
+        assert (undo_values[3] == values[3]).all()
+
+    def test_dataloader(self):
+        loader = get_data_loader(
+            config_name="coco_pose_estimation_yolo_nas_dataset_params",
+            dataset_cls=COCOKeypointsDataset,
+            train=False,
+            dataset_params=dict(data_dir="g:/coco2017"),
+            dataloader_params=dict(num_workers=0, batch_size=32),
+        )
+        dataset = loader.dataset
+        edge_links = dataset.edge_links
+        edge_colors = dataset.edge_colors
+        keypoint_colors = dataset.keypoint_colors
+
+        batch = next(iter(loader))
+        images, (boxes, joints), extras = batch
+
+        batch_size = len(images)
+
+        images = ExtremeBatchPoseEstimationVisualizationCallback.universal_undo_preprocessing_fn(images)
+
+        target_joints_unpacked = undo_flat_collate_tensors_with_batch_index(joints, batch_size)
+
+        batch_results = ExtremeBatchPoseEstimationVisualizationCallback.visualize_batch(
+            images,
+            keypoints=target_joints_unpacked,
+            scores=None,
+            edge_links=edge_links,
+            edge_colors=edge_colors,
+            keypoint_colors=keypoint_colors,
+        )
+
+        for image in batch_results:
+            plt.figure(figsize=(10, 10))
+            plt.imshow(image)
+            plt.show()
+
+        pass
 
 
 if __name__ == "__main__":
