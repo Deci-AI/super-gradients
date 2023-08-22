@@ -1,7 +1,11 @@
+"""
+This unittest is NOT added to the unit_tests folder because it is NOT testing SG code.
+The breaking change tests are only meant to exist in the CI, and therefore it was not included to the SG package.
+"""
 import unittest
 
-from super_gradients.common.code_analysis.code_parser import FunctionParameter, FunctionParameters, FunctionSignature, parse_imports, parse_functions_signatures
-from super_gradients.common.code_analysis.breaking_changes_detection import extract_code_breaking_changes
+from .code_parser import FunctionParameter, FunctionParameters, FunctionSignature, parse_imports, parse_functions_signatures
+from .breaking_changes_detection import extract_code_breaking_changes
 
 
 class TestBreakingChangeDetection(unittest.TestCase):
@@ -202,11 +206,6 @@ class TestBreakingChangeDetection(unittest.TestCase):
         code = "a = 5"
         expected = {}
         self.assertEqual(parse_functions_signatures(code), expected)
-
-    def test_class(self):
-        code = "\nclass MyClass:\n    def __init__(self, x):\n        pass\n    def f(self):\n        pass\n"
-        print(parse_functions_signatures(code))
-        # self.assertEqual(parse_functions_signatures(code), expected)
 
     def test_class_removed(self):
         old_code = "class MyClass:\n    def method(self): pass"

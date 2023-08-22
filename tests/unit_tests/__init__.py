@@ -25,7 +25,6 @@ from tests.unit_tests.config_inspector_test import ConfigInspectTest
 from tests.unit_tests.transforms_test import TestTransforms
 from tests.unit_tests.post_prediction_callback_test import TestPostPredictionCallback
 from tests.unit_tests.test_predict import TestModelPredict
-from tests.unit_tests.test_breacking_changes import TestBreakingChangeDetection
 
 __all__ = [
     "CrashTipTest",
@@ -54,5 +53,4 @@ __all__ = [
     "TestTransforms",
     "TestPostPredictionCallback",
     "TestModelPredict",
-    "TestBreakingChangeDetection",
 ]
