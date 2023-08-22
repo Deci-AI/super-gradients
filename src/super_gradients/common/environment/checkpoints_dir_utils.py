@@ -2,6 +2,7 @@ import os
 import sys
 import pkg_resources
 from typing import Optional
+from datetime import datetime
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -13,6 +14,53 @@ except Exception:
 
 
 logger = get_logger(__name__)
+
+
+def generate_run_id() -> str:
+    """Generate a unique run ID based on the current timestamp.
+
+    :return: Unique run ID. in the format "RUN_<year><month><day>_<hour><minute><second>_<microseconds>" (E.g. "RUN_20230802_131052_651906")
+    """
+    return datetime.now().strftime("RUN_%Y%m%d_%H%M%S_%f")
+
+
+def is_run_dir(dirname: str) -> bool:
+    """Check if a directory is a run directory.
+
+    :param dirname: Directory name.
+    :return:        True if the directory is a run directory, False otherwise.
+    """
+    return os.path.basename(dirname).startswith("RUN_")
+
+
+def get_latest_run_id(experiment_name: str, checkpoints_root_dir: Optional[str] = None) -> Optional[str]:
+    """
+    :param experiment_name:     Name of the experiment.
+    :param checkpoints_root_dir:       Path to the directory where all the experiments are organised, each sub-folder representing a specific experiment.
+                                    If None, SG will first check if a package named 'checkpoints' exists.
+                                    If not, SG will look for the root of the project that includes the script that was launched.
+                                    If not found, raise an error.
+    """
+    experiment_dir = get_experiment_dir_path(checkpoints_root_dir=checkpoints_root_dir, experiment_name=experiment_name)
+
+    run_dirs = [os.path.join(experiment_dir, folder) for folder in os.listdir(experiment_dir) if is_run_dir(folder)]
+    for run_dir in sorted(run_dirs, reverse=True):
+        if "ckpt_latest.pth" not in os.listdir(run_dir):
+            logger.warning(
+                f"Latest run directory {run_dir} does not contain a `ckpt_latest.pth` file, so it cannot be resumed. "
+                f"Trying to load the n-1 most recent run..."
+            )
+        else:
+            return run_dir
+
+
+def validate_run_id(run_id: str, experiment_name: str, ckpt_root_dir: Optional[str] = None):
+    experiment_dir = get_experiment_dir_path(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
+    run_dir = os.path.join(experiment_dir, run_id)
+    if not os.path.exists(run_dir) and not os.path.isdir(run_dir):
+        raise FileNotFoundError(
+            f'Invalid run directory "{run_dir}", with `ckpt_root_dir={ckpt_root_dir}`, `experiment_name={experiment_name}`, `run_dir={run_dir}`.'
+        )
 
 
 def _get_project_root_path() -> Optional[str]:
@@ -42,23 +90,36 @@ def get_project_checkpoints_dir_path() -> Optional[str]:
     return checkpoints_path
 
 
-def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None) -> str:
+def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: Optional[str] = None, run_id: Optional[str] = None) -> str:
     """Get the directory that includes all the checkpoints (and logs) of an experiment.
+    ckpt_root_dir
+        - experiment_name
+            - run_id
+                - ...
+                - ...
 
     :param experiment_name:     Name of the experiment.
     :param ckpt_root_dir:       Path to the directory where all the experiments are organised, each sub-folder representing a specific experiment.
                                     If None, SG will first check if a package named 'checkpoints' exists.
                                     If not, SG will look for the root of the project that includes the script that was launched.
                                     If not found, raise an error.
+    :param run_id:              Optional. Run id of the experiment. If None, the most recent run will be loaded.
     :return:                    Path of folder where the experiment checkpoints and logs will be stored.
     """
-    ckpt_root_dir = ckpt_root_dir or PKG_CHECKPOINTS_DIR or get_project_checkpoints_dir_path()
-    if ckpt_root_dir is None:
-        raise ValueError("Illegal checkpoints directory: please set ckpt_root_dir")
-    return os.path.join(ckpt_root_dir, experiment_name)
+    experiment_dir = get_experiment_dir_path(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
+    checkpoint_dir = experiment_dir if run_id is None else os.path.join(experiment_dir, run_id)
+    return checkpoint_dir
 
 
-def get_ckpt_local_path(experiment_name: str, ckpt_name: str, external_checkpoint_path: str, ckpt_root_dir: str = None) -> str:
+def get_experiment_dir_path(experiment_name: str, checkpoints_root_dir: Optional[str] = None) -> str:
+    checkpoints_root_dir = checkpoints_root_dir or PKG_CHECKPOINTS_DIR or get_project_checkpoints_dir_path()
+    if checkpoints_root_dir is None:
+        raise ValueError("Illegal checkpoints directory: please set `ckpt_root_dir`")
+
+    return os.path.join(checkpoints_root_dir, experiment_name)
+
+
+def get_ckpt_local_path(experiment_name: str, ckpt_name: str, external_checkpoint_path: str, ckpt_root_dir: str = None, run_id: Optional[str] = None) -> str:
     """
     Gets the local path to the checkpoint file, which will be:
         - By default: YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name/ckpt_name.
@@ -70,17 +131,19 @@ def get_ckpt_local_path(experiment_name: str, ckpt_name: str, external_checkpoin
             YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name/ckpt_name if such file exists.
 
 
-    :param experiment_name: experiment name attr in trainer :param ckpt_name: checkpoint filename
-    :param external_checkpoint_path: full path to checkpoint file (that might be located outside of
-    super_gradients/checkpoints directory)
-    :param ckpt_root_dir: Local root directory path where all experiment
-     logging directories will reside. When None, it is assumed that pkg_resources.resource_filename(
-    'checkpoints', "") exists and will be used.
-
+    :param experiment_name:         Name of the experiment.
+    :param ckpt_name:               Checkpoint filename
+    :param external_checkpoint_path: Full path to checkpoint file (that might be located outside of super_gradients/checkpoints directory)
+    :param ckpt_root_dir:           Path to the directory where all the experiments are organised, each sub-folder representing a specific experiment.
+                                        If None, SG will first check if a package named 'checkpoints' exists.
+                                        If not, SG will look for the root of the project that includes the script that was launched.
+                                        If not found, raise an error.
+    :param run_id:                  Optional. Run id of the experiment. If None, the most recent run will be loaded.
+    :return:                        Path of folder where the experiment checkpoints and logs will be stored.
      :return: local path of the checkpoint file (Str)
     """
     if external_checkpoint_path:
         return external_checkpoint_path
     else:
-        checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
+        checkpoints_dir_path = get_checkpoints_dir_path(ckpt_root_dir=ckpt_root_dir, experiment_name=experiment_name, run_id=run_id)
         return os.path.join(checkpoints_dir_path, ckpt_name)
