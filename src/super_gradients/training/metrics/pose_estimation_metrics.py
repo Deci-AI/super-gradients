@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from torch import Tensor
 from torchmetrics import Metric
+import dataclasses
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.ddp_utils import is_distributed
@@ -19,7 +20,7 @@ logger = get_logger(__name__)
 __all__ = ["PoseEstimationMetrics", "PoseEstimationPredictions"]
 
 
-@classmethod
+@dataclasses.dataclass
 class PoseEstimationPredictions:
     """
     Single image pose estimation predictions.
