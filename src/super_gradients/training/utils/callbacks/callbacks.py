@@ -1118,7 +1118,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
                 score = loss_tuple[self._idx_loss_tuple]
 
                 # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
-                device = infer_model_device(context.net.parameters())
+                device = infer_model_device(context.net)
                 score = maybe_all_reduce_tensor_average(score.to(device))
 
             if self._is_more_extreme(score):
