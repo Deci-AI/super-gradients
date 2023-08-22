@@ -1,5 +1,5 @@
 defaults:
-  - coco2017_yolo_nas_pose_s
+  - coco2017_yolo_nas_pose_m
   - _self_
 
 training_hyperparams:
