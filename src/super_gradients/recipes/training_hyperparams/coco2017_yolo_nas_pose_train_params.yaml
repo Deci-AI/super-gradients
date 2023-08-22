@@ -15,6 +15,7 @@ cosine_final_lr_ratio: 0.1
 zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
 
+average_best_models: False
 save_ckpt_epoch_list: [100, 200, 250]
 
 loss: yolo_nas_pose_loss
