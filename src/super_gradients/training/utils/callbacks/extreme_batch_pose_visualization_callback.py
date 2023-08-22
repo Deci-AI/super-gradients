@@ -167,10 +167,10 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
 
                 res_image = draw_bbox(
                     image=res_image,
-                    x1=bboxes_i[pose_index][0],
-                    y1=bboxes_i[pose_index][1],
-                    x2=bboxes_i[pose_index][2],
-                    y2=bboxes_i[pose_index][3],
+                    x1=int(bboxes_i[pose_index][0]),
+                    y1=int(bboxes_i[pose_index][1]),
+                    x2=int(bboxes_i[pose_index][2]),
+                    y2=int(bboxes_i[pose_index][3]),
                     color=(255, 255, 255),
                     title=f"{scores_i[pose_index]:.2f}" if scores is not None else "",
                     box_thickness=2,

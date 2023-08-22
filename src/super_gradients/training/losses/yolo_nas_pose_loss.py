@@ -14,6 +14,8 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 from .ppyolo_loss import GIoULoss, TaskAlignedAssigner, BoxesAssignmentResult
 
+from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_target_generator import undo_flat_collate_tensors_with_batch_index
+
 
 @register_loss(Losses.YOLONAS_POSE_LOSS)
 class YoloNASPoseLoss(nn.Module):
@@ -262,8 +264,8 @@ class YoloNASPoseLoss(nn.Module):
         loss_pose_cls = torch.zeros([], device=pose_regression_list.device)
         loss_pose_reg = torch.zeros([], device=pose_regression_list.device)
 
-        batch_index = true_keypoints[:, 0, 0].long()
-        true_keypoints = true_keypoints[:, :, 1:]  # Remove batch index
+        true_keypoints = true_keypoints.clone().detach()
+        true_keypoints = undo_flat_collate_tensors_with_batch_index(true_keypoints, batch_size)
 
         # Add anchors but not multiply by stride
         pred_pose_coords = pose_regression_list + 0
@@ -275,7 +277,7 @@ class YoloNASPoseLoss(nn.Module):
             if mask_positive[i].sum():
                 image_level_mask = mask_positive[i]
                 idx = assign_result.assigned_gt_index_non_flat[i][image_level_mask]
-                gt_kpt = true_keypoints[batch_index == i][idx]
+                gt_kpt = true_keypoints[i][idx]
                 gt_kpt[..., 0:1] /= stride_tensor[image_level_mask].unsqueeze(1)
                 gt_kpt[..., 1:2] /= stride_tensor[image_level_mask].unsqueeze(1)
                 area = self._xyxy_box_area(assign_result.assigned_bboxes[i][image_level_mask])
