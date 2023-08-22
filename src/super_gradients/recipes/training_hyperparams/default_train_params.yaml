@@ -1,5 +1,6 @@
-resume: False # whether to continue training from ckpt with the same experiment name.
-resume_path: # Explicit checkpoint path (.pth file) to use to resume training.
+resume: False # Whether to continue training from ckpt from the latest run, within the same experiment name.
+run_id:       # ID of run to resume from the same experiment.
+resume_path:  # Explicit checkpoint path (.pth file) to use to resume training.
 
 resume_from_remote_sg_logger: False # bool (default=False), When true, ckpt_name (checkpoint filename
 #        to resume i.e ckpt_latest.pth bydefault) will be downloaded into the experiment checkpoints directory

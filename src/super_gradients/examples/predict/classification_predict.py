@@ -1,14 +1,6 @@
-from super_gradients.common.object_names import Models
-from super_gradients.training import models
+from super_gradients.training import dataloaders
 
-model = models.get(Models.RESNET18, pretrained_weights="imagenet")
 
-IMAGES = [
-    "../../../../documentation/source/images/examples/countryside.jpg",
-    "../../../../documentation/source/images/examples/street_busy.jpg",
-    "https://cdn-attachments.timesofmalta.com/cc1eceadde40d2940bc5dd20692901371622153217-1301777007-4d978a6f-620x348.jpg",
-]
-
-predictions = model.predict(IMAGES)
-predictions.show()
-predictions.save(output_folder="")  # Save in working directory
+data_dir = "/path/to/coco_dataset_dir"
+train_dataloader = dataloaders.get(name="coco2017_train", dataset_params={"data_dir": data_dir})
+val_dataloader = dataloaders.get(name="coco2017_val", dataset_params={"data_dir": data_dir})

@@ -211,6 +211,7 @@ class KDTrainer(Trainer):
         Initializes teacher weights with teacher_checkpoint_path if needed, then handles checkpoint loading for
          the entire KD network following the same logic as in Trainer.
         """
+        super(KDTrainer, self)._load_checkpoint_to_model()
         teacher_checkpoint_path = get_param(self.checkpoint_params, "teacher_checkpoint_path")
         teacher_net = unwrap_model(self.net).teacher
 
@@ -231,8 +232,6 @@ class KDTrainer(Trainer):
                 load_weights_only=True,
                 load_ema_as_net=load_teachers_ema,
             )
-
-        super(KDTrainer, self)._load_checkpoint_to_model()
 
     def _add_metrics_update_callback(self, phase):
         """
