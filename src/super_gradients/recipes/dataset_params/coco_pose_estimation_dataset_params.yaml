@@ -115,10 +115,10 @@ train_dataset_params:
     - KeypointsImageToTensor
 
 val_dataset_params:
-  data_dir: /data/coco/
-
+  data_dir: /data/coco
   images_dir: images/val2017
   json_file: annotations/person_keypoints_val2017.json
+
   include_empty_samples: True
   min_instance_area: 128
 
