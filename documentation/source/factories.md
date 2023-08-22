@@ -104,7 +104,7 @@ Doing so will trigger the registration function, allowing SuperGradients to reco
 Here is an example (adapted from the [train_from_recipe script](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/train_from_recipe.py)).
 
 ```python
-from .my_module import MyTransform # Importing the module is enough as it will trigger the register_model function
+from .my_module import MyTransform # Importing the module is enough as it will trigger the register_transform function
 
 # The code below is the same as the basic `train_from_recipe.py` script
 # See: https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/train_from_recipe.py
@@ -152,7 +152,7 @@ It means you can pass either the actual python object or a dictionary that descr
 ```python
 class ImageNetDataset(torch_datasets.ImageFolder):
     
-    @resolve_param("transforms", factory=TransformsFactory())
+    @resolve_param("transform", factory=TransformsFactory())
     def __init__(self, root: str, transform: Transform):
         ...
 ```
@@ -172,6 +172,10 @@ ImageNetDataset(root=..., transform=my_transform)
 
 This second way of instantiating the dataset combines perfectly with the concept `.yaml` recipes.
 
+**Difference with `register_transform`**
+- `register_transform` is responsible to map a string to a class type.
+- `@resolve_param("transform", factory=TransformsFactory())` is responsible to convert a config into an object, using the mapping created with `register_transform`. 
+
 ## Supported Factory Types
 Until here, we focused on a single type of factory, `TransformsFactory`, 
 associated with the registration decorator `register_transform`. 
@@ -183,25 +187,25 @@ SuperGradients offers various types of factories, and each is associated with a 
 
 ``` python
 from super_gradients.common.factories import (
-    register_model
-    register_kd_model
-    register_detection_module
-    register_metric
-    register_loss
-    register_dataloader
-    register_callback
-    register_transform
-    register_dataset
-    register_pre_launch_callback
-    register_unet_backbone_stage
-    register_unet_up_block
-    register_target_generator
-    register_lr_scheduler
-    register_lr_warmup
-    register_sg_logger
-    register_collate_function
-    register_sampler
-    register_optimizer
-    register_processing
+    register_model,
+    register_kd_model,
+    register_detection_module,
+    register_metric,
+    register_loss,
+    register_dataloader,
+    register_callback,
+    register_transform,
+    register_dataset,
+    register_pre_launch_callback,
+    register_unet_backbone_stage,
+    register_unet_up_block,
+    register_target_generator,
+    register_lr_scheduler,
+    register_lr_warmup,
+    register_sg_logger,
+    register_collate_function,
+    register_sampler,
+    register_optimizer,
+    register_processing,
 )
 ```
