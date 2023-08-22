@@ -1,5 +1,7 @@
 import torch
 import torchvision
+from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimationPredictions
+from typing import List
 
 
 class YoloNASPosePostPredictionCallback:
@@ -28,7 +30,7 @@ class YoloNASPosePostPredictionCallback:
         self.max_predictions = max_predictions
         self.keypoint_confidence_threshold = keypoint_confidence_threshold
 
-    def __call__(self, outputs, device: str = None):
+    def __call__(self, outputs, device: str = None) -> List[PoseEstimationPredictions]:
         """
 
         :param outputs:
@@ -41,6 +43,7 @@ class YoloNASPosePostPredictionCallback:
         pred_poses = []
         pred_scores = []
 
+        decoded_predictions: List[PoseEstimationPredictions] = []
         for pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores in zip(*predictions):
             # pred_bboxes [Anchors, 4] in XYXY format
             # pred_scores [Anchors, 1] confidence scores [0..1]
@@ -67,6 +70,7 @@ class YoloNASPosePostPredictionCallback:
             idx_to_keep = torchvision.ops.boxes.nms(boxes=pred_bboxes_xyxy, scores=pred_bboxes_conf, iou_threshold=self.nms_threshold)
             idx_to_keep = idx_to_keep[: self.max_predictions]
 
+            final_bboxes = pred_bboxes_xyxy[idx_to_keep]  # [Instances,]
             final_poses = torch.cat(
                 [
                     pred_pose_coords[idx_to_keep],
@@ -80,4 +84,12 @@ class YoloNASPosePostPredictionCallback:
             pred_poses.append(final_poses)
             pred_scores.append(final_scores)
 
-        return pred_poses, pred_scores
+            decoded_predictions.append(
+                PoseEstimationPredictions(
+                    poses=final_poses,
+                    scores=final_scores,
+                    bboxes=final_bboxes,
+                )
+            )
+
+        return decoded_predictions

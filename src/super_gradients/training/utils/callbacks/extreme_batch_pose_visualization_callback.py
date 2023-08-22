@@ -12,6 +12,7 @@ from super_gradients.training.utils.callbacks import PhaseContext
 from super_gradients.training.utils.callbacks.callbacks import ExtremeBatchCaseVisualizationCallback
 from super_gradients.training.utils.distributed_training_utils import maybe_all_gather_np_images
 from super_gradients.training.utils.visualization.pose_estimation import draw_skeleton
+from super_gradients.training.utils.visualization.detection import draw_bbox
 
 
 @register_callback("ExtremeBatchPoseEstimationVisualizationCallback")
@@ -99,12 +100,14 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         loss_to_monitor: Optional[str] = None,
         max: bool = False,
         freq: int = 1,
+        max_images: Optional[int] = None,
     ):
         super().__init__(metric=metric, metric_component_name=metric_component_name, loss_to_monitor=loss_to_monitor, max=max, freq=freq)
         self.post_prediction_callback = post_prediction_callback
         self.keypoint_colors = OmegaConf.to_container(keypoint_colors)
         self.edge_colors = OmegaConf.to_container(edge_colors)
         self.edge_links = OmegaConf.to_container(edge_links)
+        self.max_images = max_images
 
     @classmethod
     def universal_undo_preprocessing_fn(cls, inputs: torch.Tensor) -> np.ndarray:
@@ -127,6 +130,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         cls,
         image_tensor: np.ndarray,
         keypoints: List[Union[np.ndarray, Tensor]],
+        bboxes: List[Union[np.ndarray, Tensor]],
         scores: Optional[List[Union[np.ndarray, Tensor]]],
         keypoint_colors: List[Tuple[int, int, int]],
         edge_colors: List[Tuple[int, int, int]],
@@ -136,9 +140,12 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         out_images = []
         for i in range(image_tensor.shape[0]):
             keypoints_i = keypoints[i]
+            bboxes_i = bboxes[i]
             scores_i = scores[i] if scores is not None else None
             if torch.is_tensor(keypoints_i):
                 keypoints_i = keypoints_i.detach().cpu().numpy()
+            if torch.is_tensor(bboxes_i):
+                bboxes_i = bboxes_i.detach().cpu().numpy()
             if torch.is_tensor(scores_i):
                 scores_i = scores_i.detach().cpu().numpy()
 
@@ -157,6 +164,17 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
                     show_confidence=scores is not None,
                     box_thickness=2,
                 )
+
+                res_image = draw_bbox(
+                    image=res_image,
+                    x1=bboxes_i[pose_index][0],
+                    y1=bboxes_i[pose_index][1],
+                    x2=bboxes_i[pose_index][2],
+                    y2=bboxes_i[pose_index][3],
+                    color=(255, 255, 255),
+                    title=f"{scores_i[pose_index]:.2f}" if scores is not None else "",
+                    box_thickness=2,
+                )
             out_images.append(res_image)
 
         return out_images
@@ -169,25 +187,27 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         """
         inputs = self.universal_undo_preprocessing_fn(self.extreme_batch)
         target_boxes, target_joints = self.extreme_targets
-        predicted_poses, predicted_scores = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
+        predictions = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
 
         images_to_save_preds = self.visualize_batch(
             inputs,
-            keypoints=predicted_poses,
-            scores=predicted_scores,
+            keypoints=[p.poses for p in predictions],
+            bboxes=[p.bboxes for p in predictions],
+            scores=[p.scores for p in predictions],
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,
             keypoint_colors=self.keypoint_colors,
         )
         images_to_save_preds = np.stack(images_to_save_preds)
 
-        batch_size = len(predicted_poses)
+        batch_size = len(predictions)
 
         target_joints_unpacked = undo_flat_collate_tensors_with_batch_index(target_joints, batch_size)
-
+        target_boxes_unpacked = undo_flat_collate_tensors_with_batch_index(target_boxes, batch_size)
         images_to_save_gt = self.visualize_batch(
             inputs,
             keypoints=target_joints_unpacked,
+            bboxes=target_boxes_unpacked,
             scores=None,
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,
@@ -201,6 +221,10 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
             images_to_save_preds, images_to_save_gt = self.process_extreme_batch()
             images_to_save_preds = maybe_all_gather_np_images(images_to_save_preds)
             images_to_save_gt = maybe_all_gather_np_images(images_to_save_gt)
+
+            if self.max_images is not None:
+                images_to_save_preds = images_to_save_preds[: self.max_images]
+                images_to_save_gt = images_to_save_gt[: self.max_images]
 
             if not context.ddp_silent_mode:
                 context.sg_logger.add_images(tag=f"{self._tag}_preds", images=images_to_save_preds, global_step=context.epoch, data_format="NHWC")

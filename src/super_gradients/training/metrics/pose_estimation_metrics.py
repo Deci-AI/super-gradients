@@ -16,7 +16,18 @@ from super_gradients.training.utils.detection_utils import compute_detection_met
 
 logger = get_logger(__name__)
 
-__all__ = ["PoseEstimationMetrics"]
+__all__ = ["PoseEstimationMetrics", "PoseEstimationPredictions"]
+
+
+@classmethod
+class PoseEstimationPredictions:
+    """
+    Single image pose estimation predictions.
+    """
+
+    poses: Tensor
+    scores: Tensor
+    bboxes: Tensor
 
 
 @register_metric(Metrics.POSE_ESTIMATION_METRICS)
@@ -167,7 +178,7 @@ class PoseEstimationMetrics(Metric):
                                  (For instance this is used in CrowdPose dataset)
 
         """
-        predicted_poses, predicted_scores = self.post_prediction_callback(preds)  # Decode raw predictions into poses
+        predictions: List[PoseEstimationPredictions] = self.post_prediction_callback(preds)  # Decode raw predictions into poses
 
         if gt_bboxes is None:
             gt_bboxes = [compute_visible_bbox_xywh(torch.tensor(joints[:, :, 0:2]), torch.tensor(joints[:, :, 2])) for joints in gt_joints]
@@ -178,9 +189,9 @@ class PoseEstimationMetrics(Metric):
         if gt_iscrowd is None:
             gt_iscrowd = [[False] * len(x) for x in gt_joints]
 
-        for i in range(len(predicted_poses)):
+        for i in range(len(predictions)):
             self.update_single_image(
-                predicted_poses[i], predicted_scores[i], gt_joints[i], gt_areas=gt_areas[i], gt_bboxes=gt_bboxes[i], gt_iscrowd=gt_iscrowd[i]
+                predictions[i].poses, predictions[i].scores, gt_joints[i], gt_areas=gt_areas[i], gt_bboxes=gt_bboxes[i], gt_iscrowd=gt_iscrowd[i]
             )
 
     def update_single_image(
