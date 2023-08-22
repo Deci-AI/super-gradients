@@ -58,6 +58,9 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         """
 
         json_file = os.path.join(data_dir, json_file)
+        if not os.path.exists(json_file) or not os.path.isfile(json_file):
+            raise FileNotFoundError(f"Annotation file {json_file} does not exist")
+
         coco = COCO(json_file)
         if len(coco.dataset["categories"]) != 1:
             raise ValueError("Dataset must contain exactly one category")
