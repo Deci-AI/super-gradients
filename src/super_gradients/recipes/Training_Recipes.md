@@ -34,6 +34,9 @@ To syntax of hydra overrides is the following
 python -m super_gradients.train_from_recipe --config-name=<config-name> param1=<val1> path.to.param2=<val2> 
 ```
 
+The arguments are referenced without the `--` prefix, 
+and each parameter is referenced with its full path in the configuration tree, concatenated with a `.`.
+
 #### Example
 Let's imagine we have a recipe with the following structure
 ```yaml
@@ -73,14 +76,10 @@ You will find information about the performance of a recipe as well as the comma
 python -m super_gradients.train_from_recipe --config-name=coco2017_yolox architecture=yolox_s dataset_params.data_dir=/home/coco2017
 ```
 
-
-
-### List of recipes
-
 All the commands to launch the recipes described [here](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes) are listed below.
 Please make to `dataset_params.data_dir=<path-to-dataset>` if you did not store the dataset in the path specified by the recipe (as showed in the example above).
 
-**Classification**
+### Classification
 <details>
 <summary>Cifar10</summary>
 
@@ -157,7 +156,7 @@ python -m super_gradients.train_from_recipe --config-name=imagenet_vit_large
 ```
 </details>
 
-**Detection**
+### Detection
 
 <details>
 <summary>Coco2017</summary>
@@ -200,7 +199,7 @@ python -m super_gradients.train_from_recipe --config-name=coco2017_yolox archite
 </details>
 
 
-**Segmentation**
+### Segmentation
 
 <details>
 <summary>Cityscapes</summary>
@@ -244,8 +243,10 @@ python -m super_gradients.train_from_recipe --config-name=cityscapes_stdc_seg75 
 
 
 
-
 ## Recipe Structure
+If you brows the YAML files in the `recipes` directory you will see some file containing the saved-key `defaults:` at the beginning of the file.
+
+Here's an example of what this looks like:
 
 ```yaml
 defaults:
@@ -253,44 +254,64 @@ defaults:
   - dataset_params: cifar10_dataset_params
   - arch_params: resnet18_cifar_arch_params
   - checkpoint_params: default_checkpoint_params
-  - _self_
-  - variable_setup
 
-train_dataloader: cifar10_train
-val_dataloader: cifar10_val
-architecture: resnet18_cifar
-experiment_name: resnet18_cifar_interpolation_check
-multi_gpu: Off
-num_gpus: 1
+...
 ```
 
-### Recipe Structure
-SuperGradients expects a very strict recipe structure which you should match.
+- **Defaults**: The `defaults` section leverages OmegaConf syntax to allow using other recipes as a base.
+- **Referencing Parameters**: You can reference parameters within the YAML file according to their origin. For example, `training_hyperparams.initial_lr` refers to the `initial_lr` parameter from the `cifar10_resnet_train_params.yaml` file.
 
-# File structure
+
+## Required Parameters
+Most parameters can be defined by default when including `default_train_params` in you `defaults`.
+However, the following hyper-parameters are required to launch a training run:
+```yaml
+train_dataloader: 
+val_dataloader: 
+architecture: 
+training_hyperparams:
+  initial_lr: 
+  loss:
+experiment_name:
+  
+multi_gpu: # When training with multi GPU
+num_gpus: # When training with multi GPU
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
 ```
-rf100
-├── 4-fold-defect
-│      ├─ train
-│      │    ├─ 000000000001.jpg
-│      │    ├─ ...
-│      │    └─ _annotations.coco.json
-│      ├─ valid
-│      │    └─ ...
-│      └─ test
-│           └─ ...
-├── abdomen-mri
-│      └─ ...
-└── ...
+> - Other parameters may also be required, depending on the specific model, dataset, loss function ect. 
+> - Follow the error message in case you experiment did not launce properly.  
+
+
+### Organizing Your Recipe Folder
+
+Your recipe folder should have a specific structure to match this composition:
 
 ```
+├─ cifar10_resnet.yaml
+├─ ...
+├─training_hyperparams
+│   ├─ cifar10_resnet_train_params.yaml
+│   └─ ...
+├─dataset_params
+│   ├─ cifar10_dataset_params.yaml
+│   └─ ...
+├─arch_params
+│   ├─ resnet18_cifar_arch_params.yaml
+│   └─ ...
+└─checkpoint_params
+    ├─ default_checkpoint_params.yaml
+    └─ ...
+```
 
-Please make sure to follow the structure 
+You're not restricted to this structure, but following it ensures compatibility with SuperGradients' expectations.
 
 
-> TIP: The simplest way to get started is probably for you to copy an existing recipe, and to overwrite anything you want to do differently.
-
-### Running a recipe
+### Training with custom recipe
 When working straight from an existing recipe, we could run `python -m super_gradients.train_from_recipe --config-name=...`
 
 Now that we are working with our own recipe which are not in the SuperGradients recipe folder, 
@@ -304,21 +325,17 @@ Here is an example (adapted from the [train_from_recipe script](https://github.c
 ```python
 # The code below is the same as the basic `train_from_recipe.py` script
 # See: https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/train_from_recipe.py
-from omegaconf import DictConfig
 import hydra
-
+from omegaconf import DictConfig
 from super_gradients import Trainer, init_trainer
-
 
 @hydra.main(config_path="<config-path>", version_base="1.2") # TODO: overwrite `<config-path>`
 def _main(cfg: DictConfig) -> None:
     Trainer.train_from_config(cfg)
 
-
 def main() -> None:
     init_trainer()  # `init_trainer` needs to be called before `@hydra.main`
     _main()
-
 
 if __name__ == "__main__":
     main()
@@ -326,4 +343,68 @@ if __name__ == "__main__":
 
 ### Customizing your training script
 
-The next step is 
+In some rare cases, you may want to combine using recipes with writing some custom code before launching the Training.
+Here is an example on how recipes can be used, while keeping the flexibility of python code.
+
+```python
+import hydra
+from omegaconf import DictConfig
+
+from super_gradients import Trainer, init_trainer, setup_device
+from super_gradients.training import dataloaders, models
+
+@hydra.main(config_path="<config-path>", version_base="1.2") # TODO: overwrite `<config-path>`
+def _main(cfg: DictConfig) -> None:
+        setup_device(
+            device=cfg.devuce,
+            multi_gpu=cfg.multi_gpu,
+            num_gpus=cfg.num_gpus,
+        )
+
+        # INSTANTIATE ALL OBJECTS IN CFG
+        cfg = hydra.utils.instantiate(cfg)
+
+        trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+
+        # BUILD NETWORK
+        model = models.get(
+            model_name=cfg.architecture,
+            num_classes=cfg.arch_params.num_classes,
+            arch_params=cfg.arch_params,
+            strict_load=cfg.checkpoint_params.strict_load,
+            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+            load_backbone=cfg.checkpoint_params.load_backbone,
+        )
+
+        # INSTANTIATE DATA LOADERS
+
+        train_dataloader = dataloaders.get(
+            name=cfg.train_dataloader,
+            dataset_params=cfg.dataset_params.train_dataset_params,
+            dataloader_params=cfg.dataset_params.train_dataloader_params,
+        )
+
+        val_dataloader = dataloaders.get(
+            name=cfg.val_dataloader,
+            dataset_params=cfg.dataset_params.val_dataset_params,
+            dataloader_params=cfg.dataset_params.val_dataloader_params,
+        )
+
+        # TRAIN
+        train_results = trainer.train(
+            model=model,
+            train_loader=train_dataloader,
+            valid_loader=val_dataloader,
+            training_params=cfg.training_hyperparams,
+        )
+        
+        print(train_results)
+
+def main() -> None:
+    init_trainer()  # `init_trainer` needs to be called before `@hydra.main`
+    _main()
+
+if __name__ == "__main__":
+    main()
+```

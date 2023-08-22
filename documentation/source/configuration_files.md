@@ -3,7 +3,7 @@ SuperGradients supports [YAML](https://en.wikipedia.org/wiki/YAML) formatted con
 architecture parameters, datasets parameters and any other parameters required by the training process.
 These parameters will be consumed as dictionaries or as function arguments by different parts of SuperGradients.
 
->You can use SuperGradients without using any configuration files, look into the examples directory to see how.
+> You can use SuperGradients without using any configuration files, look into the examples directory to see how.
 
 SuperGradients was designed to expose as many parameters as possible to allow outside configuration without writing a single line of code.
 You can control the learning-rate, the weight-decay or even the loss function and metric used in the training, but moreover, you can even control 
@@ -33,7 +33,6 @@ criterion_params: {}
 optimizer_params:
   weight_decay: 1e-4
   momentum: 0.9
-
 ```
 
 ## Why using configuration files
@@ -107,115 +106,52 @@ python -m super_gradients.evaluate_from_recipe --config-name=cifar10_resnet
 that will run only the evaluation part of the recipe (without any training iterations)
 
 
-
 ## Hydra
 Hydra is an open-source Python framework that provides us with many useful functionalities for YAML management. You can learn about Hydra 
 [here](https://hydra.cc/docs/intro). We use Hydra to load YAML files and convert them into dictionaries, while 
 instantiating the objects referenced in the YAML.
 You can see this in the code:
+
 ```python
-@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
+import hydra
+from omegaconf import DictConfig
+
+@hydra.main(config_path="recipes", version_base="1.2")
 def main(cfg: DictConfig) -> None:
-    Trainer.train_from_config(cfg)
-
-def run():
-    init_trainer()
-    main()
-
-if __name__ == "__main__":
-    run()
+    print(cfg.experiment_name)
 ```
+
 The `@hydra.main` decorator is looking for YAML files in the `super_gradients.recipes` according to the name of the configuration file provided 
 in the first arg of the command line. 
 
 In the experiment directory a `.hydra` subdirectory will be created. The configuration files related to this run will be saved by hydra to that subdirectory.  
 
---------
-Two Hydra features worth mentioning are _YAML Composition_ and _Command-Line Overrides_.
 
-#### YAML Composition
-If you brows the YAML files in the `recipes` directory you will see some file containing the saved-key `defaults:` at the beginning of the file.
-```yaml
-defaults:
-  - training_hyperparams: cifar10_resnet_train_params
-  - dataset_params: cifar10_dataset_params
-  - arch_params: resnet18_cifar_arch_params
-  - checkpoint_params: default_checkpoint_params
-  - _self_
+Two Hydra features worth mentioning are _Command-Line Overrides_ and _YAML Composition_.
 
-```
-The YAML file containing this header will inherit the configuration of the above files. So when building a training recipe, one can structure
-the configurations into a few files (for training hyper-params, dataset params, architecture params ect.) and Hydra will conveniently aggregate them all 
-into a single dictionary. 
 
-The parameters will be referenced inside the YAML according to their origin. i.e. in the example above we can reference `training_hyperparams.initial_lr` 
-(initial_lr parameter from the cifar10_resnet_train_params.yaml file)
+### Overriding Parameters with Command-Line
 
-The aggregated configuration file will be saved in the `.hydra` subdirectory.
+You'll often find the need to override or modify certain parameters for a specific run. 
+Hydra offers a powerful feature that allows you to do this directly from the command line. 
+This can be extremely useful for experimenting with different hyperparameters without changing the actual YAML files.
 
-#### Command-Line Overrides
-When running with Hydra, you can override or even add configuration from the command line. These override will apply to the specific run only.
+#### Syntax of Hydra Overrides
+
+Here's how you can use Hydra overrides to modify parameters:
+
 ```shell
-python -m super_gradients.train_from_recipe --config-name=cifar10_resnet training_hyperparams.initial_lr=0.02 experiment_name=test_lr_002
+python -m super_gradients.train_from_recipe --config-name=<config-name> param1=<val1> path.to.param2=<val2> 
 ```
-In the example above, the same script we launched earlier is used, but this time it will run with a different experiment name and a different 
-initial learning-rate. This feature is extremely usefully when experimenting with different hyper-parameters.
-Note that the arguments are referenced without the `--` prefix and that each parameter is referenced with its full path in the 
-configuration tree, concatenated with a `.`.
 
+The arguments are referenced without the `--` prefix, 
+and each parameter is referenced with its full path in the configuration tree, concatenated with a `.`.
 
-## Resolvers 
-Resolvers are converting the strings from the YAML file into Python objects or values. The most basic resolvers are the Hydra native resolvers.
-Here are a few simple examples:
-```yaml
-a: 1
-b: 2
-c: 3
-a_plus_b: "${add: ${a},${b}}"
-a_plus_b_plus_c: "${add: ${a}, ${b}, ${c}}"
-                 
-my_list: [10, 20, 30, 40, 50]
-third_of_list: "${getitem: ${my_list}, 2}"
-first_of_list: "${first: ${my_list}}"
-last_of_list: "${last: ${my_list}}"
+#### Example of Command-Line Override
+
+Consider the following example, where you want to run a training script on cifat10-resnet, 
+but with a different experiment name and initial learning rate:
+
+```shell
+python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=test_lr_002 training_hyperparams.initial_lr=0.02
 ```
-You can register any additional resolver you want by simply following the official [documentation](https://omegaconf.readthedocs.io/en/latest/usage.html#resolvers).
-
-## Factories
-Factories a similar to resolvers but were built specifically to instantiate SuperGradients objects within a recipe.
-This is a key feature of SuperGradient which is being used in all of our recipes, and we recommend you to 
-go over the [documentation](factories.md).
-
-## Required Hyper-Parameters
-Most parameters can be defined by default when including `default_train_params` in you `defaults`.
-However, the following hyper-parameters are required to launch a training run:
-```yaml
-train_dataloader: 
-val_dataloader: 
-architecture: 
-training_hyperparams:
-  initial_lr: 
-  loss:
-experiment_name:
-  
-multi_gpu: # When training with multi GPU
-num_gpus: # When training with multi GPU
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
-```
-> Other parameters may also be required, depending on the specific model, dataset, loss function ect. 
-> Follow the error message in case you experiment did not launce properly.  
-
-## Recipes library structure
-The `super_gradients/recipes` include the following subdirectories:
-> - arch_params - containing configuration files for instantiating different models
-> - checkpoint_params - containing configuration files that define the loaded and saved checkpoints parameters for the training
-> - conversion_params - containing configuration files for the model conversion scripts (for deployment)
-> - dataset_params - containing configuration files for instantiating different datasets and dataloaders
-> - training_hyperparams - containing configuration files holding hyper-parameters for specific recipes
-
-These configuration files will be available for use both in the installed version and in the development version of SG.
