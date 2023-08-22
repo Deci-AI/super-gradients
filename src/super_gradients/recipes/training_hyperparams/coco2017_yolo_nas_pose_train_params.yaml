@@ -28,7 +28,7 @@ optimizer: AdamW
 optimizer_params:
   weight_decay: 0.00001
 
-ema: True
+ema: False
 ema_params:
   decay: 0.9997
   decay_type: threshold
