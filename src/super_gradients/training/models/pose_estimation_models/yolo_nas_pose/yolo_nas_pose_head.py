@@ -276,9 +276,6 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             (pose_regression_list.size(0), pose_regression_list.size(1), self.num_classes, 3)
         )  # [B, Anchors, C, 3]
 
-        pred_pose_coords = pose_regression_list[:, :, :, 0:2]  # [B, Anchors, C, 2]
-        pred_pose_scores = pose_regression_list[:, :, :, 2].sigmoid()  # [B, Anchors, C]
-
         # Decode bboxes
         # Note in eval mode, anchor_points_inference is different from anchor_points computed on train
         if self.eval_size:
@@ -289,7 +286,12 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         pred_scores = cls_score_list.sigmoid()
         pred_bboxes = batch_distance2bbox(anchor_points_inference, reg_dist_reduced_list) * stride_tensor  # [B, Anchors, 4]
 
-        pred_pose_coords = (pred_pose_coords + anchor_points_inference.unsqueeze(0).unsqueeze(2)) * stride_tensor.unsqueeze(0).unsqueeze(2)  # add the grid
+        # Add the grid
+        pose_regression_list[:, :, :, 0:2] += anchor_points_inference.unsqueeze(0).unsqueeze(2)
+        pose_regression_list[:, :, :, 0:2] *= stride_tensor.unsqueeze(0).unsqueeze(2)
+
+        pred_pose_coords = pose_regression_list[:, :, :, 0:2]  # [B, Anchors, C, 2]
+        pred_pose_scores = pose_regression_list[:, :, :, 2].sigmoid()  # [B, Anchors, C]
 
         decoded_predictions = pred_bboxes, pred_scores, pred_pose_coords, pred_pose_scores
 

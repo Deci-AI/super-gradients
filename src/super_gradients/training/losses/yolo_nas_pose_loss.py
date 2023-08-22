@@ -268,28 +268,30 @@ class YoloNASPoseLoss(nn.Module):
         true_keypoints = true_keypoints.clone().detach()
         true_keypoints = undo_flat_collate_tensors_with_batch_index(true_keypoints, batch_size)
 
-        # Add anchors but not multiply by stride
-        pred_pose_coords = pose_regression_list + 0
-        pred_pose_coords[:, :, :, 0:2] += anchor_points.unsqueeze(0).unsqueeze(2)
-        # pred_pose_coords[:, :, :, 0:2] *= stride_tensor.unsqueeze(0).unsqueeze(2)
-
         # pos/neg loss
+        num_pos_samples = 0
         for i in range(batch_size):
             if mask_positive[i].sum():
                 image_level_mask = mask_positive[i]
                 idx = assign_result.assigned_gt_index_non_flat[i][image_level_mask]
                 gt_kpt = true_keypoints[i][idx]
-                gt_kpt[..., 0:1] /= stride_tensor[image_level_mask].unsqueeze(1)
-                gt_kpt[..., 1:2] /= stride_tensor[image_level_mask].unsqueeze(1)
-                area = self._xyxy_box_area(assign_result.assigned_bboxes[i][image_level_mask])
-                pred_kpt = pred_pose_coords[i][image_level_mask]
+                # gt_kpt[..., 0:1] /= stride_tensor[image_level_mask].unsqueeze(1)
+                # gt_kpt[..., 1:2] /= stride_tensor[image_level_mask].unsqueeze(1)
+                area = self._xyxy_box_area(assign_result.assigned_bboxes[i][image_level_mask] * stride_tensor[image_level_mask])
+                pred_kpt = pose_regression_list[i][image_level_mask]
                 loss = self._keypoint_loss(pred_kpt, gt_kpt, area=area, sigmas=self.oks_sigmas.to(pred_kpt.device))  # pose loss
                 loss_pose_cls += loss[0]
                 loss_pose_reg += loss[1]
+                num_pos_samples += 1
 
-        return loss_pose_cls, loss_pose_reg
+        num_pos_samples = max(num_pos_samples, 1)
+        return loss_pose_cls / num_pos_samples, loss_pose_reg / num_pos_samples
 
     def _xyxy_box_area(self, boxes):
+        """
+        :param boxes: [N, 4] (x1, y1, x2, y2)
+        :return: [N,1]
+        """
         return (boxes[:, 2:3] - boxes[:, 0:1]) * (boxes[:, 3:4] - boxes[:, 1:2])
 
     def _bbox_loss(
