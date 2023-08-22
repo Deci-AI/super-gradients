@@ -31,7 +31,7 @@ from super_gradients.training.utils.detection_utils import DetectionVisualizatio
 from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
-from super_gradients.training.utils.utils import unwrap_model
+from super_gradients.training.utils.utils import unwrap_model, infer_model_device
 from torchvision.utils import draw_segmentation_masks
 
 logger = get_logger(__name__)
@@ -1118,9 +1118,8 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
                 score = loss_tuple[self._idx_loss_tuple]
 
                 # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
-                device = next(context.net.parameters()).device
-                score.to(device)
-                score = maybe_all_reduce_tensor_average(score)
+                device = infer_model_device(context.net.parameters())
+                score = maybe_all_reduce_tensor_average(score.to(device))
 
             if self._is_more_extreme(score):
                 self.extreme_score = score
