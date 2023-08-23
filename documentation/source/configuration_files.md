@@ -53,8 +53,8 @@ train_dataset_params:
     - RandomHorizontalFlip
     - ToTensor
     - Normalize:
-        mean: ${dataset_params.img_mean}
-        std: ${dataset_params.img_std}
+        mean: [0.485, 0.456, 0.406] # mean for normalization
+        std: [0.229, 0.224, 0.225]  # std  for normalization
 
 val_dataset_params:
   root: /data/Imagenet/val
@@ -65,8 +65,8 @@ val_dataset_params:
         size: 224
     - ToTensor
     - Normalize:
-        mean: ${dataset_params.img_mean}
-        std: ${dataset_params.img_std}
+        mean: [0.485, 0.456, 0.406] # mean for normalization
+        std: [0.229, 0.224, 0.225]  # std  for normalization
 ```
 
 Configuration file can also help you track the exact settings used for each one of your experiments, tweak and tune these settings, and share them with others.
@@ -107,7 +107,6 @@ python -m super_gradients.evaluate_from_recipe --config-name=cifar10_resnet
 that will run only the evaluation part of the recipe (without any training iterations)
 
 
-
 ## Hydra
 Hydra is an open-source Python framework that provides us with many useful functionalities for YAML management. You can learn about Hydra 
 [here](https://hydra.cc/docs/intro). We use Hydra to load YAML files and convert them into dictionaries, while 
@@ -130,7 +129,6 @@ in the first arg of the command line.
 
 In the experiment directory a `.hydra` subdirectory will be created. The configuration files related to this run will be saved by hydra to that subdirectory.  
 
---------
 Two Hydra features worth mentioning are _YAML Composition_ and _Command-Line Overrides_.
 
 #### YAML Composition
@@ -163,6 +161,7 @@ initial learning-rate. This feature is extremely usefully when experimenting wit
 Note that the arguments are referenced without the `--` prefix and that each parameter is referenced with its full path in the 
 configuration tree, concatenated with a `.`.
 
+
 ## Resolvers 
 Resolvers are converting the strings from the YAML file into Python objects or values. The most basic resolvers are the Hydra native resolvers.
 Here are a few simple examples:
@@ -178,79 +177,12 @@ third_of_list: "${getitem: ${my_list}, 2}"
 first_of_list: "${first: ${my_list}}"
 last_of_list: "${last: ${my_list}}"
 ```
+You can register any additional resolver you want by simply following the official [documentation](https://omegaconf.readthedocs.io/en/latest/usage.html#resolvers).
 
-The more advanced resolvers will instantiate objects. In the following example we define a few transforms that 
-will be used to augment a dataset.
-```yaml
-train_dataset_params:
-  transforms:
-    # for more options see common.factories.transforms_factory.py
-    - SegColorJitter:
-        brightness: 0.1
-        contrast: 0.1
-        saturation: 0.1
-
-    - SegRandomFlip:
-        prob: 0.5
-
-    - SegRandomRescale:
-        scales: [ 0.4, 1.6 ]
-```
-Each one of the keys (`SegColorJitter`, `SegRandomFlip`, `SegRandomRescale`) is mapped to a type, and the configuration parameters under that key will be passed
-to the type constructor by name (as key word arguments).
-
-If you want to see where this magic is happening, you can look for the `@resolve_param` decorator in the code 
-
-```python
-class ImageNetDataset(torch_datasets.ImageFolder):
-    
-    @resolve_param("transforms", factory=TransformsFactory())
-    def __init__(self, root: str, transforms: Union[list, dict] = [], *args, **kwargs):
-        ...
-        ...
-```
-
-The `@resolve_param` wraps functions and resolves a string or a dictionary argument (in the example above "transforms") to an object. 
-To do so, it uses a factory object that maps a string or a dictionary to a type. when `__init__(..)` will be called, the function will receive 
-an object, and not a dictionary. The parameters under "transforms" in the YAML will be passed as
-arguments for instantiation the objects. We will  learn how to add a new type of object into these mappings in the next sections. 
-
-## Registering a new object 
-To use a new object from your configuration file, you need to define the mapping of the string to a type.
-This is done using one of the many registration function supported by SG.
-```python
-register_model
-register_detection_module
-register_metric
-register_loss
-register_dataloader
-register_callback
-register_transform
-register_dataset
-```
-
-These decorator functions can be imported and used as follows:
-
-```python
-from super_gradients.common.registry import register_model
-
-@register_model(name="MyNet")
-class MyExampleNet(nn.Module):
-    def __init__(self, num_classes: int):
-        ....
-```
-
-This simple decorator, maps the name "MyNet" to the type `MyExampleNet`. Note that if your constructor
-include required arguments, you will be expected to provide them when using this string
-
-```yaml
-...
-architecture: 
-    MyNet:
-      num_classes: 8
-...
-
-```
+## Factories
+Factories are similar to resolvers but were built specifically to instantiate SuperGradients objects within a recipe.
+This is a key feature of SuperGradient which is being used in all of our recipes, and we recommend you to 
+go over this [introduction to Factories](factories.md).
 
 ## Required Hyper-Parameters
 Most parameters can be defined by default when including `default_train_params` in you `defaults`.
