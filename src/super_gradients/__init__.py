@@ -25,4 +25,4 @@ __all__ = [
 
 __version__ = "3.2.0"
 
-env_sanity_check()
+# env_sanity_check()

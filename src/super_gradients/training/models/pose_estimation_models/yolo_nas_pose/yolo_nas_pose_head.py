@@ -70,9 +70,9 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         first_pose_conv = [ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
         self.pose_convs = nn.Sequential(*first_pose_conv, ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
 
-        self.cls_pred = nn.Conv2d(inter_channels, 1, 1, 1, 0)
+        self.cls_pred = nn.Conv2d(inter_channels, 1 + self.num_classes, 1, 1, 0)
         self.reg_pred = nn.Conv2d(inter_channels, 4 * (reg_max + 1), 1, 1, 0)
-        self.pose_pred = nn.Conv2d(inter_channels, 3 * self.num_classes, 1, 1, 0)  # each keypoint is x,y,confidence
+        self.pose_pred = nn.Conv2d(inter_channels, 2 * self.num_classes, 1, 1, 0)  # each keypoint is x,y,confidence
 
         self.cls_dropout_rate = nn.Dropout2d(cls_dropout_rate) if cls_dropout_rate > 0 else nn.Identity()
         self.reg_dropout_rate = nn.Dropout2d(reg_dropout_rate) if reg_dropout_rate > 0 else nn.Identity()
@@ -84,7 +84,8 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         self._initialize_biases()
 
     def replace_num_classes(self, num_classes: int, compute_new_weights_fn: Callable[[nn.Module, int], nn.Module]):
-        self.pose_pred = compute_new_weights_fn(self.pose_pred, num_classes)
+        self.cls_pred = compute_new_weights_fn(self.pose_pred, 1 + num_classes)
+        self.pose_pred = compute_new_weights_fn(self.pose_pred, 2 * num_classes)
         self.num_classes = num_classes
 
     @property
@@ -98,7 +99,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         :return: Tuple of [reg_output, cls_output, pose_output]
             - reg_output: Tensor of [B, 4 * (reg_max + 1), H, W]
             - cls_output: Tensor of [B, 1, H, W]
-            - pose_output: Tensor of [B, 3 * num_classes, H, W]
+            - pose_output: Tensor of [B, num_classes, 3, H, W]
         """
         x = self.stem(x)
 
@@ -106,14 +107,19 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         cls_feat = self.cls_dropout_rate(cls_feat)
         cls_output = self.cls_pred(cls_feat)
 
+        pose_logits = cls_output[:, 1:, None, :, :]
+        cls_output = cls_output[:, 0:1, :, :]
+
         reg_feat = self.reg_convs(x)
         reg_feat = self.reg_dropout_rate(reg_feat)
         reg_output = self.reg_pred(reg_feat)
 
         pose_feat = self.pose_convs(x)
         pose_feat = self.reg_dropout_rate(pose_feat)
-        pose_output = self.pose_pred(pose_feat)
 
+        pose_output = self.pose_pred(pose_feat)
+        pose_output = pose_output.reshape((pose_output.size(0), self.num_classes, 2, pose_output.size(2), pose_output.size(3)))
+        pose_output = torch.cat((pose_output, pose_logits), dim=2)
         return reg_output, cls_output, pose_output
 
     def _initialize_biases(self):
@@ -208,43 +214,6 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             self.anchor_points = anchor_points
             self.stride_tensor = stride_tensor
 
-    @torch.jit.ignore
-    def forward_train(self, feats: Tuple[Tensor, ...]):
-        """
-
-        :param feats:
-        :return: Tuple of [cls_score_list, reg_distri_list, pose_regression_list, anchors, anchor_points, num_anchors_list, stride_tensor]
-            - cls_score_list: Tensor of [B, N, 1]
-            - reg_distri_list: Tensor of [B, N, 4 * (reg_max + 1)]
-            - pose_regression_list: Tensor of [B, N, 3 * C]
-            - anchors: Tensor of [N, 4]
-            - anchor_points: Tensor of [N, 2]
-            - num_anchors_list: List of number of anchors for each feature map
-            - stride_tensor: Tensor of [N, 1]
-        """
-        anchors, anchor_points, num_anchors_list, stride_tensor = generate_anchors_for_grid_cell(
-            feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset
-        )
-
-        cls_score_list = []
-        reg_distri_list = []
-        pose_regression_list = []
-        for i, feat in enumerate(feats):
-            reg_distri, cls_logit, pose_logit = getattr(self, f"head{i + 1}")(feat)
-            # cls and reg
-            # Note we don't apply sigmoid on class predictions to ensure good numerical stability at loss computation
-            cls_score_list.append(torch.permute(cls_logit.flatten(2), [0, 2, 1]))  # [B, C, H, W] -> [B, H * W, C]
-            reg_distri_list.append(torch.permute(reg_distri.flatten(2), [0, 2, 1]))  # [B, C, H, W] -> [B, H * W, C]
-            pose_regression_list.append(torch.permute(pose_logit.flatten(2), [0, 2, 1]))  # [B, C, H, W] -> [B, H * W, C]
-
-        cls_score_list = torch.cat(cls_score_list, dim=1)
-        reg_distri_list = torch.cat(reg_distri_list, dim=1)
-        pose_regression_list = torch.cat(pose_regression_list, dim=1)
-        pose_regression_list = pose_regression_list.reshape(
-            (pose_regression_list.size(0), pose_regression_list.size(1), self.num_classes, 3)
-        )  # [B, Anchors, C, 3]
-        return cls_score_list, reg_distri_list, pose_regression_list, anchors, anchor_points, num_anchors_list, stride_tensor
-
     def forward_eval(self, feats: Tuple[Tensor, ...]):
 
         cls_score_list, reg_distri_list, reg_dist_reduced_list = [], [], []
@@ -263,7 +232,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             cls_score_list.append(cls_logit.reshape([b, -1, height_mul_width]))
             reg_dist_reduced_list.append(reg_dist_reduced)
 
-            pose_regression_list.append(torch.permute(pose_logit.flatten(2), [0, 2, 1]))  # [B, C, H, W] -> [B, H * W, C]
+            pose_regression_list.append(torch.permute(pose_logit.flatten(3), [0, 3, 1, 2]))  # [B, J, 3, H, W] -> [B, H * W, J, 3]
 
         cls_score_list = torch.cat(cls_score_list, dim=-1)  # [B, C, Anchors]
         cls_score_list = torch.permute(cls_score_list, [0, 2, 1])  # # [B, Anchors, C]
@@ -271,10 +240,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         reg_distri_list = torch.cat(reg_distri_list, dim=1)  # [B, Anchors, 4 * (self.reg_max + 1)]
         reg_dist_reduced_list = torch.cat(reg_dist_reduced_list, dim=1)  # [B, Anchors, 4]
 
-        pose_regression_list = torch.cat(pose_regression_list, dim=1)  # [B, Anchors, 3 * C]
-        pose_regression_list = pose_regression_list.reshape(
-            (pose_regression_list.size(0), pose_regression_list.size(1), self.num_classes, 3)
-        )  # [B, Anchors, C, 3]
+        pose_regression_list = torch.cat(pose_regression_list, dim=1)  # [B, Anchors, J, 3]
 
         # Decode bboxes
         # Note in eval mode, anchor_points_inference is different from anchor_points computed on train
@@ -290,8 +256,8 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         pose_regression_list[:, :, :, 0:2] += anchor_points_inference.unsqueeze(0).unsqueeze(2)
         pose_regression_list[:, :, :, 0:2] *= stride_tensor.unsqueeze(0).unsqueeze(2)
 
-        pred_pose_coords = pose_regression_list[:, :, :, 0:2]  # [B, Anchors, C, 2]
-        pred_pose_scores = pose_regression_list[:, :, :, 2].sigmoid()  # [B, Anchors, C]
+        pred_pose_coords = pose_regression_list[:, :, :, 0:2].detach().clone()  # [B, Anchors, C, 2]
+        pred_pose_scores = pose_regression_list[:, :, :, 2].detach().clone().sigmoid()  # [B, Anchors, C]
 
         decoded_predictions = pred_bboxes, pred_scores, pred_pose_coords, pred_pose_scores
 

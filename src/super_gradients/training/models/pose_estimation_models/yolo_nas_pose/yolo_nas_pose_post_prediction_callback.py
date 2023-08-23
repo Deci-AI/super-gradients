@@ -15,13 +15,9 @@ class YoloNASPosePostPredictionCallback:
         :param score_threshold: Pose detection confidence threshold
         :param keypoint_confidence_threshold: A minimal confidence threshold for keypoints.
                                               Confidence scores of individual keypoints below this threshold will be set to 0.
-        :param iou: IoU threshold for NMS step.
+        :param nms_threshold: IoU threshold for NMS step.
         :param nms_top_k: Number of predictions participating in NMS step
         :param max_predictions: maximum number of boxes to return after NMS step
-        :param multi_label_per_box: controls whether to decode multiple labels per box.
-                                    True - each anchor can produce multiple labels of different classes
-                                           that pass confidence threshold check (default).
-                                    False - each anchor can produce only one label of the class with the highest score.
         """
         super().__init__()
         self.score_threshold = score_threshold

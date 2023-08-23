@@ -1,4 +1,5 @@
-from typing import Mapping, Tuple, Union, List
+import dataclasses
+from typing import Mapping, Tuple, Union, List, Optional
 
 import numpy as np
 import torch
@@ -13,9 +14,161 @@ from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 # from super_gradients.training.utils.distributed_training_utils import (
 #    get_world_size,
 # )
-from .ppyolo_loss import GIoULoss, TaskAlignedAssigner, BoxesAssignmentResult
+from .ppyolo_loss import GIoULoss, batch_iou_similarity, check_points_inside_bboxes, gather_topk_anchors, compute_max_iou_anchor
 
 from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_target_generator import undo_flat_collate_tensors_with_batch_index
+
+
+@dataclasses.dataclass
+class YoloNASPoseYoloNASPoseBoxesAssignmentResult:
+    assigned_labels: Tensor
+    assigned_bboxes: Tensor
+    assigned_poses: Tensor
+    assigned_scores: Tensor
+    assigned_gt_index: Tensor
+    assigned_gt_index_non_flat: Tensor
+
+
+class YoloNASPoseTaskAlignedAssigner(nn.Module):
+    """TOOD: Task-aligned One-stage Object Detection"""
+
+    def __init__(self, topk=13, alpha=1.0, beta=6.0, eps=1e-9):
+        """
+
+        :param topk: Maximum number of achors that is selected for each gt box
+        :param alpha: Power factor for class probabilities of predicted boxes (Used compute alignment metric)
+        :param beta: Power factor for IoU score of predicted boxes (Used compute alignment metric)
+        :param eps: Small constant for numerical stability
+        """
+        super().__init__()
+        self.topk = topk
+        self.alpha = alpha
+        self.beta = beta
+        self.eps = eps
+
+    @torch.no_grad()
+    def forward(
+        self,
+        pred_scores: Tensor,
+        pred_bboxes: Tensor,
+        pred_poses: Tensor,
+        anchor_points: Tensor,
+        num_anchors_list: list,
+        gt_labels: Tensor,
+        gt_bboxes: Tensor,
+        gt_poses: Tensor,
+        pad_gt_mask: Tensor,
+        bg_index: int,
+        gt_scores: Optional[Tensor] = None,
+    ) -> YoloNASPoseYoloNASPoseBoxesAssignmentResult:
+        """
+        This code is based on https://github.com/fcjian/TOOD/blob/master/mmdet/core/bbox/assigners/task_aligned_assigner.py
+
+        The assignment is done in following steps
+        1. compute alignment metric between all bbox (bbox of all pyramid levels) and gt
+        2. select top-k bbox as candidates for each gt
+        3. limit the positive sample's center in gt (because the anchor-free detector
+           only can predict positive distance)
+        4. if an anchor box is assigned to multiple gts, the one with the
+           highest iou will be selected.
+
+        :param pred_scores: Tensor (float32): predicted class probability, shape(B, L, C)
+        :param pred_bboxes: Tensor (float32): predicted bounding boxes, shape(B, L, 4)
+        :param pred_poses: Tensor (float32): predicted poses, shape(B, L, 17, 3)
+        :param anchor_points: Tensor (float32): pre-defined anchors, shape(L, 2), "cxcy" format
+        :param num_anchors_list: List ( num of anchors in each level, shape(L)
+        :param gt_labels: Tensor (int64|int32): Label of gt_bboxes, shape(B, n, 1)
+        :param gt_bboxes: Tensor (float32): Ground truth bboxes, shape(B, n, 4)
+        :param gt_poses: Tensor (float32): Ground truth poses, shape(B, n, 17, 3)
+        :param pad_gt_mask: Tensor (float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
+        :param bg_index: int ( background index
+        :param gt_scores: Tensor (one, float32) Score of gt_bboxes, shape(B, n, 1)
+        :return:
+            - assigned_labels, Tensor of shape (B, L)
+            - assigned_bboxes, Tensor of shape (B, L, 4)
+            - assigned_scores, Tensor of shape (B, L, C)
+        """
+        assert pred_scores.ndim == pred_bboxes.ndim
+        assert gt_labels.ndim == gt_bboxes.ndim and gt_bboxes.ndim == 3
+
+        batch_size, num_anchors, num_classes = pred_scores.shape
+        _, num_max_boxes, _ = gt_bboxes.shape
+
+        # negative batch
+        if num_max_boxes == 0:
+            assigned_labels = torch.full([batch_size, num_anchors], bg_index, dtype=torch.long, device=gt_labels.device)
+            assigned_bboxes = torch.zeros([batch_size, num_anchors, 4], device=gt_labels.device)
+            assigned_scores = torch.zeros([batch_size, num_anchors, num_classes], device=gt_labels.device)
+            assigned_gt_index = torch.zeros([batch_size, num_anchors], dtype=torch.long, device=gt_labels.device)
+            return YoloNASPoseYoloNASPoseBoxesAssignmentResult(
+                assigned_labels=assigned_labels, assigned_bboxes=assigned_bboxes, assigned_scores=assigned_scores, assigned_gt_index=assigned_gt_index
+            )
+
+        # compute iou between gt and pred bbox, [B, n, L]
+        ious = batch_iou_similarity(gt_bboxes, pred_bboxes)
+        # gather pred bboxes class score
+        pred_scores = torch.permute(pred_scores, [0, 2, 1])
+        batch_ind = torch.arange(end=batch_size, dtype=gt_labels.dtype, device=gt_labels.device).unsqueeze(-1)
+        gt_labels_ind = torch.stack([batch_ind.tile([1, num_max_boxes]), gt_labels.squeeze(-1)], dim=-1)
+
+        bbox_cls_scores = pred_scores[gt_labels_ind[..., 0], gt_labels_ind[..., 1]]
+
+        # compute alignment metrics, [B, n, L]
+        alignment_metrics = bbox_cls_scores.pow(self.alpha) * ious.pow(self.beta)
+
+        # check the positive sample's center in gt, [B, n, L]
+        is_in_gts = check_points_inside_bboxes(anchor_points, gt_bboxes)
+
+        # select topk largest alignment metrics pred bbox as candidates
+        # for each gt, [B, n, L]
+        is_in_topk = gather_topk_anchors(alignment_metrics * is_in_gts, self.topk, topk_mask=pad_gt_mask)
+
+        # select positive sample, [B, n, L]
+        mask_positive = is_in_topk * is_in_gts * pad_gt_mask
+
+        # if an anchor box is assigned to multiple gts,
+        # the one with the highest iou will be selected, [B, n, L]
+        mask_positive_sum = mask_positive.sum(dim=-2)
+        if mask_positive_sum.max() > 1:
+            mask_multiple_gts = (mask_positive_sum.unsqueeze(1) > 1).tile([1, num_max_boxes, 1])
+            is_max_iou = compute_max_iou_anchor(ious)
+            mask_positive = torch.where(mask_multiple_gts, is_max_iou, mask_positive)
+            mask_positive_sum = mask_positive.sum(dim=-2)
+        assigned_gt_index = mask_positive.argmax(dim=-2)
+
+        # assigned target
+        assigned_gt_index_non_flat = assigned_gt_index
+        assigned_gt_index = assigned_gt_index + batch_ind * num_max_boxes
+        assigned_labels = torch.gather(gt_labels.flatten(), index=assigned_gt_index.flatten(), dim=0)
+        assigned_labels = assigned_labels.reshape([batch_size, num_anchors])
+        assigned_labels = torch.where(mask_positive_sum > 0, assigned_labels, torch.full_like(assigned_labels, bg_index))
+
+        assigned_bboxes = gt_bboxes.reshape([-1, 4])[assigned_gt_index.flatten(), :]
+        assigned_bboxes = assigned_bboxes.reshape([batch_size, num_anchors, 4])
+
+        assigned_poses = gt_poses.reshape([-1, 17, 3])[assigned_gt_index.flatten(), :]
+        assigned_poses = assigned_poses.reshape([batch_size, num_anchors, 17, 3])
+
+        assigned_scores = torch.nn.functional.one_hot(assigned_labels, num_classes + 1)
+        ind = list(range(num_classes + 1))
+        ind.remove(bg_index)
+        assigned_scores = torch.index_select(assigned_scores, index=torch.tensor(ind, device=assigned_scores.device, dtype=torch.long), dim=-1)
+        # rescale alignment metrics
+        alignment_metrics *= mask_positive
+        max_metrics_per_instance = alignment_metrics.max(dim=-1, keepdim=True).values
+        max_ious_per_instance = (ious * mask_positive).max(dim=-1, keepdim=True).values
+        alignment_metrics = alignment_metrics / (max_metrics_per_instance + self.eps) * max_ious_per_instance
+        alignment_metrics = alignment_metrics.max(dim=-2).values.unsqueeze(-1)
+        assigned_scores = assigned_scores * alignment_metrics
+
+        return YoloNASPoseYoloNASPoseBoxesAssignmentResult(
+            assigned_labels=assigned_labels,
+            assigned_bboxes=assigned_bboxes,
+            assigned_scores=assigned_scores,
+            assigned_poses=assigned_poses,
+            assigned_gt_index=assigned_gt_index,
+            assigned_gt_index_non_flat=assigned_gt_index_non_flat,
+        )
 
 
 @register_loss(Losses.YOLONAS_POSE_LOSS)
@@ -55,7 +208,7 @@ class YoloNASPoseLoss(nn.Module):
         self.oks_sigmas = torch.tensor(oks_sigmas)
         self.pose_cls_loss_weight = pose_cls_loss_weight
         self.pose_reg_loss_weight = pose_reg_loss_weight
-        self.assigner = TaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
+        self.assigner = YoloNASPoseTaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
 
         # Same as in PPYoloE head
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
@@ -115,8 +268,7 @@ class YoloNASPoseLoss(nn.Module):
             "gt_class": torch.stack(per_image_class, dim=0),
             "gt_bbox": torch.stack(per_image_bbox, dim=0),
             "pad_gt_mask": torch.stack(per_image_pad_mask, dim=0),
-            "padded_target_poses": torch.stack(per_image_targets, dim=0),
-            "gt_poses": target_joints,
+            "gt_poses": torch.stack(per_image_targets, dim=0),
         }
         return new_targets
 
@@ -149,16 +301,19 @@ class YoloNASPoseLoss(nn.Module):
 
         gt_labels = targets["gt_class"]
         gt_bboxes = targets["gt_bbox"]
+        gt_poses = targets["gt_poses"]
         pad_gt_mask = targets["pad_gt_mask"]
 
         # label assignment
         assign_result = self.assigner(
             pred_scores=pred_scores.detach().sigmoid(),  # Pred scores are logits on training for numerical stability
             pred_bboxes=pred_bboxes.detach() * stride_tensor,
+            pred_poses=pred_pose_logits.detach(),
             anchor_points=anchor_points,
             num_anchors_list=num_anchors_list,
             gt_labels=gt_labels,
             gt_bboxes=gt_bboxes,
+            gt_poses=gt_poses,
             pad_gt_mask=pad_gt_mask,
             bg_index=self.num_classes,
         )
@@ -168,8 +323,6 @@ class YoloNASPoseLoss(nn.Module):
         assigned_bboxes = assign_result.assigned_bboxes
         assigned_scores = assign_result.assigned_scores
 
-        # rescale bbox
-        assigned_bboxes /= stride_tensor
         # cls loss
         if self.use_varifocal_loss:
             one_hot_label = torch.nn.functional.one_hot(assigned_labels, self.num_classes + 1)[..., :-1]
@@ -189,14 +342,13 @@ class YoloNASPoseLoss(nn.Module):
             pred_bboxes,
             anchor_points_s,
             assigned_labels,
-            assigned_bboxes,
+            assigned_bboxes / stride_tensor,  # rescale bbox
             assigned_scores,
             assigned_scores_sum,
         )
 
         loss_pose_cls, loss_pose_reg = self._pose_loss(
             pred_pose_logits,
-            true_keypoints=targets["padded_target_poses"],
             stride_tensor=stride_tensor,
             anchor_points=anchor_points_s,
             assign_result=assign_result,
@@ -247,15 +399,15 @@ class YoloNASPoseLoss(nn.Module):
         kpt_loss_factor = (torch.sum(kpt_mask != 0) + torch.sum(kpt_mask == 0)) / (torch.sum(kpt_mask != 0) + 1e-9)
         # e = d / (2 * (area * self.sigmas) ** 2 + 1e-9)  # from formula
         e = d / (2 * sigmas) ** 2 / (area + 1e-9) / 2  # from cocoeval
-        regression_loss = kpt_loss_factor * ((1 - torch.exp(-e)) * kpt_mask).mean()
-        classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(pred_kpts[..., 2], kpt_mask.float(), reduction="mean")
+        regression_loss = kpt_loss_factor * ((1 - torch.exp(-e)) * kpt_mask)
+        classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(pred_kpts[..., 2], kpt_mask.float(), reduction="none")
         return regression_loss, classification_loss
 
-    def _pose_loss(self, pose_regression_list, true_keypoints, anchor_points, stride_tensor, assign_result: BoxesAssignmentResult, assigned_scores_sum):
+    def _pose_loss(self, pose_regression_list, anchor_points, stride_tensor, assign_result: YoloNASPoseYoloNASPoseBoxesAssignmentResult, assigned_scores_sum):
         """
 
         :param pose_regression_list: [B, Anchors, C, 3]
-        :param true_keypoints: [B, n, Num Joints, 4] - (batch_index, x, y, visibility)
+        :param true_keypoints: [B, n, Num Joints, 3] - (x, y, visibility)
         :param anchor_points:
         :param assign_result:
         :param assigned_scores_sum:
@@ -263,43 +415,49 @@ class YoloNASPoseLoss(nn.Module):
         """
 
         assigned_labels = assign_result.assigned_labels
-        mask_positive = assigned_labels != self.num_classes
-        batch_size = pose_regression_list.size(0)
-        num_anchors = pose_regression_list.size(1)
+        mask_positive: Tensor = assigned_labels != self.num_classes
         loss_pose_cls = torch.zeros([], device=pose_regression_list.device)
         loss_pose_reg = torch.zeros([], device=pose_regression_list.device)
 
-        # true_keypoints = true_keypoints.clone().detach()
-        # true_keypoints = undo_flat_collate_tensors_with_batch_index(true_keypoints, batch_size)
+        num_pos = mask_positive.sum()
+        if num_pos > 0:
+            boxes_mask = mask_positive.unsqueeze(-1).tile([1, 1, 4])
+            joints_mask = mask_positive.unsqueeze(-1).unsqueeze(-1).tile([1, 1, self.num_keypoints, 3])
+            pred_poses = torch.masked_select(pose_regression_list, joints_mask).reshape([-1, self.num_keypoints, 3])
+            gt_poses = torch.masked_select(assign_result.assigned_poses, joints_mask).reshape([-1, self.num_keypoints, 3])
+            assigned_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).reshape([-1, 1])
+            gt_boxes = torch.masked_select(assign_result.assigned_bboxes, boxes_mask).reshape([-1, 4])
+            area = self._xyxy_box_area(gt_boxes).reshape([-1, 1])
 
-        # pos/neg loss
-        num_pos_samples = 0
-        assigned_poses = true_keypoints.reshape([-1, 17, 3])[assign_result.assigned_gt_index.flatten(), :, :]
-        assigned_poses = assigned_poses.reshape([batch_size, num_anchors, 17, 3])
+            regression_loss, classification_loss = self._keypoint_loss(pred_poses, gt_poses, area, self.oks_sigmas.to(pred_poses.device))  # pose loss
+            regression_loss_reduced = (regression_loss * assigned_weight).sum() / assigned_scores_sum
+            classification_loss_reduced = (classification_loss * assigned_weight).sum() / assigned_scores_sum
+            loss_pose_cls = classification_loss_reduced
+            loss_pose_reg = regression_loss_reduced
 
-        for i in range(batch_size):
-            if mask_positive[i].sum():
-                image_level_mask = mask_positive[i]
-                # idx = assign_result.assigned_gt_index_non_flat[i][image_level_mask]
-                gt_kpt = assigned_poses[i][image_level_mask]
-                # gt_kpt[..., 0:1] /= stride_tensor[image_level_mask].unsqueeze(1)
-                # gt_kpt[..., 1:2] /= stride_tensor[image_level_mask].unsqueeze(1)
-                area = self._xyxy_box_area(assign_result.assigned_bboxes[i][image_level_mask] * stride_tensor[image_level_mask])
-                pred_kpt = pose_regression_list[i][image_level_mask]
-                loss = self._keypoint_loss(pred_kpt, gt_kpt, area=area, sigmas=self.oks_sigmas.to(pred_kpt.device))  # pose loss
-                loss_pose_cls += loss[0]
-                loss_pose_reg += loss[1]
-                num_pos_samples += 1
+        # for i in range(batch_size):
+        #     if mask_positive[i].sum():
+        #         image_level_mask = mask_positive[i]
+        #         # idx = assign_result.assigned_gt_index_non_flat[i][image_level_mask]
+        #         gt_kpt = assigned_poses[i][image_level_mask]
+        #         # gt_kpt[..., 0:1] /= stride_tensor[image_level_mask].unsqueeze(1)
+        #         # gt_kpt[..., 1:2] /= stride_tensor[image_level_mask].unsqueeze(1)
+        #         area = self._xyxy_box_area(assign_result.assigned_bboxes[i][image_level_mask] * stride_tensor[image_level_mask])
+        #         pred_kpt = pose_regression_list[i][image_level_mask]
+        #         loss = self._keypoint_loss(pred_kpt, gt_kpt, area=area, sigmas=self.oks_sigmas.to(pred_kpt.device))  # pose loss
+        #         loss_pose_cls += loss[0]
+        #         loss_pose_reg += loss[1]
+        #         num_pos_samples += 1
 
-        num_pos_samples = max(num_pos_samples, 1)
-        return loss_pose_cls / num_pos_samples, loss_pose_reg / num_pos_samples
+        return loss_pose_cls, loss_pose_reg
 
     def _xyxy_box_area(self, boxes):
         """
-        :param boxes: [N, 4] (x1, y1, x2, y2)
-        :return: [N,1]
+        :param boxes: [..., 4] (x1, y1, x2, y2)
+        :return: [...,1]
         """
-        return (boxes[:, 2:3] - boxes[:, 0:1]) * (boxes[:, 3:4] - boxes[:, 1:2])
+        area = (boxes[..., 2:4] - boxes[..., 0:2]).prod(dim=-1, keepdim=True)
+        return area
 
     def _bbox_loss(
         self,
