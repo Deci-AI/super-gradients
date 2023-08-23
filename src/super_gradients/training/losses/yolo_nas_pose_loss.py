@@ -401,7 +401,7 @@ class YoloNASPoseLoss(nn.Module):
         e = d / (2 * sigmas) ** 2 / (area + 1e-9) / 2  # from cocoeval
         regression_loss = kpt_loss_factor * ((1 - torch.exp(-e)) * kpt_mask)
         classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(pred_kpts[..., 2], kpt_mask.float(), reduction="none")
-        return regression_loss, classification_loss
+        return regression_loss.mean(dim=-1, keepdim=True), classification_loss.mean(dim=-1, keepdim=True)
 
     def _pose_loss(self, pose_regression_list, anchor_points, stride_tensor, assign_result: YoloNASPoseYoloNASPoseBoxesAssignmentResult, assigned_scores_sum):
         """
@@ -423,11 +423,14 @@ class YoloNASPoseLoss(nn.Module):
         if num_pos > 0:
             boxes_mask = mask_positive.unsqueeze(-1).tile([1, 1, 4])
             joints_mask = mask_positive.unsqueeze(-1).unsqueeze(-1).tile([1, 1, self.num_keypoints, 3])
-            pred_poses = torch.masked_select(pose_regression_list, joints_mask).reshape([-1, self.num_keypoints, 3])
-            gt_poses = torch.masked_select(assign_result.assigned_poses, joints_mask).reshape([-1, self.num_keypoints, 3])
-            assigned_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).reshape([-1, 1])
-            gt_boxes = torch.masked_select(assign_result.assigned_bboxes, boxes_mask).reshape([-1, 4])
+            # Divide poses by stride
+            pred_poses = torch.masked_select(pose_regression_list / stride_tensor.unsqueeze(0).unsqueeze(-1), joints_mask).reshape([-1, self.num_keypoints, 3])
+            gt_poses = torch.masked_select(assign_result.assigned_poses / stride_tensor.unsqueeze(0).unsqueeze(-1), joints_mask.unsqueeze(0)).reshape(
+                [-1, self.num_keypoints, 3]
+            )
+            gt_boxes = torch.masked_select(assign_result.assigned_bboxes / stride_tensor.unsqueeze(0), boxes_mask).reshape([-1, 4])
             area = self._xyxy_box_area(gt_boxes).reshape([-1, 1])
+            assigned_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).reshape([-1, 1])
 
             regression_loss, classification_loss = self._keypoint_loss(pred_poses, gt_poses, area, self.oks_sigmas.to(pred_poses.device))  # pose loss
             regression_loss_reduced = (regression_loss * assigned_weight).sum() / assigned_scores_sum
