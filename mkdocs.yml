@@ -27,6 +27,7 @@ nav:
   - Phase Callbacks: ./documentation/source/PhaseCallbacks.md
   - YAMLs and Recipes:
     - Configurations: ./documentation/source/configuration_files.md
+    - Factories: ./documentation/source/Factories.md
     - Recipes: ./src/super_gradients/recipes/Training_Recipes.md
   - Checkpoints: ./documentation/source/Checkpoints.md
   - Docker: ./documentation/source/SGDocker.md
