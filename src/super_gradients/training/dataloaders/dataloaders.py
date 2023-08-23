@@ -820,7 +820,7 @@ def coco2017_pose_train(dataset_params: Dict = None, dataloader_params: Dict = N
     return get_data_loader(
         config_name="coco_pose_estimation_dataset_params",
         dataset_cls=COCOKeypointsDataset,
-        train=True,
+        train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
     )
