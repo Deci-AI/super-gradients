@@ -88,45 +88,6 @@ def _main(cfg: DictConfig) -> None:
             num_gpus=cfg.num_gpus,
         )
 
-        # INSTANTIATE ALL OBJECTS IN CFG
-        cfg = hydra.utils.instantiate(cfg)
-
-        trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
-
-        # BUILD NETWORK
-        model = models.get(
-            model_name=cfg.architecture,
-            num_classes=cfg.arch_params.num_classes,
-            arch_params=cfg.arch_params,
-            strict_load=cfg.checkpoint_params.strict_load,
-            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-            load_backbone=cfg.checkpoint_params.load_backbone,
-        )
-
-        # INSTANTIATE DATA LOADERS
-
-        train_dataloader = dataloaders.get(
-            name=cfg.train_dataloader,
-            dataset_params=cfg.dataset_params.train_dataset_params,
-            dataloader_params=cfg.dataset_params.train_dataloader_params,
-        )
-
-        val_dataloader = dataloaders.get(
-            name=cfg.val_dataloader,
-            dataset_params=cfg.dataset_params.val_dataset_params,
-            dataloader_params=cfg.dataset_params.val_dataloader_params,
-        )
-
-        # TRAIN
-        train_results = trainer.train(
-            model=model,
-            train_loader=train_dataloader,
-            valid_loader=val_dataloader,
-            training_params=cfg.training_hyperparams,
-        )
-        
-        print(train_results)
 
 def main() -> None:
     init_trainer()  # `init_trainer` needs to be called before `@hydra.main`

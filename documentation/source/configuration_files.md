@@ -76,7 +76,27 @@ val_dataset_params:
 Configuration file can also help you track the exact settings used for each one of your experiments, tweak and tune these settings, and share them with others.
 Concentrating all of these configuration parameters in one place, gives you great visibility and control of your experiments. 
 
-## Hydra
+## How to use configuration files
+So, if you got so far, we have probably manged to convince you that configuration files are awsome and powerful tools - welcome aboard!
+
+YAML is a human-readable data-serialization language. It is commonly used for configuration files and in applications where data is being 
+stored or transmitted ([Wikipedia](https://en.wikipedia.org/wiki/YAML)). 
+We parse each file into dictionaries, lists, and objects, and pass them to the code either as a recursive dictionary or as function arguments. 
+
+Let's try running a training session from a configuration file.
+ 
+```shell
+python -m super_gradients.train_from_recipe --config-name=cifar10_resnet
+```
+You can stop the training after a few cycles. 
+
+The recipe you have just used is a configuration file containing everything SG needs to know in order to train
+Resnet18 on Cifar10. The actual YAML file is located in `src/super_gradients/recipes/cifar10_resnet.yaml`. 
+In the same `recipes` library you can find many more configuration files defining different models, datasets, 
+and training hyper-parameters.
+
+
+### Hydra
 Hydra is an open-source Python framework that provides us with many useful functionalities for YAML management. You can learn about Hydra 
 [here](https://hydra.cc/docs/intro). We use Hydra to load YAML files and convert them into dictionaries, while 
 instantiating the objects referenced in the YAML.
@@ -97,28 +117,9 @@ in the first arg of the command line.
 In the experiment directory a `.hydra` subdirectory will be created. The configuration files related to this run will be saved by hydra to that subdirectory.  
 
 
-Two Hydra features worth mentioning are [Command-Line Overrides](https://hydra.cc/docs/advanced/override_grammar/basic/) and [YAML Composition](https://hydra.cc/docs/0.11/tutorial/composition/).
+Two Hydra features worth mentioning are [Command-Line Overrides](https://hydra.cc/docs/advanced/override_grammar/basic/) 
+and [YAML Composition](https://hydra.cc/docs/0.11/tutorial/composition/).
 We strongly recommend you to have a look at both of these pages.
-
-
-## How to use configuration files
-So, if you got so far, we have probably manged to convince you that configuration files are awsome and powerful tools - welcome aboard!
-
-YAML is a human-readable data-serialization language. It is commonly used for configuration files and in applications where data is being 
-stored or transmitted ([Wikipedia](https://en.wikipedia.org/wiki/YAML)). 
-We parse each file into dictionaries, lists, and objects, and pass them to the code either as a recursive dictionary or as function arguments. 
-
-Let's try running a training session from a configuration file.
- 
-```shell
-python -m super_gradients.train_from_recipe --config-name=cifar10_resnet
-```
-You can stop the training after a few cycles. 
-
-The recipe you have just used is a configuration file containing everything SG needs to know in order to train
-Resnet18 on Cifar10. The actual YAML file is located in `src/super_gradients/recipes/cifar10_resnet.yaml`. 
-In the same `recipes` library you can find many more configuration files defining different models, datasets, 
-and training hyper-parameters.
 
 
 ### Conclusion
