@@ -7,10 +7,8 @@ train_dataset_params:
     YoloNASPoseTargetsGenerator
 
 val_dataset_params:
-  data_dir:
   target_generator:
     YoloNASPoseTargetsGenerator
-
 
 train_dataloader_params:
   pin_memory: False
