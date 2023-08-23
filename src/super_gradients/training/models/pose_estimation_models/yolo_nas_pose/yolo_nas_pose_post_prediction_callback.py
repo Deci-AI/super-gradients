@@ -53,6 +53,8 @@ class YoloNASPosePostPredictionCallback:
 
             pred_bboxes_conf = pred_bboxes_conf[conf_mask]
             pred_bboxes_xyxy = pred_bboxes_xyxy[conf_mask]
+            pred_pose_coords = pred_pose_coords[conf_mask]
+            pred_pose_scores = pred_pose_scores[conf_mask]
 
             # Filter all predictions by self.nms_top_k
             if pred_bboxes_conf.size(0) > self.nms_top_k:
