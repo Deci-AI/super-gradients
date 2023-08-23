@@ -105,8 +105,8 @@ We strongly recommend you to have a look at both of these pages.
 So, if you got so far, we have probably manged to convince you that configuration files are awsome and powerful tools - welcome aboard!
 
 YAML is a human-readable data-serialization language. It is commonly used for configuration files and in applications where data is being 
-stored or transmitted ([Wikipedia](https://en.wikipedia.org/wiki/YAML)). We parse each file into dictionaries, lists, and objects, and pass them to the code
-either as a recursive dictionary or as function arguments. 
+stored or transmitted ([Wikipedia](https://en.wikipedia.org/wiki/YAML)). 
+We parse each file into dictionaries, lists, and objects, and pass them to the code either as a recursive dictionary or as function arguments. 
 
 Let's try running a training session from a configuration file.
  
@@ -116,26 +116,16 @@ python -m super_gradients.train_from_recipe --config-name=cifar10_resnet
 You can stop the training after a few cycles. 
 
 The recipe you have just used is a configuration file containing everything SG needs to know in order to train
-Resnet18 on Cifar10. The actual YAML file is located in `src/super_gradients/recipes/cifar10_resnet.yaml`. In the same `recipes` library you can find many more
-configuration files defining different models, datasets, and training hyper-parameters.
-
-Try changing the `initial_lr` parameter in the file `src/super_gradients/recipes/training_hyperparams/cifar10_resnet_train_params.yaml` and launch this scrip again. 
-You will see a different result now. This is because the parameters from `cifar10_resnet_train_params.yaml` are used in `cifar10_resnet.yaml`
-(we will discuss thin in the next section). 
-
-Two more useful functionalities are 
-```commandline
-python -m super_gradients.resume_experiment --experiment_name=cifar10_resnet
-```
-
-that will resume the experiment from the last checkpoint, and
-
-```commandline
-python -m super_gradients.evaluate_from_recipe --config-name=cifar10_resnet
-```
-that will run only the evaluation part of the recipe (without any training iterations)
+Resnet18 on Cifar10. The actual YAML file is located in `src/super_gradients/recipes/cifar10_resnet.yaml`. 
+In the same `recipes` library you can find many more configuration files defining different models, datasets, 
+and training hyper-parameters.
 
 
+### Conclusion
+This brief introduction has given you a glimpse into the functionality and importance of recipes within SuperGradients:
+- **Recipes Overview**: Configuration files in YAML format that allow streamlined training and customization.
+- **SuperGradients' Utilization**: Enhancing reproducibility, flexibility, and efficiency in defining models, datasets, and hyperparameters.
+- **Introduction to training**: A simple demonstration of initiating a training session using a specific recipe.
 
-From this point, you should have a better understanding of **what are the recipes** and **why SuperGradients is using them**.
-Now we can move on into [how to train a model using recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/Training_Recipes.md).
+**Next Step**: More details await in the [upcoming tutorials](Recipes_Training.md), where we'll explore more in-depth training from recipes, 
+and the customization, structure, and deeper functionality of recipes within SuperGradients. 

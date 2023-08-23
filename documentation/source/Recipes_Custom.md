@@ -3,7 +3,7 @@
 
 Prerequisites:
 - [Introduction to Configuration Files](configuration_files.md)
-- [Introduction to Training Recipes](Recipes_Introduction.md)
+- [Introduction to Training Recipes](Recipes_Training.md)
 - [Working with Factories](Recipes_Factories.md)
 
 

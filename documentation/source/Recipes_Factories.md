@@ -4,7 +4,7 @@ Factories in SuperGradients provide a powerful and concise way to instantiate ob
 
 Prerequisites:
 - [Training with Configuration Files](configuration_files.md)
-- [Introduction to Training Recipes](Recipes_Introduction.md)
+- [Introduction to Training Recipes](Recipes_Training.md)
 
 In this tutorial, we'll cover how to use existing factories, register new ones, and briefly explore the implementation details.
 
@@ -184,25 +184,37 @@ SuperGradients offers various types of factories, and each is associated with a 
 
 ``` python
 from super_gradients.common.factories import (
-    register_model
-    register_kd_model
-    register_detection_module
-    register_metric
-    register_loss
-    register_dataloader
-    register_callback
-    register_transform
-    register_dataset
-    register_pre_launch_callback
-    register_unet_backbone_stage
-    register_unet_up_block
-    register_target_generator
-    register_lr_scheduler
-    register_lr_warmup
-    register_sg_logger
-    register_collate_function
-    register_sampler
-    register_optimizer
-    register_processing
+    register_model,
+    register_kd_model,
+    register_detection_module,
+    register_metric,
+    register_loss,
+    register_dataloader,
+    register_callback,
+    register_transform,
+    register_dataset,
+    register_pre_launch_callback,
+    register_unet_backbone_stage,
+    register_unet_up_block,
+    register_target_generator,
+    register_lr_scheduler,
+    register_lr_warmup,
+    register_sg_logger,
+    register_collate_function,
+    register_sampler,
+    register_optimizer,
+    register_processing,
 )
 ```
+
+### Conclusion
+
+In this tutorial, we have delved into the realm of factories, encompassing:
+- **Using Existing Factories**: How SuperGradients automatically instantiates objects defined in recipes.
+- **Registering New Classes**: The method to map object names to corresponding class types, and how to integrate them in your recipes.
+- **Under the Hood**: Insights into basic and recommended ways to use factories, as well as the variety of supported factory types within SuperGradients.
+
+These insights provide essential understanding and practical techniques to work with factories, a core element in SuperGradients that bridges the gap between configuration and instantiation.
+
+**Next Step**: Ready to craft your unique recipes? In the [next tutorial](Recipes_Custom.md), 
+we'll guide you through building your own recipe and training a model based on that recipe. 
