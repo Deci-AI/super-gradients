@@ -119,7 +119,7 @@ val_dataset_params:
   images_dir: images/val2017
   json_file: annotations/person_keypoints_val2017.json
 
-  include_empty_samples: False
+  include_empty_samples: True
   min_instance_area: 128
 
   edge_links: ${dataset_params.edge_links}
