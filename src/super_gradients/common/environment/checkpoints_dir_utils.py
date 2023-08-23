@@ -108,6 +108,7 @@ def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: Optional[str] 
     """
     experiment_dir = get_experiment_dir_path(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
     checkpoint_dir = experiment_dir if run_id is None else os.path.join(experiment_dir, run_id)
+    os.makedirs(checkpoint_dir, exist_ok=True)
     return checkpoint_dir
 
 

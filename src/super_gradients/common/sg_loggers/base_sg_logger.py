@@ -133,7 +133,7 @@ class BaseSGLogger(AbstractSGLogger):
             # Only if it exists, i.e. if hydra was used.
             if os.path.exists(source_hydra_path):
                 destination_hydra_path = os.path.join(self._local_dir, ".hydra")
-                shutil.copytree(source_hydra_path, destination_hydra_path)
+                shutil.copytree(source_hydra_path, destination_hydra_path, dirs_exist_ok=True)
 
     @multi_process_safe
     def _init_log_file(self):
