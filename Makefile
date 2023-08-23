@@ -45,4 +45,4 @@ coco2017_yolo_nas_pose_m:
 	CUDA_VISIBLE_DEVICES=6 python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_m_weights_and_biases dataset_params.val_dataset_params.data_dir=/data/coco multi_gpu=Off num_gpus=1
 
 coco2017_yolo_nas_pose_l:
-	CUDA_VISIBLE_DEVICES=5 python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l_weights_and_biases dataset_params.val_dataset_params.data_dir=/data/coco multi_gpu=Off num_gpus=1
+	torchrun --standalone --nnodes=1 --nproc_per_node=8 python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l_weights_and_biases dataset_params.val_dataset_params.data_dir=/data/coco
