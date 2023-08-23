@@ -3,6 +3,7 @@ import sys
 import pkg_resources
 from typing import Optional
 from datetime import datetime
+from pathlib import Path
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -108,6 +109,7 @@ def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: Optional[str] 
     """
     experiment_dir = get_experiment_dir_path(checkpoints_root_dir=ckpt_root_dir, experiment_name=experiment_name)
     checkpoint_dir = experiment_dir if run_id is None else os.path.join(experiment_dir, run_id)
+    Path(checkpoint_dir).mkdir(exist_ok=True, parents=True)
     return checkpoint_dir
 
 
