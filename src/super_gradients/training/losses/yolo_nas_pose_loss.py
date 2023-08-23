@@ -83,6 +83,7 @@ class YoloNASPoseLoss(nn.Module):
         per_image_class = []
         per_image_bbox = []
         per_image_pad_mask = []
+        per_image_targets = undo_flat_collate_tensors_with_batch_index(target_joints, batch_size)
 
         max_boxes = 0
         for i in range(batch_size):
@@ -108,11 +109,13 @@ class YoloNASPoseLoss(nn.Module):
             per_image_class[i] = F.pad(per_image_class[i], pad, mode="constant", value=0)
             per_image_bbox[i] = F.pad(per_image_bbox[i], pad, mode="constant", value=0)
             per_image_pad_mask[i] = F.pad(per_image_pad_mask[i], pad, mode="constant", value=0)
+            per_image_targets[i] = F.pad(per_image_targets[i], (0, 0) + pad, mode="constant", value=0)
 
         new_targets = {
             "gt_class": torch.stack(per_image_class, dim=0),
             "gt_bbox": torch.stack(per_image_bbox, dim=0),
             "pad_gt_mask": torch.stack(per_image_pad_mask, dim=0),
+            "padded_target_poses": torch.stack(per_image_targets, dim=0),
             "gt_poses": target_joints,
         }
         return new_targets
@@ -193,7 +196,7 @@ class YoloNASPoseLoss(nn.Module):
 
         loss_pose_cls, loss_pose_reg = self._pose_loss(
             pred_pose_logits,
-            true_keypoints=targets["gt_poses"],
+            true_keypoints=targets["padded_target_poses"],
             stride_tensor=stride_tensor,
             anchor_points=anchor_points_s,
             assign_result=assign_result,
@@ -252,7 +255,7 @@ class YoloNASPoseLoss(nn.Module):
         """
 
         :param pose_regression_list: [B, Anchors, C, 3]
-        :param true_keypoints: [N, Num Joints, 4] - (batch_index, x, y, visibility)
+        :param true_keypoints: [B, n, Num Joints, 4] - (batch_index, x, y, visibility)
         :param anchor_points:
         :param assign_result:
         :param assigned_scores_sum:
@@ -262,19 +265,23 @@ class YoloNASPoseLoss(nn.Module):
         assigned_labels = assign_result.assigned_labels
         mask_positive = assigned_labels != self.num_classes
         batch_size = pose_regression_list.size(0)
+        num_anchors = pose_regression_list.size(1)
         loss_pose_cls = torch.zeros([], device=pose_regression_list.device)
         loss_pose_reg = torch.zeros([], device=pose_regression_list.device)
 
-        true_keypoints = true_keypoints.clone().detach()
-        true_keypoints = undo_flat_collate_tensors_with_batch_index(true_keypoints, batch_size)
+        # true_keypoints = true_keypoints.clone().detach()
+        # true_keypoints = undo_flat_collate_tensors_with_batch_index(true_keypoints, batch_size)
 
         # pos/neg loss
         num_pos_samples = 0
+        assigned_poses = true_keypoints.reshape([-1, 17, 3])[assign_result.assigned_gt_index.flatten(), :, :]
+        assigned_poses = assigned_poses.reshape([batch_size, num_anchors, 17, 3])
+
         for i in range(batch_size):
             if mask_positive[i].sum():
                 image_level_mask = mask_positive[i]
-                idx = assign_result.assigned_gt_index_non_flat[i][image_level_mask]
-                gt_kpt = true_keypoints[i][idx]
+                # idx = assign_result.assigned_gt_index_non_flat[i][image_level_mask]
+                gt_kpt = assigned_poses[i][image_level_mask]
                 # gt_kpt[..., 0:1] /= stride_tensor[image_level_mask].unsqueeze(1)
                 # gt_kpt[..., 1:2] /= stride_tensor[image_level_mask].unsqueeze(1)
                 area = self._xyxy_box_area(assign_result.assigned_bboxes[i][image_level_mask] * stride_tensor[image_level_mask])
