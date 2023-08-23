@@ -1,9 +1,11 @@
 # Configuration Files and Recipes
-SuperGradients supports [YAML](https://en.wikipedia.org/wiki/YAML) formatted configuration files. These files can contain training hyper-parameters,
-architecture parameters, datasets parameters and any other parameters required by the training process.
+SuperGradients supports [YAML](https://en.wikipedia.org/wiki/YAML) formatted configuration files. 
+These files can contain training hyper-parameters, architecture parameters, datasets parameters and any 
+other parameters required by the training process.
+
 These parameters will be consumed as dictionaries or as function arguments by different parts of SuperGradients.
 
-> You can use SuperGradients without using any configuration files, look into the examples directory to see how.
+> These YAML files act like a cookbook for training models, which is why they are called **Recipes**.
 
 SuperGradients was designed to expose as many parameters as possible to allow outside configuration without writing a single line of code.
 You can control the learning-rate, the weight-decay or even the loss function and metric used in the training, but moreover, you can even control 
@@ -34,6 +36,9 @@ optimizer_params:
   weight_decay: 1e-4
   momentum: 0.9
 ```
+
+
+> NOTE: You can use SuperGradients without using any configuration files, look into the examples directory to see how.
 
 ## Why using configuration files
 Using configuration file might seem too complicated or redundant at first. But, after a short training, you will find it extremely convenient and useful. 
@@ -71,6 +76,31 @@ val_dataset_params:
 Configuration file can also help you track the exact settings used for each one of your experiments, tweak and tune these settings, and share them with others.
 Concentrating all of these configuration parameters in one place, gives you great visibility and control of your experiments. 
 
+## Hydra
+Hydra is an open-source Python framework that provides us with many useful functionalities for YAML management. You can learn about Hydra 
+[here](https://hydra.cc/docs/intro). We use Hydra to load YAML files and convert them into dictionaries, while 
+instantiating the objects referenced in the YAML.
+You can see this in the code:
+
+```python
+import hydra
+from omegaconf import DictConfig
+
+@hydra.main(config_path="recipes", version_base="1.2")
+def main(cfg: DictConfig) -> None:
+    print(cfg.experiment_name)
+```
+
+The `@hydra.main` decorator is looking for YAML files in the `super_gradients.recipes` according to the name of the configuration file provided 
+in the first arg of the command line. 
+
+In the experiment directory a `.hydra` subdirectory will be created. The configuration files related to this run will be saved by hydra to that subdirectory.  
+
+
+Two Hydra features worth mentioning are [Command-Line Overrides](https://hydra.cc/docs/advanced/override_grammar/basic/) and [YAML Composition](https://hydra.cc/docs/0.11/tutorial/composition/).
+We strongly recommend you to have a look at both of these pages.
+
+
 ## How to use configuration files
 So, if you got so far, we have probably manged to convince you that configuration files are awsome and powerful tools - welcome aboard!
 
@@ -106,52 +136,6 @@ python -m super_gradients.evaluate_from_recipe --config-name=cifar10_resnet
 that will run only the evaluation part of the recipe (without any training iterations)
 
 
-## Hydra
-Hydra is an open-source Python framework that provides us with many useful functionalities for YAML management. You can learn about Hydra 
-[here](https://hydra.cc/docs/intro). We use Hydra to load YAML files and convert them into dictionaries, while 
-instantiating the objects referenced in the YAML.
-You can see this in the code:
 
-```python
-import hydra
-from omegaconf import DictConfig
-
-@hydra.main(config_path="recipes", version_base="1.2")
-def main(cfg: DictConfig) -> None:
-    print(cfg.experiment_name)
-```
-
-The `@hydra.main` decorator is looking for YAML files in the `super_gradients.recipes` according to the name of the configuration file provided 
-in the first arg of the command line. 
-
-In the experiment directory a `.hydra` subdirectory will be created. The configuration files related to this run will be saved by hydra to that subdirectory.  
-
-
-Two Hydra features worth mentioning are _Command-Line Overrides_ and _YAML Composition_.
-
-
-### Overriding Parameters with Command-Line
-
-You'll often find the need to override or modify certain parameters for a specific run. 
-Hydra offers a powerful feature that allows you to do this directly from the command line. 
-This can be extremely useful for experimenting with different hyperparameters without changing the actual YAML files.
-
-#### Syntax of Hydra Overrides
-
-Here's how you can use Hydra overrides to modify parameters:
-
-```shell
-python -m super_gradients.train_from_recipe --config-name=<config-name> param1=<val1> path.to.param2=<val2> 
-```
-
-The arguments are referenced without the `--` prefix, 
-and each parameter is referenced with its full path in the configuration tree, concatenated with a `.`.
-
-#### Example of Command-Line Override
-
-Consider the following example, where you want to run a training script on cifat10-resnet, 
-but with a different experiment name and initial learning rate:
-
-```shell
-python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=test_lr_002 training_hyperparams.initial_lr=0.02
-```
+From this point, you should have a better understanding of **what are the recipes** and **why SuperGradients is using them**.
+Now we can move on into [how to train a model using recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/Training_Recipes.md).

@@ -4,6 +4,7 @@ Factories in SuperGradients provide a powerful and concise way to instantiate ob
 
 Prerequisites:
 - [Training with Configuration Files](configuration_files.md)
+- [Introduction to Training Recipes](Recipes_Introduction.md)
 
 In this tutorial, we'll cover how to use existing factories, register new ones, and briefly explore the implementation details.
 
