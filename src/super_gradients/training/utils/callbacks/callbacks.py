@@ -32,7 +32,7 @@ from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallbac
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback, cxcywh2xyxy, xyxy2cxcywh
 from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
-from super_gradients.training.utils.utils import unwrap_model, any2device_no_grad
+from super_gradients.training.utils.utils import unwrap_model, any2device_no_grad, infer_model_device
 
 logger = get_logger(__name__)
 
@@ -1115,10 +1115,14 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
                 loss_tuple = context.loss_log_items
                 if self._first_call:
                     self._init_loss_attributes(context)
-                score = loss_tuple[self._idx_loss_tuple]
+
+                # By definition this must be a scalar since we have to be able to do the comparison
+                score = loss_tuple[self._idx_loss_tuple].item()
+                device = infer_model_device(context.net)
+                score = torch.tensor(score, device=device)
 
                 # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
-                score = maybe_all_reduce_tensor_average(score.detach().clone())
+                score = maybe_all_reduce_tensor_average(score)
 
             if self._is_more_extreme(score):
                 self.extreme_score = any2device_no_grad(score, device="cpu")
