@@ -26,7 +26,7 @@ from super_gradients.common.environment.device_utils import device_config
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.type_factory import TypeFactory
-from super_gradients.common.environment.checkpoints_dir_utils import get_run_id
+from super_gradients.common.environment.checkpoints_dir_utils import get_unique_run_id
 
 logger = get_logger(__name__)
 
@@ -372,7 +372,7 @@ def restart_script_with_ddp(num_gpus: int = None):
         nproc_per_node=num_gpus,
         min_nodes=1,
         max_nodes=1,
-        run_id=get_run_id(),  # We share the `RUN_ID` across all subprocesses.
+        run_id=get_unique_run_id(),  # We share the `DDP_RUN_ID` across all subprocesses.
         role="default",
         rdzv_endpoint=f"127.0.0.1:{ddp_port}",
         rdzv_backend="static",

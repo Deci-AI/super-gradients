@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 from super_gradients import is_distributed
 from super_gradients.common.environment.checkpoints_dir_utils import (
-    get_run_id,
+    get_unique_run_id,
     get_latest_run_id,
     validate_run_id,
     get_checkpoints_dir_path,
@@ -1704,7 +1704,7 @@ class Trainer:
                 run_id = get_latest_run_id(checkpoints_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name)
                 logger.info("Resuming training from latest run.")
             else:
-                run_id = get_run_id()
+                run_id = get_unique_run_id()
                 logger.info(f"Starting a new run with `run_id={run_id}`")
         else:
             validate_run_id(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)

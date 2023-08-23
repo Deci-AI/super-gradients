@@ -48,26 +48,16 @@ class EnvironmentVariables:
         os.environ["HYDRA_FULL_ERROR"] = value
 
     @property
-    def RUN_ID(self) -> Optional[str]:
-        """`RUN_ID` is a unique identifier for each run. It should be shared across all subprocesses.
-
-        It should be equal to None if both:
-            - It was not explicitly set.
-            - Current process is not a DDP subprocess.
+    def DDP_RUN_ID(self) -> Optional[str]:
         """
+        Retrieve the Distributed Data Parallel (DDP) run identifier.
 
-        if os.environ.get("RUN_ID"):
-            return os.environ["RUN_ID"]
-        else:
-            # `TORCHELASTIC_RUN_ID` is defined in any DDP subprocesses
-            # If `RUN_ID` was not set explicitly, and we use DDP (i.e. `TORCHELASTIC_RUN_ID` is not None),
-            #   then we want to use `TORCHELASTIC_RUN_ID` as `RUN_ID`.
-            # This ensures that the same `RUN_ID` will be used for all subprocesses.
-            return os.environ.get("TORCHELASTIC_RUN_ID")
-
-    @RUN_ID.setter
-    def RUN_ID(self, value: str):
-        os.environ["RUN_ID"] = value
+        If `DDP_RUN_ID` is not explicitly set, this property returns an identifier that's used for all subprocesses during a DDP operation.
+        This helps in maintaining consistency across various subprocesses.
+        Specifically, if `TORCHELASTIC_RUN_ID` is defined in any DDP subprocesses and `DDP_RUN_ID` was not set,
+        the value of `TORCHELASTIC_RUN_ID` will be used as `DDP_RUN_ID`.
+        """
+        return os.environ.get("TORCHELASTIC_RUN_ID")
 
 
 env_variables = EnvironmentVariables()

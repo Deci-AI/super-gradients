@@ -24,7 +24,7 @@ def is_distributed() -> bool:
 
 def is_launched_using_sg():
     """Check if the current process is a subprocess launched using SG restart_script_with_ddp"""
-    return env_variables.RUN_ID is not None and env_variables.RUN_ID.startswith(RUN_ID_PREFIX)
+    return env_variables.DDP_RUN_ID is not None and env_variables.DDP_RUN_ID.startswith(RUN_ID_PREFIX)
 
 
 def is_main_process():

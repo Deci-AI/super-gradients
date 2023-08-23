@@ -16,15 +16,14 @@ except Exception:
 logger = get_logger(__name__)
 
 
-def get_run_id() -> str:
+def get_unique_run_id() -> str:
     """Get a unique run ID based on the current timestamp. If a run ID is already generated, it will be returned.
 
     :return: Unique run ID. in the format "RUN_<year><month><day>_<hour><minute><second>_<microseconds>" (E.g. "RUN_20230802_131052_651906")
     """
-    if env_variables.RUN_ID is None:
-        # A run ID should not be generated twice
-        env_variables.RUN_ID = datetime.now().strftime(f"{RUN_ID_PREFIX}%Y%m%d_%H%M%S_%f")
-    return env_variables.RUN_ID
+    if env_variables.DDP_RUN_ID is not None:
+        return env_variables.DDP_RUN_ID
+    return datetime.now().strftime(f"{RUN_ID_PREFIX}%Y%m%d_%H%M%S_%f")
 
 
 def is_run_dir(dirname: str) -> bool:
