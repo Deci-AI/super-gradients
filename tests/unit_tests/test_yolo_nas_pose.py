@@ -65,9 +65,7 @@ class YoloNASPoseTests(unittest.TestCase):
         ).float()
         target_poses[..., 3] = 2.0  # Mark all joints as visible
 
-        mask = None
-
-        targets = (target_boxes, target_poses, mask)
+        targets = (target_boxes, target_poses)
         for _ in range(100):
             optimizer.zero_grad()
             raw_predictions = (cls_score_list, reg_distri_list, pose_regression_list, anchors, anchor_points, num_anchors_list, stride_tensor)
