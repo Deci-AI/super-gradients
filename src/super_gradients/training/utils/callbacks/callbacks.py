@@ -1,4 +1,5 @@
 import copy
+import csv
 import math
 import os
 import signal
@@ -6,7 +7,6 @@ import time
 from abc import ABC, abstractmethod
 from typing import List, Union, Optional, Sequence, Mapping, Tuple
 
-import csv
 import cv2
 import numpy as np
 import onnx
@@ -15,24 +15,24 @@ import torch
 from deprecated import deprecated
 from torch.utils.data import DataLoader
 from torchmetrics import MetricCollection, Metric
+from torchvision.utils import draw_segmentation_masks
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.factories.metrics_factory import MetricsFactory
+from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
 from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback, LR_SCHEDULERS_CLS_DICT, TORCH_LR_SCHEDULERS
-from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
 from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, EpochNumber
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback, cxcywh2xyxy, xyxy2cxcywh
 from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
-from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
-from super_gradients.training.utils.utils import unwrap_model, infer_model_device
-from torchvision.utils import draw_segmentation_masks
+from super_gradients.training.utils.utils import unwrap_model, any2device_no_grad
 
 logger = get_logger(__name__)
 
@@ -1118,14 +1118,13 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
                 score = loss_tuple[self._idx_loss_tuple]
 
                 # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
-                device = infer_model_device(context.net)
-                score = maybe_all_reduce_tensor_average(score.to(device))
+                score = maybe_all_reduce_tensor_average(score.detach().clone())
 
             if self._is_more_extreme(score):
-                self.extreme_score = score
-                self.extreme_batch = context.inputs
-                self.extreme_preds = context.preds
-                self.extreme_targets = context.target
+                self.extreme_score = any2device_no_grad(score, device="cpu")
+                self.extreme_batch = any2device_no_grad(context.inputs, device="cpu")
+                self.extreme_preds = any2device_no_grad(context.preds, device="cpu")
+                self.extreme_targets = any2device_no_grad(context.target, device="cpu")
 
     def _init_loss_attributes(self, context: PhaseContext):
         if self.loss_to_monitor not in context.loss_logging_items_names:

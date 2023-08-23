@@ -682,6 +682,32 @@ def resolve_torch_device(device: Union[str, torch.device]) -> torch.device:
     return torch.zeros([], device=device).device
 
 
+def any2device_no_grad(value: Any, device: Union[str, torch.device]) -> Any:
+    """
+    Move tensor, list of tensors, tuple of tensors or dict of tensors or arbitrary nested
+    structure of the following primitive containers to a target device.
+    Only instances of torch.tensor are moved, other objects are returned as is.
+    As the name suggests, this function moves only data, not gradients.
+    If tensors contain gradients, they are detached before moving to device.
+
+    :param value: Object to be moved
+    :param device: Target device
+
+    :returns: Same structure as value, but all tensors are moved to device
+    """
+    device: torch.device = resolve_torch_device(device)
+
+    if isinstance(value, (dict, typing.Mapping)):
+        return {k: any2device_no_grad(v, device) for k, v in value.items()}
+    elif isinstance(value, tuple):
+        return tuple(any2device_no_grad(v, device) for v in value)
+    elif isinstance(value, list):
+        return [any2device_no_grad(v, device) for v in value]
+    elif torch.is_tensor(value):
+        return value.detach().to(device, non_blocking=True)
+    return value
+
+
 def check_model_contains_quantized_modules(model: nn.Module) -> bool:
     """
     Check if the model contains any quantized modules.
