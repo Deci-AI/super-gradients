@@ -93,9 +93,7 @@ first finish this tutorial, as it includes information required to fully underst
 
 
 ## Recipe Structure
-If you brows the YAML files in the `recipes` directory you will see some file containing the saved-key `defaults` at the beginning of the file.
-
-Here's an example of what this looks like:
+When browsing the YAML files in the `recipes` directory, you'll notice that some files contain the key `defaults` at the beginning of the file. Here's an example of what this looks like:
 
 ```yaml
 defaults:
@@ -108,37 +106,15 @@ defaults:
 ...
 ```
 
-- **Defaults** - The `defaults` section leverages OmegaConf syntax to allow using other recipes as a base. 
-- **Referencing Parameters** - You can reference parameters within the YAML file according to their origin. For example, `training_hyperparams.initial_lr` refers to the `initial_lr` parameter from the `cifar10_resnet_train_params.yaml` file.
-- **Recipe Parameters** - `_self_` here means that the recipe itself will be used to override the defaults.
+### Components of a Recipe
 
-This last points means that if you have the following
-```yaml
-# training_hyperparams/default_training_recipe.yaml
-initial_lr: 0.3
-```
-Either you use `_self_` last in the `defaults`
-```yaml
-# main_recipe.yaml
-defaults:
-  - training_hyperparams: default_training_recipe
-  - _self_
-    
-training_hyperparams:
-  initial_lr: 0.001 # 0.3 will be overriden by this [VALUE=0.001]
-...
-```
-Or you use it first
-```yaml
-# main_recipe.yaml
-defaults:
-  - _self_
-  - training_hyperparams: default_training_recipe
-    
-training_hyperparams:
-  initial_lr: 0.001 # 0.001 will be overriden by the default [VALUE=0.03]
-...
-```
+- **Defaults**: The `defaults` section is critical, and it leverages the OmegaConf syntax. It serves to reference other recipes, allowing you to create modular and reusable configurations.
+- **Referencing Parameters**: This allows you to point to specific parameters in the YAML file according to where they originate. For example, `training_hyperparams.initial_lr` refers to the `initial_lr` parameter from the `cifar10_resnet_train_params.yaml` file.
+- **Recipe Parameters - `_self_`**: The `_self_` keyword has a special role. It permits the current recipe to override the defaults. Its impact depends on its position in the `defaults` list.
+
+### Understanding Override Order
+
+> 🚨 **Warning**: The order of items in the `defaults` section is significant! The overwrite priority follows the list order, meaning that a config defined higher in the list can be overwritten by one defined lower in the list. This is a vital aspect to be aware of when constructing recipes. For a more detailed explanation, please refer to the [official documentation](https://hydra.cc/docs/tutorials/basic/your_first_app/defaults/#composition-order-of-primary-config).
 
 ### Organizing Your Recipe Folder
 
@@ -162,10 +138,6 @@ Your recipe folder should have a specific structure to match this composition:
 ```
 
 You're not restricted to this structure, but following it ensures compatibility with SuperGradients' expectations.
-
-### Override order
-Something very important to remember about the `defaults` is the priority of override.
-
 
 
 ## Conclusion
