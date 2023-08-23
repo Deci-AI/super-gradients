@@ -57,8 +57,8 @@ train_dataset_params:
     - RandomHorizontalFlip
     - ToTensor
     - Normalize:
-        mean: ${dataset_params.img_mean}
-        std: ${dataset_params.img_std}
+        mean: [0.485, 0.456, 0.406] # mean for normalization
+        std: [0.229, 0.224, 0.225]  # std  for normalization
 
 val_dataset_params:
   root: /data/Imagenet/val
@@ -69,8 +69,8 @@ val_dataset_params:
         size: 224
     - ToTensor
     - Normalize:
-        mean: ${dataset_params.img_mean}
-        std: ${dataset_params.img_std}
+        mean: [0.485, 0.456, 0.406] # mean for normalization
+        std: [0.229, 0.224, 0.225]  # std  for normalization
 ```
 
 Configuration file can also help you track the exact settings used for each one of your experiments, tweak and tune these settings, and share them with others.
