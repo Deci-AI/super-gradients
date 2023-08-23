@@ -25,7 +25,7 @@ arch_params:
 checkpoint_params:
   # For training Yolo-NAS-S pose estimation model we use pretrained weights for Yolo-NAS-S object detection model.
   # By setting strict_load: key_matching we load only those weights that match the keys of the model.
-  checkpoint_path: https://sghub.deci.ai/models/yolo_nas_m_coco.pth
+  checkpoint_path: https://sghub.deci.ai/models/yolo_nas_l_coco.pth
   strict_load:
     _target_: super_gradients.training.sg_trainer.StrictLoad
     value: key_matching
