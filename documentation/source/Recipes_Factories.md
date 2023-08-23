@@ -105,7 +105,7 @@ Doing so will trigger the registration function, allowing SuperGradients to reco
 Here is an example (adapted from the [train_from_recipe script](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/train_from_recipe.py)).
 
 ```python
-from .my_module import MyTransform # Importing the module is enough as it will trigger the register_model function
+from .my_module import MyTransform # Importing the module is enough as it will trigger the register_transform function
 
 # The code below is the same as the basic `train_from_recipe.py` script
 # See: https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/train_from_recipe.py
@@ -172,6 +172,10 @@ ImageNetDataset(root=..., transform=my_transform)
 ```
 
 This second way of instantiating the dataset combines perfectly with the concept `.yaml` recipes.
+
+**Difference with `register_transform`**
+- `register_transform` is responsible to map a string to a class type.
+- `@resolve_param("transform", factory=TransformsFactory())` is responsible to convert a config into an object, using the mapping created with `register_transform`. 
 
 ## Supported Factory Types
 Until here, we focused on a single type of factory, `TransformsFactory`, 
