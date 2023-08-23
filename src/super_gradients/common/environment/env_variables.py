@@ -50,8 +50,9 @@ class EnvironmentVariables:
     @property
     def RUN_ID(self) -> Optional[str]:
         """`RUN_ID` is a unique identifier for each run. It should be shared across all subprocesses.
+
         It should be equal to None if both:
-            - It was not explicitly set (yet)
+            - It was not explicitly set.
             - Current process is not a DDP subprocess.
         """
 
