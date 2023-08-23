@@ -38,11 +38,12 @@ def is_run_dir(dirname: str) -> bool:
 
 def get_latest_run_id(experiment_name: str, checkpoints_root_dir: Optional[str] = None) -> Optional[str]:
     """
-    :param experiment_name:     Name of the experiment.
-    :param checkpoints_root_dir:       Path to the directory where all the experiments are organised, each sub-folder representing a specific experiment.
+    :param experiment_name:         Name of the experiment.
+    :param checkpoints_root_dir:    Path to the directory where all the experiments are organised, each sub-folder representing a specific experiment.
                                     If None, SG will first check if a package named 'checkpoints' exists.
                                     If not, SG will look for the root of the project that includes the script that was launched.
                                     If not found, raise an error.
+    :return:                        Latest valid run ID. in the format "RUN_<year>"
     """
     experiment_dir = get_experiment_dir_path(checkpoints_root_dir=checkpoints_root_dir, experiment_name=experiment_name)
 

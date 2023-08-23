@@ -1,6 +1,8 @@
 import os
 from typing import Optional
 
+RUN_ID_PREFIX = "RUN_"
+
 
 class EnvironmentVariables:
     """Class to dynamically get any environment variables."""
@@ -47,11 +49,18 @@ class EnvironmentVariables:
 
     @property
     def RUN_ID(self) -> Optional[str]:
+        """`RUN_ID` is a unique identifier for each run. It should be shared across all subprocesses.
+        It should be equal to None if both:
+            - It was not explicitly set (yet)
+            - Current process is not a DDP subprocess.
+        """
+
         if os.environ.get("RUN_ID"):
             return os.environ["RUN_ID"]
         else:
-            # `TORCHELASTIC_RUN_ID` is defined in DDP subprocesses
-            # If `RUN_ID` was not set explicitly, and we use DDP (`TORCHELASTIC_RUN_ID` is not None), then we want to use it.
+            # `TORCHELASTIC_RUN_ID` is defined in any DDP subprocesses
+            # If `RUN_ID` was not set explicitly, and we use DDP (i.e. `TORCHELASTIC_RUN_ID` is not None),
+            #   then we want to use `TORCHELASTIC_RUN_ID` as `RUN_ID`.
             # This ensures that the same `RUN_ID` will be used for all subprocesses.
             return os.environ.get("TORCHELASTIC_RUN_ID")
 
@@ -61,4 +70,3 @@ class EnvironmentVariables:
 
 
 env_variables = EnvironmentVariables()
-RUN_ID_PREFIX = "RUN_"
