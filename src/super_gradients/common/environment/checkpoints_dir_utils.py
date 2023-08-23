@@ -4,8 +4,8 @@ import pkg_resources
 from typing import Optional
 from datetime import datetime
 
+from super_gradients.common.environment.env_variables import env_variables
 from super_gradients.common.abstractions.abstract_logger import get_logger
-
 
 try:
     PKG_CHECKPOINTS_DIR = pkg_resources.resource_filename("checkpoints", "")
@@ -15,13 +15,18 @@ except Exception:
 
 logger = get_logger(__name__)
 
+RUN_ID_PREFIX = "RUN_"
+
 
 def generate_run_id() -> str:
     """Generate a unique run ID based on the current timestamp.
 
     :return: Unique run ID. in the format "RUN_<year><month><day>_<hour><minute><second>_<microseconds>" (E.g. "RUN_20230802_131052_651906")
     """
-    return datetime.now().strftime("RUN_%Y%m%d_%H%M%S_%f")
+    if env_variables.RUN_ID is None:
+        # A run ID should not be generated twice
+        env_variables.RUN_ID = datetime.now().strftime(f"{RUN_ID_PREFIX}%Y%m%d_%H%M%S_%f")
+    return env_variables.RUN_ID
 
 
 def is_run_dir(dirname: str) -> bool:
@@ -30,7 +35,7 @@ def is_run_dir(dirname: str) -> bool:
     :param dirname: Directory name.
     :return:        True if the directory is a run directory, False otherwise.
     """
-    return os.path.basename(dirname).startswith("RUN_")
+    return os.path.basename(dirname).startswith(RUN_ID_PREFIX)
 
 
 def get_latest_run_id(experiment_name: str, checkpoints_root_dir: Optional[str] = None) -> Optional[str]:

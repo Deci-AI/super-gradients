@@ -1,10 +1,11 @@
-import os
 import socket
 from functools import wraps
 
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 from super_gradients.common.environment.argparse_utils import pop_local_rank
+from super_gradients.common.environment.checkpoints_dir_utils import RUN_ID_PREFIX
+from super_gradients.common.environment.env_variables import env_variables
 
 
 def init_trainer():
@@ -24,7 +25,7 @@ def is_distributed() -> bool:
 
 def is_launched_using_sg():
     """Check if the current process is a subprocess launched using SG restart_script_with_ddp"""
-    return os.environ.get("TORCHELASTIC_RUN_ID") == "sg_initiated"
+    return env_variables.RUN_ID is not None and env_variables.RUN_ID.startswith(RUN_ID_PREFIX)
 
 
 def is_main_process():

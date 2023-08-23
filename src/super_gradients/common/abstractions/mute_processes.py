@@ -61,6 +61,8 @@ def mute_non_linux_dataloader_worker_process() -> None:
 
 def is_non_linux_dataloader_worker_process() -> bool:
     """Check if current process is a dataloader worker process on a non linux device."""
+    # from super_gradients.common.environment.checkpoints_dir_utils import RUN_ID_PREFIX
+
     if any(os_name in platform.platform() for os_name in ["macOS", "Windows"]):
 
         # When using DDP with SG launcher, we expect the worker process to have 2 parents processes using python, and only 1 otherwise.
@@ -68,7 +70,7 @@ def is_non_linux_dataloader_worker_process() -> bool:
         if int(env_variables.LOCAL_RANK) == -1:
             # NO DDP
             main_process = psutil.Process().parent()
-        elif os.environ.get("TORCHELASTIC_RUN_ID") == "sg_initiated":
+        elif os.environ.get("TORCHELASTIC_RUN_ID") and os.environ["TORCHELASTIC_RUN_ID"].startswith("RUN_"):
             # DDP launched using SG logic
             main_process = psutil.Process().parent().parent()
         else:

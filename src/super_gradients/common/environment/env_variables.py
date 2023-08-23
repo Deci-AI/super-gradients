@@ -45,5 +45,19 @@ class EnvironmentVariables:
     def HYDRA_FULL_ERROR(self, value: str):
         os.environ["HYDRA_FULL_ERROR"] = value
 
+    @property
+    def RUN_ID(self) -> Optional[str]:
+        if os.environ.get("RUN_ID"):
+            return os.environ["RUN_ID"]
+        else:
+            # `TORCHELASTIC_RUN_ID` is defined in DDP subprocesses
+            # If `RUN_ID` was not set explicitly, and we use DDP (`TORCHELASTIC_RUN_ID` is not None), then we want to use it.
+            # This ensures that the same `RUN_ID` will be used for all subprocesses.
+            return os.environ.get("TORCHELASTIC_RUN_ID")
+
+    @RUN_ID.setter
+    def RUN_ID(self, value: str):
+        os.environ["RUN_ID"] = value
+
 
 env_variables = EnvironmentVariables()
