@@ -4,8 +4,7 @@ from functools import wraps
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 from super_gradients.common.environment.argparse_utils import pop_local_rank
-from super_gradients.common.environment.checkpoints_dir_utils import RUN_ID_PREFIX
-from super_gradients.common.environment.env_variables import env_variables
+from super_gradients.common.environment.env_variables import env_variables, RUN_ID_PREFIX
 
 
 def init_trainer():

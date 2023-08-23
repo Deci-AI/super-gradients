@@ -61,3 +61,4 @@ class EnvironmentVariables:
 
 
 env_variables = EnvironmentVariables()
+RUN_ID_PREFIX = "RUN_"

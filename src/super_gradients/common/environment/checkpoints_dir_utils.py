@@ -4,7 +4,7 @@ import pkg_resources
 from typing import Optional
 from datetime import datetime
 
-from super_gradients.common.environment.env_variables import env_variables
+from super_gradients.common.environment.env_variables import env_variables, RUN_ID_PREFIX
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 try:
@@ -15,11 +15,9 @@ except Exception:
 
 logger = get_logger(__name__)
 
-RUN_ID_PREFIX = "RUN_"
 
-
-def generate_run_id() -> str:
-    """Generate a unique run ID based on the current timestamp.
+def get_run_id() -> str:
+    """Get a unique run ID based on the current timestamp. If a run ID is already generated, it will be returned.
 
     :return: Unique run ID. in the format "RUN_<year><month><day>_<hour><minute><second>_<microseconds>" (E.g. "RUN_20230802_131052_651906")
     """
@@ -56,7 +54,7 @@ def get_latest_run_id(experiment_name: str, checkpoints_root_dir: Optional[str] 
                 f"Trying to load the n-1 most recent run..."
             )
         else:
-            return run_dir
+            return os.path.basename(run_dir)
 
 
 def validate_run_id(run_id: str, experiment_name: str, ckpt_root_dir: Optional[str] = None):

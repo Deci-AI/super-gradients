@@ -4,7 +4,7 @@ import platform
 
 import psutil
 
-from super_gradients.common.environment.env_variables import env_variables
+from super_gradients.common.environment.env_variables import env_variables, RUN_ID_PREFIX
 
 
 def mute_subprocesses():
@@ -61,7 +61,6 @@ def mute_non_linux_dataloader_worker_process() -> None:
 
 def is_non_linux_dataloader_worker_process() -> bool:
     """Check if current process is a dataloader worker process on a non linux device."""
-    # from super_gradients.common.environment.checkpoints_dir_utils import RUN_ID_PREFIX
 
     if any(os_name in platform.platform() for os_name in ["macOS", "Windows"]):
 
@@ -70,7 +69,8 @@ def is_non_linux_dataloader_worker_process() -> bool:
         if int(env_variables.LOCAL_RANK) == -1:
             # NO DDP
             main_process = psutil.Process().parent()
-        elif os.environ.get("TORCHELASTIC_RUN_ID") and os.environ["TORCHELASTIC_RUN_ID"].startswith("RUN_"):
+        # WARNING:
+        elif os.environ.get("TORCHELASTIC_RUN_ID") and os.environ["TORCHELASTIC_RUN_ID"].startswith(RUN_ID_PREFIX):
             # DDP launched using SG logic
             main_process = psutil.Process().parent().parent()
         else:
