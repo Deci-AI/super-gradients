@@ -25,6 +25,7 @@ criterion_params:
     reg_max: 16
     oks_sigmas: ${dataset_params.oks_sigmas}
     classification_loss_weight: 1.0
+    classification_loss_type: focal
     iou_loss_weight: 0.5
     dfl_loss_weight: 0.1
     pose_cls_loss_weight: 1.0

@@ -11,8 +11,8 @@ architecture: yolo_nas_pose_s
 multi_gpu: DDP
 num_gpus: 8
 
-experiment_suffix: ""
-experiment_name: coco2017_pose_${architecture}${experiment_suffix}
+experiment_suffix: cocoformula_${training_hyperparams.criterion_params.pose_cls_loss_weight}_${training_hyperparams.criterion_params.pose_reg_loss_weight}_${training_hyperparams.criterion_params.dfl_loss_weight}_${training_hyperparams.criterion_params.iou_loss_weight}_${training_hyperparams.criterion_params.classification_loss_weight}_${training_hyperparams.criterion_params.rescale_keypoint_loss_by_assigned_weight}_{training_hyperparams.criterion_params.classification_loss_type}
+experiment_name: coco2017_${architecture}_${experiment_suffix}
 
 ckpt_root_dir:
 

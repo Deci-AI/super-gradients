@@ -1045,6 +1045,8 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         loss_to_monitor: Optional[str] = None,
         max: bool = False,
         freq: int = 1,
+        enable_on_train_loader: bool = False,
+        enable_on_valid_loader: bool = True,
     ):
         super(ExtremeBatchCaseVisualizationCallback, self).__init__()
 
@@ -1071,6 +1073,9 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self._first_call = True
         self._idx_loss_tuple = None
 
+        self.enable_on_train_loader = enable_on_train_loader
+        self.enable_on_valid_loader = enable_on_valid_loader
+
     def _set_tag_attr(self, loss_to_monitor, max, metric, metric_component_name):
         if metric_component_name:
             monitored_val_name = metric_component_name
@@ -1090,58 +1095,35 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         """
         raise NotImplementedError
 
-    def on_validation_batch_end(self, context: PhaseContext) -> None:
-        if context.epoch % self.freq == 0:
-            # FOR METRIC OBJECTS, RESET THEM AND COMPUTE SCORE ONLY ON BATCH.
-            if self.metric is not None:
-                self.metric.update(**context.__dict__)
-                score = self.metric.compute()
-                if self.metric_component_name is not None:
-                    if not isinstance(score, Mapping) or (isinstance(score, Mapping) and self.metric_component_name not in score.keys()):
-                        raise RuntimeError(
-                            f"metric_component_name: {self.metric_component_name} is not a component "
-                            f"of the monitored metric: {self.metric.__class__.__name__}"
-                        )
-                    score = score[self.metric_component_name]
-                elif len(score) > 1:
-                    raise RuntimeError(f"returned multiple values from {self.metric} but no metric_component_name has been passed to __init__.")
-                else:
-                    score = score.pop(list(score.keys())[0])
-                self.metric.reset()
+    def on_train_loader_start(self, context: PhaseContext) -> None:
+        self._reset()
 
-            else:
+    def on_train_batch_end(self, context: PhaseContext) -> None:
+        if self.enable_on_train_loader and context.epoch % self.freq == 0:
+            self._on_batch_end(context)
 
-                # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
-                loss_tuple = context.loss_log_items
-                if self._first_call:
-                    self._init_loss_attributes(context)
-
-                # By definition this must be a scalar since we have to be able to do the comparison
-                score = loss_tuple[self._idx_loss_tuple].item()
-                device = infer_model_device(context.net)
-                score = torch.tensor(score, device=device)
-
-                # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
-                score = maybe_all_reduce_tensor_average(score)
-
-            if self._is_more_extreme(score):
-                self.extreme_score = any2device_no_grad(score, device="cpu")
-                self.extreme_batch = any2device_no_grad(context.inputs, device="cpu")
-                self.extreme_preds = any2device_no_grad(context.preds, device="cpu")
-                self.extreme_targets = any2device_no_grad(context.target, device="cpu")
-
-    def _init_loss_attributes(self, context: PhaseContext):
-        if self.loss_to_monitor not in context.loss_logging_items_names:
-            raise ValueError(f"{self.loss_to_monitor} not a loss or loss component.")
-        self._idx_loss_tuple = context.loss_logging_items_names.index(self.loss_to_monitor)
-        self._first_call = False
-
-    def on_validation_loader_end(self, context: PhaseContext) -> None:
-        if context.epoch % self.freq == 0:
+    def on_train_loader_end(self, context: PhaseContext) -> None:
+        if self.enable_on_train_loader and context.epoch % self.freq == 0:
             images_to_save = self.process_extreme_batch()
             images_to_save = maybe_all_gather_np_images(images_to_save)
             if not context.ddp_silent_mode:
-                context.sg_logger.add_images(tag=self._tag, images=images_to_save, global_step=context.epoch)
+                context.sg_logger.add_images(tag="train/" + self._tag, images=images_to_save, global_step=context.epoch)
+
+            self._reset()
+
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
+        self._reset()
+
+    def on_validation_batch_end(self, context: PhaseContext) -> None:
+        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+            self._on_batch_end(context)
+
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
+        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+            images_to_save = self.process_extreme_batch()
+            images_to_save = maybe_all_gather_np_images(images_to_save)
+            if not context.ddp_silent_mode:
+                context.sg_logger.add_images(tag="valid/" + self._tag, images=images_to_save, global_step=context.epoch)
 
             self._reset()
 
@@ -1158,6 +1140,50 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             return self.extreme_score < score
         else:
             return self.extreme_score > score
+
+    def _on_batch_end(self, context: PhaseContext) -> None:
+        # FOR METRIC OBJECTS, RESET THEM AND COMPUTE SCORE ONLY ON BATCH.
+        if self.metric is not None:
+            self.metric.update(**context.__dict__)
+            score = self.metric.compute()
+            if self.metric_component_name is not None:
+                if not isinstance(score, Mapping) or (isinstance(score, Mapping) and self.metric_component_name not in score.keys()):
+                    raise RuntimeError(
+                        f"metric_component_name: {self.metric_component_name} is not a component " f"of the monitored metric: {self.metric.__class__.__name__}"
+                    )
+                score = score[self.metric_component_name]
+            elif len(score) > 1:
+                raise RuntimeError(f"returned multiple values from {self.metric} but no metric_component_name has been passed to __init__.")
+            else:
+                score = score.pop(list(score.keys())[0])
+            self.metric.reset()
+
+        else:
+
+            # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
+            loss_tuple = context.loss_log_items
+            if self._first_call:
+                self._init_loss_attributes(context)
+
+            # By definition this must be a scalar since we have to be able to do the comparison
+            score = loss_tuple[self._idx_loss_tuple].item()
+            device = infer_model_device(context.net)
+            score = torch.tensor(score, device=device)
+
+            # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
+            score = maybe_all_reduce_tensor_average(score)
+
+        if self._is_more_extreme(score):
+            self.extreme_score = any2device_no_grad(score, device="cpu")
+            self.extreme_batch = any2device_no_grad(context.inputs, device="cpu")
+            self.extreme_preds = any2device_no_grad(context.preds, device="cpu")
+            self.extreme_targets = any2device_no_grad(context.target, device="cpu")
+
+    def _init_loss_attributes(self, context: PhaseContext):
+        if self.loss_to_monitor not in context.loss_logging_items_names:
+            raise ValueError(f"{self.loss_to_monitor} not a loss or loss component.")
+        self._idx_loss_tuple = context.loss_logging_items_names.index(self.loss_to_monitor)
+        self._first_call = False
 
 
 @register_callback("ExtremeBatchDetectionVisualizationCallback")
