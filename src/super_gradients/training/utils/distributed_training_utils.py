@@ -14,6 +14,7 @@ from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
+from super_gradients.common.deprecate import make_function_deprecated
 from super_gradients.common.environment.ddp_utils import init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment.argparse_utils import EXTRA_ARGS
@@ -145,40 +146,47 @@ def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoad
         bn.momentum = momentums[i]
 
 
+@make_function_deprecated(version="3.5.0", new_module_name="super_gradients.common.environment.ddp_utils", new_function_name="get_local_rank")
 def get_local_rank():
     """
     Returns the local rank if running in DDP, and 0 otherwise
     :return: local rank
     """
-    return dist.get_rank() if dist.is_initialized() else 0
+    from super_gradients.common.environment.ddp_utils import get_local_rank as _get_local_rank
+
+    return _get_local_rank()
 
 
-def require_ddp_setup() -> bool:
-    return device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and device_config.assigned_rank != get_local_rank()
-
-
+@make_function_deprecated(version="3.5.0", new_module_name="super_gradients.common.environment.ddp_utils")
 def is_ddp_subprocess():
-    return torch.distributed.get_rank() > 0 if dist.is_initialized() else False
+    from super_gradients.common.environment.ddp_utils import is_ddp_subprocess as _is_ddp_subprocess
+
+    return _is_ddp_subprocess()
 
 
+@make_function_deprecated(version="3.5.0", new_module_name="super_gradients.common.environment.ddp_utils")
 def get_world_size() -> int:
     """
     Returns the world size if running in DDP, and 1 otherwise
     :return: world size
     """
-    if not dist.is_available():
-        return 1
-    if not dist.is_initialized():
-        return 1
-    return dist.get_world_size()
+    from super_gradients.common.environment.ddp_utils import get_world_size as _get_world_size
+
+    return _get_world_size()
 
 
+@make_function_deprecated(version="3.5.0", new_module_name="super_gradients.common.environment.ddp_utils")
 def get_device_ids() -> List[int]:
-    return list(range(get_world_size()))
+    from super_gradients.common.environment.ddp_utils import get_device_ids as _get_device_ids
+
+    return _get_device_ids()
 
 
+@make_function_deprecated(version="3.5.0", new_module_name="super_gradients.common.environment.ddp_utils")
 def count_used_devices() -> int:
-    return len(get_device_ids())
+    from super_gradients.common.environment.ddp_utils import count_used_devices as _count_used_devices
+
+    return _count_used_devices()
 
 
 @contextmanager

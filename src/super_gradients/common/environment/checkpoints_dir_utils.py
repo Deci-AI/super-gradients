@@ -5,6 +5,7 @@ from typing import Optional
 from datetime import datetime
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.environment.ddp_utils import execute_and_distribute_from_master
 
 
 try:
@@ -16,6 +17,7 @@ except Exception:
 logger = get_logger(__name__)
 
 
+@execute_and_distribute_from_master
 def generate_run_id() -> str:
     """Generate a unique run ID based on the current timestamp.
 
@@ -51,7 +53,7 @@ def get_latest_run_id(experiment_name: str, checkpoints_root_dir: Optional[str] 
                 f"Trying to load the n-1 most recent run..."
             )
         else:
-            return run_dir
+            return os.path.basename(run_dir)
 
 
 def validate_run_id(run_id: str, experiment_name: str, ckpt_root_dir: Optional[str] = None):

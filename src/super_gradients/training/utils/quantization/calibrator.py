@@ -12,7 +12,7 @@ import torch
 from tqdm import tqdm
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
+from super_gradients.common.environment.ddp_utils import get_local_rank, get_world_size
 from torch.distributed import all_gather
 
 from super_gradients.training.utils.utils import infer_model_device

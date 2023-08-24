@@ -6,6 +6,7 @@ import torch
 from torch import Tensor
 from torchmetrics import Metric
 
+import super_gradients.common.environment.ddp_utils
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.ddp_utils import is_distributed
 from super_gradients.common.object_names import Metrics
@@ -258,7 +259,7 @@ class PoseEstimationMetrics(Metric):
         :return:
         """
         if self.world_size is None:
-            self.world_size = torch.distributed.get_world_size() if self.is_distributed else -1
+            self.world_size = super_gradients.common.environment.ddp_utils.get_world_size() if self.is_distributed else -1
         if self.rank is None:
             self.rank = torch.distributed.get_rank() if self.is_distributed else -1
 
