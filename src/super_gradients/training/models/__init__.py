@@ -1,4 +1,4 @@
-import warnings
+from super_gradients.common.deprecate import make_deprecated
 
 from .sg_module import SgModule
 from .classification_models.base_classifer import BaseClassifier
@@ -133,17 +133,6 @@ from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import ARCHITECTURES
 
 from super_gradients.training.utils import make_divisible as _make_divisible_current_version, HpmStruct as CurrVersionHpmStruct
-
-
-def make_deprecated(func, reason):
-    def inner(*args, **kwargs):
-        with warnings.catch_warnings():
-            warnings.simplefilter("once", DeprecationWarning)
-            warnings.warn(reason, category=DeprecationWarning, stacklevel=2)
-        warnings.warn(reason, DeprecationWarning)
-        return func(*args, **kwargs)
-
-    return inner
 
 
 make_divisible = make_deprecated(
