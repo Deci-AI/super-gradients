@@ -11,6 +11,7 @@ import torch.nn as nn
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.module_interfaces import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule, HasPredict
+from super_gradients.module_interfaces.exportable_detector import ModelHasNoPreprocessingParamsException
 from super_gradients.modules import CrossModelSkipConnection, Conv
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
@@ -502,6 +503,8 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_preprocessing_callback(self, **kwargs):
         processing = self.get_processing_params()
+        if processing is None:
+            raise ModelHasNoPreprocessingParamsException()
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
 

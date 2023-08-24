@@ -10,6 +10,7 @@ from super_gradients.common.factories.processing_factory import ProcessingFactor
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import register_model
 from super_gradients.module_interfaces import AbstractObjectDetectionDecodingModule, ExportableObjectDetectionModel, HasPredict
+from super_gradients.module_interfaces.exportable_detector import ModelHasNoPreprocessingParamsException
 from super_gradients.modules import RepVGGBlock
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
@@ -104,6 +105,8 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_preprocessing_callback(self, **kwargs):
         processing = self.get_processing_params()
+        if processing is None:
+            raise ModelHasNoPreprocessingParamsException()
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
 
