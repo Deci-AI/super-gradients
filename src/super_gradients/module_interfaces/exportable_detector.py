@@ -21,7 +21,15 @@ from super_gradients.training.utils.utils import infer_model_device, check_model
 
 logger = get_logger(__name__)
 
-__all__ = ["ExportableObjectDetectionModel", "AbstractObjectDetectionDecodingModule", "ModelExportResult"]
+__all__ = ["ExportableObjectDetectionModel", "AbstractObjectDetectionDecodingModule", "ModelExportResult", "ModelHasNoPreprocessingParamsException"]
+
+
+class ModelHasNoPreprocessingParamsException(Exception):
+    """
+    Exception that is raised when model does not have preprocessing parameters.
+    """
+
+    pass
 
 
 class AbstractObjectDetectionDecodingModule(nn.Module):
@@ -295,7 +303,18 @@ class ExportableObjectDetectionModel:
         if isinstance(preprocessing, nn.Module):
             preprocessing_module = preprocessing
         elif preprocessing is True:
-            preprocessing_module = model.get_preprocessing_callback()
+            try:
+                preprocessing_module = model.get_preprocessing_callback()
+            except ModelHasNoPreprocessingParamsException:
+                raise ValueError(
+                    "It looks like your model does not have dataset preprocessing params properly set.\n"
+                    "This may happen if you instantiated model from scratch and not trained it yet. \n"
+                    "Here are what you can do to fix this:\n"
+                    "1. Manually fill up dataset processing params via model.set_dataset_processing_params(...).\n"
+                    "2. Train your model first and then export it. Trainer will set_dataset_processing_params(...) for you.\n"
+                    '3. Instantiate a model using pretrained weights: models.get(..., pretrained_weights="coco") \n'
+                    "4. Disable preprocessing by passing model.export(..., preprocessing=False). \n"
+                )
             if isinstance(preprocessing_module, nn.Sequential):
                 preprocessing_module = nn.Sequential(CastTensorTo(model_type), *iter(preprocessing_module))
             else:
