@@ -122,7 +122,7 @@ class ExportableObjectDetectionModel:
         confidence_threshold: Optional[float] = None,
         nms_threshold: Optional[float] = None,
         engine: Optional[ExportTargetBackend] = None,
-        quantization_mode: ExportQuantizationMode = Optional[None],
+        quantization_mode: Optional[ExportQuantizationMode] = None,
         selective_quantizer: Optional["SelectiveQuantizer"] = None,  # noqa
         calibration_loader: Optional[DataLoader] = None,
         calibration_method: str = "percentile",
