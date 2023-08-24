@@ -45,4 +45,7 @@ coco2017_yolo_nas_pose_m:
 	CUDA_VISIBLE_DEVICES=6 python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_m_weights_and_biases dataset_params.val_dataset_params.data_dir=/data/coco multi_gpu=Off num_gpus=1
 
 coco2017_yolo_nas_pose_l:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l_weights_and_biases batch_size=24
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l_weights_and_biases batch_size=24 training_hyperparams.sync_bn=False
+
+coco2017_yolo_nas_pose_l_bce:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l_bce_weights_and_biases batch_size=24 training_hyperparams.sync_bn=False

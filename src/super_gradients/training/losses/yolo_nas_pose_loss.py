@@ -185,6 +185,7 @@ class YoloNASPoseLoss(nn.Module):
         pose_cls_loss_weight: float = 1.0,
         pose_reg_loss_weight: float = 1.0,
         rescale_keypoint_loss_by_assigned_weight: bool = True,
+        use_cocoeval_formula: bool = True,
     ):
         """
         :param num_classes: Number of keypoints
@@ -211,6 +212,7 @@ class YoloNASPoseLoss(nn.Module):
         self.pose_reg_loss_weight = pose_reg_loss_weight
         self.assigner = YoloNASPoseTaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
         self.rescale_keypoint_loss_by_assigned_weight = rescale_keypoint_loss_by_assigned_weight
+        self.use_cocoeval_formula = use_cocoeval_formula
         # Same as in PPYoloE head
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
@@ -391,22 +393,27 @@ class YoloNASPoseLoss(nn.Module):
         :param target_visibility: [Num Instances, Num Joints, 1] - Visibility of each joint
         :param sigmas: [Num Joints] - Sigma for each joint
         :param area: [Num Instances, 1] - Area of the corresponding bounding box
-        :return: Tuple of regression loss and classification loss
+        :return: Tuple of (regression loss, classification loss)
+         - regression loss [Num Instances, 1]
+         - classification loss [Num Instances, 1]
+
         """
         sigmas = sigmas.reshape([1, -1, 1])
         area = area.reshape([-1, 1, 1])
 
-        target_visibility: Tensor = (target_visibility > 0).float()
-        d = ((predicted_coords - target_coords) ** 2).sum(dim=-1, keepdim=True)
+        visible_targets_mask: Tensor = (target_visibility > 0).float()  # [Num Instances, Num Joints, 1]
+        d = ((predicted_coords - target_coords) ** 2).sum(dim=-1, keepdim=True)  # [[Num Instances, Num Joints, 1]
 
-        kpt_loss_factor = (torch.sum(target_visibility > 0, dim=1, keepdim=True) + torch.sum(target_visibility == 0, dim=1, keepdim=True)) / (
-            torch.sum(target_visibility > 0, dim=1, keepdim=True) + 1e-9
-        )
-        # e = d / (2 * (area * self.sigmas) ** 2 + 1e-9)  # from formula
-        e = d / (2 * sigmas) ** 2 / (area + 1e-9) / 2  # from cocoeval
-        regression_loss = kpt_loss_factor * ((1 - torch.exp(-e)) * target_visibility)
-        classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, target_visibility, reduction="none")
-        return regression_loss.mean(dim=1, keepdim=False), classification_loss.mean(dim=1, keepdim=False)
+        if self.use_cocoeval_formula:
+            e = d / (2 * sigmas) ** 2 / (area + 1e-9) / 2  # from cocoeval
+        else:
+            e = d / (2 * (area * self.sigmas) ** 2 + 1e-9)  # from formula
+
+        regression_loss = 1 - (torch.exp(-e) * visible_targets_mask).sum(dim=1, keepdim=False) / (visible_targets_mask.sum(dim=1, keepdim=False) + 1e-9)
+
+        classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="none")
+        classification_loss = classification_loss.sum(dim=1, keepdim=False)  # Sum across all keypoints [Num Instances, 1]
+        return regression_loss, classification_loss
 
     def _xyxy_box_area(self, boxes):
         """
