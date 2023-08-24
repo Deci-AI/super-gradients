@@ -281,9 +281,9 @@ class DetectX(nn.Module):
     def _make_grid(nx: int, ny: int, dtype: torch.dtype):
         if torch_version_is_greater_or_equal(1, 10):
             # https://github.com/pytorch/pytorch/issues/50276
-            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)], indexing="ij")
+            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)], indexing="ij")
         else:
-            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
+            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).to(dtype)
 
 
