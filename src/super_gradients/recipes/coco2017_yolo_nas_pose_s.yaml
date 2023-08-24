@@ -32,7 +32,7 @@ checkpoint_params:
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 32
+    batch_size: 64
 
   val_dataloader_params:
-    batch_size: 32
+    batch_size: 64
