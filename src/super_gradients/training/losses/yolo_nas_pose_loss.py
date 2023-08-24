@@ -177,7 +177,7 @@ class YoloNASPoseLoss(nn.Module):
         self,
         num_classes: int,
         oks_sigmas: Union[List[float], np.ndarray, Tensor],
-        use_varifocal_loss: bool = False,
+        classification_loss_type: str = "focal",
         reg_max: int = 16,
         classification_loss_weight: float = 1.0,
         iou_loss_weight: float = 2.5,
@@ -196,7 +196,7 @@ class YoloNASPoseLoss(nn.Module):
         :param pose_reg_loss_weight: Pose regression loss weight
         """
         super().__init__()
-        self.use_varifocal_loss = use_varifocal_loss
+        self.classification_loss_type = classification_loss_type
         self.classification_loss_weight = classification_loss_weight
         self.dfl_loss_weight = dfl_loss_weight
         self.iou_loss_weight = iou_loss_weight
@@ -323,11 +323,15 @@ class YoloNASPoseLoss(nn.Module):
         assigned_scores = assign_result.assigned_scores
 
         # cls loss
-        if self.use_varifocal_loss:
+        if self.classification_loss_type == "varifocal":
             one_hot_label = torch.nn.functional.one_hot(assigned_labels, self.num_classes + 1)[..., :-1]
             loss_cls = self._varifocal_loss(pred_scores, assigned_scores, one_hot_label)
-        else:
+        elif self.classification_loss_type == "focal":
             loss_cls = self._focal_loss(pred_scores, assigned_scores, alpha_l)
+        elif self.classification_loss_type == "bce":
+            loss_cls = torch.nn.functional.binary_cross_entropy_with_logits(pred_scores, assigned_scores, reduction="sum")
+        else:
+            raise ValueError()
 
         assigned_scores_sum = assigned_scores.sum()
         # if super_gradients.is_distributed():
@@ -345,14 +349,6 @@ class YoloNASPoseLoss(nn.Module):
             assign_result=assign_result,
             assigned_scores_sum=assigned_scores_sum,
         )
-
-        # loss_pose_cls, loss_pose_reg,  = self._pose_loss(
-        #
-        #     stride_tensor=stride_tensor,
-        #     anchor_points=anchor_points_s,
-        #     assign_result=assign_result,
-        #     assigned_scores_sum=assigned_scores_sum,
-        # )
 
         loss = (
             self.classification_loss_weight * loss_cls
