@@ -523,7 +523,7 @@ class ExportableObjectDetectionModel:
             usage_instructions.append("")
             usage_instructions.append("    import onnxruntime")
             usage_instructions.append("    import numpy as np")
-            usage_instructions.append(f'    session = onnxruntime.InferenceSession("{output}")')
+            usage_instructions.append(f'    session = onnxruntime.InferenceSession("{output}", providers=["CUDAExecutionProvider", "CPUExecutionProvider"])')
             usage_instructions.append("    inputs = [o.name for o in session.get_inputs()]")
             usage_instructions.append("    outputs = [o.name for o in session.get_outputs()]")
 
