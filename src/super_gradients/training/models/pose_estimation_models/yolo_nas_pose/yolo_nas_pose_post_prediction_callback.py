@@ -29,8 +29,8 @@ class YoloNASPosePostPredictionCallback:
         super().__init__()
         self.pose_confidence_threshold = pose_confidence_threshold
         self.nms_iou_threshold = nms_iou_threshold
-        self.nms_top_k = pre_nms_max_predictions
-        self.max_predictions = post_nms_max_predictions
+        self.pre_nms_max_predictions = pre_nms_max_predictions
+        self.post_nms_max_predictions = post_nms_max_predictions
         self.keypoint_confidence_threshold = keypoint_confidence_threshold
 
     def __call__(self, outputs, device: str = None) -> List[PoseEstimationPredictions]:
@@ -61,16 +61,16 @@ class YoloNASPosePostPredictionCallback:
             pred_pose_scores = pred_pose_scores[conf_mask]
 
             # Filter all predictions by self.nms_top_k
-            if pred_bboxes_conf.size(0) > self.nms_top_k:
-                topk_candidates = torch.topk(pred_bboxes_conf, k=self.nms_top_k, largest=True, sorted=True)
+            if pred_bboxes_conf.size(0) > self.pre_nms_max_predictions:
+                topk_candidates = torch.topk(pred_bboxes_conf, k=self.pre_nms_max_predictions, largest=True, sorted=True)
                 pred_bboxes_conf = pred_bboxes_conf[topk_candidates.indices]
                 pred_bboxes_xyxy = pred_bboxes_xyxy[topk_candidates.indices]
                 pred_pose_coords = pred_pose_coords[topk_candidates.indices]
                 pred_pose_scores = pred_pose_scores[topk_candidates.indices]
 
             # NMS
-            idx_to_keep = torchvision.ops.boxes.nms(boxes=pred_bboxes_xyxy, scores=pred_bboxes_conf, iou_threshold=self.nms_threshold)
-            idx_to_keep = idx_to_keep[: self.max_predictions]
+            idx_to_keep = torchvision.ops.boxes.nms(boxes=pred_bboxes_xyxy, scores=pred_bboxes_conf, iou_threshold=self.nms_iou_threshold)
+            idx_to_keep = idx_to_keep[: self.post_nms_max_predictions]
 
             final_bboxes = pred_bboxes_xyxy[idx_to_keep]  # [Instances,]
             final_scores = pred_bboxes_conf[idx_to_keep]  # [Instances]
