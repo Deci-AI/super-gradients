@@ -184,6 +184,7 @@ class YoloNASPoseLoss(nn.Module):
         dfl_loss_weight: float = 0.5,
         pose_cls_loss_weight: float = 1.0,
         pose_reg_loss_weight: float = 1.0,
+        rescale_keypoint_loss_by_assigned_weight: bool = True,
     ):
         """
         :param num_classes: Number of keypoints
@@ -209,7 +210,7 @@ class YoloNASPoseLoss(nn.Module):
         self.pose_cls_loss_weight = pose_cls_loss_weight
         self.pose_reg_loss_weight = pose_reg_loss_weight
         self.assigner = YoloNASPoseTaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
-
+        self.rescale_keypoint_loss_by_assigned_weight = rescale_keypoint_loss_by_assigned_weight
         # Same as in PPYoloE head
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
@@ -467,8 +468,12 @@ class YoloNASPoseLoss(nn.Module):
                 area=area,
                 sigmas=self.oks_sigmas.to(pred_pose_logits.device),
             )
-            regression_loss_reduced = (regression_loss * assigned_weight).sum() / assigned_scores_sum
-            classification_loss_reduced = (classification_loss * assigned_weight).sum() / assigned_scores_sum
+            if self.rescale_keypoint_loss_by_assigned_weight:
+                rescale_factor = assigned_weight
+            else:
+                rescale_factor = 1
+            regression_loss_reduced = (regression_loss * rescale_factor).sum() / assigned_scores_sum
+            classification_loss_reduced = (classification_loss * rescale_factor).sum() / assigned_scores_sum
             loss_pose_cls = classification_loss_reduced
             loss_pose_reg = regression_loss_reduced
         else:

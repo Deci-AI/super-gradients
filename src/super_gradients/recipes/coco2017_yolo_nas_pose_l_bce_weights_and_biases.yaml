@@ -1,11 +1,8 @@
 defaults:
-  - coco2017_yolo_nas_pose_l
+  - coco2017_yolo_nas_pose_l_bce
   - _self_
 
 training_hyperparams:
-  criterion_params:
-    classification_loss_type: bce
-
   sg_logger: wandb_sg_logger
   sg_logger_params:
     api_server: https://wandb.research.deci.ai

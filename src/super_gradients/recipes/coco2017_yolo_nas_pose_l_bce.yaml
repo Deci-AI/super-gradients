@@ -1,0 +1,8 @@
+defaults:
+  - coco2017_yolo_nas_pose_l
+  - _self_
+
+training_hyperparams:
+  criterion_params:
+    classification_loss_type: bce
+    rescale_keypoint_loss_by_assigned_weight: False
