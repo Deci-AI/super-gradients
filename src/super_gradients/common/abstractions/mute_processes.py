@@ -9,6 +9,7 @@ from super_gradients.common.environment.env_variables import env_variables
 
 def mute_subprocesses():
     """Mute (prints, warnings and all logs except ERRORS) of some subprocesses to avoid having duplicates in the logs."""
+    return
 
     # When running DDP, mute all nodes except for the master node
     if int(env_variables.LOCAL_RANK) > 0:
@@ -20,6 +21,8 @@ def mute_subprocesses():
 def mute_current_process():
     """Mute prints, warnings and all logs except ERRORS. This is meant when running multiple processes."""
     # Ignore warnings
+    return
+
     import warnings
 
     warnings.filterwarnings("ignore")
@@ -54,6 +57,7 @@ def mute_non_linux_dataloader_worker_process() -> None:
         Knowing that depending on how the script is launched, main_process might be child of other non "python" processes such as:
                 ssh(non-python) -> pycharm(non-python) -> main_process(python) -> ...
     """
+    return
 
     if is_non_linux_dataloader_worker_process():
         mute_current_process()
