@@ -101,6 +101,8 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         max: bool = False,
         freq: int = 1,
         max_images: Optional[int] = None,
+        enable_on_train_loader: bool = False,
+        enable_on_valid_loader: bool = False,
     ):
         super().__init__(metric=metric, metric_component_name=metric_component_name, loss_to_monitor=loss_to_monitor, max=max, freq=freq)
         self.post_prediction_callback = post_prediction_callback
@@ -108,6 +110,8 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         self.edge_colors = OmegaConf.to_container(edge_colors)
         self.edge_links = OmegaConf.to_container(edge_links)
         self.max_images = max_images
+        self.enable_on_train_loader = enable_on_train_loader
+        self.enable_on_valid_loader = enable_on_valid_loader
 
     @classmethod
     def universal_undo_preprocessing_fn(cls, inputs: torch.Tensor) -> np.ndarray:
@@ -220,8 +224,11 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         images_to_save_gt = np.stack(images_to_save_gt)
         return images_to_save_preds, images_to_save_gt
 
-    def on_validation_loader_end(self, context: PhaseContext) -> None:
-        if context.epoch % self.freq == 0:
+    def on_train_loader_start(self, context: PhaseContext) -> None:
+        self._reset()
+
+    def on_train_loader_end(self, context: PhaseContext) -> None:
+        if self.enable_on_train_loader and context.epoch % self.freq == 0:
             images_to_save_preds, images_to_save_gt = self.process_extreme_batch()
             images_to_save_preds = maybe_all_gather_np_images(images_to_save_preds)
             images_to_save_gt = maybe_all_gather_np_images(images_to_save_gt)
@@ -231,7 +238,26 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
                 images_to_save_gt = images_to_save_gt[: self.max_images]
 
             if not context.ddp_silent_mode:
-                context.sg_logger.add_images(tag=f"{self._tag}_preds", images=images_to_save_preds, global_step=context.epoch, data_format="NHWC")
-                context.sg_logger.add_images(tag=f"{self._tag}_GT", images=images_to_save_gt, global_step=context.epoch, data_format="NHWC")
+                context.sg_logger.add_images(tag=f"train/{self._tag}_preds", images=images_to_save_preds, global_step=context.epoch, data_format="NHWC")
+                context.sg_logger.add_images(tag=f"train/{self._tag}_GT", images=images_to_save_gt, global_step=context.epoch, data_format="NHWC")
+
+            self._reset()
+
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
+        self._reset()
+
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
+        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+            images_to_save_preds, images_to_save_gt = self.process_extreme_batch()
+            images_to_save_preds = maybe_all_gather_np_images(images_to_save_preds)
+            images_to_save_gt = maybe_all_gather_np_images(images_to_save_gt)
+
+            if self.max_images is not None:
+                images_to_save_preds = images_to_save_preds[: self.max_images]
+                images_to_save_gt = images_to_save_gt[: self.max_images]
+
+            if not context.ddp_silent_mode:
+                context.sg_logger.add_images(tag=f"valid/{self._tag}_preds", images=images_to_save_preds, global_step=context.epoch, data_format="NHWC")
+                context.sg_logger.add_images(tag=f"valid/{self._tag}_GT", images=images_to_save_gt, global_step=context.epoch, data_format="NHWC")
 
             self._reset()

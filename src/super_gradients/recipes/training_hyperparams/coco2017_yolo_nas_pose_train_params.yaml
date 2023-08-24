@@ -67,6 +67,8 @@ phase_callbacks:
       max: True
       freq: 1
       max_images: 16
+      enable_on_train_loader: True
+      enable_on_valid_loader: True
       post_prediction_callback:
         _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
         keypoint_confidence_threshold: 0.5
