@@ -1,4 +1,5 @@
 experiment_name: # The experiment name used to train the model (optional- ignored when checkpoint_path is given)
+run_id: # The directory name of the required checkpoint i.e. RUN_20230823_154026_757034 - if left empty, the last run will be used
 ckpt_root_dir: # The checkpoint root directory, s.t  ckpt_root_dir/experiment_name/ckpt_name resides.
                 # Can be ignored if the checkpoints directory is the default (i.e path to checkpoints module from contents root), or when checkpoint_path is given
 ckpt_name: ckpt_best.pth # Name of the checkpoint to export ("ckpt_latest.pth", "average_model.pth" or "ckpt_best.pth" for instance).
