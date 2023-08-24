@@ -407,7 +407,7 @@ class YoloNASPoseLoss(nn.Module):
         if self.use_cocoeval_formula:
             e = d / (2 * sigmas) ** 2 / (area + 1e-9) / 2  # from cocoeval
         else:
-            e = d / (2 * (area * self.sigmas) ** 2 + 1e-9)  # from formula
+            e = d / (2 * (area * sigmas) ** 2 + 1e-9)  # from formula
 
         regression_loss = 1 - (torch.exp(-e) * visible_targets_mask).sum(dim=1, keepdim=False) / (visible_targets_mask.sum(dim=1, keepdim=False) + 1e-9)
 
