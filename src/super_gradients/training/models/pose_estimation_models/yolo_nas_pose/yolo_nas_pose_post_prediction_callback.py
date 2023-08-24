@@ -10,20 +10,27 @@ class YoloNASPosePostPredictionCallback:
     Performs confidence thresholding, Top-K and NMS steps.
     """
 
-    def __init__(self, score_threshold: float, keypoint_confidence_threshold: float, nms_threshold: float, nms_top_k: int, max_predictions: int):
+    def __init__(
+        self,
+        pose_confidence_threshold: float,
+        keypoint_confidence_threshold: float,
+        nms_iou_threshold: float,
+        pre_nms_max_predictions: int,
+        post_nms_max_predictions: int,
+    ):
         """
         :param score_threshold: Pose detection confidence threshold
         :param keypoint_confidence_threshold: A minimal confidence threshold for keypoints.
                                               Confidence scores of individual keypoints below this threshold will be set to 0.
         :param nms_threshold: IoU threshold for NMS step.
-        :param nms_top_k: Number of predictions participating in NMS step
-        :param max_predictions: maximum number of boxes to return after NMS step
+        :param pre_nms_max_predictions: Number of predictions participating in NMS step
+        :param post_nms_max_predictions: maximum number of boxes to return after NMS step
         """
         super().__init__()
-        self.score_threshold = score_threshold
-        self.nms_threshold = nms_threshold
-        self.nms_top_k = nms_top_k
-        self.max_predictions = max_predictions
+        self.pose_confidence_threshold = pose_confidence_threshold
+        self.nms_iou_threshold = nms_iou_threshold
+        self.nms_top_k = pre_nms_max_predictions
+        self.max_predictions = post_nms_max_predictions
         self.keypoint_confidence_threshold = keypoint_confidence_threshold
 
     def __call__(self, outputs, device: str = None) -> List[PoseEstimationPredictions]:
@@ -36,9 +43,6 @@ class YoloNASPosePostPredictionCallback:
         # First is model predictions, second element of tuple is logits for loss computation
         predictions = outputs[0]
 
-        pred_poses = []
-        pred_scores = []
-
         decoded_predictions: List[PoseEstimationPredictions] = []
         for pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores in zip(*predictions):
             # pred_bboxes [Anchors, 4] in XYXY format
@@ -46,10 +50,10 @@ class YoloNASPosePostPredictionCallback:
             # pred_pose_coords [Anchors, 17, 2] in (x,y) format
             # pred_pose_scores [Anchors, 17] confidence scores [0..1]
 
-            pred_pose_scores[pred_pose_scores < self.keypoint_confidence_threshold] = 0.0
+            pred_pose_scores = torch.masked_fill(pred_pose_scores, pred_pose_scores < self.keypoint_confidence_threshold, 0.0)
 
             pred_bboxes_conf = pred_bboxes_conf.squeeze(-1)  # [Anchors]
-            conf_mask = pred_bboxes_conf >= self.score_threshold  # [Anchors]
+            conf_mask = pred_bboxes_conf >= self.pose_confidence_threshold  # [Anchors]
 
             pred_bboxes_conf = pred_bboxes_conf[conf_mask]
             pred_bboxes_xyxy = pred_bboxes_xyxy[conf_mask]
@@ -58,7 +62,7 @@ class YoloNASPosePostPredictionCallback:
 
             # Filter all predictions by self.nms_top_k
             if pred_bboxes_conf.size(0) > self.nms_top_k:
-                topk_candidates = torch.topk(pred_bboxes_conf, k=self.nms_top_k, largest=True)
+                topk_candidates = torch.topk(pred_bboxes_conf, k=self.nms_top_k, largest=True, sorted=True)
                 pred_bboxes_conf = pred_bboxes_conf[topk_candidates.indices]
                 pred_bboxes_xyxy = pred_bboxes_xyxy[topk_candidates.indices]
                 pred_pose_coords = pred_pose_coords[topk_candidates.indices]
@@ -69,6 +73,8 @@ class YoloNASPosePostPredictionCallback:
             idx_to_keep = idx_to_keep[: self.max_predictions]
 
             final_bboxes = pred_bboxes_xyxy[idx_to_keep]  # [Instances,]
+            final_scores = pred_bboxes_conf[idx_to_keep]  # [Instances]
+
             final_poses = torch.cat(
                 [
                     pred_pose_coords[idx_to_keep],
@@ -76,11 +82,6 @@ class YoloNASPosePostPredictionCallback:
                 ],
                 dim=-1,
             )  # [Instances, 17, 3]
-
-            final_scores = pred_bboxes_conf[idx_to_keep]  # [Instances]
-
-            pred_poses.append(final_poses)
-            pred_scores.append(final_scores)
 
             decoded_predictions.append(
                 PoseEstimationPredictions(

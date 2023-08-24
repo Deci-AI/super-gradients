@@ -35,20 +35,20 @@ ema_params:
   decay_type: threshold
 
 mixed_precision: True
-sync_bn: True
+sync_bn: False
 
 valid_metrics_list:
   - PoseEstimationMetrics:
       num_joints: ${dataset_params.num_joints}
       oks_sigmas: ${dataset_params.oks_sigmas}
-      max_objects_per_image: 100
+      max_objects_per_image: 30
       post_prediction_callback:
         _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
         keypoint_confidence_threshold: 0.5
-        score_threshold: 0.05
-        nms_threshold: 0.7
-        nms_top_k: 300
-        max_predictions: 100
+        pose_confidence_threshold: 0.1
+        nms_iou_threshold: 0.7
+        pre_nms_max_predictions: 300
+        post_nms_max_predictions: 30
 
 
 phase_callbacks:
@@ -63,10 +63,10 @@ phase_callbacks:
       post_prediction_callback:
         _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
         keypoint_confidence_threshold: 0.5
-        score_threshold: 0.05
-        nms_threshold: 0.7
-        nms_top_k: 300
-        max_predictions: 100
+        pose_confidence_threshold: 0.1
+        nms_iou_threshold: 0.7
+        pre_nms_max_predictions: 300
+        post_nms_max_predictions: 30
 
 pre_prediction_callback:
 

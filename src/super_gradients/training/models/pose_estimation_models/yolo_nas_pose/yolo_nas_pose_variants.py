@@ -42,7 +42,7 @@ class YoloNASPose(CustomizableDetector):
     @classmethod
     def get_post_prediction_callback(cls, conf: float, iou: float) -> YoloNASPosePostPredictionCallback:
         return YoloNASPosePostPredictionCallback(
-            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, nms_top_k=1000, max_predictions=300
+            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, pre_nms_max_predictions=1000, post_nms_max_predictions=300
         )
 
     def get_preprocessing_callback(self, **kwargs):
@@ -91,7 +91,7 @@ class YoloNASPose_S(YoloNASPose):
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> YoloNASPosePostPredictionCallback:
         return YoloNASPosePostPredictionCallback(
-            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, nms_top_k=1000, max_predictions=300
+            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, pre_nms_max_predictions=1000, post_nms_max_predictions=300
         )
 
     @property
@@ -119,7 +119,7 @@ class YoloNASPose_M(YoloNASPose):
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> YoloNASPosePostPredictionCallback:
         return YoloNASPosePostPredictionCallback(
-            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, nms_top_k=1000, max_predictions=300
+            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, pre_nms_max_predictions=1000, post_nms_max_predictions=300
         )
 
     @property
@@ -147,7 +147,7 @@ class YoloNASPose_L(YoloNASPose):
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> YoloNASPosePostPredictionCallback:
         return YoloNASPosePostPredictionCallback(
-            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, nms_top_k=1000, max_predictions=300
+            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, pre_nms_max_predictions=1000, post_nms_max_predictions=300
         )
 
     @property

@@ -135,6 +135,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         keypoint_colors: List[Tuple[int, int, int]],
         edge_colors: List[Tuple[int, int, int]],
         edge_links: List[Tuple[int, int]],
+        keypoint_confidence_threshold: float,
     ):
 
         out_images = []
@@ -163,6 +164,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
                     keypoint_radius=3,
                     show_confidence=scores is not None,
                     box_thickness=2,
+                    keypoint_confidence_threshold=keypoint_confidence_threshold,
                 )
 
                 res_image = draw_bbox(
@@ -197,6 +199,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,
             keypoint_colors=self.keypoint_colors,
+            keypoint_confidence_threshold=0.5,
         )
         images_to_save_preds = np.stack(images_to_save_preds)
 
@@ -212,6 +215,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,
             keypoint_colors=self.keypoint_colors,
+            keypoint_confidence_threshold=0,
         )
         images_to_save_gt = np.stack(images_to_save_gt)
         return images_to_save_preds, images_to_save_gt
