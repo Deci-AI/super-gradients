@@ -16,8 +16,7 @@ from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMo
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
-from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules
-
+from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules, infer_model_dtype
 
 logger = get_logger(__name__)
 
@@ -47,6 +46,19 @@ class AbstractObjectDetectionDecodingModule(nn.Module):
         Where N is the maximum number of predictions per image (see self.get_num_pre_nms_predictions()),
         and C is the number of classes.
 
+        """
+        raise NotImplementedError(f"forward() method is not implemented for class {self.__class__.__name__}. ")
+
+    @torch.jit.ignore
+    def infer_total_number_of_predictions(self, predictions: Any) -> int:
+        """
+        This method is used to infer the total number of predictions for a given input resolution.
+        The function takes raw predictions from the model and returns the total number of predictions.
+        It is needed to check whether max_predictions_per_image and num_pre_nms_predictions are not greater than
+        the total number of predictions for a given resolution.
+
+        :param predictions: Predictions from the model itself.
+        :return: A total number of predictions for a given resolution
         """
         raise NotImplementedError(f"forward() method is not implemented for class {self.__class__.__name__}. ")
 
@@ -325,6 +337,27 @@ class ExportableObjectDetectionModel:
             num_pre_nms_predictions = postprocessing_module.num_pre_nms_predictions
             max_predictions_per_image = max_predictions_per_image or num_pre_nms_predictions
 
+            dummy_input = torch.randn(input_shape).to(device=infer_model_device(model), dtype=infer_model_dtype(model))
+            with torch.no_grad():
+                number_of_predictions = postprocessing_module.infer_total_number_of_predictions(model.eval()(dummy_input))
+
+            if num_pre_nms_predictions > number_of_predictions:
+                logger.warning(
+                    f"num_pre_nms_predictions ({num_pre_nms_predictions}) is greater than the total number of predictions ({number_of_predictions}) for input"
+                    f"shape {input_shape}. Setting num_pre_nms_predictions to {number_of_predictions}"
+                )
+                num_pre_nms_predictions = number_of_predictions
+                # We have to re-created the postprocessing_module with the new value of num_pre_nms_predictions
+                postprocessing_kwargs["num_pre_nms_predictions"] = num_pre_nms_predictions
+                postprocessing_module: AbstractObjectDetectionDecodingModule = model.get_decoding_module(**postprocessing_kwargs)
+
+            if max_predictions_per_image > num_pre_nms_predictions:
+                logger.warning(
+                    f"max_predictions_per_image ({max_predictions_per_image}) is greater than num_pre_nms_predictions ({num_pre_nms_predictions}). "
+                    f"Setting max_predictions_per_image to {num_pre_nms_predictions}"
+                )
+                max_predictions_per_image = num_pre_nms_predictions
+
             nms_threshold = nms_threshold or getattr(model, "_default_nms_iou", None)
             if nms_threshold is None:
                 raise ValueError(
@@ -339,12 +372,6 @@ class ExportableObjectDetectionModel:
                     "Please specify the confidence_threshold explicitly: model.export(..., confidence_threshold=0.5)"
                 )
 
-            if max_predictions_per_image > num_pre_nms_predictions:
-                raise ValueError(
-                    f"max_predictions_per_image={max_predictions_per_image} is greater than "
-                    f"num_pre_nms_predictions={num_pre_nms_predictions}. "
-                    f"Please specify max_predictions_per_image <= {num_pre_nms_predictions}."
-                )
         else:
             attach_nms_postprocessing = False
             postprocessing_module = None

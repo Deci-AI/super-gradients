@@ -1,7 +1,7 @@
 import collections
 import math
 import warnings
-from typing import Union, Type, List, Tuple, Optional
+from typing import Union, Type, List, Tuple, Optional, Any
 from functools import lru_cache
 
 import numpy as np
@@ -745,3 +745,18 @@ class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):
         output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
 
         return output_pred_bboxes, output_pred_scores
+
+    def get_num_pre_nms_predictions(self) -> int:
+        return self.num_pre_nms_predictions
+
+    @torch.jit.ignore
+    def infer_total_number_of_predictions(self, predictions: Any) -> int:
+        """
+
+        :param inputs:
+        :return:
+        """
+        if isinstance(predictions, (tuple, list)):
+            predictions = predictions[0]
+
+        return predictions.size(1)
