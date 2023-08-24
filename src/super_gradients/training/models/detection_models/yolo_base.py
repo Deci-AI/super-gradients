@@ -1,7 +1,7 @@
 import collections
 import math
 import warnings
-from typing import Union, Type, List, Tuple, Optional
+from typing import Union, Type, List, Tuple, Optional, Any
 from functools import lru_cache
 
 import numpy as np
@@ -282,9 +282,9 @@ class DetectX(nn.Module):
     def _make_grid(nx: int, ny: int, dtype: torch.dtype):
         if torch_version_is_greater_or_equal(1, 10):
             # https://github.com/pytorch/pytorch/issues/50276
-            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)], indexing="ij")
+            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)], indexing="ij")
         else:
-            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
+            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).to(dtype)
 
 
@@ -748,3 +748,18 @@ class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):
         output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
 
         return output_pred_bboxes, output_pred_scores
+
+    def get_num_pre_nms_predictions(self) -> int:
+        return self.num_pre_nms_predictions
+
+    @torch.jit.ignore
+    def infer_total_number_of_predictions(self, predictions: Any) -> int:
+        """
+
+        :param inputs:
+        :return:
+        """
+        if isinstance(predictions, (tuple, list)):
+            predictions = predictions[0]
+
+        return predictions.size(1)

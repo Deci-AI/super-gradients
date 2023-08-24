@@ -1,5 +1,5 @@
 import copy
-from typing import Union, Tuple, Optional
+from typing import Union, Tuple, Optional, Any
 
 import torch
 from omegaconf import DictConfig
@@ -27,6 +27,23 @@ class YoloNASDecodingModule(AbstractObjectDetectionDecodingModule):
     ):
         super().__init__()
         self.num_pre_nms_predictions = num_pre_nms_predictions
+
+    @torch.jit.ignore
+    def infer_total_number_of_predictions(self, predictions: Any) -> int:
+        """
+
+        :param inputs:
+        :return:
+        """
+        if torch.jit.is_tracing():
+            pred_bboxes, pred_scores = predictions
+        else:
+            pred_bboxes, pred_scores = predictions[0]
+
+        return pred_bboxes.size(1)
+
+    def get_num_pre_nms_predictions(self) -> int:
+        return self.num_pre_nms_predictions
 
     def forward(self, inputs: Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]):
         if torch.jit.is_tracing():

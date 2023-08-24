@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Union, Optional, List, Tuple
+from typing import Union, Optional, List, Tuple, Any
 
 import torch
 from torch import Tensor
@@ -81,6 +81,20 @@ class PPYoloEDecodingModule(AbstractObjectDetectionDecodingModule):
         output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
 
         return output_pred_bboxes, output_pred_scores
+
+    @torch.jit.ignore
+    def infer_total_number_of_predictions(self, predictions: Any) -> int:
+        """
+
+        :param inputs:
+        :return:
+        """
+        if torch.jit.is_tracing():
+            pred_bboxes, pred_scores = predictions
+        else:
+            pred_bboxes, pred_scores = predictions[0]
+
+        return pred_bboxes.size(1)
 
 
 class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
