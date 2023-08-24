@@ -205,7 +205,12 @@ class DetectX(nn.Module):
         self.n_anchors = 1
         self.grid = [torch.zeros(1)] * self.detection_layers_num  # init grid
 
-        self.register_buffer("stride", torch.tensor(stride), persistent=False)
+        if torch.is_tensor(stride):
+            stride = stride.clone().detach()
+        else:
+            stride = torch.tensor(stride)
+
+        self.register_buffer("stride", stride, persistent=False)
 
         self.cls_convs = nn.ModuleList()
         self.reg_convs = nn.ModuleList()
@@ -691,7 +696,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
 
             new_last_layer = DetectX(
                 num_classes=new_num_classes,
-                stride=self._head.anchors.stride,
+                stride=self.strides,
                 activation_func_type=activation_type,
                 channels=[width_mult(v) for v in (256, 512, 1024)],
                 depthwise=isinstance(old_detectx.cls_convs[0][0], GroupedConvBlock),
