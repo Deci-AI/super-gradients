@@ -55,10 +55,10 @@ class YoloNASPosePostPredictionCallback:
             pred_bboxes_conf = pred_bboxes_conf.squeeze(-1)  # [Anchors]
             conf_mask = pred_bboxes_conf >= self.pose_confidence_threshold  # [Anchors]
 
-            pred_bboxes_conf = pred_bboxes_conf[conf_mask]
-            pred_bboxes_xyxy = pred_bboxes_xyxy[conf_mask]
-            pred_pose_coords = pred_pose_coords[conf_mask]
-            pred_pose_scores = pred_pose_scores[conf_mask]
+            pred_bboxes_conf = pred_bboxes_conf[conf_mask].float()
+            pred_bboxes_xyxy = pred_bboxes_xyxy[conf_mask].float()
+            pred_pose_coords = pred_pose_coords[conf_mask].float()
+            pred_pose_scores = pred_pose_scores[conf_mask].float()
 
             # Filter all predictions by self.nms_top_k
             if pred_bboxes_conf.size(0) > self.pre_nms_max_predictions:
@@ -73,7 +73,7 @@ class YoloNASPosePostPredictionCallback:
             idx_to_keep = idx_to_keep[: self.post_nms_max_predictions]
 
             final_bboxes = pred_bboxes_xyxy[idx_to_keep]  # [Instances,]
-            final_scores = pred_bboxes_conf[idx_to_keep]  # [Instances]
+            final_scores = pred_bboxes_conf[idx_to_keep]  # [Instances,]
 
             final_poses = torch.cat(
                 [
