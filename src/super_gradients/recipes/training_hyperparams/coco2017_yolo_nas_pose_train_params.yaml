@@ -24,6 +24,13 @@ criterion_params:
     num_classes: ${arch_params.num_classes}
     reg_max: 16
     oks_sigmas: ${dataset_params.oks_sigmas}
+    classification_loss_weight: 1.0
+    iou_loss_weight: 0.5
+    dfl_loss_weight: 0.1
+    pose_cls_loss_weight: 1.0
+    pose_reg_loss_weight: 1.0
+    rescale_keypoint_loss_by_assigned_weight: False
+    use_cocoeval_formula: True
 
 optimizer: AdamW
 optimizer_params:

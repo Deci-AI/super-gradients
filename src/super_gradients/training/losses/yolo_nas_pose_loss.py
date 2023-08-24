@@ -412,7 +412,7 @@ class YoloNASPoseLoss(nn.Module):
         regression_loss = 1 - (torch.exp(-e) * visible_targets_mask).sum(dim=1, keepdim=False) / (visible_targets_mask.sum(dim=1, keepdim=False) + 1e-9)
 
         classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="none")
-        classification_loss = classification_loss.sum(dim=1, keepdim=False)  # Sum across all keypoints [Num Instances, 1]
+        classification_loss = classification_loss.mean(dim=1, keepdim=False)  # Mean across all keypoints [Num Instances, 1]
         return regression_loss, classification_loss
 
     def _xyxy_box_area(self, boxes):
