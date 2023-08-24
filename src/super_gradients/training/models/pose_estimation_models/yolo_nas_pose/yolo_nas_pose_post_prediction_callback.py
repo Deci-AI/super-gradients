@@ -26,6 +26,9 @@ class YoloNASPosePostPredictionCallback:
         :param pre_nms_max_predictions: Number of predictions participating in NMS step
         :param post_nms_max_predictions: maximum number of boxes to return after NMS step
         """
+        if post_nms_max_predictions > pre_nms_max_predictions:
+            raise ValueError("post_nms_max_predictions must be less than pre_nms_max_predictions")
+
         super().__init__()
         self.pose_confidence_threshold = pose_confidence_threshold
         self.nms_iou_threshold = nms_iou_threshold
