@@ -528,14 +528,10 @@ class ExportableObjectDetectionModel:
             usage_instructions.append("    outputs = [o.name for o in session.get_outputs()]")
 
             dtype_name = np.dtype(torch_dtype_to_numpy_dtype(input_image_dtype)).name
-            if preprocessing:
-                usage_instructions.append(
-                    f"    example_input_image = np.zeros({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}).astype(np.{dtype_name})"  # noqa
-                )
-            else:
-                usage_instructions.append(
-                    f"    example_input_image = np.zeros({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}).astype(np.{dtype_name})"  # noqa
-                )
+            usage_instructions.append(
+                f"    example_input_image = np.zeros(({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]})).astype(np.{dtype_name})"  # noqa
+            )
+
             usage_instructions.append("    predictions = session.run(outputs, {inputs[0]: example_input_image})")
             usage_instructions.append("")
 
