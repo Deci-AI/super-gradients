@@ -277,7 +277,7 @@ class KeypointsLongestMaxSize(KeypointTransform):
                 bboxes = self.apply_to_bboxes(bboxes, scale)
 
             if areas is not None:
-                areas = areas * scale
+                areas = (areas * scale).astype(np.float32, copy=False)
 
         return image, mask, joints, areas, bboxes
 
@@ -298,7 +298,7 @@ class KeypointsLongestMaxSize(KeypointTransform):
 
     @classmethod
     def apply_to_bboxes(cls, bboxes, scale):
-        return bboxes * scale
+        return (bboxes * scale).astype(np.float32, copy=False)
 
     def __repr__(self):
         return (
@@ -451,9 +451,9 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         return image, mask, joints, areas, bboxes
 
     @classmethod
-    def apply_to_areas(cls, areas, mat):
+    def apply_to_areas(cls, areas: np.ndarray, mat):
         det = np.linalg.det(mat[:2, :2])
-        return areas * abs(det)
+        return (areas * abs(det)).astype(areas.dtype)
 
     @classmethod
     def apply_to_bboxes(cls, bboxes, mat: np.ndarray):
@@ -474,7 +474,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
 
         bboxes_xyxy = xywh_to_xyxy(bboxes, image_shape=None)
         bboxes_xyxy = np.array([bbox_shift_scale_rotate(box, mat) for box in bboxes_xyxy])
-        return xyxy_to_xywh(bboxes_xyxy, image_shape=None)
+        return xyxy_to_xywh(bboxes_xyxy, image_shape=None).astype(bboxes.dtype)
 
     @classmethod
     def apply_to_keypoints(cls, keypoints: np.ndarray, mat: np.ndarray, image_shape):
@@ -482,6 +482,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         keypoints = keypoints_with_visibility[:, :, 0:2]
 
         shape = keypoints.shape
+        dtype = keypoints.dtype
         keypoints = keypoints.reshape(-1, 2)
         keypoints = np.dot(np.concatenate((keypoints, keypoints[:, 0:1] * 0 + 1), axis=1), mat.T).reshape(shape)
 
@@ -491,7 +492,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
             (keypoints[:, :, 0] < 0) | (keypoints[:, :, 0] >= image_shape[1]) | (keypoints[:, :, 1] < 0) | (keypoints[:, :, 1] >= image_shape[0])
         )
         keypoints_with_visibility[joints_outside_image, 2] = 0
-        return keypoints_with_visibility
+        return keypoints_with_visibility.astype(dtype, copy=False)
 
     @classmethod
     def apply_to_image(cls, image, mat, interpolation, padding_value, padding_mode=cv2.BORDER_CONSTANT):
