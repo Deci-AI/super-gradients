@@ -50,33 +50,41 @@ def bbox_ciou_loss(pred_bboxes: Tensor, target_bboxes: Tensor, eps: float) -> Te
     box1 = [b1_x1, b1_y1, b1_x2, b1_y2]
     box2 = [b2_x1, b2_y1, b2_x2, b2_y2]
     iou, overlap, union = bbox_overlap(box1, box2, eps)
+
+    iou_term = 1 - iou
+
     xc1 = torch.minimum(b1_x1, b2_x1)
     yc1 = torch.minimum(b1_y1, b2_y1)
     xc2 = torch.maximum(b1_x2, b2_x2)
     yc2 = torch.maximum(b1_y2, b2_y2)
 
-    w1 = xc2 - xc1
-    h1 = yc2 - yc1
-    w2 = b2_x2 - b2_x1
-    h2 = b2_y2 - b2_y1
-
-    area_c = (xc2 - xc1) * (yc2 - yc1) + eps
-
-    iou = iou - ((area_c - union) / area_c)
+    cw = xc2 - xc1
+    ch = yc2 - yc1
 
     # convex diagonal squared
+    diagonal_distance_squared = cw**2 + ch**2
 
-    cw = torch.max(b1_x2, b2_x2) - torch.min(b1_x1, b2_x1)  # convex (smallest enclosing box) width
-    ch = torch.max(b1_y2, b2_y2) - torch.min(b1_y1, b2_y1)  # convex height
+    # compute center distance squared
+    b1_cx = (b1_x1 + b1_x2) / 2
+    b1_cy = (b1_y1 + b1_y2) / 2
+    b2_cx = (b2_x1 + b2_x2) / 2
+    b2_cy = (b2_y1 + b2_y2) / 2
+
+    centers_distance_squared = (b1_cx - b2_cx) ** 2 + (b1_cy - b2_cy) ** 2
+    distance_term = centers_distance_squared / (diagonal_distance_squared + eps)
 
     c2 = cw**2 + ch**2 + eps  # noqa
 
     # centerpoint distance squared
-    rho2 = ((b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2 + (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2) / 4
-
-    v = (4 / math.pi**2) * torch.pow(torch.atan(w2 / h2) - torch.atan(w1 / h1), 2)
+    w1, h1 = b1_x2 - b1_x1, b1_y2 - b1_y1
+    w2, h2 = b2_x2 - b2_x1, b2_y2 - b2_y1
+    v = (4 / math.pi**2) * torch.pow(
+        torch.atan(w2 / h2) - torch.atan(w1 / h1),
+        2,
+    )
     with torch.no_grad():
-        alpha = v / ((1 + eps) - iou + v)
-    iou -= rho2 / c2 + v * alpha  # CIoU
+        alpha = v / ((1 - iou) + v).clamp_min(eps)
 
-    return 1 - iou
+    aspect_ratio_term = v * alpha
+
+    return iou_term + distance_term + aspect_ratio_term  # CIoU
