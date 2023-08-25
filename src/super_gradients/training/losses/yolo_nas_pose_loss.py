@@ -187,6 +187,7 @@ class YoloNASPoseLoss(nn.Module):
         pose_reg_loss_weight: float = 1.0,
         rescale_keypoint_loss_by_assigned_weight: bool = True,
         use_cocoeval_formula: bool = True,
+        pose_classification_loss_type: str = "bce",
     ):
         """
         :param num_classes: Number of keypoints
@@ -214,6 +215,7 @@ class YoloNASPoseLoss(nn.Module):
         self.assigner = YoloNASPoseTaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
         self.rescale_keypoint_loss_by_assigned_weight = rescale_keypoint_loss_by_assigned_weight
         self.use_cocoeval_formula = use_cocoeval_formula
+        self.pose_classification_loss_type = pose_classification_loss_type
         # Same as in PPYoloE head
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
@@ -412,8 +414,11 @@ class YoloNASPoseLoss(nn.Module):
 
         regression_loss = 1 - (torch.exp(-e) * visible_targets_mask).sum(dim=1, keepdim=False) / (visible_targets_mask.sum(dim=1, keepdim=False) + 1e-9)
 
-        classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="none")
-        classification_loss = classification_loss.mean(dim=1, keepdim=False)  # Mean across all keypoints [Num Instances, 1]
+        if self.pose_classification_loss_type == "bce":
+            classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="none")
+            classification_loss = classification_loss.mean(dim=1, keepdim=False)  # Mean across all keypoints [Num Instances, 1]
+        else:
+            raise ValueError(f"Unsupported pose classification loss type {self.pose_classification_loss_type}")
         return regression_loss, classification_loss
 
     def _xyxy_box_area(self, boxes):
