@@ -7,10 +7,10 @@ num_gpus: 1
 
 dataset_params:
   train_dataset_params:
-    data_dir: ~/animalpose
+    data_dir: /home/eugene.khvedchenia/animalpose
 
   val_dataset_params:
-    data_dir: ~/animalpose
+    data_dir: /home/eugene.khvedchenia/animalpose
 
   train_dataloader_params:
     persistent_workers: True
