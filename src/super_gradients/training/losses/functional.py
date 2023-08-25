@@ -44,21 +44,21 @@ def bbox_ciou_loss(pred_bboxes: Tensor, target_bboxes: Tensor, eps: float) -> Te
     :return: CIoU loss per each box as tensor of shape [D0, D1,...Di]
     """
 
-    x1, y1, x2, y2 = pred_bboxes.chunk(4, dim=-1)
-    x1g, y1g, x2g, y2g = target_bboxes.chunk(4, dim=-1)
+    b1_x1, b1_y1, b1_x2, b1_y2 = pred_bboxes.chunk(4, dim=-1)
+    b2_x1, b2_y1, b2_x2, b2_y2 = target_bboxes.chunk(4, dim=-1)
 
-    box1 = [x1, y1, x2, y2]
-    box2 = [x1g, y1g, x2g, y2g]
+    box1 = [b1_x1, b1_y1, b1_x2, b1_y2]
+    box2 = [b2_x1, b2_y1, b2_x2, b2_y2]
     iou, overlap, union = bbox_overlap(box1, box2, eps)
-    xc1 = torch.minimum(x1, x1g)
-    yc1 = torch.minimum(y1, y1g)
-    xc2 = torch.maximum(x2, x2g)
-    yc2 = torch.maximum(y2, y2g)
+    xc1 = torch.minimum(b1_x1, b2_x1)
+    yc1 = torch.minimum(b1_y1, b2_y1)
+    xc2 = torch.maximum(b1_x2, b2_x2)
+    yc2 = torch.maximum(b1_y2, b2_y2)
 
     w1 = xc2 - xc1
     h1 = yc2 - yc1
-    w2 = x2g - x1g
-    h2 = y2g - y1g
+    w2 = b2_x2 - b2_x1
+    h2 = b2_y2 - b2_y1
 
     area_c = (xc2 - xc1) * (yc2 - yc1) + eps
 
@@ -66,10 +66,13 @@ def bbox_ciou_loss(pred_bboxes: Tensor, target_bboxes: Tensor, eps: float) -> Te
 
     # convex diagonal squared
 
+    cw = torch.max(b1_x2, b2_x2) - torch.min(b1_x1, b2_x1)  # convex (smallest enclosing box) width
+    ch = torch.max(b1_y2, b2_y2) - torch.min(b1_y1, b2_y1)  # convex height
+
     c2 = cw**2 + ch**2 + eps  # noqa
 
     # centerpoint distance squared
-    rho2 = ((x1g + x2g - x1 - x2) ** 2 + (y1g + y2g - y1 - y2) ** 2) / 4
+    rho2 = ((b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2 + (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2) / 4
 
     v = (4 / math.pi**2) * torch.pow(torch.atan(w2 / h2) - torch.atan(w1 / h1), 2)
     with torch.no_grad():
