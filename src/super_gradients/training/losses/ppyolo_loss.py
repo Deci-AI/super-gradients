@@ -9,6 +9,7 @@ import super_gradients
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import cxcywh_to_xyxy
+from super_gradients.training.losses.functional import bbox_ciou_loss
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.training.utils.distributed_training_utils import (
     get_world_size,
@@ -674,74 +675,15 @@ class CIoULoss(nn.Module):
         self.eps = eps
         self.reduction = reduction
 
-    def bbox_overlap(
-        self, box1: Tuple[Tensor, Tensor, Tensor, Tensor], box2: Tuple[Tensor, Tensor, Tensor, Tensor], eps: float = 1e-10
-    ) -> Tuple[Tensor, Tensor, Tensor]:
-        """
-        Calculate the iou of box1 and box2.
-
-        :param box1:    box1 with the shape (..., 4)
-        :param box2:    box1 with the shape (..., 4)
-        :param eps:     epsilon to avoid divide by zero
-        :return:
-            - iou:      iou of box1 and box2
-            - overlap:  overlap of box1 and box2
-            - union:    union of box1 and box2
-        """
-        x1, y1, x2, y2 = box1
-        x1g, y1g, x2g, y2g = box2
-
-        xkis1 = torch.maximum(x1, x1g)
-        ykis1 = torch.maximum(y1, y1g)
-        xkis2 = torch.minimum(x2, x2g)
-        ykis2 = torch.minimum(y2, y2g)
-        w_inter = (xkis2 - xkis1).clip(0)
-        h_inter = (ykis2 - ykis1).clip(0)
-        overlap = w_inter * h_inter
-
-        area1 = (x2 - x1) * (y2 - y1)
-        area2 = (x2g - x1g) * (y2g - y1g)
-        union = area1 + area2 - overlap + eps
-        iou = overlap / union
-
-        return iou, overlap, union
-
-    def forward(self, pred_bboxes: Tensor, target_bboxes: Tensor, loc_reweight=None):
-        """
-
-        :param pred_bboxes: Predicted boxes in xyxy format of [D0, D1,...Di, 4] shape
-        :param target_bboxes: Target boxes in xyxy format of [D0, D1,...Di, 4] shape
-        :param loc_reweight: Optional reweighting factor of [D0, D1,...Di] shape
-        :return: CIoU loss
-        """
-
-        x1, y1, x2, y2 = pred_bboxes.chunk(4, dim=-1)
-        x1g, y1g, x2g, y2g = target_bboxes.chunk(4, dim=-1)
-
-        box1 = [x1, y1, x2, y2]
-        box2 = [x1g, y1g, x2g, y2g]
-        iou, overlap, union = self.bbox_overlap(box1, box2, self.eps)
-        xc1 = torch.minimum(x1, x1g)
-        yc1 = torch.minimum(y1, y1g)
-        xc2 = torch.maximum(x2, x2g)
-        yc2 = torch.maximum(y2, y2g)
-
-        area_c = (xc2 - xc1) * (yc2 - yc1) + self.eps
-        miou = iou - ((area_c - union) / area_c)
-        if loc_reweight is not None:
-            loc_reweight = torch.reshape(loc_reweight, shape=(-1, 1))
-            loc_thresh = 0.9
-            giou = 1 - (1 - loc_thresh) * miou - loc_thresh * miou * loc_reweight
-        else:
-            giou = 1 - miou
-
-        if self.reduction == "none":
-            loss = giou
-        elif self.reduction == "sum":
-            loss = torch.sum(giou)
-        else:
-            loss = torch.mean(giou)
-        return loss * self.loss_weight
+    def forward(self, predictions, targets, loc_weights=None):
+        loss = bbox_ciou_loss(predictions, targets, eps=self.eps)
+        if loc_weights is not None:
+            loss = loss * loc_weights
+        if self.reduction == "sum":
+            loss = torch.sum(loss)
+        elif self.reduction == "mean":
+            loss = torch.mean(loss)
+        return loss
 
 
 @register_loss(Losses.PPYOLOE_LOSS)
