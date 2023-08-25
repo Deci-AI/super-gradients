@@ -13,12 +13,14 @@ dataset_params:
     data_dir: /home/eugene.khvedchenia/animalpose
 
   train_dataloader_params:
-    persistent_workers: True
+    persistent_workers: False
 
   val_dataloader_params:
-    persistent_workers: True
+    persistent_workers: False
 
 training_hyperparams:
+  phase_callbacks: [] # Disable visualization
+
   sg_logger: wandb_sg_logger
   sg_logger_params:
     api_server: https://wandb.research.deci.ai
