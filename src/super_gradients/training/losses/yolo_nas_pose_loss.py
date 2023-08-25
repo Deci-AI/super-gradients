@@ -179,6 +179,7 @@ class YoloNASPoseLoss(nn.Module):
         num_classes: int,
         oks_sigmas: Union[List[float], np.ndarray, Tensor],
         classification_loss_type: str = "focal",
+        regression_iou_loss_type: str = "giou",
         reg_max: int = 16,
         classification_loss_weight: float = 1.0,
         iou_loss_weight: float = 2.5,
@@ -205,7 +206,7 @@ class YoloNASPoseLoss(nn.Module):
         self.dfl_loss_weight = dfl_loss_weight
         self.iou_loss_weight = iou_loss_weight
 
-        self.iou_loss = GIoULoss()
+        self.iou_loss = {"giou": GIoULoss}[regression_iou_loss_type]()
         self.reg_max = reg_max
         self.num_keypoints = num_classes
         self.num_classes = 1  # We have only one class (person)
