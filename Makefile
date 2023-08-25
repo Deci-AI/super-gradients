@@ -47,3 +47,23 @@ coco2017_yolo_nas_pose_l:
 
 coco2017_yolo_nas_pose_l_bce:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l_bce_weights_and_biases batch_size=24 training_hyperparams.sync_bn=False
+
+# --config-name=animalpose_yolo_nas_pose_s
+  #dataset_params.train_dataset_params.data_dir=g:/animalpose
+  #dataset_params.val_dataset_params.data_dir=g:/animalpose
+  #dataset_params.train_dataloader_params.num_workers=8
+  #dataset_params.val_dataloader_params.num_workers=8
+  #+dataset_params.train_dataloader_params.persistent_workers=True
+  #+dataset_params.val_dataloader_params.persistent_workers=True
+  #multi_gpu=Off
+  #num_gpus=1
+
+animalpose_gridsearch:
+	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/train_from_recipe.py --config-name=animalpose_yolo_nas_pose_s_grid_search training_hyperparams.criterion_params.classification_loss_type=bce    training_hyperparams.criterion_params.use_cocoeval_formula=True  training_hyperparams.criterion_params.rescale_keypoint_loss_by_assigned_weight=True  &
+	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/train_from_recipe.py --config-name=animalpose_yolo_nas_pose_s_grid_search training_hyperparams.criterion_params.classification_loss_type=bce    training_hyperparams.criterion_params.use_cocoeval_formula=True  training_hyperparams.criterion_params.rescale_keypoint_loss_by_assigned_weight=False &
+	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/train_from_recipe.py --config-name=animalpose_yolo_nas_pose_s_grid_search training_hyperparams.criterion_params.classification_loss_type=bce    training_hyperparams.criterion_params.use_cocoeval_formula=False training_hyperparams.criterion_params.rescale_keypoint_loss_by_assigned_weight=True  &
+	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/train_from_recipe.py --config-name=animalpose_yolo_nas_pose_s_grid_search training_hyperparams.criterion_params.classification_loss_type=bce    training_hyperparams.criterion_params.use_cocoeval_formula=False training_hyperparams.criterion_params.rescale_keypoint_loss_by_assigned_weight=False &
+	CUDA_VISIBLE_DEVICES=4 python src/super_gradients/train_from_recipe.py --config-name=animalpose_yolo_nas_pose_s_grid_search training_hyperparams.criterion_params.classification_loss_type=focal  training_hyperparams.criterion_params.use_cocoeval_formula=True  training_hyperparams.criterion_params.rescale_keypoint_loss_by_assigned_weight=True  &
+	CUDA_VISIBLE_DEVICES=5 python src/super_gradients/train_from_recipe.py --config-name=animalpose_yolo_nas_pose_s_grid_search training_hyperparams.criterion_params.classification_loss_type=focal  training_hyperparams.criterion_params.use_cocoeval_formula=True  training_hyperparams.criterion_params.rescale_keypoint_loss_by_assigned_weight=False &
+	CUDA_VISIBLE_DEVICES=6 python src/super_gradients/train_from_recipe.py --config-name=animalpose_yolo_nas_pose_s_grid_search training_hyperparams.criterion_params.classification_loss_type=focal  training_hyperparams.criterion_params.use_cocoeval_formula=False training_hyperparams.criterion_params.rescale_keypoint_loss_by_assigned_weight=True  &
+	CUDA_VISIBLE_DEVICES=7 python src/super_gradients/train_from_recipe.py --config-name=animalpose_yolo_nas_pose_s_grid_search training_hyperparams.criterion_params.classification_loss_type=focal  training_hyperparams.criterion_params.use_cocoeval_formula=False training_hyperparams.criterion_params.rescale_keypoint_loss_by_assigned_weight=False &

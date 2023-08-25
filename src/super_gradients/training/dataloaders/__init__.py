@@ -1,4 +1,6 @@
 from .dataloaders import (
+    animalpose_pose_train,
+    animalpose_pose_val,
     coco2017_train,
     coco2017_val,
     coco2017_train_yolox,
@@ -60,6 +62,8 @@ from .dataloaders import (
 )
 
 __all__ = [
+    "animalpose_pose_train",
+    "animalpose_pose_val",
     "coco2017_train",
     "coco2017_val",
     "coco2017_train_yolox",

@@ -92,6 +92,7 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         assert gt_labels.ndim == gt_bboxes.ndim and gt_bboxes.ndim == 3
 
         batch_size, num_anchors, num_classes = pred_scores.shape
+        _, _, num_keypoints, _ = pred_poses.shape
         _, num_max_boxes, _ = gt_bboxes.shape
 
         # negative batch
@@ -146,8 +147,8 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         assigned_bboxes = gt_bboxes.reshape([-1, 4])[assigned_gt_index.flatten(), :]
         assigned_bboxes = assigned_bboxes.reshape([batch_size, num_anchors, 4])
 
-        assigned_poses = gt_poses.reshape([-1, 17, 3])[assigned_gt_index.flatten(), :]
-        assigned_poses = assigned_poses.reshape([batch_size, num_anchors, 17, 3])
+        assigned_poses = gt_poses.reshape([-1, num_keypoints, 3])[assigned_gt_index.flatten(), :]
+        assigned_poses = assigned_poses.reshape([batch_size, num_anchors, num_keypoints, 3])
 
         assigned_scores = torch.nn.functional.one_hot(assigned_labels, num_classes + 1)
         ind = list(range(num_classes + 1))
