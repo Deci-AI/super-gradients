@@ -44,17 +44,23 @@ def generate_image_loader(images: Union[List[ImageSource], ImageSource]) -> Iter
         - List:             A list of images of any of the above types.
 
     :param images:  Single image or a list of images of supported types.
-    :return:        Generator of images as numpy arrays. If loaded from string, the image will be returned as RGB.
+    :return:        Generator of images as numpy arrays (H, W, C). If loaded from string, the image will be returned as RGB.
     """
     if isinstance(images, str) and os.path.isdir(images):
         images_paths = list_images_in_folder(images)
         for image_path in images_paths:
             yield load_image(image=image_path)
-    elif isinstance(images, (list, Iterator)):
+    elif _is_batch_of_images(images=images):
         for image in images:
             yield load_image(image=image)
     else:
         yield load_image(image=images)
+
+
+def _is_batch_of_images(images: ImageSource) -> bool:
+    return (
+        isinstance(images, (list, Iterator)) or (isinstance(images, np.ndarray) and images.ndim == 4) or (isinstance(images, torch.Tensor) and images.ndim == 4)
+    )
 
 
 def list_images_in_folder(directory: str) -> List[str]:
@@ -68,7 +74,7 @@ def list_images_in_folder(directory: str) -> List[str]:
 
 
 def load_image(image: ImageSource) -> np.ndarray:
-    """Load a single image and return it as a numpy arrays.
+    """Load a single image and return it as a numpy arrays (H, W, C).
 
     Supported image types include:
         - numpy.ndarray:    A numpy array representing the image
@@ -77,12 +83,17 @@ def load_image(image: ImageSource) -> np.ndarray:
         - str:              A string representing either a local file path or a URL to an image
 
     :param image: Single image of supported types.
-    :return:      Image as numpy arrays. If loaded from string, the image will be returned as RGB.
+    :return:      Image as numpy arrays (H, W, C). If loaded from string, the image will be returned as RGB.
     """
     if isinstance(image, np.ndarray):
+        if image.shape[0] == 3:
+            image = image.transpose((1, 2, 0))
         return image
     elif isinstance(image, torch.Tensor):
-        return image.numpy()
+        image = image.cpu().numpy()
+        if image.shape[0] == 3:
+            image = image.transpose((1, 2, 0))
+        return image
     elif isinstance(image, PIL.Image.Image):
         return load_np_image_from_pil(image)
     elif isinstance(image, str):
