@@ -472,6 +472,8 @@ class KeypointsRandomAffineTransform(KeypointTransform):
 
             return np.array([x_min, y_min, x_max, y_max])
 
+        if len(bboxes) == 0:
+            return bboxes
         bboxes_xyxy = xywh_to_xyxy(bboxes, image_shape=None)
         bboxes_xyxy = np.array([bbox_shift_scale_rotate(box, mat) for box in bboxes_xyxy])
         return xyxy_to_xywh(bboxes_xyxy, image_shape=None).astype(bboxes.dtype)
