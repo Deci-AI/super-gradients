@@ -35,7 +35,7 @@ examples_to_docs:
 	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute src/super_gradients/examples/model_export/models_export.ipynb
 
 coco2017_yolo_nas_pose_s:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases training_hyperparams.sync_bn=False
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases training_hyperparams.sync_bn=False training_hyperparams.initial_lr=1e-3
 
 coco2017_yolo_nas_pose_m:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_m_weights_and_biases dataset_params.val_dataset_params.data_dir=/data/coco
