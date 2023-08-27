@@ -1,16 +1,19 @@
 import warnings
 from functools import wraps
 from typing import Optional
+from pkg_resources import parse_version
+
+import super_gradients
 
 
-def deprecate_call(deprecated_in_v: str, removed_in_v: str, target: Optional[callable] = None, reason: str = ""):
+def deprecate_call(deprecated_in_v: str, remove_in_v: str, target: Optional[callable] = None, reason: str = ""):
     """
     Decorator to mark a callable as deprecated. It provides a clear and actionable warning message informing
     the user about the version in which the function was deprecated, the version in which it will be removed,
     and guidance on how to replace it.
 
     :param deprecated_in_v: Version number when the function was deprecated.
-    :param removed_in_v:    Version number when the function will be removed.
+    :param remove_in_v:     Version number when the function will be removed.
     :param target:          (Optional) The new function that should be used as a replacement. If provided, it will guide the user to the updated function.
     :param reason:          (Optional) Additional information or reason for the deprecation.
 
@@ -18,12 +21,12 @@ def deprecate_call(deprecated_in_v: str, removed_in_v: str, target: Optional[cal
         If a direct replacement function exists:
         >> from new.module.path import new_get_local_rank
 
-        >> @deprecate_call(deprecated_in_v='3.2.0', removed_in_v='4.0.0', target=new_get_local_rank, reason="Replaced for optimization")
+        >> @deprecate_call(deprecated_in_v='3.2.0', remove_in_v='4.0.0', target=new_get_local_rank, reason="Replaced for optimization")
         >> def get_local_rank():
         >>     return new_get_local_rank()
 
         If there's no direct replacement:
-        >> @deprecate_call(deprecated_in_v='3.2.0', removed_in_v='4.0.0', reason="Function is no longer needed due to XYZ reason")
+        >> @deprecate_call(deprecated_in_v='3.2.0', remove_in_v='4.0.0', reason="Function is no longer needed due to XYZ reason")
         >> def some_old_function():
         >>     # ... function logic ...
 
@@ -38,12 +41,19 @@ def deprecate_call(deprecated_in_v: str, removed_in_v: str, target: Optional[cal
     """
 
     def decorator(old_func: callable) -> callable:
+
+        if parse_version(super_gradients.__version__) >= parse_version(remove_in_v):
+            raise ValueError(
+                f"`super_gradients.__version__={super_gradients.__version__}` >= `remove_in_v={remove_in_v}`. "
+                f"Please remove {old_func.__module__}.{old_func.__name__} from your code base."
+            )
+
         @wraps(old_func)
         def wrapper(*args, **kwargs):
             if not wrapper._warned:
                 message = (
                     f"Function `{old_func.__module__}.{old_func.__name__}` is deprecated since version `{deprecated_in_v}` "
-                    f"and will be removed in version `{removed_in_v}`.\n"
+                    f"and will be removed in version `{remove_in_v}`.\n"
                 )
                 if reason:
                     message += f"Reason: {reason}.\n"
