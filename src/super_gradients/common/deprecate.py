@@ -44,7 +44,7 @@ def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable
     def decorator(old_func: callable) -> callable:
 
         if parse_version(super_gradients.__version__) >= parse_version(remove_in_v):
-            raise ValueError(
+            raise EnvironmentError(
                 f"`super_gradients.__version__={super_gradients.__version__}` >= `remove_in_v={remove_in_v}`. "
                 f"Please remove {old_func.__module__}.{old_func.__name__} from your code base."
             )
