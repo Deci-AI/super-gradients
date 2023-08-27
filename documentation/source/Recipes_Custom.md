@@ -61,7 +61,7 @@ SuperGradients as it would allow you to build on top of pre-defined recipes.
 **What are the recipe format constraints here ?**
 
 With this approach, you will still need to follow certain conventions
-- `training_hyperparams` should include the same required fields as with the previous approach
+- `training_hyperparams` should include the same required fields as with the previous approach. You can find the list [here](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/training_hyperparams/default_train_params.yaml).
 - The config passed to `dataloaders.get` should still be compatible to dataset/dataloader you want to load. 
 
 Basically, the format constraints that you will face with this approach are the same as these that you would face when working exclusively with python.
@@ -82,11 +82,50 @@ from super_gradients.training import dataloaders, models
 
 @hydra.main(config_path="<config-path>", version_base="1.2") # TODO: overwrite `<config-path>`
 def _main(cfg: DictConfig) -> None:
-        setup_device(
-            device=cfg.device,
-            multi_gpu=cfg.multi_gpu,
-            num_gpus=cfg.num_gpus,
-        )
+    setup_device(
+        device=cfg.device,
+        multi_gpu=cfg.multi_gpu,
+        num_gpus=cfg.num_gpus,
+    )
+
+    # INSTANTIATE ALL OBJECTS IN CFG
+    cfg = hydra.utils.instantiate(cfg)
+
+    trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+
+    # BUILD NETWORK
+    model = models.get(
+        model_name=cfg.architecture,
+        num_classes=cfg.arch_params.num_classes,
+        arch_params=cfg.arch_params,
+        strict_load=cfg.checkpoint_params.strict_load,
+        pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+        checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+        load_backbone=cfg.checkpoint_params.load_backbone,
+    )
+
+    # INSTANTIATE DATA LOADERS
+    train_dataloader = dataloaders.get(
+        name=cfg.train_dataloader,
+        dataset_params=cfg.dataset_params.train_dataset_params,
+        dataloader_params=cfg.dataset_params.train_dataloader_params,
+    )
+
+    val_dataloader = dataloaders.get(
+        name=cfg.val_dataloader,
+        dataset_params=cfg.dataset_params.val_dataset_params,
+        dataloader_params=cfg.dataset_params.val_dataloader_params,
+    )
+
+    # TRAIN
+    results = trainer.train(
+        model=model,
+        train_loader=train_dataloader,
+        valid_loader=val_dataloader,
+        training_params=cfg.training_hyperparams,
+        additional_configs_to_log={},
+    )
+    print(results)
 
 
 def main() -> None:

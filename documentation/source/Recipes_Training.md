@@ -1,4 +1,4 @@
-# raining Recipes
+# Training Recipes
 
 Recipes aim at providing a simple interface to easily reproduce trainings.
 
@@ -18,7 +18,7 @@ python -m super_gradients.train_from_recipe --config-name=<config-name>
 With `<config-name>` corresponding to the name of the recipe.
 
 You can find all of the pre-defined recipes in [super_gradients/recipes](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes).
-Recipe usually contain information about their performance, as well as the command to execute them in the header.
+Recipes usually contain information about their performance, as well as the command to execute them in the header.
 
 ### Examples
 - Training of Resnet18 on Cifar10: [super_gradients/recipes/cifar10_resnet.yaml](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/cifar10_resnet.yaml) 
