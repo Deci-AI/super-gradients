@@ -22,12 +22,12 @@ def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable
         If a direct replacement function exists:
         >> from new.module.path import new_get_local_rank
 
-        >> @deprecate_call(deprecated_in_v='3.2.0', remove_in_v='4.0.0', target=new_get_local_rank, reason="Replaced for optimization")
+        >> @deprecated(deprecated_in_v='3.2.0', remove_in_v='4.0.0', target=new_get_local_rank, reason="Replaced for optimization")
         >> def get_local_rank():
         >>     return new_get_local_rank()
 
         If there's no direct replacement:
-        >> @deprecate_call(deprecated_in_v='3.2.0', remove_in_v='4.0.0', reason="Function is no longer needed due to XYZ reason")
+        >> @deprecated(deprecated_in_v='3.2.0', remove_in_v='4.0.0', reason="Function is no longer needed due to XYZ reason")
         >> def some_old_function():
         >>     # ... function logic ...
 
