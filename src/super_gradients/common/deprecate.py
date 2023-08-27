@@ -6,9 +6,10 @@ from pkg_resources import parse_version
 import super_gradients
 
 
-def deprecate_call(deprecated_in_v: str, remove_in_v: str, target: Optional[callable] = None, reason: str = ""):
+def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable] = None, reason: str = ""):
     """
-    Decorator to mark a callable as deprecated. It provides a clear and actionable warning message informing
+    Decorator to mark a callable as deprecated. Works on functions and classes.
+    It provides a clear and actionable warning message informing
     the user about the version in which the function was deprecated, the version in which it will be removed,
     and guidance on how to replace it.
 

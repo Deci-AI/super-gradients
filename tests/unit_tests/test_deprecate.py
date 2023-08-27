@@ -2,7 +2,7 @@ import warnings
 import unittest
 from unittest.mock import patch
 
-from super_gradients.common.deprecate import deprecate_call
+from super_gradients.common.deprecate import deprecated
 
 
 class TestDeprecationDecorator(unittest.TestCase):
@@ -13,11 +13,11 @@ class TestDeprecationDecorator(unittest.TestCase):
         def new_func():
             return self.new_function_message
 
-        @deprecate_call(deprecated_in_v="3.2.0", remove_in_v="10.0.0", target=new_func, reason="Replaced for optimization")
+        @deprecated(deprecated_in_v="3.2.0", remove_in_v="10.0.0", target=new_func, reason="Replaced for optimization")
         def fully_configured_deprecated_func():
             return new_func()
 
-        @deprecate_call(deprecated_in_v="3.2.0", remove_in_v="10.0.0")
+        @deprecated(deprecated_in_v="3.2.0", remove_in_v="10.0.0")
         def basic_deprecated_func():
             return new_func()
 
@@ -29,7 +29,7 @@ class TestDeprecationDecorator(unittest.TestCase):
             def __init__(self):
                 pass
 
-        @deprecate_call(deprecated_in_v="3.2.0", remove_in_v="10.0.0", target=NewClass, reason="Replaced for optimization")
+        @deprecated(deprecated_in_v="3.2.0", remove_in_v="10.0.0", target=NewClass, reason="Replaced for optimization")
         class DeprecatedClass:
             def __init__(self):
                 pass
@@ -111,7 +111,7 @@ class TestDeprecationDecorator(unittest.TestCase):
         with patch("super_gradients.__version__", "10.1.0"):  # Mocking the version to be equal to removal version
             with self.assertRaises(ValueError):
 
-                @deprecate_call(deprecated_in_v="3.2.0", remove_in_v="10.1.0", target=self.new_func)
+                @deprecated(deprecated_in_v="3.2.0", remove_in_v="10.1.0", target=self.new_func)
                 def deprecated_func_version_equal():
                     return
 
@@ -119,7 +119,7 @@ class TestDeprecationDecorator(unittest.TestCase):
         """Ensure that no error is raised when the library's version is below the function's removal version."""
         with patch("super_gradients.__version__", "10.1.0"):  # Mocking the version to be below removal version
 
-            @deprecate_call(deprecated_in_v="3.2.0", remove_in_v="10.2.0", target=self.new_func)
+            @deprecated(deprecated_in_v="3.2.0", remove_in_v="10.2.0", target=self.new_func)
             def deprecated_func_version_below():
                 return
 
