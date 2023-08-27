@@ -33,7 +33,7 @@ python -m super_gradients.train_from_recipe --config-name=coco2017_yolox archite
 
 
 ## Customize Training
-You may often need to modify certain parameters within a recipe and there 2 approaches for this: 
+You may often need to modify certain parameters within a recipe and there are 2 approaches for this: 
 1. Using hydra overrides. 
 2. Modifying the recipe.
 
