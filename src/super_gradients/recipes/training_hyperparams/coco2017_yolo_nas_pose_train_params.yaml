@@ -24,13 +24,13 @@ criterion_params:
     num_classes: ${arch_params.num_classes}
     reg_max: 16
     oks_sigmas: ${dataset_params.oks_sigmas}
-    classification_loss_weight: 1.0
+    classification_loss_weight: 0.5
     classification_loss_type: focal
     regression_iou_loss_type: giou
-    iou_loss_weight: 0.5
-    dfl_loss_weight: 0.1
+    iou_loss_weight: 7.5
+    dfl_loss_weight: 1.5
     pose_cls_loss_weight: 1.0
-    pose_reg_loss_weight: 1.0
+    pose_reg_loss_weight: 12.0
     rescale_keypoint_loss_by_assigned_weight: False
     use_cocoeval_formula: True
     pose_classification_loss_type: bce
