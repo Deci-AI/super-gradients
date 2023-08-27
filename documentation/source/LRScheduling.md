@@ -238,7 +238,9 @@ From `Trainer.train(...)` docs:
                     train_epoch(...)
                     scheduler.step()
                     ....
-For example:
+
+### Examples
+Using `StepLR`
 
 ```python
 ...
@@ -260,8 +262,32 @@ train_params = {
     "valid_metrics_list": [Accuracy()],
     "metric_to_watch": "Accuracy",
     "greater_metric_to_watch_is_better": True,
-        }
+}
 trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
+```
+
+Equivalent in `.yaml`
+```yaml
+max_epochs: 2
+lr_mode:
+  StepLR:
+    gamma: 0.1
+    step_size: 1
+    phase: TRAIN_EPOCH_END
+lr_warmup_epochs: 0
+initial_lr: 0.1
+loss: CrossEntropyLoss
+optimizer: SGD
+criterion_params: {}
+optimizer_params:
+  weight_decay: 1e-4
+  momentum: 0.9
+train_metrics_list:
+  - Accuracy
+valid_metrics_list:
+  - Accuracy
+metric_to_watch: Accuracy
+greater_metric_to_watch_is_better: true
 ```
 
 And as stated above, for ReduceLROnPlateau we need to pass a "metric_name", which follows the same
@@ -290,7 +316,31 @@ train_params = {
     "greater_metric_to_watch_is_better": True,
 }
 trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
+```
 
+
+```yaml
+trainer = Trainer("torch_ROP_Scheduler_example")
+train_dataloader = ...
+valid_dataloader = ...
+model = ...
+train_params = {
+    "max_epochs": 2,
+    "lr_decay_factor": 0.1,
+    "lr_mode": {
+        "ReduceLROnPlateau": {"patience": 0, "phase": Phase.TRAIN_EPOCH_END, "metric_name": "DummyMetric"}},
+    "lr_warmup_epochs": 0,
+    "initial_lr": 0.1,
+    "loss": torch.nn.CrossEntropyLoss(),
+    "optimizer": "SGD",
+    "criterion_params": {},
+    "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+    "train_metrics_list": [Accuracy()],
+    "valid_metrics_list": [Accuracy()],
+    "metric_to_watch": "DummyMetric",
+    "greater_metric_to_watch_is_better": True,
+}
+trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
 ```
 
 The scheduler's `state_dict` is saved under `torch_scheduler_state_dict` entry inside the checkpoint during training,
