@@ -15,10 +15,7 @@ class TestDeprecationDecorator(unittest.TestCase):
         def fully_configured_deprecated_func():
             return new_func()
 
-        @deprecate_call(
-            deprecated_in_v="3.2.0",
-            removed_in_v="4.0.0",
-        )
+        @deprecate_call(deprecated_in_v="3.2.0", removed_in_v="4.0.0")
         def basic_deprecated_func():
             return new_func()
 
