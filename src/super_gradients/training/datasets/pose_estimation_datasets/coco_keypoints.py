@@ -122,43 +122,6 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
             is_crowd=gt_iscrowd,
         )
 
-    def filter_joints(self, sample: PoseEstimationSample):
-        """
-        Filter instances that are either too small or do not have visible keypoints.
-
-        :param image: Image if [H,W,C] shape. Used to infer image boundaries
-        :param joints: Array of shape [Num Instances, Num Joints, 3]
-        :param areas: Array of shape [Num Instances] with area of each instance.
-                      Instance area comes from segmentation mask from COCO annotation file.
-        :param bboxes: Array of shape [Num Instances, 4] for bounding boxes in XYWH format.
-                       Bounding boxes comes from segmentation mask from COCO annotation file.
-        :param: is_crowd: Array of shape [Num Instances] indicating whether an instance is a crowd target.
-        :return: [New Num Instances, Num Joints, 3], New Num Instances <= Num Instances
-        """
-
-        # Update visibility of joints for those that are outside the image
-        image_shape = sample.image
-        outside_image_mask = (
-            (sample.joints[:, :, 0] < 0)
-            | (sample.joints[:, :, 1] < 0)
-            | (sample.joints[:, :, 0] >= image_shape[1])
-            | (sample.joints[:, :, 1] >= image_shape[0])
-        )
-        sample.joints[outside_image_mask, 2] = 0
-
-        # Filter instances with all invisible keypoints
-        instances_with_visible_joints = np.count_nonzero(sample.joints[:, :, 2], axis=-1) > 0
-        instances_with_good_area = sample.areas > self.min_instance_area
-
-        keep_mask = instances_with_visible_joints & instances_with_good_area
-
-        joints = sample.joints[keep_mask]
-        areas = sample.areas[keep_mask]
-        bboxes = sample.bboxes[keep_mask]
-        is_crowd = sample.is_crowd[keep_mask]
-
-        return joints, areas, bboxes, is_crowd
-
     def get_joints(self, anno: List[Mapping[str, Any]]) -> np.ndarray:
         """
         Decode the keypoints from the COCO annotation and return them as an array of shape [Num Instances, Num Joints, 3].
