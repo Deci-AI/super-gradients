@@ -4,6 +4,7 @@ Factories in SuperGradients provide a powerful and concise way to instantiate ob
 
 Prerequisites:
 - [Training with Configuration Files](configuration_files.md)
+- [Introduction to Training Recipes](Recipes_Training.md)
 
 In this tutorial, we'll cover how to use existing factories, register new ones, and briefly explore the implementation details.
 
@@ -142,7 +143,7 @@ factory = TransformsFactory()
 my_transform = factory.get({'MyTransformName': {'prob':  0.7}})
 ```
 You may recognize that the input passed to `factory.get` is actually the dictionary that we get after loading the recipe
-(See [Using Existing Factories](#using-existing-factories))
+(See [Utilizing Existing Factories](#utilizing-existing-factories))
 
 ### Recommended
 Factories become even more powerful when used with the `@resolve_param` decorator. 
@@ -152,7 +153,7 @@ It means you can pass either the actual python object or a dictionary that descr
 ```python
 class ImageNetDataset(torch_datasets.ImageFolder):
     
-    @resolve_param("transform", factory=TransformsFactory())
+    @resolve_param("transforms", factory=TransformsFactory())
     def __init__(self, root: str, transform: Transform):
         ...
 ```
@@ -209,3 +210,15 @@ from super_gradients.common.factories import (
     register_processing,
 )
 ```
+
+### Conclusion
+
+In this tutorial, we have delved into the realm of factories, encompassing:
+- **Using Existing Factories**: How SuperGradients automatically instantiates objects defined in recipes.
+- **Registering New Classes**: The method to map object names to corresponding class types, and how to integrate them in your recipes.
+- **Under the Hood**: Insights into basic and recommended ways to use factories, as well as the variety of supported factory types within SuperGradients.
+
+These insights provide essential understanding and practical techniques to work with factories, a core element in SuperGradients that bridges the gap between configuration and instantiation.
+
+**Next Step**: Ready to craft your unique recipes? In the [next tutorial](Recipes_Custom.md), 
+we'll guide you through building your own recipe and training a model based on that recipe. 
