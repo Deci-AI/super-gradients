@@ -106,15 +106,6 @@ train_dataset_params:
         mask_pad_value: 1
         prob: 0.75
 
-    - KeypointsHSV:
-        prob: 0.5
-        hgain: 0.5
-        sgain: 0.5
-        vgain: 0.5
-
-    - KeypointsMixup:
-        prob: 0.5
-
     - KeypointsImageStandardize:
         max_value: 255
 
