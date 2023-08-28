@@ -149,6 +149,6 @@ This tutorial has introduced you to the world of training recipes within SuperGr
 
 We've laid the groundwork for understanding how recipes enable flexible and reproducible training.
 
-**Next Step**: In the [next tutorial](Recipes_Recipes_Factories.md), we'll explore factories in SuperGradients, 
+**Next Step**: In the [next tutorial](Recipes_Factories.md), we'll explore factories in SuperGradients, 
 revealing how they work with recipes to dynamically instantiate objects. It's a critical step in leveraging the 
 full power of SuperGradients for your unique needs.
