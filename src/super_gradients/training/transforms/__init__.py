@@ -11,6 +11,7 @@ from super_gradients.training.transforms.transforms import (
     DetectionTargetsFormatTransform,
     Standardize,
 )
+from super_gradients.training.transforms.keypoints import KeypointsHSV
 from super_gradients.common.object_names import Transforms
 from super_gradients.common.registry.registry import TRANSFORMS
 from super_gradients.common.registry.albumentation import ALBUMENTATIONS_TRANSFORMS, ALBUMENTATIONS_COMP_TRANSFORMS, imported_albumentations_failure
@@ -30,6 +31,7 @@ __all__ = [
     "DetectionPaddedRescale",
     "DetectionTargetsFormatTransform",
     "Standardize",
+    "KeypointsHSV",
 ]
 
 cv2.setNumThreads(0)
