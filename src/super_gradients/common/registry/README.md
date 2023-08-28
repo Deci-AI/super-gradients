@@ -7,10 +7,11 @@ file that inherits the aforementioned dataset, architecture, training and checkp
 
 Recipes support out of the box every model, metric or loss that is implemented in SuperGradients, but you can easily extend this to any custom object that you need by "registering it". 
 
-*Notes*:
- - *If you are not familiar with recipes, please check our [introduction to recipes notebook](https://colab.research.google.com/drive/15hHgRtryIRkyoDO6rdiK5UcA4Ec3MleV?usp=sharing).*
- - *All recipes can be found [here](https://github.com/Deci-AI/super-gradients/blob/master/docs/assets/SG_img/Training_Recipes.md)*
-
+**Prerequisites**
+ - If you are not familiar with recipes, please check our
+   - [Documentation page](https://github.com/Deci-AI/super-gradients/tree/master/documentation/source/configuration_files.md) on this topic 
+   - [Introduction to recipes notebook](https://colab.research.google.com/drive/15hHgRtryIRkyoDO6rdiK5UcA4Ec3MleV?usp=sharing).*
+ - All recipes can be found [here](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes)
 
 
 ## 2. General flow
