@@ -141,6 +141,8 @@ The parameters will be referenced inside the YAML according to their origin. i.e
 
 The aggregated configuration file will be saved in the `.hydra` subdirectory.
 
+Please note that `variable_setup` **must be the last item** in the defaults list. 
+
 #### Command-Line Overrides
 When running with Hydra, you can override or even add configuration from the command line. These override will apply to the specific run only.
 ```shell
@@ -151,36 +153,6 @@ initial learning-rate. This feature is extremely usefully when experimenting wit
 Note that the arguments are referenced without the `--` prefix and that each parameter is referenced with its full path in the 
 configuration tree, concatenated with a `.`.
 
-##### Command-Line Override Shortcuts
-
-Although you can override any parameter from the command line, writing the full path of the parameter can be tedious.
-For example, to change the learning rate one would have to write `training_hyperparams.initial_lr=0.02`. 
-To change the batch size one would have to write
-`dataset_params.train_dataloader_params.batch_size=128 dataset_params.val_dataloader_params.batch_size=128`.
-
-To make it easier, we have defined a few shortcuts for the most common parameters that aims to reduce the amount of typing required:
-
-* Learning rate: `lr=0.02` (same as `training_hyperparams.initial_lr=0.02`)
-* Batch size: `bs=128` (same as `dataset_params.train_dataloader_params.batch_size=128 dataset_params.val_dataloader_params.batch_size=128`)
-* Number of train epochs: `epochs=100` (same as `training_hyperparams.max_epochs=100`)
-* Number of workers: `num_workers=4` (same as `dataset_params.train_dataloader_params.num_workers=4 dataset_params.val_dataloader_params.num_workers=4`)
-* Resume training for a specific experiment: `resume=True` (same as `training_hyperparams.resume=True`)
-* Enable or disable EMA: `ema=true` (same as `training_hyperparams.ema=true`)
-
-To use these shortcuts, a `variable_setup` section should be a part of hydra defaults in the recipe file.
-Please note it `variable_setup` **must be the last item** in the defaults list:
-
-```yaml
-defaults:
-  - training_hyperparams: cifar10_resnet_train_params
-  - dataset_params: cifar10_dataset_params
-  - arch_params: resnet18_cifar_arch_params
-  - checkpoint_params: default_checkpoint_params
-  - _self_
-  - variable_setup
-
-...
-```
 
 More informaiton can be found in corresponding YAML file in the `recipes` directory:
 https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/variable_setup.yaml
