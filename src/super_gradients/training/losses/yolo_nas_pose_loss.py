@@ -359,13 +359,13 @@ class YoloNASPoseLoss(nn.Module):
             assigned_scores_sum=assigned_scores_sum,
         )
 
-        loss = (
-            self.classification_loss_weight * loss_cls
-            + self.iou_loss_weight * loss_iou
-            + self.dfl_loss_weight * loss_dfl
-            + self.pose_cls_loss_weight * loss_pose_cls
-            + self.pose_reg_loss_weight * loss_pose_reg
-        )
+        loss_cls = loss_cls * self.classification_loss_weight
+        loss_iou = loss_iou * self.iou_loss_weight
+        loss_dfl = loss_dfl * self.dfl_loss_weight
+        loss_pose_cls = loss_pose_cls * self.pose_cls_loss_weight
+        loss_pose_reg = loss_pose_reg * self.pose_reg_loss_weight
+
+        loss = loss_cls + loss_iou + loss_dfl + loss_pose_cls + loss_pose_reg
         log_losses = torch.stack([loss_cls.detach(), loss_iou.detach(), loss_dfl.detach(), loss_pose_cls.detach(), loss_pose_reg.detach(), loss.detach()])
 
         return loss, log_losses
@@ -415,11 +415,11 @@ class YoloNASPoseLoss(nn.Module):
         else:
             e = d / (2 * (area * sigmas) ** 2 + 1e-9)  # from formula
 
-        regression_loss = 1 - (torch.exp(-e) * visible_targets_mask).sum(dim=1, keepdim=False) / (visible_targets_mask.sum(dim=1, keepdim=False) + 1e-9)
+        regression_loss_unreduced = 1 - torch.exp(-e)
+        regression_loss = regression_loss_unreduced.mul(visible_targets_mask).sum() / (visible_targets_mask.sum() + 1e-9)
 
         if self.pose_classification_loss_type == "bce":
-            classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="none")
-            classification_loss = classification_loss.mean(dim=1, keepdim=False)  # Mean across all keypoints [Num Instances, 1]
+            classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="mean")
         else:
             raise ValueError(f"Unsupported pose classification loss type {self.pose_classification_loss_type}")
         return regression_loss, classification_loss
@@ -473,10 +473,10 @@ class YoloNASPoseLoss(nn.Module):
             gt_pose_coords = (assign_result.assigned_poses[..., 0:2] / stride_tensor.unsqueeze(0).unsqueeze(-1))[mask_positive]
             gt_pose_visibility = assign_result.assigned_poses[mask_positive][:, :, 2:3]
 
-            assigned_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).reshape([-1, 1])
+            # assigned_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).reshape([-1, 1])
 
             area = self._xyxy_box_area(assigned_bboxes_pos).reshape([-1, 1])
-            regression_loss, classification_loss = self._keypoint_loss(
+            loss_pose_reg, loss_pose_cls = self._keypoint_loss(
                 predicted_coords=pred_pose_coords,
                 target_coords=gt_pose_coords,
                 predicted_logits=pred_pose_logits,
@@ -484,17 +484,9 @@ class YoloNASPoseLoss(nn.Module):
                 area=area,
                 sigmas=self.oks_sigmas.to(pred_pose_logits.device),
             )
-            if self.rescale_keypoint_loss_by_assigned_weight:
-                rescale_factor = assigned_weight
-            else:
-                rescale_factor = 1
-            regression_loss_reduced = (regression_loss * rescale_factor).sum() / assigned_scores_sum
-            classification_loss_reduced = (classification_loss * rescale_factor).sum() / assigned_scores_sum
-            loss_pose_cls = classification_loss_reduced
-            loss_pose_reg = regression_loss_reduced
         else:
             loss_iou = torch.zeros([], device=pred_bboxes.device)
-            loss_dfl = pred_dist.sum() * 0.0
+            loss_dfl = torch.zeros([], device=pred_bboxes.device)
             loss_pose_cls = torch.zeros([], device=pred_bboxes.device)
             loss_pose_reg = torch.zeros([], device=pred_bboxes.device)
 

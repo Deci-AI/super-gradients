@@ -25,7 +25,7 @@ criterion_params:
     reg_max: 16
     oks_sigmas: ${dataset_params.oks_sigmas}
     classification_loss_weight: 0.5
-    classification_loss_type: focal
+    classification_loss_type: bce
     regression_iou_loss_type: giou
     iou_loss_weight: 7.5
     dfl_loss_weight: 1.5
