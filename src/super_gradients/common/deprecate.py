@@ -3,8 +3,6 @@ from functools import wraps
 from typing import Optional
 from pkg_resources import parse_version
 
-import super_gradients
-
 
 def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable] = None, reason: str = ""):
     """
@@ -42,6 +40,7 @@ def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable
     """
 
     def decorator(old_func: callable) -> callable:
+        import super_gradients
 
         if parse_version(super_gradients.__version__) >= parse_version(remove_in_v):
             raise EnvironmentError(
@@ -53,7 +52,7 @@ def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable
         def wrapper(*args, **kwargs):
             if not wrapper._warned:
                 message = (
-                    f"Function `{old_func.__module__}.{old_func.__name__}` is deprecated since version `{deprecated_in_v}` "
+                    f"Callable `{old_func.__module__}.{old_func.__name__}` is deprecated since version `{deprecated_in_v}` "
                     f"and will be removed in version `{remove_in_v}`.\n"
                 )
                 if reason:
@@ -66,6 +65,7 @@ def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable
                         f"  [+] from `{target.__module__}` import `{target.__name__}`"
                     )
 
+                warnings.simplefilter("once", DeprecationWarning)  # Required, otherwise the warning may never be displayed.
                 warnings.warn(message, DeprecationWarning, stacklevel=2)
                 wrapper._warned = True
 

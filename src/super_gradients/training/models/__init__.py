@@ -1,4 +1,4 @@
-from super_gradients.common.deprecate import make_deprecated
+from super_gradients.common.deprecate import deprecated
 
 from .sg_module import SgModule
 from .classification_models.base_classifer import BaseClassifier
@@ -135,40 +135,28 @@ from super_gradients.common.registry.registry import ARCHITECTURES
 from super_gradients.training.utils import make_divisible as _make_divisible_current_version, HpmStruct as CurrVersionHpmStruct
 
 
-make_divisible = make_deprecated(
-    func=_make_divisible_current_version,
-    reason="You're importing `make_divisible` from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
-    "Please update your code to import it as follows:\n"
-    "[-] from super_gradients.training.models import make_divisible\n"
-    "[+] from super_gradients.training.utils import make_divisible\n",
-)
+@deprecated(deprecated_in_v="3.1.0", remove_in_v="3.4.0", target=_make_divisible_current_version)
+def make_divisible(x: int, divisor: int, ceil: bool = True) -> int:
+    """
+    Returns x evenly divisible by divisor.
+    If ceil=True it will return the closest larger number to the original x, and ceil=False the closest smaller number.
+    """
+    return _make_divisible_current_version(x=x, divisor=divisor, ceil=ceil)
 
 
-BasicBlock = make_deprecated(
-    func=BasicResNetBlock,
-    reason="You're importing `BasicBlock` class from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
-    "This block was renamed to BasicResNetBlock for better clarity.\n"
-    "Please update your code to import it as follows:\n"
-    "[-] from super_gradients.training.models import BasicBlock\n"
-    "[+] from super_gradients.training.models import BasicResNetBlock\n",
-)
+@deprecated(deprecated_in_v="3.1.0", remove_in_v="3.4.0", target=BasicResNetBlock, reason="This block was renamed to BasicResNetBlock for better clarity.")
+class BasicBlock(BasicResNetBlock):
+    ...
 
-Bottleneck = make_deprecated(
-    func=NewBottleneck,
-    reason="You're importing `Bottleneck` class from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
-    "This block was renamed to BasicResNetBlock for better clarity.\n"
-    "Please update your code to import it as follows:\n"
-    "[-] from super_gradients.training.models import Bottleneck\n"
-    "[+] from super_gradients.training.models.classification_models.resnet import Bottleneck\n",
-)
 
-HpmStruct = make_deprecated(
-    func=CurrVersionHpmStruct,
-    reason="You're importing `HpmStruct` class from `super_gradients.training.models`. This is deprecated since SuperGradients 3.1.0.\n"
-    "Please update your code to import it as follows:\n"
-    "[-] from super_gradients.training.models import HpmStruct\n"
-    "[+] from super_gradients.training.utils import HpmStruct\n",
-)
+@deprecated(deprecated_in_v="3.1.0", remove_in_v="3.4.0", target=NewBottleneck, reason="This block was renamed to BasicResNetBlock for better clarity.")
+class Bottleneck(NewBottleneck):
+    ...
+
+
+@deprecated(deprecated_in_v="3.1.0", remove_in_v="3.4.0", target=CurrVersionHpmStruct)
+class HpmStruct(CurrVersionHpmStruct):
+    ...
 
 
 __all__ = [
