@@ -1,9 +1,11 @@
 # Configuration Files and Recipes
-SuperGradients supports [YAML](https://en.wikipedia.org/wiki/YAML) formatted configuration files. These files can contain training hyper-parameters,
-architecture parameters, datasets parameters and any other parameters required by the training process.
+SuperGradients supports [YAML](https://en.wikipedia.org/wiki/YAML) formatted configuration files. 
+These files can contain training hyper-parameters, architecture parameters, datasets parameters and any 
+other parameters required by the training process.
+
 These parameters will be consumed as dictionaries or as function arguments by different parts of SuperGradients.
 
->You can use SuperGradients without using any configuration files, look into the examples directory to see how.
+> These YAML files act like a cookbook for training models, which is why they are called **Recipes**.
 
 SuperGradients was designed to expose as many parameters as possible to allow outside configuration without writing a single line of code.
 You can control the learning-rate, the weight-decay or even the loss function and metric used in the training, but moreover, you can even control 
@@ -33,8 +35,10 @@ criterion_params: {}
 optimizer_params:
   weight_decay: 1e-4
   momentum: 0.9
-
 ```
+
+
+> NOTE: You can use SuperGradients without using any configuration files, look into the examples directory to see how.
 
 ## Why using configuration files
 Using configuration file might seem too complicated or redundant at first. But, after a short training, you will find it extremely convenient and useful. 
@@ -76,8 +80,8 @@ Concentrating all of these configuration parameters in one place, gives you grea
 So, if you got so far, we have probably manged to convince you that configuration files are awsome and powerful tools - welcome aboard!
 
 YAML is a human-readable data-serialization language. It is commonly used for configuration files and in applications where data is being 
-stored or transmitted ([Wikipedia](https://en.wikipedia.org/wiki/YAML)). We parse each file into dictionaries, lists, and objects, and pass them to the code
-either as a recursive dictionary or as function arguments. 
+stored or transmitted ([Wikipedia](https://en.wikipedia.org/wiki/YAML)). 
+We parse each file into dictionaries, lists, and objects, and pass them to the code either as a recursive dictionary or as function arguments. 
 
 Let's try running a training session from a configuration file.
  
@@ -87,133 +91,42 @@ python -m super_gradients.train_from_recipe --config-name=cifar10_resnet
 You can stop the training after a few cycles. 
 
 The recipe you have just used is a configuration file containing everything SG needs to know in order to train
-Resnet18 on Cifar10. The actual YAML file is located in `src/super_gradients/recipes/cifar10_resnet.yaml`. In the same `recipes` library you can find many more
-configuration files defining different models, datasets, and training hyper-parameters.
-
-Try changing the `initial_lr` parameter in the file `src/super_gradients/recipes/training_hyperparams/cifar10_resnet_train_params.yaml` and launch this scrip again. 
-You will see a different result now. This is because the parameters from `cifar10_resnet_train_params.yaml` are used in `cifar10_resnet.yaml`
-(we will discuss thin in the next section). 
-
-Two more useful functionalities are 
-```commandline
-python -m super_gradients.resume_experiment --experiment_name=cifar10_resnet
-```
-
-that will resume the experiment from the last checkpoint, and
-
-```commandline
-python -m super_gradients.evaluate_from_recipe --config-name=cifar10_resnet
-```
-that will run only the evaluation part of the recipe (without any training iterations)
+Resnet18 on Cifar10. The actual YAML file is located in `src/super_gradients/recipes/cifar10_resnet.yaml`. 
+In the same `recipes` library you can find many more configuration files defining different models, datasets, 
+and training hyper-parameters.
 
 
-## Hydra
+### Hydra
 Hydra is an open-source Python framework that provides us with many useful functionalities for YAML management. You can learn about Hydra 
 [here](https://hydra.cc/docs/intro). We use Hydra to load YAML files and convert them into dictionaries, while 
 instantiating the objects referenced in the YAML.
 You can see this in the code:
+
 ```python
-@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
+import hydra
+from omegaconf import DictConfig
+
+@hydra.main(config_path="recipes", version_base="1.2")
 def main(cfg: DictConfig) -> None:
-    Trainer.train_from_config(cfg)
-
-def run():
-    init_trainer()
-    main()
-
-if __name__ == "__main__":
-    run()
+    print(cfg.experiment_name)
 ```
+
 The `@hydra.main` decorator is looking for YAML files in the `super_gradients.recipes` according to the name of the configuration file provided 
 in the first arg of the command line. 
 
 In the experiment directory a `.hydra` subdirectory will be created. The configuration files related to this run will be saved by hydra to that subdirectory.  
 
-Two Hydra features worth mentioning are _YAML Composition_ and _Command-Line Overrides_.
 
-#### YAML Composition
-If you brows the YAML files in the `recipes` directory you will see some file containing the saved-key `defaults:` at the beginning of the file.
-```yaml
-defaults:
-  - training_hyperparams: cifar10_resnet_train_params
-  - dataset_params: cifar10_dataset_params
-  - arch_params: resnet18_cifar_arch_params
-  - checkpoint_params: default_checkpoint_params
-  - _self_
-
-```
-The YAML file containing this header will inherit the configuration of the above files. So when building a training recipe, one can structure
-the configurations into a few files (for training hyper-params, dataset params, architecture params ect.) and Hydra will conveniently aggregate them all 
-into a single dictionary. 
-
-The parameters will be referenced inside the YAML according to their origin. i.e. in the example above we can reference `training_hyperparams.initial_lr` 
-(initial_lr parameter from the cifar10_resnet_train_params.yaml file)
-
-The aggregated configuration file will be saved in the `.hydra` subdirectory.
-
-#### Command-Line Overrides
-When running with Hydra, you can override or even add configuration from the command line. These override will apply to the specific run only.
-```shell
-python -m super_gradients.train_from_recipe --config-name=cifar10_resnet training_hyperparams.initial_lr=0.02 experiment_name=test_lr_002
-```
-In the example above, the same script we launched earlier is used, but this time it will run with a different experiment name and a different 
-initial learning-rate. This feature is extremely usefully when experimenting with different hyper-parameters.
-Note that the arguments are referenced without the `--` prefix and that each parameter is referenced with its full path in the 
-configuration tree, concatenated with a `.`.
+Two Hydra features worth mentioning are [Command-Line Overrides](https://hydra.cc/docs/advanced/override_grammar/basic/) 
+and [YAML Composition](https://hydra.cc/docs/0.11/tutorial/composition/).
+We strongly recommend you to have a look at both of these pages.
 
 
-## Resolvers 
-Resolvers are converting the strings from the YAML file into Python objects or values. The most basic resolvers are the Hydra native resolvers.
-Here are a few simple examples:
-```yaml
-a: 1
-b: 2
-c: 3
-a_plus_b: "${add: ${a},${b}}"
-a_plus_b_plus_c: "${add: ${a}, ${b}, ${c}}"
-                 
-my_list: [10, 20, 30, 40, 50]
-third_of_list: "${getitem: ${my_list}, 2}"
-first_of_list: "${first: ${my_list}}"
-last_of_list: "${last: ${my_list}}"
-```
-You can register any additional resolver you want by simply following the official [documentation](https://omegaconf.readthedocs.io/en/latest/usage.html#resolvers).
+### Conclusion
+This brief introduction has given you a glimpse into the functionality and importance of recipes within SuperGradients:
+- **Recipes Overview**: Configuration files in YAML format that allow streamlined training and customization.
+- **SuperGradients' Utilization**: Enhancing reproducibility, flexibility, and efficiency in defining models, datasets, and hyperparameters.
+- **Introduction to training**: A simple demonstration of initiating a training session using a specific recipe.
 
-## Factories
-Factories are similar to resolvers but were built specifically to instantiate SuperGradients objects within a recipe.
-This is a key feature of SuperGradient which is being used in all of our recipes, and we recommend you to 
-go over this [introduction to Factories](factories.md).
-
-## Required Hyper-Parameters
-Most parameters can be defined by default when including `default_train_params` in you `defaults`.
-However, the following hyper-parameters are required to launch a training run:
-```yaml
-train_dataloader: 
-val_dataloader: 
-architecture: 
-training_hyperparams:
-  initial_lr: 
-  loss:
-experiment_name:
-  
-multi_gpu: # When training with multi GPU
-num_gpus: # When training with multi GPU
-
-# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
-hydra:
-  run:
-    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
-    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
-```
-> Other parameters may also be required, depending on the specific model, dataset, loss function ect. 
-> Follow the error message in case you experiment did not launce properly.  
-
-## Recipes library structure
-The `super_gradients/recipes` include the following subdirectories:
-> - arch_params - containing configuration files for instantiating different models
-> - checkpoint_params - containing configuration files that define the loaded and saved checkpoints parameters for the training
-> - conversion_params - containing configuration files for the model conversion scripts (for deployment)
-> - dataset_params - containing configuration files for instantiating different datasets and dataloaders
-> - training_hyperparams - containing configuration files holding hyper-parameters for specific recipes
-
-These configuration files will be available for use both in the installed version and in the development version of SG.
+**Next Step**: More details await in the [upcoming tutorials](Recipes_Training.md), where we'll explore more in-depth training from recipes, 
+and the customization, structure, and deeper functionality of recipes within SuperGradients. 
