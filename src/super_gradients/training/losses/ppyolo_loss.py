@@ -263,7 +263,6 @@ class BoxesAssignmentResult:
     assigned_bboxes: Tensor
     assigned_scores: Tensor
     assigned_gt_index: Tensor
-    assigned_gt_index_non_flat: Tensor
 
 
 class ATSSAssigner(nn.Module):
@@ -365,7 +364,6 @@ class ATSSAssigner(nn.Module):
                 assigned_bboxes=assigned_bboxes,
                 assigned_scores=assigned_scores,
                 assigned_gt_index=assigned_gt_index,
-                assigned_gt_index_non_flat=assigned_gt_index,
             )
 
         # 1. compute iou between gt and anchor bbox, [B, n, L]
@@ -552,7 +550,6 @@ class TaskAlignedAssigner(nn.Module):
         assigned_gt_index = mask_positive.argmax(dim=-2)
 
         # assigned target
-        assigned_gt_index_non_flat = assigned_gt_index
         assigned_gt_index = assigned_gt_index + batch_ind * num_max_boxes
         assigned_labels = torch.gather(gt_labels.flatten(), index=assigned_gt_index.flatten(), dim=0)
         assigned_labels = assigned_labels.reshape([batch_size, num_anchors])
@@ -578,7 +575,6 @@ class TaskAlignedAssigner(nn.Module):
             assigned_bboxes=assigned_bboxes,
             assigned_scores=assigned_scores,
             assigned_gt_index=assigned_gt_index,
-            assigned_gt_index_non_flat=assigned_gt_index_non_flat,
         )
 
 

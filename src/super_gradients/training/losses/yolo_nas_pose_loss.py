@@ -26,7 +26,6 @@ class YoloNASPoseYoloNASPoseBoxesAssignmentResult:
     assigned_poses: Tensor
     assigned_scores: Tensor
     assigned_gt_index: Tensor
-    assigned_gt_index_non_flat: Tensor
 
 
 class YoloNASPoseTaskAlignedAssigner(nn.Module):
@@ -99,10 +98,15 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         if num_max_boxes == 0:
             assigned_labels = torch.full([batch_size, num_anchors], bg_index, dtype=torch.long, device=gt_labels.device)
             assigned_bboxes = torch.zeros([batch_size, num_anchors, 4], device=gt_labels.device)
+            assigned_poses = torch.zeros([batch_size, num_anchors, num_keypoints, 3], device=gt_labels.device)
             assigned_scores = torch.zeros([batch_size, num_anchors, num_classes], device=gt_labels.device)
             assigned_gt_index = torch.zeros([batch_size, num_anchors], dtype=torch.long, device=gt_labels.device)
             return YoloNASPoseYoloNASPoseBoxesAssignmentResult(
-                assigned_labels=assigned_labels, assigned_bboxes=assigned_bboxes, assigned_scores=assigned_scores, assigned_gt_index=assigned_gt_index
+                assigned_labels=assigned_labels,
+                assigned_bboxes=assigned_bboxes,
+                assigned_scores=assigned_scores,
+                assigned_gt_index=assigned_gt_index,
+                assigned_poses=assigned_poses,
             )
 
         # compute iou between gt and pred bbox, [B, n, L]
@@ -138,7 +142,6 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         assigned_gt_index = mask_positive.argmax(dim=-2)
 
         # assigned target
-        assigned_gt_index_non_flat = assigned_gt_index
         assigned_gt_index = assigned_gt_index + batch_ind * num_max_boxes
         assigned_labels = torch.gather(gt_labels.flatten(), index=assigned_gt_index.flatten(), dim=0)
         assigned_labels = assigned_labels.reshape([batch_size, num_anchors])
@@ -168,7 +171,6 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
             assigned_scores=assigned_scores,
             assigned_poses=assigned_poses,
             assigned_gt_index=assigned_gt_index,
-            assigned_gt_index_non_flat=assigned_gt_index_non_flat,
         )
 
 

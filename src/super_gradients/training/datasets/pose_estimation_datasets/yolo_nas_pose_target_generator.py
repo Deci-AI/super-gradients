@@ -11,6 +11,7 @@ from .target_generators import KeypointsTargetsGenerator
 __all__ = ["YoloNASPoseTargetsGenerator", "YoloNASPoseTargetsCollateFN"]
 
 from ..data_formats.bbox_formats.xywh import xywh_to_xyxy
+from ...transforms.keypoint_transforms import PoseEstimationSample
 
 
 @register_target_generator()
@@ -22,7 +23,7 @@ class YoloNASPoseTargetsGenerator(KeypointsTargetsGenerator):
     def __init__(self):
         pass
 
-    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray, bboxes: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def __call__(self, sample: PoseEstimationSample) -> Tuple[np.ndarray, np.ndarray]:
         """
         Encode the keypoints into dense targets that participate in loss computation.
         :param image: Image tensor [3, H, W]
@@ -31,11 +32,11 @@ class YoloNASPoseTargetsGenerator(KeypointsTargetsGenerator):
         :param mask: [H,W] A mask that indicates which pixels should be included (1) or which one should be excluded (0) from loss computation.
         :return: A tuple of (boxes, joints, mask)
         """
-        if image.shape[1:3] != mask.shape[:2]:
-            raise ValueError(f"Image and mask should have the same shape {image.shape[1:3]} != {mask.shape[:2]}")
+        if sample.image.shape[1:3] != sample.mask.shape[:2]:
+            raise ValueError(f"Image and mask should have the same shape {sample.image.shape[1:3]} != {sample.mask.shape[:2]}")
 
-        boxes_xyxy = xywh_to_xyxy(bboxes, image_shape=None)
-        return boxes_xyxy, joints
+        boxes_xyxy = xywh_to_xyxy(sample.bboxes, image_shape=None)
+        return boxes_xyxy, sample.joints
 
 
 @register_collate_function()

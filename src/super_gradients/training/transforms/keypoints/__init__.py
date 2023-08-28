@@ -1,3 +1,4 @@
 from .keypoints_hsv import KeypointsHSV
+from .keypoints_mixup import KeypointsMixup
 
-__all__ = ["KeypointsHSV"]
+__all__ = ["KeypointsHSV", "KeypointsMixup"]

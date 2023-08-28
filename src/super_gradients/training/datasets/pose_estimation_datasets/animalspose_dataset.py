@@ -1,11 +1,10 @@
 import json
-from sklearn.model_selection import train_test_split
 import os
-from typing import List, Mapping, Any, Tuple, Union
+from typing import List, Tuple, Union
 
 import cv2
 import numpy as np
-from torch import Tensor
+from sklearn.model_selection import train_test_split
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.target_generator_factory import TargetGeneratorsFactory
@@ -13,7 +12,7 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry import register_dataset
 from super_gradients.training.datasets.pose_estimation_datasets import BaseKeypointsDataset
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform
+from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 
 
@@ -142,16 +141,6 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
     def __len__(self):
         return len(self.image_ids)
 
-    def __getitem__(self, index: int) -> Tuple[Tensor, Any, Mapping[str, Any]]:
-        img, mask, gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.load_sample(index)
-        img, mask, gt_joints, gt_areas, gt_bboxes = self.transforms(img, mask, gt_joints, areas=gt_areas, bboxes=gt_bboxes)
-
-        image_shape = img.size(1), img.size(2)
-        gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.filter_joints(image_shape, gt_joints, gt_areas, gt_bboxes, gt_iscrowd)
-
-        targets = self.target_generator(image=img, joints=gt_joints, bboxes=gt_bboxes, mask=mask)
-        return img, targets, {"gt_joints": gt_joints, "gt_bboxes": gt_bboxes, "gt_iscrowd": gt_iscrowd, "gt_areas": gt_areas}
-
     def load_sample(self, index):
         file_path = self.image_files[index]
         gt_joints, gt_bboxes = self.annotations[index]  # boxes in xywh format
@@ -162,42 +151,11 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
         image = cv2.imread(file_path, cv2.IMREAD_COLOR)
         mask = np.ones(image.shape[:2], dtype=np.float32)
 
-        return image, mask, gt_joints, gt_areas, gt_bboxes, gt_iscrowd
-
-    def filter_joints(
-        self,
-        image_shape,
-        joints: np.ndarray,
-        areas: np.ndarray,
-        bboxes: np.ndarray,
-        is_crowd: np.ndarray,
-    ):
-        """
-        Filter instances that are either too small or do not have visible keypoints.
-
-        :param image: Image if [H,W,C] shape. Used to infer image boundaries
-        :param joints: Array of shape [Num Instances, Num Joints, 3]
-        :param areas: Array of shape [Num Instances] with area of each instance.
-                      Instance area comes from segmentation mask from COCO annotation file.
-        :param bboxes: Array of shape [Num Instances, 4] for bounding boxes in XYWH format.
-                       Bounding boxes comes from segmentation mask from COCO annotation file.
-        :param: is_crowd: Array of shape [Num Instances] indicating whether an instance is a crowd target.
-        :return: [New Num Instances, Num Joints, 3], New Num Instances <= Num Instances
-        """
-
-        # Update visibility of joints for those that are outside the image
-        outside_image_mask = (joints[:, :, 0] < 0) | (joints[:, :, 1] < 0) | (joints[:, :, 0] >= image_shape[1]) | (joints[:, :, 1] >= image_shape[0])
-        joints[outside_image_mask, 2] = 0
-
-        # Filter instances with all invisible keypoints
-        instances_with_visible_joints = np.count_nonzero(joints[:, :, 2], axis=-1) > 0
-        instances_with_good_area = areas > self.min_instance_area
-
-        keep_mask = instances_with_visible_joints & instances_with_good_area
-
-        joints = joints[keep_mask]
-        areas = areas[keep_mask]
-        bboxes = bboxes[keep_mask]
-        is_crowd = is_crowd[keep_mask]
-
-        return joints, areas, bboxes, is_crowd
+        return PoseEstimationSample(
+            image=image,
+            mask=mask,
+            joints=gt_joints,
+            areas=gt_areas,
+            bboxes=gt_bboxes,
+            is_crowd=gt_iscrowd,
+        )
