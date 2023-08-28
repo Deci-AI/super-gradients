@@ -102,7 +102,7 @@ defaults:
   - arch_params: resnet18_cifar_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
-
+  - variable_setup
 ...
 ```
 
@@ -111,6 +111,8 @@ defaults:
 - **Defaults**: The `defaults` section is critical, and it leverages the OmegaConf syntax. It serves to reference other recipes, allowing you to create modular and reusable configurations.
 - **Referencing Parameters**: This allows you to point to specific parameters in the YAML file according to where they originate. For example, `training_hyperparams.initial_lr` refers to the `initial_lr` parameter from the `cifar10_resnet_train_params.yaml` file.
 - **Recipe Parameters - `_self_`**: The `_self_` keyword has a special role. It permits the current recipe to override the defaults. Its impact depends on its position in the `defaults` list.
+- **Variable setup - `variable_setup`**: This section is required to enable use of shortcuts for most commonly used overrides which is covered in the next section. Please note it `variable_setup` **must be the last item** in the defaults list.
+
 
 ### Understanding Override Order
 
@@ -139,6 +141,24 @@ Your recipe folder should have a specific structure to match this composition:
 
 You're not restricted to this structure, but following it ensures compatibility with SuperGradients' expectations.
 
+### Command-Line Override Shortcuts
+
+Although you can override any parameter from the command line, writing the full path of the parameter can be tedious.
+For example, to change the learning rate one would have to write `training_hyperparams.initial_lr=0.02`. 
+To change the batch size one would have to write
+`dataset_params.train_dataloader_params.batch_size=128 dataset_params.val_dataloader_params.batch_size=128`.
+
+To make it easier, we have defined a few shortcuts for the most common parameters that aims to reduce the amount of typing required:
+
+* Learning rate: `lr=0.02` (same as `training_hyperparams.initial_lr=0.02`)
+* Batch size: `bs=128` (same as `dataset_params.train_dataloader_params.batch_size=128 dataset_params.val_dataloader_params.batch_size=128`)
+* Number of train epochs: `epochs=100` (same as `training_hyperparams.max_epochs=100`)
+* Number of workers: `num_workers=4` (same as `dataset_params.train_dataloader_params.num_workers=4 dataset_params.val_dataloader_params.num_workers=4`)
+* Resume training for a specific experiment: `resume=True` (same as `training_hyperparams.resume=True`)
+* Enable or disable EMA: `ema=true` (same as `training_hyperparams.ema=true`)
+
+To use these shortcuts, a `variable_setup` section should be a part of hydra defaults in the recipe file.
+Please note it `variable_setup` **must be the last item** in the defaults list.
 
 ## Conclusion
 
