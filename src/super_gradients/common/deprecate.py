@@ -66,7 +66,7 @@ def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable
                     warnings.warn(message, DeprecationWarning, stacklevel=2)
                     wrapper._warned = True
                 else:
-                    raise EnvironmentError(message)
+                    raise ImportError(message)
 
             return old_func(*args, **kwargs)
 
