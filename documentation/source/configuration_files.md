@@ -120,42 +120,6 @@ Two Hydra features worth mentioning are [Command-Line Overrides](https://hydra.c
 and [YAML Composition](https://hydra.cc/docs/0.11/tutorial/composition/).
 We strongly recommend you to have a look at both of these pages.
 
-#### YAML Composition
-If you browse the YAML files in the `recipes` directory you will see some file containing the saved-key `defaults:` at the beginning of the file.
-```yaml
-defaults:
-  - training_hyperparams: cifar10_resnet_train_params
-  - dataset_params: cifar10_dataset_params
-  - arch_params: resnet18_cifar_arch_params
-  - checkpoint_params: default_checkpoint_params
-  - _self_
-  - variable_setup
-
-```
-The YAML file containing this header will inherit the configuration of the above files. So when building a training recipe, one can structure
-the configurations into a few files (for training hyper-params, dataset params, architecture params ect.) and Hydra will conveniently aggregate them all 
-into a single dictionary. 
-
-The parameters will be referenced inside the YAML according to their origin. i.e. in the example above we can reference `training_hyperparams.initial_lr` 
-(initial_lr parameter from the cifar10_resnet_train_params.yaml file)
-
-The aggregated configuration file will be saved in the `.hydra` subdirectory.
-
-Please note that `variable_setup` **must be the last item** in the defaults list. 
-
-#### Command-Line Overrides
-When running with Hydra, you can override or even add configuration from the command line. These override will apply to the specific run only.
-```shell
-python -m super_gradients.train_from_recipe --config-name=cifar10_resnet training_hyperparams.initial_lr=0.02 experiment_name=test_lr_002
-```
-In the example above, the same script we launched earlier is used, but this time it will run with a different experiment name and a different 
-initial learning-rate. This feature is extremely usefully when experimenting with different hyper-parameters.
-Note that the arguments are referenced without the `--` prefix and that each parameter is referenced with its full path in the 
-configuration tree, concatenated with a `.`.
-
-
-More informaiton can be found in corresponding YAML file in the `recipes` directory:
-https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/variable_setup.yaml
 
 ### Conclusion
 This brief introduction has given you a glimpse into the functionality and importance of recipes within SuperGradients:
