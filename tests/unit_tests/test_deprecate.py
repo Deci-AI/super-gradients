@@ -109,11 +109,13 @@ class TestDeprecationDecorator(unittest.TestCase):
     def test_raise_error_when_library_version_equals_removal_version(self):
         """Ensure that an error is raised when the library's version equals the function's removal version."""
         with patch("super_gradients.__version__", "10.1.0"):  # Mocking the version to be equal to removal version
-            with self.assertRaises(ValueError):
+            with self.assertRaises(EnvironmentError):
 
                 @deprecated(deprecated_in_v="3.2.0", remove_in_v="10.1.0", target=self.new_func)
                 def deprecated_func_version_equal():
                     return
+
+                deprecated_func_version_equal()
 
     def test_no_error_when_library_version_below_removal_version(self):
         """Ensure that no error is raised when the library's version is below the function's removal version."""
@@ -123,7 +125,6 @@ class TestDeprecationDecorator(unittest.TestCase):
             def deprecated_func_version_below():
                 return
 
-            # Actually call the function to check no exception is raised
             deprecated_func_version_below()
 
 

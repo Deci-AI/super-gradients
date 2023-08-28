@@ -40,19 +40,15 @@ def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable
     """
 
     def decorator(old_func: callable) -> callable:
-        import super_gradients
-
-        if parse_version(super_gradients.__version__) >= parse_version(remove_in_v):
-            raise EnvironmentError(
-                f"`super_gradients.__version__={super_gradients.__version__}` >= `remove_in_v={remove_in_v}`. "
-                f"Please remove {old_func.__module__}.{old_func.__name__} from your code base."
-            )
-
         @wraps(old_func)
         def wrapper(*args, **kwargs):
             if not wrapper._warned:
+                import super_gradients
+
+                is_still_supported = parse_version(super_gradients.__version__) < parse_version(remove_in_v)
+                status_msg = "is deprecated" if is_still_supported else "was deprecated and has been removed"
                 message = (
-                    f"Callable `{old_func.__module__}.{old_func.__name__}` is deprecated since version `{deprecated_in_v}` "
+                    f"Callable `{old_func.__module__}.{old_func.__name__}` {status_msg} since version `{deprecated_in_v}` "
                     f"and will be removed in version `{remove_in_v}`.\n"
                 )
                 if reason:
@@ -65,9 +61,12 @@ def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable
                         f"  [+] from `{target.__module__}` import `{target.__name__}`"
                     )
 
-                warnings.simplefilter("once", DeprecationWarning)  # Required, otherwise the warning may never be displayed.
-                warnings.warn(message, DeprecationWarning, stacklevel=2)
-                wrapper._warned = True
+                if is_still_supported:
+                    warnings.simplefilter("once", DeprecationWarning)  # Required, otherwise the warning may never be displayed.
+                    warnings.warn(message, DeprecationWarning, stacklevel=2)
+                    wrapper._warned = True
+                else:
+                    raise EnvironmentError(message)
 
             return old_func(*args, **kwargs)
 
@@ -77,14 +76,3 @@ def deprecated(deprecated_in_v: str, remove_in_v: str, target: Optional[callable
         return wrapper
 
     return decorator
-
-
-def make_deprecated(func, reason):
-    def inner(*args, **kwargs):
-        with warnings.catch_warnings():
-            warnings.simplefilter("once", DeprecationWarning)
-            warnings.warn(reason, category=DeprecationWarning, stacklevel=2)
-        warnings.warn(reason, DeprecationWarning)
-        return func(*args, **kwargs)
-
-    return inner
