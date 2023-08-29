@@ -1,7 +1,7 @@
 import dataclasses
 import random
 from abc import abstractmethod
-from typing import List, Iterable, Optional, Dict
+from typing import List, Iterable, Optional, Dict, Union
 
 import cv2
 import numpy as np
@@ -454,6 +454,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         max_translate: float,
         image_pad_value: int,
         mask_pad_value: float,
+        interpolation_mode: Union[int, List[int]] = cv2.INTER_LINEAR,
         prob: float = 0.5,
     ):
         """
@@ -462,6 +463,14 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         :param min_scale: Lower bound for the scale change. For +- 20% size jitter this should be 0.8
         :param max_scale: Lower bound for the scale change. For +- 20% size jitter this should be 1.2
         :param max_translate: Max translation offset in percents of image size
+        :param interpolation_mode: A constant integer or list of integers, specifying the interpolation mode to use.
+        Possible values for interpolation_mode:
+          cv2.INTER_NEAREST = 0,
+          cv2.INTER_LINEAR = 1,
+          cv2.INTER_CUBIC = 2,
+          cv2.INTER_AREA = 3,
+          cv2.INTER_LANCZOS4 = 4
+        To use random interpolation modes on each call, set interpolation_mode = (0,1,2,3,4)
         """
         super().__init__()
 
@@ -472,6 +481,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         self.image_pad_value = image_pad_value
         self.mask_pad_value = mask_pad_value
         self.prob = prob
+        self.interpolation_mode = tuple(interpolation_mode) if isinstance(interpolation_mode, Iterable) else (interpolation_mode,)
 
     def __repr__(self):
         return (
@@ -525,7 +535,9 @@ class KeypointsRandomAffineTransform(KeypointTransform):
             image_shape = sample.image.shape
 
             sample.mask = self.apply_to_image(sample.mask, mat_output, cv2.INTER_NEAREST, self.mask_pad_value, cv2.BORDER_CONSTANT)
-            sample.image = self.apply_to_image(sample.image, mat_output, cv2.INTER_LINEAR, image_pad_value, cv2.BORDER_CONSTANT)
+
+            interpolation = random.choice(self.interpolation_mode)
+            sample.image = self.apply_to_image(sample.image, mat_output, interpolation, image_pad_value, cv2.BORDER_CONSTANT)
 
             sample.joints = self.apply_to_keypoints(sample.joints, mat_output, image_shape)
 
