@@ -1,0 +1,35 @@
+backbone:
+  overlap_patch_size: [7, 3, 3, 3]
+  overlap_patch_stride: [4, 2, 2, 2]
+  overlap_patch_pad: [3, 1, 1, 1]
+  eff_self_att_reduction_ratio: [8, 4, 2, 1]
+  eff_self_att_heads: [1, 2, 5, 8]
+  encoder_embed_dims: [64, 128, 320, 512]
+  encoder_layers: [3, 6, 40, 3]
+  in_channels: 3
+
+head:
+  YoloNASPoseNDFLHeads:
+    num_classes: 17
+    reg_max: 16
+    heads_list:
+      - YoloNASPoseDFLHead:
+          inter_channels: 128
+          width_mult: 1
+          first_conv_group_size: 0
+          stride: 8
+          activation_type: gelu
+      - YoloNASPoseDFLHead:
+          inter_channels: 256
+          width_mult: 1
+          first_conv_group_size: 0
+          stride: 16
+          activation_type: gelu
+      - YoloNASPoseDFLHead:
+          inter_channels: 512
+          width_mult: 1
+          first_conv_group_size: 0
+          stride: 32
+          activation_type: gelu
+
+_convert_: all
