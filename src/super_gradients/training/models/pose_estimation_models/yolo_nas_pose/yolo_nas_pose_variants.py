@@ -1,4 +1,5 @@
 import copy
+from functools import lru_cache
 from typing import Union, Optional, List, Tuple
 
 import numpy as np
@@ -11,6 +12,7 @@ from super_gradients.common.object_names import Models
 from super_gradients.common.registry import register_model
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
+from super_gradients.training.pipelines.pipelines import PoseEstimationPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.utils import HpmStruct
@@ -38,11 +40,39 @@ class YoloNASPose(CustomizableDetector):
         self._keypoint_colors = None
         self._image_processor = None
         self._default_nms_conf = None
+        self._default_nms_iou = None
+
+    @lru_cache(maxsize=1)
+    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> PoseEstimationPipeline:
+        """Instantiate the prediction pipeline of this model.
+
+        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
+                        If None, the default value associated to the training is used.
+        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        """
+        if None in (self._image_processor, self._default_nms_iou, self._default_nms_conf, self._edge_links):
+            raise RuntimeError(
+                "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
+            )
+
+        iou = iou or self._default_nms_iou
+        conf = conf or self._default_nms_conf
+        pipeline = PoseEstimationPipeline(
+            model=self,
+            image_processor=self._image_processor,
+            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            fuse_model=fuse_model,
+            edge_links=self._edge_links,
+            edge_colors=self._edge_colors,
+            keypoint_colors=self._keypoint_colors,
+        )
+        return pipeline
 
     @classmethod
     def get_post_prediction_callback(cls, conf: float, iou: float) -> YoloNASPosePostPredictionCallback:
         return YoloNASPosePostPredictionCallback(
-            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, pre_nms_max_predictions=1000, post_nms_max_predictions=300
+            pose_confidence_threshold=conf, keypoint_confidence_threshold=0.5, nms_iou_threshold=iou, pre_nms_max_predictions=1000, post_nms_max_predictions=300
         )
 
     def get_preprocessing_callback(self, **kwargs):
@@ -58,6 +88,7 @@ class YoloNASPose(CustomizableDetector):
         keypoint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
         image_processor: Optional[Processing] = None,
         conf: Optional[float] = None,
+        iou: Optional[float] = 0.7,
     ) -> None:
         """Set the processing parameters for the dataset.
 
@@ -69,6 +100,7 @@ class YoloNASPose(CustomizableDetector):
         self._keypoint_colors = keypoint_colors or self._keypoint_colors
         self._image_processor = image_processor or self._image_processor
         self._default_nms_conf = conf or self._default_nms_conf
+        self._default_nms_iou = iou or self._default_nms_iou
 
 
 @register_model(Models.YOLO_NAS_POSE_S)
@@ -86,12 +118,6 @@ class YoloNASPose_S(YoloNASPose):
             bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
             bn_eps=get_param(merged_arch_params, "bn_eps", None),
             inplace_act=get_param(merged_arch_params, "inplace_act", None),
-        )
-
-    @staticmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> YoloNASPosePostPredictionCallback:
-        return YoloNASPosePostPredictionCallback(
-            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, pre_nms_max_predictions=1000, post_nms_max_predictions=300
         )
 
     @property
@@ -116,12 +142,6 @@ class YoloNASPose_M(YoloNASPose):
             inplace_act=get_param(merged_arch_params, "inplace_act", None),
         )
 
-    @staticmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> YoloNASPosePostPredictionCallback:
-        return YoloNASPosePostPredictionCallback(
-            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, pre_nms_max_predictions=1000, post_nms_max_predictions=300
-        )
-
     @property
     def num_classes(self):
         return self.heads.num_classes
@@ -142,12 +162,6 @@ class YoloNASPose_L(YoloNASPose):
             bn_momentum=get_param(merged_arch_params, "bn_momentum", None),
             bn_eps=get_param(merged_arch_params, "bn_eps", None),
             inplace_act=get_param(merged_arch_params, "inplace_act", None),
-        )
-
-    @staticmethod
-    def get_post_prediction_callback(conf: float, iou: float) -> YoloNASPosePostPredictionCallback:
-        return YoloNASPosePostPredictionCallback(
-            score_threshold=conf, keypoint_confidence_threshold=0.05, nms_threshold=iou, pre_nms_max_predictions=1000, post_nms_max_predictions=300
         )
 
     @property

@@ -107,8 +107,8 @@ heads:
           first_conv_group_size: 0
           stride: 32
 
-bn_eps: 1e-3
-bn_momentum: 0.03
+bn_eps: 1e-6
+bn_momentum: 0.1
 inplace_act: True
 
 _convert_: all
