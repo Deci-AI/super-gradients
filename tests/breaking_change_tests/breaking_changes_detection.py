@@ -160,6 +160,16 @@ def extract_code_breaking_changes(module_path: str, source_code: str, current_co
                 )
             )
 
+    # IMPORTS - Check import ONLY if __init__ file and ignores non-SG imports.
+    current_imports = parse_imports(code=current_code)
+    if module_path.endswith("__init__.py"):
+        source_imports = parse_imports(code=source_code)
+        breaking_changes.imports_removed = [
+            ImportRemoved(import_name=source_import, line_num=0)
+            for source_import in source_imports
+            if (source_import not in current_imports) and ("super_gradients" in source_import)
+        ]
+
     # FUNCTION SIGNATURES
     source_functions_signatures = parse_functions_signatures(source_code)
     current_functions_signatures = parse_functions_signatures(current_code)
@@ -191,21 +201,16 @@ def extract_code_breaking_changes(module_path: str, source_code: str, current_co
                     )
 
         else:
-            # FunctionRemoved
-            breaking_changes.functions_removed.append(
-                FunctionRemoved(
-                    function_name=function_name,
-                    line_num=source_function_signature.line_num,
+            # Count a function as removed only if it was removed AND it was not added in the imports!
+            imported_function_names = current_imports.values()
+            if function_name not in imported_function_names:
+                breaking_changes.functions_removed.append(
+                    FunctionRemoved(
+                        function_name=function_name,
+                        line_num=source_function_signature.line_num,
+                    )
                 )
-            )
 
-    # Check import ONLY if __init__ file.
-    if module_path.endswith("__init__.py"):
-        source_imports = parse_imports(code=source_code)
-        current_imports = parse_imports(code=current_code)
-        breaking_changes.imports_removed = [
-            ImportRemoved(import_name=source_import, line_num=0) for source_import in source_imports if source_import not in current_imports
-        ]
     return breaking_changes
 
 
