@@ -7,10 +7,15 @@ from torch import nn
 
 from super_gradients.common.factories.detection_modules_factory import DetectionModulesFactory
 from super_gradients.common.registry import register_model
+from super_gradients.modules import ConvBNAct
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.segmentation_models.segformer import MiTBackBone
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils import get_param
+
+
+def resize_like(x, y):
+    return torch.nn.functional.interpolate(x, size=y.shape[-2:], mode="bilinear", align_corners=False)
 
 
 @register_model()
@@ -20,6 +25,7 @@ class PoseFormer(SgModule):
         backbone: Union[str, dict, HpmStruct, DictConfig],
         heads: Union[str, dict, HpmStruct, DictConfig],
         num_classes: int,
+        embedding_dim: int = 512,
     ):
         """
         :param num_classes: number of classes
@@ -48,13 +54,18 @@ class PoseFormer(SgModule):
         )
 
         factory = DetectionModulesFactory()
-        self.head = factory.get(factory.insert_module_param(heads, "in_channels", backbone["encoder_embed_dims"][1:]))
+        self.head = factory.get(factory.insert_module_param(heads, "in_channels", (embedding_dim, embedding_dim, embedding_dim)))
 
         self.init_params()
 
         self.num_classes = num_classes
 
         self.use_sliding_window_validation = False
+        input_channels = sum(backbone["encoder_embed_dims"][1:])
+
+        self.f1_path = ConvBNAct(input_channels, embedding_dim, kernel_size=3, padding=1, bias=False, activation_type=nn.GELU)
+        self.f2_path = ConvBNAct(input_channels, embedding_dim, kernel_size=3, padding=1, bias=False, activation_type=nn.GELU)
+        self.f3_path = ConvBNAct(input_channels, embedding_dim, kernel_size=3, padding=1, bias=False, activation_type=nn.GELU)
 
     def init_params(self):
         for m in self.modules():
@@ -71,8 +82,13 @@ class PoseFormer(SgModule):
                 nn.init.zeros_(m.bias)
 
     def _forward(self, x: torch.Tensor) -> torch.Tensor:
-        features = self.backbone(x)
-        out = self.head(features[1:])
+        f1, f2, f3 = self.backbone(x)[1:]
+        # fmt: off
+        f1_out = self.f1_path(torch.cat([f1,                  resize_like(f2, f1), resize_like(f3, f1)], dim=1)) # noqa
+        f2_out = self.f2_path(torch.cat([resize_like(f1, f2), f2,                  resize_like(f3, f2)], dim=1)) # noqa
+        f3_out = self.f3_path(torch.cat([resize_like(f1, f3), resize_like(f2, f3), f3                 ], dim=1)) # noqa
+        # fmt: on
+        out = self.head([f1_out, f2_out, f3_out])
         return out
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
