@@ -6,8 +6,10 @@ from omegaconf import DictConfig
 from torch import nn, Tensor
 
 import super_gradients.common.factories.detection_modules_factory as det_factory
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.common.registry import register_detection_module
-from super_gradients.modules import ConvBNReLU
+from super_gradients.modules import ConvBNAct
 from super_gradients.modules.base_modules import BaseDetectionModule
 from super_gradients.module_interfaces import SupportsReplaceNumClasses
 from super_gradients.modules.utils import width_multiplier
@@ -24,6 +26,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
     This class implements single-class object detection and keypoints regression on a single scale feature map
     """
 
+    @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
         in_channels: int,
@@ -35,6 +38,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         reg_max: int,
         cls_dropout_rate: float = 0.0,
         reg_dropout_rate: float = 0.0,
+        activation_type=nn.ReLU,
     ):
         """
         Initialize the YoloNASDFLHead
@@ -59,16 +63,34 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
             groups = inter_channels // first_conv_group_size
 
         self.num_classes = num_classes
-        self.stem = ConvBNReLU(in_channels, inter_channels, kernel_size=1, stride=1, padding=0, bias=False)
+        self.stem = ConvBNAct(in_channels, inter_channels, kernel_size=1, stride=1, padding=0, bias=False, activation_type=activation_type)
 
-        first_cls_conv = [ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
-        self.cls_convs = nn.Sequential(*first_cls_conv, ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
+        first_cls_conv = (
+            [ConvBNAct(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False, activation_type=activation_type)]
+            if groups
+            else []
+        )
+        self.cls_convs = nn.Sequential(
+            *first_cls_conv, ConvBNAct(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False, activation_type=activation_type)
+        )
 
-        first_reg_conv = [ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
-        self.reg_convs = nn.Sequential(*first_reg_conv, ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
+        first_reg_conv = (
+            [ConvBNAct(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False, activation_type=activation_type)]
+            if groups
+            else []
+        )
+        self.reg_convs = nn.Sequential(
+            *first_reg_conv, ConvBNAct(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False, activation_type=activation_type)
+        )
 
-        first_pose_conv = [ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
-        self.pose_convs = nn.Sequential(*first_pose_conv, ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
+        first_pose_conv = (
+            [ConvBNAct(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False, activation_type=activation_type)]
+            if groups
+            else []
+        )
+        self.pose_convs = nn.Sequential(
+            *first_pose_conv, ConvBNAct(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False, activation_type=activation_type)
+        )
 
         self.cls_pred = nn.Conv2d(inter_channels, 1 + self.num_classes, 1, 1, 0)
         self.reg_pred = nn.Conv2d(inter_channels, 4 * (reg_max + 1), 1, 1, 0)
