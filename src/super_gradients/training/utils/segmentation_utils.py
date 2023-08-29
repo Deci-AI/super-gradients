@@ -42,6 +42,7 @@ def to_one_hot(target: torch.Tensor, num_classes: int, ignore_index: int = None)
     :param target: Class labels long tensor, with shape [N, H, W]
     :param num_classes: num of classes in datasets excluding ignore label, this is the output channels of the one hot
         result.
+    :param ignore_index: the index of the class in the dataset to ignore
     :return: one hot tensor with shape [N, num_classes, H, W]
     """
     num_classes = num_classes if ignore_index is None else num_classes + 1
@@ -108,9 +109,8 @@ class BinarySegmentationVisualization:
         Colors are generated on the fly: uniformly sampled from color wheel to support all given classes.
 
         :param image_tensor:            rgb images, (B, H, W, 3)
-        :param pred_boxes:              boxes after NMS for each image in a batch, each (Num_boxes, 6),
-                                        values on dim 1 are: x1, y1, x2, y2, confidence, class
-        :param target_boxes:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, x y w h
+        :param pred_mask:              prediction mask in shape [B, 1, H, W] with C number of classes
+        :param target_mask:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, x y w h
                                         (coordinates scaled to [0, 1])
         :param batch_name:              id of the current batch to use for image naming
 
@@ -202,7 +202,66 @@ def target_to_binary_edge(target: torch.Tensor, num_classes: int, kernel_size: i
     :param flatten_channels: Whether to apply logical or across channels dimension, if at least one pixel class is
         considered as edge pixel flatten value is 1. If set as `False` the output tensor shape is [B, C, H, W], else
         [B, 1, H, W]. Default is `True`.
+    :param ignore_index: the index of the class in the dataset to ignore
+
     :return: one_hot edge torch.Tensor.
     """
     one_hot = to_one_hot(target, num_classes=num_classes, ignore_index=ignore_index)
     return one_hot_to_binary_edge(one_hot, kernel_size=kernel_size, flatten_channels=flatten_channels)
+
+
+def forward_with_sliding_window_wrapper(
+    forward: Callable[[torch.Tensor], torch.Tensor], img: torch.Tensor, sliding_window_stride: tuple, sliding_window_crop_size: tuple, num_classes: int
+) -> torch.Tensor:
+    """
+    Inference by sliding-window with overlap. It involves systematically moving a window with a fixed crop-size over
+    the input image. As the window moves across the image, features or patterns within the window are extracted by
+    running a forward pass of the crop image through the net.
+
+    If h_crop > h_img or w_crop > w_img, the small patch will be used to decode without padding.
+
+    :param forward: a model's forward function.
+    :param img: a batch of images to benchmark the model on using sliding window.
+    :param sliding_window_stride: (height, width) the stride size between crops for forward with sliding window
+    :param sliding_window_crop_size: (height, width) the crop size to take from the image for forward with sliding window
+    :param num_classes: the number of classes.
+
+    return: predictions tensor
+    """
+
+    h_stride, w_stride = sliding_window_stride
+    h_crop, w_crop = sliding_window_crop_size
+
+    if h_stride > h_crop or w_stride > w_crop:
+        raise ValueError("sliding_window_stride cannot be larger than sliding_window_crop_size.")
+
+    batch_size, _, h_img, w_img = img.size()
+
+    h_grids = max(h_img - h_crop + h_stride - 1, 0) // h_stride + 1
+    w_grids = max(w_img - w_crop + w_stride - 1, 0) // w_stride + 1
+
+    preds = torch.zeros((batch_size, num_classes, h_img, w_img), device=img.device)
+    count_mat = torch.zeros((batch_size, 1, h_img, w_img), device=img.device)
+
+    for h_idx in range(h_grids):
+        for w_idx in range(w_grids):
+            y1 = h_idx * h_stride
+            x1 = w_idx * w_stride
+            y2 = min(y1 + h_crop, h_img)
+            x2 = min(x1 + w_crop, w_img)
+            y1 = max(y2 - h_crop, 0)
+            x1 = max(x2 - w_crop, 0)
+            crop_img = img[:, :, y1:y2, x1:x2]
+
+            crop_logits = forward(crop_img)
+
+            if isinstance(crop_logits, torch.Tensor):
+                crop_logits = (crop_logits,)
+
+            crop_logits = crop_logits[0]
+
+            preds[:, :, y1:y2, x1:x2] += crop_logits
+
+            count_mat[:, :, y1:y2, x1:x2] += 1
+    preds = preds / count_mat
+    return preds

@@ -16,5 +16,20 @@ recipe_accuracy_tests:
 	coverage run --source=super_gradients -m unittest tests/deci_core_recipe_test_suite_runner.py
 
 
+sweeper_test:
+	python -m super_gradients.train_from_recipe -m --config-name=cifar10_resnet \
+	  ckpt_root_dir=$$PWD \
+	  experiment_name=sweep_cifar10 \
+	  training_hyperparams.max_epochs=1 \
+	  training_hyperparams.initial_lr=0.001,0.01
+
+	# Make sure that experiment_dir includes $$expected_num_dir subdirectories. If not, fail
+	subdir_count=$$(find "$$PWD/sweep_cifar10" -mindepth 1 -maxdepth 1 -type d | wc -l); \
+	if [ "$$subdir_count" -ne 2 ]; then \
+	  echo "Error: $$PWD/sweep_cifar10 should include 2 subdirectories but includes $$subdir_count."; \
+	  exit 1; \
+	fi
+
+
 examples_to_docs:
 	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute src/super_gradients/examples/model_export/models_export.ipynb

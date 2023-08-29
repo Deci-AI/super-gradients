@@ -293,7 +293,7 @@ plt.imshow(image)
     export PYTHONPATH=$PYTHONPATH:<YOUR-LOCAL-PATH>/super-gradients/
     ```
 
-1. Launch one of SG's <a href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/Training_Recipes.md">training recipes</a>. For example, Resnet18 on Cifar10:
+1. Launch one of SG's <a href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes">training recipes</a>. For example, Resnet18 on Cifar10:
 
 ```shell
 python -m super_gradients.train_from_recipe --config-name=cifar10_resnet experiment_name=my_resnet18_cifar10_experiment

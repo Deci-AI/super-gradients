@@ -54,7 +54,11 @@ class StrictLoadEnumTest(unittest.TestCase):
         torch.save(cls.change_state_dict_keys(cls.original_torch_model.state_dict()), cls.checkpoint_diff_keys_path)
 
         # Save the model's state_dict checkpoint in Trainer format
-        cls.trainer = Trainer("load_checkpoint_test")  # Saves in /checkpoints
+        cls.trainer = Trainer("load_checkpoint_test")
+
+        # This should be defined when calling `Trainer.train` but we don't do it here so we hardcode it
+        cls.trainer.checkpoints_dir_path = cls.temp_working_file_dir
+
         cls.trainer.set_net(cls.original_torch_model)
         # FIXME: after uniting init and build_model we should remove this
         cls.trainer.sg_logger = BaseSGLogger(

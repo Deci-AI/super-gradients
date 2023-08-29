@@ -28,7 +28,7 @@ from super_gradients.training.utils.predict import (
     SegmentationPrediction,
     VideoSegmentationPrediction,
 )
-from super_gradients.training.utils.utils import generate_batch
+from super_gradients.training.utils.utils import generate_batch, infer_model_device, resolve_torch_device
 from super_gradients.training.utils.media.video import load_video, includes_video_extension
 from super_gradients.training.utils.media.image import ImageSource, check_image_typing
 from super_gradients.training.utils.media.stream import WebcamStreaming
@@ -72,9 +72,13 @@ class Pipeline(ABC):
         fuse_model: bool = True,
         dtype: Optional[torch.dtype] = None,
     ):
-        self.device = device or next(model.parameters()).device
-        self.model = model.to(self.device)
+        model_device: torch.device = infer_model_device(model=model)
+        if device:
+            device: torch.device = resolve_torch_device(device=device)
+
+        self.device: torch.device = device or model_device
         self.dtype = dtype or next(model.parameters()).dtype
+        self.model = model.to(device) if device and device != model_device else model
         self.class_names = class_names
 
         if isinstance(image_processor, list):
@@ -173,8 +177,12 @@ class Pipeline(ABC):
         :param images:  Iterable of numpy arrays representing images.
         :return:        Iterable of Results object, each containing the results of the prediction and the image.
         """
+        # Make sure the model is on the correct device, as it might have been moved after init
+        model_device: torch.device = infer_model_device(model=self.model)
+        if self.device != model_device:
+            self.model = self.model.to(self.device)
+
         images = list(images)  # We need to load all the images into memory, and to reuse it afterwards.
-        self.model = self.model.to(self.device)  # Make sure the model is on the correct device, as it might have been moved after init
 
         # Preprocess
         preprocessed_images, processing_metadatas = [], []

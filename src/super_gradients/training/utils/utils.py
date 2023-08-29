@@ -664,6 +664,24 @@ def infer_model_device(model: nn.Module) -> Optional[torch.device]:
             return None
 
 
+def resolve_torch_device(device: Union[str, torch.device]) -> torch.device:
+    """
+    Resolve the specified torch device. It accepts either a string or a torch.device object.
+
+    This function takes the provided device identifier and returns a corresponding torch.device object,
+    which represents the device where a torch.Tensor will be allocated.
+
+    :param device: A string or torch.device object representing the device (e.g., 'cpu', 'cuda', 'cuda:0').
+    :return: A torch.device object representing the resolved device.
+
+    Example:
+        >>> torch.cuda.set_device(5)
+        >>> str(resolve_torch_device("cuda"))
+        'cuda:5'
+    """
+    return torch.zeros([], device=device).device
+
+
 def check_model_contains_quantized_modules(model: nn.Module) -> bool:
     """
     Check if the model contains any quantized modules.
