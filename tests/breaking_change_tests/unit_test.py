@@ -10,9 +10,9 @@ from .breaking_changes_detection import extract_code_breaking_changes
 
 class TestBreakingChangeDetection(unittest.TestCase):
     def test_module_removed(self):
-        old_code = "import package.missing_module"
+        old_code = "import super_gradients.missing_module"
         new_code = ""
-        self.assertEqual(parse_imports(old_code), {"package.missing_module": "package.missing_module"})
+        self.assertEqual(parse_imports(old_code), {"super_gradients.missing_module": "super_gradients.missing_module"})
         self.assertEqual(parse_imports(new_code), {})
 
         # Imports not checked in regular modules
@@ -25,11 +25,11 @@ class TestBreakingChangeDetection(unittest.TestCase):
 
         # Attributes of the breaking change
         breaking_change = breaking_changes.imports_removed[0]
-        self.assertEqual(breaking_change.import_name, "package.missing_module")
+        self.assertEqual(breaking_change.import_name, "super_gradients.missing_module")
 
     def test_module_renamed(self):
-        old_code = "import old_name"
-        new_code = "import new_name"
+        old_code = "import super_gradients"
+        new_code = "import new_module"
         self.assertNotEqual(parse_imports(old_code), parse_imports(new_code))
 
         # Imports not checked in regular modules
@@ -42,11 +42,11 @@ class TestBreakingChangeDetection(unittest.TestCase):
 
         # Check the attributes of the breaking change
         breaking_change = breaking_changes.imports_removed[0]
-        self.assertEqual(breaking_change.import_name, "old_name")
+        self.assertEqual(breaking_change.import_name, "super_gradients")
 
     def test_module_location_changed(self):
-        old_code = "from package import my_module"
-        new_code = "from package.subpackage import my_module"
+        old_code = "from super_gradients import my_module"
+        new_code = "from super_gradients.subpackage import my_module"
         self.assertNotEqual(parse_imports(old_code), parse_imports(new_code))
 
         # Imports not checked in regular modules
@@ -59,13 +59,13 @@ class TestBreakingChangeDetection(unittest.TestCase):
 
         # Check the attributes of the breaking change
         breaking_change = breaking_changes.imports_removed[0]
-        self.assertEqual(breaking_change.import_name, "package.my_module")
+        self.assertEqual(breaking_change.import_name, "super_gradients.my_module")
 
     def test_dependency_version_changed(self):
         """We want to be sensitive to source, not alias! (i.e. we want to distinguish between v1 and v2)"""
 
-        old_code = "import library_v1 as library"
-        new_code = "import library_v2 as library"
+        old_code = "import super_gradients.library_v1 as library"
+        new_code = "import super_gradients.library_v2 as library"
         self.assertNotEqual(parse_imports(old_code), parse_imports(new_code))
 
         # Imports not checked in regular modules
@@ -78,7 +78,7 @@ class TestBreakingChangeDetection(unittest.TestCase):
 
         # Check the attributes of the breaking change
         breaking_change = breaking_changes.imports_removed[0]
-        self.assertEqual(breaking_change.import_name, "library_v1")
+        self.assertEqual(breaking_change.import_name, "super_gradients.library_v1")
 
     def test_function_removed(self):
         old_code = "def old_function(): pass"
@@ -149,8 +149,8 @@ class TestBreakingChangeDetection(unittest.TestCase):
         self.assertEqual(len(breaking_changes.imports_removed), 0)
 
     def test_multiple_changes(self):
-        old_code = "import module1\nfrom module2 import function1\ndef my_function(param1, param2): pass"
-        new_code = "import module3\ndef my_function(param1, param2, param3): pass"
+        old_code = "import super_gradients.module1\nfrom super_gradients.module2 import function1\ndef my_function(param1, param2): pass"
+        new_code = "import super_gradients.module3\ndef my_function(param1, param2, param3): pass"
 
         # Imports not checked in regular modules
         breaking_changes = extract_code_breaking_changes("module.py", old_code, new_code)
