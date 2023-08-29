@@ -116,7 +116,6 @@ in the first arg of the command line.
 
 In the experiment directory a `.hydra` subdirectory will be created. The configuration files related to this run will be saved by hydra to that subdirectory.  
 
-
 Two Hydra features worth mentioning are [Command-Line Overrides](https://hydra.cc/docs/advanced/override_grammar/basic/) 
 and [YAML Composition](https://hydra.cc/docs/0.11/tutorial/composition/).
 We strongly recommend you to have a look at both of these pages.
