@@ -1,5 +1,7 @@
 import unittest
 
+import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 
 from super_gradients.training.transforms.keypoint_transforms import (
@@ -8,7 +10,9 @@ from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsRandomAffineTransform,
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
+    PoseEstimationSample,
 )
+from super_gradients.training.transforms.keypoints import KeypointsBrightnessContrast
 from super_gradients.training.transforms.transforms import (
     DetectionImagePermute,
     DetectionPadToSize,
@@ -374,6 +378,22 @@ class TestTransforms(unittest.TestCase):
         self.assertTrue((padded_area == pad_val).all())
         padded_area = rescaled_padded_image[:, :, resized_image_shape[1] :]  # Bottom padding area
         self.assertTrue((padded_area == pad_val).all())
+
+    def test_keypoints_brightness_contrast(self):
+        image = np.random.randint(0, 255, (640, 480, 3), dtype=np.uint8)
+        image = cv2.boxFilter(image, -1, (13, 13))
+
+        plt.figure()
+        plt.imshow(image)
+        plt.title("Original image")
+        plt.show()
+
+        aug = KeypointsBrightnessContrast(brightness_range=(1.1, 1.5), contrast_range=(1, 1), prob=1)
+        sample = aug(PoseEstimationSample(image=image, joints=None, bboxes=None, areas=None, mask=None, is_crowd=None))
+        plt.figure()
+        plt.imshow(sample.image)
+        plt.title("Augmented image")
+        plt.show()
 
 
 if __name__ == "__main__":
