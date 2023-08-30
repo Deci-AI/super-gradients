@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch.optim import Adam
 
+from super_gradients.common import StrictLoad
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.dataloaders import get_data_loader
@@ -142,6 +143,15 @@ class YoloNASPoseTests(unittest.TestCase):
             plt.imshow(image)
             plt.show()
 
+        pass
+
+    def test_pose_former(self):
+        model = models.get(
+            "PoseFormer_B5", num_classes=17, checkpoint_path="https://sghub.deci.ai/models/segformer_b5_cityscapes.pth", strict_load=StrictLoad.KEY_MATCHING
+        )
+        x = torch.rand((1, 3, 640, 640))
+        y = model(x)
+        print(y)
         pass
 
 
