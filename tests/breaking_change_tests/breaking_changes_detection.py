@@ -225,9 +225,15 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
     root_dir = str(Path(__file__).resolve().parents[2])
     git_explorer = GitHelper(git_path=root_dir)
 
+    changed_sg_modules = [
+        module_path
+        for module_path in git_explorer.diff_files(source_branch="master", current_branch="HEAD")
+        if module_path.startswith("src/super_gradients/") and not module_path.startswith("src/super_gradients/examples/")
+    ]
+
     summary = ""
     breaking_changes_list = []
-    for module_path in git_explorer.diff_files(source_branch="master", current_branch="HEAD"):
+    for module_path in changed_sg_modules:
 
         master_code = git_explorer.load_branch_file(branch="master", file_path=module_path)
         head_code = git_explorer.load_branch_file(branch="HEAD", file_path=module_path)
