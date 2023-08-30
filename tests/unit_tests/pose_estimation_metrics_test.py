@@ -12,15 +12,66 @@ import torch.cuda
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
+from super_gradients.common.object_names import Models
+from super_gradients.training import models
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
     remove_duplicate_annotations,
     make_keypoints_outside_image_invisible,
     remove_crowd_annotations,
 )
 from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimationMetrics
+from super_gradients.training.models.pose_estimation_models import YoloNASPose
 
 
 class TestPoseEstimationMetrics(unittest.TestCase):
+    def test_yolo_nas_pose_s(self):
+        model: YoloNASPose = models.get(Models.YOLO_NAS_POSE_S, num_classes=17, checkpoint_path="ckpt_best_pcgj2jlh.pth").eval().cuda()
+
+        images_path = "g:/coco2017/images/val2017"
+        image_files = [os.path.join(images_path, x) for x in os.listdir(images_path)]
+        # image_files = image_files[:20]
+
+        for iou in [0.5, 0.6, 0.7]:
+            for confidence in [0.01, 0.05, 0.1]:
+
+                predictions = model.predict(
+                    image_files,
+                    conf=confidence,
+                    iou=iou,
+                    pre_nms_max_predictions=300,
+                    post_nms_max_predictions=100,
+                )
+                predictions_dir = f"coco_val_predictions_conf_{confidence:.2f}_iou_{iou:.2f}"
+                os.makedirs(predictions_dir, exist_ok=True)
+                predictions.save(predictions_dir)
+
+                gt = self._load_coco_groundtruth(with_crowd=True, with_duplicates=True, with_invisible_keypoitns=True)
+
+                predicted_poses = []
+                predicted_scores = []
+                image_ids = []
+                for image_file, image_predictions in zip(image_files, predictions):
+                    image_ids.append(int(os.path.splitext(os.path.basename(image_file))[0]))
+                    predicted_poses.append(image_predictions.prediction.poses)
+                    predicted_scores.append(image_predictions.prediction.scores)
+
+                coco_pred = self._coco_convert_predictions_to_dict(predicted_poses, predicted_scores, image_ids)
+
+                with tempfile.TemporaryDirectory() as td:
+                    res_file = os.path.join(td, "keypoints_coco2017_results.json")
+
+                    with open(res_file, "w") as f:
+                        json.dump(coco_pred, f, sort_keys=True, indent=4)
+
+                    coco_dt = self._load_coco_groundtruth(with_crowd=True, with_duplicates=True, with_invisible_keypoitns=True)
+                    coco_dt = coco_dt.loadRes(res_file)
+
+                    coco_evaluator = COCOeval(gt, coco_dt, iouType="keypoints")
+                    print("confidence", confidence, "iou", iou)
+                    coco_evaluator.evaluate()  # run per image evaluation
+                    coco_evaluator.accumulate()  # accumulate per image results
+                    coco_evaluator.summarize()  # display summary metrics of results
+
     def _load_coco_groundtruth(self, with_crowd: bool, with_duplicates: bool, with_invisible_keypoitns: bool):
         gt_annotations_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data/coco2017/annotations/person_keypoints_val2017.json")
         assert os.path.isfile(gt_annotations_path)
