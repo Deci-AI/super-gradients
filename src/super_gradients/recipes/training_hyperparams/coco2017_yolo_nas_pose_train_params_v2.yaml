@@ -31,8 +31,7 @@ criterion_params:
     dfl_loss_weight: 1.5
     pose_cls_loss_weight: 1.0
     pose_reg_loss_weight: 17.0
-    rescale_keypoint_loss_by_assigned_weight: False
-    use_cocoeval_formula: True
+    use_cocoeval_formula: False
     pose_classification_loss_type: bce
 
 optimizer: AdamW

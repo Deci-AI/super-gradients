@@ -3,7 +3,7 @@ defaults:
   - override dataset_params: coco_pose_estimation_yolo_nas_mixup_dataset_params
   - _self_
 
-experiment_suffix: mixup_cocoformula_${training_hyperparams.criterion_params.pose_cls_loss_weight}_${training_hyperparams.criterion_params.pose_reg_loss_weight}_${training_hyperparams.criterion_params.dfl_loss_weight}_${training_hyperparams.criterion_params.iou_loss_weight}_${training_hyperparams.criterion_params.classification_loss_weight}_${training_hyperparams.criterion_params.rescale_keypoint_loss_by_assigned_weight}_${training_hyperparams.criterion_params.classification_loss_type}
+experiment_suffix: mixup_cocoformula_${training_hyperparams.criterion_params.pose_cls_loss_weight}_${training_hyperparams.criterion_params.pose_reg_loss_weight}_${training_hyperparams.criterion_params.dfl_loss_weight}_${training_hyperparams.criterion_params.iou_loss_weight}_${training_hyperparams.criterion_params.classification_loss_weight}_${training_hyperparams.criterion_params.classification_loss_type}
 
 training_hyperparams:
   sg_logger: wandb_sg_logger
