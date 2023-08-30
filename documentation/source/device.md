@@ -212,6 +212,26 @@ class DDPTop1Accuracy(torchmetrics.Metric):
 5. The `compute()` method then calculates the metric value according to your implementation. In this example, every process will return the same result: `0.6` (180 correct predictions out of 300 total predictions).
 6. Finally, calling `reset()` will reset the internal state of the metric, making it ready to accumulate new data at the start of the next epoch.
 
+### C. When using DDP you may want to scale the learning rate
+
+Using N GPUs in DDP mode, has an effect of increasing batch size by a factor of N.
+And it has been [shown](https://arxiv.org/abs/1706.02677) that it may be necessary to scale the learning rate accordingly.
+The rule of thumb is that if batch size is increased by a factor of N (Or N nodes used in DDP), the learning rate should be
+also increased by a factor of N. 
+
+However, when it comes to adaptive optimizers like Adam, the situation is a bit different. 
+Adaptive optimizers like Adam automatically adjust the learning rate for each parameter based on the historical 
+gradient information. 
+They inherently adapt to the scale of the gradients and don't require manual adjustments of the learning rate 
+in the same way as fixed learning rate methods like SGD.
+
+That being said, we still recommend to try out different learning rates to see the impact on the final metrics.
+You can run experiments manually or use Hydra sweep syntax to run experiments with custom learning rates as follows:
+
+```bash
+python -m super_gradients.train_from_recipe -m --config-name=coco2017_yolo_nas_s training_hyperparams.initial_lr=1e-3,5e-3,1e-4
+```
+
 ---
 
 ## How to set training mode with recipes ?
