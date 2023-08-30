@@ -160,6 +160,16 @@ def extract_code_breaking_changes(module_path: str, source_code: str, current_co
                 )
             )
 
+    # IMPORTS - Check import ONLY if __init__ file and ignores non-SG imports.
+    current_imports = parse_imports(code=current_code)
+    if module_path.endswith("__init__.py"):
+        source_imports = parse_imports(code=source_code)
+        breaking_changes.imports_removed = [
+            ImportRemoved(import_name=source_import, line_num=0)
+            for source_import in source_imports
+            if (source_import not in current_imports) and ("super_gradients" in source_import)
+        ]
+
     # FUNCTION SIGNATURES
     source_functions_signatures = parse_functions_signatures(source_code)
     current_functions_signatures = parse_functions_signatures(current_code)
@@ -191,21 +201,16 @@ def extract_code_breaking_changes(module_path: str, source_code: str, current_co
                     )
 
         else:
-            # FunctionRemoved
-            breaking_changes.functions_removed.append(
-                FunctionRemoved(
-                    function_name=function_name,
-                    line_num=source_function_signature.line_num,
+            # Count a function as removed only if it was removed AND it was not added in the imports!
+            imported_function_names = current_imports.values()
+            if function_name not in imported_function_names:
+                breaking_changes.functions_removed.append(
+                    FunctionRemoved(
+                        function_name=function_name,
+                        line_num=source_function_signature.line_num,
+                    )
                 )
-            )
 
-    # Check import ONLY if __init__ file.
-    if module_path.endswith("__init__.py"):
-        source_imports = parse_imports(code=source_code)
-        current_imports = parse_imports(code=current_code)
-        breaking_changes.imports_removed = [
-            ImportRemoved(import_name=source_import, line_num=0) for source_import in source_imports if source_import not in current_imports
-        ]
     return breaking_changes
 
 
@@ -220,9 +225,15 @@ def analyze_breaking_changes(verbose: bool = 1) -> List[Dict[str, Union[str, Lis
     root_dir = str(Path(__file__).resolve().parents[2])
     git_explorer = GitHelper(git_path=root_dir)
 
+    changed_sg_modules = [
+        module_path
+        for module_path in git_explorer.diff_files(source_branch="master", current_branch="HEAD")
+        if module_path.startswith("src/super_gradients/") and not module_path.startswith("src/super_gradients/examples/")
+    ]
+
     summary = ""
     breaking_changes_list = []
-    for module_path in git_explorer.diff_files(source_branch="master", current_branch="HEAD"):
+    for module_path in changed_sg_modules:
 
         master_code = git_explorer.load_branch_file(branch="master", file_path=module_path)
         head_code = git_explorer.load_branch_file(branch="HEAD", file_path=module_path)

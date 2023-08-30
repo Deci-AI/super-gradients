@@ -48,14 +48,3 @@ def make_function_deprecated(version: str, new_function_name: Optional[str] = No
         return wrapper
 
     return decorator
-
-
-def make_deprecated(func, reason):
-    def inner(*args, **kwargs):
-        with warnings.catch_warnings():
-            warnings.simplefilter("once", DeprecationWarning)
-            warnings.warn(reason, category=DeprecationWarning, stacklevel=2)
-        warnings.warn(reason, DeprecationWarning)
-        return func(*args, **kwargs)
-
-    return inner
