@@ -4,6 +4,8 @@ import numpy as np
 import torch
 from torch import nn, Tensor
 
+from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimationPredictions
+
 
 def get_locations(output_h: int, output_w: int, device):
     """
@@ -292,7 +294,7 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
         self.min_confidence = min_confidence
 
     @torch.no_grad()
-    def forward(self, predictions: Union[Tensor, Tuple[Tensor, Tensor]]) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+    def forward(self, predictions: Union[Tensor, Tuple[Tensor, Tensor]]) -> List[PoseEstimationPredictions]:
         """
 
         :param predictions: Tuple (heatmap, offset):
@@ -301,16 +303,20 @@ class DEKRPoseEstimationDecodeCallback(nn.Module):
 
         :return: Tuple
         """
-        all_poses = []
-        all_scores = []
+        decoded_predictions: List[PoseEstimationPredictions] = []
 
         heatmap, offset = predictions
         batch_size = len(heatmap)
         for i in range(batch_size):
             poses, scores = self.decode_one_sized_batch(predictions=(heatmap[i : i + 1], offset[i : i + 1]))
-            all_poses.append(poses)
-            all_scores.append(scores)
-        return all_poses, all_scores
+            decoded_predictions.append(
+                PoseEstimationPredictions(
+                    poses=poses[: self.max_num_people],
+                    scores=scores[: self.max_num_people],
+                    bboxes=None,
+                )
+            )
+        return decoded_predictions
 
     def decode_one_sized_batch(self, predictions: Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
         heatmap, offset = predictions

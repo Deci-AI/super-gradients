@@ -360,8 +360,8 @@ class PoseEstimationPipeline(Pipeline):
         for r, image in zip(result, model_input):
             predictions.append(
                 PoseEstimationPrediction(
-                    poses=r.poses.cpu().numpy(),
-                    scores=r.scores.cpu().numpy(),
+                    poses=r.poses.cpu().numpy() if torch.is_tensor(r.poses) else r.poses,
+                    scores=r.scores.cpu().numpy() if torch.is_tensor(r.scores) else r.scores,
                     image_shape=image.shape,
                     edge_links=self.edge_links,
                     edge_colors=self.edge_colors,
