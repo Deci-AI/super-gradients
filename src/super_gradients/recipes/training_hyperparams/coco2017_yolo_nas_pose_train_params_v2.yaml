@@ -31,7 +31,7 @@ criterion_params:
     dfl_loss_weight: 1.5
     pose_cls_loss_weight: 1.0
     pose_reg_loss_weight: 17.0
-    use_cocoeval_formula: False
+    use_cocoeval_formula: True
     pose_classification_loss_type: bce
 
 optimizer: AdamW
@@ -50,13 +50,13 @@ valid_metrics_list:
   - PoseEstimationMetrics:
       num_joints: ${dataset_params.num_joints}
       oks_sigmas: ${dataset_params.oks_sigmas}
-      max_objects_per_image: 100
+      max_objects_per_image: 300
       post_prediction_callback:
         _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
-        pose_confidence_threshold: 0.05
+        pose_confidence_threshold: 0.001
         nms_iou_threshold: 0.7
         pre_nms_max_predictions: 300
-        post_nms_max_predictions: 100
+        post_nms_max_predictions: 300
 
 
 phase_callbacks:
@@ -72,10 +72,10 @@ phase_callbacks:
       enable_on_valid_loader: True
       post_prediction_callback:
         _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
-        pose_confidence_threshold: 0.05
+        pose_confidence_threshold: 0.25
         nms_iou_threshold: 0.7
         pre_nms_max_predictions: 300
-        post_nms_max_predictions: 100
+        post_nms_max_predictions: 30
 
 pre_prediction_callback:
 

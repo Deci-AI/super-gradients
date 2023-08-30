@@ -12,6 +12,7 @@ from super_gradients.common.factories.target_generator_factory import TargetGene
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
 from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
 from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
 
@@ -109,6 +110,15 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
 
         if orig_image.shape[0] != image_info["height"] or orig_image.shape[1] != image_info["width"]:
             raise RuntimeError(f"Annotated image size ({image_info['height'],image_info['width']}) does not match image size in file {orig_image.shape[:2]}")
+
+        # clip bboxes (xywh) to image boundaries
+        xyxy_bboxes = xywh_to_xyxy(gt_bboxes, image_shape=None)
+        image_height, image_width = orig_image.shape[:2]
+        xyxy_bboxes[:, 0] = np.clip(xyxy_bboxes[:, 0], 0, image_width)
+        xyxy_bboxes[:, 1] = np.clip(xyxy_bboxes[:, 1], 0, image_height)
+        xyxy_bboxes[:, 2] = np.clip(xyxy_bboxes[:, 2], 0, image_width)
+        xyxy_bboxes[:, 3] = np.clip(xyxy_bboxes[:, 3], 0, image_height)
+        gt_bboxes = xyxy_to_xywh(xyxy_bboxes, image_shape=None)
 
         joints: np.ndarray = self.get_joints(anno)
         mask: np.ndarray = self.get_mask(anno, image_info)
