@@ -163,6 +163,9 @@ def broadcast_from_master(data: Any) -> Any:
     :param data:    Data to be broadcasted from master node (rank 0)
     :return:        Data from rank 0 node
     """
+    world_size = get_world_size()
+    if world_size == 1:
+        return data
     broadcast_list = [data] if dist.get_rank() == 0 else [None]
     dist.broadcast_object_list(broadcast_list, src=0)
     return broadcast_list[0]
