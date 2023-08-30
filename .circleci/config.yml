@@ -936,6 +936,12 @@ workflows:
           requires:
             - deci-common/persist_version_info
 
+      - recipe_accuracy_tests:
+          name: "recipe-accuracy-tests"
+          py_version: << pipeline.parameters.build_py_version >>
+          requires:
+            - deci-common/persist_version_info
+
       - breaking_change_check:
           name: "breaking-change-check"
           py_version: << pipeline.parameters.build_py_version >>
