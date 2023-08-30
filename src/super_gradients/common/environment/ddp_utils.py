@@ -1,6 +1,10 @@
-import os
 import socket
 from functools import wraps
+import os
+from typing import Any, List, Callable
+
+import torch
+import torch.distributed as dist
 
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
@@ -77,3 +81,91 @@ def find_free_port() -> int:
         sock.bind(("", 0))
         _ip, port = sock.getsockname()
     return port
+
+
+def get_local_rank():
+    """
+    Returns the local rank if running in DDP, and 0 otherwise
+    :return: local rank
+    """
+    return dist.get_rank() if dist.is_initialized() else 0
+
+
+def require_ddp_setup() -> bool:
+    from super_gradients.common import MultiGPUMode
+
+    return device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and device_config.assigned_rank != get_local_rank()
+
+
+def is_ddp_subprocess():
+    return torch.distributed.get_rank() > 0 if dist.is_initialized() else False
+
+
+def get_world_size() -> int:
+    """
+    Returns the world size if running in DDP, and 1 otherwise
+    :return: world size
+    """
+    if not dist.is_available():
+        return 1
+    if not dist.is_initialized():
+        return 1
+    return dist.get_world_size()
+
+
+def get_device_ids() -> List[int]:
+    return list(range(get_world_size()))
+
+
+def count_used_devices() -> int:
+    return len(get_device_ids())
+
+
+def execute_and_distribute_from_master(func: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Decorator to execute a function on the master process and distribute the result to all other processes.
+    Useful in parallel computing scenarios where a computational task needs to be performed only on the master
+    node (e.g., a computational-heavy calculation), and the result must be shared with other nodes without
+    redundant computation.
+
+    Example usage:
+        >>> @execute_and_distribute_from_master
+        >>> def some_code_to_run(param1, param2):
+        >>>     return param1 + param2
+
+    The wrapped function will only be executed on the master node, and the result will be propagated to all
+    other nodes.
+
+    :param func:    The function to be executed on the master process and whose result is to be distributed.
+    :return:        A wrapper function that encapsulates the execute-and-distribute logic.
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Run the function only if it's the master process
+        if device_config.assigned_rank <= 0:
+            result = func(*args, **kwargs)
+        else:
+            result = None
+
+        # Broadcast the result from the master process to all nodes
+        return broadcast_from_master(result)
+
+    return wrapper
+
+
+def broadcast_from_master(data: Any) -> Any:
+    """
+    Broadcast data from master node to all other nodes. This may be required when you
+    want to compute something only on master node (e.g computational-heavy metric) and
+    don't want to waste CPU of other nodes doing the same work simultaneously.
+
+    :param data:    Data to be broadcasted from master node (rank 0)
+    :return:        Data from rank 0 node
+    """
+    world_size = get_world_size()
+    if world_size == 1:
+        return data
+    broadcast_list = [data] if dist.get_rank() == 0 else [None]
+    dist.broadcast_object_list(broadcast_list, src=0)
+    return broadcast_list[0]
