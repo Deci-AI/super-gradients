@@ -1,6 +1,5 @@
 import os
 import pathlib
-from pathlib import Path
 
 import hydra
 import numpy as np
@@ -228,8 +227,12 @@ def prepare_conversion_cfgs(cfg: DictConfig):
     # CREATE THE EXPERIMENT CFG
 
     # Load the latest experiment config
-    # TODO: check if we can load the cfg from run
-    experiment_cfg = load_experiment_cfg(ckpt_root_dir=cfg.ckpt_root_dir, experiment_name=cfg.experiment_name)
+    from super_gradients.training.utils.utils import get_param
+
+    run_id = get_param(cfg, "run_id")
+    if run_id is None:
+        run_id = get_latest_run_id(experiment_name=cfg.experiment_name, checkpoints_root_dir=cfg.ckpt_root_dir)
+    experiment_cfg = load_experiment_cfg(ckpt_root_dir=cfg.ckpt_root_dir, experiment_name=cfg.experiment_name, run_id=run_id)
 
     hydra.utils.instantiate(experiment_cfg)
     if cfg.checkpoint_path is None:
@@ -237,13 +240,9 @@ def prepare_conversion_cfgs(cfg: DictConfig):
             "checkpoint_params.checkpoint_path was not provided, so the model will be converted using weights from "
             "checkpoints_dir/training_hyperparams.ckpt_name "
         )
-        if cfg.run_id is None:
-            checkpoints_dir = Path(get_latest_run_id(experiment_name=cfg.experiment_name, checkpoints_root_dir=cfg.ckpt_root_dir))
-        else:
-            checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-            checkpoints_dir = os.path.join(checkpoints_dir, cfg.run_id)
-
+        checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir, run_id=run_id)
         cfg.checkpoint_path = os.path.join(checkpoints_dir, cfg.ckpt_name)
+
     cfg.out_path = cfg.out_path or cfg.checkpoint_path.replace(".pth", ".onnx")
     logger.info(f"Exporting checkpoint: {cfg.checkpoint_path} to ONNX.")
     return cfg, experiment_cfg

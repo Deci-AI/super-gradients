@@ -20,7 +20,9 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
         self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cifar10_resnet_accuracy_test", metric_value=0.9167, delta=0.05))
 
     def test_convert_shortened_cifar10_resnet(self):
-        ckpt_dir = get_checkpoints_dir_path(experiment_name="shortened_cifar10_resnet_accuracy_test")
+        experiment_name = "shortened_cifar10_resnet_accuracy_test"
+        run_id = get_latest_run_id(experiment_name=experiment_name)
+        ckpt_dir = get_checkpoints_dir_path(experiment_name=experiment_name, run_id=run_id)
         self.assertTrue(os.path.exists(os.path.join(ckpt_dir, "ckpt_best.onnx")))
 
     def test_shortened_coco2017_yolox_n_map(self):
