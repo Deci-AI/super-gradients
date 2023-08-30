@@ -14,6 +14,7 @@ from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
+from super_gradients.common.deprecate import deprecated
 from super_gradients.common.environment.ddp_utils import init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment.argparse_utils import EXTRA_ARGS
@@ -26,6 +27,14 @@ from super_gradients.common.environment.device_utils import device_config
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.type_factory import TypeFactory
+
+from super_gradients.common.environment.ddp_utils import get_local_rank as _get_local_rank
+from super_gradients.common.environment.ddp_utils import is_ddp_subprocess as _is_ddp_subprocess
+from super_gradients.common.environment.ddp_utils import get_world_size as _get_world_size
+from super_gradients.common.environment.ddp_utils import get_device_ids as _get_device_ids
+from super_gradients.common.environment.ddp_utils import count_used_devices as _count_used_devices
+from super_gradients.common.environment.ddp_utils import require_ddp_setup as _require_ddp_setup
+
 
 logger = get_logger(__name__)
 
@@ -145,40 +154,42 @@ def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoad
         bn.momentum = momentums[i]
 
 
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_get_local_rank)
 def get_local_rank():
     """
     Returns the local rank if running in DDP, and 0 otherwise
     :return: local rank
     """
-    return dist.get_rank() if dist.is_initialized() else 0
+    return _get_local_rank()
 
 
-def require_ddp_setup() -> bool:
-    return device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and device_config.assigned_rank != get_local_rank()
-
-
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_is_ddp_subprocess)
 def is_ddp_subprocess():
-    return torch.distributed.get_rank() > 0 if dist.is_initialized() else False
+    return _is_ddp_subprocess()
 
 
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_get_world_size)
 def get_world_size() -> int:
     """
     Returns the world size if running in DDP, and 1 otherwise
     :return: world size
     """
-    if not dist.is_available():
-        return 1
-    if not dist.is_initialized():
-        return 1
-    return dist.get_world_size()
+    return _get_world_size()
 
 
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_get_device_ids)
 def get_device_ids() -> List[int]:
-    return list(range(get_world_size()))
+    return _get_device_ids()
 
 
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_count_used_devices)
 def count_used_devices() -> int:
-    return len(get_device_ids())
+    return _count_used_devices()
+
+
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_require_ddp_setup)
+def require_ddp_setup() -> bool:
+    return _require_ddp_setup()
 
 
 @contextmanager

@@ -61,14 +61,10 @@ from super_gradients.training.utils.distributed_training_utils import (
     compute_precise_bn_stats,
     setup_device,
     get_gpu_mem_utilization,
-    get_world_size,
-    get_local_rank,
-    require_ddp_setup,
-    get_device_ids,
-    is_ddp_subprocess,
     wait_for_the_master,
     DDPNotSetupException,
 )
+from super_gradients.common.environment.ddp_utils import get_local_rank, require_ddp_setup, is_ddp_subprocess, get_world_size, get_device_ids
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
