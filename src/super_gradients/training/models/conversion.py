@@ -16,6 +16,7 @@ from super_gradients.common.environment.checkpoints_dir_utils import get_checkpo
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training import models
 from super_gradients.training.utils.sg_trainer_utils import parse_args
+from super_gradients.training.utils.utils import get_param
 
 logger = get_logger(__name__)
 
@@ -227,8 +228,6 @@ def prepare_conversion_cfgs(cfg: DictConfig):
     # CREATE THE EXPERIMENT CFG
 
     # Load the latest experiment config
-    from super_gradients.training.utils.utils import get_param
-
     run_id = get_param(cfg, "run_id")
     if run_id is None:
         run_id = get_latest_run_id(experiment_name=cfg.experiment_name, checkpoints_root_dir=cfg.ckpt_root_dir)
