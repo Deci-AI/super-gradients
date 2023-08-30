@@ -6,9 +6,9 @@ max_epochs: 300
 warmup_mode: "linear_epoch_step"
 warmup_initial_lr:  1e-6
 lr_warmup_steps: 1000
-lr_warmup_epochs: 3
+lr_warmup_epochs: 10
 
-initial_lr:  2e-3
+initial_lr:  2e-4
 lr_mode: cosine
 cosine_final_lr_ratio: 0.01
 
