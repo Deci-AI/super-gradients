@@ -33,6 +33,7 @@ from super_gradients.common.environment.ddp_utils import is_ddp_subprocess as _i
 from super_gradients.common.environment.ddp_utils import get_world_size as _get_world_size
 from super_gradients.common.environment.ddp_utils import get_device_ids as _get_device_ids
 from super_gradients.common.environment.ddp_utils import count_used_devices as _count_used_devices
+from super_gradients.common.environment.ddp_utils import require_ddp_setup as _require_ddp_setup
 
 
 logger = get_logger(__name__)
@@ -184,6 +185,11 @@ def get_device_ids() -> List[int]:
 @deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_count_used_devices)
 def count_used_devices() -> int:
     return _count_used_devices()
+
+
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=_require_ddp_setup)
+def require_ddp_setup() -> bool:
+    return _require_ddp_setup()
 
 
 @contextmanager
