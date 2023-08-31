@@ -303,7 +303,7 @@ class KeypointsLongestMaxSize(KeypointTransform):
             height, width = sample.image.shape[:2]
             scale = min(self.max_height / height, self.max_width / width)
             sample.image = self.apply_to_image(sample.image, scale, cv2.INTER_LINEAR)
-            sample.mask = self.apply_to_image(sample.mask, scale, cv2.INTER_LINEAR)
+            sample.mask = self.apply_to_image(sample.mask, scale, cv2.INTER_NEAREST)
 
             if sample.image.shape[0] != self.max_height and sample.image.shape[1] != self.max_width:
                 raise RuntimeError(f"Image shape is not as expected (scale={scale}, input_shape={height, width}, resized_shape={sample.image.shape[:2]})")
