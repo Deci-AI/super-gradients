@@ -61,6 +61,36 @@ class KeypointTransform(object):
     def __init__(self, additional_samples_count: int = 0):
         self.additional_samples_count = additional_samples_count
 
+    @classmethod
+    def apply_post_transform_sanitization(cls, sample: PoseEstimationSample) -> PoseEstimationSample:
+        """
+        Apply post-transform sanitization to joints, keypoints, boxes and areax which includes:
+        - Clamping box coordiates to stay within image boundaries
+        - Updating visibility status of keypoints is they are outside of image boundaries
+        - Updating area if bbox clipping occurs
+        """
+
+        # Clamp bboxes to image boundaries
+        clamped_boxes = xywh_to_xyxy(sample.bboxes, image_shape=None)
+        image_height, image_width = sample.image.shape[:2]
+        clamped_boxes[..., [0, 2]] = np.clip(clamped_boxes[..., [0, 2]], 0, image_width)
+        clamped_boxes[..., [1, 3]] = np.clip(clamped_boxes[..., [1, 3]], 0, image_height)
+        clamped_boxes = xyxy_to_xywh(clamped_boxes, image_shape=None)
+
+        # Update joints visibility status
+        outside_image_mask = (
+            (sample.joints[:, :, 0] < 0) | (sample.joints[:, :, 1] < 0) | (sample.joints[:, :, 0] >= image_width) | (sample.joints[:, :, 1] >= image_height)
+        )
+        sample.joints[outside_image_mask, 2] = 0
+
+        # Recompute sample areas if they are present
+        if sample.areas is not None:
+            area_reduction_factor = clamped_boxes[..., 2:4].prod(axis=-1) / (sample.bboxes[..., 2:4].prod(axis=-1) + 1e-6)
+            sample.areas = sample.areas * area_reduction_factor
+
+        sample.bboxes = clamped_boxes
+        return sample
+
     @abstractmethod
     def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """
@@ -319,7 +349,7 @@ class KeypointsLongestMaxSize(KeypointTransform):
                 # Correct: sample.areas = (sample.areas * scale * scale).astype(np.float32, copy=False)
                 # Temporary revert
                 sample.areas = (sample.areas * scale).astype(np.float32, copy=False)
-
+            sample = self.apply_post_transform_sanitization(sample)
         return sample
 
     @classmethod
@@ -548,6 +578,8 @@ class KeypointsRandomAffineTransform(KeypointTransform):
 
             if sample.areas is not None:
                 sample.areas = self.apply_to_areas(sample.areas, mat_output)
+
+            sample = self.apply_post_transform_sanitization(sample)
 
         return sample
 

@@ -73,6 +73,9 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, Any, Mapping[str, Any]]:
         sample = self.load_sample(index)
+        # Before applying the transforms, let's ensure that the sample is consistent - e.g no bboxes are outside of the image
+        sample = KeypointTransform.apply_post_transform_sanitization(sample)
+
         sample = self.apply_transforms(sample, self.transforms.transforms)
         sample = self.filter_joints(sample)
 
@@ -113,10 +116,6 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
             _, rows, cols = sample.image.shape
         else:
             rows, cols, _ = sample.image.shape
-
-        # Update visibility of joints for those that are outside the image
-        outside_image_mask = (sample.joints[:, :, 0] < 0) | (sample.joints[:, :, 1] < 0) | (sample.joints[:, :, 0] >= cols) | (sample.joints[:, :, 1] >= rows)
-        sample.joints[outside_image_mask, 2] = 0
 
         # Filter instances with all invisible keypoints
         visible_joints_mask = sample.joints[:, :, 2] > 0
