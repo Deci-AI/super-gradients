@@ -85,10 +85,10 @@ export_result
     
         import onnxruntime
         import numpy as np
-        session = onnxruntime.InferenceSession("yolo_nas_s.onnx")
+        session = onnxruntime.InferenceSession("yolo_nas_s.onnx", providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
         inputs = [o.name for o in session.get_inputs()]
         outputs = [o.name for o in session.get_outputs()]
-        example_input_image = np.zeros(1, 3, 640, 640).astype(np.uint8)
+        example_input_image = np.zeros((1, 3, 640, 640)).astype(np.uint8)
         predictions = session.run(outputs, {inputs[0]: example_input_image})
     
     Exported model has predictions in batch format:
@@ -117,7 +117,7 @@ image = load_image("https://deci-pretrained-models.s3.amazonaws.com/sample_image
 image = cv2.resize(image, (export_result.input_image_shape[1], export_result.input_image_shape[0]))
 image_bchw = np.transpose(np.expand_dims(image, 0), (0, 3, 1, 2))
 
-session = onnxruntime.InferenceSession(export_result.output)
+session = onnxruntime.InferenceSession(export_result.output, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 inputs = [o.name for o in session.get_inputs()]
 outputs = [o.name for o in session.get_outputs()]
 result = session.run(outputs, {inputs[0]: image_bchw})
@@ -337,10 +337,10 @@ export_result
     
         import onnxruntime
         import numpy as np
-        session = onnxruntime.InferenceSession("yolo_nas_s.onnx")
+        session = onnxruntime.InferenceSession("yolo_nas_s.onnx", providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
         inputs = [o.name for o in session.get_inputs()]
         outputs = [o.name for o in session.get_outputs()]
-        example_input_image = np.zeros(1, 3, 640, 640).astype(np.uint8)
+        example_input_image = np.zeros((1, 3, 640, 640)).astype(np.uint8)
         predictions = session.run(outputs, {inputs[0]: example_input_image})
     
     Exported model has predictions in flat format:
@@ -359,7 +359,7 @@ Now we exported a model that produces predictions in `flat` format. Let's run th
 
 
 ```python
-session = onnxruntime.InferenceSession(export_result.output)
+session = onnxruntime.InferenceSession(export_result.output, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 inputs = [o.name for o in session.get_inputs()]
 outputs = [o.name for o in session.get_outputs()]
 result = session.run(outputs, {inputs[0]: image_bchw})
@@ -437,7 +437,7 @@ export_result = model.export(
     output_predictions_format = DetectionOutputFormatMode.FLAT_FORMAT
 )
 
-session = onnxruntime.InferenceSession(export_result.output)
+session = onnxruntime.InferenceSession(export_result.output, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 inputs = [o.name for o in session.get_inputs()]
 outputs = [o.name for o in session.get_outputs()]
 result = session.run(outputs, {inputs[0]: image_bchw})
@@ -471,7 +471,7 @@ export_result = model.export(
     quantization_mode=ExportQuantizationMode.INT8 # or ExportQuantizationMode.FP16
 )
 
-session = onnxruntime.InferenceSession(export_result.output)
+session = onnxruntime.InferenceSession(export_result.output, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 inputs = [o.name for o in session.get_inputs()]
 outputs = [o.name for o in session.get_outputs()]
 result = session.run(outputs, {inputs[0]: image_bchw})
@@ -514,7 +514,7 @@ export_result = model.export(
     calibration_loader=dummy_calibration_loader
 )
 
-session = onnxruntime.InferenceSession(export_result.output)
+session = onnxruntime.InferenceSession(export_result.output, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 inputs = [o.name for o in session.get_inputs()]
 outputs = [o.name for o in session.get_outputs()]
 result = session.run(outputs, {inputs[0]: image_bchw})
@@ -522,7 +522,7 @@ result = session.run(outputs, {inputs[0]: image_bchw})
 show_predictions_from_flat_format(image, result)
 ```
 
-     25%|█████████████████████████████████████████████████                                                                                                                                                   | 4/16 [00:11<00:34,  2.87s/it]
+     25%|█████████████████████████████████████████████████                                                                                                                                                   | 4/16 [00:11<00:34,  2.90s/it]
     
 
 
