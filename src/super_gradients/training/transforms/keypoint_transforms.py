@@ -337,7 +337,7 @@ class KeypointsLongestMaxSize(KeypointTransform):
 
     @classmethod
     def apply_to_bboxes(cls, bboxes, scale):
-        return (bboxes * scale).astype(np.float32, copy=False)
+        return np.multiply(bboxes, scale, dtype=np.float32)
 
     def __repr__(self):
         return (
