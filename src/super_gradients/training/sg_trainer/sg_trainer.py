@@ -560,7 +560,7 @@ class Trainer:
         try:
             metric_to_watch_idx = fuzzy_idx_in_list(self.metric_to_watch, metric_titles)
         except IndexError:
-            raise ValueError(f"No exact match found for `metric_to_watch={self.metric_to_watch}`. It should be one of {metric_titles}.")
+            raise ValueError(f"No match found for `metric_to_watch={self.metric_to_watch}`. It should be one of {metric_titles}.")
 
         metric_to_watch = metric_titles[metric_to_watch_idx]
         if metric_to_watch != self.metric_to_watch:
