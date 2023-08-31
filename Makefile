@@ -38,10 +38,10 @@ coco2017_yolo_nas_pose_s:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases training_hyperparams.sync_bn=False training_hyperparams.initial_lr=1e-3
 
 coco2017_yolo_nas_pose_s_mixup:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mixup_weights_and_biases training_hyperparams.sync_bn=False training_hyperparams.initial_lr=1e-3
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mixup_weights_and_biases training_hyperparams.sync_bn=False batch_size=56
 
 coco2017_yolo_nas_pose_s_mosaic:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mosaic_weights_and_biases training_hyperparams.sync_bn=False batch_size=56 checkpoint_params.checkpoint_path=/home/eugene.khvedchenia/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_1.0_17.0_1.5_1.0_0.5_bce/RUN_20230830_183403_575207/ckpt_best.pth
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mosaic_weights_and_biases                        training_hyperparams.sync_bn=False batch_size=56
 
 coco2017_yolo_nas_pose_s_mosaic_no_offset_compensation_weights_and_biases:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mosaic_no_offset_compensation_weights_and_biases training_hyperparams.sync_bn=False batch_size=56
