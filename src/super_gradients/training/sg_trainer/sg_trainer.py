@@ -557,11 +557,15 @@ class Trainer:
 
         # make sure the metric_to_watch is an exact match
         metric_titles = self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
-        metric_to_watch_idx = fuzzy_idx_in_list(self.metric_to_watch, metric_titles)
+        try:
+            metric_to_watch_idx = fuzzy_idx_in_list(self.metric_to_watch, metric_titles)
+        except IndexError:
+            raise ValueError(f"No match found for `metric_to_watch={self.metric_to_watch}`. Available metrics to monitor are: `{metric_titles}`.")
+
         metric_to_watch = metric_titles[metric_to_watch_idx]
         if metric_to_watch != self.metric_to_watch:
             logger.warning(
-                f"No exact match found for `metric_to_watch={self.metric_to_watch}`. It should be one of {metric_titles}. \n"
+                f"No exact match found for `metric_to_watch={self.metric_to_watch}`. Available metrics to monitor are: `{metric_titles}`. \n"
                 f"`metric_to_watch={metric_to_watch} will be used instead.`"
             )
             self.metric_to_watch = metric_to_watch
