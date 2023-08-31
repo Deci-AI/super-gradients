@@ -73,8 +73,12 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, Any, Mapping[str, Any]]:
         sample = self.load_sample(index)
+        # Before applying the transforms, let's ensure that the sample is consistent - e.g no bboxes are outside of the image
+        sample = KeypointTransform.apply_post_transform_sanitization(sample)
+
         sample = self.apply_transforms(sample, self.transforms.transforms)
-        sample = self.filter_joints(sample)
+
+        sample = KeypointTransform.filter_invisible_poses(sample, min_instance_area=self.min_instance_area)
 
         targets = self.target_generator(sample)
         return sample.image, targets, {"gt_joints": sample.joints, "gt_bboxes": sample.bboxes, "gt_areas": sample.areas, "gt_is_crowd": sample.is_crowd}
@@ -90,54 +94,6 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
                 additional_samples = [self.apply_transforms(sample, applied_transforms_so_far) for sample in additional_samples]
                 sample.additional_samples = additional_samples
                 sample = t(sample)
-        return sample
-
-    def compute_area(self, joints: np.ndarray) -> np.ndarray:
-        """
-        Compute area of a bounding box for each instance.
-        :param joints:  [Num Instances, Num Joints, 3]
-        :return: [Num Instances]
-        """
-        w = np.max(joints[:, :, 0], axis=-1) - np.min(joints[:, :, 0], axis=-1)
-        h = np.max(joints[:, :, 1], axis=-1) - np.min(joints[:, :, 1], axis=-1)
-        return w * h
-
-    def filter_joints(self, sample: PoseEstimationSample) -> PoseEstimationSample:
-        """
-        Filter instances that are either too small or do not have visible keypoints
-        :param joints: Array of shape [Num Instances, Num Joints, 3]
-        :param image:
-        :return: [New Num Instances, Num Joints, 3], New Num Instances <= Num Instances
-        """
-        if torch.is_tensor(sample.image):
-            _, rows, cols = sample.image.shape
-        else:
-            rows, cols, _ = sample.image.shape
-
-        # Update visibility of joints for those that are outside the image
-        outside_image_mask = (sample.joints[:, :, 0] < 0) | (sample.joints[:, :, 1] < 0) | (sample.joints[:, :, 0] >= cols) | (sample.joints[:, :, 1] >= rows)
-        sample.joints[outside_image_mask, 2] = 0
-
-        # Filter instances with all invisible keypoints
-        visible_joints_mask = sample.joints[:, :, 2] > 0
-        keep_mask = np.sum(visible_joints_mask, axis=-1) > 0
-
-        # Filter instances with too small area
-        if self.min_instance_area > 0:
-            if sample.areas is None:
-                areas = self.compute_area(sample.joints)
-            else:
-                areas = sample.areas
-
-            keep_area_mask = areas > self.min_instance_area
-            keep_mask &= keep_area_mask
-
-        sample.joints = sample.joints[keep_mask]
-        sample.is_crowd = sample.is_crowd[keep_mask]
-        if sample.bboxes is not None:
-            sample.bboxes = sample.bboxes[keep_mask]
-        if sample.areas is not None:
-            sample.areas = sample.areas[keep_mask]
         return sample
 
     def get_dataset_preprocessing_params(self):

@@ -61,6 +61,76 @@ class KeypointTransform(object):
     def __init__(self, additional_samples_count: int = 0):
         self.additional_samples_count = additional_samples_count
 
+    @classmethod
+    def compute_area_of_joints_bounding_box(self, joints: np.ndarray) -> np.ndarray:
+        """
+        Compute area of a bounding box for each instance.
+        :param joints:  [Num Instances, Num Joints, 3]
+        :return: [Num Instances]
+        """
+        w = np.max(joints[:, :, 0], axis=-1) - np.min(joints[:, :, 0], axis=-1)
+        h = np.max(joints[:, :, 1], axis=-1) - np.min(joints[:, :, 1], axis=-1)
+        return w * h
+
+    @classmethod
+    def filter_invisible_poses(cls, sample: PoseEstimationSample, min_instance_area=1) -> PoseEstimationSample:
+        # Filter instances with all invisible keypoints
+        visible_joints_mask = sample.joints[:, :, 2] > 0
+        keep_mask = np.sum(visible_joints_mask, axis=-1) > 0
+
+        # Filter instances with too small area
+        if min_instance_area > 0:
+            if sample.areas is None:
+                areas = cls.compute_area_of_joints_bounding_box(sample.joints)
+            else:
+                areas = sample.areas
+
+            keep_area_mask = areas > min_instance_area
+            keep_mask &= keep_area_mask
+
+        sample.joints = sample.joints[keep_mask]
+        sample.is_crowd = sample.is_crowd[keep_mask]
+        if sample.bboxes is not None:
+            sample.bboxes = sample.bboxes[keep_mask]
+        if sample.areas is not None:
+            sample.areas = sample.areas[keep_mask]
+        return sample
+
+    @classmethod
+    def apply_post_transform_sanitization(cls, sample: PoseEstimationSample) -> PoseEstimationSample:
+        """
+        Apply post-transform sanitization to joints, keypoints, boxes and areax which includes:
+        - Clamping box coordiates to stay within image boundaries
+        - Updating visibility status of keypoints is they are outside of image boundaries
+        - Updating area if bbox clipping occurs
+        """
+
+        if torch.is_tensor(sample.image):
+            _, image_height, image_width = sample.image.shape
+        else:
+            image_height, image_width, _ = sample.image.shape
+
+        # Clamp bboxes to image boundaries
+        clamped_boxes = xywh_to_xyxy(sample.bboxes, image_shape=None)
+        clamped_boxes[..., [0, 2]] = np.clip(clamped_boxes[..., [0, 2]], 0, image_width)
+        clamped_boxes[..., [1, 3]] = np.clip(clamped_boxes[..., [1, 3]], 0, image_height)
+        clamped_boxes = xyxy_to_xywh(clamped_boxes, image_shape=None)
+
+        # Update joints visibility status
+        outside_image_mask = (
+            (sample.joints[:, :, 0] < 0) | (sample.joints[:, :, 1] < 0) | (sample.joints[:, :, 0] >= image_width) | (sample.joints[:, :, 1] >= image_height)
+        )
+        sample.joints[outside_image_mask, 2] = 0
+
+        # Recompute sample areas if they are present
+        if sample.areas is not None:
+            area_reduction_factor = clamped_boxes[..., 2:4].prod(axis=-1) / (sample.bboxes[..., 2:4].prod(axis=-1) + 1e-6)
+            sample.areas = sample.areas * area_reduction_factor
+
+        sample.bboxes = clamped_boxes
+
+        return cls.filter_invisible_poses(sample)
+
     @abstractmethod
     def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """
@@ -316,8 +386,8 @@ class KeypointsLongestMaxSize(KeypointTransform):
                 sample.bboxes = self.apply_to_bboxes(sample.bboxes, scale)
 
             if sample.areas is not None:
-                sample.areas = (sample.areas * scale * scale).astype(np.float32, copy=False)
-
+                sample.areas = np.multiply(sample.areas, scale**2, dtype=np.float32)
+            sample = self.apply_post_transform_sanitization(sample)
         return sample
 
     @classmethod
@@ -546,6 +616,8 @@ class KeypointsRandomAffineTransform(KeypointTransform):
 
             if sample.areas is not None:
                 sample.areas = self.apply_to_areas(sample.areas, mat_output)
+
+            sample = self.apply_post_transform_sanitization(sample)
 
         return sample
 
