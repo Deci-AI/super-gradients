@@ -473,7 +473,7 @@ class YoloNASPoseLoss(nn.Module):
 
             # assigned_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).reshape([-1, 1])
 
-            area = self._xyxy_box_area(assigned_bboxes_pos).reshape([-1, 1])
+            area = self._xyxy_box_area(assigned_bboxes_pos).reshape([-1, 1]) * 0.53
             loss_pose_reg, loss_pose_cls = self._keypoint_loss(
                 predicted_coords=pred_pose_coords,
                 target_coords=gt_pose_coords,
