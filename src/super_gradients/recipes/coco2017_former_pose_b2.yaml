@@ -1,7 +1,7 @@
 
 defaults:
-  - training_hyperparams: coco2017_yolo_nas_pose_train_params
-  - dataset_params: coco_pose_estimation_yolo_nas_dataset_params
+  - training_hyperparams: coco2017_yolo_nas_pose_train_params_v2
+  - dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
   - arch_params: pose_former_b2_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
