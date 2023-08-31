@@ -1,3 +1,5 @@
+__version__ = "3.2.0"
+
 from super_gradients.common import init_trainer, is_distributed, object_names
 from super_gradients.training import losses, utils, datasets_utils, DataAugmentation, Trainer, KDTrainer, QATTrainer
 from super_gradients.common.registry.registry import ARCHITECTURES
@@ -23,6 +25,4 @@ __all__ = [
     "AutoTrainBatchSizeSelectionCallback",
 ]
 
-__version__ = "3.2.0"
-
-# env_sanity_check()
+env_sanity_check()

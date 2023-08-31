@@ -16,12 +16,19 @@ from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMo
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
-from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules
-
+from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules, infer_model_dtype
 
 logger = get_logger(__name__)
 
-__all__ = ["ExportableObjectDetectionModel", "AbstractObjectDetectionDecodingModule", "ModelExportResult"]
+__all__ = ["ExportableObjectDetectionModel", "AbstractObjectDetectionDecodingModule", "ModelExportResult", "ModelHasNoPreprocessingParamsException"]
+
+
+class ModelHasNoPreprocessingParamsException(Exception):
+    """
+    Exception that is raised when model does not have preprocessing parameters.
+    """
+
+    pass
 
 
 class AbstractObjectDetectionDecodingModule(nn.Module):
@@ -47,6 +54,19 @@ class AbstractObjectDetectionDecodingModule(nn.Module):
         Where N is the maximum number of predictions per image (see self.get_num_pre_nms_predictions()),
         and C is the number of classes.
 
+        """
+        raise NotImplementedError(f"forward() method is not implemented for class {self.__class__.__name__}. ")
+
+    @torch.jit.ignore
+    def infer_total_number_of_predictions(self, predictions: Any) -> int:
+        """
+        This method is used to infer the total number of predictions for a given input resolution.
+        The function takes raw predictions from the model and returns the total number of predictions.
+        It is needed to check whether max_predictions_per_image and num_pre_nms_predictions are not greater than
+        the total number of predictions for a given resolution.
+
+        :param predictions: Predictions from the model itself.
+        :return: A total number of predictions for a given resolution
         """
         raise NotImplementedError(f"forward() method is not implemented for class {self.__class__.__name__}. ")
 
@@ -122,7 +142,7 @@ class ExportableObjectDetectionModel:
         confidence_threshold: Optional[float] = None,
         nms_threshold: Optional[float] = None,
         engine: Optional[ExportTargetBackend] = None,
-        quantization_mode: ExportQuantizationMode = Optional[None],
+        quantization_mode: Optional[ExportQuantizationMode] = None,
         selective_quantizer: Optional["SelectiveQuantizer"] = None,  # noqa
         calibration_loader: Optional[DataLoader] = None,
         calibration_method: str = "percentile",
@@ -295,7 +315,18 @@ class ExportableObjectDetectionModel:
         if isinstance(preprocessing, nn.Module):
             preprocessing_module = preprocessing
         elif preprocessing is True:
-            preprocessing_module = model.get_preprocessing_callback()
+            try:
+                preprocessing_module = model.get_preprocessing_callback()
+            except ModelHasNoPreprocessingParamsException:
+                raise ValueError(
+                    "It looks like your model does not have dataset preprocessing params properly set.\n"
+                    "This may happen if you instantiated model from scratch and not trained it yet. \n"
+                    "Here are what you can do to fix this:\n"
+                    "1. Manually fill up dataset processing params via model.set_dataset_processing_params(...).\n"
+                    "2. Train your model first and then export it. Trainer will set_dataset_processing_params(...) for you.\n"
+                    '3. Instantiate a model using pretrained weights: models.get(..., pretrained_weights="coco") \n'
+                    "4. Disable preprocessing by passing model.export(..., preprocessing=False). \n"
+                )
             if isinstance(preprocessing_module, nn.Sequential):
                 preprocessing_module = nn.Sequential(CastTensorTo(model_type), *iter(preprocessing_module))
             else:
@@ -325,6 +356,27 @@ class ExportableObjectDetectionModel:
             num_pre_nms_predictions = postprocessing_module.num_pre_nms_predictions
             max_predictions_per_image = max_predictions_per_image or num_pre_nms_predictions
 
+            dummy_input = torch.randn(input_shape).to(device=infer_model_device(model), dtype=infer_model_dtype(model))
+            with torch.no_grad():
+                number_of_predictions = postprocessing_module.infer_total_number_of_predictions(model.eval()(dummy_input))
+
+            if num_pre_nms_predictions > number_of_predictions:
+                logger.warning(
+                    f"num_pre_nms_predictions ({num_pre_nms_predictions}) is greater than the total number of predictions ({number_of_predictions}) for input"
+                    f"shape {input_shape}. Setting num_pre_nms_predictions to {number_of_predictions}"
+                )
+                num_pre_nms_predictions = number_of_predictions
+                # We have to re-created the postprocessing_module with the new value of num_pre_nms_predictions
+                postprocessing_kwargs["num_pre_nms_predictions"] = num_pre_nms_predictions
+                postprocessing_module: AbstractObjectDetectionDecodingModule = model.get_decoding_module(**postprocessing_kwargs)
+
+            if max_predictions_per_image > num_pre_nms_predictions:
+                logger.warning(
+                    f"max_predictions_per_image ({max_predictions_per_image}) is greater than num_pre_nms_predictions ({num_pre_nms_predictions}). "
+                    f"Setting max_predictions_per_image to {num_pre_nms_predictions}"
+                )
+                max_predictions_per_image = num_pre_nms_predictions
+
             nms_threshold = nms_threshold or getattr(model, "_default_nms_iou", None)
             if nms_threshold is None:
                 raise ValueError(
@@ -339,12 +391,6 @@ class ExportableObjectDetectionModel:
                     "Please specify the confidence_threshold explicitly: model.export(..., confidence_threshold=0.5)"
                 )
 
-            if max_predictions_per_image > num_pre_nms_predictions:
-                raise ValueError(
-                    f"max_predictions_per_image={max_predictions_per_image} is greater than "
-                    f"num_pre_nms_predictions={num_pre_nms_predictions}. "
-                    f"Please specify max_predictions_per_image <= {num_pre_nms_predictions}."
-                )
         else:
             attach_nms_postprocessing = False
             postprocessing_module = None
@@ -523,19 +569,15 @@ class ExportableObjectDetectionModel:
             usage_instructions.append("")
             usage_instructions.append("    import onnxruntime")
             usage_instructions.append("    import numpy as np")
-            usage_instructions.append(f'    session = onnxruntime.InferenceSession("{output}")')
+            usage_instructions.append(f'    session = onnxruntime.InferenceSession("{output}", providers=["CUDAExecutionProvider", "CPUExecutionProvider"])')
             usage_instructions.append("    inputs = [o.name for o in session.get_inputs()]")
             usage_instructions.append("    outputs = [o.name for o in session.get_outputs()]")
 
             dtype_name = np.dtype(torch_dtype_to_numpy_dtype(input_image_dtype)).name
-            if preprocessing:
-                usage_instructions.append(
-                    f"    example_input_image = np.zeros({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}).astype(np.{dtype_name})"  # noqa
-                )
-            else:
-                usage_instructions.append(
-                    f"    example_input_image = np.zeros({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}).astype(np.{dtype_name})"  # noqa
-                )
+            usage_instructions.append(
+                f"    example_input_image = np.zeros(({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]})).astype(np.{dtype_name})"  # noqa
+            )
+
             usage_instructions.append("    predictions = session.run(outputs, {inputs[0]: example_input_image})")
             usage_instructions.append("")
 

@@ -188,7 +188,6 @@ class YoloNASPoseLoss(nn.Module):
         dfl_loss_weight: float = 0.5,
         pose_cls_loss_weight: float = 1.0,
         pose_reg_loss_weight: float = 1.0,
-        rescale_keypoint_loss_by_assigned_weight: bool = True,
         use_cocoeval_formula: bool = True,
         pose_classification_loss_type: str = "bce",
     ):
@@ -216,7 +215,6 @@ class YoloNASPoseLoss(nn.Module):
         self.pose_cls_loss_weight = pose_cls_loss_weight
         self.pose_reg_loss_weight = pose_reg_loss_weight
         self.assigner = YoloNASPoseTaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
-        self.rescale_keypoint_loss_by_assigned_weight = rescale_keypoint_loss_by_assigned_weight
         self.use_cocoeval_formula = use_cocoeval_formula
         self.pose_classification_loss_type = pose_classification_loss_type
         # Same as in PPYoloE head

@@ -16,24 +16,15 @@ class KeypointsMixup(KeypointTransform):
     Mix two samples together.
 
     :attr prob:            Probability to apply the transform.
-    :attr hgain:           Hue gain.
-    :attr sgain:           Saturation gain.
-    :attr vgain:           Value gain.
     """
 
-    def __init__(self, prob: float, hgain: float = 0.5, sgain: float = 0.5, vgain: float = 0.5):
+    def __init__(self, prob: float):
         """
 
         :param prob:            Probability to apply the transform.
-        :param hgain:           Hue gain.
-        :param sgain:           Saturation gain.
-        :param vgain:           Value gain.
         """
         super().__init__(additional_samples_count=1)
         self.prob = prob
-        self.hgain = hgain
-        self.sgain = sgain
-        self.vgain = vgain
 
     def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         if random.random() < self.prob:

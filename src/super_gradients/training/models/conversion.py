@@ -1,6 +1,5 @@
 import os
 import pathlib
-from pathlib import Path
 
 import hydra
 import numpy as np
@@ -13,10 +12,11 @@ from torch.nn import Identity
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg
-from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
+from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path, get_latest_run_id
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training import models
 from super_gradients.training.utils.sg_trainer_utils import parse_args
+from super_gradients.training.utils.utils import get_param
 
 logger = get_logger(__name__)
 
@@ -228,8 +228,10 @@ def prepare_conversion_cfgs(cfg: DictConfig):
     # CREATE THE EXPERIMENT CFG
 
     # Load the latest experiment config
-    # TODO: check if we can load the cfg from run
-    experiment_cfg = load_experiment_cfg(ckpt_root_dir=cfg.ckpt_root_dir, experiment_name=cfg.experiment_name)
+    run_id = get_param(cfg, "run_id")
+    if run_id is None:
+        run_id = get_latest_run_id(experiment_name=cfg.experiment_name, checkpoints_root_dir=cfg.ckpt_root_dir)
+    experiment_cfg = load_experiment_cfg(ckpt_root_dir=cfg.ckpt_root_dir, experiment_name=cfg.experiment_name, run_id=run_id)
 
     hydra.utils.instantiate(experiment_cfg)
     if cfg.checkpoint_path is None:
@@ -237,8 +239,9 @@ def prepare_conversion_cfgs(cfg: DictConfig):
             "checkpoint_params.checkpoint_path was not provided, so the model will be converted using weights from "
             "checkpoints_dir/training_hyperparams.ckpt_name "
         )
-        checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-        cfg.checkpoint_path = str(checkpoints_dir / cfg.ckpt_name)
+        checkpoints_dir = get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir, run_id=run_id)
+        cfg.checkpoint_path = os.path.join(checkpoints_dir, cfg.ckpt_name)
+
     cfg.out_path = cfg.out_path or cfg.checkpoint_path.replace(".pth", ".onnx")
     logger.info(f"Exporting checkpoint: {cfg.checkpoint_path} to ONNX.")
     return cfg, experiment_cfg

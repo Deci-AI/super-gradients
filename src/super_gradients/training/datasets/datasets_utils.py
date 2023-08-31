@@ -23,7 +23,7 @@ from super_gradients.common.object_names import Callbacks, Transforms
 from super_gradients.common.registry.registry import register_collate_function, register_callback, register_transform
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from super_gradients.training.utils.detection_utils import DetectionVisualization, Anchors
-from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
+from super_gradients.common.environment.ddp_utils import get_local_rank, get_world_size
 from super_gradients.training.utils.utils import AverageMeter
 
 

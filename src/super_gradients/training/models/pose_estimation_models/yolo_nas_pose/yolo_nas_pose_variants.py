@@ -15,6 +15,8 @@ from super_gradients.training.models.detection_models.customizable_detector impo
 from super_gradients.training.pipelines.pipelines import PoseEstimationPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils import get_param
+from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.training.utils.predict import PoseEstimationPrediction
 from super_gradients.training.utils.utils import HpmStruct
 
 from .yolo_nas_pose_post_prediction_callback import YoloNASPosePostPredictionCallback
@@ -41,9 +43,46 @@ class YoloNASPose(CustomizableDetector):
         self._image_processor = None
         self._default_nms_conf = None
         self._default_nms_iou = None
+        self._default_pre_nms_max_predictions = None
+        self._default_post_nms_max_predictions = None
+
+    def predict(
+        self,
+        images: ImageSource,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+        pre_nms_max_predictions: Optional[int] = None,
+        post_nms_max_predictions: Optional[int] = None,
+        batch_size: int = 32,
+        fuse_model: bool = True,
+    ) -> PoseEstimationPrediction:
+        """Predict an image or a list of images.
+
+        :param images:      Images to predict.
+        :param iou:         (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:        (Optional) Below the confidence threshold, prediction are discarded.
+                            If None, the default value associated to the training is used.
+        :param batch_size:  Maximum number of images to process at the same time.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        """
+        pipeline = self._get_pipeline(
+            iou=iou,
+            conf=conf,
+            pre_nms_max_predictions=pre_nms_max_predictions,
+            post_nms_max_predictions=post_nms_max_predictions,
+            fuse_model=fuse_model,
+        )
+        return pipeline(images, batch_size=batch_size)  # type: ignore
 
     @lru_cache(maxsize=1)
-    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> PoseEstimationPipeline:
+    def _get_pipeline(
+        self,
+        iou: Optional[float] = None,
+        conf: Optional[float] = None,
+        pre_nms_max_predictions: Optional[int] = None,
+        post_nms_max_predictions: Optional[int] = None,
+        fuse_model: bool = True,
+    ) -> PoseEstimationPipeline:
         """Instantiate the prediction pipeline of this model.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
@@ -58,10 +97,18 @@ class YoloNASPose(CustomizableDetector):
 
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
+        pre_nms_max_predictions = pre_nms_max_predictions or self._default_pre_nms_max_predictions
+        post_nms_max_predictions = post_nms_max_predictions or self._default_post_nms_max_predictions
+
         pipeline = PoseEstimationPipeline(
             model=self,
             image_processor=self._image_processor,
-            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            post_prediction_callback=self.get_post_prediction_callback(
+                iou=iou,
+                conf=conf,
+                pre_nms_max_predictions=pre_nms_max_predictions,
+                post_nms_max_predictions=post_nms_max_predictions,
+            ),
             fuse_model=fuse_model,
             edge_links=self._edge_links,
             edge_colors=self._edge_colors,
@@ -70,9 +117,14 @@ class YoloNASPose(CustomizableDetector):
         return pipeline
 
     @classmethod
-    def get_post_prediction_callback(cls, conf: float, iou: float) -> YoloNASPosePostPredictionCallback:
+    def get_post_prediction_callback(
+        cls, conf: float, iou: float, pre_nms_max_predictions=1000, post_nms_max_predictions=300
+    ) -> YoloNASPosePostPredictionCallback:
         return YoloNASPosePostPredictionCallback(
-            pose_confidence_threshold=conf, keypoint_confidence_threshold=0.5, nms_iou_threshold=iou, pre_nms_max_predictions=1000, post_nms_max_predictions=300
+            pose_confidence_threshold=conf,
+            nms_iou_threshold=iou,
+            pre_nms_max_predictions=pre_nms_max_predictions,
+            post_nms_max_predictions=post_nms_max_predictions,
         )
 
     def get_preprocessing_callback(self, **kwargs):

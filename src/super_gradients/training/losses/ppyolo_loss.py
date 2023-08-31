@@ -11,9 +11,7 @@ from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import cxcywh_to_xyxy
 from super_gradients.training.losses.functional import bbox_ciou_loss
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
-from super_gradients.training.utils.distributed_training_utils import (
-    get_world_size,
-)
+from super_gradients.common.environment.ddp_utils import get_world_size
 
 
 def batch_iou_similarity(box1: torch.Tensor, box2: torch.Tensor, eps: float = 1e-9) -> float:
