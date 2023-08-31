@@ -29,8 +29,16 @@ checkpoint_params:
     value: key_matching
 
 dataset_params:
+  train_dataset_params:
+    data_dir: /home/bloodaxe/data/coco2017
+
+  val_dataset_params:
+    data_dir: /home/bloodaxe/data/coco2017
+
   train_dataloader_params:
     batch_size: 8
+    persistent_workers: True
 
   val_dataloader_params:
     batch_size: 8
+    persistent_workers: True
