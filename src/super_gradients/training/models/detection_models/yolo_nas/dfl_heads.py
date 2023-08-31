@@ -198,6 +198,7 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
     @torch.jit.ignore
     def forward_train(self, feats: Tuple[Tensor, ...]):
+        feats = feats[: self.num_heads]
         anchors, anchor_points, num_anchors_list, stride_tensor = generate_anchors_for_grid_cell(
             feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset
         )
@@ -215,7 +216,7 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         return cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor
 
     def forward_eval(self, feats: Tuple[Tensor, ...]) -> Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]:
-
+        feats = feats[: self.num_heads]
         cls_score_list, reg_distri_list, reg_dist_reduced_list = [], [], []
 
         for i, feat in enumerate(feats):
@@ -281,8 +282,10 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             else:
                 h = int(self.eval_size[0] / stride)
                 w = int(self.eval_size[1] / stride)
-            shift_x = torch.arange(end=w) + self.grid_cell_offset
-            shift_y = torch.arange(end=h) + self.grid_cell_offset
+
+            shift_x = torch.arange(end=w, dtype=dtype) + self.grid_cell_offset
+            shift_y = torch.arange(end=h, dtype=dtype) + self.grid_cell_offset
+
             if torch_version_is_greater_or_equal(1, 10):
                 shift_y, shift_x = torch.meshgrid(shift_y, shift_x, indexing="ij")
             else:

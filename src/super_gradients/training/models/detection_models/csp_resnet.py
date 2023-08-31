@@ -13,7 +13,8 @@ from super_gradients.modules import RepVGGBlock, EffectiveSEBlock, ConvBNAct
 
 __all__ = ["CSPResNetBackbone", "CSPResNetBasicBlock"]
 
-from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
+from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
+from super_gradients.common.environment.ddp_utils import get_local_rank
 
 
 class CSPResNetBasicBlock(nn.Module):

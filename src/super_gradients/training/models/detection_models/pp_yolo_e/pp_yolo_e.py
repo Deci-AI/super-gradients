@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Union, Optional, List, Tuple
+from typing import Union, Optional, List, Tuple, Any
 
 import torch
 from torch import Tensor
@@ -10,6 +10,7 @@ from super_gradients.common.factories.processing_factory import ProcessingFactor
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import register_model
 from super_gradients.module_interfaces import AbstractObjectDetectionDecodingModule, ExportableObjectDetectionModel, HasPredict
+from super_gradients.module_interfaces.exportable_detector import ModelHasNoPreprocessingParamsException
 from super_gradients.modules import RepVGGBlock
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBackbone
@@ -81,6 +82,20 @@ class PPYoloEDecodingModule(AbstractObjectDetectionDecodingModule):
 
         return output_pred_bboxes, output_pred_scores
 
+    @torch.jit.ignore
+    def infer_total_number_of_predictions(self, predictions: Any) -> int:
+        """
+
+        :param inputs:
+        :return:
+        """
+        if torch.jit.is_tracing():
+            pred_bboxes, pred_scores = predictions
+        else:
+            pred_bboxes, pred_scores = predictions[0]
+
+        return pred_bboxes.size(1)
+
 
 class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
     def __init__(self, arch_params):
@@ -104,6 +119,8 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_preprocessing_callback(self, **kwargs):
         processing = self.get_processing_params()
+        if processing is None:
+            raise ModelHasNoPreprocessingParamsException()
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
 

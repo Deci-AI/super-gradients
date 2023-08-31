@@ -291,7 +291,12 @@ def fuzzy_idx_in_list(name: str, lst: List[str]) -> int:
     :param lst: List[str], the list as described above.
     :return: int, index of name in lst in the matter discussed above.
     """
-    return [fuzzy_str(x) for x in lst].index(fuzzy_str(name))
+    fuzzy_name = fuzzy_str(name)
+    fuzzy_list = [fuzzy_str(x) for x in lst]
+    if fuzzy_name in fuzzy_list:
+        return fuzzy_list.index(fuzzy_name)
+    else:
+        raise IndexError(f"Value `{name}` not found in the list `{lst}`. Please check the spelling.")
 
 
 def get_param(params, name, default_val=None):
