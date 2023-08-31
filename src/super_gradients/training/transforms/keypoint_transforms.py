@@ -316,7 +316,7 @@ class KeypointsLongestMaxSize(KeypointTransform):
                 sample.bboxes = self.apply_to_bboxes(sample.bboxes, scale)
 
             if sample.areas is not None:
-                sample.areas = (sample.areas * scale).astype(np.float32, copy=False)
+                sample.areas = (sample.areas * scale * scale).astype(np.float32, copy=False)
 
         return sample
 
