@@ -13,7 +13,8 @@ from super_gradients.common.data_types import StrictLoad
 from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
 from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.pretrained_models import MODEL_URLS
-from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
+from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
+from super_gradients.common.environment.ddp_utils import get_local_rank
 from super_gradients.training.utils.utils import unwrap_model
 
 try:

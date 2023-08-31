@@ -37,8 +37,8 @@ from super_gradients.training.datasets.segmentation_datasets import (
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import (
     wait_for_the_master,
-    get_local_rank,
 )
+from super_gradients.common.environment.ddp_utils import get_local_rank
 from super_gradients.training.utils.utils import override_default_params_without_nones
 from super_gradients.common.environment.cfg_utils import load_dataset_params
 import torch.distributed as dist
