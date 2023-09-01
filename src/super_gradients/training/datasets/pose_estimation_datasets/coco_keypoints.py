@@ -83,7 +83,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         self.joints = joints
 
         if not include_empty_samples:
-            subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id, iscrowd=None)) > 0]
+            subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id, iscrowd=0)) > 0]
             self.ids = subset
 
     def __len__(self):
