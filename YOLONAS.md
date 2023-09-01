@@ -31,7 +31,7 @@ YOLO-NAS's architecture employs quantization-aware blocks and selective quantiza
 ```python
 import super_gradients
 
-yolo_nas = super_gradients.training.models.get("yolo_nas_l", pretrained_weights="coco")
+yolo_nas = super_gradients.training.models.get("yolo_nas_l", pretrained_weights="coco").cuda()
 model_predictions  = yolo_nas.predict("https://deci-pretrained-models.s3.amazonaws.com/sample_images/beatles-abbeyroad.jpg")
 model_predictions.show()
 prediction = model_predictions._images_prediction_lst[0].prediction        # One prediction per image - Here we work with 1 image so we get the first.
