@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import cv2
+
 from super_gradients.training.datasets.data_augmentation import DataAugmentation
 from super_gradients.training.datasets.sg_dataset import ListDataset, DirectoryDataSet
 from super_gradients.training.datasets.classification_datasets import ImageNetDataset, Cifar10, Cifar100
@@ -42,3 +44,5 @@ __all__ = [
     "SuperviselyPersonsDataset",
     "COCOKeypointsDataset",
 ]
+
+cv2.setNumThreads(0)
