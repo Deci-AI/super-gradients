@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import cv2
 
 from super_gradients.training.datasets.data_augmentation import DataAugmentation
 from super_gradients.training.datasets.sg_dataset import ListDataset, DirectoryDataSet
@@ -20,8 +19,6 @@ from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentat
 from super_gradients.training.datasets.segmentation_datasets.coco_segmentation import CoCoSegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
 from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
-
-cv2.setNumThreads(0)
 
 
 __all__ = [

@@ -1,5 +1,4 @@
 # PACKAGE IMPORTS FOR EXTERNAL USAGE
-import cv2
 from super_gradients.training.transforms.transforms import (
     DetectionTransform,
     DetectionStandardize,
@@ -33,5 +32,3 @@ __all__ = [
     "Standardize",
     "KeypointsHSV",
 ]
-
-cv2.setNumThreads(0)
