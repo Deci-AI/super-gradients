@@ -36,9 +36,9 @@ dataset_params:
     data_dir: /home/bloodaxe/data/coco2017
 
   train_dataloader_params:
-    batch_size: 8
+    batch_size: 6
     persistent_workers: True
 
   val_dataloader_params:
-    batch_size: 8
+    batch_size: 6
     persistent_workers: True
