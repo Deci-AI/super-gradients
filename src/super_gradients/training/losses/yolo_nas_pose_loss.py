@@ -419,6 +419,8 @@ class YoloNASPoseLoss(nn.Module):
 
         if self.pose_classification_loss_type == "bce":
             classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="mean")
+        elif self.pose_classification_loss_type == "focal":
+            classification_loss = self._focal_loss(predicted_logits, visible_targets_mask, alpha=0.25, gamma=2.0, reduction="mean")
         else:
             raise ValueError(f"Unsupported pose classification loss type {self.pose_classification_loss_type}")
         return regression_loss, classification_loss
@@ -505,14 +507,23 @@ class YoloNASPoseLoss(nn.Module):
         return torch.cat([lt, rb], dim=-1).clip(0, self.reg_max - 0.01)
 
     @staticmethod
-    def _focal_loss(pred_logits: Tensor, label: Tensor, alpha=0.25, gamma=2.0) -> Tensor:
+    def _focal_loss(pred_logits: Tensor, label: Tensor, alpha=0.25, gamma=2.0, reduction="sum") -> Tensor:
         pred_score = pred_logits.sigmoid()
         weight = (pred_score - label).pow(gamma)
         if alpha > 0:
             alpha_t = alpha * label + (1 - alpha) * (1 - label)
             weight *= alpha_t
         loss = -weight * (label * torch.nn.functional.logsigmoid(pred_logits) + (1 - label) * torch.nn.functional.logsigmoid(-pred_logits))
-        return loss.sum()
+
+        if reduction == "sum":
+            loss = loss.sum()
+        elif reduction == "mean":
+            loss = loss.mean()
+        elif reduction == "none":
+            pass
+        else:
+            raise ValueError(f"Unsupported reduction type {reduction}")
+        return loss
 
     @staticmethod
     def _varifocal_loss(pred_logits: Tensor, gt_score: Tensor, label: Tensor, alpha=0.75, gamma=2.0) -> Tensor:

@@ -66,6 +66,9 @@ coco2017_yolo_nas_pose_l:
 coco2017_yolo_nas_pose_l_bce:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l_bce_weights_and_biases batch_size=24 training_hyperparams.sync_bn=False
 
+coco2017_yolo_nas_pose_s_mosaic_v2_weights_and_biases:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mosaic_v2_weights_and_biases
+
 # --config-name=animalpose_yolo_nas_pose_s
   #dataset_params.train_dataset_params.data_dir=g:/animalpose
   #dataset_params.val_dataset_params.data_dir=g:/animalpose

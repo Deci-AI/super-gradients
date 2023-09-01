@@ -66,11 +66,13 @@ val_dataset_params:
     YoloNASPoseTargetsGenerator
 
 train_dataloader_params:
+  batch_size: 56
   pin_memory: False
   collate_fn:
     _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
 
 val_dataloader_params:
+  batch_size: 56
   pin_memory: False
   collate_fn:
     _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
