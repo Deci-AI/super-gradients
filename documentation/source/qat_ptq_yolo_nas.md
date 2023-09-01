@@ -20,8 +20,9 @@ Now, let's get to it.
 
 ## Step 0: Installations and Dataset Setup
 
-Follow the official instructions to download Roboflow100: https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog
-//!\\ To use this dataset, you **must** download the "coco" format, **NOT** the yolov5.
+Follow the [official instructions]([url](https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog)) to download Roboflow100: 
+
+To use this dataset, you **must** download the "coco" format, **NOT** the yolov5.
 
 ```
 - Your dataset should look like this:
