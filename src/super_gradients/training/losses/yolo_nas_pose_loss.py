@@ -411,7 +411,8 @@ class YoloNASPoseLoss(nn.Module):
         if self.use_cocoeval_formula:
             e = d / (2 * sigmas) ** 2 / (area + 1e-9) / 2  # from cocoeval
         else:
-            e = d / (2 * (area * sigmas) ** 2 + 1e-9)  # from formula
+            # from formula as I read it
+            e = d / (2 * area * (sigmas**2) + 1e-9)
 
         regression_loss_unreduced = 1 - torch.exp(-e)
         regression_loss = regression_loss_unreduced.mul(visible_targets_mask).sum() / (visible_targets_mask.sum() + 1e-9)
@@ -443,7 +444,7 @@ class YoloNASPoseLoss(nn.Module):
         # select positive samples mask
         mask_positive = assign_result.assigned_labels != self.num_classes
         num_pos = mask_positive.sum()
-        assigned_bboxes = assign_result.assigned_bboxes / stride_tensor
+        assigned_bboxes_divided_by_stride = assign_result.assigned_bboxes / stride_tensor
 
         # pos/neg loss
         if num_pos > 0:
@@ -451,7 +452,9 @@ class YoloNASPoseLoss(nn.Module):
             bbox_mask = mask_positive.unsqueeze(-1).tile([1, 1, 4])
 
             pred_bboxes_pos = torch.masked_select(pred_bboxes, bbox_mask).reshape([-1, 4])
-            assigned_bboxes_pos = torch.masked_select(assigned_bboxes, bbox_mask).reshape([-1, 4])
+            assigned_bboxes_pos = torch.masked_select(assigned_bboxes_divided_by_stride, bbox_mask).reshape([-1, 4])
+            assigned_bboxes_pos_image_coord = torch.masked_select(assign_result.assigned_bboxes, bbox_mask).reshape([-1, 4])
+
             bbox_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).unsqueeze(-1)
 
             loss_iou = self.iou_loss(pred_bboxes_pos, assigned_bboxes_pos) * bbox_weight
@@ -459,21 +462,20 @@ class YoloNASPoseLoss(nn.Module):
 
             dist_mask = mask_positive.unsqueeze(-1).tile([1, 1, (self.reg_max + 1) * 4])
             pred_dist_pos = torch.masked_select(pred_dist, dist_mask).reshape([-1, 4, self.reg_max + 1])
-            assigned_ltrb = self._bbox2distance(anchor_points, assigned_bboxes)
+            assigned_ltrb = self._bbox2distance(anchor_points, assigned_bboxes_divided_by_stride)
             assigned_ltrb_pos = torch.masked_select(assigned_ltrb, bbox_mask).reshape([-1, 4])
             loss_dfl = self._df_loss(pred_dist_pos, assigned_ltrb_pos) * bbox_weight
             loss_dfl = loss_dfl.sum() / assigned_scores_sum
 
-            # Divide poses by stride
-            pred_pose_coords = (pred_pose_logits[..., 0:2] / stride_tensor.unsqueeze(0).unsqueeze(-1))[mask_positive]
+            # Do not divide poses by stride since this would skew the loss and make sigmas incorrect
+            pred_pose_coords = pred_pose_logits[..., 0:2][mask_positive]
             pred_pose_logits = pred_pose_logits[mask_positive][..., 2:3]
 
-            gt_pose_coords = (assign_result.assigned_poses[..., 0:2] / stride_tensor.unsqueeze(0).unsqueeze(-1))[mask_positive]
+            gt_pose_coords = assign_result.assigned_poses[..., 0:2][mask_positive]
             gt_pose_visibility = assign_result.assigned_poses[mask_positive][:, :, 2:3]
 
             # assigned_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).reshape([-1, 1])
-
-            area = self._xyxy_box_area(assigned_bboxes_pos).reshape([-1, 1]) * 0.53
+            area = self._xyxy_box_area(assigned_bboxes_pos_image_coord).reshape([-1, 1]) * 0.53
             loss_pose_reg, loss_pose_cls = self._keypoint_loss(
                 predicted_coords=pred_pose_coords,
                 target_coords=gt_pose_coords,
