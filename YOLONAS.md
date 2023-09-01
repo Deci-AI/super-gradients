@@ -34,14 +34,14 @@ import super_gradients
 yolo_nas = super_gradients.training.models.get("yolo_nas_l", pretrained_weights="coco").cuda()
 model_predictions  = yolo_nas.predict("https://deci-pretrained-models.s3.amazonaws.com/sample_images/beatles-abbeyroad.jpg")
 model_predictions.show()
-first_image = model_predictions._images_prediction_lst[0]
-prediction = first_image.prediction                      # One prediction per image - Here we work with 1 image so we get the first.
+first_image = model_predictions._images_prediction_lst[0] # First iamge
+prediction = first_image.prediction                       # One prediction per image - Here we work with 1 image so we get the first.
 
-bboxes = prediction.bboxes_xyxy                          # [[Xmin,Ymin,Xmax,Ymax],..] list of all annotation(s) for detected object(s) 
-bboxes = prediction.bboxes_xyxy                          # [[Xmin,Ymin,Xmax,Ymax],..] list of all annotation(s) for detected object(s) 
-class_names = first_image.class_names                    # ['Class1', 'Class2', ...] List of the class names
-class_name_indexes = prediction.labels.astype(int)       # [2, 3, 1, 1, 2, ....] Index of each detected object in class_names(corresponding to each bounding box)
-confidences =  prediction.confidence.astype(float)       # [0.3, 0.1, 0.9, ...] Confidence value(s) in float for each bounding boxes
+bboxes = prediction.bboxes_xyxy                           # [[Xmin,Ymin,Xmax,Ymax],..] list of all annotation(s) for detected object(s) 
+bboxes = prediction.bboxes_xyxy                           # [[Xmin,Ymin,Xmax,Ymax],..] list of all annotation(s) for detected object(s) 
+class_names = first_image.class_names                     # ['Class1', 'Class2', ...] List of the class names
+class_name_indexes = prediction.labels.astype(int)        # [2, 3, 1, 1, 2, ....] Index of each detected object in class_names(corresponding to each bounding box)
+confidences =  prediction.confidence.astype(float)        # [0.3, 0.1, 0.9, ...] Confidence value(s) in float for each bounding boxes
 ```
 
 ![YOLO-NAS Predict Demo](documentation/source/images/yolo_nas_predict_demo.png)
