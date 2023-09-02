@@ -114,6 +114,7 @@ def remove_duplicate_annotations(coco: COCO) -> COCO:
             ann_to_remove.append(ann_ids[j])
 
     if len(ann_to_remove) > 0:
+        ann_to_remove = set(ann_to_remove)
         logger.debug(f"Removing {len(ann_to_remove)} duplicate annotations")
         len_before = len(coco.dataset["annotations"])
         coco.dataset["annotations"] = [v for v in coco.dataset["annotations"] if v["id"] not in ann_to_remove]
