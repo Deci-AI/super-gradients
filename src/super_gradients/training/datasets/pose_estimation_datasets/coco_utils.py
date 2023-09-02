@@ -1,5 +1,6 @@
 import numpy as np
 from pycocotools.coco import COCO
+from tqdm import tqdm
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -87,7 +88,7 @@ def remove_duplicate_annotations(coco: COCO) -> COCO:
     ann_to_remove = []
 
     image_ids = list(coco.imgs.keys())
-    for image_id in image_ids:
+    for image_id in tqdm(image_ids, desc="Removing duplicate annotations"):
         ann_ids = coco.getAnnIds(imgIds=image_id)
         annotations = coco.loadAnns(ann_ids)
 
@@ -95,6 +96,8 @@ def remove_duplicate_annotations(coco: COCO) -> COCO:
         for ann in annotations:
             keypoints = np.array(ann["keypoints"]).reshape(-1, 3)
             joints.append(keypoints[:, :2])
+
+        joints = np.stack(joints, axis=0)
 
         if len(joints) == 0:
             continue
