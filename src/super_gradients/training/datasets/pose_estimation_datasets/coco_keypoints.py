@@ -40,6 +40,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
+        remove_duplicate_annotations: bool = False,
     ):
         """
 
@@ -62,6 +63,11 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
             raise FileNotFoundError(f"Annotation file {json_file} does not exist")
 
         coco = COCO(json_file)
+        if remove_duplicate_annotations:
+            from .coco_utils import remove_duplicate_annotations as remove_duplicate_annotations_fn
+
+            coco = remove_duplicate_annotations_fn(coco)
+
         if len(coco.dataset["categories"]) != 1:
             raise ValueError("Dataset must contain exactly one category")
         joints = coco.dataset["categories"][0]["keypoints"]
