@@ -26,7 +26,17 @@ from super_gradients.training.models.pose_estimation_models import YoloNASPose
 
 class TestPoseEstimationMetrics(unittest.TestCase):
     def test_yolo_nas_pose_s(self):
-        model: YoloNASPose = models.get(Models.YOLO_NAS_POSE_S, num_classes=17, checkpoint_path="ckpt_best_pcgj2jlh.pth").eval().cuda()
+        # model: YoloNASPose = models.get(
+        #     Models.YOLO_NAS_POSE_S,
+        #     num_classes=17,
+        #     checkpoint_path="coco2017_yolo_nas_pose_s_mosaic_15ziv6a1.pth"
+        # ).eval() #.cuda()
+        model: YoloNASPose = models.get(
+            Models.YOLO_NAS_POSE_S,
+            num_classes=17,
+            checkpoint_path="coco2017_yolo_nas_pose_s_mosaic_no_offset_compensation_2f8uu6w8.pth",
+            arch_params=dict(heads=dict(YoloNASPoseNDFLHeads=dict(compensate_grid_cell_offset=False, pose_offset_multiplier=3))),
+        ).eval()  # .cuda()
 
         images_path = "g:/coco2017/images/val2017"
         image_files = [os.path.join(images_path, x) for x in os.listdir(images_path)]
