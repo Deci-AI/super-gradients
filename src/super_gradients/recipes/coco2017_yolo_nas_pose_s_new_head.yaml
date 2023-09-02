@@ -1,6 +1,6 @@
 defaults:
   - training_hyperparams: coco2017_yolo_nas_pose_train_params_v2
-  - dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
+  - dataset_params: coco_pose_estimation_yolo_nas_light_dataset_params
   - arch_params: yolo_nas_pose_s_new_head_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
@@ -36,9 +36,11 @@ dataset_params:
 
   train_dataloader_params:
     batch_size: 48
+    num_workers: 16
 
   val_dataloader_params:
     batch_size: 48
+    num_workers: 16
 
 training_hyperparams:
   initial_lr:  1e-3

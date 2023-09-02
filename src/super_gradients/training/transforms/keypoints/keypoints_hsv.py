@@ -39,6 +39,6 @@ class KeypointsHSV(KeypointTransform):
 
         if random.random() < self.prob:
             image_copy = sample.image.copy()
-            augment_hsv(image_copy, self.hgain, self.sgain, self.vgain, bgr_channels=(0, 1, 2) if random.random() < 0.5 else (2, 1, 0))
+            augment_hsv(image_copy, self.hgain, self.sgain, self.vgain, bgr_channels=(0, 1, 2))
             sample.image = image_copy
         return sample
