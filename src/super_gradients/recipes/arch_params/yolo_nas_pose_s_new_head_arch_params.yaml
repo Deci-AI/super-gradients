@@ -90,6 +90,7 @@ heads:
   YoloNASPoseNDFLHeads:
     num_classes: 17
     reg_max: 16
+    pose_offset_multiplier: 2
     heads_list:
       - YoloNASPoseDFLHeadV2:
           box_inter_channels: 128
