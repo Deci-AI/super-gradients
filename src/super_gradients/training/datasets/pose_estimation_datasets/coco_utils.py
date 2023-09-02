@@ -97,11 +97,10 @@ def remove_duplicate_annotations(coco: COCO) -> COCO:
             keypoints = np.array(ann["keypoints"]).reshape(-1, 3)
             joints.append(keypoints[:, :2])
 
-        joints = np.stack(joints, axis=0)
-
         if len(joints) == 0:
             continue
 
+        joints = np.stack(joints, axis=0)
         gt_joints1 = np.expand_dims(joints, axis=0)  # [1, Num_people, Num_joints, 2]
         gt_joints2 = np.expand_dims(joints, axis=1)  # [Num_people, 1, Num_joints, 2]
         diff = np.sqrt(np.sum((gt_joints1 - gt_joints2) ** 2, axis=-1))  # [Num_people, Num_people, Num_joints]
