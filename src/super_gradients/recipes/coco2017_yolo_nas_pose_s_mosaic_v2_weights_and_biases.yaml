@@ -14,7 +14,7 @@ dataset_params:
     batch_size: 48
 
 training_hyperparams:
-  initial_lr:  8e-3
+  initial_lr:  1e-3
   cosine_final_lr_ratio: 0.05
 
   criterion_params:
