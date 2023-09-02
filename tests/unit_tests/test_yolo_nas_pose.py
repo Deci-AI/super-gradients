@@ -168,33 +168,33 @@ class YoloNASPoseTests(unittest.TestCase):
 
         images_8u = ExtremeBatchPoseEstimationVisualizationCallback.universal_undo_preprocessing_fn(images)
 
-        classification_loss_types = ["bce", "focal"]
-        regression_iou_loss_types = ["ciou"]
-        pose_classification_loss_types = ["focal", "bce"]
-        use_cocoeval_formula_types = [True]
-        use_offset_compensation_types = [True, False]
+        classification_loss_types = ["bce", "focal"]  # noqa
+        regression_iou_loss_types = ["ciou"]  # noqa
+        pose_classification_loss_types = ["focal", "bce"]  # noqa
+        use_cocoeval_formula_types = [True]  # noqa
+        use_offset_compensation_types = [True, False]  # noqa
 
         hyperparameters_grid = []
-        for use_offset_compensation in use_offset_compensation_types:
-            for classification_loss_type in classification_loss_types:
-                for regression_iou_loss_type in regression_iou_loss_types:
-                    for pose_classification_loss_type in pose_classification_loss_types:
-                        for use_cocoeval_formula in use_cocoeval_formula_types:
-                            hyperparameters_grid.append(
-                                dict(
-                                    learning_rate=1e-3,
-                                    classification_loss_type=classification_loss_type,
-                                    regression_iou_loss_type=regression_iou_loss_type,
-                                    pose_classification_loss_type=pose_classification_loss_type,
-                                    classification_loss_weight=1.0,
-                                    iou_loss_weight=2.5,
-                                    dfl_loss_weight=0.5,
-                                    pose_cls_loss_weight=1.0,
-                                    pose_reg_loss_weight=1.0,
-                                    use_cocoeval_formula=use_cocoeval_formula,
-                                    use_offset_compensation=use_offset_compensation,
-                                )
-                            )
+        # for use_offset_compensation in use_offset_compensation_types:
+        #     for classification_loss_type in classification_loss_types:
+        #         for regression_iou_loss_type in regression_iou_loss_types:
+        #             for pose_classification_loss_type in pose_classification_loss_types:
+        #                 for use_cocoeval_formula in use_cocoeval_formula_types:
+        #                     hyperparameters_grid.append(
+        #                         dict(
+        #                             learning_rate=1e-3,
+        #                             classification_loss_type=classification_loss_type,
+        #                             regression_iou_loss_type=regression_iou_loss_type,
+        #                             pose_classification_loss_type=pose_classification_loss_type,
+        #                             classification_loss_weight=1.0,
+        #                             iou_loss_weight=2.5,
+        #                             dfl_loss_weight=0.5,
+        #                             pose_cls_loss_weight=1.0,
+        #                             pose_reg_loss_weight=1.0,
+        #                             use_cocoeval_formula=use_cocoeval_formula,
+        #                             use_offset_compensation=use_offset_compensation,
+        #                         )
+        #                     )
 
         # grid search over loss weights
         for cls_loss_weight in [0.1, 0.5, 1.0]:

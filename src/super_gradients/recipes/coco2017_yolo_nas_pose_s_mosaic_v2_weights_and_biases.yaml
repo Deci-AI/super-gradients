@@ -6,6 +6,13 @@ defaults:
 
 experiment_suffix: mosaic_v2_${training_hyperparams.criterion_params.pose_cls_loss_weight}_${training_hyperparams.criterion_params.pose_reg_loss_weight}_${training_hyperparams.criterion_params.dfl_loss_weight}_${training_hyperparams.criterion_params.iou_loss_weight}_${training_hyperparams.criterion_params.classification_loss_weight}_${training_hyperparams.criterion_params.classification_loss_type}
 
+dataset_params:
+  train_dataloader_params:
+    batch_size: 48
+
+  val_dataloader_params:
+    batch_size: 48
+
 training_hyperparams:
   initial_lr:  8e-3
   cosine_final_lr_ratio: 0.05
