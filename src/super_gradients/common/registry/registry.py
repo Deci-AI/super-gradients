@@ -19,13 +19,14 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
     :return:            Register function
     """
 
-    def register(name: Optional[str] = None, deprecated_name: str = False) -> Callable:
+    def register(name: Optional[str] = None, deprecated_name: Optional[str] = None) -> Callable:
         """
         Set up a register decorator.
 
-        :param name:            If specified, the decorated object will be registered with this name.
-        :param deprecated_name: If specified, the decorated object will be registered with this name but deprecate it.
-        :return:            Decorator that registers the callable.
+        :param name:            If specified, the decorated object will be registered with this name. Otherwise, the class name will be used to register.
+        :param deprecated_name: If specified, the decorated object will be registered with this name.
+                                This is done on top of the `official` registration which is done by setting the `name` argument.
+        :return:                Decorator that registers the callable.
         """
 
         def decorator(cls: Callable) -> Callable:
@@ -44,7 +45,7 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
             _registered_cls(registration_name=registration_name)
 
             if deprecated_name:
-                # Deprecated objects are still registered in order to let users use them
+                # Deprecated objects like other objects - This is meant to avoid any breaking change.
                 _registered_cls(registration_name=deprecated_name)
 
                 # But deprecated objects are also listed in the _deprecated_objects key.
@@ -61,6 +62,10 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
 
 
 def warn_if_deprecated(name: str, registry: dict):
+    """If the name is deprecated, warn the user about it.
+    :param name:        The name of the object that we want to check if it is deprecated.
+    :param registry:    The registry that may or may not include deprecated objects.
+    """
     deprecated_names = registry.get(_DEPRECATED_KEY, {})
     if name in deprecated_names:
         warnings.warn(f"Using `{name}` in the recipe has been deprecated. Please use `{deprecated_names[name]}`", DeprecationWarning)
