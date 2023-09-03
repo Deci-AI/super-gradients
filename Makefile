@@ -75,6 +75,12 @@ coco2017_yolo_nas_pose_s_mosaic_v3_weights_and_biases:
 coco2017_yolo_nas_pose_s_new_head:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_new_head hydra.verbose=true dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017
 
+coco2017_yolo_nas_pose_s_new_head_mosaic_fine_tune_local:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_new_head_mosaic_fine_tune_local hydra.verbose=true dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017
+
+coco2017_yolo_nas_pose_s_new_head_mosaic_wandb:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_new_head_mosaic_wandb hydra.verbose=true
+
 # --config-name=animalpose_yolo_nas_pose_s
   #dataset_params.train_dataset_params.data_dir=g:/animalpose
   #dataset_params.val_dataset_params.data_dir=g:/animalpose
