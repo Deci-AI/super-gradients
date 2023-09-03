@@ -1,0 +1,74 @@
+defaults:
+  - training_hyperparams: coco2017_yolo_nas_pose_train_params_v2
+  - dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
+  - arch_params: yolo_nas_pose_s_new_head_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+architecture: yolo_nas_pose_new_head_s
+
+multi_gpu: DDP
+num_gpus: 4 # 8
+
+experiment_suffix: mosaic_${training_hyperparams.criterion_params.pose_cls_loss_weight}_${training_hyperparams.criterion_params.pose_reg_loss_weight}_dfl_${training_hyperparams.criterion_params.dfl_loss_weight}_${training_hyperparams.criterion_params.iou_loss_weight}_${training_hyperparams.criterion_params.classification_loss_weight}_${training_hyperparams.criterion_params.classification_loss_type}
+experiment_name: coco2017_${architecture}_${experiment_suffix}
+
+ckpt_root_dir:
+
+train_dataloader: coco2017_pose_train
+val_dataloader: coco2017_pose_val
+
+arch_params:
+  num_classes: ${dataset_params.num_joints}
+
+checkpoint_params:
+  # For training Yolo-NAS-S pose estimation model we use pretrained weights for Yolo-NAS-S object detection model.
+  # By setting strict_load: key_matching we load only those weights that match the keys of the model.
+  checkpoint_path: https://sghub.deci.ai/models/yolo_nas_s_coco.pth
+  strict_load:
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: key_matching
+
+dataset_params:
+  train_dataset_params:
+    remove_duplicate_annotations: True
+
+  train_dataloader_params:
+    batch_size: 48
+    num_workers: 16
+
+  val_dataloader_params:
+    batch_size: 48
+    num_workers: 16
+
+training_hyperparams:
+  initial_lr:  1e-3
+  cosine_final_lr_ratio: 0.05
+
+  criterion_params:
+    num_classes: ${arch_params.num_classes}
+    reg_max: 16
+    oks_sigmas: ${dataset_params.oks_sigmas}
+    classification_loss_weight: 2.0
+    classification_loss_type: focal
+    regression_iou_loss_type: ciou
+    iou_loss_weight: 2.5
+    dfl_loss_weight: 0.01
+    pose_cls_loss_weight: 1.0
+    pose_reg_loss_weight: 12.0
+    use_cocoeval_formula: True
+    pose_classification_loss_type: focal
+
+#  sg_logger: wandb_sg_logger
+#  sg_logger_params:
+#    api_server: https://wandb.research.deci.ai
+#    entity: super-gradients
+#    launch_tensorboard: false
+#    monitor_system: true
+#    project_name: PoseEstimation
+#    save_checkpoints_remote: true
+#    save_logs_remote: true
+#    save_tensorboard_remote: true
+#    tb_files_user_prompt: false
+#    tensorboard_port: null
