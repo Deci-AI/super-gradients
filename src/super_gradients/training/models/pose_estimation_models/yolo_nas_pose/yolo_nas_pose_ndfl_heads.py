@@ -28,6 +28,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         width_mult: float = 1.0,
         pose_offset_multiplier: float = 1.0,
         compensate_grid_cell_offset: bool = True,
+        box_center_is_anchor_point: bool = False,
     ):
         """
         Initializes the NDFLHeads module.
@@ -52,6 +53,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         self.eval_size = eval_size
         self.pose_offset_multiplier = pose_offset_multiplier
         self.compensate_grid_cell_offset = compensate_grid_cell_offset
+        self.box_center_is_anchor_point = box_center_is_anchor_point
 
         # Do not apply quantization to this tensor
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
@@ -144,12 +146,24 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         pred_bboxes = batch_distance2bbox(anchor_points_inference, reg_dist_reduced_list) * stride_tensor  # [B, Anchors, 4]
 
         # Add the grid
-        pose_regression_list[:, :, :, 0:2] *= self.pose_offset_multiplier
-        pose_regression_list[:, :, :, 0:2] += anchor_points_inference.unsqueeze(0).unsqueeze(2)
-        if self.compensate_grid_cell_offset:
-            pose_regression_list[:, :, :, 0:2] -= self.grid_cell_offset
+        if self.box_center_is_anchor_point:
+            # pose_regression_list[:, :, :, 0:2] *= self.pose_offset_multiplier
+            # if self.compensate_grid_cell_offset:
+            #     pose_regression_list[:, :, :, 0:2] -= self.grid_cell_offset
+            pose_regression_list[:, :, :, 0:2] *= stride_tensor.unsqueeze(0).unsqueeze(2)
 
-        pose_regression_list[:, :, :, 0:2] *= stride_tensor.unsqueeze(0).unsqueeze(2)
+            # pred_bboxes in xyxy format
+            pred_bboxes_centers = (pred_bboxes[:, :, 0:2] + pred_bboxes[:, :, 2:4]) * 0.5
+            pred_bboxes_centers = pred_bboxes_centers.unsqueeze(2)
+            pose_regression_list[:, :, :, 0:2] += pred_bboxes_centers
+
+        else:
+            pose_regression_list[:, :, :, 0:2] *= self.pose_offset_multiplier
+            pose_regression_list[:, :, :, 0:2] += anchor_points_inference.unsqueeze(0).unsqueeze(2)
+            if self.compensate_grid_cell_offset:
+                pose_regression_list[:, :, :, 0:2] -= self.grid_cell_offset
+
+            pose_regression_list[:, :, :, 0:2] *= stride_tensor.unsqueeze(0).unsqueeze(2)
 
         pred_pose_coords = pose_regression_list[:, :, :, 0:2].detach().clone()  # [B, Anchors, C, 2]
         pred_pose_scores = pose_regression_list[:, :, :, 2].detach().clone().sigmoid()  # [B, Anchors, C]

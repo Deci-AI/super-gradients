@@ -78,6 +78,12 @@ coco2017_yolo_nas_pose_s_new_head:
 coco2017_yolo_nas_pose_s_new_head_mosaic_fine_tune_local:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_new_head_mosaic_fine_tune_local hydra.verbose=true dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017
 
+coco2017_yolo_nas_pose_s_new_head_mosaic_fine_tune_local:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_new_head_mosaic_fine_tune_local hydra.verbose=true dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017
+
+coco2017_yolo_nas_pose_s_v2_relative_anchors_local:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_v2_relative_anchors_local hydra.verbose=true dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017
+
 coco2017_yolo_nas_pose_s_new_head_mosaic_wandb:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_new_head_mosaic_wandb hydra.verbose=true
 

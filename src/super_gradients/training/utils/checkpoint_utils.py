@@ -38,11 +38,17 @@ def transfer_weights(model: nn.Module, model_state_dict: Mapping[str, Tensor]) -
     :param model_state_dict: Model state dict to load weights from
     :return: None
     """
+
+    transfered_weights = 0
     for name, value in model_state_dict.items():
         try:
             model.load_state_dict(collections.OrderedDict([(name, value)]), strict=False)
+            transfered_weights += 1
         except RuntimeError:
             pass
+
+    transfered_layers_fraction = transfered_weights / len(model_state_dict)
+    logger.info(f"Transfered {transfered_weights} ({(100*transfered_layers_fraction):.2f}%) weights from the checkpoint state dict")
 
 
 def maybe_remove_module_prefix(state_dict: Mapping[str, Tensor], prefix: str = "module.") -> Mapping[str, Tensor]:
