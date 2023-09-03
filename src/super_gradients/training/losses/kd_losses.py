@@ -15,7 +15,7 @@ class KDklDivLoss(KLDivLoss):
         return super(KDklDivLoss, self).forward(torch.log_softmax(student_output, dim=1), torch.softmax(teacher_output, dim=1))
 
 
-@register_loss(Losses.KD_LOSS)
+@register_loss(name=Losses.KD_LOSS, deprecated_name="kd_loss")
 class KDLogitsLoss(_Loss):
     """Knowledge distillation loss, wraps the task loss and distillation loss"""
 

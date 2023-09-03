@@ -83,7 +83,7 @@ def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction="mea
     return loss
 
 
-@register_loss(Losses.CROSS_ENTROPY)
+@register_loss(name=Losses.CROSS_ENTROPY, deprecated_name="cross_entropy")
 class LabelSmoothingCrossEntropyLoss(nn.CrossEntropyLoss):
     """CrossEntropyLoss - with ability to recieve distrbution as targets, and optional label smoothing"""
 

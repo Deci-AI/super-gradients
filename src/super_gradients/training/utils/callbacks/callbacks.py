@@ -276,7 +276,7 @@ class LRCallbackBase(PhaseCallback):
                 param_group["lr"] = self.lr
 
 
-@register_lr_warmup(LRWarmups.LINEAR_EPOCH_STEP)
+@register_lr_warmup(LRWarmups.LINEAR_EPOCH_STEP, deprecated_name="linear_epoch_step")
 class EpochStepWarmupLRCallback(LRCallbackBase):
     """
     LR scheduling callback for linear step warmup. This scheduler uses a whole epoch as single step.
@@ -300,7 +300,7 @@ class EpochStepWarmupLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
-@register_lr_warmup(LRWarmups.LINEAR_STEP)
+@register_lr_warmup(LRWarmups.LINEAR_STEP, deprecated_name="linear_step")
 class LinearStepWarmupLRCallback(EpochStepWarmupLRCallback):
     """Deprecated, use EpochStepWarmupLRCallback instead"""
 
@@ -312,7 +312,7 @@ class LinearStepWarmupLRCallback(EpochStepWarmupLRCallback):
         super(LinearStepWarmupLRCallback, self).__init__(**kwargs)
 
 
-@register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP)
+@register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP, deprecated_name="linear_batch_step")
 class BatchStepLinearWarmupLRCallback(Callback):
     """
     LR scheduling callback for linear step warmup on each batch step.
@@ -384,7 +384,7 @@ class BatchStepLinearWarmupLRCallback(Callback):
                 param_group["lr"] = self.lr
 
 
-@register_lr_scheduler(LRSchedulers.STEP)
+@register_lr_scheduler(LRSchedulers.STEP, deprecated_name="step")
 class StepLRCallback(LRCallbackBase):
     """
     Hard coded step learning rate scheduling (i.e at specific milestones).
@@ -415,7 +415,7 @@ class StepLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch
 
 
-@register_lr_scheduler(LRSchedulers.EXP)
+@register_lr_scheduler(LRSchedulers.EXP, deprecated_name="exp")
 class ExponentialLRCallback(LRCallbackBase):
     """
     Exponential decay learning rate scheduling. Decays the learning rate by `lr_decay_factor` every epoch.
@@ -436,7 +436,7 @@ class ExponentialLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@register_lr_scheduler(LRSchedulers.POLY)
+@register_lr_scheduler(LRSchedulers.POLY, deprecated_name="poly")
 class PolyLRCallback(LRCallbackBase):
     """
     Hard coded polynomial decay learning rate scheduling (i.e at specific milestones).
@@ -459,7 +459,7 @@ class PolyLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@register_lr_scheduler(LRSchedulers.COSINE)
+@register_lr_scheduler(LRSchedulers.COSINE, deprecated_name="cosine")
 class CosineLRCallback(LRCallbackBase):
     """
     Hard coded step Cosine anealing learning rate scheduling.
@@ -497,7 +497,7 @@ class CosineLRCallback(LRCallbackBase):
         return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
-@register_lr_scheduler(LRSchedulers.FUNCTION)
+@register_lr_scheduler(LRSchedulers.FUNCTION, deprecated_name="function")
 class FunctionLRCallback(LRCallbackBase):
     """
     Hard coded rate scheduling for user defined lr scheduling function.

@@ -68,7 +68,8 @@ def warn_if_deprecated(name: str, registry: dict):
     """
     deprecated_names = registry.get(_DEPRECATED_KEY, {})
     if name in deprecated_names:
-        warnings.warn(f"Using `{name}` in the recipe has been deprecated. Please use `{deprecated_names[name]}`", DeprecationWarning)
+        warnings.simplefilter("once", DeprecationWarning)  # Required, otherwise the warning may never be displayed.
+        warnings.warn(f"Object name `{name}` is now deprecated. Please replace it with `{deprecated_names[name]}`.", DeprecationWarning)
 
 
 ARCHITECTURES = {}
@@ -85,7 +86,7 @@ register_metric = create_register_decorator(registry=METRICS)
 
 LOSSES = {Losses.MSE: nn.MSELoss}
 register_loss = create_register_decorator(registry=LOSSES)
-
+register_loss(name=Losses.MSE, deprecated_name="mse")(nn.MSELoss)  # Register manually to benefit from deprecated logic
 
 ALL_DATALOADERS = {}
 register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)

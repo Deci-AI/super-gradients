@@ -1233,6 +1233,10 @@ class Trainer:
         warmup_mode = self.training_params.warmup_mode
         warmup_callback_cls = None
         if isinstance(warmup_mode, str):
+            from super_gradients.common.registry.registry import warn_if_deprecated
+
+            warn_if_deprecated(warmup_mode, LR_WARMUP_CLS_DICT)
+
             warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
         elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
             warmup_callback_cls = warmup_mode

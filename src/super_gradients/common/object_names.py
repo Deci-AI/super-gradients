@@ -1,21 +1,37 @@
 class Losses:
     """Static class holding all the supported loss names"""
 
-    CROSS_ENTROPY = "cross_entropy"
-    MSE = "mse"
-    R_SQUARED_LOSS = "r_squared_loss"
-    SHELFNET_OHEM_LOSS = "shelfnet_ohem_loss"
-    SHELFNET_SE_LOSS = "shelfnet_se_loss"
-    YOLOX_LOSS = "yolox_loss"
-    PPYOLOE_LOSS = "ppyoloe_loss"
-    YOLOX_FAST_LOSS = "yolox_fast_loss"
-    SSD_LOSS = "ssd_loss"
-    STDC_LOSS = "stdc_loss"
-    BCE_DICE_LOSS = "bce_dice_loss"
-    KD_LOSS = "kd_loss"
-    DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
-    DEKR_LOSS = "dekr_loss"
-    RESCORING_LOSS = "rescoring_loss"
+    CROSS_ENTROPY = "LabelSmoothingCrossEntropyLoss"
+    MSE = "MSE"
+    R_SQUARED_LOSS = "RSquaredLoss"
+    SHELFNET_OHEM_LOSS = "ShelfNetOHEMLoss"
+    SHELFNET_SE_LOSS = "ShelfNetSemanticEncodingLoss"
+    YOLOX_LOSS = "YoloXDetectionLoss"
+    PPYOLOE_LOSS = "PPYoloELoss"
+    YOLOX_FAST_LOSS = "YoloXFastDetectionLoss"
+    SSD_LOSS = "SSDLoss"
+    STDC_LOSS = "STDCLoss"
+    BCE_DICE_LOSS = "BCEDiceLoss"
+    KD_LOSS = "KDLogitsLoss"
+    DICE_CE_EDGE_LOSS = "DiceCEEdgeLoss"
+    DEKR_LOSS = "DEKRLoss"
+    RESCORING_LOSS = "RescoringLoss"
+
+    _DEPRECATED_CROSS_ENTROPY = "cross_entropy"
+    _DEPRECATED_MSE = "mse"
+    _DEPRECATED_R_SQUARED_LOSS = "r_squared_loss"
+    _DEPRECATED_SHELFNET_OHEM_LOSS = "shelfnet_ohem_loss"
+    _DEPRECATED_SHELFNET_SE_LOSS = "shelfnet_se_loss"
+    _DEPRECATED_YOLOX_LOSS = "yolox_loss"
+    _DEPRECATED_PPYOLOE_LOSS = "ppyoloe_loss"
+    _DEPRECATED_YOLOX_FAST_LOSS = "yolox_fast_loss"
+    _DEPRECATED_SSD_LOSS = "ssd_loss"
+    _DEPRECATED_STDC_LOSS = "stdc_loss"
+    _DEPRECATED_BCE_DICE_LOSS = "bce_dice_loss"
+    _DEPRECATED_KD_LOSS = "kd_loss"
+    _DEPRECATED_DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
+    _DEPRECATED_DEKR_LOSS = "dekr_loss"
+    _DEPRECATED_RESCORING_LOSS = "rescoring_loss"
 
 
 class Metrics:
@@ -154,19 +170,29 @@ class Callbacks:
 class LRSchedulers:
     """Static class to hold all the supported LR Scheduler names"""
 
-    STEP = "step"
-    POLY = "poly"
-    COSINE = "cosine"
-    EXP = "exp"
-    FUNCTION = "function"
+    STEP = "StepLRCallback"
+    POLY = "PolyLRCallback"
+    COSINE = "CosineLRCallback"
+    EXP = "ExponentialLRCallback"
+    FUNCTION = "FunctionLRCallback"
+
+    _DEPRECATED_STEP = "step"
+    _DEPRECATED_POLY = "poly"
+    _DEPRECATED_COSINE = "cosine"
+    _DEPRECATED_EXP = "exp"
+    _DEPRECATED_FUNCTION = "function"
 
 
 class LRWarmups:
     """Static class to hold all the supported LR Warmup names"""
 
-    LINEAR_STEP = "linear_step"
-    LINEAR_EPOCH_STEP = "linear_epoch_step"
-    LINEAR_BATCH_STEP = "linear_batch_step"
+    LINEAR_STEP = "LinearStepWarmupLRCallback"
+    LINEAR_EPOCH_STEP = "EpochStepWarmupLRCallback"
+    LINEAR_BATCH_STEP = "BatchStepLinearWarmupLRCallback"
+
+    _DEPRECATED_LINEAR_STEP = "linear_step"
+    _DEPRECATED_LINEAR_EPOCH_STEP = "linear_epoch_step"
+    _DEPRECATED_LINEAR_BATCH_STEP = "linear_batch_step"
 
 
 class Samplers:
