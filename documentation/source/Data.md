@@ -167,8 +167,8 @@ val_dataset_params:
 val_dataloader_params:
 
 ```
-As their names suggest- the parameters under `train_dataset_params` will be passed to the Dataset, and the parameters under `train_dataloader_params` will be given to the DataLoader.
-As in the previous sub-section, both `train_dataloader_params` and `train_dataset_params` will override the corresponding
+As their names suggest - the parameters under `train_dataset_params` will be passed to the Dataset, and the parameters under `train_dataloader_params` will be given to the DataLoader.
+As in the previous subsection, both `train_dataloader_params` and `train_dataset_params` will override the corresponding
 parameters defined for the predefined data loader ( in our case, imagenet_resnet50 recipe's dataset_params.train_dataset_params, and
 imagenet_renet50 recipe's dataset_params.train_dataloader_params).
 The same logic holds for the validation set as well.

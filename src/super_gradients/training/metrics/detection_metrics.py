@@ -6,6 +6,7 @@ import torch
 from torchmetrics import Metric
 
 import super_gradients
+import super_gradients.common.environment.ddp_utils
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.utils import tensor_container_to_device
@@ -222,7 +223,7 @@ class DetectionMetrics(Metric):
         :return:
         """
         if self.world_size is None:
-            self.world_size = torch.distributed.get_world_size() if self.is_distributed else -1
+            self.world_size = super_gradients.common.environment.ddp_utils.get_world_size() if self.is_distributed else -1
         if self.rank is None:
             self.rank = torch.distributed.get_rank() if self.is_distributed else -1
 
