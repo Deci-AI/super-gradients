@@ -1,5 +1,3 @@
-import os
-import shutil
 import unittest
 
 import torch
@@ -13,6 +11,17 @@ class ReplaceHeadUnitTest(unittest.TestCase):
     def setUp(self) -> None:
         self.device = "cuda" if torch.cuda.is_available() and torch.cuda.device_count() > 0 else "cpu"
         super_gradients.init_trainer()
+
+    def test_yolox_replace_head(self):
+        input = torch.randn(1, 3, 640, 640).to(self.device)
+        for model in [Models.YOLOX_S, Models.YOLOX_M, Models.YOLOX_L, Models.YOLOX_T]:
+            model = models.get(model, pretrained_weights="coco").to(self.device).eval()
+            num_classes = 100
+            model.replace_head(new_num_classes=num_classes)
+            outputs = model.forward(input)
+            self.assertEqual(outputs[0].size(4), num_classes + 5)
+            self.assertEqual(outputs[1].size(4), num_classes + 5)
+            self.assertEqual(outputs[2].size(4), num_classes + 5)
 
     def test_ppyolo_replace_head(self):
         input = torch.randn(1, 3, 640, 640).to(self.device)
@@ -36,10 +45,6 @@ class ReplaceHeadUnitTest(unittest.TestCase):
         heatmap, offsets = model.forward(input)
         self.assertEqual(heatmap.size(1), 20 + 1)
         self.assertEqual(offsets.size(1), 20 * 2)
-
-    def tearDown(self) -> None:
-        if os.path.exists("~/.cache/torch/hub/"):
-            shutil.rmtree("~/.cache/torch/hub/")
 
 
 if __name__ == "__main__":

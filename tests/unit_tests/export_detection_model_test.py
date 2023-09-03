@@ -38,6 +38,25 @@ class TestDetectionModelExport(unittest.TestCase):
         this_dir = os.path.dirname(__file__)
         self.test_image_path = os.path.join(this_dir, "../data/tinycoco/images/val2017/000000444010.jpg")
 
+    def test_export_model_on_small_size(self):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            for model_type in [
+                Models.YOLO_NAS_S,
+                Models.PP_YOLOE_S,
+                Models.YOLOX_S,
+            ]:
+                out_path = os.path.join(tmpdirname, model_type + ".onnx")
+                ppyolo_e: ExportableObjectDetectionModel = models.get(model_type, pretrained_weights="coco")
+                result = ppyolo_e.export(
+                    out_path,
+                    input_image_shape=(64, 64),
+                    num_pre_nms_predictions=2000,
+                    max_predictions_per_image=1000,
+                    output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
+                )
+                assert result.input_image_dtype == torch.uint8
+                assert result.input_image_shape == (64, 64)
+
     def test_the_most_common_export_use_case(self):
         """
         Test the most common export use case - export to ONNX with all default parameters

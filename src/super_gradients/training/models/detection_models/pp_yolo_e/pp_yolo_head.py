@@ -270,8 +270,8 @@ class PPYOLOEHead(nn.Module):
             else:
                 h = int(self.eval_size[0] / stride)
                 w = int(self.eval_size[1] / stride)
-            shift_x = torch.arange(end=w) + self.grid_cell_offset
-            shift_y = torch.arange(end=h) + self.grid_cell_offset
+            shift_x = torch.arange(end=w, dtype=dtype) + self.grid_cell_offset
+            shift_y = torch.arange(end=h, dtype=dtype) + self.grid_cell_offset
             if torch_version_is_greater_or_equal(1, 10):
                 shift_y, shift_x = torch.meshgrid(shift_y, shift_x, indexing="ij")
             else:

@@ -4,7 +4,6 @@ from typing import Any
 
 from omegaconf import OmegaConf, DictConfig
 
-from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 from hydra.experimental.callback import Callback
 
 
@@ -72,6 +71,8 @@ def get_cls(cls_path: str):
 
 
 def hydra_output_dir_resolver(ckpt_root_dir: str, experiment_name: str) -> str:
+    from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
+
     return get_checkpoints_dir_path(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
 
 
