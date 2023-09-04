@@ -84,7 +84,7 @@ register_detection_module = create_register_decorator(registry=ALL_DETECTION_MOD
 METRICS = {}
 register_metric = create_register_decorator(registry=METRICS)
 
-LOSSES = {Losses.MSE: nn.MSELoss}
+LOSSES = {}
 register_loss = create_register_decorator(registry=LOSSES)
 register_loss(name=Losses.MSE, deprecated_name="mse")(nn.MSELoss)  # Register manually to benefit from deprecated logic
 
