@@ -104,7 +104,7 @@ training_hyperparams:
 A typical metric for object detection is mean average precision, mAP for short. 
 It is calculated for a specific IoU level which defines how tightly a predicted box must intersect with a ground truth box to be considered a true positive.
 Both one value and a range can be used as IoU, where a range refers to an average of mAPs for each IoU level.
-The most popular metric for mAP on COCO is mAP@0.5:0.95, SuperGradients provide its implementation [DetectionMetrics](https://docs.deci.ai/super-gradients/docstring/training/metrics.html#training.metrics.detection_metrics.DetectionMetrics).
+The most popular metric for mAP on COCO is mAP@0.5:0.95, SuperGradients provides its implementation [DetectionMetrics](https://docs.deci.ai/super-gradients/docstring/training/metrics.html#training.metrics.detection_metrics.DetectionMetrics).
 It is written to be as close as possible to the  official metric implementation from [COCO API](https://pypi.org/project/pycocotools/), while being much faster and DDP-friendly.
 
 We provide a few metrics for object detection with pre-defined IoU levels to fit the most frequent use cases:
@@ -177,7 +177,7 @@ By visualizing the predicted boxes, developers and researchers can identify erro
 
 #### Extreme Batch Visualization during training
 
-SuperGradients provide an implementation of [ExtremeBatchDetectionVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils.html#src.super_gradients.training.utils.callbacks.callbacks.ExtremeBatchDetectionVisualizationCallback). 
+SuperGradients provides an implementation of [ExtremeBatchDetectionVisualizationCallback](https://docs.deci.ai/super-gradients/docstring/training/utils.html#src.super_gradients.training.utils.callbacks.callbacks.ExtremeBatchDetectionVisualizationCallback). 
 You can use this callback in your training pipeline to visualize best or worst batch during training. 
 This callback observes a specific metric during training epoch and logs the most extreme batch to configured logger (Default is Tensorboard). 
 The logging includes visualization of ground truth boxes and model's predictions.
@@ -265,7 +265,7 @@ model = models.get("yolox_s", pretrained_weights="coco", num_classes=80)
 model.predict("https://deci-pretrained-models.s3.amazonaws.com/sample_images/beatles-abbeyroad.jpg").show()
 ```
 
-See for more details on using [Predict API](https://docs.deci.ai/super-gradients/V3_1/documentation/source/ModelPredictions.html).
+See for more details on using [Predict API](ModelPredictions.md).
 
 ### Let's train!
 
