@@ -49,7 +49,7 @@ class EarlyStopTest(unittest.TestCase):
             "max_epochs": self.max_epochs,
             "lr_updates": [1],
             "lr_decay_factor": 0.1,
-            "lr_mode": "step",
+            "lr_mode": "StepLRCallback",
             "lr_warmup_epochs": 0,
             "initial_lr": 0.1,
             "loss": "cross_entropy",

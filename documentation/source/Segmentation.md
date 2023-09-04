@@ -143,7 +143,7 @@ from super_gradients.training.metrics.segmentation_metrics import BinaryIOU
 
 train_params = {
     "max_epochs": 30,
-    "lr_mode": "cosine",
+    "lr_mode": "CosineLRCallback",
     "initial_lr": 0.005,
     "lr_warmup_epochs": 5,
     "multiply_head_lr": 10,

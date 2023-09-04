@@ -640,7 +640,7 @@ And lastly, we need to define the training hyperparameters:
 ```python
 train_params = {
     "max_epochs": 100,
-    "lr_mode": "cosine",
+    "lr_mode": "CosineLRCallback",
     "initial_lr": 0.001,
     "optimizer": "Adam",
     "loss": CustomSegLoss(),

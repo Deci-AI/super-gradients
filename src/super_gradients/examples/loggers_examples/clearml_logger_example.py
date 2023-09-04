@@ -11,7 +11,7 @@ training_params = {
     "max_epochs": 20,
     "lr_updates": [5, 10, 15],
     "lr_decay_factor": 0.1,
-    "lr_mode": "step",
+    "lr_mode": "StepLRCallback",
     "initial_lr": 0.1,
     "loss": "cross_entropy",
     "optimizer": "SGD",

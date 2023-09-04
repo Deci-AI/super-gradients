@@ -19,7 +19,7 @@ class LRCooldownTest(unittest.TestCase):
         train_params = {
             "max_epochs": 7,
             "cosine_final_lr_ratio": 0.2,
-            "lr_mode": "cosine",
+            "lr_mode": "CosineLRCallback",
             "lr_cooldown_epochs": 2,
             "lr_warmup_epochs": 3,
             "initial_lr": 1,

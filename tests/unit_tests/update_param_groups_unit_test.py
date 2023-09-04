@@ -34,7 +34,7 @@ class UpdateParamGroupsTest(unittest.TestCase):
 
         train_params = {
             "max_epochs": 3,
-            "lr_mode": "step",
+            "lr_mode": "StepLRCallback",
             "lr_updates": [0, 1, 2],
             "initial_lr": 0.1,
             "lr_decay_factor": 1,

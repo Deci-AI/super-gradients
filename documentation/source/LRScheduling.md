@@ -30,7 +30,7 @@ valid_dataloader = ...
 model = ...
 train_params = {
     "initial_lr": 0.1,
-    "lr_mode":"step",
+    "lr_mode":"StepLRCallback",
     "lr_updates": [100, 150, 200],
     "lr_decay_factor": 0.1,
     ...,
@@ -66,7 +66,7 @@ Prerequisites: [phase callbacks](PhaseCallbacks.md), [training with configuratio
 In SG, learning rate schedulers are implemented as [phase callbacks](PhaseCallbacks.md).
 They read the learning rate from the `PhaseContext` in their `__call__` method, calculate the new learning rate according to the current state of training, and update the optimizer's param groups.
 
-For example, the code snippet from the previous section translates "lr_mode":"step" to a `super_gradients.training.utils.callbacks.callbacks.StepLRCallback` instance, which is added to the phase callbacks list.
+For example, the code snippet from the previous section translates "lr_mode":"StepLRCallback" to a `super_gradients.training.utils.callbacks.callbacks.StepLRCallback` instance, which is added to the phase callbacks list.
 
 ### Implementing Your Own Scheduler
 A custom learning rate scheduler should inherit from `LRCallbackBase`, so let's take a look at it:

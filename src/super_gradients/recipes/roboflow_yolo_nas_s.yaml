@@ -46,7 +46,7 @@ training_hyperparams:
   zero_weight_decay_on_bias_and_bn: True
 
   lr_warmup_epochs: 3
-  warmup_mode: linear_epoch_step
+  warmup_mode: EpochStepWarmupLRCallback
 
   initial_lr: 5e-4
   cosine_final_lr_ratio: 0.1

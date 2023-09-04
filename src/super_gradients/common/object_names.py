@@ -176,12 +176,6 @@ class LRSchedulers:
     EXP = "ExponentialLRCallback"
     FUNCTION = "FunctionLRCallback"
 
-    _DEPRECATED_STEP = "step"
-    _DEPRECATED_POLY = "poly"
-    _DEPRECATED_COSINE = "cosine"
-    _DEPRECATED_EXP = "exp"
-    _DEPRECATED_FUNCTION = "function"
-
 
 class LRWarmups:
     """Static class to hold all the supported LR Warmup names"""
@@ -189,10 +183,6 @@ class LRWarmups:
     LINEAR_STEP = "LinearStepWarmupLRCallback"
     LINEAR_EPOCH_STEP = "EpochStepWarmupLRCallback"
     LINEAR_BATCH_STEP = "BatchStepLinearWarmupLRCallback"
-
-    _DEPRECATED_LINEAR_STEP = "linear_step"
-    _DEPRECATED_LINEAR_EPOCH_STEP = "linear_epoch_step"
-    _DEPRECATED_LINEAR_BATCH_STEP = "linear_batch_step"
 
 
 class Samplers:
