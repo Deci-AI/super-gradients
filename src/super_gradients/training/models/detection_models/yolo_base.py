@@ -1,6 +1,7 @@
+import collections
 import math
 import warnings
-from typing import Union, Type, List, Tuple, Optional
+from typing import Union, Type, List, Tuple, Optional, Any
 from functools import lru_cache
 
 import numpy as np
@@ -10,6 +11,7 @@ import torch.nn as nn
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.module_interfaces import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule, HasPredict
+from super_gradients.module_interfaces.exportable_detector import ModelHasNoPreprocessingParamsException
 from super_gradients.modules import CrossModelSkipConnection, Conv
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
@@ -204,7 +206,12 @@ class DetectX(nn.Module):
         self.n_anchors = 1
         self.grid = [torch.zeros(1)] * self.detection_layers_num  # init grid
 
-        self.register_buffer("stride", torch.tensor(stride), persistent=False)
+        if torch.is_tensor(stride):
+            stride = stride.clone().detach()
+        else:
+            stride = torch.tensor(stride)
+
+        self.register_buffer("stride", stride, persistent=False)
 
         self.cls_convs = nn.ModuleList()
         self.reg_convs = nn.ModuleList()
@@ -275,9 +282,9 @@ class DetectX(nn.Module):
     def _make_grid(nx: int, ny: int, dtype: torch.dtype):
         if torch_version_is_greater_or_equal(1, 10):
             # https://github.com/pytorch/pytorch/issues/50276
-            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)], indexing="ij")
+            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)], indexing="ij")
         else:
-            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
+            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).to(dtype)
 
 
@@ -496,6 +503,8 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_preprocessing_callback(self, **kwargs):
         processing = self.get_processing_params()
+        if processing is None:
+            raise ModelHasNoPreprocessingParamsException()
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
 
@@ -590,6 +599,15 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def load_state_dict(self, state_dict, strict=True):
         try:
+            keys_dropped_in_sg_320 = {
+                "stride",
+                "_head.anchors._stride",
+                "_head.anchors._anchors",
+                "_head.anchors._anchor_grid",
+                "_head._modules_list.14.stride",
+            }
+            state_dict = collections.OrderedDict([(k, v) for k, v in state_dict.items() if k not in keys_dropped_in_sg_320])
+
             super().load_state_dict(state_dict, strict)
         except RuntimeError as e:
             raise RuntimeError(
@@ -681,7 +699,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
 
             new_last_layer = DetectX(
                 num_classes=new_num_classes,
-                stride=self._head.anchors.stride,
+                stride=self.strides,
                 activation_func_type=activation_type,
                 channels=[width_mult(v) for v in (256, 512, 1024)],
                 depthwise=isinstance(old_detectx.cls_convs[0][0], GroupedConvBlock),
@@ -730,3 +748,18 @@ class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):
         output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
 
         return output_pred_bboxes, output_pred_scores
+
+    def get_num_pre_nms_predictions(self) -> int:
+        return self.num_pre_nms_predictions
+
+    @torch.jit.ignore
+    def infer_total_number_of_predictions(self, predictions: Any) -> int:
+        """
+
+        :param inputs:
+        :return:
+        """
+        if isinstance(predictions, (tuple, list)):
+            predictions = predictions[0]
+
+        return predictions.size(1)

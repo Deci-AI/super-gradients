@@ -1,5 +1,5 @@
 import copy
-from typing import Union, Tuple, Optional
+from typing import Union, Tuple, Optional, Any
 
 import torch
 from omegaconf import DictConfig
@@ -8,7 +8,7 @@ from torch import Tensor
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry import register_model
-from super_gradients.module_interfaces import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule
+from super_gradients.module_interfaces import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule, ModelHasNoPreprocessingParamsException
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
@@ -27,6 +27,23 @@ class YoloNASDecodingModule(AbstractObjectDetectionDecodingModule):
     ):
         super().__init__()
         self.num_pre_nms_predictions = num_pre_nms_predictions
+
+    @torch.jit.ignore
+    def infer_total_number_of_predictions(self, predictions: Any) -> int:
+        """
+
+        :param inputs:
+        :return:
+        """
+        if torch.jit.is_tracing():
+            pred_bboxes, pred_scores = predictions
+        else:
+            pred_bboxes, pred_scores = predictions[0]
+
+        return pred_bboxes.size(1)
+
+    def get_num_pre_nms_predictions(self) -> int:
+        return self.num_pre_nms_predictions
 
     def forward(self, inputs: Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]):
         if torch.jit.is_tracing():
@@ -72,6 +89,8 @@ class YoloNAS(ExportableObjectDetectionModel, CustomizableDetector):
 
     def get_preprocessing_callback(self, **kwargs):
         processing = self.get_processing_params()
+        if processing is None:
+            raise ModelHasNoPreprocessingParamsException()
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
 

@@ -291,7 +291,12 @@ def fuzzy_idx_in_list(name: str, lst: List[str]) -> int:
     :param lst: List[str], the list as described above.
     :return: int, index of name in lst in the matter discussed above.
     """
-    return [fuzzy_str(x) for x in lst].index(fuzzy_str(name))
+    fuzzy_name = fuzzy_str(name)
+    fuzzy_list = [fuzzy_str(x) for x in lst]
+    if fuzzy_name in fuzzy_list:
+        return fuzzy_list.index(fuzzy_name)
+    else:
+        raise IndexError(f"Value `{name}` not found in the list `{lst}`. Please check the spelling.")
 
 
 def get_param(params, name, default_val=None):
@@ -662,6 +667,24 @@ def infer_model_device(model: nn.Module) -> Optional[torch.device]:
             return first_buffer.device
         except StopIteration:
             return None
+
+
+def resolve_torch_device(device: Union[str, torch.device]) -> torch.device:
+    """
+    Resolve the specified torch device. It accepts either a string or a torch.device object.
+
+    This function takes the provided device identifier and returns a corresponding torch.device object,
+    which represents the device where a torch.Tensor will be allocated.
+
+    :param device: A string or torch.device object representing the device (e.g., 'cpu', 'cuda', 'cuda:0').
+    :return: A torch.device object representing the resolved device.
+
+    Example:
+        >>> torch.cuda.set_device(5)
+        >>> str(resolve_torch_device("cuda"))
+        'cuda:5'
+    """
+    return torch.zeros([], device=device).device
 
 
 def check_model_contains_quantized_modules(model: nn.Module) -> bool:
