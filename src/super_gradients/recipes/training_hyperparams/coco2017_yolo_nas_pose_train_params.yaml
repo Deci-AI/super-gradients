@@ -3,14 +3,14 @@ defaults:
 
 max_epochs: 300
 
-warmup_mode: "linear_batch_step"
+warmup_mode: "linear_epoch_step"
 warmup_initial_lr:  1e-6
 lr_warmup_steps: 1000
-lr_warmup_epochs: 0
+lr_warmup_epochs: 10
 
-initial_lr:  2e-4
+initial_lr:  1e-3
 lr_mode: cosine
-cosine_final_lr_ratio: 0.1
+cosine_final_lr_ratio: 0.05
 
 zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
@@ -24,15 +24,15 @@ criterion_params:
     num_classes: ${arch_params.num_classes}
     reg_max: 16
     oks_sigmas: ${dataset_params.oks_sigmas}
-    classification_loss_weight: 0.5
-    classification_loss_type: bce
-    regression_iou_loss_type: giou
-    iou_loss_weight: 1.0
-    dfl_loss_weight: 1.5
+    classification_loss_weight: 1.0
+    classification_loss_type: focal
+    regression_iou_loss_type: ciou
+    iou_loss_weight: 2.5
+    dfl_loss_weight: 0.01
     pose_cls_loss_weight: 1.0
     pose_reg_loss_weight: 17.0
     use_cocoeval_formula: True
-    pose_classification_loss_type: bce
+    pose_classification_loss_type: focal
 
 optimizer: AdamW
 optimizer_params:

@@ -2,6 +2,8 @@ defaults:
   - coco_pose_estimation_dataset_params
   - _self_
 
+dataset_params_suffix: "mixup"
+
 train_dataset_params:
   include_empty_samples: True
   min_instance_area: 0

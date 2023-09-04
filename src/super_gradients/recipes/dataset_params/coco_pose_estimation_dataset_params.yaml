@@ -67,6 +67,7 @@ keypoint_colors:
   - [31, 119, 180]
   - [148, 103, 189]
 
+dataset_params_suffix: ""
 
 train_dataset_params:
   data_dir: /data/coco # root path to coco data

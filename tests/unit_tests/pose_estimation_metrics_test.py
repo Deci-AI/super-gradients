@@ -12,6 +12,7 @@ import torch.cuda
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
+from super_gradients.common import StrictLoad
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
@@ -26,24 +27,29 @@ from super_gradients.training.models.pose_estimation_models import YoloNASPose
 
 class TestPoseEstimationMetrics(unittest.TestCase):
     def test_yolo_nas_pose_s(self):
-        # model: YoloNASPose = models.get(
-        #     Models.YOLO_NAS_POSE_NEW_HEAD_S,
-        #     num_classes=17,
-        #     strict_load=StrictLoad.KEY_MATCHING,
-        #     checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_new_head_s_mosaic_1.0_12.0_dfl_0.01_2.5_1.0_focal/RUN_20230902_153215_812529/average_model.pth"
-        # ).eval().cuda()
-
         model: YoloNASPose = (
             models.get(
-                Models.YOLO_NAS_POSE_S,
+                Models.YOLO_NAS_POSE_NEW_HEAD_S,
                 num_classes=17,
-                # checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_v2_average_model.pth", # 585
-                checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_v2_ckpt_best.pth",  #
-                # arch_params=dict(heads=dict(YoloNASPoseNDFLHeads=dict(compensate_grid_cell_offset=False, pose_offset_multiplier=3))),
+                strict_load=StrictLoad.KEY_MATCHING,
+                #  574
+                checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_new_head_s_mosaic_1.0_12.0_dfl_0.01_2.5_1.0_focal/RUN_20230902_153215_812529/average_model.pth",  # noqa
             )
             .eval()
             .cuda()
         )
+
+        # model: YoloNASPose = (
+        #     models.get(
+        #         Models.YOLO_NAS_POSE_S,
+        #         num_classes=17,
+        #         # checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_v2_average_model.pth", # 585
+        #         checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_v2_ckpt_best.pth",  # 584
+        #         # arch_params=dict(heads=dict(YoloNASPoseNDFLHeads=dict(compensate_grid_cell_offset=False, pose_offset_multiplier=3))),
+        #     )
+        #     .eval()
+        #     .cuda()
+        # )
 
         images_path = "g:/coco2017/images/val2017"
         image_files = [os.path.join(images_path, x) for x in os.listdir(images_path)]

@@ -1,13 +1,10 @@
 defaults:
-  - coco_pose_estimation_dataset_params
+  - animalpose_pose_estimation_default_dataset_params
   - _self_
 
 dataset_params_suffix: "mosaic"
 
 train_dataset_params:
-  include_empty_samples: True
-  min_instance_area: 0
-
   transforms:
     - KeypointsRandomHorizontalFlip:
         # Note these indexes are COCO-specific. If you're using a different dataset, you'll need to change these accordingly.
@@ -62,19 +59,15 @@ train_dataset_params:
     YoloNASPoseTargetsGenerator
 
 val_dataset_params:
-  include_empty_samples: True
-  min_instance_area: 0
   target_generator:
     YoloNASPoseTargetsGenerator
 
 train_dataloader_params:
-  batch_size: 48
   pin_memory: False
   collate_fn:
     _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
 
 val_dataloader_params:
-  batch_size: 48
   pin_memory: False
   collate_fn:
     _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
