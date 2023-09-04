@@ -321,7 +321,7 @@ Output (Training parameters):
     'loss': "LabelSmoothingCrossEntropyLoss",
     'lr_cooldown_epochs': 0,
     'lr_decay_factor': 0.1,
-    'lr_mode': 'step',
+    'lr_mode': 'StepLRCallback',
     'lr_schedule_function': None,
     'lr_updates': array([100, 150, 200]),
     'lr_warmup_epochs': 0,
@@ -355,7 +355,7 @@ Output (Training parameters):
     'train_metrics_list': ['Accuracy', 'Top5'],
     'valid_metrics_list': ['Accuracy', 'Top5'],
     'warmup_initial_lr': None,
-    'warmup_mode': 'linear_epoch_step',
+    'warmup_mode': 'EpochStepWarmupLRCallback',
     'zero_weight_decay_on_bias_and_bn': False
 }
 ```

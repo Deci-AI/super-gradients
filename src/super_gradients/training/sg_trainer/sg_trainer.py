@@ -766,27 +766,29 @@ class Trainer:
 
                 - `lr_updates` : list(int)
 
-                    List of fixed epoch numbers to perform learning rate updates when `lr_mode='step'`.
+                    List of fixed epoch numbers to perform learning rate updates when `lr_mode='StepLRCallback'`.
 
                 - `lr_decay_factor` : float
 
-                    Decay factor to apply to the learning rate at each update when `lr_mode='step'`.
+                    Decay factor to apply to the learning rate at each update when `lr_mode='StepLRCallback'`.
 
 
                 -  `lr_mode` : Union[str, Mapping],
 
                     When str:
 
-                    Learning rate scheduling policy, one of ['step','poly','cosine','function'].
+                    Learning rate scheduling policy, one of ['StepLRCallback','PolyLRCallback','CosineLRCallback','FunctionLRCallback'].
 
-                    'step' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
+                    'StepLRCallback' refers to constant updates at epoch numbers passed through `lr_updates`.
+                        Each update decays the learning rate by `lr_decay_factor`.
 
-                    'cosine' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
+                    'CosineLRCallback' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
                       The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
 
-                    'poly' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
+                    'PolyLRCallback' refers to the polynomial decrease:
+                        in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
 
-                    'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
+                    'FunctionLRCallback' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
 
 
 
@@ -821,7 +823,7 @@ class Trainer:
 
                 - `lr_schedule_function` : Union[callable,None]
 
-                    Learning rate scheduling function to be used when `lr_mode` is 'function'.
+                    Learning rate scheduling function to be used when `lr_mode` is 'FunctionLRCallback'.
 
                 - `warmup_mode`: Union[str, Type[LRCallbackBase], None]
 
@@ -844,7 +846,7 @@ class Trainer:
                     The capping is done to avoid interference of warmup with epoch-based schedulers.
 
                 - `cosine_final_lr_ratio` : float (default=0.01)
-                    Final learning rate ratio (only relevant when `lr_mode`='cosine'). The cosine starts from initial_lr and reaches
+                    Final learning rate ratio (only relevant when `lr_mode`='CosineLRCallback'). The cosine starts from initial_lr and reaches
                      initial_lr * cosine_final_lr_ratio in last epoch
 
                 - `inital_lr` : float

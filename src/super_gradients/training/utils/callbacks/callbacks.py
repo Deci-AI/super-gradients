@@ -924,16 +924,18 @@ def create_lr_scheduler_callback(
 
                     When str:
 
-                    Learning rate scheduling policy, one of ['step','poly','cosine','function'].
+                    Learning rate scheduling policy, one of ['StepLRCallback','PolyLRCallback','CosineLRCallback','FunctionLRCallback'].
 
-                    'step' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
+                    'StepLRCallback' refers to constant updates at epoch numbers passed through `lr_updates`.
+                        Each update decays the learning rate by `lr_decay_factor`.
 
-                    'cosine' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
+                    'CosineLRCallback' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
                       The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
 
-                    'poly' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
+                    'PolyLRCallback' refers to the polynomial decrease:
+                        in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
 
-                    'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
+                    'FunctionLRCallback' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
 
 
 
