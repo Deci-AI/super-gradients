@@ -9,6 +9,7 @@ arch_params:
   heads:
     YoloNASPoseNDFLHeads:
       pose_offset_multiplier: 2
+      compensate_grid_cell_offset: False
 
 dataset_params:
   train_dataset_params:
