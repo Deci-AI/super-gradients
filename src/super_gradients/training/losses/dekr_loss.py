@@ -16,14 +16,14 @@ class DEKRLoss(nn.Module):
     This loss should be used in conjunction with DEKRTargetsGenerator.
     """
 
-    def __init__(self, heatmap_loss_factor: float = 1.0, offset_loss_factor: float = 0.1, heatmap_loss: str = "MSE"):
+    def __init__(self, heatmap_loss_factor: float = 1.0, offset_loss_factor: float = 0.1, heatmap_loss: str = "mse"):
         """
         Instantiate the DEKR loss function. It is two-component loss function, consisting of a heatmap (MSE) loss and an offset (Smooth L1) losses.
         The total loss is the sum of the two individual losses, weighted by the corresponding factors.
 
         :param heatmap_loss_factor: Weighting factor for heatmap loss
         :param offset_loss_factor: Weighting factor for offset loss
-        :param heatmap_loss: Type of heatmap loss to use. Can be "MSE" (Used in DEKR paper) or "qfl" (Quality Focal Loss).
+        :param heatmap_loss: Type of heatmap loss to use. Can be "mse" (Used in DEKR paper) or "qfl" (Quality Focal Loss).
                              We use QFL in our recipe as it produces better results.
         """
         super().__init__()
