@@ -7,7 +7,7 @@ Learning rate scheduling type is controlled by the training parameter `lr_mode`.
 
         When str:
 
-        Learning rate scheduling policy, one of ['StepLRCallback','PolyLRCallback','CosineLRCallback','function'].
+        Learning rate scheduling policy, one of ['StepLRCallback','PolyLRCallback','CosineLRCallback','FunctionLRCallback'].
 
         'StepLRCallback' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
 
@@ -15,7 +15,7 @@ Learning rate scheduling type is controlled by the training parameter `lr_mode`.
 
         'PolyLRCallback' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
 
-        'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
+        'FunctionLRCallback' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
 
 For example, the training code below will start with an initial learning rate of 0.1 and decay by 0.1 at epochs 100,150 and 200:
 
