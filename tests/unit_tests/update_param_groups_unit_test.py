@@ -38,7 +38,7 @@ class UpdateParamGroupsTest(unittest.TestCase):
             "lr_updates": [0, 1, 2],
             "initial_lr": 0.1,
             "lr_decay_factor": 1,
-            "loss": "cross_entropy",
+            "loss": "LabelSmoothingCrossEntropyLoss",
             "optimizer": "SGD",
             "criterion_params": {},
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},

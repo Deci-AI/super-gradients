@@ -12,7 +12,7 @@ training_params = {
     "lr_decay_factor": 0.1,
     "lr_mode": "step",
     "initial_lr": 0.1,
-    "loss": "cross_entropy",
+    "loss": "LabelSmoothingCrossEntropyLoss",
     "optimizer": "SGD",
     "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
     "train_metrics_list": [Accuracy(), Top5()],

@@ -57,7 +57,7 @@ class ConversionCallbackTest(unittest.TestCase):
                 "lr_mode": "StepLRCallback",
                 "lr_warmup_epochs": 0,
                 "initial_lr": 0.1,
-                "loss": "cross_entropy",
+                "loss": "LabelSmoothingCrossEntropyLoss",
                 "optimizer": "SGD",
                 "criterion_params": {},
                 "train_metrics_list": [Accuracy(), Top5()],
@@ -90,7 +90,7 @@ class ConversionCallbackTest(unittest.TestCase):
                 }
             elif re.search(r"regseg", architecture_name):
                 return {
-                    "loss": "cross_entropy",
+                    "loss": "LabelSmoothingCrossEntropyLoss",
                 }
             else:
                 raise Exception("You tried to run a conversion test on an unknown architecture")

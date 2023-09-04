@@ -89,7 +89,7 @@ if __name__ == "__main__":
         "initial_lr": args.lr,
         "optimizer": "SGD",
         "optimizer_params": {"weight_decay": 0.0001, "momentum": 0.9, "nesterov": True},
-        "loss": "cross_entropy",
+        "loss": "LabelSmoothingCrossEntropyLoss",
         "train_metrics_list": [Accuracy(), Top5()],
         "valid_metrics_list": [Accuracy(), Top5()],
         "test_metrics_list": [Accuracy(), Top5()],

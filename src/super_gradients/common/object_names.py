@@ -17,22 +17,6 @@ class Losses:
     DEKR_LOSS = "DEKRLoss"
     RESCORING_LOSS = "RescoringLoss"
 
-    _DEPRECATED_CROSS_ENTROPY = "cross_entropy"
-    _DEPRECATED_MSE = "mse"
-    _DEPRECATED_R_SQUARED_LOSS = "r_squared_loss"
-    _DEPRECATED_SHELFNET_OHEM_LOSS = "shelfnet_ohem_loss"
-    _DEPRECATED_SHELFNET_SE_LOSS = "shelfnet_se_loss"
-    _DEPRECATED_YOLOX_LOSS = "yolox_loss"
-    _DEPRECATED_PPYOLOE_LOSS = "ppyoloe_loss"
-    _DEPRECATED_YOLOX_FAST_LOSS = "yolox_fast_loss"
-    _DEPRECATED_SSD_LOSS = "ssd_loss"
-    _DEPRECATED_STDC_LOSS = "stdc_loss"
-    _DEPRECATED_BCE_DICE_LOSS = "bce_dice_loss"
-    _DEPRECATED_KD_LOSS = "kd_loss"
-    _DEPRECATED_DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
-    _DEPRECATED_DEKR_LOSS = "dekr_loss"
-    _DEPRECATED_RESCORING_LOSS = "rescoring_loss"
-
 
 class Metrics:
     """Static class holding all the supported metric names"""

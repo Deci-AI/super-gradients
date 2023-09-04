@@ -102,7 +102,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": "yolox_loss",
+            "loss": "YoloXDetectionLoss",
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
             "train_metrics_list": [],
             "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80)],
@@ -173,7 +173,7 @@ class PreprocessingUnitTest(unittest.TestCase):
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": "yolox_loss",
+            "loss": "YoloXDetectionLoss",
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
             "train_metrics_list": [],
             "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80)],

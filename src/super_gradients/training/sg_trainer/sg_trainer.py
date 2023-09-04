@@ -856,13 +856,13 @@ class Trainer:
                     Loss function for training.
                     One of SuperGradient's built in options:
 
-                              "cross_entropy": LabelSmoothingCrossEntropyLoss,
-                              "mse": MSELoss,
-                              "r_squared_loss": RSquaredLoss,
-                              "detection_loss": YoLoV3DetectionLoss,
-                              "shelfnet_ohem_loss": ShelfNetOHEMLoss,
-                              "shelfnet_se_loss": ShelfNetSemanticEncodingLoss,
-                              "ssd_loss": SSDLoss,
+                        - LabelSmoothingCrossEntropyLoss,
+                        - MSELoss,
+                        - RSquaredLoss,
+                        - YoLoV3DetectionLoss,
+                        - ShelfNetOHEMLoss,
+                        - ShelfNetSemanticEncodingLoss,
+                        - SSDLoss,
 
 
                     or user defined nn.module loss function.

@@ -31,7 +31,7 @@ model = ...
 
 train_params = {
    ...
-   "loss": "cross_entropy",
+   "loss": "LabelSmoothingCrossEntropyLoss",
    "criterion_params": {}
    ...
 }
@@ -42,7 +42,7 @@ Since most IDEs support auto-completion, for your convenience, you can use our o
 ```python
 from super_gradients.common.object_names import Losses
 ```
-Then simply instead of "cross_entropy", use 
+Then simply instead of "LabelSmoothingCrossEntropyLoss", use 
 ```python
 Losses.CROSS_ENTROPY
 ```

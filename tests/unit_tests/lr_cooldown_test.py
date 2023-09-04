@@ -23,7 +23,7 @@ class LRCooldownTest(unittest.TestCase):
             "lr_cooldown_epochs": 2,
             "lr_warmup_epochs": 3,
             "initial_lr": 1,
-            "loss": "cross_entropy",
+            "loss": "LabelSmoothingCrossEntropyLoss",
             "optimizer": "SGD",
             "criterion_params": {},
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},

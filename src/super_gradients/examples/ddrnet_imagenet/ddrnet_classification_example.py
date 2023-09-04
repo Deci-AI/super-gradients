@@ -45,7 +45,7 @@ train_params_ddr = {
     "initial_lr": 0.1 * devices,
     "optimizer": "SGD",
     "optimizer_params": {"weight_decay": 0.0001, "momentum": 0.9, "nesterov": True},
-    "loss": "cross_entropy",
+    "loss": "LabelSmoothingCrossEntropyLoss",
     "train_metrics_list": [Accuracy(), Top5()],
     "valid_metrics_list": [Accuracy(), Top5()],
     "metric_to_watch": "Accuracy",

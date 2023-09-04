@@ -59,7 +59,7 @@ def main(architecture_name: str):
         "lr_mode": "StepLRCallback",
         "lr_warmup_epochs": 0,
         "initial_lr": 0.1,
-        "loss": "cross_entropy",
+        "loss": "LabelSmoothingCrossEntropyLoss",
         "optimizer": "SGD",
         "criterion_params": {},
         "train_metrics_list": [Accuracy(), Top5()],

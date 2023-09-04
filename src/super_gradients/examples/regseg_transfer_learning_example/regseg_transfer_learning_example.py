@@ -45,7 +45,7 @@ train_params = {
     "cosine_final_lr_ratio": 0.1,
     "multiply_head_lr": 10,
     "optimizer": "SGD",
-    "loss": "bce_dice_loss",
+    "loss": "BCEDiceLoss",
     "ema": True,
     "zero_weight_decay_on_bias_and_bn": True,
     "average_best_models": True,

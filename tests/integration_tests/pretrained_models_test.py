@@ -86,7 +86,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "lr_updates": [1],
             "lr_decay_factor": 0.1,
             "initial_lr": 0.6,
-            "loss": "cross_entropy",
+            "loss": "LabelSmoothingCrossEntropyLoss",
             "lr_mode": "StepLRCallback",
             "optimizer_params": {"weight_decay": 0.000, "momentum": 0.9},
             "train_metrics_list": [Accuracy()],
@@ -133,7 +133,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "cosine_final_lr_ratio": 0.01,
             "lr_warmup_epochs": 3,
             "batch_accumulate": 1,
-            "loss": "ssd_loss",
+            "loss": "SSDLoss",
             "criterion_params": {"dboxes": ssd_dboxes},
             "optimizer": "SGD",
             "warmup_momentum": 0.8,
@@ -150,7 +150,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": "yolox_loss",
+            "loss": "YoloXDetectionLoss",
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 5},  # output strides of all yolo outputs
             "train_metrics_list": [],
             "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=5)],
@@ -246,7 +246,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.regseg_transfer_segmentation_train_params = {
             "max_epochs": 3,
             "initial_lr": 1e-2,
-            "loss": "cross_entropy",
+            "loss": "LabelSmoothingCrossEntropyLoss",
             "lr_mode": "PolyLRCallback",
             "ema": True,  # unlike the paper (not specified in paper)
             "optimizer": "SGD",

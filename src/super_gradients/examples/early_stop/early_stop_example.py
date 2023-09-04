@@ -21,7 +21,7 @@ train_params = {
     "lr_mode": "StepLRCallback",
     "lr_warmup_epochs": 0,
     "initial_lr": 0.1,
-    "loss": "cross_entropy",
+    "loss": "LabelSmoothingCrossEntropyLoss",
     "optimizer": "SGD",
     "criterion_params": {},
     "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},

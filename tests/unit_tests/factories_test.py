@@ -24,7 +24,7 @@ class FactoriesTest(unittest.TestCase):
             "lr_mode": "StepLRCallback",
             "lr_warmup_epochs": 0,
             "initial_lr": 0.1,
-            "loss": "cross_entropy",
+            "loss": "LabelSmoothingCrossEntropyLoss",
             "optimizer": "torch.optim.ASGD",  # use an optimizer by factory
             "criterion_params": {},
             "optimizer_params": {"lambd": 0.0001, "alpha": 0.75},

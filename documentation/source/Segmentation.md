@@ -148,7 +148,7 @@ train_params = {
     "lr_warmup_epochs": 5,
     "multiply_head_lr": 10,
     "optimizer": "SGD",
-    "loss": "bce_dice_loss",
+    "loss": "BCEDiceLoss",
     "ema": True,
     "zero_weight_decay_on_bias_and_bn": True,
     "average_best_models": True,
