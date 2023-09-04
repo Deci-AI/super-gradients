@@ -18,7 +18,7 @@ experiment_name: ${architecture}_cityscapes
 training_hyperparams:
   max_epochs: 2
 
-  lr_mode: poly
+  lr_mode: PolyLRCallback
   initial_lr: 0.00006  # for effective batch_size=8
 
   mixed_precision: True

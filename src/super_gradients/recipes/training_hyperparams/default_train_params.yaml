@@ -13,7 +13,7 @@ resume_from_remote_sg_logger: False # bool (default=False), When true, ckpt_name
 ckpt_name: ckpt_latest.pth  # The checkpoint (.pth file) filename in CKPT_ROOT_DIR/EXPERIMENT_NAME/ to use when resume=True and resume_path=None
 
 lr_mode: # Union[str, Mapping]
-         # when str: Learning rate scheduling policy, one of ['step','poly','cosine','function']
+         # when str: Learning rate scheduling policy, one of ["StepLRCallback", "PolyLRCallback", "CosineLRCallback", "ExponentialLRCallback", "FunctionLRCallback"]
          # when Mapping: refers to a torch.optim.lr_scheduler._LRScheduler, following the below API: lr_mode = {LR_SCHEDULER_CLASS_NAME: {**LR_SCHEDULER_KWARGS, "phase": XXX, "metric_name": XXX)
 
 lr_schedule_function: # Learning rate scheduling function to be used when `lr_mode` is 'function'.

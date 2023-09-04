@@ -52,7 +52,7 @@ training_hyperparams:
   sync_bn: True
   resume: ${resume}
   max_epochs: 800
-  lr_mode: poly
+  lr_mode: PolyLRCallback
   initial_lr: 0.02   # for effective batch_size=16
   lr_warmup_epochs: 0
   optimizer: SGD

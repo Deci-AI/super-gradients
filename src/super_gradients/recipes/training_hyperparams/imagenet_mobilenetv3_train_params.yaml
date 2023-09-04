@@ -2,7 +2,7 @@ defaults:
   - default_train_params
 
 max_epochs: 150
-lr_mode: cosine
+lr_mode: CosineLRCallback
 initial_lr: 0.1
 optimizer: SGD
 

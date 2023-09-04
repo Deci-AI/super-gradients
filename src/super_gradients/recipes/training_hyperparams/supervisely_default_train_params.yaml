@@ -2,7 +2,7 @@ defaults:
   - default_train_params
 
 max_epochs: 100
-lr_mode: cosine
+lr_mode: CosineLRCallback
 cosine_final_lr_ratio: 0.01
 initial_lr: 0.1
 lr_warmup_epochs: 0
