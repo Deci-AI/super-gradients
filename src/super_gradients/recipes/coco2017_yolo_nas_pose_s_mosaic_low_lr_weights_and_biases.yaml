@@ -1,0 +1,32 @@
+defaults:
+  - coco2017_yolo_nas_pose_s
+  - override dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
+  - _self_
+
+experiment_suffix: _mosaic_low_lr
+
+arch_params:
+  heads:
+    YoloNASPoseNDFLHeads:
+      pose_offset_multiplier: 2
+
+dataset_params:
+  train_dataset_params:
+    include_empty_samples: False
+
+training_hyperparams:
+  initial_lr: 1e-4
+  cosine_final_lr_ratio: 0.1
+
+  sg_logger: wandb_sg_logger
+  sg_logger_params:
+    api_server: https://wandb.research.deci.ai
+    entity: super-gradients
+    launch_tensorboard: false
+    monitor_system: true
+    project_name: PoseEstimation
+    save_checkpoints_remote: true
+    save_logs_remote: true
+    save_tensorboard_remote: true
+    tb_files_user_prompt: false
+    tensorboard_port: null
