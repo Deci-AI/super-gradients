@@ -20,7 +20,7 @@ optimizer_params:
   alpha: 0.9
   eps: 0.001
 
-loss: cross_entropy
+loss: LabelSmoothingCrossEntropyLoss
 
 zero_weight_decay_on_bias_and_bn: True
 ema: True

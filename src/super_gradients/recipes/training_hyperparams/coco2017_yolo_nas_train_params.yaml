@@ -18,7 +18,7 @@ batch_accumulate: 1
 save_ckpt_epoch_list: [100, 200, 250]
 
 loss:
-  ppyoloe_loss:
+  PPYoloELoss:
     use_static_assigner: False
     num_classes: ${arch_params.num_classes}
     reg_max: 16

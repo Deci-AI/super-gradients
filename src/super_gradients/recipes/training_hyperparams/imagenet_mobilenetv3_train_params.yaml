@@ -10,7 +10,7 @@ optimizer_params:
   weight_decay: 0.00004
 
 lr_warmup_epochs: 5
-loss: cross_entropy
+loss: LabelSmoothingCrossEntropyLoss
 criterion_params:
   smooth_eps: 0.1
 

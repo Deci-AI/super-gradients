@@ -12,7 +12,7 @@ zero_weight_decay_on_bias_and_bn: True
 optimizer: Lamb
 optimizer_params:
   weight_decay: 0.02
-loss: cross_entropy
+loss: LabelSmoothingCrossEntropyLoss
 train_metrics_list:                               # metrics for evaluation
   - Accuracy
   - Top5

@@ -3,7 +3,7 @@ defaults:
 
 max_epochs: 150
 initial_lr: 5e-3
-loss: shelfnet_ohem_loss
+loss: ShelfNetOHEMLoss
 optimizer: SGD
 mixed_precision: True
 batch_accumulate: 3

@@ -318,7 +318,7 @@ Output (Training parameters):
     'launch_tensorboard': False,
     'load_opt_params': True,
     'log_installed_packages': True,
-    'loss': 'cross_entropy',
+    'loss': "LabelSmoothingCrossEntropyLoss",
     'lr_cooldown_epochs': 0,
     'lr_decay_factor': 0.1,
     'lr_mode': 'step',

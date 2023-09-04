@@ -12,7 +12,7 @@ lr_mode: CosineLRCallback
 cosine_final_lr_ratio: 0.1
 batch_accumulate: 1
 initial_lr: 1e-3
-loss: dekr_loss
+loss: DEKRLoss
 
 criterion_params:
   heatmap_loss: qfl

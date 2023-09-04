@@ -12,7 +12,7 @@ batch_accumulate: 1
 
 save_ckpt_epoch_list: [285]
 
-loss: yolox_loss
+loss: YoloXDetectionLoss
 
 criterion_params:
   strides: [8, 16, 32]  # output strides of all yolo outputs

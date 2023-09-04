@@ -7,7 +7,7 @@ lr_mode: CosineLRCallback
 cosine_final_lr_ratio: 0.01
 batch_accumulate: 1
 initial_lr: 0.01
-loss: ssd_loss
+loss: SSDLoss
 
 criterion_params:
   alpha: 1.0

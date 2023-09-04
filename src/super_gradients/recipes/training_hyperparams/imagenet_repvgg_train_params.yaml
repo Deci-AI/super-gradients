@@ -6,7 +6,7 @@ lr_mode: CosineLRCallback
 initial_lr: 0.1
 cosine_final_lr_ratio: 0
 
-loss: cross_entropy
+loss: LabelSmoothingCrossEntropyLoss
 
 zero_weight_decay_on_bias_and_bn: True
 average_best_models: True

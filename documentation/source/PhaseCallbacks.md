@@ -30,7 +30,7 @@ off augmentations and incorporate L1 loss starting from epoch 285:
 max_epochs: 300
 ...
 
-loss: yolox_loss
+loss: YoloXDetectionLoss
 
 ...
 
