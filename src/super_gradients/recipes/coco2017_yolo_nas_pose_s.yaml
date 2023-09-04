@@ -17,7 +17,7 @@ bbox_reg_loss_suffix: ${training_hyperparams.criterion_params.regression_iou_los
 pose_cls_loss_suffix: pose_${training_hyperparams.criterion_params.pose_classification_loss_type}_${training_hyperparams.criterion_params.pose_cls_loss_weight}
 pose_reg_loss_suffix: reg_${training_hyperparams.criterion_params.pose_reg_loss_weight}
 
-head_suffix: head_${cond:${arch_params.heads.YoloNASPoseNDFLHeads.compensate_grid_cell_offset},comp_off,no_comp}_scale_${arch_params.heads.YoloNASPoseNDFLHeads.pose_offset_multiplier}_${cond:${arch_params.heads.YoloNASPoseNDFLHeads.box_center_is_anchor_point},from_center,from_anchors}
+head_suffix: head_${cond:${arch_params.heads.YoloNASPoseNDFLHeads.compensate_grid_cell_offset},comp_off,no_comp}_scale_${arch_params.heads.YoloNASPoseNDFLHeads.pose_offset_multiplier}
 
 experiment_suffix:
 
