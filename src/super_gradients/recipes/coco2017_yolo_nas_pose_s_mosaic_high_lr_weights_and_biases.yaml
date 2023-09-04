@@ -9,10 +9,11 @@ arch_params:
   heads:
     YoloNASPoseNDFLHeads:
       pose_offset_multiplier: 2
+      compensate_grid_cell_offset: False
 
 dataset_params:
   train_dataset_params:
-    include_empty_samples: False
+    include_empty_samples: True
 
 training_hyperparams:
   initial_lr: 8e-3

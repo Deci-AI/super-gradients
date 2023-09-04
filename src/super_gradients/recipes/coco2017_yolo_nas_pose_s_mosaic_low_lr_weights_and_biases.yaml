@@ -13,7 +13,7 @@ arch_params:
 
 dataset_params:
   train_dataset_params:
-    include_empty_samples: False
+    include_empty_samples: True
 
 training_hyperparams:
   initial_lr: 1e-4
