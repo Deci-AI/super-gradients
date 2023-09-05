@@ -36,6 +36,9 @@ checkpoint_params:
     _target_: super_gradients.training.sg_trainer.StrictLoad
     value: key_matching
 
+training_hyperparams:
+  phase_callbacks: [] # Disable visualization
+
 dataset_params:
   train_dataloader_params:
     batch_size: 56
