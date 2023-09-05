@@ -196,7 +196,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         :return:Tuple[np.ndarray, np.ndarray], the predictions batch, the GT batch
         """
         inputs = self.universal_undo_preprocessing_fn(self.extreme_batch)
-        target_boxes, target_joints = self.extreme_targets
+        target_boxes, target_joints, target_crowds = self.extreme_targets
         predictions = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
 
         images_to_save_preds = self.visualize_batch(
