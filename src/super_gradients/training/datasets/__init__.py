@@ -20,10 +20,18 @@ from super_gradients.training.datasets.segmentation_datasets.pascal_voc_segmenta
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset, CityscapesConcatDataset
 from super_gradients.training.datasets.segmentation_datasets.coco_segmentation import CoCoSegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
-from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
+from super_gradients.training.datasets.pose_estimation_datasets import (
+    COCOKeypointsDataset,
+    AnimalPoseKeypointsDataset,
+    CrowdPoseKeypointsDataset,
+    BaseKeypointsDataset,
+)
 
 
 __all__ = [
+    "BaseKeypointsDataset",
+    "CrowdPoseKeypointsDataset",
+    "AnimalPoseKeypointsDataset",
     "DataAugmentation",
     "ListDataset",
     "DirectoryDataSet",

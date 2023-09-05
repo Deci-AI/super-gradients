@@ -419,6 +419,7 @@ class Datasets:
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
     ANIMALPOSE_KEY_POINTS_DATASET = "AnimalPoseKeypointsDataset"
+    CROWDPOSE_KEY_POINTS_DATASET = "CrowdPoseKeypointsDataset"
 
 
 class Processings:

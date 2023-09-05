@@ -59,9 +59,8 @@ coco2017_yolo_nas_pose_s_mosaic_rescale:
 
 
 
-
-
-
+crowdpose_yolo_nas_pose_s:
+	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s
 
 
 coco2017_yolo_nas_pose_s_sgd_local:
