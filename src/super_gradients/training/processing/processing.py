@@ -417,6 +417,13 @@ class KeypointsLongestMaxSizeRescale(_LongestMaxSizeRescale):
         return predictions
 
 
+@register_processing(Processings.KeypointsRescale)
+class KeypointsRescale(_Rescale):
+    def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: RescaleMetadata) -> PoseEstimationPrediction:
+        predictions.poses = _rescale_keypoints(targets=predictions.poses, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+        return predictions
+
+
 class ClassificationProcess(Processing, ABC):
     def postprocess_predictions(self, predictions: Prediction, metadata: None) -> Prediction:
         return predictions

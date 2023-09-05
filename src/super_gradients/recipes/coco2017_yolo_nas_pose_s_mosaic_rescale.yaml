@@ -1,0 +1,4 @@
+defaults:
+  - coco2017_yolo_nas_pose_s
+  - override dataset_params: coco_pose_estimation_yolo_nas_mosaic_rescale_dataset_params
+  - _self_

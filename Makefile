@@ -46,8 +46,11 @@ coco2017_yolo_nas_pose_s_mosaic_high_lr_weights_and_biases:
 coco2017_yolo_nas_pose_s_mosaic_low_lr_weights_and_biases:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mosaic_low_lr_weights_and_biases
 
+coco2017_yolo_nas_pose_s_mosaic_rescale_wandb:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mosaic_rescale_wandb
+
 coco2017_yolo_nas_pose_s_sgd_local:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_sgd_local
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_sgd_local num_workers=16
 
 animalpose_gridsearch:
 	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/train_from_recipe.py -m --config-name=animalpose_yolo_nas_pose_s_grid_search arch_params.heads.YoloNASPoseNDFLHeads.compensate_grid_cell_offset=False  arch_params.heads.YoloNASPoseNDFLHeads.pose_offset_multiplier=1.0 dataset_params=animalpose_pose_estimation_yolo_nas_pose_dataset_params,animalpose_pose_estimation_yolo_nas_mosaic_pose_dataset_params &

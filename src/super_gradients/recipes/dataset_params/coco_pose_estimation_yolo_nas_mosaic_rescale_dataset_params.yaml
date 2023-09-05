@@ -1,0 +1,87 @@
+defaults:
+  - coco_pose_estimation_dataset_params
+  - _self_
+
+dataset_params_suffix: "mosaic_rescale"
+
+train_dataset_params:
+  include_empty_samples: True
+  min_instance_area: 0
+
+  transforms:
+    - KeypointsRandomHorizontalFlip:
+        # Note these indexes are COCO-specific. If you're using a different dataset, you'll need to change these accordingly.
+        flip_index: ${dataset_params.flip_indexes}
+        prob: 0.5
+
+    - KeypointsHSV:
+        prob: 0.5
+        hgain: 20
+        sgain: 20
+        vgain: 20
+
+    - KeypointsBrightnessContrast:
+        prob: 0.5
+        brightness_range: [ 0.8, 1.2 ]
+        contrast_range: [ 0.8, 1.2 ]
+
+    - KeypointsRandomAffineTransform:
+        max_rotation: 0
+        min_scale: 0.5
+        max_scale: 1.5
+        max_translate: 0.1
+        image_pad_value: 127
+        mask_pad_value: 1
+        prob: 0.75
+        interpolation_mode: [0, 1, 2, 3, 4]
+
+    - KeypointsMosaic:
+        prob: 0.8
+
+    - KeypointsRescale:
+        height: 640
+        width: 640
+
+    - KeypointsImageStandardize:
+        max_value: 255
+
+    - KeypointsImageNormalize:
+        mean: [ 0.485, 0.456, 0.406 ]
+        std: [ 0.229, 0.224, 0.225 ]
+
+    - KeypointsImageToTensor
+
+  target_generator:
+    YoloNASPoseTargetsGenerator
+
+val_dataset_params:
+  include_empty_samples: True
+  min_instance_area: 0
+  transforms:
+    - KeypointsRescale:
+        height: 640
+        width: 640
+
+    - KeypointsImageStandardize:
+        max_value: 255
+
+    - KeypointsImageNormalize:
+        mean: [ 0.485, 0.456, 0.406 ]
+        std: [ 0.229, 0.224, 0.225 ]
+
+    - KeypointsImageToTensor
+
+  target_generator:
+    YoloNASPoseTargetsGenerator
+
+train_dataloader_params:
+  batch_size: 48
+  pin_memory: False
+  collate_fn:
+    _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
+
+val_dataloader_params:
+  batch_size: 48
+  pin_memory: False
+  collate_fn:
+    _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN

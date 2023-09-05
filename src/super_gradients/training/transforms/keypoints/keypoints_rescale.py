@@ -29,8 +29,8 @@ class KeypointsRescale(KeypointTransform):
     def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         if random.random() < self.prob:
             height, width = sample.image.shape[:2]
-            sx = self.max_height / height
-            sy = self.max_width / width
+            sy = self.height / height
+            sx = self.width / width
 
             sample.image = self.apply_to_image(sample.image, dsize=(self.width, self.height), interpolation=self.interpolation)
             sample.mask = self.apply_to_image(sample.mask, dsize=(self.width, self.height), interpolation=cv2.INTER_NEAREST)
@@ -59,8 +59,8 @@ class KeypointsRescale(KeypointTransform):
     @classmethod
     def apply_to_bboxes(cls, bboxes, sx, sy):
         bboxes = bboxes.astype(np.float32, copy=True)
-        bboxes[:, :, [0, 2]] *= sx
-        bboxes[:, :, [1, 3]] *= sy
+        bboxes[:, 0::2] *= sx
+        bboxes[:, 1::2] *= sy
         return bboxes
 
     def __repr__(self):
