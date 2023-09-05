@@ -19,8 +19,7 @@ pose_reg_loss_suffix: reg_${training_hyperparams.criterion_params.pose_reg_loss_
 
 head_suffix: head_${cond:${arch_params.heads.YoloNASPoseNDFLHeads.compensate_grid_cell_offset},comp_off,no_comp}_scale_${arch_params.heads.YoloNASPoseNDFLHeads.pose_offset_multiplier}
 
-experiment_suffix:
-
+experiment_suffix: ""
 experiment_name: coco2017_${architecture}_${bbox_cls_loss_suffix}_${bbox_reg_loss_suffix}_${pose_cls_loss_suffix}_${pose_reg_loss_suffix}_${head_suffix}_${dataset_params.dataset_params_suffix}${experiment_suffix}
 
 ckpt_root_dir:
