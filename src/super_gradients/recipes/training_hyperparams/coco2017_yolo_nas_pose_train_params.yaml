@@ -4,7 +4,7 @@ defaults:
 max_epochs: 300
 
 warmup_mode: "linear_epoch_step"
-warmup_initial_lr:  1e-6
+warmup_initial_lr:  1e-5
 lr_warmup_steps: 1000
 lr_warmup_epochs: 10
 

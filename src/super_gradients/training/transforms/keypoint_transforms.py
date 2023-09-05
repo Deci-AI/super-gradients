@@ -33,7 +33,9 @@ class PoseEstimationSample:
     :attr image: Input image in [H,W,C] format
     :attr mask: Target mask in [H,W] format
     :attr joints: Target joints in [NumInstances, NumJoints, 3] format. Last dimension contains (x,y,visibility) for each joint.
-    :attr areas: (Optional) Numpy array of [N] shape with area of each instance
+    :attr areas: (Optional) Numpy array of [N] shape with area of each instance.
+    Note this is not a bbox area, but area of the object itself.
+    One may use a heuristic `0.53 * box area` as object area approximation if this is not provided.
     :attr bboxes: (Optional) Numpy array of [N,4] shape with bounding box of each instance (XYWH)
     :attr additional_samples: (Optional) List of additional samples for the same image.
     :attr is_crowd: (Optional) Numpy array of [N] shape with is_crowd flag for each instance
@@ -73,7 +75,25 @@ class KeypointTransform(object):
         return w * h
 
     @classmethod
+    def filter_invisible_bboxes(cls, sample: PoseEstimationSample, min_area=1) -> PoseEstimationSample:
+        if sample.bboxes is None:
+            area = cls.compute_area_of_joints_bounding_box(sample.joints)
+        else:
+            area = sample.bboxes[..., 2:4].prod(axis=-1)
+
+        keep_mask = area > min_area
+
+        sample.joints = sample.joints[keep_mask]
+        sample.is_crowd = sample.is_crowd[keep_mask]
+        if sample.bboxes is not None:
+            sample.bboxes = sample.bboxes[keep_mask]
+        if sample.areas is not None:
+            sample.areas = sample.areas[keep_mask]
+        return sample
+
+    @classmethod
     def filter_invisible_poses(cls, sample: PoseEstimationSample, min_instance_area=1) -> PoseEstimationSample:
+
         # Filter instances with all invisible keypoints
         visible_joints_mask = sample.joints[:, :, 2] > 0
         keep_mask = np.sum(visible_joints_mask, axis=-1) > 0
@@ -100,7 +120,7 @@ class KeypointTransform(object):
     def apply_post_transform_sanitization(cls, sample: PoseEstimationSample) -> PoseEstimationSample:
         """
         Apply post-transform sanitization to joints, keypoints, boxes and areax which includes:
-        - Clamping box coordiates to stay within image boundaries
+        - Clamping box coordinates to stay within image boundaries
         - Updating visibility status of keypoints is they are outside of image boundaries
         - Updating area if bbox clipping occurs
         """
@@ -112,8 +132,8 @@ class KeypointTransform(object):
 
         # Clamp bboxes to image boundaries
         clamped_boxes = xywh_to_xyxy(sample.bboxes, image_shape=None)
-        clamped_boxes[..., [0, 2]] = np.clip(clamped_boxes[..., [0, 2]], 0, image_width)
-        clamped_boxes[..., [1, 3]] = np.clip(clamped_boxes[..., [1, 3]], 0, image_height)
+        clamped_boxes[..., [0, 2]] = np.clip(clamped_boxes[..., [0, 2]], 0, image_width - 1)
+        clamped_boxes[..., [1, 3]] = np.clip(clamped_boxes[..., [1, 3]], 0, image_height - 1)
         clamped_boxes = xyxy_to_xywh(clamped_boxes, image_shape=None)
 
         # Update joints visibility status

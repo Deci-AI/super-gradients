@@ -34,20 +34,35 @@ sweeper_test:
 examples_to_docs:
 	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute src/super_gradients/examples/model_export/models_export.ipynb
 
+
+test:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_dataset_params                  training_hyperparams.max_train_batches=512 training_hyperparams.max_valid_batches=512 training_hyperparams.max_epochs=1 dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_rescale_dataset_params          training_hyperparams.max_train_batches=512 training_hyperparams.max_valid_batches=512 training_hyperparams.max_epochs=1 dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_mosaic_dataset_params           training_hyperparams.max_train_batches=512 training_hyperparams.max_valid_batches=512 training_hyperparams.max_epochs=1 dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_mixup_dataset_params            training_hyperparams.max_train_batches=512 training_hyperparams.max_valid_batches=512 training_hyperparams.max_epochs=1 dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_mosaic_rescale_dataset_params   training_hyperparams.max_train_batches=512 training_hyperparams.max_valid_batches=512 training_hyperparams.max_epochs=1 dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017
+
 coco2017_yolo_nas_pose_s:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_dataset_params
+
+coco2017_yolo_nas_pose_s_rescale:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_rescale_dataset_params
+
+coco2017_yolo_nas_pose_s_mosaic:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_mosaic_dataset_params
 
 coco2017_yolo_nas_pose_s_mixup:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mosaic_weights_and_biases
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_mixup_dataset_params
 
-coco2017_yolo_nas_pose_s_mosaic_high_lr_weights_and_biases:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mosaic_high_lr_weights_and_biases
+coco2017_yolo_nas_pose_s_mosaic_rescale:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_mosaic_rescale_dataset_params
 
-coco2017_yolo_nas_pose_s_mosaic_low_lr_weights_and_biases:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mosaic_low_lr_weights_and_biases
 
-coco2017_yolo_nas_pose_s_mosaic_rescale_wandb:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_mosaic_rescale_wandb
+
+
+
+
+
 
 coco2017_yolo_nas_pose_s_sgd_local:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_sgd_local num_workers=16
