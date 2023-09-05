@@ -55,19 +55,23 @@ class YoloNASPoseTargetsCollateFN:
         images = []
         all_boxes = []
         all_joints = []
+        all_crowd_masks = []
         extras = []
 
         for image, (boxes, joints), extra in batch:
             images.append(image)
             all_boxes.append(torch.from_numpy(boxes))
             all_joints.append(torch.from_numpy(joints))
+            is_crowd = extra.get("gt_is_crowd", np.zeros(len(boxes)).reshape((-1, 1)))
+            all_crowd_masks.append(torch.from_numpy(is_crowd.astype(int)))
             extras.append(extra)
 
         images = default_collate(images)
         boxes = flat_collate_tensors_with_batch_index(all_boxes)
         joints = flat_collate_tensors_with_batch_index(all_joints)
+        crowd_poses = flat_collate_tensors_with_batch_index(all_crowd_masks)
         extras = {k: [dic[k] for dic in extras] for k in extras[0]}  # Convert list of dicts to dict of lists
-        return images, (boxes, joints), extras
+        return images, (boxes, joints, crowd_poses), extras
 
 
 def flat_collate_tensors_with_batch_index(labels_batch: List[Tensor]) -> Tensor:
