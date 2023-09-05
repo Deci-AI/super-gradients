@@ -226,7 +226,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         images_to_save_gt = np.stack(images_to_save_gt)
 
         # Stack the predictions and GT images together
-        return np.stack([images_to_save_gt, images_to_save_preds], axis=2)
+        return np.concatenate([images_to_save_gt, images_to_save_preds], axis=2)
 
     def on_train_loader_end(self, context: PhaseContext) -> None:
         if self.enable_on_train_loader and context.epoch % self.freq == 0:
