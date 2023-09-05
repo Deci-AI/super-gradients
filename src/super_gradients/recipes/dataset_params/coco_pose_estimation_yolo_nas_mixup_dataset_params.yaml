@@ -34,9 +34,6 @@ train_dataset_params:
         prob: 0.75
         interpolation_mode: [0, 1, 2, 3, 4]
 
-    - KeypointsMixup:
-        prob: 0.5
-
     - KeypointsLongestMaxSize:
         max_height: 640
         max_width: 640
@@ -47,6 +44,9 @@ train_dataset_params:
         image_pad_value: [127, 127, 127]
         mask_pad_value: 1
         padding_mode: center
+
+    - KeypointsMixup:
+        prob: 0.5
 
     - KeypointsImageStandardize:
         max_value: 255
