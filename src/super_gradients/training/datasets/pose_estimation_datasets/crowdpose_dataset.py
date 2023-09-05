@@ -121,6 +121,10 @@ class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
         gt_areas = gt_bboxes[:, 2] * gt_bboxes[:, 3] * 0.53
 
         orig_image = cv2.imread(file_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+        if orig_image is None:
+            from PIL import Image
+
+            orig_image = Image.open(file_path).convert("BGR")
 
         if orig_image.shape[0] != image_info["height"] or orig_image.shape[1] != image_info["width"]:
             raise RuntimeError(f"Annotated image size ({image_info['height'],image_info['width']}) does not match image size in file {orig_image.shape[:2]}")
