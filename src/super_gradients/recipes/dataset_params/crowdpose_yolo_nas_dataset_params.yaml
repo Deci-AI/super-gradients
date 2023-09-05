@@ -57,7 +57,7 @@ keypoint_colors:
 dataset_params_suffix: "default"
 
 train_dataset_params:
-  data_dir: g:/crowdpose
+  data_dir: /home/bloodaxe/data/crowdpose
   images_dir: images
   json_file: crowdpose_trainval.json
 
@@ -114,7 +114,7 @@ train_dataset_params:
     YoloNASPoseTargetsGenerator
 
 val_dataset_params:
-  data_dir: g:/crowdpose
+  data_dir: /home/bloodaxe/data/crowdpose
   images_dir: images
   json_file: crowdpose_test.json
 
