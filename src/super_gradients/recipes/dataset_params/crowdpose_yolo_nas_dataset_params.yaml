@@ -150,6 +150,8 @@ train_dataloader_params:
   batch_size: 8
   num_workers: 8
   drop_last: True
+  pin_memory: False
+  persistent_workers: True
   shuffle: True
   collate_fn:
     _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
@@ -161,5 +163,6 @@ val_dataloader_params:
   drop_last: False
   shuffle: False
   pin_memory: False
+  persistent_workers: True
   collate_fn:
     _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
