@@ -12,6 +12,6 @@ training_hyperparams:
     project_name: PoseEstimation
     save_checkpoints_remote: true
     save_logs_remote: true
-    save_tensorboard_remote: true
+    save_tensorboard_remote: false
     tb_files_user_prompt: false
     tensorboard_port: null
