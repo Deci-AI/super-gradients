@@ -38,6 +38,20 @@ training_hyperparams:
     rescale_pose_loss_with_assigned_score: True
     pose_reg_loss_weight: 10
 
+  sg_logger: wandb_sg_logger
+  sg_logger_params:
+    api_server: https://wandb.research.deci.ai
+    entity: super-gradients
+    launch_tensorboard: false
+    monitor_system: true
+    project_name: PoseEstimation
+    save_checkpoints_remote: true
+    save_logs_remote: true
+    save_tensorboard_remote: false
+    tb_files_user_prompt: false
+    tensorboard_port: null
+
+
 checkpoint_params:
   # For training Yolo-NAS-S pose estimation model we use pretrained weights for Yolo-NAS-S object detection model.
   # By setting strict_load: key_matching we load only those weights that match the keys of the model.
