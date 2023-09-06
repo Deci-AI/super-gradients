@@ -51,17 +51,20 @@ coco2017_yolo_nas_pose_s_rescale:
 coco2017_yolo_nas_pose_s_mosaic:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_mosaic_dataset_params
 
+coco2017_yolo_nas_pose_s_mosaic_bce_rescale_loss:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_mosaic_dataset_params
+
 coco2017_yolo_nas_pose_s_mixup:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_mixup_dataset_params
 
-coco2017_yolo_nas_pose_s_mosaic_rescale:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_mosaic_rescale_dataset_params
 
 
 
 crowdpose_yolo_nas_pose_s:
 	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s
-
+	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_new_assigner
+	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_bce
+	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_bce_rescale
 
 coco2017_yolo_nas_pose_s_sgd_local:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_sgd_local num_workers=16
