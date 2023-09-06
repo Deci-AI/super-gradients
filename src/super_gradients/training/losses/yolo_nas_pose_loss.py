@@ -202,6 +202,9 @@ class YoloNASPoseLoss(nn.Module):
         pose_reg_loss_weight: float = 1.0,
         use_cocoeval_formula: bool = True,
         pose_classification_loss_type: str = "bce",
+        bbox_assigner_topk: int = 13,
+        bbox_assigned_alpha: float = 1.0,
+        bbox_assigned_beta: float = 6.0,
     ):
         """
         :param num_classes: Number of keypoints
@@ -226,7 +229,7 @@ class YoloNASPoseLoss(nn.Module):
         self.oks_sigmas = torch.tensor(oks_sigmas)
         self.pose_cls_loss_weight = pose_cls_loss_weight
         self.pose_reg_loss_weight = pose_reg_loss_weight
-        self.assigner = YoloNASPoseTaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
+        self.assigner = YoloNASPoseTaskAlignedAssigner(topk=bbox_assigner_topk, alpha=bbox_assigned_alpha, beta=bbox_assigned_beta)
         self.use_cocoeval_formula = use_cocoeval_formula
         self.pose_classification_loss_type = pose_classification_loss_type
         # Same as in PPYoloE head
