@@ -7,3 +7,4 @@ strict_load: # key matching strictness for loading checkpoint's weights
   _target_: super_gradients.training.sg_trainer.StrictLoad
   value: no_key_matching
 pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
+checkpoint_num_classes:
