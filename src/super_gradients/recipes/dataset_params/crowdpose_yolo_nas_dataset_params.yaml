@@ -85,7 +85,7 @@ train_dataset_params:
         prob: 0.5
 
     - KeypointsRandomAffineTransform:
-        max_rotation: 5
+        max_rotation: 0
         min_scale: 0.5
         max_scale: 1.5
         max_translate: 0.1

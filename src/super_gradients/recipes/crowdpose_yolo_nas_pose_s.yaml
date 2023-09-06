@@ -42,8 +42,9 @@ training_hyperparams:
 dataset_params:
   train_dataloader_params:
     batch_size: 56
-    num_workers: 16
+    num_workers: 8
+    min_samples: 131072
 
   val_dataloader_params:
     batch_size: 56
-    num_workers: 16
+    num_workers: 8
