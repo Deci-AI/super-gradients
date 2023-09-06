@@ -40,8 +40,9 @@ training_hyperparams:
   # phase_callbacks: [ ] # Disable visualization
   criterion_params:
     classification_loss_type: bce
-    pose_classification_loss_type: bce
+    pose_classification_loss_type: focal
     rescale_pose_loss_with_assigned_score: True
+    pose_reg_loss_weight: 10
 
 dataset_params:
   train_dataloader_params:
