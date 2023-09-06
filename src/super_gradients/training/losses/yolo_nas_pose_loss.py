@@ -205,6 +205,7 @@ class YoloNASPoseLoss(nn.Module):
         bbox_assigner_topk: int = 13,
         bbox_assigned_alpha: float = 1.0,
         bbox_assigned_beta: float = 6.0,
+        rescale_pose_loss_with_assigned_score: bool = False,
     ):
         """
         :param num_classes: Number of keypoints
@@ -232,6 +233,7 @@ class YoloNASPoseLoss(nn.Module):
         self.assigner = YoloNASPoseTaskAlignedAssigner(topk=bbox_assigner_topk, alpha=bbox_assigned_alpha, beta=bbox_assigned_beta)
         self.use_cocoeval_formula = use_cocoeval_formula
         self.pose_classification_loss_type = pose_classification_loss_type
+        self.rescale_pose_loss_with_assigned_score = rescale_pose_loss_with_assigned_score
         # Same as in PPYoloE head
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
@@ -408,7 +410,15 @@ class YoloNASPoseLoss(nn.Module):
         return (loss_left + loss_right).mean(dim=-1, keepdim=True)
 
     def _keypoint_loss(
-        self, predicted_coords: Tensor, target_coords: Tensor, predicted_logits: Tensor, target_visibility: Tensor, area: Tensor, sigmas: Tensor
+        self,
+        predicted_coords: Tensor,
+        target_coords: Tensor,
+        predicted_logits: Tensor,
+        target_visibility: Tensor,
+        area: Tensor,
+        sigmas: Tensor,
+        assigned_scores: Optional[Tensor] = None,
+        assigned_scores_sum: Optional[Tensor] = None,
     ) -> Tuple[Tensor, Tensor]:
         """
 
@@ -435,15 +445,25 @@ class YoloNASPoseLoss(nn.Module):
             # from formula as I read it
             e = d / (2 * area * (sigmas**2) + 1e-9)
 
-        regression_loss_unreduced = 1 - torch.exp(-e)
-        regression_loss = regression_loss_unreduced.mul(visible_targets_mask).sum() / (visible_targets_mask.sum() + 1e-9)
+        regression_loss_unreduced = 1 - torch.exp(-e)  # [Num Instances, Num Joints, 1]
+        regression_loss_reduced = (regression_loss_unreduced * visible_targets_mask).sum(dim=1, keepdim=False) / (
+            visible_targets_mask.sum(dim=1, keepdim=False) + 1e-9
+        )  # [Num Instances, 1]
 
         if self.pose_classification_loss_type == "bce":
-            classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="mean")
+            classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="none").mean(dim=1)
         elif self.pose_classification_loss_type == "focal":
-            classification_loss = self._focal_loss(predicted_logits, visible_targets_mask, alpha=0.25, gamma=2.0, reduction="mean")
+            classification_loss = self._focal_loss(predicted_logits, visible_targets_mask, alpha=0.25, gamma=2.0, reduction="none").mean(dim=1)
         else:
             raise ValueError(f"Unsupported pose classification loss type {self.pose_classification_loss_type}")
+
+        if assigned_scores is None:
+            classification_loss = classification_loss.mean()
+            regression_loss = regression_loss_reduced.mean()
+        else:
+            classification_loss = (classification_loss * assigned_scores).sum() / assigned_scores_sum
+            regression_loss = (regression_loss_reduced * assigned_scores).sum() / assigned_scores_sum
+
         return regression_loss, classification_loss
 
     def _xyxy_box_area(self, boxes):
@@ -507,6 +527,8 @@ class YoloNASPoseLoss(nn.Module):
                 target_coords=gt_pose_coords,
                 predicted_logits=pred_pose_logits,
                 target_visibility=gt_pose_visibility,
+                assigned_scores=bbox_weight if self.rescale_pose_loss_with_assigned_score else None,
+                assigned_scores_sum=assigned_scores_sum if self.rescale_pose_loss_with_assigned_score else None,
                 area=area,
                 sigmas=self.oks_sigmas.to(pred_pose_logits.device),
             )
