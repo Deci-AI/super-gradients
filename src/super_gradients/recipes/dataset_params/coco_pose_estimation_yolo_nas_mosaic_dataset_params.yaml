@@ -4,6 +4,8 @@ defaults:
 
 dataset_params_suffix: "mosaic"
 
+mosaic_prob: 0.8
+
 train_dataset_params:
   include_empty_samples: True
   min_instance_area: 16
@@ -35,7 +37,7 @@ train_dataset_params:
         interpolation_mode: [0, 1, 2, 3, 4]
 
     - KeypointsMosaic:
-        prob: 0.8
+        prob: ${dataset_params.mosaic_prob}
 
     - KeypointsLongestMaxSize:
         max_height: 640
