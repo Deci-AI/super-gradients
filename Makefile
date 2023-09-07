@@ -60,6 +60,9 @@ coco2017_yolo_nas_pose_s_mixup:
 coco2017_yolo_nas_pose_s_ema_less_mosaic:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_ema_less_mosaic
 
+coco2017_yolo_nas_pose_s_less_mosaic:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_less_mosaic
+
 
 
 crowdpose_yolo_nas_pose_s:
