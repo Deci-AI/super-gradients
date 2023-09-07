@@ -445,8 +445,9 @@ class YoloNASPoseLoss(nn.Module):
         else:
             # d = ((predicted_coords - target_coords) ** 2).sum(dim=-1, keepdim=True)  # [[Num Instances, Num Joints, 1]
 
-            l1_loss = torch.nn.functional.smooth_l1_loss(predicted_coords, target_coords, reduction="none", beta=5).sum(dim=-1, keepdim=True)
-            regression_loss_unreduced = l1_loss / (2 * sigmas) ** 2 / (area + 1e-9)  # [Num Instances, Num Joints, 1]
+            l1_loss = torch.nn.functional.smooth_l1_loss(predicted_coords, target_coords, reduction="none", beta=1).sum(dim=-1, keepdim=True)
+            vars = (2 * sigmas) ** 2
+            regression_loss_unreduced = l1_loss / vars / (torch.sqrt(area) + 1e-9)  # [Num Instances, Num Joints, 1]
 
         regression_loss_reduced = (regression_loss_unreduced * visible_targets_mask).sum(dim=1, keepdim=False) / (
             visible_targets_mask.sum(dim=1, keepdim=False) + 1e-9
