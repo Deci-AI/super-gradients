@@ -12,7 +12,6 @@ import torch.cuda
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-from super_gradients.common import StrictLoad
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
@@ -27,13 +26,25 @@ from super_gradients.training.models.pose_estimation_models import YoloNASPose
 
 class TestPoseEstimationMetrics(unittest.TestCase):
     def test_yolo_nas_pose_s(self):
+        # model: YoloNASPose = (
+        #     models.get(
+        #         Models.YOLO_NAS_POSE_NEW_HEAD_S,
+        #         num_classes=17,
+        #         strict_load=StrictLoad.KEY_MATCHING,
+        #         #  574
+        #         checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_new_head_s_mosaic_1.0_12.0_dfl_0.01_2.5_1.0_focal/RUN_20230902_153215_812529/average_model.pth",  # noqa
+        #     )
+        #     .eval()
+        #     .cuda()
+        # )
+
         model: YoloNASPose = (
             models.get(
-                Models.YOLO_NAS_POSE_NEW_HEAD_S,
+                Models.YOLO_NAS_POSE_S,
                 num_classes=17,
-                strict_load=StrictLoad.KEY_MATCHING,
-                #  574
-                checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_new_head_s_mosaic_1.0_12.0_dfl_0.01_2.5_1.0_focal/RUN_20230902_153215_812529/average_model.pth",  # noqa
+                checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_v2_average_model.pth",  # 585
+                # checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_v2_ckpt_best.pth",  # 584
+                # arch_params=dict(heads=dict(YoloNASPoseNDFLHeads=dict(compensate_grid_cell_offset=False, pose_offset_multiplier=3))),
             )
             .eval()
             .cuda()
@@ -43,9 +54,19 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         #     models.get(
         #         Models.YOLO_NAS_POSE_S,
         #         num_classes=17,
-        #         # checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_v2_average_model.pth", # 585
-        #         checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_v2_ckpt_best.pth",  # 584
-        #         # arch_params=dict(heads=dict(YoloNASPoseNDFLHeads=dict(compensate_grid_cell_offset=False, pose_offset_multiplier=3))),
+        #         # 0.580
+        #         checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_box_focal_1_ciou_2_5_dfl_001_pose_focal_1_reg_17_head_comp_off_scale_1_default.pth",
+        #     )
+        #     .eval()
+        #     .cuda()
+        # )
+
+        # model: YoloNASPose = (
+        #     models.get(
+        #         Models.YOLO_NAS_POSE_S,
+        #         num_classes=17,
+        #         # 575
+        #         checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_box_focal_1_0_ciou_2_5_dfl_001_pose_focal_1.0_reg_17_head_comp_off_scale_1_rescale.pth",
         #     )
         #     .eval()
         #     .cuda()
@@ -2420,9 +2441,10 @@ class TestPoseEstimationMetrics(unittest.TestCase):
                     predictions = model.predict(
                         current_image_files, conf=confidence, iou=iou, pre_nms_max_predictions=300, post_nms_max_predictions=30, fuse_model=False
                     )
-                    predictions_dir = f"coco_val_predictions_conf_{confidence:.2f}_iou_{iou:.2f}_empty_{with_empty_samples}"
-                    os.makedirs(predictions_dir, exist_ok=True)
-                    predictions.save(predictions_dir)
+
+                    # predictions_dir = f"coco_val_predictions_conf_{confidence:.2f}_iou_{iou:.2f}_empty_{with_empty_samples}"
+                    # os.makedirs(predictions_dir, exist_ok=True)
+                    # predictions.save(predictions_dir)
 
                     gt = self._load_coco_groundtruth(with_crowd=True, with_duplicates=True, with_invisible_keypoitns=True)
 
