@@ -12,6 +12,7 @@ from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head imp
 from super_gradients.training.utils import HpmStruct, torch_version_is_greater_or_equal
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.training.utils.utils import infer_model_dtype, infer_model_device
+import einops
 
 
 @register_detection_module()
@@ -113,33 +114,44 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             self.anchor_points = anchor_points
             self.stride_tensor = stride_tensor
 
-    def forward_eval(self, feats: Tuple[Tensor, ...]):
+    @property
+    def out_channels(self):
+        return None
 
+    def forward(self, feats: Tuple[Tensor]):
         cls_score_list, reg_distri_list, reg_dist_reduced_list = [], [], []
+
+        pose_logits_list = []
         pose_regression_list = []
+        pose_regression_reduced_list = []
 
         for i, feat in enumerate(feats):
             b, _, h, w = feat.shape
             height_mul_width = h * w
-            reg_distri, cls_logit, pose_logit = getattr(self, f"head{i + 1}")(feat)
+            reg_distri, cls_logit, pose_logit, pose_outputs = getattr(self, f"head{i + 1}")(feat)
             reg_distri_list.append(torch.permute(reg_distri.flatten(2), [0, 2, 1]))
 
             reg_dist_reduced = torch.permute(reg_distri.reshape([-1, 4, self.reg_max + 1, height_mul_width]), [0, 2, 3, 1])
             reg_dist_reduced = torch.nn.functional.conv2d(torch.nn.functional.softmax(reg_dist_reduced, dim=1), weight=self.proj_conv).squeeze(1)
-
-            # cls and reg
-            cls_score_list.append(cls_logit.reshape([b, -1, height_mul_width]))
             reg_dist_reduced_list.append(reg_dist_reduced)
 
-            pose_regression_list.append(torch.permute(pose_logit.flatten(3), [0, 3, 1, 2]))  # [B, J, 3, H, W] -> [B, H * W, J, 3]
+            cls_score_list.append(einops.rearrange(cls_logit, "b c h w -> b (h w) c"))
 
-        cls_score_list = torch.cat(cls_score_list, dim=-1)  # [B, C, Anchors]
-        cls_score_list = torch.permute(cls_score_list, [0, 2, 1])  # # [B, Anchors, C]
+            pose_logits_list.append(einops.rearrange(pose_logit, "b c h w -> b (h w) c"))
+
+            pose_regression_list.append(einops.rearrange(pose_outputs, "b bins c 2 h w -> b (h w) bins c 2"))
+            pose_regression_reduced = torch.nn.functional.conv2d(
+                einops.rearrange(pose_outputs.softmax(dim=1), "b bins c 2 h w -> b bins (c*2), (h,w)"), weight=self.proj_conv
+            )
+            pose_regression_reduced_list.append(einops.rearrange(pose_regression_reduced, "b 1 (c*2) (h w) -> b (h w) c 2", c=self.num_classes))
+
+        cls_score_list = torch.cat(cls_score_list, dim=1)  # [B, Anchors, C]
 
         reg_distri_list = torch.cat(reg_distri_list, dim=1)  # [B, Anchors, 4 * (self.reg_max + 1)]
         reg_dist_reduced_list = torch.cat(reg_dist_reduced_list, dim=1)  # [B, Anchors, 4]
 
-        pose_regression_list = torch.cat(pose_regression_list, dim=1)  # [B, Anchors, J, 3]
+        pose_logits_list = torch.cat(pose_logits_list, dim=1)  # [B, Anchors, Joints]
+        pose_regression_list = torch.cat(pose_regression_list, dim=1)  # [B, Anchors, bins num_classes 2]
 
         # Decode bboxes
         # Note in eval mode, anchor_points_inference is different from anchor_points computed on train
@@ -152,9 +164,6 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         pred_bboxes = batch_distance2bbox(anchor_points_inference, reg_dist_reduced_list) * stride_tensor  # [B, Anchors, 4]
 
         # Decode keypoints
-        if self.pose_offset_multiplier != 1.0:
-            pose_regression_list[:, :, :, 0:2] *= self.pose_offset_multiplier
-
         pose_regression_list[:, :, :, 0:2] += anchor_points_inference.unsqueeze(0).unsqueeze(2)
         if self.compensate_grid_cell_offset:
             pose_regression_list[:, :, :, 0:2] -= self.grid_cell_offset
@@ -171,18 +180,18 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
         anchors, anchor_points, num_anchors_list, _ = generate_anchors_for_grid_cell(feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset)
 
-        raw_predictions = cls_score_list, reg_distri_list, pose_regression_list, anchors, anchor_points, num_anchors_list, stride_tensor
+        raw_predictions = (
+            cls_score_list,
+            reg_distri_list,
+            pose_logits_list,
+            pose_regression_list,
+            anchors,
+            anchor_points,
+            num_anchors_list,
+            stride_tensor,
+            self.proj_conv,
+        )
         return decoded_predictions, raw_predictions
-
-    @property
-    def out_channels(self):
-        return None
-
-    def forward(self, feats: Tuple[Tensor]):
-        # if self.training:
-        #     return self.forward_train(feats)
-        # else:
-        return self.forward_eval(feats)
 
     def _generate_anchors(self, feats=None, dtype=None, device=None):
         # just use in eval time
