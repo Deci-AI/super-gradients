@@ -63,8 +63,11 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         self.compensate_grid_cell_offset = compensate_grid_cell_offset
 
         # Do not apply quantization to this tensor
-        proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
-        self.register_buffer("proj_conv", proj, persistent=False)
+        bbox_proj_conv = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
+        self.register_buffer("bbox_proj_conv", bbox_proj_conv, persistent=False)
+
+        pose_proj_conv = torch.linspace(-self.reg_max // 2, self.reg_max // 2, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
+        self.register_buffer("pose_proj_conv", pose_proj_conv, persistent=False)
 
         self._init_weights()
 
@@ -127,23 +130,28 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
         for i, feat in enumerate(feats):
             b, _, h, w = feat.shape
-            height_mul_width = h * w
             reg_distri, cls_logit, pose_logit, pose_outputs = getattr(self, f"head{i + 1}")(feat)
-            reg_distri_list.append(torch.permute(reg_distri.flatten(2), [0, 2, 1]))
+            # reg_distri: [B, 4 * (self.reg_max + 1), H, W]
+            # cls_logit: [B, 1, H, W]
+            # pose_logit: [B, self.num_classes, H, W]
+            # pose_outputs: [B, self.reg_max + 1, self.num_classes, 2, H, W]
+            reg_distri_list.append(einops.rearrange(reg_distri, "b c h w -> b (h w) c"))
 
-            reg_dist_reduced = torch.permute(reg_distri.reshape([-1, 4, self.reg_max + 1, height_mul_width]), [0, 2, 3, 1])
-            reg_dist_reduced = torch.nn.functional.conv2d(torch.nn.functional.softmax(reg_dist_reduced, dim=1), weight=self.proj_conv).squeeze(1)
+            # reg_dist_reduced = torch.permute(reg_distri.reshape([-1, 4, self.reg_max + 1, height_mul_width]), [0, 2, 3, 1])
+            # reg_dist_reduced = torch.nn.functional.conv2d(torch.nn.functional.softmax(reg_dist_reduced, dim=1), weight=self.proj_conv).squeeze(1)
+            reg_dist_reduced = einops.rearrange(reg_distri, "b (FOUR bins) h w -> b bins (h w) FOUR", FOUR=4).softmax(dim=1)
+            reg_dist_reduced = torch.nn.functional.conv2d(reg_dist_reduced, weight=self.bbox_proj_conv).squeeze(1)
             reg_dist_reduced_list.append(reg_dist_reduced)
 
             cls_score_list.append(einops.rearrange(cls_logit, "b c h w -> b (h w) c"))
 
             pose_logits_list.append(einops.rearrange(pose_logit, "b c h w -> b (h w) c"))
 
-            pose_regression_list.append(einops.rearrange(pose_outputs, "b bins c 2 h w -> b (h w) bins c 2"))
-            pose_regression_reduced = torch.nn.functional.conv2d(
-                einops.rearrange(pose_outputs.softmax(dim=1), "b bins c 2 h w -> b bins (c*2), (h,w)"), weight=self.proj_conv
-            )
-            pose_regression_reduced_list.append(einops.rearrange(pose_regression_reduced, "b 1 (c*2) (h w) -> b (h w) c 2", c=self.num_classes))
+            pose_regression_list.append(einops.rearrange(pose_outputs, "b bins c TWO h w -> b (h w) bins c TWO", TWO=2))
+
+            pose_regression_reduced = einops.rearrange(pose_outputs, "b bins c TWO h w -> b bins (c TWO) (h w)", TWO=2).softmax(dim=1)
+            pose_regression_reduced = torch.nn.functional.conv2d(pose_regression_reduced, weight=self.pose_proj_conv).squeeze(1)
+            pose_regression_reduced_list.append(einops.rearrange(pose_regression_reduced, "b (c TWO) hw -> b hw c TWO", TWO=2, c=self.num_classes))
 
         cls_score_list = torch.cat(cls_score_list, dim=1)  # [B, Anchors, C]
 
@@ -151,7 +159,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         reg_dist_reduced_list = torch.cat(reg_dist_reduced_list, dim=1)  # [B, Anchors, 4]
 
         pose_logits_list = torch.cat(pose_logits_list, dim=1)  # [B, Anchors, Joints]
-        pose_regression_list = torch.cat(pose_regression_list, dim=1)  # [B, Anchors, bins num_classes 2]
+        pose_regression_list = torch.cat(pose_regression_list, dim=1)  # [B, Anchors, Bins, Num Classes, 2]
 
         # Decode bboxes
         # Note in eval mode, anchor_points_inference is different from anchor_points computed on train
@@ -164,14 +172,14 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         pred_bboxes = batch_distance2bbox(anchor_points_inference, reg_dist_reduced_list) * stride_tensor  # [B, Anchors, 4]
 
         # Decode keypoints
-        pose_regression_list[:, :, :, 0:2] += anchor_points_inference.unsqueeze(0).unsqueeze(2)
+        pred_pose_coords = torch.cat(pose_regression_reduced_list, dim=1).detach()  # [B, Anchors, Num Classes, 2]
+        pred_pose_coords += anchor_points_inference.unsqueeze(0).unsqueeze(2)
+
         if self.compensate_grid_cell_offset:
-            pose_regression_list[:, :, :, 0:2] -= self.grid_cell_offset
+            pose_regression_list -= self.grid_cell_offset
 
-        pose_regression_list[:, :, :, 0:2] *= stride_tensor.unsqueeze(0).unsqueeze(2)
-
-        pred_pose_coords = pose_regression_list[:, :, :, 0:2].detach().clone()  # [B, Anchors, C, 2]
-        pred_pose_scores = pose_regression_list[:, :, :, 2].detach().clone().sigmoid()  # [B, Anchors, C]
+        pred_pose_coords *= stride_tensor.unsqueeze(0).unsqueeze(2)
+        pred_pose_scores = pose_logits_list.detach().clone().sigmoid()  # [B, Anchors, C]
 
         decoded_predictions = pred_bboxes, pred_scores, pred_pose_coords, pred_pose_scores
 
@@ -184,12 +192,14 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             cls_score_list,
             reg_distri_list,
             pose_logits_list,
+            pred_pose_coords,
             pose_regression_list,
             anchors,
             anchor_points,
             num_anchors_list,
             stride_tensor,
-            self.proj_conv,
+            self.bbox_proj_conv,
+            self.pose_proj_conv,
         )
         return decoded_predictions, raw_predictions
 
