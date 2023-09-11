@@ -35,7 +35,7 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                 "max_epochs": 2,
                 "lr_updates": [5, 6, 12],
                 "lr_decay_factor": 0.01,
-                "lr_mode": "StepLRCallback",
+                "lr_mode": "StepLRScheduler",
                 "initial_lr": 0.01,
                 "loss": "CrossEntropyLoss",
                 "optimizer": "SGD",

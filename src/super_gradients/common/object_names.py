@@ -154,11 +154,11 @@ class Callbacks:
 class LRSchedulers:
     """Static class to hold all the supported LR Scheduler names"""
 
-    STEP = "StepLRCallback"
-    POLY = "PolyLRCallback"
-    COSINE = "CosineLRCallback"
-    EXP = "ExponentialLRCallback"
-    FUNCTION = "FunctionLRCallback"
+    STEP = "StepLRScheduler"
+    POLY = "PolyLRScheduler"
+    COSINE = "CosineLRScheduler"
+    EXP = "ExponentialLRScheduler"
+    FUNCTION = "FunctionLRScheduler"
 
 
 class LRWarmups:

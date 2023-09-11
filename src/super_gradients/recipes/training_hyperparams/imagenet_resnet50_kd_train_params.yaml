@@ -3,7 +3,7 @@ defaults:
 
 max_epochs: 610
 initial_lr: 5e-3
-lr_mode: CosineLRCallback
+lr_mode: CosineLRScheduler
 lr_warmup_epochs: 5
 lr_cooldown_epochs: 10
 ema: True

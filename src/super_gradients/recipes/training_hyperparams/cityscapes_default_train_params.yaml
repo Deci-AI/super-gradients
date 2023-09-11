@@ -2,7 +2,7 @@ defaults:
   - default_train_params
 
 max_epochs: 800
-lr_mode: PolyLRCallback
+lr_mode: PolyLRScheduler
 initial_lr: 0.01   # for effective batch_size=32
 lr_warmup_epochs: 10
 multiply_head_lr: 10.

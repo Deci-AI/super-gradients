@@ -10,11 +10,11 @@ SG's `super_gradients.training.utils.callbacks` module implements some common us
     LRCallbackBase
     EpochStepWarmupLRCallback
     BatchStepLinearWarmupLRCallback
-    StepLRCallback
-    ExponentialLRCallback
-    PolyLRCallback
-    CosineLRCallback
-    FunctionLRCallback
+    StepLRScheduler
+    ExponentialLRScheduler
+    PolyLRScheduler
+    CosineLRScheduler
+    FunctionLRScheduler
     LRSchedulerCallback
     DetectionVisualizationCallback
     BinarySegmentationVisualizationCallback

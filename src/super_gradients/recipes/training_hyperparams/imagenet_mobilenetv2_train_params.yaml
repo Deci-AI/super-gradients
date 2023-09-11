@@ -3,7 +3,7 @@ defaults:
 
 max_epochs: 450
 
-lr_mode: StepLRCallback
+lr_mode: StepLRScheduler
 initial_lr: 0.032   # for total batch-size of 512
 lr_decay_factor: 0.973
 lr_updates:

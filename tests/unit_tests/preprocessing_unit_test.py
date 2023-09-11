@@ -97,7 +97,7 @@ class PreprocessingUnitTest(unittest.TestCase):
 
         detection_train_params_yolox = {
             "max_epochs": 1,
-            "lr_mode": "CosineLRCallback",
+            "lr_mode": "CosineLRScheduler",
             "cosine_final_lr_ratio": 0.05,
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
@@ -168,7 +168,7 @@ class PreprocessingUnitTest(unittest.TestCase):
 
         detection_train_params_yolox = {
             "max_epochs": 1,
-            "lr_mode": "CosineLRCallback",
+            "lr_mode": "CosineLRScheduler",
             "cosine_final_lr_ratio": 0.05,
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,

@@ -13,16 +13,16 @@ resume_from_remote_sg_logger: False # bool (default=False), When true, ckpt_name
 ckpt_name: ckpt_latest.pth  # The checkpoint (.pth file) filename in CKPT_ROOT_DIR/EXPERIMENT_NAME/ to use when resume=True and resume_path=None
 
 lr_mode: # Union[str, Mapping]
-         # when str: Learning rate scheduling policy, one of ["StepLRCallback", "PolyLRCallback", "CosineLRCallback", "ExponentialLRCallback", "FunctionLRCallback"]
+         # when str: Learning rate scheduling policy, one of ["StepLRScheduler", "PolyLRScheduler", "CosineLRScheduler", "ExponentialLRScheduler", "FunctionLRScheduler"]
          # when Mapping: refers to a torch.optim.lr_scheduler._LRScheduler, following the below API: lr_mode = {LR_SCHEDULER_CLASS_NAME: {**LR_SCHEDULER_KWARGS, "phase": XXX, "metric_name": XXX)
 
-lr_schedule_function: # Learning rate scheduling function to be used when `lr_mode` is 'FunctionLRCallback'.
+lr_schedule_function: # Learning rate scheduling function to be used when `lr_mode` is 'FunctionLRScheduler'.
 lr_warmup_epochs: 0 # number of epochs for learning rate warm up - see https://arxiv.org/pdf/1706.02677.pdf (Section 2.2).
 lr_warmup_steps: 0  # number of warmup steps (Used when warmup_mode=BatchStepLinearWarmupLRCallback)
 lr_cooldown_epochs: 0 # epochs to cooldown LR (i.e the last epoch from scheduling view point=max_epochs-cooldown)
 warmup_initial_lr: # Initial lr for EpochStepWarmupLRCallback/BatchStepLinearWarmupLRCallback. When none is given, initial_lr/(warmup_epochs+1) will be used.
-step_lr_update_freq: # (float) update frequency in epoch units for computing lr_updates when lr_mode=`StepLRCallback`.
-cosine_final_lr_ratio: 0.01 # final learning rate ratio (only relevant when `lr_mode`='CosineLRCallback')
+step_lr_update_freq: # (float) update frequency in epoch units for computing lr_updates when lr_mode=`StepLRScheduler`.
+cosine_final_lr_ratio: 0.01 # final learning rate ratio (only relevant when `lr_mode`='CosineLRScheduler')
 warmup_mode: EpochStepWarmupLRCallback # learning rate warmup scheme, currently ['LinearStepWarmupLRCallback', 'EpochStepWarmupLRCallback', 'BatchStepLinearWarmupLRCallback'] are supported
 
 lr_updates:

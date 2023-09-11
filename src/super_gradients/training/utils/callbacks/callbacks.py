@@ -394,7 +394,7 @@ class StepLRScheduler(LRCallbackBase):
     def __init__(self, lr_updates, lr_decay_factor, step_lr_update_freq=None, **kwargs):
         super().__init__(Phase.TRAIN_EPOCH_END, **kwargs)
         if step_lr_update_freq and len(lr_updates):
-            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor")
+            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRScheduler constructor")
 
         if step_lr_update_freq:
             max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
@@ -950,18 +950,18 @@ def create_lr_scheduler_callback(
 
                     When str:
 
-                    Learning rate scheduling policy, one of ['StepLRCallback','PolyLRCallback','CosineLRCallback','FunctionLRCallback'].
+                    Learning rate scheduling policy, one of ['StepLRScheduler','PolyLRScheduler','CosineLRScheduler','FunctionLRScheduler'].
 
-                    'StepLRCallback' refers to constant updates at epoch numbers passed through `lr_updates`.
+                    'StepLRScheduler' refers to constant updates at epoch numbers passed through `lr_updates`.
                         Each update decays the learning rate by `lr_decay_factor`.
 
-                    'CosineLRCallback' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
+                    'CosineLRScheduler' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
                       The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
 
-                    'PolyLRCallback' refers to the polynomial decrease:
+                    'PolyLRScheduler' refers to the polynomial decrease:
                         in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
 
-                    'FunctionLRCallback' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
+                    'FunctionLRScheduler' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
 
 
 

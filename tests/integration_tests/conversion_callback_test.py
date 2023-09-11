@@ -54,7 +54,7 @@ class ConversionCallbackTest(unittest.TestCase):
                 "max_epochs": 2,
                 "lr_updates": [1],
                 "lr_decay_factor": 0.1,
-                "lr_mode": "StepLRCallback",
+                "lr_mode": "StepLRScheduler",
                 "lr_warmup_epochs": 0,
                 "initial_lr": 0.1,
                 "loss": "CrossEntropyLoss",
@@ -107,7 +107,7 @@ class ConversionCallbackTest(unittest.TestCase):
             train_params = {
                 "max_epochs": 3,
                 "initial_lr": 1e-2,
-                "lr_mode": "PolyLRCallback",
+                "lr_mode": "PolyLRScheduler",
                 "ema": True,  # unlike the paper (not specified in paper)
                 "optimizer": "SGD",
                 "optimizer_params": {"weight_decay": 5e-4, "momentum": 0.9},

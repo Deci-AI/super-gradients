@@ -321,7 +321,7 @@ Output (Training parameters):
     'loss': "LabelSmoothingCrossEntropyLoss",
     'lr_cooldown_epochs': 0,
     'lr_decay_factor': 0.1,
-    'lr_mode': 'StepLRCallback',
+    'lr_mode': 'StepLRScheduler',
     'lr_schedule_function': None,
     'lr_updates': array([100, 150, 200]),
     'lr_warmup_epochs': 0,

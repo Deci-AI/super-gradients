@@ -38,7 +38,7 @@ class ForwardpassPrepFNTest(unittest.TestCase):
         train_params = {
             "max_epochs": 2,
             "cosine_final_lr_ratio": 0.2,
-            "lr_mode": "CosineLRCallback",
+            "lr_mode": "CosineLRScheduler",
             "lr_cooldown_epochs": 2,
             "lr_warmup_epochs": 3,
             "initial_lr": 1,

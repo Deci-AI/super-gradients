@@ -6,7 +6,7 @@ from super_gradients.training import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models import LeNet
-from super_gradients.training.utils.callbacks import TestLRCallback, LRCallbackBase, Phase, Callback, PhaseContext, CosineLRCallback
+from super_gradients.training.utils.callbacks import TestLRCallback, LRCallbackBase, Phase, Callback, PhaseContext, CosineLRScheduler
 
 
 class CollectLRCallback(Callback):
@@ -58,7 +58,7 @@ class LRWarmupTest(unittest.TestCase):
             "max_epochs": 5,
             "lr_updates": [],
             "lr_decay_factor": 0.1,
-            "lr_mode": "StepLRCallback",
+            "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 3,
             "initial_lr": 1,
             "loss": "CrossEntropyLoss",
@@ -94,7 +94,7 @@ class LRWarmupTest(unittest.TestCase):
         train_params = {
             "max_epochs": 5,
             "cosine_final_lr_ratio": 0.2,
-            "lr_mode": "CosineLRCallback",
+            "lr_mode": "CosineLRScheduler",
             "lr_warmup_epochs": 3,
             "initial_lr": 1,
             "loss": "CrossEntropyLoss",
@@ -137,7 +137,7 @@ class LRWarmupTest(unittest.TestCase):
 
         train_params = {
             "max_epochs": max_epochs,
-            "lr_mode": "CosineLRCallback",
+            "lr_mode": "CosineLRScheduler",
             "cosine_final_lr_ratio": cosine_final_lr_ratio,
             "warmup_initial_lr": warmup_initial_lr,
             "warmup_mode": "BatchStepLinearWarmupLRCallback",
@@ -161,7 +161,7 @@ class LRWarmupTest(unittest.TestCase):
         expected_warmup_lrs = np.linspace(warmup_initial_lr, initial_lr, lr_warmup_steps).tolist()
         total_steps = max_epochs * len(train_loader) - lr_warmup_steps
 
-        expected_cosine_lrs = CosineLRCallback.compute_learning_rate(
+        expected_cosine_lrs = CosineLRScheduler.compute_learning_rate(
             step=np.arange(0, total_steps), total_steps=total_steps, initial_lr=initial_lr, final_lr_ratio=cosine_final_lr_ratio
         )
 
@@ -186,7 +186,7 @@ class LRWarmupTest(unittest.TestCase):
             "max_epochs": 5,
             "lr_updates": [],
             "lr_decay_factor": 0.1,
-            "lr_mode": "StepLRCallback",
+            "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 3,
             "initial_lr": 1,
             "warmup_initial_lr": 4.0,
@@ -224,7 +224,7 @@ class LRWarmupTest(unittest.TestCase):
             "max_epochs": 5,
             "lr_updates": [],
             "lr_decay_factor": 0.1,
-            "lr_mode": "StepLRCallback",
+            "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 3,
             "loss": "CrossEntropyLoss",
             "optimizer": "SGD",

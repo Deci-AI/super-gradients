@@ -25,7 +25,7 @@ class TestTrainer(unittest.TestCase):
             "lr_decay_factor": 0.1,
             "initial_lr": 0.1,
             "lr_updates": [4],
-            "lr_mode": "StepLRCallback",
+            "lr_mode": "StepLRScheduler",
             "loss": "CrossEntropyLoss",
             "train_metrics_list": [Accuracy(), Top5()],
             "valid_metrics_list": [Accuracy(), Top5()],

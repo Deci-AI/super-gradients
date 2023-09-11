@@ -2,7 +2,7 @@ defaults:
   - default_train_params
 
 max_epochs: 450
-lr_mode: StepLRCallback
+lr_mode: StepLRScheduler
 step_lr_update_freq: 2.4
 initial_lr: 0.016
 lr_warmup_epochs: 3

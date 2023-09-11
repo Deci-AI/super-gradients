@@ -10,7 +10,7 @@ lr_warmup_steps: 1000
 lr_warmup_epochs: 0
 
 initial_lr:  2e-3
-lr_mode: CosineLRCallback
+lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0.1
 
 zero_weight_decay_on_bias_and_bn: False

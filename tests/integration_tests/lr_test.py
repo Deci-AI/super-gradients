@@ -45,12 +45,12 @@ class LRTest(unittest.TestCase):
             return initial_lr * (1 - ((epoch * iters_per_epoch + iter) / (max_epoch * iters_per_epoch)))
 
         # test if we are able that lr_function supports functions with this structure
-        training_params = {**self.training_params, "lr_mode": "FunctionLRCallback", "lr_schedule_function": test_lr_function}
+        training_params = {**self.training_params, "lr_mode": "FunctionLRScheduler", "lr_schedule_function": test_lr_function}
         trainer.train(
             model=model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
         )
         # test that we assert lr_function is callable
-        training_params = {**self.training_params, "lr_mode": "FunctionLRCallback"}
+        training_params = {**self.training_params, "lr_mode": "FunctionLRScheduler"}
         with self.assertRaises(AssertionError):
             trainer.train(
                 model=model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
@@ -58,14 +58,14 @@ class LRTest(unittest.TestCase):
 
     def test_cosine_lr(self):
         trainer, model = self.get_trainer(self.folder_name)
-        training_params = {**self.training_params, "lr_mode": "CosineLRCallback", "cosine_final_lr_ratio": 0.01}
+        training_params = {**self.training_params, "lr_mode": "CosineLRScheduler", "cosine_final_lr_ratio": 0.01}
         trainer.train(
             model=model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
         )
 
     def test_step_lr(self):
         trainer, model = self.get_trainer(self.folder_name)
-        training_params = {**self.training_params, "lr_mode": "StepLRCallback", "lr_decay_factor": 0.1, "lr_updates": [4]}
+        training_params = {**self.training_params, "lr_mode": "StepLRScheduler", "lr_decay_factor": 0.1, "lr_updates": [4]}
         trainer.train(
             model=model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
         )

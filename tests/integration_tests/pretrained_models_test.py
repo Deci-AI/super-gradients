@@ -87,7 +87,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "lr_decay_factor": 0.1,
             "initial_lr": 0.6,
             "loss": "CrossEntropyLoss",
-            "lr_mode": "StepLRCallback",
+            "lr_mode": "StepLRScheduler",
             "optimizer_params": {"weight_decay": 0.000, "momentum": 0.9},
             "train_metrics_list": [Accuracy()],
             "valid_metrics_list": [Accuracy()],
@@ -128,7 +128,7 @@ class PretrainedModelsTest(unittest.TestCase):
         ssd_dboxes = DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS["heads"]["SSDHead"]["anchors"]
         self.transfer_detection_train_params_ssd = {
             "max_epochs": 3,
-            "lr_mode": "CosineLRCallback",
+            "lr_mode": "CosineLRScheduler",
             "initial_lr": 0.01,
             "cosine_final_lr_ratio": 0.01,
             "lr_warmup_epochs": 3,
@@ -145,7 +145,7 @@ class PretrainedModelsTest(unittest.TestCase):
         }
         self.transfer_detection_train_params_yolox = {
             "max_epochs": 3,
-            "lr_mode": "CosineLRCallback",
+            "lr_mode": "CosineLRScheduler",
             "cosine_final_lr_ratio": 0.05,
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
@@ -215,7 +215,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "max_epochs": 3,
             "initial_lr": 1e-2,
             "loss": DDRNetLoss(),
-            "lr_mode": "PolyLRCallback",
+            "lr_mode": "PolyLRScheduler",
             "ema": True,  # unlike the paper (not specified in paper)
             "average_best_models": True,
             "optimizer": "SGD",
@@ -232,7 +232,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "max_epochs": 3,
             "initial_lr": 1e-2,
             "loss": STDCLoss(num_classes=5),
-            "lr_mode": "PolyLRCallback",
+            "lr_mode": "PolyLRScheduler",
             "ema": True,  # unlike the paper (not specified in paper)
             "optimizer": "SGD",
             "optimizer_params": {"weight_decay": 5e-4, "momentum": 0.9},
@@ -247,7 +247,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "max_epochs": 3,
             "initial_lr": 1e-2,
             "loss": "CrossEntropyLoss",
-            "lr_mode": "PolyLRCallback",
+            "lr_mode": "PolyLRScheduler",
             "ema": True,  # unlike the paper (not specified in paper)
             "optimizer": "SGD",
             "optimizer_params": {"weight_decay": 5e-4, "momentum": 0.9},

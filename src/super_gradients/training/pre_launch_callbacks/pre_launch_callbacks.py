@@ -300,8 +300,8 @@ def modify_params_for_qat(
     logger.warning(f"New learning rate: {training_hyperparams['initial_lr']}")
     logger.warning(f"New weight decay: {training_hyperparams['optimizer_params']['weight_decay']}")
     # as recommended by pytorch-quantization docs
-    if get_param(training_hyperparams, "lr_mode") != "CosineLRCallback":
-        training_hyperparams["lr_mode"] = "CosineLRCallback"
+    if get_param(training_hyperparams, "lr_mode") != "CosineLRScheduler":
+        training_hyperparams["lr_mode"] = "CosineLRScheduler"
     training_hyperparams["cosine_final_lr_ratio"] = cosine_final_lr_ratio
     logger.warning(
         f"lr_mode will be set to cosine for QAT run instead of {get_param(training_hyperparams, 'lr_mode')} with "
