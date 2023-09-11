@@ -30,7 +30,7 @@ arch_params:
   num_classes: ${dataset_params.num_joints}
 
 training_hyperparams:
-  # phase_callbacks: [ ] # Disable visualization
+  phase_callbacks: [ ] # Disable visualization
   criterion_params:
     classification_loss_type: focal
     pose_classification_loss_type: focal
