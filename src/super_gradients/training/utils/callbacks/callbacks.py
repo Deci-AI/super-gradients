@@ -1341,7 +1341,7 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
                 max=False
                 ignore_idx=19),
             ExtremeBatchSegVisualizationCallback(
-                loss_to_monitor="LabelSmoothingCrossEntropyLoss"
+                loss_to_monitor="CrossEntropyLoss"
                 max=True
                 ignore_idx=19)]
                 ...}

@@ -37,7 +37,7 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                 "lr_decay_factor": 0.01,
                 "lr_mode": "StepLRCallback",
                 "initial_lr": 0.01,
-                "loss": "LabelSmoothingCrossEntropyLoss",
+                "loss": "CrossEntropyLoss",
                 "optimizer": "SGD",
                 "optimizer_params": {"weight_decay": 1e-5, "momentum": 0.9},
                 "train_metrics_list": [Accuracy()],

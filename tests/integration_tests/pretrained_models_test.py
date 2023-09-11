@@ -86,7 +86,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "lr_updates": [1],
             "lr_decay_factor": 0.1,
             "initial_lr": 0.6,
-            "loss": "LabelSmoothingCrossEntropyLoss",
+            "loss": "CrossEntropyLoss",
             "lr_mode": "StepLRCallback",
             "optimizer_params": {"weight_decay": 0.000, "momentum": 0.9},
             "train_metrics_list": [Accuracy()],
@@ -246,7 +246,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.regseg_transfer_segmentation_train_params = {
             "max_epochs": 3,
             "initial_lr": 1e-2,
-            "loss": "LabelSmoothingCrossEntropyLoss",
+            "loss": "CrossEntropyLoss",
             "lr_mode": "PolyLRCallback",
             "ema": True,  # unlike the paper (not specified in paper)
             "optimizer": "SGD",

@@ -858,7 +858,7 @@ class Trainer:
                     Loss function for training.
                     One of SuperGradient's built in options:
 
-                        - LabelSmoothingCrossEntropyLoss,
+                        - CrossEntropyLoss,
                         - MSELoss,
                         - RSquaredLoss,
                         - YoLoV3DetectionLoss,

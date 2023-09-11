@@ -1,7 +1,7 @@
 class Losses:
     """Static class holding all the supported loss names"""
 
-    CROSS_ENTROPY = "LabelSmoothingCrossEntropyLoss"
+    CROSS_ENTROPY = "CrossEntropyLoss"
     MSE = "MSE"
     R_SQUARED_LOSS = "RSquaredLoss"
     SHELFNET_OHEM_LOSS = "ShelfNetOHEMLoss"

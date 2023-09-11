@@ -47,7 +47,7 @@ class DeciLabUploadTest(unittest.TestCase):
             "lr_mode": "StepLRCallback",
             "lr_warmup_epochs": 0,
             "initial_lr": 0.1,
-            "loss": "LabelSmoothingCrossEntropyLoss",
+            "loss": "CrossEntropyLoss",
             "optimizer": self.optimizer,
             "criterion_params": {},
             "train_metrics_list": [Accuracy(), Top5()],

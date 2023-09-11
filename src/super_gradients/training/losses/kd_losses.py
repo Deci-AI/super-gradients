@@ -21,7 +21,7 @@ class KDLogitsLoss(_Loss):
 
     def __init__(self, task_loss_fn: _Loss, distillation_loss_fn: _Loss = KDklDivLoss(), distillation_loss_coeff: float = 0.5):
         """
-        :param task_loss_fn: task loss. E.g., LabelSmoothingCrossEntropyLoss
+        :param task_loss_fn: task loss. E.g., CrossEntropyLoss
         :param distillation_loss_fn: distillation loss. E.g., KLDivLoss
         :param distillation_loss_coeff:
         """

@@ -12,7 +12,7 @@ from super_gradients.training.utils.callbacks import Phase
 super_gradients.init_trainer()
 
 early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Accuracy", mode="max", patience=3, verbose=True)
-early_stop_val_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="LabelSmoothingCrossEntropyLoss", mode="min", patience=3, verbose=True)
+early_stop_val_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="CrossEntropyLoss", mode="min", patience=3, verbose=True)
 
 train_params = {
     "max_epochs": 250,
@@ -21,7 +21,7 @@ train_params = {
     "lr_mode": "StepLRCallback",
     "lr_warmup_epochs": 0,
     "initial_lr": 0.1,
-    "loss": "LabelSmoothingCrossEntropyLoss",
+    "loss": "CrossEntropyLoss",
     "optimizer": "SGD",
     "criterion_params": {},
     "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},

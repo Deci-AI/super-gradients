@@ -26,7 +26,7 @@ class TestTrainer(unittest.TestCase):
             "initial_lr": 0.1,
             "lr_updates": [4],
             "lr_mode": "StepLRCallback",
-            "loss": "LabelSmoothingCrossEntropyLoss",
+            "loss": "CrossEntropyLoss",
             "train_metrics_list": [Accuracy(), Top5()],
             "valid_metrics_list": [Accuracy(), Top5()],
             "metric_to_watch": "Accuracy",

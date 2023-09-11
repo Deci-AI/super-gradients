@@ -19,7 +19,7 @@ class LRTest(unittest.TestCase):
             "max_epochs": 1,
             "silent_mode": True,
             "initial_lr": 0.1,
-            "loss": "LabelSmoothingCrossEntropyLoss",
+            "loss": "CrossEntropyLoss",
             "train_metrics_list": [Accuracy(), Top5()],
             "valid_metrics_list": [Accuracy(), Top5()],
             "metric_to_watch": "Accuracy",
