@@ -278,7 +278,7 @@ class LRCallbackBase(PhaseCallback):
 
 
 @register_lr_warmup(LRWarmups.LINEAR_EPOCH_STEP, deprecated_name="linear_epoch_step")
-class EpochStepWarmupLRCallback(LRCallbackBase):
+class LinearEpochLRWarmup(LRCallbackBase):
     """
     LR scheduling callback for linear step warmup. This scheduler uses a whole epoch as single step.
     LR climbs from warmup_initial_lr with even steps to initial lr. When warmup_initial_lr is None - LR climb starts from
@@ -287,7 +287,7 @@ class EpochStepWarmupLRCallback(LRCallbackBase):
     """
 
     def __init__(self, **kwargs):
-        super(EpochStepWarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
+        super().__init__(Phase.TRAIN_EPOCH_START, **kwargs)
         self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
         self.warmup_step_size = (
             (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs if self.training_params.lr_warmup_epochs > 0 else 0
@@ -301,20 +301,24 @@ class EpochStepWarmupLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
-@register_lr_warmup(LRWarmups.LINEAR_STEP, deprecated_name="linear_step")
-class LinearStepWarmupLRCallback(EpochStepWarmupLRCallback):
-    """Deprecated, use EpochStepWarmupLRCallback instead"""
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+class EpochStepWarmupLRCallback(LinearEpochLRWarmup):
+    ...
 
-    def __init__(self, **kwargs):
-        logger.warning(
-            f"Parameter {LRWarmups.LINEAR_STEP} has been made deprecated and will be removed in the next SG release. "
-            f"Please use `{LRWarmups.LINEAR_EPOCH_STEP}` instead."
-        )
-        super(LinearStepWarmupLRCallback, self).__init__(**kwargs)
+
+@register_lr_warmup(LRWarmups.LINEAR_STEP, deprecated_name="linear_step")
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+class LinearLRWarmup(LinearEpochLRWarmup):
+    ...
+
+
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+class LinearStepWarmupLRCallback(LinearEpochLRWarmup):
+    ...
 
 
 @register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP, deprecated_name="linear_batch_step")
-class BatchStepLinearWarmupLRCallback(Callback):
+class LinearBatchLRWarmup(Callback):
     """
     LR scheduling callback for linear step warmup on each batch step.
     LR climbs from warmup_initial_lr with to initial lr.
@@ -340,7 +344,7 @@ class BatchStepLinearWarmupLRCallback(Callback):
         :param kwargs:
         """
 
-        super(BatchStepLinearWarmupLRCallback, self).__init__()
+        super().__init__()
 
         if lr_warmup_steps > train_loader_len:
             logger.warning(
@@ -383,6 +387,11 @@ class BatchStepLinearWarmupLRCallback(Callback):
             # UPDATE THE OPTIMIZERS PARAMETER
             for param_group in optimizer.param_groups:
                 param_group["lr"] = self.lr
+
+
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearBatchLRWarmup)
+class BatchStepLinearWarmupLRCallback(LinearBatchLRWarmup):
+    ...
 
 
 @register_lr_scheduler(LRSchedulers.STEP, deprecated_name="step")
