@@ -36,8 +36,10 @@ training_hyperparams:
     pose_classification_loss_type: focal
     rescale_pose_loss_with_assigned_score: True
     pose_reg_loss_weight: 34
+    dfl_loss_weight: 0.1
 
-  warmup_mode: warmup_linear_step
+  warmup_mode: linear_batch_step
+  warmup_initial_lr:  1e-6
   lr_warmup_steps: 256
 
   ema: True
