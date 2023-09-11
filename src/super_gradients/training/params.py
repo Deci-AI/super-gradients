@@ -48,7 +48,7 @@ DEFAULT_TRAINING_PARAMS = {
         "save_tensorboard_remote": False,  # upload tensorboard files to s3
         "save_logs_remote": False,
     },  # upload log files to s3
-    "warmup_mode": "LinearStepWarmupLRCallback",
+    "warmup_mode": "LinearEpochLRWarmup",
     "step_lr_update_freq": None,
     "lr_updates": [],
     "clip_grad_norm": None,

@@ -355,7 +355,7 @@ Output (Training parameters):
     'train_metrics_list': ['Accuracy', 'Top5'],
     'valid_metrics_list': ['Accuracy', 'Top5'],
     'warmup_initial_lr': None,
-    'warmup_mode': 'EpochStepWarmupLRCallback',
+    'warmup_mode': 'LinearEpochLRWarmup',
     'zero_weight_decay_on_bias_and_bn': False
 }
 ```

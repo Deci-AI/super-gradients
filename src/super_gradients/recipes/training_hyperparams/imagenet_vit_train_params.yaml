@@ -7,7 +7,7 @@ lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0
 lr_warmup_epochs: 1
 warmup_initial_lr: 0
-warmup_mode: EpochStepWarmupLRCallback
+warmup_mode: LinearEpochLRWarmup
 ema: False
 loss: LabelSmoothingCrossEntropyLoss
 clip_grad_norm: 1

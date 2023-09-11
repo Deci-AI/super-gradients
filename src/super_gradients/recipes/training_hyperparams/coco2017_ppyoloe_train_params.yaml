@@ -4,7 +4,7 @@ defaults:
 max_epochs: 500
 static_assigner_end_epoch: 150
 
-warmup_mode: BatchStepLinearWarmupLRCallback
+warmup_mode: LinearBatchLRWarmup
 warmup_initial_lr:  1e-6
 lr_warmup_steps: 1000
 lr_warmup_epochs: 0

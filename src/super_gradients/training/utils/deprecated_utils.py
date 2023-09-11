@@ -10,14 +10,14 @@ def wrap_with_warning(cls: Callable, message: str) -> Any:
     Emits a warning when target class of function is called.
 
     >>> from super_gradients.training.utils.deprecated_utils import wrap_with_warning
-    >>> from super_gradients.training.utils.callbacks import EpochStepWarmupLRCallback, BatchStepLinearWarmupLRCallback
+    >>> from super_gradients.training.utils.callbacks import LinearEpochLRWarmup, LinearBatchLRWarmup
     >>>
     >>> LR_WARMUP_CLS_DICT = {
     >>>     "linear": wrap_with_warning(
-    >>>         EpochStepWarmupLRCallback,
+    >>>         LinearEpochLRWarmup,
     >>>         message=f"Parameter `linear` has been made deprecated and will be removed in the next SG release. Please use `linear_epoch` instead",
     >>>     ),
-    >>>     'linear_epoch`': EpochStepWarmupLRCallback,
+    >>>     'linear_epoch`': LinearEpochLRWarmup,
     >>> }
 
     :param cls: A class or function to wrap

@@ -71,7 +71,7 @@ class LRWarmupTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
             "ema": False,
             "phase_callbacks": phase_callbacks,
-            "warmup_mode": "EpochStepWarmupLRCallback",
+            "warmup_mode": "LinearEpochLRWarmup",
         }
 
         expected_lrs = [0.25, 0.5, 0.75, 1.0, 1.0]
@@ -107,7 +107,7 @@ class LRWarmupTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
             "ema": False,
             "phase_callbacks": phase_callbacks,
-            "warmup_mode": "EpochStepWarmupLRCallback",
+            "warmup_mode": "LinearEpochLRWarmup",
         }
 
         expected_lrs = [0.25, 0.5, 0.75, 0.9236067977499791, 0.4763932022500211]
@@ -140,7 +140,7 @@ class LRWarmupTest(unittest.TestCase):
             "lr_mode": "CosineLRScheduler",
             "cosine_final_lr_ratio": cosine_final_lr_ratio,
             "warmup_initial_lr": warmup_initial_lr,
-            "warmup_mode": "BatchStepLinearWarmupLRCallback",
+            "warmup_mode": "LinearBatchLRWarmup",
             "lr_warmup_steps": lr_warmup_steps,
             "initial_lr": 1,
             "loss": "CrossEntropyLoss",
@@ -200,7 +200,7 @@ class LRWarmupTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
             "ema": False,
             "phase_callbacks": [collect_lr_callback],
-            "warmup_mode": "EpochStepWarmupLRCallback",
+            "warmup_mode": "LinearEpochLRWarmup",
         }
 
         expected_lrs = [4.0, 3.0, 2.0, 1.0, 1.0]

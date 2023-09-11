@@ -164,9 +164,9 @@ class LRSchedulers:
 class LRWarmups:
     """Static class to hold all the supported LR Warmup names"""
 
-    LINEAR_STEP = "LinearStepWarmupLRCallback"
-    LINEAR_EPOCH_STEP = "EpochStepWarmupLRCallback"
-    LINEAR_BATCH_STEP = "BatchStepLinearWarmupLRCallback"
+    LINEAR_STEP = "LinearEpochLRWarmup"
+    LINEAR_EPOCH_STEP = "LinearEpochLRWarmup"
+    LINEAR_BATCH_STEP = "LinearBatchLRWarmup"
 
 
 class Samplers:

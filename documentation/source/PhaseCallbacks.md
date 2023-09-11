@@ -8,8 +8,8 @@ SG's `super_gradients.training.utils.callbacks` module implements some common us
 
     ModelConversionCheckCallback
     LRCallbackBase
-    EpochStepWarmupLRCallback
-    BatchStepLinearWarmupLRCallback
+    LinearEpochLRWarmup
+    LinearBatchLRWarmup
     StepLRScheduler
     ExponentialLRScheduler
     PolyLRScheduler
