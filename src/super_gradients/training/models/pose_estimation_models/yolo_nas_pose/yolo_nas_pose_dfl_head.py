@@ -46,6 +46,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         super().__init__(in_channels)
 
         inter_channels = width_multiplier(inter_channels, width_mult, 8)
+        pose_inter_channels = width_multiplier(pose_inter_channels, width_mult, 8)
         if first_conv_group_size == 0:
             groups = 0
         elif first_conv_group_size == -1:
@@ -116,8 +117,8 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
 
         pose_feat = self.pose_convs(x)
         pose_feat = self.reg_dropout_rate(pose_feat)
-
         pose_output = self.pose_pred(pose_feat)
+
         pose_output = pose_output.reshape((pose_output.size(0), self.reg_max + 1, self.num_classes, 2, pose_output.size(2), pose_output.size(3)))
         return reg_output, cls_output, pose_logits, pose_output
 
