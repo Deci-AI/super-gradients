@@ -59,6 +59,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         self.num_classes = num_classes
 
         self.stem = ConvBNReLU(in_channels, inter_channels, kernel_size=1, stride=1, padding=0, bias=False)
+        self.pose_stem = ConvBNReLU(in_channels, pose_inter_channels, kernel_size=1, stride=1, padding=0, bias=False)
 
         first_cls_conv = [ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
         self.cls_convs = nn.Sequential(*first_cls_conv, ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
@@ -66,7 +67,9 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         first_reg_conv = [ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
         self.reg_convs = nn.Sequential(*first_reg_conv, ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
 
-        first_pose_conv = [ConvBNReLU(in_channels, pose_inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
+        first_pose_conv = (
+            [ConvBNReLU(pose_inter_channels, pose_inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
+        )
         self.pose_convs = nn.Sequential(
             *first_pose_conv,
             ConvBNReLU(pose_inter_channels, pose_inter_channels, kernel_size=3, stride=1, padding=1, bias=False),
@@ -103,6 +106,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
             - pose_output: Tensor of [B, num_bins, num_classes, 2, H, W]
         """
         box_feat = self.stem(x)
+        pose_feat = self.pose_stem(x)
 
         cls_feat = self.cls_convs(box_feat)
         cls_feat = self.cls_dropout_rate(cls_feat)
@@ -115,7 +119,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         reg_feat = self.reg_dropout_rate(reg_feat)
         reg_output = self.reg_pred(reg_feat)
 
-        pose_feat = self.pose_convs(x)
+        pose_feat = self.pose_convs(pose_feat)
         pose_feat = self.reg_dropout_rate(pose_feat)
         pose_output = self.pose_pred(pose_feat)
 
