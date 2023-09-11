@@ -75,13 +75,17 @@ coco2017_yolo_nas_pose_shared_s_ema_less_mosaic_lr_focal_local:
 coco2017_yolo_nas_pose_shared_s_ema_less_mosaic_lr_focal_tzag:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_shared_s_ema_less_mosaic_lr_focal_tzag
 
+coco2017_yolo_nas_pose_s_dfl_local:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_dfl_local  dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017 num_gpus=4
+
+
+
 crowdpose_yolo_nas_pose_s:
 	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s
 	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_new_assigner
 	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_bce
 	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_bce_rescale
 	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_bce_rescale_smooth_l1
-
 
 coco2017_yolo_nas_pose_s_sgd_local:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_sgd_local num_workers=16

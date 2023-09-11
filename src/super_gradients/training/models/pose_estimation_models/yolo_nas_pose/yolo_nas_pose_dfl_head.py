@@ -22,6 +22,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         self,
         in_channels: int,
         inter_channels: int,
+        pose_inter_channels: int,
         width_mult: float,
         first_conv_group_size: int,
         num_classes: int,
@@ -64,12 +65,16 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         first_reg_conv = [ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
         self.reg_convs = nn.Sequential(*first_reg_conv, ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
 
-        first_pose_conv = [ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
-        self.pose_convs = nn.Sequential(*first_pose_conv, ConvBNReLU(inter_channels, inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
+        first_pose_conv = [ConvBNReLU(in_channels, pose_inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
+        self.pose_convs = nn.Sequential(
+            *first_pose_conv,
+            ConvBNReLU(pose_inter_channels, pose_inter_channels, kernel_size=3, stride=1, padding=1, bias=False),
+            ConvBNReLU(pose_inter_channels, pose_inter_channels, kernel_size=3, stride=1, padding=1, bias=False),
+        )
 
         self.cls_pred = nn.Conv2d(inter_channels, 1 + self.num_classes, 1, 1, 0)
         self.reg_pred = nn.Conv2d(inter_channels, 4 * (reg_max + 1), 1, 1, 0)
-        self.pose_pred = nn.Conv2d(inter_channels, 2 * self.num_classes * (reg_max + 1), 1, 1, 0)  # each keypoint is x,y,confidence
+        self.pose_pred = nn.Conv2d(pose_inter_channels, 2 * self.num_classes * (reg_max + 1), 1, 1, 0)  # each keypoint is x,y,confidence
 
         self.cls_dropout_rate = nn.Dropout2d(cls_dropout_rate) if cls_dropout_rate > 0 else nn.Identity()
         self.reg_dropout_rate = nn.Dropout2d(reg_dropout_rate) if reg_dropout_rate > 0 else nn.Identity()
@@ -96,16 +101,16 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
             - pose_logits: Tensor of [B, num_classes, H, W]
             - pose_output: Tensor of [B, num_bins, num_classes, 2, H, W]
         """
-        x = self.stem(x)
+        box_feat = self.stem(x)
 
-        cls_feat = self.cls_convs(x)
+        cls_feat = self.cls_convs(box_feat)
         cls_feat = self.cls_dropout_rate(cls_feat)
         cls_output = self.cls_pred(cls_feat)
 
         pose_logits = cls_output[:, 1:, :, :]
         cls_output = cls_output[:, 0:1, :, :]
 
-        reg_feat = self.reg_convs(x)
+        reg_feat = self.reg_convs(box_feat)
         reg_feat = self.reg_dropout_rate(reg_feat)
         reg_output = self.reg_pred(reg_feat)
 
