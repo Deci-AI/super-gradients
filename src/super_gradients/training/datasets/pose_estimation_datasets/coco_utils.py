@@ -6,7 +6,14 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
 
-__all__ = ["check_keypoints_outside_image", "check_for_duplicate_annotations", "make_keypoints_outside_image_invisible", "remove_duplicate_annotations"]
+__all__ = [
+    "check_keypoints_outside_image",
+    "check_for_duplicate_annotations",
+    "make_keypoints_outside_image_invisible",
+    "remove_duplicate_annotations",
+    "remove_crowd_annotations",
+    "remove_samples_with_crowd_annotations",
+]
 
 
 def check_keypoints_outside_image(coco: COCO) -> None:
@@ -156,6 +163,30 @@ def remove_empty_samples(coco: COCO):
         annotations = coco.loadAnns(ann_ids)
         if len(annotations) == 0:
             img_ids_to_remove.append(image_id)
+
+    if len(img_ids_to_remove) > 0:
+        logger.debug(f"Removing {len(img_ids_to_remove)} empty images")
+        len_before = len(coco.dataset["images"])
+        coco.dataset["images"] = [v for v in coco.dataset["images"] if v["id"] not in img_ids_to_remove]
+        len_after = len(coco.dataset["images"])
+        logger.debug(f"Removed {len_before - len_after} empty images")
+        coco.createIndex()
+
+    return coco
+
+
+def remove_samples_with_crowd_annotations(coco: COCO):
+    img_ids_to_remove = []
+
+    image_ids = list(coco.imgs.keys())
+    for image_id in image_ids:
+        ann_ids = coco.getAnnIds(imgIds=image_id)
+        annotations = coco.loadAnns(ann_ids)
+
+        for ann in annotations:
+            if bool(ann["iscrowd"]):
+                img_ids_to_remove.append(image_id)
+                break
 
     if len(img_ids_to_remove) > 0:
         logger.debug(f"Removing {len(img_ids_to_remove)} empty images")

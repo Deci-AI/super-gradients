@@ -75,7 +75,7 @@ train_dataset_params:
   json_file: annotations/person_keypoints_train2017.json
 
   include_empty_samples: False
-  crowd_annotations_action: include
+  crowd_annotations_action: no_action
   min_instance_area: 64
 
   edge_links: ${dataset_params.edge_links}
@@ -123,7 +123,7 @@ val_dataset_params:
   json_file: annotations/person_keypoints_val2017.json
 
   include_empty_samples: True
-  crowd_annotations_action: ignore
+  crowd_annotations_action: no_action
   min_instance_area: 128
 
   edge_links: ${dataset_params.edge_links}

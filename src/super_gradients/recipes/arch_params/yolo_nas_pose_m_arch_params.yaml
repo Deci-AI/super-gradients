@@ -90,6 +90,8 @@ heads:
   YoloNASPoseNDFLHeads:
     num_classes: 17
     reg_max: 16
+    pose_offset_multiplier: 1.0
+    compensate_grid_cell_offset: True
     heads_list:
       - YoloNASPoseDFLHead:
           inter_channels: 128
