@@ -226,7 +226,7 @@ class TestBreakingChangeDetection(unittest.TestCase):
         self.assertEqual(len(breaking_changes.functions_removed), 1)
         self.assertEqual(breaking_changes.functions_removed[0].function_name, "MyClass.method")
 
-    def test_inheritance(self):
+    def test_inheritance_detection(self):
         code = """
 class Base1:
     def method_in_base1(self): pass
@@ -255,6 +255,13 @@ class Derived(Base1, Base2):
             ),
         }
         self.assertEqual(parse_functions_signatures(code), expected)
+
+    def test_inheritance_breaking_change(self):
+        old_code = "class MyClass:\n    def method(self): pass"
+        new_code = "class MyNewClass:\n    def method(self): pass\nclass MyClass(MyNewClass): pass"  # MyClass.method() will still work
+
+        breaking_changes = extract_code_breaking_changes("module.py", old_code, new_code)
+        self.assertEqual(len(breaking_changes.functions_removed), 0)
 
 
 if __name__ == "__main__":
