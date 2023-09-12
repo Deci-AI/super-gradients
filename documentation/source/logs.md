@@ -1,29 +1,31 @@
 # Local Logging
 
-SuperGradients automatically logs locally multiple files that can help you explore your experiments results. This includes 1 tensorboard and 3 .txt files.
+SuperGradients automatically logs multiple files locally that can help you explore your experiments results. 
+This includes 1 tensorboard and 3 .txt files.
+Absolutely. I understand your requirements. Here's a more concise and structured introduction:
 
+### Directory Structure Overview:
+- **ckpt_root_dir**: The root directory where all experiments are stored.
+- **experiment_name**: The specific folder dedicated to your current experiment.
+- **run_dir**: Unique identifier for each training run; contains all associated checkpoints and logs.
 
+> For a deeper dive into checkpoints, visit our [detailed guide](Checkpoints.md).
 
 ## I. Tensorboard logging
 To easily keep track of your experiments, SuperGradients saves your results in `events.out.tfevents` format that can be used by tensorboard.
 
 **What does it include?** This tensorboard includes all of your training and validation metrics but also other information such as learning rate, system metrics (CPU, GPU, ...), and more.
 
-**Where is it saved?** `<ckpt_root_dir>/<experiment_name>/events.out.tfevents.<unique_id>`
+**Where is it saved?** `<ckpt_root_dir>/<experiment_name>/<run_dir>/events.out.tfevents.<unique_id>`
 
-**How to launch?**`tensorboard --logdir checkpoint_path/events.out.tfevents.<unique_id>`
-
-
+**How to launch?** `tensorboard --logdir <ckpt_root_dir>/<experiment_name>/<run_dir>`
 
 ## II. Experiment logging
 In case you cannot launch a tensorboard instance, you can still find a summary of your experiment saved in a readable .txt format.
 
 **What does it include?** The experiment configuration and training/validation metrics.
 
-**Where is it saved?** `<ckpt_root_dir>/<experiment_name>/experiment_logs_<date>.txt`
-
-
-
+**Where is it saved?** `<ckpt_root_dir>/<experiment_name>/<run_dir>/experiment_logs_<date>.txt`
 
 ## III. Console logging
 For better debugging and understanding of past runs, SuperGradients gathers all the print statements and logs into a 
@@ -33,7 +35,7 @@ local file, providing you the convenience to review console outputs of any exper
 
 **Where is it saved?**
 - Upon importing SuperGradients, console outputs and logs will be stored in `~/sg_logs/console.log`.
-- When instantiating the super_gradients.Trainer, all console outputs and logs will be redirected to the experiment folder `<ckpt_root_dir>/<experiment_name>/console_<date>.txt`.
+- When instantiating the `super_gradients.Trainer`, all console outputs and logs will be redirected to the experiment folder `<ckpt_root_dir>/<experiment_name>/<run_dir>/console_<date>.txt`.
 
 **How to set log level?** You can filter the logs displayed on the console by setting the environment variable `CONSOLE_LOG_LEVEL=<LOG-LEVEL> # DEBUG/INFO/WARNING/ERROR`
 
@@ -45,7 +47,7 @@ This means that it includes any log that was under the logging level (`logging.D
 
 **What does it include?** Anything logged with a logger (`logger.log`, `logger.info`, ...), even the filtered logs.
 
-**Where is it saved?** `<ckpt_root_dir>/<experiment_name>/logs_<date>.txt`
+**Where is it saved?** `<ckpt_root_dir>/<experiment_name>/<run_dir>/logs_<date>.txt`
 
 **How to set log level?** You can filter the logs saved in the file by setting the environment variable `FILE_LOG_LEVEL=<LOG-LEVEL> # DEBUG/INFO/WARNING/ERROR`
 
@@ -54,9 +56,8 @@ This means that it includes any log that was under the logging level (`logging.D
 Only when training using hydra recipe.
 
 **What does it include?**
-```     
- <ckpt_root_dir>/<experiment_name>
-        ├─ ...
+```
+<ckpt_root_dir>/<experiment_name>/<run_dir>/
         └─ .hydra
              ├─config.yaml       # A single config file that regroups the config files used to run the experiment  
              ├─hydra.yaml        # Some Hydra metadata
@@ -65,8 +66,8 @@ Only when training using hydra recipe.
 
 
 ## SUMMARY 
-```     
- <ckpt_root_dir>/<experiment_name>
+```
+<ckpt_root_dir>/<experiment_name>/<run_dir>/
         ├─ ... (all the model checkpoints)
         ├─ events.out.tfevents.<unique_id>  # Tensorboard artifact
         ├─ experiment_logs_<date>.txt       # Config and metrics related to experiment 

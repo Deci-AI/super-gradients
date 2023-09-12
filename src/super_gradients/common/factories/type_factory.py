@@ -3,7 +3,7 @@ from enum import Enum
 import importlib
 
 from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
-from super_gradients.common.factories.base_factory import AbstractFactory
+from super_gradients.common.factories.base_factory import AbstractFactory, warn_if_deprecated
 from super_gradients.training.utils import get_param
 
 
@@ -32,6 +32,9 @@ class TypeFactory(AbstractFactory):
            If provided value is already a class type, the value will be returned as is.
         """
         if isinstance(conf, str) or isinstance(conf, bool):
+            if isinstance(conf, str):
+                warn_if_deprecated(name=conf, registry=self.type_dict)
+
             if conf in self.type_dict:
                 return self.type_dict[conf]
             elif isinstance(conf, str) and get_param(self.type_dict, conf) is not None:
