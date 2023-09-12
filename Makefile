@@ -46,6 +46,9 @@ coco2017_yolo_nas_pose_shared_s:
 coco2017_yolo_nas_pose_shared_s_ema_less_mosaic_lr_bce_local:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_shared_s_ema_less_mosaic_lr_bce_local  dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017 num_gpus=4
 
+coco2017_yolo_nas_pose_s_local:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_local  dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017 num_gpus=4
+
 coco2017_yolo_nas_pose_shared_s_384_short:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_shared_s_384_short  dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017 num_gpus=4 multi_gpu=DDP
 
