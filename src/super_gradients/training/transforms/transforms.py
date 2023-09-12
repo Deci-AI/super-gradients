@@ -1284,7 +1284,7 @@ def random_affine(
     targets_seg = np.zeros((targets.shape[0], 0)) if targets_seg is None else targets_seg
     M = get_affine_matrix(img.shape[:2], target_size, degrees, translate, scales, shear)
 
-    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(border_value, border_value, border_value))
+    img = cv2.warpAffine(img, M, dsize=target_size[::-1], borderValue=(border_value, border_value, border_value))
 
     # Transform label coordinates
     if len(targets) > 0:
