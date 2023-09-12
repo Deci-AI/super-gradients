@@ -71,14 +71,14 @@ dataset_params:
   image_size: 384
   mosaic_prob: 0.5
 
-#  train_dataset_params:
-#    crowd_annotations_action: drop_sample
-#    include_empty_samples: False
-#    min_instance_area: 8
-#
-#  val_dataset_params:
-#    include_empty_samples: False
-#    min_instance_area: 8
+  train_dataset_params:
+    crowd_annotations_action: drop_sample
+    include_empty_samples: True
+    min_instance_area: 8
+
+  val_dataset_params:
+    include_empty_samples: False
+    min_instance_area: 8
 
   train_dataloader_params:
     batch_size: 128
