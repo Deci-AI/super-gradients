@@ -8,6 +8,7 @@ dataset_params_suffix: "mosaic_${dataset_params.mosaic_prob}_${dataset_params.im
 train_dataset_params:
   include_empty_samples: True
   min_instance_area: 16
+  crowd_annotations_action: mask_as_normal
 
   transforms:
     - KeypointsRandomHorizontalFlip:

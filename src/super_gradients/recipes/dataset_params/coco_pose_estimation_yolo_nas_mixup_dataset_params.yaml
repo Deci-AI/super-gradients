@@ -8,6 +8,7 @@ dataset_params_suffix: "mixup_${dataset_params.mixup_prob}_${dataset_params.imag
 train_dataset_params:
   include_empty_samples: True
   min_instance_area: 16
+  crowd_annotations_action: mask_as_normal
 
   transforms:
     - KeypointsRandomHorizontalFlip:

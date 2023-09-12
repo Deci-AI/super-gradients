@@ -5,6 +5,7 @@ defaults:
 train_dataset_params:
   include_empty_samples: True
   min_instance_area: 16
+  crowd_annotations_action: mask_as_normal
 
   transforms:
     - KeypointsRandomHorizontalFlip:

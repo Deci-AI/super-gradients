@@ -71,6 +71,7 @@ checkpoint_params:
 dataset_params:
   mosaic_prob: 0.5
 
+
   train_dataloader_params:
     batch_size: 48
 
