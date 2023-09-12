@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from omegaconf import OmegaConf, UnsupportedValueType, DictConfig, open_dict
 from torch.utils.data import BatchSampler, DataLoader, TensorDataset, RandomSampler
+import torch.distributed as dist
 
 import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -41,7 +42,6 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.common.environment.ddp_utils import get_local_rank
 from super_gradients.training.utils.utils import override_default_params_without_nones
 from super_gradients.common.environment.cfg_utils import load_dataset_params
-import torch.distributed as dist
 
 
 logger = get_logger(__name__)
@@ -132,6 +132,7 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
     default_dataloader_params = hydra.utils.instantiate(default_dataloader_params)
     dataloader_params = _process_sampler_params(dataloader_params, dataset, default_dataloader_params)
     dataloader_params = _process_collate_fn_params(dataloader_params)
+    dataloader_params = _process_adapter_collate(dataset=dataset, dataloader_params=dataloader_params)
 
     # The following check is needed to gracefully handle the rare but possible case when the dataset length
     # is less than the number of workers. In this case DataLoader will crash.
@@ -859,6 +860,29 @@ def coco2017_rescoring_val(dataset_params: Dict = None, dataloader_params: Dict 
     )
 
 
+def _process_adapter_collate(dataset, dataloader_params):
+    from super_gradients.training.dataloaders.utils import CollateFN
+
+    if get_param(dataloader_params, "adapter"):
+        from super_gradients.common.factories.adapter_factory import AdaptersFactory
+
+        adapter = dataloader_params.pop("adapter")
+        adapter = AdaptersFactory().get(adapter)
+
+        # This will trigger all the "questions". It is done beforehand because `input` doesnt work with dataloader workers.
+        # batch_size=1 and num_workers=0 to make sure the dataloader will work.
+        adapter.adapt_batch(next(iter(DataLoader(dataset=dataset, batch_size=1, num_workers=0))))  # TODO: DL should not be required..
+
+        collate_fn = get_param(dataloader_params, "collate_fn")
+        if not isinstance(collate_fn, CollateFN):
+            collate_fn = CollateFN(collage_fn=collate_fn, adapter=adapter)  # Adapter will be called on the output of the collate_fn.
+        else:
+            collate_fn.set_adapter(adapter)  # Adapter will be called on the output of the collate_fn but before post_processing.
+
+        dataloader_params["collate_fn"] = collate_fn
+    return dataloader_params
+
+
 def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict = None, dataset: torch.utils.data.Dataset = None) -> DataLoader:
     """
     Get DataLoader of the recipe-configured dataset defined by name in ALL_DATALOADERS.
@@ -886,6 +910,7 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
 
     if dataset is not None:
         dataloader_params = _process_sampler_params(dataloader_params, dataset, {})
+        dataloader_params = _process_adapter_collate(dataset=dataset, dataloader_params=dataloader_params)
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
 
         dataloader.dataloader_params = dataloader_params
@@ -893,7 +918,8 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
             dataset.dataset_params = dataset_params
 
     elif name not in ALL_DATALOADERS.keys():
-        raise ValueError("Unsupported dataloader: " + str(name))
+        dataloaders_list_formatted = "\n\t- ".join(ALL_DATALOADERS.keys())
+        raise ValueError(f"Unsupported value for dataloader `name='{name}'`. Supported values are: {dataloaders_list_formatted}")
     else:
         dataloader_cls = ALL_DATALOADERS[name]
         dataloader = dataloader_cls(dataset_params=dataset_params, dataloader_params=dataloader_params)
