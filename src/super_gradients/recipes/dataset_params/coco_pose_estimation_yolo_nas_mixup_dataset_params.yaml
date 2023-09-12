@@ -2,7 +2,8 @@ defaults:
   - coco_pose_estimation_dataset_params
   - _self_
 
-dataset_params_suffix: "mixup"
+mixup_prob: 0.8
+dataset_params_suffix: "mixup_${dataset_params.mixup_prob}_${dataset_params.image_size}"
 
 train_dataset_params:
   include_empty_samples: True
@@ -35,18 +36,18 @@ train_dataset_params:
         interpolation_mode: [0, 1, 2, 3, 4]
 
     - KeypointsLongestMaxSize:
-        max_height: 640
-        max_width: 640
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
 
     - KeypointsPadIfNeeded:
-        min_height: 640
-        min_width: 640
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
         image_pad_value: [127, 127, 127]
         mask_pad_value: 1
         padding_mode: center
 
     - KeypointsMixup:
-        prob: 0.5
+        prob: ${dataset_params.mixup_prob}
 
     - KeypointsImageStandardize:
         max_value: 255
@@ -61,12 +62,12 @@ val_dataset_params:
   min_instance_area: 0
   transforms:
     - KeypointsLongestMaxSize:
-        max_height: 640
-        max_width: 640
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
 
     - KeypointsPadIfNeeded:
-        min_height: 640
-        min_width: 640
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
         image_pad_value: 127
         mask_pad_value: 1
         padding_mode: bottom_right
