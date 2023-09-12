@@ -73,7 +73,7 @@ dataset_params:
 
   train_dataset_params:
     crowd_annotations_action: drop_sample
-    include_empty_samples: False
+    include_empty_samples: True
     min_instance_area: 8
 
   val_dataset_params:
