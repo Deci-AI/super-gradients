@@ -1,6 +1,6 @@
 defaults:
   - training_hyperparams: coco2017_yolo_nas_pose_train_params
-  - dataset_params: coco_pose_estimation_yolo_nas_dataset_params
+  - dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
   - arch_params: yolo_nas_pose_s_shared_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
@@ -69,15 +69,16 @@ checkpoint_params:
 
 dataset_params:
   image_size: 384
+  mosaic_prob: 0.5
 
-  train_dataset_params:
-    crowd_annotations_action: drop_sample
-    include_empty_samples: False
-    min_instance_area: 8
-
-  val_dataset_params:
-    include_empty_samples: False
-    min_instance_area: 8
+#  train_dataset_params:
+#    crowd_annotations_action: drop_sample
+#    include_empty_samples: False
+#    min_instance_area: 8
+#
+#  val_dataset_params:
+#    include_empty_samples: False
+#    min_instance_area: 8
 
   train_dataloader_params:
     batch_size: 128
