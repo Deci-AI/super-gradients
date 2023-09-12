@@ -72,11 +72,21 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         #     .cuda()
         # )
 
+        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.600
+        #  Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.844
+        #  Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.665
+        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.557
+        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.671
+        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.670
+        #  Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.890
+        #  Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.731
+        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.623
+        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.735
         model: YoloNASPose = (
             models.get(
                 Models.YOLO_NAS_POSE_SHARED_S,
                 num_classes=17,
-                checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_shared_s_average_model.pth",
+                checkpoint_path="G:/super-gradients/checkpoints/2023_09-12_yolo_nas_pose_shared_s_ckpt_best.pth",
             )
             .eval()
             .cuda()
