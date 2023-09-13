@@ -1,6 +1,6 @@
 import os
 from typing import Tuple, List, Mapping, Any, Union
-
+from enum import Enum
 import cv2
 import numpy as np
 import pycocotools
@@ -16,7 +16,19 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyw
 from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
 from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
 
+
 logger = get_logger(__name__)
+
+
+class CrowdAnnotationActionEnum(str, Enum):
+    """
+    Enum that contains possible actions to take for crowd annotations.
+    """
+
+    DROP_SAMPLE = "drop_sample"
+    DROP_ANNOTATION = "drop_annotation"
+    MASK_AS_NORMAL = "mask_as_normal"
+    NO_ACTION = "no_action"
 
 
 @register_dataset(Datasets.COCO_KEY_POINTS_DATASET)
@@ -41,7 +53,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         remove_duplicate_annotations: bool = False,
-        crowd_annotations_action: str = "ignore",
+        crowd_annotations_action: Union[str, CrowdAnnotationActionEnum] = CrowdAnnotationActionEnum.NO_ACTION,
     ):
         """
 
@@ -58,25 +70,37 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         :param edge_colors: Color of the edge links. If None, the color will be generated randomly.
         :param keypoint_colors: Color of the keypoints. If None, the color will be generated randomly.
         :param crowd_annotations_action: Action to take for annotations with iscrowd=1. Can be one of the following:
-            - "include" - These annotations will be treated as normal (non-crowd) annotations.
-            - "ignore" - These annotations will be ignored. They would not contribute to the loss.
-            - "remove" - These annotations will be removed from the dataset entirely.
+            - "drop_sample" - Samples with crowd annotations will be dropped from the dataset.
+            - "drop_annotation" - Crowd annotations will be dropped from the dataset.
+            - "mask_as_normal" - These annotations will be treated as normal (non-crowd) annotations.
+            - "no_action" - No action will be taken for crowd annotations.
         """
 
-        if crowd_annotations_action not in ["include", "ignore", "remove"]:
-            raise ValueError(f"crowd_annotations_action must be one of ['include', 'ignore', 'remove'], got {crowd_annotations_action}")
+        crowd_annotations_action = CrowdAnnotationActionEnum(crowd_annotations_action)
+        if crowd_annotations_action not in [
+            CrowdAnnotationActionEnum.NO_ACTION,
+            CrowdAnnotationActionEnum.DROP_ANNOTATION,
+            CrowdAnnotationActionEnum.DROP_SAMPLE,
+            CrowdAnnotationActionEnum.MASK_AS_NORMAL,
+        ]:
+            raise ValueError(f"crowd_annotations_action must be one of CrowdAnnotationActionEnum values, got {crowd_annotations_action}")
 
         json_file = os.path.join(data_dir, json_file)
         if not os.path.exists(json_file) or not os.path.isfile(json_file):
             raise FileNotFoundError(f"Annotation file {json_file} does not exist")
 
         coco = COCO(json_file)
+
         if remove_duplicate_annotations:
             from .coco_utils import remove_duplicate_annotations as remove_duplicate_annotations_fn
 
             coco = remove_duplicate_annotations_fn(coco)
 
-        if crowd_annotations_action == "remove":
+        if crowd_annotations_action == CrowdAnnotationActionEnum.DROP_SAMPLE:
+            from .coco_utils import remove_samples_with_crowd_annotations
+
+            coco = remove_samples_with_crowd_annotations(coco)
+        elif crowd_annotations_action == CrowdAnnotationActionEnum.DROP_ANNOTATION:
             from .coco_utils import remove_crowd_annotations
 
             coco = remove_crowd_annotations(coco)
@@ -124,7 +148,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
 
         gt_iscrowd = np.array([bool(ann["iscrowd"]) for ann in anno]).reshape((-1))
 
-        if self.crowd_annotations_action == "include":
+        if self.crowd_annotations_action == CrowdAnnotationActionEnum.MASK_AS_NORMAL:
             # If crowd_annotations_action is "include", we treat crowd annotations as normal annotations
             # so we set is_crowd to False for all annotations
             gt_iscrowd = np.zeros_like(gt_iscrowd, dtype=bool)

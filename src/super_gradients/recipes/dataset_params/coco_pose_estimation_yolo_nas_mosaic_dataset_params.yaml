@@ -2,13 +2,13 @@ defaults:
   - coco_pose_estimation_dataset_params
   - _self_
 
-dataset_params_suffix: "mosaic"
-
 mosaic_prob: 0.8
+dataset_params_suffix: "mosaic_${dataset_params.mosaic_prob}_${dataset_params.image_size}"
 
 train_dataset_params:
   include_empty_samples: True
   min_instance_area: 16
+  crowd_annotations_action: mask_as_normal
 
   transforms:
     - KeypointsRandomHorizontalFlip:
@@ -40,12 +40,12 @@ train_dataset_params:
         prob: ${dataset_params.mosaic_prob}
 
     - KeypointsLongestMaxSize:
-        max_height: 640
-        max_width: 640
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
 
     - KeypointsPadIfNeeded:
-        min_height: 640
-        min_width: 640
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
         image_pad_value: [127, 127, 127]
         mask_pad_value: 1
         padding_mode: center
@@ -63,12 +63,12 @@ val_dataset_params:
   min_instance_area: 0
   transforms:
     - KeypointsLongestMaxSize:
-        max_height: 640
-        max_width: 640
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
 
     - KeypointsPadIfNeeded:
-        min_height: 640
-        min_width: 640
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
         image_pad_value: 127
         mask_pad_value: 1
         padding_mode: bottom_right

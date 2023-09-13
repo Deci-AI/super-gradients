@@ -67,7 +67,8 @@ keypoint_colors:
   - [31, 119, 180]
   - [148, 103, 189]
 
-dataset_params_suffix: ""
+image_size: 640
+dataset_params_suffix: "default_${dataset_params.image_size}"
 
 train_dataset_params:
   data_dir: /data/coco # root path to coco data
@@ -75,7 +76,7 @@ train_dataset_params:
   json_file: annotations/person_keypoints_train2017.json
 
   include_empty_samples: False
-  crowd_annotations_action: include
+  crowd_annotations_action: no_action
   min_instance_area: 64
 
   edge_links: ${dataset_params.edge_links}
@@ -84,12 +85,12 @@ train_dataset_params:
 
   transforms:
     - KeypointsLongestMaxSize:
-        max_height: 640
-        max_width: 640
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
 
     - KeypointsPadIfNeeded:
-        min_height: 640
-        min_width: 640
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
         image_pad_value: 127
         mask_pad_value: 1
         padding_mode: center
@@ -123,7 +124,7 @@ val_dataset_params:
   json_file: annotations/person_keypoints_val2017.json
 
   include_empty_samples: True
-  crowd_annotations_action: ignore
+  crowd_annotations_action: no_action
   min_instance_area: 128
 
   edge_links: ${dataset_params.edge_links}
@@ -132,12 +133,12 @@ val_dataset_params:
 
   transforms:
     - KeypointsLongestMaxSize:
-        max_height: 640
-        max_width: 640
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
 
     - KeypointsPadIfNeeded:
-        min_height: 640
-        min_width: 640
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
         image_pad_value: 127
         mask_pad_value: 1
         padding_mode: bottom_right

@@ -30,10 +30,10 @@ criterion_params:
     iou_loss_weight: 2.5
     dfl_loss_weight: 0.01
     pose_cls_loss_weight: 1.0
-    pose_reg_loss_weight: 17.0
+    pose_reg_loss_weight: 34.0
     use_cocoeval_formula: True
     pose_classification_loss_type: focal
-    rescale_pose_loss_with_assigned_score: False
+    rescale_pose_loss_with_assigned_score: True
 
 optimizer: AdamW
 optimizer_params:
