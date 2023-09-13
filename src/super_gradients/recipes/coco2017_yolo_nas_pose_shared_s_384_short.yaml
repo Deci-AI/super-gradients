@@ -29,12 +29,15 @@ arch_params:
   num_classes: ${dataset_params.num_joints}
 
 training_hyperparams:
-  phase_callbacks: [ ] # Disable visualization
-  criterion_params:
-    classification_loss_type: focal
-    pose_classification_loss_type: focal
-    rescale_pose_loss_with_assigned_score: True
-    pose_reg_loss_weight: 34
+  phase_callbacks:
+    - EarlyStop:
+        phase: VALIDATION_EPOCH_END
+        monitor: AP
+        mode: max
+        min_delta: 0.01
+        patience: 100
+        verbose: True
+
 
   ema: True
   ema_params:
