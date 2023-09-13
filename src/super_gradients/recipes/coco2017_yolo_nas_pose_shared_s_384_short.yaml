@@ -31,7 +31,9 @@ arch_params:
 training_hyperparams:
   phase_callbacks:
     - EarlyStop:
-        phase: VALIDATION_EPOCH_END
+        phase:
+          _target_: super_gradients.training.utils.callbacks.base_callbacks.Phase
+          value: VALIDATION_EPOCH_END
         monitor: AP
         mode: max
         min_delta: 0.01
