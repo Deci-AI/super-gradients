@@ -283,7 +283,7 @@ class YoloNASPoseSharedHead(BaseDetectionModule, SupportsReplaceNumClasses):
 
         # Decode bboxes
         pred_bbox_scores = cls_score_list.sigmoid()
-        pred_bbox_xyxy = batch_distance2bbox(anchors, reg_dist_reduced_list * stride_tensor)  # [B, Anchors, 4]
+        pred_bbox_xyxy = batch_distance2bbox(anchors.unsqueeze(0), reg_dist_reduced_list * stride_tensor.unsqueeze(0))  # [B, Anchors, 4]
 
         # Decode keypoints
         pred_pose_coords = torch.cat(pose_regression_reduced_list, dim=1)  # [B, Anchors, Num Classes, 2]

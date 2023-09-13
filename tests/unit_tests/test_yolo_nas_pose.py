@@ -197,9 +197,9 @@ class YoloNASPoseTests(unittest.TestCase):
         #                     )
 
         # grid search over loss weights
-        for cls_loss_weight in [0.1, 0.5, 1.0]:
-            for dfl_loss_weight in [0.01, 0.1, 0.5]:
-                for pose_reg_loss_weight in [1, 5, 10]:
+        for cls_loss_weight in [1.0]:
+            for dfl_loss_weight in [1.0]:
+                for pose_reg_loss_weight in [1]:
                     hyperparameters_grid.append(
                         dict(
                             learning_rate=1e-3,
