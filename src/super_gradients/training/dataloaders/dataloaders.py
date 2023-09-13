@@ -861,7 +861,7 @@ def coco2017_rescoring_val(dataset_params: Dict = None, dataloader_params: Dict 
 
 
 def _process_adapter_collate(dataset, dataloader_params):
-    from super_gradients.training.dataloaders.utils import CollateFN
+    from super_gradients.training.dataloaders.utils import BaseCollateFN
 
     if get_param(dataloader_params, "adapter"):
         from super_gradients.common.factories.adapter_factory import AdaptersFactory
@@ -869,16 +869,48 @@ def _process_adapter_collate(dataset, dataloader_params):
         adapter = dataloader_params.pop("adapter")
         adapter = AdaptersFactory().get(adapter)
 
-        # This will trigger all the "questions". It is done beforehand because `input` doesnt work with dataloader workers.
-        # batch_size=1 and num_workers=0 to make sure the dataloader will work.
-        adapter.adapt_batch(next(iter(DataLoader(dataset=dataset, batch_size=1, num_workers=0))))  # TODO: DL should not be required..
-
         collate_fn = get_param(dataloader_params, "collate_fn")
-        if not isinstance(collate_fn, CollateFN):
-            collate_fn = CollateFN(collage_fn=collate_fn, adapter=adapter)  # Adapter will be called on the output of the collate_fn.
-        else:
-            collate_fn.set_adapter(adapter)  # Adapter will be called on the output of the collate_fn but before post_processing.
 
+        if not isinstance(collate_fn, BaseCollateFN):
+            collate_fn = BaseCollateFN(collage_fn=collate_fn)
+
+        if adapter.data_config.is_batch or adapter.data_config.is_batch is None:
+            # The DatasetAdapter was used on batches. We assume that the user passes the same object (This is a requirements!)
+            # This means that the DatasetAdapter can be used on batches directly.
+            #
+            # Therefore, we apply `adapter.adapt_batch` AFTER the collate_fn.
+            #
+            # NOTE: If `adapter.data_config.is_batch is None`, we also run the adapter AFTER because it is more computationally efficient.
+            collate_fn.set_batch_postprocessing_fn(batch_postprocessing_fn=adapter.adapt_batch)
+        else:
+            # The DatasetAdapter was used on single sample (not batch). We assume that the user passes the same object (This is a requirements!)
+            # This means that the DatasetAdapter HAS TO BE used BEFORE the collate_fn.
+            # Why ? Some collate functions actually change the format of the batch AFTER collating it (e.g. `DetectionCollateFn`).
+            #       This would completely mess with the DatasetAdapter settings,
+            #       which were defined BEFORE collating it (if `adapter.data_config.is_batch==False`).
+            #
+            # Therefore, we apply `adapter.adapt_batch` BEFORE the collate_fn.
+
+            # Function that will be applied to each sample in the batch, one by one.
+            def _process_dataset_sample(sample):
+                image, target = adapter.adapt_batch(sample)
+                return image[0], target[0]  # `adapter.adapt_batch` always returns a batch. Here it will be of size 1 because the input is a sample.
+
+            collate_fn.set_sample_preprocessing_fn(sample_preprocessing_fn=_process_dataset_sample)
+
+        # This will trigger all the "questions". It is done beforehand because `input` does not work with dataloader workers.
+        # Therefore, we run it now with `num_workers=0` to make sure the questions will be asked in the main process (not in worker processes).
+        from super_gradients.training.dataloaders.utils import DatasetItemsException
+
+        try:
+            adapter.adapt_batch(next(iter(DataLoader(dataset=dataset, batch_size=2, num_workers=0, collate_fn=collate_fn))))
+        except DatasetItemsException as e:
+            raise ValueError(
+                f"Error while setting up the DatasetAdapter: `{adapter.__class__.__name__}`. "
+                f"This is likely due to an incompatibility with the collate_fn: `{collate_fn.__class__.__name__}`.\n"
+            ) from e
+        except Exception as e:
+            raise e
         dataloader_params["collate_fn"] = collate_fn
     return dataloader_params
 

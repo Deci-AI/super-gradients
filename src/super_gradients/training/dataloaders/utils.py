@@ -1,6 +1,6 @@
 from torch.utils.data.dataloader import default_collate
 import random
-from typing import List, Union, Tuple, Optional, Dict, Type, Callable
+from typing import List, Union, Tuple, Optional, Dict, Type, Callable, Iterable
 import cv2
 import torch
 import numpy as np
@@ -8,7 +8,6 @@ import numpy as np
 from super_gradients.common.registry.registry import register_collate_function
 
 
-from data_gradients.dataset_adapters.base_adapter import BaseDatasetAdapter
 from data_gradients.dataset_adapters.detection_adapter import DetectionDatasetAdapter
 
 
@@ -25,42 +24,50 @@ class DatasetItemsException(Exception):
         super().__init__(error_msg)
 
 
-class CollateFN:
+class BaseCollateFN:
+    """Base class for all SG collate functions.
+    Act like a wrapper around `collate_fn`, but include ability to add pre/post processing steps before/after collating.
+    """
+
     def __init__(
         self,
+        sample_preprocessing_fn: Optional[Callable] = None,
         collage_fn: Optional[Callable] = None,
-        adapter: Optional[BaseDatasetAdapter] = None,
-        post_process_fn: Optional[Callable] = None,
+        batch_postprocessing_fn: Optional[Callable] = None,
     ):
+        self._sample_preprocessing_fn = sample_preprocessing_fn
         self._collate_fn = collage_fn or default_collate
-        self._adapter = adapter
-        self._post_process_fn = post_process_fn
+        self._batch_postprocessing_fn = batch_postprocessing_fn
 
-    def __call__(self, data):
-        batch_data = self._collate_fn(data)
-        if self._adapter is not None:
-            batch_data = self._adapter.adapt_batch(batch_data)
-        if self._post_process_fn is not None:
-            batch_data = self._post_process_fn(batch_data)
-        return batch_data
+    def __call__(self, samples: Iterable) -> Tuple:
+        if self._sample_preprocessing_fn is not None:
+            samples = [self._sample_preprocessing_fn(sample) for sample in samples]
+        batch = self._collate_fn(samples)
+        if self._batch_postprocessing_fn is not None:
+            batch = self._batch_postprocessing_fn(batch)
+        return batch
 
-    def set_adapter(self, adapter: BaseDatasetAdapter):
-        self._adapter = adapter
+    def set_sample_preprocessing_fn(self, sample_preprocessing_fn: Callable):
+        self._sample_preprocessing_fn = sample_preprocessing_fn
+
+    def set_batch_postprocessing_fn(self, batch_postprocessing_fn: Callable):
+        self._batch_postprocessing_fn = batch_postprocessing_fn
 
 
 @register_collate_function()
-class DetectionCollateFN(CollateFN):
+class DetectionCollateFN(BaseCollateFN):
     """
     Collate function for Yolox training
     """
 
     def __init__(self, adapter: Optional[DetectionDatasetAdapter] = None):
         self.expected_item_names = ("image", "targets")
-        super().__init__(collage_fn=default_collate, adapter=adapter, post_process_fn=self._format_batch)
+        sample_preprocessing_fn = adapter.adapt_batch if adapter is not None else (lambda x: x)
+        super().__init__(sample_preprocessing_fn=sample_preprocessing_fn, collage_fn=lambda data: list(zip(*data)), batch_postprocessing_fn=self._format_batch)
 
     def _format_batch(self, batch_data):
         try:
-            images_batch, labels_batch = batch_data
+            images_batch, labels_batch, *_other_items = batch_data
         except (ValueError, TypeError):
             raise DatasetItemsException(data_sample=batch_data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
         return self._format_images(images_batch), self._format_targets(labels_batch)
@@ -104,7 +111,7 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
         try:
             images_batch, labels_batch, crowd_labels_batch = batch_data
         except (ValueError, TypeError):
-            raise DatasetItemsException(data_sample=batch_data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
+            raise DatasetItemsException(data_sample=batch_data, collate_type=type(self), expected_item_names=self.expected_item_names)
 
         return self._format_images(images_batch), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
 

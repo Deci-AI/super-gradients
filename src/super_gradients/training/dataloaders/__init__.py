@@ -1,3 +1,4 @@
+from .adapters import ClassificationDatasetAdapter, DetectionDatasetAdapter, SegmentationDatasetAdapter
 from .dataloaders import (
     coco2017_train,
     coco2017_val,
@@ -118,4 +119,7 @@ __all__ = [
     "pascal_voc_detection_val",
     "get_data_loader",
     "get",
+    "ClassificationDatasetAdapter",
+    "DetectionDatasetAdapter",
+    "SegmentationDatasetAdapter",
 ]

@@ -55,8 +55,8 @@ arch_params:
 
 checkpoint_params:
   checkpoint_path:
-  load_backbone: True
-  load_weights_only: True
+  load_backbone: False
+  load_weights_only: False
   strict_load: no_key_matching
 
 training_hyperparams:
@@ -70,7 +70,7 @@ training_hyperparams:
       ce_edge_weights: [ .5, .5 ]
       edge_kernel: 3
 
-multi_gpu: DDP
-num_gpus: 2
+multi_gpu: Off
+num_gpus: 1
 
 experiment_name: ${architecture}50_cityscapes

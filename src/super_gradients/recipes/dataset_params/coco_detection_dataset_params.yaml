@@ -40,10 +40,17 @@ train_dataset_params:
         output_format: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples:
+  max_num_samples: 500
   with_crowd: False
 
 train_dataloader_params:
+  adapter:
+    SGDetectionDatasetAdapter:
+      n_classes: 80
+      images_extractor: "0"
+      labels_extractor: "1"
+      is_label_first: True
+      bbox_format: xywh
   shuffle: True
   batch_size: 16
   num_workers: 8
@@ -52,8 +59,7 @@ train_dataloader_params:
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
-  collate_fn: # collate function for trainset
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  collate_fn: DetectionCollateFN
 
 val_dataset_params:
   data_dir: /data/coco # root path to coco data
@@ -72,16 +78,22 @@ val_dataset_params:
       output_format: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples:
+  max_num_samples: 500
   with_crowd: True
 
 val_dataloader_params:
+  adapter:
+    SGDetectionDatasetAdapter:
+      n_classes: 80
+      images_extractor: "0"
+      labels_extractor: "1"
+      is_label_first: True
+      bbox_format: xywh
   batch_size: 64
   num_workers: 8
   drop_last: False
   pin_memory: True
-  collate_fn: # collate function for valset
-    _target_: super_gradients.training.utils.detection_utils.CrowdDetectionCollateFN
+  collate_fn: DetectionCollateFN
 
 
 _convert_: all

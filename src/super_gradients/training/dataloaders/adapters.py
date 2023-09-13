@@ -1,5 +1,4 @@
 from typing import Iterable, Tuple
-from torchvision.transforms import ToTensor
 from data_gradients.dataset_adapters.detection_adapter import DetectionDatasetAdapter as DetectionDatasetAdapter
 from data_gradients.dataset_adapters.segmentation_adapter import SegmentationDatasetAdapter as SegmentationDatasetAdapter
 from data_gradients.dataset_adapters.classification_adapter import ClassificationDatasetAdapter as ClassificationDatasetAdapter
@@ -11,6 +10,7 @@ import torch
 class SGDetectionDatasetAdapter(DetectionDatasetAdapter):
     def adapt_batch(self, data) -> Iterable[Tuple[torch.Tensor, torch.Tensor]]:
         images, targets = super().adapt_batch(data)
+        images = images / 255
         return images, targets
 
 
@@ -18,6 +18,8 @@ class SGDetectionDatasetAdapter(DetectionDatasetAdapter):
 class SGSegmentationDatasetAdapter(SegmentationDatasetAdapter):
     def adapt_batch(self, data) -> Iterable[Tuple[torch.Tensor, torch.Tensor]]:
         images, targets = super().adapt_batch(data)
+        images = images / 255
+        targets = targets.argmax(1)
         return images, targets
 
 
@@ -25,5 +27,5 @@ class SGSegmentationDatasetAdapter(SegmentationDatasetAdapter):
 class SGClassificationDatasetAdapter(ClassificationDatasetAdapter):
     def adapt_batch(self, data) -> Iterable[Tuple[torch.Tensor, torch.Tensor]]:
         images, targets = super().adapt_batch(data)
-        images = ToTensor()(images)
+        images = images / 255
         return images, targets
