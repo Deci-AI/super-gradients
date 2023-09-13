@@ -6,8 +6,6 @@ from .yolo_nas_pose import (
     YoloNASPose_S,
     YoloNASPose_M,
     YoloNASPose_L,
-    YoloNASPoseNDFLHeads,
-    YoloNASPoseDFLHead,
     YoloNASPoseBoxesPostPredictionCallback,
 )
 
@@ -19,8 +17,6 @@ __all__ = [
     "YoloNASPose_S",
     "YoloNASPose_M",
     "YoloNASPose_L",
-    "YoloNASPoseDFLHead",
-    "YoloNASPoseNDFLHeads",
     "YoloNASPosePostPredictionCallback",
     "YoloNASPoseBoxesPostPredictionCallback",
 ]

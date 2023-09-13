@@ -7,7 +7,6 @@ from super_gradients.common.registry import register_detection_module
 from super_gradients.module_interfaces import SupportsReplaceNumClasses
 from super_gradients.modules.base_modules import BaseDetectionModule
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import generate_anchors_for_grid_cell
-from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.training.utils.utils import infer_model_dtype, infer_model_device
 
@@ -223,16 +222,6 @@ class YoloNASPoseSharedHead(BaseDetectionModule, SupportsReplaceNumClasses):
         self.num_classes = num_classes
 
     @torch.jit.ignore
-    def cache_anchors(self, input_size: Tuple[int, int]):
-        self.eval_size = input_size
-        device = infer_model_device(self)
-        dtype = infer_model_dtype(self)
-
-        anchor_points, stride_tensor = self._generate_anchors(dtype=dtype, device=device)
-        self.register_buffer("anchor_points", anchor_points, persistent=False)
-        self.register_buffer("stride_tensor", stride_tensor, persistent=False)
-
-    @torch.jit.ignore
     def _init_weights(self):
         if self.eval_size:
             device = infer_model_device(self)
@@ -247,6 +236,10 @@ class YoloNASPoseSharedHead(BaseDetectionModule, SupportsReplaceNumClasses):
         return None
 
     def forward(self, feats: Tuple[Tensor]):
+        anchors, anchor_points, num_anchors_list, stride_tensor = generate_anchors_for_grid_cell(
+            feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset
+        )
+
         cls_score_list, reg_distri_list, reg_dist_reduced_list = [], [], []
 
         pose_logits_list = []
@@ -289,28 +282,19 @@ class YoloNASPoseSharedHead(BaseDetectionModule, SupportsReplaceNumClasses):
         pose_regression_list = torch.cat(pose_regression_list, dim=1)  # [B, Anchors, Bins, Num Classes, 2]
 
         # Decode bboxes
-        # Note in eval mode, anchor_points_inference is different from anchor_points computed on train
-        if self.eval_size:
-            anchor_points_inference, stride_tensor = self.anchor_points, self.stride_tensor
-        else:
-            anchor_points_inference, stride_tensor = self._generate_anchors(feats)
-
-        pred_scores = cls_score_list.sigmoid()
-        pred_bboxes = batch_distance2bbox(anchor_points_inference, reg_dist_reduced_list) * stride_tensor  # [B, Anchors, 4]
+        pred_bbox_scores = cls_score_list.sigmoid()
+        pred_bbox_xyxy = batch_distance2bbox(anchors, reg_dist_reduced_list * stride_tensor)  # [B, Anchors, 4]
 
         # Decode keypoints
-        pred_pose_coords = torch.cat(pose_regression_reduced_list, dim=1).detach()  # [B, Anchors, Num Classes, 2]
-        # pred_pose_coords += anchor_points_inference.unsqueeze(0).unsqueeze(2) - self.grid_cell_offset
-        pred_pose_coords *= stride_tensor.unsqueeze(0).unsqueeze(2)
+        pred_pose_coords = torch.cat(pose_regression_reduced_list, dim=1)  # [B, Anchors, Num Classes, 2]
+        pred_pose_coords = pred_pose_coords * stride_tensor.unsqueeze(0).unsqueeze(2) + anchor_points.unsqueeze(0).unsqueeze(2)
 
-        pred_pose_scores = pose_logits_list.detach().clone().sigmoid()  # [B, Anchors, C]
+        pred_pose_scores = pose_logits_list.sigmoid()  # [B, Anchors, C]
 
-        decoded_predictions = pred_bboxes, pred_scores, pred_pose_coords, pred_pose_scores
+        decoded_predictions = pred_bbox_xyxy, pred_bbox_scores, pred_pose_coords, pred_pose_scores
 
         if torch.jit.is_tracing():
             return decoded_predictions
-
-        anchors, anchor_points, num_anchors_list, _ = generate_anchors_for_grid_cell(feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset)
 
         raw_predictions = (
             cls_score_list,
@@ -326,35 +310,3 @@ class YoloNASPoseSharedHead(BaseDetectionModule, SupportsReplaceNumClasses):
             self.pose_proj_conv,
         )
         return decoded_predictions, raw_predictions
-
-    def _generate_anchors(self, feats=None, dtype=None, device=None):
-        # just use in eval time
-        anchor_points = []
-        stride_tensor = []
-
-        dtype = dtype or feats[0].dtype
-        device = device or feats[0].device
-
-        for i, stride in enumerate(self.fpn_strides):
-            if feats is not None:
-                _, _, h, w = feats[i].shape
-            else:
-                h = int(self.eval_size[0] / stride)
-                w = int(self.eval_size[1] / stride)
-            shift_x = torch.arange(end=w) + self.grid_cell_offset
-            shift_y = torch.arange(end=h) + self.grid_cell_offset
-            if torch_version_is_greater_or_equal(1, 10):
-                shift_y, shift_x = torch.meshgrid(shift_y, shift_x, indexing="ij")
-            else:
-                shift_y, shift_x = torch.meshgrid(shift_y, shift_x)
-
-            anchor_point = torch.stack([shift_x, shift_y], dim=-1).to(dtype=dtype)
-            anchor_points.append(anchor_point.reshape([-1, 2]))
-            stride_tensor.append(torch.full([h * w, 1], stride, dtype=dtype))
-        anchor_points = torch.cat(anchor_points)
-        stride_tensor = torch.cat(stride_tensor)
-
-        if device is not None:
-            anchor_points = anchor_points.to(device)
-            stride_tensor = stride_tensor.to(device)
-        return anchor_points, stride_tensor
