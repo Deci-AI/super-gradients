@@ -18,7 +18,7 @@ pose_cls_loss_suffix: pose_${training_hyperparams.criterion_params.pose_classifi
 pose_reg_loss_suffix: reg_${training_hyperparams.criterion_params.pose_reg_loss_weight}
 
 head_suffix: ""
-experiment_suffix: "ema_less_mosaic_rescale_loss_lr_focal"
+experiment_suffix: "dfl"
 experiment_name: coco2017_${architecture}_${bbox_cls_loss_suffix}_${bbox_reg_loss_suffix}_${pose_cls_loss_suffix}_${pose_reg_loss_suffix}_${head_suffix}_${dataset_params.dataset_params_suffix}${experiment_suffix}
 
 ckpt_root_dir:
@@ -36,6 +36,7 @@ training_hyperparams:
     pose_classification_loss_type: focal
     rescale_pose_loss_with_assigned_score: True
     pose_reg_loss_weight: 34
+    dfl_loss_weight: 1.0
 
   ema: True
   ema_params:
