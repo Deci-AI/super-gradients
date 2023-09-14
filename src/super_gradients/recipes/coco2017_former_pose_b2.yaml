@@ -40,8 +40,7 @@ checkpoint_params:
     value: key_matching
 
 dataset_params:
-  train_dataset_params:
-    include_empty_samples: False
+  mosaic_prob: 0.5
 
   train_dataloader_params:
     batch_size: 16
