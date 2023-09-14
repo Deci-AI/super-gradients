@@ -78,10 +78,10 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
 
         sample = self.apply_transforms(sample, self.transforms.transforms)
 
-        sample = KeypointTransform.filter_invisible_poses(sample, min_instance_area=self.min_instance_area)
+        sample = KeypointTransform.filter_invisible_bboxes(sample)
 
         targets = self.target_generator(sample)
-        return sample.image, targets, {"gt_joints": sample.joints, "gt_bboxes": sample.bboxes, "gt_areas": sample.areas, "gt_is_crowd": sample.is_crowd}
+        return sample.image, targets, {"gt_joints": sample.joints, "gt_bboxes": sample.bboxes, "gt_areas": sample.areas, "gt_iscrowd": sample.is_crowd}
 
     def apply_transforms(self, sample: PoseEstimationSample, transforms: List[KeypointTransform]) -> PoseEstimationSample:
         applied_transforms_so_far = []

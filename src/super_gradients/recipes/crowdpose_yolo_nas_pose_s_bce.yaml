@@ -1,6 +1,6 @@
 defaults:
   - training_hyperparams: coco2017_yolo_nas_pose_train_params
-  - dataset_params: animalpose_pose_estimation_yolo_nas_pose_dataset_params
+  - dataset_params: crowdpose_yolo_nas_dataset_params
   - arch_params: yolo_nas_pose_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
@@ -8,8 +8,8 @@ defaults:
 
 architecture: yolo_nas_pose_s
 
-multi_gpu: Off
-num_gpus: 1
+multi_gpu: DDP
+num_gpus: 4
 
 # Assemble experiment suffix
 bbox_cls_loss_suffix: box_${training_hyperparams.criterion_params.classification_loss_type}_${training_hyperparams.criterion_params.classification_loss_weight}
@@ -19,14 +19,11 @@ pose_reg_loss_suffix: reg_${training_hyperparams.criterion_params.pose_reg_loss_
 
 head_suffix: head_${cond:${arch_params.heads.YoloNASPoseNDFLHeads.compensate_grid_cell_offset},comp_off,no_comp}_scale_${arch_params.heads.YoloNASPoseNDFLHeads.pose_offset_multiplier}
 
-experiment_suffix: ${bbox_cls_loss_suffix}_${bbox_reg_loss_suffix}_${pose_cls_loss_suffix}_${pose_reg_loss_suffix}_${head_suffix}
-
-experiment_name: animalpose_${architecture}_${experiment_suffix}_${dataset_params.dataset_params_suffix}
+experiment_suffix: "bce"
+experiment_name: crowdpose_${architecture}_${bbox_cls_loss_suffix}_${bbox_reg_loss_suffix}_${pose_cls_loss_suffix}_${pose_reg_loss_suffix}_${head_suffix}_${dataset_params.dataset_params_suffix}${experiment_suffix}
 
 ckpt_root_dir:
 
-train_dataloader: animalpose_pose_train
-val_dataloader: animalpose_pose_val
 
 arch_params:
   num_classes: ${dataset_params.num_joints}
@@ -39,9 +36,18 @@ checkpoint_params:
     _target_: super_gradients.training.sg_trainer.StrictLoad
     value: key_matching
 
+training_hyperparams:
+  # phase_callbacks: [ ] # Disable visualization
+  criterion_params:
+    classification_loss_type: bce
+    pose_classification_loss_type: bce
+
 dataset_params:
   train_dataloader_params:
-    batch_size: 48
+    batch_size: 64
+    num_workers: 8
+    min_samples: 131072
 
   val_dataloader_params:
-    batch_size: 48
+    batch_size: 64
+    num_workers: 8

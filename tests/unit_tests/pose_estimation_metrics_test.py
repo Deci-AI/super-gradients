@@ -26,7 +26,81 @@ from super_gradients.training.models.pose_estimation_models import YoloNASPose
 
 class TestPoseEstimationMetrics(unittest.TestCase):
     def test_yolo_nas_pose_s(self):
-        model: YoloNASPose = models.get(Models.YOLO_NAS_POSE_S, num_classes=17, checkpoint_path="ckpt_best_pcgj2jlh.pth").eval().cuda()
+        # model: YoloNASPose = (
+        #     models.get(
+        #         Models.YOLO_NAS_POSE_NEW_HEAD_S,
+        #         num_classes=17,
+        #         strict_load=StrictLoad.KEY_MATCHING,
+        #         #  574
+        #         checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_new_head_s_mosaic_1.0_12.0_dfl_0.01_2.5_1.0_focal/RUN_20230902_153215_812529/average_model.pth",  # noqa
+        #     )
+        #     .eval()
+        #     .cuda()
+        # )
+
+        # model: YoloNASPose = (
+        #     models.get(
+        #         Models.YOLO_NAS_POSE_S,
+        #         num_classes=17,
+        #         checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_v2_average_model.pth",  # 585
+        #         # checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_mosaic_v2_ckpt_best.pth",  # 584
+        #         # arch_params=dict(heads=dict(YoloNASPoseNDFLHeads=dict(compensate_grid_cell_offset=False, pose_offset_multiplier=3))),
+        #     )
+        #     .eval()
+        #     .cuda()
+        # )
+
+        # model: YoloNASPose = (
+        #     models.get(
+        #         Models.YOLO_NAS_POSE_S,
+        #         num_classes=17,
+        #         # 0.580
+        #         checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_box_focal_1_ciou_2_5_dfl_001_pose_focal_1_reg_17_head_comp_off_scale_1_default.pth",
+        #     )
+        #     .eval()
+        #     .cuda()
+        # )
+
+        # model: YoloNASPose = (
+        #     models.get(
+        #         Models.YOLO_NAS_POSE_S,
+        #         num_classes=17,
+        #         # 575
+        #         checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_box_focal_1_0_ciou_2_5_dfl_001_pose_focal_1.0_reg_17_head_comp_off_scale_1_rescale.pth",
+        #     )
+        #     .eval()
+        #     .cuda()
+        # )
+
+        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.600
+        #  Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.844
+        #  Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.665
+        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.557
+        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.671
+        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.670
+        #  Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.890
+        #  Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.731
+        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.623
+        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.735
+        model: YoloNASPose = (
+            models.get(
+                Models.YOLO_NAS_POSE_SHARED_S,
+                num_classes=17,
+                #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.604
+                #  Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.850
+                #  Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.665
+                #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.560
+                #  Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.676
+                #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.674
+                #  Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.894
+                #  Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.733
+                #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.626
+                #  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.742
+                checkpoint_path="G:/super-gradients/checkpoints/2023_09_13_yolo_nas_pose_shared_s_average_model (1).pth",
+            )
+            .eval()
+            .cuda()
+        )
 
         images_path = "g:/coco2017/images/val2017"
         image_files = [os.path.join(images_path, x) for x in os.listdir(images_path)]
@@ -2384,9 +2458,9 @@ class TestPoseEstimationMetrics(unittest.TestCase):
             581357,
         ]
 
-        for iou in [0.7, 0.6, 0.5]:
-            for confidence in [0.0001, 0.001, 0.01, 0.05, 0.1]:
-                for with_empty_samples in [False]:
+        for iou in [0.7, 0.8, 0.6, 0.5]:
+            for confidence in [0.01]:
+                for with_empty_samples in [False, True]:
                     if not with_empty_samples:
                         current_image_files = [
                             image_file for image_file in image_files if int(os.path.splitext(os.path.basename(image_file))[0]) in non_empty_image_ids
@@ -2397,9 +2471,10 @@ class TestPoseEstimationMetrics(unittest.TestCase):
                     predictions = model.predict(
                         current_image_files, conf=confidence, iou=iou, pre_nms_max_predictions=300, post_nms_max_predictions=30, fuse_model=False
                     )
-                    predictions_dir = f"coco_val_predictions_conf_{confidence:.2f}_iou_{iou:.2f}"
-                    os.makedirs(predictions_dir, exist_ok=True)
-                    predictions.save(predictions_dir)
+
+                    # predictions_dir = f"coco_val_predictions_conf_{confidence:.2f}_iou_{iou:.2f}_empty_{with_empty_samples}"
+                    # os.makedirs(predictions_dir, exist_ok=True)
+                    # predictions.save(predictions_dir)
 
                     gt = self._load_coco_groundtruth(with_crowd=True, with_duplicates=True, with_invisible_keypoitns=True)
 

@@ -1,11 +1,19 @@
 import numpy as np
 from pycocotools.coco import COCO
+from tqdm import tqdm
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
 
-__all__ = ["check_keypoints_outside_image", "check_for_duplicate_annotations", "make_keypoints_outside_image_invisible", "remove_duplicate_annotations"]
+__all__ = [
+    "check_keypoints_outside_image",
+    "check_for_duplicate_annotations",
+    "make_keypoints_outside_image_invisible",
+    "remove_duplicate_annotations",
+    "remove_crowd_annotations",
+    "remove_samples_with_crowd_annotations",
+]
 
 
 def check_keypoints_outside_image(coco: COCO) -> None:
@@ -87,7 +95,7 @@ def remove_duplicate_annotations(coco: COCO) -> COCO:
     ann_to_remove = []
 
     image_ids = list(coco.imgs.keys())
-    for image_id in image_ids:
+    for image_id in tqdm(image_ids, desc="Removing duplicate annotations"):
         ann_ids = coco.getAnnIds(imgIds=image_id)
         annotations = coco.loadAnns(ann_ids)
 
@@ -99,6 +107,7 @@ def remove_duplicate_annotations(coco: COCO) -> COCO:
         if len(joints) == 0:
             continue
 
+        joints = np.stack(joints, axis=0)
         gt_joints1 = np.expand_dims(joints, axis=0)  # [1, Num_people, Num_joints, 2]
         gt_joints2 = np.expand_dims(joints, axis=1)  # [Num_people, 1, Num_joints, 2]
         diff = np.sqrt(np.sum((gt_joints1 - gt_joints2) ** 2, axis=-1))  # [Num_people, Num_people, Num_joints]
@@ -111,6 +120,7 @@ def remove_duplicate_annotations(coco: COCO) -> COCO:
             ann_to_remove.append(ann_ids[j])
 
     if len(ann_to_remove) > 0:
+        ann_to_remove = set(ann_to_remove)
         logger.debug(f"Removing {len(ann_to_remove)} duplicate annotations")
         len_before = len(coco.dataset["annotations"])
         coco.dataset["annotations"] = [v for v in coco.dataset["annotations"] if v["id"] not in ann_to_remove]
@@ -153,6 +163,30 @@ def remove_empty_samples(coco: COCO):
         annotations = coco.loadAnns(ann_ids)
         if len(annotations) == 0:
             img_ids_to_remove.append(image_id)
+
+    if len(img_ids_to_remove) > 0:
+        logger.debug(f"Removing {len(img_ids_to_remove)} empty images")
+        len_before = len(coco.dataset["images"])
+        coco.dataset["images"] = [v for v in coco.dataset["images"] if v["id"] not in img_ids_to_remove]
+        len_after = len(coco.dataset["images"])
+        logger.debug(f"Removed {len_before - len_after} empty images")
+        coco.createIndex()
+
+    return coco
+
+
+def remove_samples_with_crowd_annotations(coco: COCO):
+    img_ids_to_remove = []
+
+    image_ids = list(coco.imgs.keys())
+    for image_id in image_ids:
+        ann_ids = coco.getAnnIds(imgIds=image_id)
+        annotations = coco.loadAnns(ann_ids)
+
+        for ann in annotations:
+            if bool(ann["iscrowd"]):
+                img_ids_to_remove.append(image_id)
+                break
 
     if len(img_ids_to_remove) > 0:
         logger.debug(f"Removing {len(img_ids_to_remove)} empty images")

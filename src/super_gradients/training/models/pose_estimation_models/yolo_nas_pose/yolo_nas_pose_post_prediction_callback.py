@@ -2,6 +2,8 @@ import torch
 import torchvision
 from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimationPredictions
 from typing import List
+from torch import Tensor
+import numpy as np
 
 
 class YoloNASPosePostPredictionCallback:
@@ -88,3 +90,20 @@ class YoloNASPosePostPredictionCallback:
             )
 
         return decoded_predictions
+
+
+class YoloNASPoseBoxesPostPredictionCallback(YoloNASPosePostPredictionCallback):
+    """
+    A post-prediction callback for YoloNASPose model to decode ONLY bounding boxes.
+    This is useful for computing Box-related metrics
+    """
+
+    def __call__(self, outputs, device: str = None) -> List[Tensor]:
+        predictions: List[PoseEstimationPredictions] = super().__call__(outputs)
+        result: List[Tensor] = []
+        for p in predictions:
+            #  nx6 (x1, y1, x2, y2, confidence, class) in pixel units
+            labels = np.zeros((len(p.bboxes), 1), dtype=np.float32)
+            final_boxes = np.concatenate([p.bboxes, p.scores, labels], axis=1)
+            result.append(torch.from_numpy(final_boxes))
+        return result

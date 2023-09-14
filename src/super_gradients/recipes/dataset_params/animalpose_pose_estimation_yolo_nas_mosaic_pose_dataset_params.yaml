@@ -1,23 +1,11 @@
 defaults:
-  - coco_pose_estimation_dataset_params
+  - animalpose_pose_estimation_default_dataset_params
   - _self_
 
+dataset_params_suffix: "mosaic"
+
 train_dataset_params:
-  include_empty_samples: False
-  min_instance_area: 0
-
   transforms:
-    - KeypointsLongestMaxSize:
-        max_height: 640
-        max_width: 640
-
-    - KeypointsPadIfNeeded:
-        min_height: 640
-        min_width: 640
-        image_pad_value: 127
-        mask_pad_value: 1
-        padding_mode: center
-
     - KeypointsRandomHorizontalFlip:
         # Note these indexes are COCO-specific. If you're using a different dataset, you'll need to change these accordingly.
         flip_index: ${dataset_params.flip_indexes}
@@ -25,14 +13,17 @@ train_dataset_params:
 
     - KeypointsHSV:
         prob: 0.5
-        hgain: 10
-        sgain: 10
-        vgain: 10
+        hgain: 20
+        sgain: 20
+        vgain: 20
 
     - KeypointsBrightnessContrast:
         prob: 0.5
-        brightness_range: [0.8, 1.2]
-        contrast_range: [0.8, 1.2]
+        brightness_range: [ 0.8, 1.2 ]
+        contrast_range: [ 0.8, 1.2 ]
+
+    - KeypointsMosaic:
+        prob: 0.8
 
     - KeypointsRandomAffineTransform:
         max_rotation: 0
@@ -43,6 +34,17 @@ train_dataset_params:
         mask_pad_value: 1
         prob: 0.75
         interpolation_mode: [0, 1, 2, 3, 4]
+
+    - KeypointsLongestMaxSize:
+        max_height: 640
+        max_width: 640
+
+    - KeypointsPadIfNeeded:
+        min_height: 640
+        min_width: 640
+        image_pad_value: [127, 127, 127]
+        mask_pad_value: 1
+        padding_mode: center
 
     - KeypointsImageStandardize:
         max_value: 255
@@ -57,8 +59,6 @@ train_dataset_params:
     YoloNASPoseTargetsGenerator
 
 val_dataset_params:
-  include_empty_samples: True
-  min_instance_area: 0
   target_generator:
     YoloNASPoseTargetsGenerator
 

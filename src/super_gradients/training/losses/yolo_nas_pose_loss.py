@@ -26,6 +26,7 @@ class YoloNASPoseYoloNASPoseBoxesAssignmentResult:
     assigned_poses: Tensor
     assigned_scores: Tensor
     assigned_gt_index: Tensor
+    assigned_crowd: Tensor
 
 
 class YoloNASPoseTaskAlignedAssigner(nn.Module):
@@ -56,6 +57,7 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         gt_labels: Tensor,
         gt_bboxes: Tensor,
         gt_poses: Tensor,
+        gt_crowd: Tensor,
         pad_gt_mask: Tensor,
         bg_index: int,
         gt_scores: Optional[Tensor] = None,
@@ -79,6 +81,7 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         :param gt_labels: Tensor (int64|int32): Label of gt_bboxes, shape(B, n, 1)
         :param gt_bboxes: Tensor (float32): Ground truth bboxes, shape(B, n, 4)
         :param gt_poses: Tensor (float32): Ground truth poses, shape(B, n, 17, 3)
+        :param gt_crowd: Tensor (int): Whether the gt is crowd, shape(B, n, 1)
         :param pad_gt_mask: Tensor (float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
         :param bg_index: int ( background index
         :param gt_scores: Tensor (one, float32) Score of gt_bboxes, shape(B, n, 1)
@@ -101,12 +104,15 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
             assigned_poses = torch.zeros([batch_size, num_anchors, num_keypoints, 3], device=gt_labels.device)
             assigned_scores = torch.zeros([batch_size, num_anchors, num_classes], device=gt_labels.device)
             assigned_gt_index = torch.zeros([batch_size, num_anchors], dtype=torch.long, device=gt_labels.device)
+            assigned_crowd = torch.zeros([batch_size, num_anchors], dtype=torch.bool, device=gt_labels.device)
+
             return YoloNASPoseYoloNASPoseBoxesAssignmentResult(
                 assigned_labels=assigned_labels,
                 assigned_bboxes=assigned_bboxes,
                 assigned_scores=assigned_scores,
                 assigned_gt_index=assigned_gt_index,
                 assigned_poses=assigned_poses,
+                assigned_crowd=assigned_crowd,
             )
 
         # compute iou between gt and pred bbox, [B, n, L]
@@ -165,12 +171,18 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         alignment_metrics = alignment_metrics.max(dim=-2).values.unsqueeze(-1)
         assigned_scores = assigned_scores * alignment_metrics
 
+        # respect crowd
+        assigned_crowd = torch.gather(gt_crowd.flatten(), index=assigned_gt_index.flatten(), dim=0)
+        assigned_crowd = assigned_crowd.reshape([batch_size, num_anchors])
+        assigned_scores = assigned_scores * assigned_crowd.eq(0).unsqueeze(-1)
+
         return YoloNASPoseYoloNASPoseBoxesAssignmentResult(
             assigned_labels=assigned_labels,
             assigned_bboxes=assigned_bboxes,
             assigned_scores=assigned_scores,
             assigned_poses=assigned_poses,
             assigned_gt_index=assigned_gt_index,
+            assigned_crowd=assigned_crowd,
         )
 
 
@@ -190,6 +202,10 @@ class YoloNASPoseLoss(nn.Module):
         pose_reg_loss_weight: float = 1.0,
         use_cocoeval_formula: bool = True,
         pose_classification_loss_type: str = "bce",
+        bbox_assigner_topk: int = 13,
+        bbox_assigned_alpha: float = 1.0,
+        bbox_assigned_beta: float = 6.0,
+        rescale_pose_loss_with_assigned_score: bool = False,
     ):
         """
         :param num_classes: Number of keypoints
@@ -214,15 +230,16 @@ class YoloNASPoseLoss(nn.Module):
         self.oks_sigmas = torch.tensor(oks_sigmas)
         self.pose_cls_loss_weight = pose_cls_loss_weight
         self.pose_reg_loss_weight = pose_reg_loss_weight
-        self.assigner = YoloNASPoseTaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
+        self.assigner = YoloNASPoseTaskAlignedAssigner(topk=bbox_assigner_topk, alpha=bbox_assigned_alpha, beta=bbox_assigned_beta)
         self.use_cocoeval_formula = use_cocoeval_formula
         self.pose_classification_loss_type = pose_classification_loss_type
+        self.rescale_pose_loss_with_assigned_score = rescale_pose_loss_with_assigned_score
         # Same as in PPYoloE head
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
 
     @torch.no_grad()
-    def _convert_yolo_nas_pose_targets_to_ppyolo(self, targets: Tuple[Tensor, Tensor], batch_size: int) -> Mapping[str, torch.Tensor]:
+    def _convert_yolo_nas_pose_targets_to_ppyolo(self, targets: Tuple[Tensor, Tensor, Tensor], batch_size: int) -> Mapping[str, torch.Tensor]:
         """
         Convert targets to PPYoloE-compatible format since it's the easiest (not the cleanest) way to
         have PP Yolo training & metrics computed
@@ -230,12 +247,13 @@ class YoloNASPoseLoss(nn.Module):
         :param targets: Tuple (boxes, joints, mask)
             - boxes: [N, 5] (batch_index, x1, y1, x2, y2)
             - joints: [N, num_joints, 4] (batch_index, x, y, visibility)
+            - crowd: [N, 2] (batch_index, is_crowd)
         :return: (Dictionary [str,Tensor]) with keys:
          - gt_class: (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
          - gt_bbox: (Tensor, float32): Ground truth bboxes, shape(B, n, 4) in x1y1x2y2 format
          - pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
         """
-        target_boxes, target_joints = targets
+        target_boxes, target_joints, target_iscrowd = targets
 
         image_index = target_boxes[:, 0]
         gt_bbox = target_boxes[:, 1:5]
@@ -244,6 +262,7 @@ class YoloNASPoseLoss(nn.Module):
         per_image_bbox = []
         per_image_pad_mask = []
         per_image_targets = undo_flat_collate_tensors_with_batch_index(target_joints, batch_size)
+        per_image_crowds = undo_flat_collate_tensors_with_batch_index(target_iscrowd, batch_size)
 
         max_boxes = 0
         for i in range(batch_size):
@@ -270,12 +289,14 @@ class YoloNASPoseLoss(nn.Module):
             per_image_bbox[i] = F.pad(per_image_bbox[i], pad, mode="constant", value=0)
             per_image_pad_mask[i] = F.pad(per_image_pad_mask[i], pad, mode="constant", value=0)
             per_image_targets[i] = F.pad(per_image_targets[i], (0, 0) + pad, mode="constant", value=0)
+            per_image_crowds[i] = F.pad(per_image_crowds[i], pad, mode="constant", value=0)
 
         new_targets = {
             "gt_class": torch.stack(per_image_class, dim=0),
             "gt_bbox": torch.stack(per_image_bbox, dim=0),
             "pad_gt_mask": torch.stack(per_image_pad_mask, dim=0),
             "gt_poses": torch.stack(per_image_targets, dim=0),
+            "gt_crowd": torch.stack(per_image_crowds, dim=0),
         }
         return new_targets
 
@@ -309,6 +330,7 @@ class YoloNASPoseLoss(nn.Module):
         gt_labels = targets["gt_class"]
         gt_bboxes = targets["gt_bbox"]
         gt_poses = targets["gt_poses"]
+        gt_crowd = targets["gt_crowd"]
         pad_gt_mask = targets["pad_gt_mask"]
 
         # label assignment
@@ -321,6 +343,7 @@ class YoloNASPoseLoss(nn.Module):
             gt_labels=gt_labels,
             gt_bboxes=gt_bboxes,
             gt_poses=gt_poses,
+            gt_crowd=gt_crowd,
             pad_gt_mask=pad_gt_mask,
             bg_index=self.num_classes,
         )
@@ -387,7 +410,15 @@ class YoloNASPoseLoss(nn.Module):
         return (loss_left + loss_right).mean(dim=-1, keepdim=True)
 
     def _keypoint_loss(
-        self, predicted_coords: Tensor, target_coords: Tensor, predicted_logits: Tensor, target_visibility: Tensor, area: Tensor, sigmas: Tensor
+        self,
+        predicted_coords: Tensor,
+        target_coords: Tensor,
+        predicted_logits: Tensor,
+        target_visibility: Tensor,
+        area: Tensor,
+        sigmas: Tensor,
+        assigned_scores: Optional[Tensor] = None,
+        assigned_scores_sum: Optional[Tensor] = None,
     ) -> Tuple[Tensor, Tensor]:
         """
 
@@ -406,20 +437,34 @@ class YoloNASPoseLoss(nn.Module):
         area = area.reshape([-1, 1, 1])
 
         visible_targets_mask: Tensor = (target_visibility > 0).float()  # [Num Instances, Num Joints, 1]
-        d = ((predicted_coords - target_coords) ** 2).sum(dim=-1, keepdim=True)  # [[Num Instances, Num Joints, 1]
 
         if self.use_cocoeval_formula:
+            d = ((predicted_coords - target_coords) ** 2).sum(dim=-1, keepdim=True)  # [[Num Instances, Num Joints, 1]
             e = d / (2 * sigmas) ** 2 / (area + 1e-9) / 2  # from cocoeval
+            regression_loss_unreduced = 1 - torch.exp(-e)  # [Num Instances, Num Joints, 1]
         else:
-            e = d / (2 * (area * sigmas) ** 2 + 1e-9)  # from formula
+            l1_loss = torch.nn.functional.smooth_l1_loss(predicted_coords, target_coords, reduction="none", beta=1).sum(dim=-1, keepdim=True)
+            vars = (2 * sigmas) ** 2
+            regression_loss_unreduced = l1_loss / vars / (torch.sqrt(area) + 1e-9)  # [Num Instances, Num Joints, 1]
 
-        regression_loss_unreduced = 1 - torch.exp(-e)
-        regression_loss = regression_loss_unreduced.mul(visible_targets_mask).sum() / (visible_targets_mask.sum() + 1e-9)
+        regression_loss_reduced = (regression_loss_unreduced * visible_targets_mask).sum(dim=1, keepdim=False) / (
+            visible_targets_mask.sum(dim=1, keepdim=False) + 1e-9
+        )  # [Num Instances, 1]
 
         if self.pose_classification_loss_type == "bce":
-            classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="mean")
+            classification_loss = torch.nn.functional.binary_cross_entropy_with_logits(predicted_logits, visible_targets_mask, reduction="none").mean(dim=1)
+        elif self.pose_classification_loss_type == "focal":
+            classification_loss = self._focal_loss(predicted_logits, visible_targets_mask, alpha=0.25, gamma=2.0, reduction="none").mean(dim=1)
         else:
             raise ValueError(f"Unsupported pose classification loss type {self.pose_classification_loss_type}")
+
+        if assigned_scores is None:
+            classification_loss = classification_loss.mean()
+            regression_loss = regression_loss_reduced.mean()
+        else:
+            classification_loss = (classification_loss * assigned_scores).sum() / assigned_scores_sum
+            regression_loss = (regression_loss_reduced * assigned_scores).sum() / assigned_scores_sum
+
         return regression_loss, classification_loss
 
     def _xyxy_box_area(self, boxes):
@@ -437,13 +482,16 @@ class YoloNASPoseLoss(nn.Module):
         pred_pose_logits,
         stride_tensor,
         anchor_points,
-        assign_result,
+        assign_result: YoloNASPoseYoloNASPoseBoxesAssignmentResult,
         assigned_scores_sum,
     ):
-        # select positive samples mask
-        mask_positive = assign_result.assigned_labels != self.num_classes
+        # select positive samples mask that are not crowd and not background
+        # loss ALWAYS respect the crowd targets by excluding them from contributing to the loss
+        # if you want to train WITH crowd targets, mark them as non-crowd on dataset level
+        # if you want to train WITH crowd targets, mark them as non-crowd on dataset level
+        mask_positive = (assign_result.assigned_labels != self.num_classes) * assign_result.assigned_crowd.eq(0)
         num_pos = mask_positive.sum()
-        assigned_bboxes = assign_result.assigned_bboxes / stride_tensor
+        assigned_bboxes_divided_by_stride = assign_result.assigned_bboxes / stride_tensor
 
         # pos/neg loss
         if num_pos > 0:
@@ -451,7 +499,9 @@ class YoloNASPoseLoss(nn.Module):
             bbox_mask = mask_positive.unsqueeze(-1).tile([1, 1, 4])
 
             pred_bboxes_pos = torch.masked_select(pred_bboxes, bbox_mask).reshape([-1, 4])
-            assigned_bboxes_pos = torch.masked_select(assigned_bboxes, bbox_mask).reshape([-1, 4])
+            assigned_bboxes_pos = torch.masked_select(assigned_bboxes_divided_by_stride, bbox_mask).reshape([-1, 4])
+            assigned_bboxes_pos_image_coord = torch.masked_select(assign_result.assigned_bboxes, bbox_mask).reshape([-1, 4])
+
             bbox_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).unsqueeze(-1)
 
             loss_iou = self.iou_loss(pred_bboxes_pos, assigned_bboxes_pos) * bbox_weight
@@ -459,26 +509,27 @@ class YoloNASPoseLoss(nn.Module):
 
             dist_mask = mask_positive.unsqueeze(-1).tile([1, 1, (self.reg_max + 1) * 4])
             pred_dist_pos = torch.masked_select(pred_dist, dist_mask).reshape([-1, 4, self.reg_max + 1])
-            assigned_ltrb = self._bbox2distance(anchor_points, assigned_bboxes)
+            assigned_ltrb = self._bbox2distance(anchor_points, assigned_bboxes_divided_by_stride)
             assigned_ltrb_pos = torch.masked_select(assigned_ltrb, bbox_mask).reshape([-1, 4])
             loss_dfl = self._df_loss(pred_dist_pos, assigned_ltrb_pos) * bbox_weight
             loss_dfl = loss_dfl.sum() / assigned_scores_sum
 
-            # Divide poses by stride
-            pred_pose_coords = (pred_pose_logits[..., 0:2] / stride_tensor.unsqueeze(0).unsqueeze(-1))[mask_positive]
+            # Do not divide poses by stride since this would skew the loss and make sigmas incorrect
+            pred_pose_coords = pred_pose_logits[..., 0:2][mask_positive]
             pred_pose_logits = pred_pose_logits[mask_positive][..., 2:3]
 
-            gt_pose_coords = (assign_result.assigned_poses[..., 0:2] / stride_tensor.unsqueeze(0).unsqueeze(-1))[mask_positive]
+            gt_pose_coords = assign_result.assigned_poses[..., 0:2][mask_positive]
             gt_pose_visibility = assign_result.assigned_poses[mask_positive][:, :, 2:3]
 
             # assigned_weight = torch.masked_select(assign_result.assigned_scores.sum(-1), mask_positive).reshape([-1, 1])
-
-            area = self._xyxy_box_area(assigned_bboxes_pos).reshape([-1, 1]) * 0.53
+            area = self._xyxy_box_area(assigned_bboxes_pos_image_coord).reshape([-1, 1]) * 0.53
             loss_pose_reg, loss_pose_cls = self._keypoint_loss(
                 predicted_coords=pred_pose_coords,
                 target_coords=gt_pose_coords,
                 predicted_logits=pred_pose_logits,
                 target_visibility=gt_pose_visibility,
+                assigned_scores=bbox_weight if self.rescale_pose_loss_with_assigned_score else None,
+                assigned_scores_sum=assigned_scores_sum if self.rescale_pose_loss_with_assigned_score else None,
                 area=area,
                 sigmas=self.oks_sigmas.to(pred_pose_logits.device),
             )
@@ -503,14 +554,23 @@ class YoloNASPoseLoss(nn.Module):
         return torch.cat([lt, rb], dim=-1).clip(0, self.reg_max - 0.01)
 
     @staticmethod
-    def _focal_loss(pred_logits: Tensor, label: Tensor, alpha=0.25, gamma=2.0) -> Tensor:
+    def _focal_loss(pred_logits: Tensor, label: Tensor, alpha=0.25, gamma=2.0, reduction="sum") -> Tensor:
         pred_score = pred_logits.sigmoid()
         weight = (pred_score - label).pow(gamma)
         if alpha > 0:
             alpha_t = alpha * label + (1 - alpha) * (1 - label)
             weight *= alpha_t
         loss = -weight * (label * torch.nn.functional.logsigmoid(pred_logits) + (1 - label) * torch.nn.functional.logsigmoid(-pred_logits))
-        return loss.sum()
+
+        if reduction == "sum":
+            loss = loss.sum()
+        elif reduction == "mean":
+            loss = loss.mean()
+        elif reduction == "none":
+            pass
+        else:
+            raise ValueError(f"Unsupported reduction type {reduction}")
+        return loss
 
     @staticmethod
     def _varifocal_loss(pred_logits: Tensor, gt_score: Tensor, label: Tensor, alpha=0.75, gamma=2.0) -> Tensor:

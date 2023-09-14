@@ -1,12 +1,12 @@
 defaults:
   - training_hyperparams: coco2017_yolo_nas_pose_train_params
   - dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
-  - arch_params: yolo_nas_pose_s_arch_params
+  - arch_params: yolo_nas_pose_s_shared_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
   - variable_setup
 
-architecture: yolo_nas_pose_s
+architecture: yolo_nas_pose_shared_s
 
 multi_gpu: DDP
 num_gpus: 8
@@ -17,9 +17,8 @@ bbox_reg_loss_suffix: ${training_hyperparams.criterion_params.regression_iou_los
 pose_cls_loss_suffix: pose_${training_hyperparams.criterion_params.pose_classification_loss_type}_${training_hyperparams.criterion_params.pose_cls_loss_weight}
 pose_reg_loss_suffix: reg_${training_hyperparams.criterion_params.pose_reg_loss_weight}
 
-head_suffix: ""
-experiment_suffix: "ema_less_mosaic_rescale_loss_lr_focal"
-experiment_name: coco2017_${architecture}_${bbox_cls_loss_suffix}_${bbox_reg_loss_suffix}_${pose_cls_loss_suffix}_${pose_reg_loss_suffix}_${head_suffix}_${dataset_params.dataset_params_suffix}${experiment_suffix}
+experiment_suffix: "_short"
+experiment_name: coco2017_${architecture}_${bbox_cls_loss_suffix}_${bbox_reg_loss_suffix}_${pose_cls_loss_suffix}_${pose_reg_loss_suffix}_${dataset_params.dataset_params_suffix}_${experiment_suffix}
 
 ckpt_root_dir:
 
@@ -30,12 +29,17 @@ arch_params:
   num_classes: ${dataset_params.num_joints}
 
 training_hyperparams:
-  # phase_callbacks: [ ] # Disable visualization
-  criterion_params:
-    classification_loss_type: focal
-    pose_classification_loss_type: focal
-    rescale_pose_loss_with_assigned_score: True
-    pose_reg_loss_weight: 34
+  phase_callbacks:
+    - EarlyStop:
+        phase:
+          _target_: super_gradients.training.utils.callbacks.base_callbacks.Phase
+          value: VALIDATION_EPOCH_END
+        monitor: AP
+        mode: max
+        min_delta: 0.01
+        patience: 100
+        verbose: True
+
 
   ema: True
   ema_params:
@@ -46,18 +50,18 @@ training_hyperparams:
   max_epochs: 1000
   cosine_final_lr_ratio: 0.05
 
-  sg_logger: wandb_sg_logger
-  sg_logger_params:
-    api_server: https://wandb.research.deci.ai
-    entity: super-gradients
-    launch_tensorboard: false
-    monitor_system: true
-    project_name: PoseEstimation
-    save_checkpoints_remote: true
-    save_logs_remote: true
-    save_tensorboard_remote: false
-    tb_files_user_prompt: false
-    tensorboard_port: null
+#  sg_logger: wandb_sg_logger
+#  sg_logger_params:
+#    api_server: https://wandb.research.deci.ai
+#    entity: super-gradients
+#    launch_tensorboard: false
+#    monitor_system: true
+#    project_name: PoseEstimation
+#    save_checkpoints_remote: true
+#    save_logs_remote: true
+#    save_tensorboard_remote: false
+#    tb_files_user_prompt: false
+#    tensorboard_port: null
 
 
 checkpoint_params:
@@ -69,11 +73,20 @@ checkpoint_params:
     value: key_matching
 
 dataset_params:
+  image_size: 384
   mosaic_prob: 0.5
 
+  train_dataset_params:
+    crowd_annotations_action: drop_sample
+    include_empty_samples: True
+    min_instance_area: 8
+
+  val_dataset_params:
+    include_empty_samples: False
+    min_instance_area: 8
 
   train_dataloader_params:
-    batch_size: 48
+    batch_size: 128
 
   val_dataloader_params:
-    batch_size: 48
+    batch_size: 128

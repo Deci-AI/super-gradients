@@ -119,6 +119,7 @@ class Transforms:
     KeypointsLongestMaxSize = "KeypointsLongestMaxSize"
     KeypointsRandomVerticalFlip = "KeypointsRandomVerticalFlip"
     KeypointsRandomHorizontalFlip = "KeypointsRandomHorizontalFlip"
+    KeypointsRescale = "KeypointsRescale"
 
 
 class Optimizers:
@@ -317,6 +318,8 @@ class Models:
     YOLO_NAS_POSE_M = "yolo_nas_pose_m"
     YOLO_NAS_POSE_L = "yolo_nas_pose_l"
 
+    YOLO_NAS_POSE_SHARED_S = "yolo_nas_pose_shared_s"
+
 
 class ConcatenatedTensorFormats:
     XYXY_LABEL = "XYXY_LABEL"
@@ -416,6 +419,7 @@ class Datasets:
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
     ANIMALPOSE_KEY_POINTS_DATASET = "AnimalPoseKeypointsDataset"
+    CROWDPOSE_KEY_POINTS_DATASET = "CrowdPoseKeypointsDataset"
 
 
 class Processings:
@@ -424,6 +428,7 @@ class Processings:
     DetectionLongestMaxSizeRescale = "DetectionLongestMaxSizeRescale"
     DetectionBottomRightPadding = "DetectionBottomRightPadding"
     DetectionRescale = "DetectionRescale"
+    KeypointsRescale = "KeypointsRescale"
     KeypointsLongestMaxSizeRescale = "KeypointsLongestMaxSizeRescale"
     KeypointsBottomRightPadding = "KeypointsBottomRightPadding"
     ImagePermute = "ImagePermute"

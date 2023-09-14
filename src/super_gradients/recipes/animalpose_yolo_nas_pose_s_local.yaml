@@ -1,0 +1,26 @@
+defaults:
+  - animalpose_yolo_nas_pose_s
+  - override dataset_params: animalpose_pose_estimation_yolo_nas_mosaic_pose_dataset_params
+  - _self_
+
+multi_gpu: Off
+num_gpus: 1
+
+dataset_params:
+  train_dataset_params:
+    data_dir: G:/animalpose
+
+  val_dataset_params:
+    data_dir: G:/animalpose
+
+  train_dataloader_params:
+    persistent_workers: False
+    num_workers: 0
+
+  val_dataloader_params:
+    persistent_workers: False
+    num_workers: 0
+
+training_hyperparams:
+  max_valid_batches: 16
+  max_train_batches: 16

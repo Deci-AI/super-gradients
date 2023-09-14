@@ -1,5 +1,6 @@
-# PACKAGE IMPORTS FOR EXTERNAL USAGE
 import cv2
+
+# PACKAGE IMPORTS FOR EXTERNAL USAGE
 from super_gradients.training.transforms.transforms import (
     DetectionTransform,
     DetectionStandardize,

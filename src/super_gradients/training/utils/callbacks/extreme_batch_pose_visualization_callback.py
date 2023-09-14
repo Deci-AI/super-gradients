@@ -190,13 +190,13 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         return out_images
 
     @torch.no_grad()
-    def process_extreme_batch(self) -> Tuple[np.ndarray, np.ndarray]:
+    def process_extreme_batch(self) -> np.ndarray:
         """
         Processes the extreme batch, and returns 2 image batches for visualization - one with predictions and one with GT boxes.
         :return:Tuple[np.ndarray, np.ndarray], the predictions batch, the GT batch
         """
         inputs = self.universal_undo_preprocessing_fn(self.extreme_batch)
-        target_boxes, target_joints = self.extreme_targets
+        target_boxes, target_joints, target_crowds = self.extreme_targets
         predictions = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
 
         images_to_save_preds = self.visualize_batch(
@@ -224,36 +224,32 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
             keypoint_colors=self.keypoint_colors,
         )
         images_to_save_gt = np.stack(images_to_save_gt)
-        return images_to_save_preds, images_to_save_gt
+
+        # Stack the predictions and GT images together
+        return np.concatenate([images_to_save_gt, images_to_save_preds], axis=2)
 
     def on_train_loader_end(self, context: PhaseContext) -> None:
         if self.enable_on_train_loader and context.epoch % self.freq == 0:
-            images_to_save_preds, images_to_save_gt = self.process_extreme_batch()
-            images_to_save_preds = maybe_all_gather_np_images(images_to_save_preds)
-            images_to_save_gt = maybe_all_gather_np_images(images_to_save_gt)
+            images_to_save_preds_with_gt = self.process_extreme_batch()
+            images_to_save_preds_with_gt = maybe_all_gather_np_images(images_to_save_preds_with_gt)
 
             if self.max_images is not None:
-                images_to_save_preds = images_to_save_preds[: self.max_images]
-                images_to_save_gt = images_to_save_gt[: self.max_images]
+                images_to_save_preds_with_gt = images_to_save_preds_with_gt[: self.max_images]
 
             if not context.ddp_silent_mode:
-                context.sg_logger.add_images(tag=f"train/{self._tag}_preds", images=images_to_save_preds, global_step=context.epoch, data_format="NHWC")
-                context.sg_logger.add_images(tag=f"train/{self._tag}_GT", images=images_to_save_gt, global_step=context.epoch, data_format="NHWC")
+                context.sg_logger.add_images(tag=f"train/{self._tag}", images=images_to_save_preds_with_gt, global_step=context.epoch, data_format="NHWC")
 
             self._reset()
 
     def on_validation_loader_end(self, context: PhaseContext) -> None:
         if self.enable_on_valid_loader and context.epoch % self.freq == 0:
-            images_to_save_preds, images_to_save_gt = self.process_extreme_batch()
-            images_to_save_preds = maybe_all_gather_np_images(images_to_save_preds)
-            images_to_save_gt = maybe_all_gather_np_images(images_to_save_gt)
+            images_to_save_preds_with_gt = self.process_extreme_batch()
+            images_to_save_preds_with_gt = maybe_all_gather_np_images(images_to_save_preds_with_gt)
 
             if self.max_images is not None:
-                images_to_save_preds = images_to_save_preds[: self.max_images]
-                images_to_save_gt = images_to_save_gt[: self.max_images]
+                images_to_save_preds_with_gt = images_to_save_preds_with_gt[: self.max_images]
 
             if not context.ddp_silent_mode:
-                context.sg_logger.add_images(tag=f"valid/{self._tag}_preds", images=images_to_save_preds, global_step=context.epoch, data_format="NHWC")
-                context.sg_logger.add_images(tag=f"valid/{self._tag}_GT", images=images_to_save_gt, global_step=context.epoch, data_format="NHWC")
+                context.sg_logger.add_images(tag=f"valid/{self._tag}", images=images_to_save_preds_with_gt, global_step=context.epoch, data_format="NHWC")
 
             self._reset()

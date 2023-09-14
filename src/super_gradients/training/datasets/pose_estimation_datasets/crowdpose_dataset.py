@@ -1,9 +1,8 @@
 import os
 from typing import Tuple, List, Mapping, Any, Union
-from enum import Enum
+
 import cv2
 import numpy as np
-import pycocotools
 from pycocotools.coco import COCO
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -16,25 +15,13 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyw
 from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
 from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
 
-
 logger = get_logger(__name__)
 
 
-class CrowdAnnotationActionEnum(str, Enum):
+@register_dataset(Datasets.CROWDPOSE_KEY_POINTS_DATASET)
+class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
     """
-    Enum that contains possible actions to take for crowd annotations.
-    """
-
-    DROP_SAMPLE = "drop_sample"
-    DROP_ANNOTATION = "drop_annotation"
-    MASK_AS_NORMAL = "mask_as_normal"
-    NO_ACTION = "no_action"
-
-
-@register_dataset(Datasets.COCO_KEY_POINTS_DATASET)
-class COCOKeypointsDataset(BaseKeypointsDataset):
-    """
-    Dataset class for training pose estimation models on COCO Keypoints dataset.
+    Dataset class for training pose estimation models on Crowd Pose dataset.
     Use should pass a target generator class that is model-specific and generates the targets for the model.
     """
 
@@ -45,22 +32,19 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         data_dir: str,
         images_dir: str,
         json_file: str,
-        include_empty_samples: bool,
         target_generator,
         transforms: List[KeypointTransform],
         min_instance_area: float,
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
-        remove_duplicate_annotations: bool = False,
-        crowd_annotations_action: Union[str, CrowdAnnotationActionEnum] = CrowdAnnotationActionEnum.NO_ACTION,
+        crowd_annotations_action: str = "ignore",
     ):
         """
 
         :param data_dir: Root directory of the COCO dataset
         :param images_dir: path suffix to the images directory inside the dataset_root
         :param json_file: path suffix to the json file inside the dataset_root
-        :param include_empty_samples: if True, images without any annotations will be included in the dataset.
             Otherwise, they will be filtered out.
         :param target_generator: Target generator that will be used to generate the targets for the model.
             See DEKRTargetsGenerator for an example.
@@ -70,20 +54,13 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         :param edge_colors: Color of the edge links. If None, the color will be generated randomly.
         :param keypoint_colors: Color of the keypoints. If None, the color will be generated randomly.
         :param crowd_annotations_action: Action to take for annotations with iscrowd=1. Can be one of the following:
-            - "drop_sample" - Samples with crowd annotations will be dropped from the dataset.
-            - "drop_annotation" - Crowd annotations will be dropped from the dataset.
-            - "mask_as_normal" - These annotations will be treated as normal (non-crowd) annotations.
-            - "no_action" - No action will be taken for crowd annotations.
+            - "include" - These annotations will be treated as normal (non-crowd) annotations.
+            - "ignore" - These annotations will be ignored. They would not contribute to the loss.
+            - "remove" - These annotations will be removed from the dataset entirely.
         """
 
-        crowd_annotations_action = CrowdAnnotationActionEnum(crowd_annotations_action)
-        if crowd_annotations_action not in [
-            CrowdAnnotationActionEnum.NO_ACTION,
-            CrowdAnnotationActionEnum.DROP_ANNOTATION,
-            CrowdAnnotationActionEnum.DROP_SAMPLE,
-            CrowdAnnotationActionEnum.MASK_AS_NORMAL,
-        ]:
-            raise ValueError(f"crowd_annotations_action must be one of CrowdAnnotationActionEnum values, got {crowd_annotations_action}")
+        if crowd_annotations_action not in ["include", "ignore", "remove"]:
+            raise ValueError(f"crowd_annotations_action must be one of ['include', 'ignore', 'remove'], got {crowd_annotations_action}")
 
         json_file = os.path.join(data_dir, json_file)
         if not os.path.exists(json_file) or not os.path.isfile(json_file):
@@ -91,16 +68,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
 
         coco = COCO(json_file)
 
-        if remove_duplicate_annotations:
-            from .coco_utils import remove_duplicate_annotations as remove_duplicate_annotations_fn
-
-            coco = remove_duplicate_annotations_fn(coco)
-
-        if crowd_annotations_action == CrowdAnnotationActionEnum.DROP_SAMPLE:
-            from .coco_utils import remove_samples_with_crowd_annotations
-
-            coco = remove_samples_with_crowd_annotations(coco)
-        elif crowd_annotations_action == CrowdAnnotationActionEnum.DROP_ANNOTATION:
+        if crowd_annotations_action == "remove":
             from .coco_utils import remove_crowd_annotations
 
             coco = remove_crowd_annotations(coco)
@@ -126,10 +94,6 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         self.joints = joints
         self.crowd_annotations_action = crowd_annotations_action
 
-        if not include_empty_samples:
-            subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id)) > 0]
-            self.ids = subset
-
     def __len__(self):
         return len(self.ids)
 
@@ -148,15 +112,19 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
 
         gt_iscrowd = np.array([bool(ann["iscrowd"]) for ann in anno]).reshape((-1))
 
-        if self.crowd_annotations_action == CrowdAnnotationActionEnum.MASK_AS_NORMAL:
+        if self.crowd_annotations_action == "include":
             # If crowd_annotations_action is "include", we treat crowd annotations as normal annotations
             # so we set is_crowd to False for all annotations
             gt_iscrowd = np.zeros_like(gt_iscrowd, dtype=bool)
 
         gt_bboxes = np.array([ann["bbox"] for ann in anno], dtype=np.float32).reshape((-1, 4))
-        gt_areas = np.array([ann["area"] for ann in anno], dtype=np.float32).reshape((-1))
+        gt_areas = gt_bboxes[:, 2] * gt_bboxes[:, 3] * 0.53
 
         orig_image = cv2.imread(file_path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+        if orig_image is None:
+            from PIL import Image
+
+            orig_image = Image.open(file_path).convert("BGR")
 
         if orig_image.shape[0] != image_info["height"] or orig_image.shape[1] != image_info["width"]:
             raise RuntimeError(f"Annotated image size ({image_info['height'],image_info['width']}) does not match image size in file {orig_image.shape[:2]}")
@@ -171,7 +139,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         gt_bboxes = xyxy_to_xywh(xyxy_bboxes, image_shape=None)
 
         joints: np.ndarray = self.get_joints(anno)
-        mask: np.ndarray = self.get_mask(anno, image_info)
+        mask: np.ndarray = np.ones((image_height, image_width), dtype=np.uint8)
 
         return PoseEstimationSample(
             image=orig_image,
@@ -201,36 +169,6 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         num_instances = len(joints)
         joints = np.array(joints, dtype=np.float32).reshape((num_instances, self.num_joints, 3))
         return joints
-
-    def get_mask(self, anno, img_info) -> np.ndarray:
-        """
-        This method computes ignore mask, which describes crowd objects / objects w/o keypoints to exclude these predictions from contributing to the loss
-        :param anno:
-        :param img_info:
-        :return: Float mask of [H,W] shape (same as image dimensions),
-            where 1.0 values corresponds to pixels that should contribute to the loss, and 0.0 pixels indicates areas that should be excluded.
-        """
-        m = np.zeros((img_info["height"], img_info["width"]), dtype=np.float32)
-
-        for obj in anno:
-            if obj["iscrowd"]:
-                rle = pycocotools.mask.frPyObjects(obj["segmentation"], img_info["height"], img_info["width"])
-                mask = pycocotools.mask.decode(rle)
-                if mask.shape != m.shape:
-                    logger.warning(f"Mask shape {mask.shape} does not match image shape {m.shape} for image {img_info['file_name']}")
-                    continue
-                m += mask
-            elif obj["num_keypoints"] == 0:
-                rles = pycocotools.mask.frPyObjects(obj["segmentation"], img_info["height"], img_info["width"])
-                for rle in rles:
-                    mask = pycocotools.mask.decode(rle)
-                    if mask.shape != m.shape:
-                        logger.warning(f"Mask shape {mask.shape} does not match image shape {m.shape} for image {img_info['file_name']}")
-                        continue
-
-                    m += mask
-
-        return (m < 0.5).astype(np.float32)
 
     def get_dataset_preprocessing_params(self):
         """

@@ -141,7 +141,7 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
     def __len__(self):
         return len(self.image_ids)
 
-    def load_sample(self, index):
+    def load_sample(self, index) -> PoseEstimationSample:
         file_path = self.image_files[index]
         gt_joints, gt_bboxes = self.annotations[index]  # boxes in xywh format
 
