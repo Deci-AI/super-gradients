@@ -46,6 +46,10 @@ training_hyperparams:
   max_epochs: 1000
   cosine_final_lr_ratio: 0.05
 
+  warmup_mode: "linear_epoch_step"
+  warmup_initial_lr: 1e-6
+  lr_warmup_steps: 400
+
   sg_logger: wandb_sg_logger
   sg_logger_params:
     api_server: https://wandb.research.deci.ai
