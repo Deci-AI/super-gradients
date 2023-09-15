@@ -319,6 +319,7 @@ class Models:
     YOLO_NAS_POSE_L = "yolo_nas_pose_l"
 
     YOLO_NAS_POSE_SHARED_S = "yolo_nas_pose_shared_s"
+    YOLO_NAS_POSE_SHARED_M = "yolo_nas_pose_shared_m"
 
 
 class ConcatenatedTensorFormats:
