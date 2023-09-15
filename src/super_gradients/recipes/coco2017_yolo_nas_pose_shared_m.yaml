@@ -83,7 +83,7 @@ training_hyperparams:
           value: VALIDATION_EPOCH_END
         monitor: AP
         mode: max
-        min_delta: 0.01
+        min_delta: 0.0001
         patience: 100
         verbose: True
 
