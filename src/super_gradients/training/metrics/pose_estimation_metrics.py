@@ -29,7 +29,7 @@ class PoseEstimationPredictions:
 
     poses: Tensor
     scores: Tensor
-    bboxes: Tensor
+    bboxes: Optional[Tensor]
 
 
 @register_metric(Metrics.POSE_ESTIMATION_METRICS)
