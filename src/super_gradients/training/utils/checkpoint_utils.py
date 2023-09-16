@@ -1575,7 +1575,11 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
             "By downloading the pre-trained weight files you agree to comply with these terms."
         )
 
-    unique_filename = url.split("https://sghub.deci.ai/models/")[1].replace("/", "_").replace(" ", "_")
+    if url.startswith("file:///"):
+        unique_filename = url.split("/")[-1].replace(" ", "_")  # TODO: REVER BACK - TEMPORARY HACK TO ENABLE USE OF LOCAL CHECKPOINTS
+    else:
+        unique_filename = url.split("https://sghub.deci.ai/models/")[1].replace("/", "_").replace(" ", "_")
+
     map_location = torch.device("cpu")
     with wait_for_the_master(get_local_rank()):
         pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
