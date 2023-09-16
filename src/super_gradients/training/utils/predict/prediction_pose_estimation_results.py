@@ -7,7 +7,7 @@ import numpy as np
 from super_gradients.training.utils.predict import ImagePrediction, ImagesPredictions, VideoPredictions, PoseEstimationPrediction
 from super_gradients.training.utils.media.image import show_image, save_image
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
-from super_gradients.training.utils.visualization.pose_estimation import draw_skeleton
+from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
 
 
 @dataclass
@@ -45,21 +45,18 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param box_thickness:   Thickness of bounding boxes.
         :return:                Image with predicted bboxes. Note that this does not modify the original image.
         """
-        image = self.image.copy()
-
-        for pred_i in np.argsort(self.prediction.scores):
-            image = draw_skeleton(
-                image=image,
-                keypoints=self.prediction.poses[pred_i],
-                score=self.prediction.scores[pred_i],
-                show_confidence=show_confidence,
-                edge_links=self.prediction.edge_links,
-                edge_colors=edge_colors or self.prediction.edge_colors,
-                joint_thickness=joint_thickness,
-                keypoint_colors=keypoint_colors or self.prediction.keypoint_colors,
-                keypoint_radius=keypoint_radius,
-                box_thickness=box_thickness,
-            )
+        image = PoseVisualization.draw_poses(
+            image=self.image,
+            poses=self.prediction.poses,
+            scores=self.prediction.scores,
+            boxes=self.prediction.boxes,
+            edge_links=self.prediction.edge_links,
+            edge_colors=edge_colors or self.prediction.edge_colors,
+            joint_thickness=joint_thickness,
+            keypoint_colors=keypoint_colors or self.prediction.keypoint_colors,
+            keypoint_radius=keypoint_radius,
+            box_thickness=box_thickness,
+        )
 
         return image
 

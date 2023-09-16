@@ -71,10 +71,12 @@ class PoseEstimationPrediction(Prediction):
 
     :attr poses: Numpy array of [Num Poses, Num Joints, 2] shape
     :attr scores: Numpy array of [Num Poses] shape
+    :attr boxes: Numpy array of [Num Poses, 4] shape which represents the bounding boxes of each pose in xyxy format
     """
 
     poses: np.ndarray
     scores: np.ndarray
+    boxes: Optional[np.ndarray]
     edge_links: np.ndarray
     edge_colors: np.ndarray
     keypoint_colors: np.ndarray
