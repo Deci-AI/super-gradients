@@ -29,10 +29,41 @@ class YoloNASPoseYoloNASPoseBoxesAssignmentResult:
     assigned_crowd: Tensor
 
 
+def batch_pose_oks(joints1: torch.Tensor, joints2: torch.Tensor, boxes1: torch.Tensor, sigmas: torch.Tensor, eps: float = 1e-9) -> float:
+    """Calculate OKS (Object Keypoint Similarity) between two sets of joints
+
+    :param joints1 (Tensor): Joints with the shape [N, M1, 17, 3]
+    :param boxes1: box with the shape [N, M1, 4] in XYXY format
+    :param joints2 (Tensor): Joints with the shape [N, M1, 17, 3]
+    :param sigmas (Tensor): Sigmas with the shape [17]
+    :param eps (float): Small constant for numerical stability
+    :return iou: OKS between box1 and box2 with the shape [N, M1, M2]
+
+    """
+
+    joints1_xy = joints1[:, :, :, 0:2].unsqueeze(2)  # [N, M1, 1, 17, 2]
+    joints2_xy = joints2[:, :, :, 0:2].unsqueeze(1)  # [N, 1, M2, 17, 2]
+
+    d = ((joints1_xy - joints2_xy) ** 2).sum(dim=-1, keepdim=False)  # [N, M1, M2, 17]
+
+    area = (boxes1[:, :, 2] - boxes1[:, :, 0]) * (boxes1[:, :, 3] - boxes1[:, :, 1]) * 0.53  # [N, M1]
+    area = area[:, :, None, None]  # [N, M1, 1, 1]
+    sigmas = sigmas.reshape([1, 1, 1, -1])  # [1, 1, 1, 17]
+
+    e: Tensor = d / (2 * sigmas) ** 2 / (area + eps) / 2
+    oks = torch.exp(-e)  # [N, M1, M2, 17]
+
+    joints1_visiblity = joints1[:, :, :, 2].gt(0).float().unsqueeze(2)  # [N, M1, 1, 17]
+    num_visible_joints = joints1_visiblity.sum(dim=-1, keepdim=False)  # [N, M1, M2]
+    mean_oks = (oks * joints1_visiblity).sum(dim=-1, keepdim=False) / (num_visible_joints + eps)  # [N, M1, M2]
+
+    return mean_oks
+
+
 class YoloNASPoseTaskAlignedAssigner(nn.Module):
     """TOOD: Task-aligned One-stage Object Detection"""
 
-    def __init__(self, topk=13, alpha=1.0, beta=6.0, eps=1e-9):
+    def __init__(self, sigmas, topk=13, alpha=1.0, beta=6.0, eps=1e-9, multiply_by_pose_oks=False):
         """
 
         :param topk: Maximum number of achors that is selected for each gt box
@@ -45,6 +76,8 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         self.alpha = alpha
         self.beta = beta
         self.eps = eps
+        self.sigmas = sigmas
+        self.multiply_by_pose_oks = multiply_by_pose_oks
 
     @torch.no_grad()
     def forward(
@@ -76,7 +109,7 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         :param pred_scores: Tensor (float32): predicted class probability, shape(B, L, C)
         :param pred_bboxes: Tensor (float32): predicted bounding boxes, shape(B, L, 4)
         :param pred_poses: Tensor (float32): predicted poses, shape(B, L, 17, 3)
-        :param anchor_points: Tensor (float32): pre-defined anchors, shape(L, 2), "cxcy" format
+        :param anchor_points: Tensor (float32): pre-defined anchors, shape(L, 2), xy format
         :param num_anchors_list: List ( num of anchors in each level, shape(L)
         :param gt_labels: Tensor (int64|int32): Label of gt_bboxes, shape(B, n, 1)
         :param gt_bboxes: Tensor (float32): Ground truth bboxes, shape(B, n, 4)
@@ -117,6 +150,11 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
 
         # compute iou between gt and pred bbox, [B, n, L]
         ious = batch_iou_similarity(gt_bboxes, pred_bboxes)
+
+        if self.multiply_by_pose_oks:
+            pose_oks = batch_pose_oks(gt_poses, pred_poses, gt_bboxes, self.sigmas.to(pred_poses.device))
+            ious = ious * pose_oks
+
         # gather pred bboxes class score
         pred_scores = torch.permute(pred_scores, [0, 2, 1])
         batch_ind = torch.arange(end=batch_size, dtype=gt_labels.dtype, device=gt_labels.device).unsqueeze(-1)
@@ -230,7 +268,7 @@ class YoloNASPoseLoss(nn.Module):
         self.oks_sigmas = torch.tensor(oks_sigmas)
         self.pose_cls_loss_weight = pose_cls_loss_weight
         self.pose_reg_loss_weight = pose_reg_loss_weight
-        self.assigner = YoloNASPoseTaskAlignedAssigner(topk=bbox_assigner_topk, alpha=bbox_assigned_alpha, beta=bbox_assigned_beta)
+        self.assigner = YoloNASPoseTaskAlignedAssigner(sigmas=self.oks_sigmas, topk=bbox_assigner_topk, alpha=bbox_assigned_alpha, beta=bbox_assigned_beta)
         self.use_cocoeval_formula = use_cocoeval_formula
         self.pose_classification_loss_type = pose_classification_loss_type
         self.rescale_pose_loss_with_assigned_score = rescale_pose_loss_with_assigned_score
