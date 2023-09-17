@@ -34,6 +34,7 @@ criterion_params:
     use_cocoeval_formula: True
     pose_classification_loss_type: focal
     rescale_pose_loss_with_assigned_score: True
+    assigner_multiply_by_pose_oks: False
 
 optimizer: AdamW
 optimizer_params:

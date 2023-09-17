@@ -243,6 +243,7 @@ class YoloNASPoseLoss(nn.Module):
         bbox_assigner_topk: int = 13,
         bbox_assigned_alpha: float = 1.0,
         bbox_assigned_beta: float = 6.0,
+        assigner_multiply_by_pose_oks: bool = False,
         rescale_pose_loss_with_assigned_score: bool = False,
     ):
         """
@@ -268,7 +269,13 @@ class YoloNASPoseLoss(nn.Module):
         self.oks_sigmas = torch.tensor(oks_sigmas)
         self.pose_cls_loss_weight = pose_cls_loss_weight
         self.pose_reg_loss_weight = pose_reg_loss_weight
-        self.assigner = YoloNASPoseTaskAlignedAssigner(sigmas=self.oks_sigmas, topk=bbox_assigner_topk, alpha=bbox_assigned_alpha, beta=bbox_assigned_beta)
+        self.assigner = YoloNASPoseTaskAlignedAssigner(
+            sigmas=self.oks_sigmas,
+            topk=bbox_assigner_topk,
+            alpha=bbox_assigned_alpha,
+            beta=bbox_assigned_beta,
+            multiply_by_pose_oks=assigner_multiply_by_pose_oks,
+        )
         self.use_cocoeval_formula = use_cocoeval_formula
         self.pose_classification_loss_type = pose_classification_loss_type
         self.rescale_pose_loss_with_assigned_score = rescale_pose_loss_with_assigned_score
