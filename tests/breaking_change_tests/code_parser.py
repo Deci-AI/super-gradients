@@ -1,6 +1,6 @@
 import ast
 from dataclasses import dataclass, field
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 
 @dataclass
@@ -84,14 +84,35 @@ def parse_functions_signatures(code: str) -> Dict[str, FunctionSignature]:
     tree = ast.parse(code)
     signatures = {}
 
-    # Helper function to extract methods from a class node
-    def extract_methods_from_class(class_node, derived_class_name=None):
+    def extract_methods_from_class(class_node: ast.ClassDef, derived_class_name: Optional[str] = None) -> Dict[str, FunctionSignature]:
+        """
+        Recursively extract methods from a class and its all its base classes.
+
+        Given a class node from the AST, this function will extract the methods defined in the class
+        as well as any methods inherited from its base classes. It produces a dictionary of method
+        names (prefixed by the derived class, if specified) mapped to their `FunctionSignature` objects.
+
+
+        :param class_node:              The AST node representing the class.
+        :param derived_class_name :     (Optional) The name of the derived class (if any) to prefix the method names.
+        :return:                        Dictionary mapping method names to their signatures.
+        """
+
+        derived_class_name = derived_class_name or class_node.name
         methods = {}
+
+        # Extracting methods from the current class node
         for method in class_node.body:
             if isinstance(method, ast.FunctionDef):
-                class_prefix = derived_class_name if derived_class_name else class_node.name
-                method_name = f"{class_prefix}.{method.name}"
+                method_name = f"{derived_class_name}.{method.name}"
                 methods[method_name] = FunctionSignature(name=method_name, line_num=method.lineno, params=parse_parameters(method.args))
+
+        # Recursively extract methods from base classes
+        for base in class_node.bases:
+            if isinstance(base, ast.Name) and base.id in classes:
+                base_class_methods = extract_methods_from_class(class_node=classes[base.id], derived_class_name=derived_class_name)
+                methods.update(base_class_methods)
+
         return methods
 
     # Extract top-level functions and classes
@@ -101,14 +122,7 @@ def parse_functions_signatures(code: str) -> Dict[str, FunctionSignature]:
             signatures[node.name] = FunctionSignature(name=node.name, line_num=node.lineno, params=parse_parameters(node.args))
         elif isinstance(node, ast.ClassDef):
             classes[node.name] = node
-            signatures.update(extract_methods_from_class(node))
-
-    # For each class, check for parent class and add its methods if it's present in the given code
-    for class_name, class_node in classes.items():
-        if class_node.bases:
-            for base in class_node.bases:
-                if isinstance(base, ast.Name) and base.id in classes:
-                    signatures.update(extract_methods_from_class(classes[base.id], class_name))
+            signatures.update(extract_methods_from_class(class_node=node))
 
     return signatures
 

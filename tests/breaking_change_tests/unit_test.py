@@ -236,6 +236,9 @@ class Base2:
 
 class Derived(Base1, Base2):
     def method_in_derived(self): pass
+
+class DerivedChild(Derived):
+    def method_in_derived_child(self): pass
 """
         expected = {
             "Base1.method_in_base1": FunctionSignature(
@@ -252,6 +255,18 @@ class Derived(Base1, Base2):
             ),
             "Derived.method_in_derived": FunctionSignature(
                 name="Derived.method_in_derived", line_num=9, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "DerivedChild.method_in_base1": FunctionSignature(
+                name="DerivedChild.method_in_base1", line_num=3, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "DerivedChild.method_in_base2": FunctionSignature(
+                name="DerivedChild.method_in_base2", line_num=6, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "DerivedChild.method_in_derived": FunctionSignature(
+                name="DerivedChild.method_in_derived", line_num=9, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "DerivedChild.method_in_derived_child": FunctionSignature(
+                name="DerivedChild.method_in_derived_child", line_num=12, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
             ),
         }
         self.assertEqual(parse_functions_signatures(code), expected)
