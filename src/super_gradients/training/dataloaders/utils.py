@@ -24,7 +24,7 @@ class DatasetItemsException(Exception):
         super().__init__(error_msg)
 
 
-class BaseCollateFN:
+class CollateFnWrapper:
     """Base class for all SG collate functions.
     Act like a wrapper around `collate_fn`, but include ability to add pre/post processing steps before/after collating.
     """
@@ -32,11 +32,11 @@ class BaseCollateFN:
     def __init__(
         self,
         sample_preprocessing_fn: Optional[Callable] = None,
-        collage_fn: Optional[Callable] = None,
+        collate_fn: Optional[Callable] = None,
         batch_postprocessing_fn: Optional[Callable] = None,
     ):
         self._sample_preprocessing_fn = sample_preprocessing_fn
-        self._collate_fn = collage_fn or default_collate
+        self._collate_fn = collate_fn or default_collate
         self._batch_postprocessing_fn = batch_postprocessing_fn
 
     def __call__(self, samples: Iterable) -> Tuple:
@@ -55,33 +55,30 @@ class BaseCollateFN:
 
 
 @register_collate_function()
-class DetectionCollateFN(BaseCollateFN):
+class DetectionCollateFN:
     """
     Collate function for Yolox training
     """
 
-    def __init__(self, adapter: Optional[DetectionDatasetAdapter] = None):
+    def __init__(self):
         self.expected_item_names = ("image", "targets")
-        sample_preprocessing_fn = adapter.adapt_batch if adapter is not None else (lambda x: x)
-        super().__init__(sample_preprocessing_fn=sample_preprocessing_fn, collage_fn=lambda data: list(zip(*data)), batch_postprocessing_fn=self._format_batch)
 
-    def _format_batch(self, batch_data):
+    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         try:
-            images_batch, labels_batch, *_other_items = batch_data
+            images_batch, labels_batch = list(zip(*data))
         except (ValueError, TypeError):
-            raise DatasetItemsException(data_sample=batch_data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
+
         return self._format_images(images_batch), self._format_targets(labels_batch)
 
-    @staticmethod
-    def _format_images(images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+    def _format_images(self, images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
         images_batch = [torch.tensor(img) for img in images_batch]
         images_batch_stack = torch.stack(images_batch, 0)
         if images_batch_stack.shape[3] == 3:
             images_batch_stack = torch.moveaxis(images_batch_stack, -1, 1).float()
         return images_batch_stack
 
-    @staticmethod
-    def _format_targets(labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+    def _format_targets(self, labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
         """
         Stack a batch id column to targets and concatenate
         :param labels_batch: a list of targets per image (each of arbitrary length)
