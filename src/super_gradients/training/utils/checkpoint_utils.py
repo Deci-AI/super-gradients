@@ -1611,4 +1611,5 @@ def get_scheduler_state(scheduler) -> Dict:
     state = scheduler.state_dict()
     if isinstance(scheduler, CyclicLR) and not torch_version_is_greater_or_equal(2, 0):
         del state["_scale_fn_ref"]
+        print("check")
     return state
