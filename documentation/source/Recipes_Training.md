@@ -93,7 +93,8 @@ first finish this tutorial, as it includes information required to fully underst
 
 
 ## Recipe Structure
-When browsing the YAML files in the `recipes` directory, you'll notice that some files contain the key `defaults` at the beginning of the file. Here's an example of what this looks like:
+When browsing the YAML files in the `recipes` directory, you'll notice that some files contain the key `defaults` at the beginning of the file. 
+Here's an example of what this looks like:
 
 ```yaml
 defaults:
@@ -103,16 +104,43 @@ defaults:
   - checkpoint_params: default_checkpoint_params
   - _self_
   - variable_setup
-...
+
+architecture: resnet18
+
+train_dataloader: cifar10_train # Optional, see comments below
+val_dataloader: cifar10_val # Optional, see comments below
+
+multi_gpu: Off
+num_gpus: 1
+
+experiment_suffix: ""
+experiment_name: cifar10_${architecture}${experiment_suffix}
 ```
 
+This is a _minimal_ example of the recipe file that contains all **mandatory** properties to train a model.
+
 ### Components of a Recipe
+
+We need to introduce some terminology to ensure we stay on the same page throughout the rest of this document.
 
 - **Defaults**: The `defaults` section is critical, and it leverages the OmegaConf syntax. It serves to reference other recipes, allowing you to create modular and reusable configurations.
 - **Referencing Parameters**: This allows you to point to specific parameters in the YAML file according to where they originate. For example, `training_hyperparams.initial_lr` refers to the `initial_lr` parameter from the `cifar10_resnet_train_params.yaml` file.
 - **Recipe Parameters - `_self_`**: The `_self_` keyword has a special role. It permits the current recipe to override the defaults. Its impact depends on its position in the `defaults` list.
-- **Variable setup - `variable_setup`**: This section is required to enable use of shortcuts for most commonly used overrides which is covered in the next section. Please note it `variable_setup` **must be the last item** in the defaults list.
 
+A recipe consists of a several sections that are mandatory and required to exist in the recipe file. They are:
+
+- **`training_hyperparams`** - This section contains the hyperparameters related to training regime, such as the learning rate, number of epochs, etc.
+- **`dataset_params`** - This section contains the parameters related to the dataset and dataloaders for training and validation. Dataset transformations, batch size, etc. are defined here.
+The `dataset_params` section is tightly coupled with the root parameters `train_dataloader` and `val_dataloader`.
+Please note, that `train_dataloader` and `val_dataloader` are optional, not mandatory parameters in a broad sense.
+They are used in conjunction to instantiate the dataloaders for training and validation and exists mostly for convenience purposes in SG-provided recipes.
+For **external** datasets we suggest read the [Using Custom Datasets](https://docs.deci.ai/super-gradients/documentation/source/Data.html#using-custom-datasets) section of Datasets documentation page for additional information.
+- **`arch_params`** - This section contains the parameters related to the model architecture. The `arch_params` section goes hand-in-hand with the `architecture` parameter, which is root property of the recipe. 
+If `architecture`defines the specific model architecture, then `arch_params` defines the parameters for that architecture.
+- **`checkpoint_params`** - This section contains  the parameters related to checkpoints. 
+It contains settings for loading checkpoint weights for transfer learning, controlling use of pretrained weights and more.
+See [default_checkpoint_params](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/checkpoint_params/default_checkpoint_params.yaml) for an example of what parameters are supported.
+- **`variable_setup`**: This section is required to enable use of shortcuts for most commonly used overrides which is covered in the [next](#Command-Line Override Shortcuts) section. Please note it `variable_setup` **must be the last item** in the defaults list.
 
 ### Understanding Override Order
 

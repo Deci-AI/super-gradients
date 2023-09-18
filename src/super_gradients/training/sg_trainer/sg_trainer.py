@@ -61,13 +61,16 @@ from super_gradients.training.utils.distributed_training_utils import (
     compute_precise_bn_stats,
     setup_device,
     get_gpu_mem_utilization,
-    get_world_size,
-    get_local_rank,
-    require_ddp_setup,
-    get_device_ids,
-    is_ddp_subprocess,
     wait_for_the_master,
     DDPNotSetupException,
+)
+from super_gradients.common.environment.ddp_utils import (
+    get_local_rank,
+    require_ddp_setup,
+    is_ddp_subprocess,
+    get_world_size,
+    get_device_ids,
+    broadcast_from_master,
 )
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
@@ -561,11 +564,15 @@ class Trainer:
 
         # make sure the metric_to_watch is an exact match
         metric_titles = self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
-        metric_to_watch_idx = fuzzy_idx_in_list(self.metric_to_watch, metric_titles)
+        try:
+            metric_to_watch_idx = fuzzy_idx_in_list(self.metric_to_watch, metric_titles)
+        except IndexError:
+            raise ValueError(f"No match found for `metric_to_watch={self.metric_to_watch}`. Available metrics to monitor are: `{metric_titles}`.")
+
         metric_to_watch = metric_titles[metric_to_watch_idx]
         if metric_to_watch != self.metric_to_watch:
             logger.warning(
-                f"No exact match found for `metric_to_watch={self.metric_to_watch}`. It should be one of {metric_titles}. \n"
+                f"No exact match found for `metric_to_watch={self.metric_to_watch}`. Available metrics to monitor are: `{metric_titles}`. \n"
                 f"`metric_to_watch={metric_to_watch} will be used instead.`"
             )
             self.metric_to_watch = metric_to_watch
@@ -1387,7 +1394,9 @@ class Trainer:
             if not silent_mode:
                 logger.info(f"Started training for {self.max_epochs - self.start_epoch} epochs ({self.start_epoch}/" f"{self.max_epochs - 1})\n")
             for epoch in range(self.start_epoch, self.max_epochs):
-                if context.stop_training:
+                # broadcast_from_master is necessary here, since in DDP mode, only the master node will
+                # receive the Ctrl-C signal, and we want all nodes to stop training.
+                if broadcast_from_master(context.stop_training):
                     logger.info("Request to stop training has been received, stopping training")
                     break
 
@@ -1506,6 +1515,7 @@ class Trainer:
             self.phase_callback_handler.on_average_best_models_validation_end(context)
 
         except KeyboardInterrupt:
+            context.update_context(stop_training=True)
             logger.info(
                 "\n[MODEL TRAINING EXECUTION HAS BEEN INTERRUPTED]... Please wait until SOFT-TERMINATION process "
                 "finishes and saves all of the Model Checkpoints and log files before terminating..."
