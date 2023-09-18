@@ -14,7 +14,6 @@ from super_gradients.common.data_types import StrictLoad
 from super_gradients.common.decorators.explicit_params_validator import explicit_params_validation
 from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.pretrained_models import MODEL_URLS
-from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
 from super_gradients.common.environment.ddp_utils import get_local_rank
 from super_gradients.training.utils.utils import unwrap_model
@@ -1608,6 +1607,6 @@ def get_scheduler_state(scheduler) -> Dict:
     :return: the scheduler's state_dict
     """
     state = scheduler.state_dict()
-    if isinstance(scheduler, CyclicLR) and not torch_version_is_greater_or_equal(2, 0):
+    if isinstance(scheduler, CyclicLR) and int(torch.version.__version__.split(".")[0]) < 2:
         del state["_scale_fn_ref"]
     return state
