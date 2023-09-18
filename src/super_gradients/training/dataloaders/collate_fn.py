@@ -1,14 +1,20 @@
 from torch.utils.data.dataloader import default_collate
 import random
 from typing import List, Union, Tuple, Optional, Dict, Type, Callable, Iterable
+
+from abc import ABC
+
 import cv2
 import torch
 import numpy as np
 
-from super_gradients.common.registry.registry import register_collate_function
 
-
+from data_gradients.dataset_adapters.base_adapter import BaseDatasetAdapter
 from data_gradients.dataset_adapters.detection_adapter import DetectionDatasetAdapter
+from data_gradients.dataset_adapters.segmentation_adapter import SegmentationDatasetAdapter
+from data_gradients.dataset_adapters.classification_adapter import ClassificationDatasetAdapter
+
+from super_gradients.common.registry.registry import register_collate_function
 
 
 class DatasetItemsException(Exception):
@@ -24,34 +30,98 @@ class DatasetItemsException(Exception):
         super().__init__(error_msg)
 
 
-class CollateFnWrapper:
-    """Base class for all SG collate functions.
-    Act like a wrapper around `collate_fn`, but include ability to add pre/post processing steps before/after collating.
+class BaseDatasetAdapterCollateFN(ABC):
+    def __init__(self, adapter: BaseDatasetAdapter, collate_fn: Optional[Callable] = None):
+        self._adapter = adapter
+        self._collate_fn = collate_fn or default_collate
+        self._adapt_on_batch = adapter.data_config.is_batch or adapter.data_config.is_batch is None
+
+    def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
+        if not self._adapt_on_batch:
+            _samples = []
+            for sample in samples:
+                images, targets = self._adapter.adapt(sample)  # Will construct batch of 1
+                images, targets = images.squeeze(0), targets.squeeze(0)  # Extract the sample
+                _samples.append((images, targets))
+            samples = _samples
+
+        batch = self._collate_fn(samples)
+
+        if self._adapt_on_batch:
+            batch = self._adapter.adapt(batch)
+
+        images, targets = batch  # At this point we know it is (images, targets) because the adapter was used - either on samples or batch
+        return images, targets
+
+
+class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
+    def __init__(self, cache_path: str, collate_fn: Optional[Callable] = None):
+        adapter = DetectionDatasetAdapter(cache_path=cache_path, n_classes=80)
+        super().__init__(adapter=adapter, collate_fn=collate_fn)
+
+    def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
+        from super_gradients.training.utils.detection_utils import xyxy2cxcywh
+
+        images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
+
+        images = images / 255
+
+        targets = flatten_bbox_batch(targets)
+        targets[:, 1:] = xyxy2cxcywh(targets[:, 1:])
+
+        return images, targets
+
+
+class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
+    def __init__(self, cache_path: str, collate_fn: Optional[Callable] = None):
+        adapter = SegmentationDatasetAdapter(cache_path=cache_path, n_classes=80)
+        super().__init__(adapter=adapter, collate_fn=collate_fn)
+
+    def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
+        images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
+
+        images = images / 255
+        targets = targets.argmax(1)
+
+        return images, targets
+
+
+class ClassificationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
+    def __init__(self, cache_path: str, collate_fn: Optional[Callable] = None):
+        adapter = ClassificationDatasetAdapter(cache_path=cache_path, n_classes=80)
+        super().__init__(adapter=adapter, collate_fn=collate_fn)
+
+    def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
+        images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
+
+        images = images / 255
+
+        return images, targets
+
+
+def flatten_bbox_batch(bbox_batch: torch.Tensor) -> torch.Tensor:
+    """
+    Flatten a batched bounding box tensor and prepend the batch ID to each bounding box. Excludes padding boxes.
+
+    :param bbox_batch: Bounding box tensor of shape (BS, PaddingSize, 5).
+    :return: Flattened tensor of shape (N, 6), where N <= BS * PaddingSize.
     """
 
-    def __init__(
-        self,
-        sample_preprocessing_fn: Optional[Callable] = None,
-        collate_fn: Optional[Callable] = None,
-        batch_postprocessing_fn: Optional[Callable] = None,
-    ):
-        self._sample_preprocessing_fn = sample_preprocessing_fn
-        self._collate_fn = collate_fn or default_collate
-        self._batch_postprocessing_fn = batch_postprocessing_fn
+    # Create a tensor of batch IDs
+    batch_ids = torch.arange(bbox_batch.size(0), device=bbox_batch.device).unsqueeze(-1)
+    batch_ids = batch_ids.repeat(1, bbox_batch.size(1)).reshape(-1, 1)  # Shape: (BS*PaddingSize, 1)
 
-    def __call__(self, samples: Iterable) -> Tuple:
-        if self._sample_preprocessing_fn is not None:
-            samples = [self._sample_preprocessing_fn(sample) for sample in samples]
-        batch = self._collate_fn(samples)
-        if self._batch_postprocessing_fn is not None:
-            batch = self._batch_postprocessing_fn(batch)
-        return batch
+    # Reshape bounding box tensor
+    bbox_reshaped = bbox_batch.reshape(-1, 5)  # Shape: (BS*PaddingSize, 5)
 
-    def set_sample_preprocessing_fn(self, sample_preprocessing_fn: Callable):
-        self._sample_preprocessing_fn = sample_preprocessing_fn
+    # Concatenate batch IDs and reshaped bounding boxes
+    flat_bbox = torch.cat((batch_ids, bbox_reshaped), dim=1)  # Shape: (BS*PaddingSize, 6)
 
-    def set_batch_postprocessing_fn(self, batch_postprocessing_fn: Callable):
-        self._batch_postprocessing_fn = batch_postprocessing_fn
+    # Filter out padding boxes (assuming padding boxes have all values zero)
+    non_padding_mask = torch.any(flat_bbox[:, 1:] != 0, dim=1)
+    flat_bbox = flat_bbox[non_padding_mask]
+
+    return flat_bbox
 
 
 @register_collate_function()

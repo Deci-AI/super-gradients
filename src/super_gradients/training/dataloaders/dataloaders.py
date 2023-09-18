@@ -861,65 +861,63 @@ def coco2017_rescoring_val(dataset_params: Dict = None, dataloader_params: Dict 
 
 
 def _process_adapter_collate(dataset, dataloader_params):
-    from super_gradients.training.dataloaders.utils import CollateFnWrapper
 
-    if get_param(dataloader_params, "adapter"):
-        from super_gradients.common.factories.adapter_factory import AdaptersFactory
-        from torch.utils.data._utils.collate import default_collate
-        from super_gradients.training.dataloaders.utils import DatasetItemsException
-        from super_gradients.common.environment.device_utils import device_config
-
-        adapter = dataloader_params.pop("adapter")
-        adapter = AdaptersFactory().get(adapter)
-
-        collate_fn = get_param(dataloader_params, "collate_fn", default_collate)
-
-        from super_gradients.training.dataloaders.utils import DetectionCollateFN
-
-        # TODO: Understand if possible to apply `DetectionCollateFN` on batch
-        if adapter.data_config.is_batch or (adapter.data_config.is_batch is None and not isinstance(collate_fn, DetectionCollateFN)):
-            # The DatasetAdapter was used on batches. We assume that the user passes the same object (This is a requirements!)
-            # This means that the DatasetAdapter can be used on batches directly.
-            #
-            # Therefore, we apply `adapter.adapt` AFTER the collate_fn.
-            #
-            # NOTE: If `adapter.data_config.is_batch is None`, we also run the adapter AFTER because it is more computationally efficient.
-            wrapped_collate_fn = CollateFnWrapper(collate_fn=collate_fn, batch_postprocessing_fn=adapter.adapt)
-        else:
-            # The DatasetAdapter was used on single sample (not batch). We assume that the user passes the same object (This is a requirements!)
-            # This means that the DatasetAdapter HAS TO BE used BEFORE the collate_fn.
-            # Why ? Some collate functions actually change the format of the batch AFTER collating it (e.g. `DetectionCollateFn`).
-            #       This would completely mess with the DatasetAdapter settings
-            #
-            # Therefore, we apply `adapter.adapt` BEFORE the collate_fn.
-
-            # Function that will be applied to each sample in the batch, one by one.
-            def _process_dataset_sample(sample):
-                image, target = adapter.adapt(sample)
-                return image[0], target[0]  # `adapter.adapt` always returns a batch. Here it will be of size 1 because the input is a sample.
-
-            wrapped_collate_fn = CollateFnWrapper(sample_preprocessing_fn=_process_dataset_sample, collate_fn=collate_fn)
-
-        # MASTER
-        if device_config.assigned_rank <= 0:
-            try:
-                # This will trigger all the "questions". It is done beforehand because `input` does not work with dataloader workers.
-                # Therefore, we run it now with `num_workers=0` to make sure the questions will be asked in the main process (not in worker processes).
-                next(iter(DataLoader(dataset=dataset, batch_size=2, num_workers=0, collate_fn=wrapped_collate_fn)))
-            except DatasetItemsException as e:
-                raise ValueError(
-                    f"Error while setting up the DatasetAdapter: `{adapter.__class__.__name__}`. "
-                    f"This is likely due to an incompatibility with the collate_fn: `{collate_fn}`.\n"
-                ) from e
-            except Exception as e:
-                raise e
-            adapter.data_config.dump_cache_file()
-
-        # We want other processes to all sync with the master cache file.
-        with wait_for_the_master(get_local_rank()):
-            adapter.data_config.update_from_cache_file()
-
-        dataloader_params["collate_fn"] = wrapped_collate_fn
+    #
+    # if get_param(dataloader_params, "adapter"):
+    #     from super_gradients.common.factories.adapter_factory import AdaptersFactory
+    #     from torch.utils.data._utils.collate import default_collate
+    #     from super_gradients.training.dataloaders.utils import DatasetItemsException
+    #     from super_gradients.common.environment.device_utils import device_config
+    #
+    #     adapter = dataloader_params.pop("adapter")
+    #     adapter = AdaptersFactory().get(adapter)
+    #
+    #     collate_fn = get_param(dataloader_params, "collate_fn", default_collate)
+    #
+    #     from super_gradients.training.dataloaders.utils import DetectionCollateFN
+    #     if adapter.data_config.is_batch or adapter.data_config.is_batch is None:
+    #         # The DatasetAdapter was used on batches. We assume that the user passes the same object (This is a requirements!)
+    #         # This means that the DatasetAdapter can be used on batches directly.
+    #         #
+    #         # Therefore, we apply `adapter.adapt` AFTER the collate_fn.
+    #         #
+    #         # NOTE: If `adapter.data_config.is_batch is None`, we also run the adapter AFTER because it is more computationally efficient.
+    #         wrapped_collate_fn = CollateFnWrapper(collate_fn=collate_fn, batch_postprocessing_fn=adapter.adapt)
+    #     else:
+    #         # The DatasetAdapter was used on single sample (not batch). We assume that the user passes the same object (This is a requirements!)
+    #         # This means that the DatasetAdapter HAS TO BE used BEFORE the collate_fn.
+    #         # Why ? Some collate functions actually change the format of the batch AFTER collating it (e.g. `DetectionCollateFn`).
+    #         #       This would completely mess with the DatasetAdapter settings
+    #         #
+    #         # Therefore, we apply `adapter.adapt` BEFORE the collate_fn.
+    #
+    #         # Function that will be applied to each sample in the batch, one by one.
+    #         def _process_dataset_sample(sample):
+    #             image, target = adapter.adapt(sample)
+    #             return image[0], target[0]  # `adapter.adapt` always returns a batch. Here it will be of size 1 because the input is a sample.
+    #
+    #         wrapped_collate_fn = CollateFnWrapper(sample_preprocessing_fn=_process_dataset_sample, collate_fn=collate_fn)
+    #
+    #     # MASTER
+    #     if device_config.assigned_rank <= 0:
+    #         try:
+    #             # This will trigger all the "questions". It is done beforehand because `input` does not work with dataloader workers.
+    #             # Therefore, we run it now with `num_workers=0` to make sure the questions will be asked in the main process (not in worker processes).
+    #             next(iter(DataLoader(dataset=dataset, batch_size=2, num_workers=0, collate_fn=wrapped_collate_fn)))
+    #         except DatasetItemsException as e:
+    #             raise ValueError(
+    #                 f"Error while setting up the DatasetAdapter: `{adapter.__class__.__name__}`. "
+    #                 f"This is likely due to an incompatibility with the collate_fn: `{collate_fn}`.\n"
+    #             ) from e
+    #         except Exception as e:
+    #             raise e
+    #         adapter.data_config.dump_cache_file()
+    #
+    #     # We want other processes to all sync with the master cache file.
+    #     with wait_for_the_master(get_local_rank()):
+    #         adapter.data_config.update_from_cache_file()
+    #
+    #     dataloader_params["collate_fn"] = wrapped_collate_fn
     return dataloader_params
 
 
