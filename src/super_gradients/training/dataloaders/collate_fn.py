@@ -14,7 +14,11 @@ from data_gradients.dataset_adapters.detection_adapter import DetectionDatasetAd
 from data_gradients.dataset_adapters.segmentation_adapter import SegmentationDatasetAdapter
 from data_gradients.dataset_adapters.classification_adapter import ClassificationDatasetAdapter
 
+from super_gradients.training.utils.detection_utils import xyxy2cxcywh
 from super_gradients.common.registry.registry import register_collate_function
+
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
 
 
 class DatasetItemsException(Exception):
@@ -31,6 +35,7 @@ class DatasetItemsException(Exception):
 
 
 class BaseDatasetAdapterCollateFN(ABC):
+    @resolve_param("collate_fn", CollateFunctionsFactory())
     def __init__(self, adapter: BaseDatasetAdapter, collate_fn: Optional[Callable] = None):
         self._adapter = adapter
         self._collate_fn = collate_fn or default_collate
@@ -54,48 +59,45 @@ class BaseDatasetAdapterCollateFN(ABC):
         return images, targets
 
 
+@register_collate_function()
 class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
+    @resolve_param("collate_fn", CollateFunctionsFactory())
     def __init__(self, cache_path: str, collate_fn: Optional[Callable] = None):
         adapter = DetectionDatasetAdapter(cache_path=cache_path, n_classes=80)
         super().__init__(adapter=adapter, collate_fn=collate_fn)
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
-        from super_gradients.training.utils.detection_utils import xyxy2cxcywh
-
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
-
         images = images / 255
-
-        targets = flatten_bbox_batch(targets)
-        targets[:, 1:] = xyxy2cxcywh(targets[:, 1:])
-
+        targets = flatten_bbox_batch(targets)  # (BS, P, 5) -> (N, 6)
+        targets[:, 2:] = xyxy2cxcywh(targets[:, 2:])
         return images, targets
 
 
+@register_collate_function()
 class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
+    @resolve_param("collate_fn", CollateFunctionsFactory())
     def __init__(self, cache_path: str, collate_fn: Optional[Callable] = None):
-        adapter = SegmentationDatasetAdapter(cache_path=cache_path, n_classes=80)
+        adapter = SegmentationDatasetAdapter(cache_path=cache_path, n_classes=6)
         super().__init__(adapter=adapter, collate_fn=collate_fn)
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
-
         images = images / 255
         targets = targets.argmax(1)
-
         return images, targets
 
 
+@register_collate_function()
 class ClassificationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
+    @resolve_param("collate_fn", CollateFunctionsFactory())
     def __init__(self, cache_path: str, collate_fn: Optional[Callable] = None):
         adapter = ClassificationDatasetAdapter(cache_path=cache_path, n_classes=80)
         super().__init__(adapter=adapter, collate_fn=collate_fn)
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
-
         images = images / 255
-
         return images, targets
 
 
@@ -170,9 +172,9 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
     Collate function for Yolox training with additional_batch_items that includes crowd targets
     """
 
-    def __init__(self, adapter: Optional[DetectionDatasetAdapter] = None):
+    def __init__(self):
         self.expected_item_names = ("image", "targets", "crowd_targets")
-        super().__init__(adapter=adapter)
+        super().__init__()
 
     def _format_batch(self, batch_data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
         try:
@@ -188,16 +190,11 @@ class PPYoloECollateFN(DetectionCollateFN):
     Collate function for PPYoloE training
     """
 
-    def __init__(
-        self,
-        random_resize_sizes: Union[List[int], None] = None,
-        random_resize_modes: Union[List[int], None] = None,
-        adapter: Optional[DetectionDatasetAdapter] = None,
-    ):
+    def __init__(self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None):
         """
         :param random_resize_sizes: (rows, cols)
         """
-        super().__init__(adapter=adapter)
+        super().__init__()
         self.random_resize_sizes = random_resize_sizes
         self.random_resize_modes = random_resize_modes
 
