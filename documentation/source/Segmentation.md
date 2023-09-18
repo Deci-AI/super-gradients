@@ -73,7 +73,7 @@ In the tutorial provided, we demonstrate how to fine-tune PPLiteSeg on a subset 
 You can run the following code in our [google collab](https://colab.research.google.com/drive/1d7cU0NsUj7jnOF1YSap_DH9r79G3-Cr4?usp=sharing#scrollTo=GqH4VGMroWec).
 
 ## Load a dataset
-In this example we will work with supervisely-persons. If it's the first time you are using this dataset, or if you want to use another dataset please check out [dataset setup instructions](...)
+In this example we will work with supervisely-persons. If it's the first time you are using this dataset, or if you want to use another dataset please check out [dataset setup instructions](Data.md)
 ```py
 from super_gradients.training import dataloaders
 
