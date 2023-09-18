@@ -11,8 +11,7 @@ from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_ta
 from super_gradients.training.utils.callbacks import PhaseContext
 from super_gradients.training.utils.callbacks.callbacks import ExtremeBatchCaseVisualizationCallback
 from super_gradients.training.utils.distributed_training_utils import maybe_all_gather_np_images
-from super_gradients.training.utils.visualization.pose_estimation import draw_skeleton
-from super_gradients.training.utils.visualization.detection import draw_bbox
+from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
 
 
 @register_callback("ExtremeBatchPoseEstimationVisualizationCallback")
@@ -140,11 +139,12 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         cls,
         image_tensor: np.ndarray,
         keypoints: List[Union[np.ndarray, Tensor]],
-        bboxes: List[Union[np.ndarray, Tensor]],
-        scores: Optional[List[Union[np.ndarray, Tensor]]],
+        bboxes: List[Union[None, np.ndarray, Tensor]],
+        scores: Optional[List[Union[None, np.ndarray, Tensor]]],
         keypoint_colors: List[Tuple[int, int, int]],
         edge_colors: List[Tuple[int, int, int]],
         edge_links: List[Tuple[int, int]],
+        show_keypoint_confidence: bool,
     ):
 
         out_images = []
@@ -160,31 +160,18 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
                 scores_i = scores_i.detach().cpu().numpy()
 
             res_image = image_tensor[i]
-            num_poses = len(keypoints_i)
-            for pose_index in range(num_poses):
-                res_image = draw_skeleton(
-                    image=res_image,
-                    keypoints=keypoints_i[pose_index],
-                    score=scores_i[pose_index] if scores is not None else None,
-                    edge_links=edge_links,
-                    edge_colors=edge_colors,
-                    joint_thickness=2,
-                    keypoint_colors=keypoint_colors,
-                    keypoint_radius=3,
-                    show_confidence=scores is not None,
-                    box_thickness=2,
-                )
+            res_image = PoseVisualization.draw_poses(
+                res_image,
+                poses=keypoints_i,
+                boxes=bboxes_i,
+                scores=scores_i,
+                show_keypoint_confidence=show_keypoint_confidence,
+                edge_links=edge_links,
+                edge_colors=edge_colors,
+                keypoint_colors=keypoint_colors,
+                keypoint_confidence_threshold=0.01,
+            )
 
-                res_image = draw_bbox(
-                    image=res_image,
-                    x1=int(bboxes_i[pose_index][0]),
-                    y1=int(bboxes_i[pose_index][1]),
-                    x2=int(bboxes_i[pose_index][2]),
-                    y2=int(bboxes_i[pose_index][3]),
-                    color=(255, 255, 255),
-                    title=f"{scores_i[pose_index]:.2f}" if scores is not None else "",
-                    box_thickness=2,
-                )
             out_images.append(res_image)
 
         return out_images
@@ -207,6 +194,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,
             keypoint_colors=self.keypoint_colors,
+            show_keypoint_confidence=True,
         )
         images_to_save_preds = np.stack(images_to_save_preds)
 
@@ -222,6 +210,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,
             keypoint_colors=self.keypoint_colors,
+            show_keypoint_confidence=False,
         )
         images_to_save_gt = np.stack(images_to_save_gt)
 

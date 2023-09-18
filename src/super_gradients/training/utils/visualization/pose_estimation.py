@@ -68,7 +68,7 @@ def draw_skeleton(
     direction_from_center = keypoints - pose_center
     direction_from_center /= np.linalg.norm(direction_from_center, axis=1, ord=2, keepdims=True) + 1e-9
 
-    image = image.copy()
+    overlay = image.copy()
 
     for keypoint, score, direction, show, color in zip(keypoints, keypoint_scores, direction_from_center, keypoints_to_show_mask, keypoint_colors):
         if not show:
@@ -77,7 +77,7 @@ def draw_skeleton(
         x = int(x)
         y = int(y)
         color = tuple(map(int, color))
-        cv2.circle(image, center=(x, y), radius=keypoint_radius, color=color, thickness=-1, lineType=cv2.LINE_AA)
+        cv2.circle(overlay, center=(x, y), radius=keypoint_radius, color=color, thickness=-1, lineType=cv2.LINE_AA)
 
         # Draw confidence score for each keypoint individually
         if show_keypoint_confidence:
@@ -94,7 +94,7 @@ def draw_skeleton(
                 x = int(cx - w // 2)
 
             y = int(cy + h // 2)
-            cv2.putText(image, text, org=(x, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, color=(250, 250, 250), thickness=1, lineType=cv2.LINE_AA)
+            cv2.putText(overlay, text, org=(x, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, color=(250, 250, 250), thickness=1, lineType=cv2.LINE_AA)
 
     if edge_links is not None:
         for (kp1, kp2), color in zip(edge_links, edge_colors):
@@ -104,15 +104,15 @@ def draw_skeleton(
             p1 = tuple(map(int, keypoints[kp1]))
             p2 = tuple(map(int, keypoints[kp2]))
             color = tuple(map(int, color))
-            cv2.line(image, p1, p2, color=color, thickness=joint_thickness, lineType=cv2.LINE_AA)
+            cv2.line(overlay, p1, p2, color=color, thickness=joint_thickness, lineType=cv2.LINE_AA)
 
     confident_keypoints = keypoints[keypoints_to_show_mask]
 
     if show_confidence and len(confident_keypoints):
         x, y, w, h = cv2.boundingRect(confident_keypoints)
-        image = draw_bbox(image, title=f"{score:.2f}", box_thickness=box_thickness, color=(255, 0, 255), x1=x, y1=y, x2=x + w, y2=y + h)
+        overlay = draw_bbox(overlay, title=f"{score:.2f}", box_thickness=box_thickness, color=(255, 0, 255), x1=x, y1=y, x2=x + w, y2=y + h)
 
-    return image
+    return cv2.addWeighted(overlay, 0.75, image, 0.25, 0)
 
 
 class PoseVisualization:
@@ -141,8 +141,10 @@ class PoseVisualization:
         :param edge_links: Array of [Num Links, 2] containing the links between joints to draw.
         :param edge_colors: Array of shape [Num Links, 3] or list of tuples containing the (r,g,b) colors for each joint link.
         :param keypoint_colors: Array of shape [Num Joints, 3] or list of tuples containing the (r,g,b) colors for each keypoint.
+        :param show_keypoint_confidence: Whether to show the confidence score for each keypoint individually.
+        :param keypoint_confidence_threshold: A minimal confidence score for individual keypoint to be drawn.
         :param joint_thickness: Thickness of the joint links
-        :return:
+        :return: A new image with the poses drawn on it.
         """
         if boxes is not None and len(boxes) != len(poses):
             raise ValueError("boxes and poses must have the same length")
@@ -184,7 +186,7 @@ class PoseVisualization:
                     x2=int(boxes[pose_index][2]),
                     y2=int(boxes[pose_index][3]),
                     color=(255, 255, 255),
-                    title=f"{scores[pose_index]:.2f}" if scores is not None else "",
+                    title=f"{scores[pose_index]:.2f}" if scores is not None else None,
                     box_thickness=box_thickness,
                 )
 
