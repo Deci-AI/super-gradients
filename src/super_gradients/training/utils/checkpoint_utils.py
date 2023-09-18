@@ -1,11 +1,12 @@
 import collections
 import os
 import tempfile
-from typing import Union, Mapping
+from typing import Union, Mapping, Dict
 
 import pkg_resources
 import torch
 from torch import nn, Tensor
+from torch.optim.lr_scheduler import CyclicLR
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
@@ -15,6 +16,7 @@ from super_gradients.module_interfaces import HasPredict
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 from super_gradients.training.utils.utils import unwrap_model
+from super_gradients.training.utils import torch_version_is_greater_or_equal
 
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
@@ -1597,3 +1599,16 @@ def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pre
 
     pretrained_state_dict = torch.load(pretrained_weights, map_location=map_location)
     _load_weights(architecture, model, pretrained_state_dict)
+
+
+def get_scheduler_state(scheduler) -> Dict:
+    """
+    Wrapper for getting a torch lr scheduler state dict, resolving some issues with CyclicLR
+    (see https://github.com/pytorch/pytorch/pull/91400)
+    :param scheduler: torch.optim.lr_scheduler._LRScheduler, the scheduler
+    :return: the scheduler's state_dict
+    """
+    state = scheduler.state_dict()
+    if isinstance(scheduler, CyclicLR) and not torch_version_is_greater_or_equal(2, 0):
+        del state["_scale_fn_ref"]
+    return state
