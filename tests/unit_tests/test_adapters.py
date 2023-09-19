@@ -67,10 +67,10 @@ class TestDetectionAdapter(unittest.TestCase):
             torch.Size([1, 3, 640, 540]),
         ]
 
-    def test_adapting_dataset(self):
+    def test_adapting_dataset_classification(self):
 
         analyzer_ds = DetectionAnalysisManager(
-            report_title="TEST_DataAdapter_Dataset_Detection",
+            report_title="Test_DataAdapter_Dataset_Detection",
             train_data=self.dataset,
             val_data=self.dataset,
             class_names=list(map(str, range(6))),
@@ -81,17 +81,19 @@ class TestDetectionAdapter(unittest.TestCase):
         analyzer_ds.run()  # Run the analysis. This will create the cache.
 
         # We instantiate a torch dataloader using the adapter collate function
-        loader = DataLoader(self.dataset, batch_size=2, collate_fn=DetectionDatasetAdapterCollateFN(cache_path=analyzer_ds.config.cache_path))
+        loader = DataLoader(
+            self.dataset, batch_size=2, collate_fn=DetectionDatasetAdapterCollateFN(adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+        )
 
         for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue(((0 <= images) & (images <= 1)).all())  # Should be 0-1
+            self.assertTrue(((0 <= images) & (images <= 255)).all())  # Should be 0-255
             self.assertTrue(torch.equal(targets, expected_targets))
 
-    def test_adapting_dataloader(self):
+    def test_adapting_dataloader_classification(self):
         loader = DataLoader(self.dataset, batch_size=2)
         analyzer_ds = DetectionAnalysisManager(
-            report_title="TEST_DataAdapter_Dataloader_Detection",
+            report_title="Test_DataAdapter_Dataloader_Detection",
             train_data=loader,
             val_data=loader,
             class_names=list(map(str, range(6))),
@@ -103,11 +105,11 @@ class TestDetectionAdapter(unittest.TestCase):
 
         # This is required to use the adapter inside the existing Dataloader.
         # `collate_fn=loader.collate_fn` ensure to still take into account any collate_fn that was passed to the Dataloader
-        loader.collate_fn = DetectionDatasetAdapterCollateFN(collate_fn=loader.collate_fn, cache_path=analyzer_ds.config.cache_path)
+        loader.collate_fn = DetectionDatasetAdapterCollateFN(collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
 
         for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue(((0 <= images) & (images <= 1)).all())  # Should be 0-1
+            self.assertTrue(((0 <= images) & (images <= 255)).all())  # Should be 0-255
             self.assertTrue(torch.equal(targets, expected_targets))
 
 
@@ -127,10 +129,10 @@ class TestSegmentationAdapter(unittest.TestCase):
             torch.Size([1, 3, 640, 540]),
         ]
 
-    def test_adapting_dataset(self):
+    def test_adapting_dataset_classification(self):
         # Run the analysis on DATASET
         analyzer_ds = SegmentationAnalysisManager(
-            report_title="TEST_DataAdapter_Dataset_Segmentation",
+            report_title="Test_DataAdapter_Dataset_Segmentation",
             train_data=self.dataset,
             val_data=self.dataset,
             class_names=list(map(str, range(6))),
@@ -140,18 +142,20 @@ class TestSegmentationAdapter(unittest.TestCase):
         analyzer_ds.run()
 
         # We instantiate a torch dataloader using the adapter collate function
-        loader = DataLoader(self.dataset, batch_size=2, collate_fn=SegmentationDatasetAdapterCollateFN(cache_path=analyzer_ds.config.cache_path))
+        loader = DataLoader(
+            self.dataset, batch_size=2, collate_fn=SegmentationDatasetAdapterCollateFN(adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+        )
 
         for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
             self.assertTrue((masks == expected_masks).all())  # Checking that the masks are as expected
 
-    def test_adapting_dataloader(self):
+    def test_adapting_dataloader_classification(self):
         loader = DataLoader(self.dataset, batch_size=2)
 
         # Run the analysis on DATALOADER
         analyzer_ds = SegmentationAnalysisManager(
-            report_title="TEST_DataAdapter_Dataloader_Segmentation",
+            report_title="Test_DataAdapter_Dataloader_Segmentation",
             train_data=loader,
             val_data=loader,
             class_names=list(map(str, range(6))),
@@ -162,7 +166,7 @@ class TestSegmentationAdapter(unittest.TestCase):
 
         # This is required to use the adapter inside the existing Dataloader.
         # `collate_fn=loader.collate_fn` ensure to still take into account any collate_fn that was passed to the Dataloader
-        loader.collate_fn = SegmentationDatasetAdapterCollateFN(collate_fn=loader.collate_fn, cache_path=analyzer_ds.config.cache_path)
+        loader.collate_fn = SegmentationDatasetAdapterCollateFN(collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
 
         for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -183,10 +187,10 @@ class TestClassificationAdapter(unittest.TestCase):
             torch.Size([1, 3, 640, 540]),
         ]
 
-    def test_adapting_dataset(self):
+    def test_adapting_dataset_classification(self):
         # Run the analysis on DATASET
         analyzer_ds = ClassificationAnalysisManager(
-            report_title="TEST_DataAdapter_Dataset_Classification",
+            report_title="Test_DataAdapter_Dataset_Classification",
             train_data=self.dataset,
             val_data=self.dataset,
             class_names=list(map(str, range(6))),
@@ -198,19 +202,21 @@ class TestClassificationAdapter(unittest.TestCase):
         analyzer_ds.run()
 
         # We instantiate a torch dataloader using the adapter collate function
-        loader = DataLoader(self.dataset, batch_size=2, collate_fn=ClassificationDatasetAdapterCollateFN(cache_path=analyzer_ds.config.cache_path))
+        loader = DataLoader(
+            self.dataset, batch_size=2, collate_fn=ClassificationDatasetAdapterCollateFN(adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+        )
 
         for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
             self.assertTrue(torch.equal(labels, expected_labels))
 
-    def test_adapting_dataloader(self):
+    def test_manual_collate_override_classification(self):
         # We mimic a user instantiating a dataloader
         loader = DataLoader(self.dataset, batch_size=2)
 
         # Run the analysis on DATASET
         analyzer_ds = ClassificationAnalysisManager(
-            report_title="TEST_DataAdapter_Dataset_Classification",
+            report_title="Test_DataAdapter_Dataloader_Classification",
             train_data=loader,
             val_data=loader,
             class_names=list(map(str, range(6))),
@@ -223,7 +229,31 @@ class TestClassificationAdapter(unittest.TestCase):
 
         # This is required to use the adapter inside the existing Dataloader.
         # `collate_fn=loader.collate_fn` ensure to still take into account any collate_fn that was passed to the Dataloader
-        loader.collate_fn = ClassificationDatasetAdapterCollateFN(collate_fn=loader.collate_fn, cache_path=analyzer_ds.config.cache_path)
+        loader.collate_fn = ClassificationDatasetAdapterCollateFN(collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+
+        for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
+            self.assertEqual(images.shape, expected_images_shape)
+            self.assertTrue(torch.equal(labels, expected_labels))
+
+    def test_adapt_dataloader_classification(self):
+        # We mimic a user instantiating a dataloader
+        loader = DataLoader(self.dataset, batch_size=2)
+
+        # Run the analysis on DATASET
+        analyzer_ds = ClassificationAnalysisManager(
+            report_title="Test_DataAdapter_Dataloader_Classification",
+            train_data=loader,
+            val_data=loader,
+            class_names=list(map(str, range(6))),
+            images_extractor="[0]",
+            labels_extractor="[1]",
+            use_cache=True,
+            is_batch=True,
+        )
+        analyzer_ds.run()
+
+        # This is required to use the adapter inside the existing Dataloader.
+        loader = ClassificationDatasetAdapterCollateFN.adapt_dataloader(dataloader=loader, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
 
         for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
