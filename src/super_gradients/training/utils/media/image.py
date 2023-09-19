@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 
 IMG_EXTENSIONS = ("bmp", "dng", "jpeg", "jpg", "mpo", "pfm", "pgm", "png", "ppm", "tif", "tiff", "webp")
 SingleImageSource = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]
-ImageSource = Union[SingleImageSource, List[SingleImageSource]]
+ImageSource = Union[SingleImageSource, List[SingleImageSource], Iterator[SingleImageSource]]
 
 
 def load_images(images: Union[List[ImageSource], ImageSource]) -> List[np.ndarray]:
