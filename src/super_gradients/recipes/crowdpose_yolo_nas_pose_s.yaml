@@ -44,18 +44,18 @@ training_hyperparams:
   max_epochs: 1000
   cosine_final_lr_ratio: 0.05
 
-  sg_logger: wandb_sg_logger
-  sg_logger_params:
-    api_server: https://wandb.research.deci.ai
-    entity: super-gradients
-    launch_tensorboard: false
-    monitor_system: true
-    project_name: PoseEstimation
-    save_checkpoints_remote: true
-    save_logs_remote: true
-    save_tensorboard_remote: false
-    tb_files_user_prompt: false
-    tensorboard_port: null
+#  sg_logger: wandb_sg_logger
+#  sg_logger_params:
+#    api_server: https://wandb.research.deci.ai
+#    entity: super-gradients
+#    launch_tensorboard: false
+#    monitor_system: true
+#    project_name: PoseEstimation
+#    save_checkpoints_remote: true
+#    save_logs_remote: true
+#    save_tensorboard_remote: false
+#    tb_files_user_prompt: false
+#    tensorboard_port: null
 
 
 checkpoint_params:
