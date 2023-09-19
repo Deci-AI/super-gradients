@@ -19,6 +19,10 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
 from super_gradients.training.utils.detection_utils import xyxy2cxcywh
 
+from super_gradients.common.environment.device_utils import device_config
+from super_gradients.common.environment.ddp_utils import get_local_rank
+from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
+
 
 class DatasetItemsException(Exception):
     def __init__(self, data_sample: Tuple, collate_type: Type, expected_item_names: Tuple):
@@ -61,11 +65,12 @@ class BaseDatasetAdapterCollateFN(ABC):
 
         if self._require_calibration:
             # This is required because python `input` is no compatible multiprocessing (e.g. `num_workers > 0`, or `DDP`)
-            # And if not `is_completely_initialized`, the adapter will need to ask at least one question using the python `input`
+            # And if not `self._require_calibration`, the adapter will need to ask at least one question using the python `input`
             raise RuntimeError(
-                f"Trying to collate using {self.__class__.__name__}, but it was not calibrated yet. Please:"
-                "   - Either specify a cache that was already calibrated to this dataset."
-                f"   - Or call `{self.__class__.__name__}(...).calibrate_dataloader(dataloader)` before iterating over the dataloader"
+                f"Trying to collate using `{self.__class__.__name__}`, but it was not calibrated yet. Please do one of the following\n"
+                f"   - Call `{self.__class__.__name__}(...).calibrate_dataloader(dataloader)` before iterating over the dataloader.\n"
+                f"   - Instantiate `{self.__class__.__name__}(adapter_cache_path=...)` with `adapter_cache_path` mapping to the cache file of "
+                f"an adapter that was already calibrated on this dataset.\n"
             )
 
         if not self._adapt_on_batch:
@@ -87,33 +92,40 @@ class BaseDatasetAdapterCollateFN(ABC):
     @classmethod
     def calibrate_dataloader(cls, dataloader: torch.utils.data.DataLoader):
         """Run a dummy iteration of a dataloader to make sure that the dataloader is properly adapted to SuperGradients format."""
-        from super_gradients.common.environment.device_utils import device_config
-        from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
+        collate_fn: cls
 
         if not isinstance(dataloader.collate_fn, cls):
             raise RuntimeError(
                 f"`calibrate_dataloader` can only be executed on a Dataloader that has a collate_fn of type: {cls}."
                 f"If you want to use the adapter on this Dataloader, please execute `dataloader.collate_fn = {cls.__name__}(...)` before."
             )
-        collate_fn: BaseDatasetAdapterCollateFN = dataloader.collate_fn
+        collate_fn = dataloader.collate_fn
         config = collate_fn._adapter.data_config
 
-        # `_require_calibration` should be set before the following `_ = next(iter(dataloader))` - and not after. Otherwise the RuntimeError will be thrown.
-        collate_fn._require_calibration = False
+        if collate_fn._require_calibration:
 
-        if not config.is_completely_initialized:
-            if device_config.assigned_rank <= 0:
-                # Enforce a first execution with 0 worker. This is required because python `input` is no compatible multiprocessing (i.e. num_workers > 0)
-                # Therefore we want to make sure to ask the questions on 0 workers.
-                dataloader.num_workers, _num_workers = 0, dataloader.num_workers
-                _ = next(iter(dataloader))
-                dataloader.num_workers = _num_workers
+            # `_require_calibration` should be set before the following `_ = next(iter(dataloader))` - and not after.
+            # Otherwise the RuntimeError will be thrown.
+            collate_fn._require_calibration = False
 
-                config.dump_cache_file()
+            if not config.is_completely_initialized:
+                if device_config.assigned_rank <= 0:
+                    # Enforce a first execution with 0 worker. This is required because python `input` is no compatible multiprocessing (i.e. num_workers > 0)
+                    # Therefore we want to make sure to ask the questions on 0 workers.
+                    dataloader.num_workers, _num_workers = 0, dataloader.num_workers
+                    _ = next(iter(dataloader))
+                    dataloader.num_workers = _num_workers
 
-            # We want other processes to all sync with the master cache file.
-            with wait_for_the_master(get_local_rank()):
-                config.update_from_cache_file()
+                    config.dump_cache_file()
+
+                # We want other processes to all sync with the master cache file.
+                with wait_for_the_master(get_local_rank()):
+                    config.update_from_cache_file()
+
+
+def maybe_calibrate_dataset_adapter(dataloader: torch.utils.data.DataLoader):
+    if isinstance(dataloader.collate_fn, BaseDatasetAdapterCollateFN):
+        BaseDatasetAdapterCollateFN.calibrate_dataloader(dataloader=dataloader)
 
 
 @register_collate_function()

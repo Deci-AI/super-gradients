@@ -1134,6 +1134,14 @@ class Trainer:
         if self.test_loaders is not None and not isinstance(self.test_loaders, dict):
             raise ValueError("`test_loaders` must be a dictionary mapping dataset names to DataLoaders")
 
+        from super_gradients.training.datasets.collate_fn import maybe_calibrate_dataset_adapter
+
+        # Not mandatory but ensures that - if the dataloader use DatasetAdapterCollateFN - the adapter is properly calibrated before iterating over it.
+        maybe_calibrate_dataset_adapter(dataloader=self.train_loader)
+        maybe_calibrate_dataset_adapter(dataloader=self.valid_loader)
+        for test_loader in self.test_loaders.values():
+            maybe_calibrate_dataset_adapter(dataloader=test_loader)
+
         if hasattr(self.train_loader, "batch_sampler") and self.train_loader.batch_sampler is not None:
             batch_size = self.train_loader.batch_sampler.batch_size
         else:
@@ -1144,6 +1152,7 @@ class Trainer:
 
         if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             # Note: the dataloader uses sampler of the batch_sampler when it is not None.
+
             train_sampler = self.train_loader.batch_sampler.sampler if self.train_loader.batch_sampler is not None else self.train_loader.sampler
             if isinstance(train_sampler, SequentialSampler):
                 raise ValueError(
@@ -1155,6 +1164,7 @@ class Trainer:
                     "The training sampler you are using might not support DDP. "
                     "If it doesnt, please use one of the following sampler: DistributedSampler, RepeatAugSampler"
                 )
+
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
