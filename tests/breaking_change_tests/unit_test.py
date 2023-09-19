@@ -226,6 +226,58 @@ class TestBreakingChangeDetection(unittest.TestCase):
         self.assertEqual(len(breaking_changes.functions_removed), 1)
         self.assertEqual(breaking_changes.functions_removed[0].function_name, "MyClass.method")
 
+    def test_inheritance_detection(self):
+        code = """
+class Base1:
+    def method_in_base1(self): pass
+
+class Base2:
+    def method_in_base2(self): pass
+
+class Derived(Base1, Base2):
+    def method_in_derived(self): pass
+
+class DerivedChild(Derived):
+    def method_in_derived_child(self): pass
+"""
+        expected = {
+            "Base1.method_in_base1": FunctionSignature(
+                name="Base1.method_in_base1", line_num=3, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "Base2.method_in_base2": FunctionSignature(
+                name="Base2.method_in_base2", line_num=6, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "Derived.method_in_base1": FunctionSignature(
+                name="Derived.method_in_base1", line_num=3, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "Derived.method_in_base2": FunctionSignature(
+                name="Derived.method_in_base2", line_num=6, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "Derived.method_in_derived": FunctionSignature(
+                name="Derived.method_in_derived", line_num=9, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "DerivedChild.method_in_base1": FunctionSignature(
+                name="DerivedChild.method_in_base1", line_num=3, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "DerivedChild.method_in_base2": FunctionSignature(
+                name="DerivedChild.method_in_base2", line_num=6, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "DerivedChild.method_in_derived": FunctionSignature(
+                name="DerivedChild.method_in_derived", line_num=9, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+            "DerivedChild.method_in_derived_child": FunctionSignature(
+                name="DerivedChild.method_in_derived_child", line_num=12, params=FunctionParameters([FunctionParameter(name="self", has_default=False)])
+            ),
+        }
+        self.assertEqual(parse_functions_signatures(code), expected)
+
+    def test_inheritance_breaking_change(self):
+        old_code = "class MyClass:\n    def method(self): pass"
+        new_code = "class MyNewClass:\n    def method(self): pass\nclass MyClass(MyNewClass): pass"  # MyClass.method() will still work
+
+        breaking_changes = extract_code_breaking_changes("module.py", old_code, new_code)
+        self.assertEqual(len(breaking_changes.functions_removed), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
