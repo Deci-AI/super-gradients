@@ -51,6 +51,10 @@ class BaseDatasetAdapterCollateFN(ABC):
         self._adapter = adapter
         self._collate_fn = collate_fn or default_collate
         self._adapt_on_batch = adapter.data_config.is_batch or adapter.data_config.is_batch is None
+
+        if isinstance(self._collate_fn, type(self)):
+            raise RuntimeError(f"You just tried to instantiate {self.__class__.__name__} with a `collate_fn` of the same type, which is not supported.")
+
         # self._is_calibrated = False
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
