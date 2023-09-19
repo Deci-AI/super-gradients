@@ -55,11 +55,11 @@ class BaseDatasetAdapterCollateFN(ABC):
         if isinstance(self._collate_fn, type(self)):
             raise RuntimeError(f"You just tried to instantiate {self.__class__.__name__} with a `collate_fn` of the same type, which is not supported.")
 
-        # self._is_calibrated = False
+        self._require_calibration = not self._adapter.data_config.is_completely_initialized
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
 
-        if not self._adapter.data_config.is_completely_initialized:
+        if self._require_calibration:
             # This is required because python `input` is no compatible multiprocessing (num_workers > 0, or DDP)
             # And if not `is_completely_initialized`, the adapter will need to ask at least one question with this `input`
             raise RuntimeError(
@@ -98,6 +98,9 @@ class BaseDatasetAdapterCollateFN(ABC):
         collate_fn: BaseDatasetAdapterCollateFN = dataloader.collate_fn
         config = collate_fn._adapter.data_config
 
+        # `_require_calibration` should be set before the following `_ = next(iter(dataloader))` - and not after. Otherwise the RuntimeError will be thrown.
+        collate_fn._require_calibration = False
+
         if not config.is_completely_initialized:
             if device_config.assigned_rank <= 0:
                 # Enforce a first execution with 0 worker. This is required because python `input` is no compatible multiprocessing (i.e. num_workers > 0)
@@ -111,9 +114,6 @@ class BaseDatasetAdapterCollateFN(ABC):
             # We want other processes to all sync with the master cache file.
             with wait_for_the_master(get_local_rank()):
                 config.update_from_cache_file()
-
-        # Save
-        # collate_fn._is_calibrated = True
 
 
 @register_collate_function()
