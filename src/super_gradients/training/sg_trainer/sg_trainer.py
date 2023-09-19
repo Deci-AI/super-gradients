@@ -11,8 +11,7 @@ import torch.cuda
 import torch.nn
 import torchmetrics
 from omegaconf import DictConfig, OmegaConf
-
-# from piptools.scripts.sync import _get_installed_distributions
+from piptools.scripts.sync import _get_installed_distributions
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, SequentialSampler
@@ -1870,8 +1869,8 @@ class Trainer:
         }
         # ADD INSTALLED PACKAGE LIST + THEIR VERSIONS
         if self.training_params.log_installed_packages:
-            # pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
-            additional_log_items["installed_packages"] = []
+            pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
+            additional_log_items["installed_packages"] = pkg_list
 
         dataset_params = {
             "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
