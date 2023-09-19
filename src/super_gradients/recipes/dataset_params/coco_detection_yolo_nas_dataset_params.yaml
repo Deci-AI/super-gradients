@@ -51,8 +51,7 @@ train_dataloader_params:
   shuffle: True
   drop_last: True
   pin_memory: True
-  collate_fn:
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  collate_fn: DetectionCollateFN
 
 val_dataset_params:
   data_dir: /data/coco # root path to coco data
@@ -86,7 +85,6 @@ val_dataloader_params:
   drop_last: False
   shuffle: False
   pin_memory: True
-  collate_fn:
-    _target_: super_gradients.training.utils.detection_utils.CrowdDetectionCollateFN
+  collate_fn: CrowdDetectionCollateFN
 
 _convert_: all
