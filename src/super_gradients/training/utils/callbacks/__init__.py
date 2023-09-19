@@ -21,6 +21,13 @@ from super_gradients.training.utils.callbacks.callbacks import (
     YoloXTrainingStageSwitchCallback,
     TestLRCallback,
     TimerCallback,
+    EpochStepWarmupLRCallback,
+    BatchStepLinearWarmupLRCallback,
+    StepLRCallback,
+    ExponentialLRCallback,
+    PolyLRCallback,
+    CosineLRCallback,
+    FunctionLRCallback,
 )
 from super_gradients.training.utils.callbacks.ppyoloe_switch_callback import PPYoloETrainingStageSwitchCallback
 from super_gradients.common.object_names import Callbacks, LRSchedulers, LRWarmups
@@ -60,4 +67,11 @@ __all__ = [
     "TestLRCallback",
     "PPYoloETrainingStageSwitchCallback",
     "TimerCallback",
+    "EpochStepWarmupLRCallback",
+    "BatchStepLinearWarmupLRCallback",
+    "StepLRCallback",
+    "ExponentialLRCallback",
+    "PolyLRCallback",
+    "CosineLRCallback",
+    "FunctionLRCallback",
 ]
