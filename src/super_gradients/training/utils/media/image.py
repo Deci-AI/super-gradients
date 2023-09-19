@@ -55,7 +55,7 @@ def generate_image_loader(images: Union[List[ImageSource], ImageSource]) -> Iter
         warnings.warn(
             "It seems you are using predict() with 4D array as input. "
             "Please note we cannot track whether the input was already normalized or not. "
-            "You will get incorrect results if you feeding batches from train/validation dataloader."
+            "You will get incorrect results if you feed batches from train/validation dataloader that were already normalized."
             "Please check https://docs.deci.ai/super-gradients/latest/documentation/source/ModelPredictions.html for more details."
         )
         for image in images:
