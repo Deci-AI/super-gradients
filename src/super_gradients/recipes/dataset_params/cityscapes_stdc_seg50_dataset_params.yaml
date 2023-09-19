@@ -30,17 +30,7 @@ val_dataset_params:
         scale_factor: 0.5
 
 train_dataloader_params:
-  batch_size: 4
-  adapter:
-    SGSegmentationDatasetAdapter:
-      n_classes: 30
-      images_extractor: "0"
-      labels_extractor: "1"
+  batch_size: 16
 
 val_dataloader_params:
-  batch_size: 4
-  adapter:
-    SGSegmentationDatasetAdapter:
-      n_classes: 30
-      images_extractor: "0"
-      labels_extractor: "1"
+  batch_size: 16

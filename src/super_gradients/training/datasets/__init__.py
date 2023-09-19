@@ -20,6 +20,7 @@ from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentat
 from super_gradients.training.datasets.segmentation_datasets.coco_segmentation import CoCoSegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
 from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
+from super_gradients.training.datasets.collate_fn import BaseDatasetAdapterCollateFN
 
 cv2.setNumThreads(0)
 
@@ -44,4 +45,5 @@ __all__ = [
     "Cifar100",
     "SuperviselyPersonsDataset",
     "COCOKeypointsDataset",
+    "BaseDatasetAdapterCollateFN",
 ]

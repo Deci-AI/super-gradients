@@ -40,7 +40,7 @@ from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
 
-from super_gradients.training import utils as core_utils, models, dataloaders
+
 from super_gradients.training.datasets.samplers import RepeatAugSampler
 from super_gradients.common.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.metrics.metric_utils import (
@@ -97,6 +97,7 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
+from super_gradients.training import utils as core_utils, models, dataloaders
 
 logger = get_logger(__name__)
 

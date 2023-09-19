@@ -25,9 +25,6 @@ train_dataset_params:
   download: True
 
 train_dataloader_params:
-  adapter:
-    SGClassificationDatasetAdapter:
-      n_classes: 80
   shuffle: True
   batch_size: 256
   num_workers: 8

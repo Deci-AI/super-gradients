@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from data_gradients.managers.detection_manager import DetectionAnalysisManager
 from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 from data_gradients.managers.classification_manager import ClassificationAnalysisManager
-from super_gradients.training.dataloaders.collate_fn import (
+from super_gradients.training.datasets.collate_fn import (
     DetectionDatasetAdapterCollateFN,
     SegmentationDatasetAdapterCollateFN,
     ClassificationDatasetAdapterCollateFN,
