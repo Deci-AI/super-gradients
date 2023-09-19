@@ -306,7 +306,6 @@ class EpochStepWarmupLRCallback(LinearEpochLRWarmup):
     ...
 
 
-@register_lr_warmup(LRWarmups.LINEAR_STEP, deprecated_name="linear_step")
 @deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
 class LinearLRWarmup(LinearEpochLRWarmup):
     ...
