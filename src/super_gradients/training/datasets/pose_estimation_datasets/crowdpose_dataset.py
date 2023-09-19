@@ -13,6 +13,11 @@ from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
 from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
+from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
+    CrowdAnnotationActionEnum,
+    remove_crowd_annotations,
+    remove_samples_with_crowd_annotations,
+)
 from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
 
 logger = get_logger(__name__)
@@ -38,7 +43,7 @@ class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
-        crowd_annotations_action: str = "ignore",
+        crowd_annotations_action: Union[str, CrowdAnnotationActionEnum] = CrowdAnnotationActionEnum.NO_ACTION,
     ):
         """
 
@@ -54,13 +59,20 @@ class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
         :param edge_colors: Color of the edge links. If None, the color will be generated randomly.
         :param keypoint_colors: Color of the keypoints. If None, the color will be generated randomly.
         :param crowd_annotations_action: Action to take for annotations with iscrowd=1. Can be one of the following:
-            - "include" - These annotations will be treated as normal (non-crowd) annotations.
-            - "ignore" - These annotations will be ignored. They would not contribute to the loss.
-            - "remove" - These annotations will be removed from the dataset entirely.
+            - "drop_sample" - Samples with crowd annotations will be dropped from the dataset.
+            - "drop_annotation" - Crowd annotations will be dropped from the dataset.
+            - "mask_as_normal" - These annotations will be treated as normal (non-crowd) annotations.
+            - "no_action" - No action will be taken for crowd annotations.
         """
 
-        if crowd_annotations_action not in ["include", "ignore", "remove"]:
-            raise ValueError(f"crowd_annotations_action must be one of ['include', 'ignore', 'remove'], got {crowd_annotations_action}")
+        crowd_annotations_action = CrowdAnnotationActionEnum(crowd_annotations_action)
+        if crowd_annotations_action not in [
+            CrowdAnnotationActionEnum.NO_ACTION,
+            CrowdAnnotationActionEnum.DROP_ANNOTATION,
+            CrowdAnnotationActionEnum.DROP_SAMPLE,
+            CrowdAnnotationActionEnum.MASK_AS_NORMAL,
+        ]:
+            raise ValueError(f"crowd_annotations_action must be one of CrowdAnnotationActionEnum values, got {crowd_annotations_action}")
 
         json_file = os.path.join(data_dir, json_file)
         if not os.path.exists(json_file) or not os.path.isfile(json_file):
@@ -68,9 +80,9 @@ class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
 
         coco = COCO(json_file)
 
-        if crowd_annotations_action == "remove":
-            from .coco_utils import remove_crowd_annotations
-
+        if crowd_annotations_action == CrowdAnnotationActionEnum.DROP_SAMPLE:
+            coco = remove_samples_with_crowd_annotations(coco)
+        elif crowd_annotations_action == CrowdAnnotationActionEnum.DROP_ANNOTATION:
             coco = remove_crowd_annotations(coco)
 
         if len(coco.dataset["categories"]) != 1:
@@ -112,7 +124,7 @@ class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
 
         gt_iscrowd = np.array([bool(ann["iscrowd"]) for ann in anno]).reshape((-1))
 
-        if self.crowd_annotations_action == "include":
+        if self.crowd_annotations_action == CrowdAnnotationActionEnum.MASK_AS_NORMAL:
             # If crowd_annotations_action is "include", we treat crowd annotations as normal annotations
             # so we set is_crowd to False for all annotations
             gt_iscrowd = np.zeros_like(gt_iscrowd, dtype=bool)

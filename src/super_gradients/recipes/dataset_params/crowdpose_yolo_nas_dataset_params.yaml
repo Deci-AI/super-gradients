@@ -54,15 +54,16 @@ keypoint_colors:
   - [148, 103, 189] # head            (12)
   - [31, 119, 180]  # neck            (13)
 
-dataset_params_suffix: "default"
+image_size: 640
+dataset_params_suffix: "default_${dataset_params.image_size}"
 
 train_dataset_params:
   data_dir: /home/bloodaxe/data/crowdpose
   images_dir: images
   json_file: crowdpose_trainval.json
 
-  crowd_annotations_action: include
-  min_instance_area: 16
+  crowd_annotations_action: drop_sample
+  min_instance_area: 1
 
   edge_links: ${dataset_params.edge_links}
   edge_colors: ${dataset_params.edge_colors}
@@ -95,12 +96,12 @@ train_dataset_params:
         interpolation_mode: [0, 1, 2, 3, 4]
 
     - KeypointsLongestMaxSize:
-        max_height: 640
-        max_width: 640
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
 
     - KeypointsPadIfNeeded:
-        min_height: 640
-        min_width: 640
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
         image_pad_value: [127, 127, 127]
         mask_pad_value: 1
         padding_mode: center
@@ -118,8 +119,8 @@ val_dataset_params:
   images_dir: images
   json_file: crowdpose_test.json
 
-  crowd_annotations_action: ignore
-  min_instance_area: 16
+  crowd_annotations_action: no_action
+  min_instance_area: 1
 
   edge_links: ${dataset_params.edge_links}
   edge_colors: ${dataset_params.edge_colors}
@@ -127,12 +128,12 @@ val_dataset_params:
 
   transforms:
     - KeypointsLongestMaxSize:
-        max_height: 640
-        max_width: 640
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
 
     - KeypointsPadIfNeeded:
-        min_height: 640
-        min_width: 640
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
         image_pad_value: 127
         mask_pad_value: 1
         padding_mode: bottom_right
@@ -151,7 +152,6 @@ train_dataloader_params:
   num_workers: 8
   drop_last: True
   pin_memory: False
-  persistent_workers: True
   shuffle: True
   collate_fn:
     _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
@@ -163,6 +163,5 @@ val_dataloader_params:
   drop_last: False
   shuffle: False
   pin_memory: False
-  persistent_workers: True
   collate_fn:
     _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN

@@ -1,3 +1,5 @@
+from enum import Enum
+
 import numpy as np
 from pycocotools.coco import COCO
 from tqdm import tqdm
@@ -7,6 +9,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 __all__ = [
+    "CrowdAnnotationActionEnum",
     "check_keypoints_outside_image",
     "check_for_duplicate_annotations",
     "make_keypoints_outside_image_invisible",
@@ -14,6 +17,17 @@ __all__ = [
     "remove_crowd_annotations",
     "remove_samples_with_crowd_annotations",
 ]
+
+
+class CrowdAnnotationActionEnum(str, Enum):
+    """
+    Enum that contains possible actions to take for crowd annotations.
+    """
+
+    DROP_SAMPLE = "drop_sample"
+    DROP_ANNOTATION = "drop_annotation"
+    MASK_AS_NORMAL = "mask_as_normal"
+    NO_ACTION = "no_action"
 
 
 def check_keypoints_outside_image(coco: COCO) -> None:

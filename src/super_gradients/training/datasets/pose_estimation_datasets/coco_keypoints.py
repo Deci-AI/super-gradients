@@ -1,6 +1,5 @@
 import os
 from typing import Tuple, List, Mapping, Any, Union
-from enum import Enum
 import cv2
 import numpy as np
 import pycocotools
@@ -14,21 +13,16 @@ from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
 from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
+from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
+    CrowdAnnotationActionEnum,
+    remove_duplicate_annotations as remove_duplicate_annotations_fn,
+    remove_crowd_annotations,
+    remove_samples_with_crowd_annotations,
+)
 from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
 
 
 logger = get_logger(__name__)
-
-
-class CrowdAnnotationActionEnum(str, Enum):
-    """
-    Enum that contains possible actions to take for crowd annotations.
-    """
-
-    DROP_SAMPLE = "drop_sample"
-    DROP_ANNOTATION = "drop_annotation"
-    MASK_AS_NORMAL = "mask_as_normal"
-    NO_ACTION = "no_action"
 
 
 @register_dataset(Datasets.COCO_KEY_POINTS_DATASET)
@@ -92,17 +86,11 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         coco = COCO(json_file)
 
         if remove_duplicate_annotations:
-            from .coco_utils import remove_duplicate_annotations as remove_duplicate_annotations_fn
-
             coco = remove_duplicate_annotations_fn(coco)
 
         if crowd_annotations_action == CrowdAnnotationActionEnum.DROP_SAMPLE:
-            from .coco_utils import remove_samples_with_crowd_annotations
-
             coco = remove_samples_with_crowd_annotations(coco)
         elif crowd_annotations_action == CrowdAnnotationActionEnum.DROP_ANNOTATION:
-            from .coco_utils import remove_crowd_annotations
-
             coco = remove_crowd_annotations(coco)
 
         if len(coco.dataset["categories"]) != 1:

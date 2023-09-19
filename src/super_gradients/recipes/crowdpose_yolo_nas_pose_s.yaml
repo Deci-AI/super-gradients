@@ -17,8 +17,7 @@ bbox_reg_loss_suffix: ${training_hyperparams.criterion_params.regression_iou_los
 pose_cls_loss_suffix: pose_${training_hyperparams.criterion_params.pose_classification_loss_type}_${training_hyperparams.criterion_params.pose_cls_loss_weight}
 pose_reg_loss_suffix: reg_${training_hyperparams.criterion_params.pose_reg_loss_weight}
 
-head_suffix: head_${cond:${arch_params.heads.YoloNASPoseNDFLHeads.compensate_grid_cell_offset},comp_off,no_comp}_scale_${arch_params.heads.YoloNASPoseNDFLHeads.pose_offset_multiplier}
-
+head_suffix: ""
 experiment_suffix: ""
 experiment_name: crowdpose_${architecture}_${bbox_cls_loss_suffix}_${bbox_reg_loss_suffix}_${pose_cls_loss_suffix}_${pose_reg_loss_suffix}_${head_suffix}_${dataset_params.dataset_params_suffix}${experiment_suffix}
 
@@ -36,14 +35,13 @@ checkpoint_params:
     _target_: super_gradients.training.sg_trainer.StrictLoad
     value: key_matching
 
-training_hyperparams:
-  phase_callbacks: [] # Disable visualization
+#training_hyperparams:
+#  phase_callbacks: [] # Disable visualization
 
 dataset_params:
   train_dataloader_params:
     batch_size: 56
     num_workers: 8
-    min_samples: 131072
 
   val_dataloader_params:
     batch_size: 56
