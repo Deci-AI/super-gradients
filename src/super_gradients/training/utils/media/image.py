@@ -1,3 +1,4 @@
+import warnings
 from typing import Union, List, Iterable, Iterator
 from typing_extensions import get_args
 import PIL
@@ -50,17 +51,29 @@ def generate_image_loader(images: Union[List[ImageSource], ImageSource]) -> Iter
         images_paths = list_images_in_folder(images)
         for image_path in images_paths:
             yield load_image(image=image_path)
-    elif _is_batch_of_images(images=images):
+    elif _is_4d_array(images):
+        warnings.warn(
+            "It seems you are using predict() with 4D array as input. "
+            "Please note we cannot track whether the input was already normalized or not. "
+            "You will get incorrect results if you feeding batches from train/validation dataloader."
+            "Please check https://docs.deci.ai/super-gradients/latest/documentation/source/ModelPredictions.html for more details."
+        )
+        for image in images:
+            yield load_image(image=image)
+    elif _is_list_of_images(images=images):
+        warnings.warn("It seems you are using predict() with batch input")
         for image in images:
             yield load_image(image=image)
     else:
         yield load_image(image=images)
 
 
-def _is_batch_of_images(images: ImageSource) -> bool:
-    return (
-        isinstance(images, (list, Iterator)) or (isinstance(images, np.ndarray) and images.ndim == 4) or (isinstance(images, torch.Tensor) and images.ndim == 4)
-    )
+def _is_4d_array(images: ImageSource) -> bool:
+    return isinstance(images, (np.ndarray, torch.Tensor)) and images.ndim == 4
+
+
+def _is_list_of_images(images: ImageSource) -> bool:
+    return isinstance(images, (list, Iterator))
 
 
 def list_images_in_folder(directory: str) -> List[str]:
@@ -69,11 +82,11 @@ def list_images_in_folder(directory: str) -> List[str]:
     :return: A list of image file names.
     """
     files = os.listdir(directory)
-    images_paths = [os.path.join(directory, f) for f in files if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif"))]
+    images_paths = [os.path.join(directory, f) for f in files if is_image(f)]
     return images_paths
 
 
-def load_image(image: ImageSource) -> np.ndarray:
+def load_image(image: ImageSource, input_image_channels: int = 3) -> np.ndarray:
     """Load a single image and return it as a numpy arrays (H, W, C).
 
     Supported image types include:
@@ -83,17 +96,26 @@ def load_image(image: ImageSource) -> np.ndarray:
         - str:              A string representing either a local file path or a URL to an image
 
     :param image: Single image of supported types.
+    :param input_image_channels: Number of channels that model expects as input.
+                                 This value helps to infer the layout of the input image array.
+                                 As of now this argument has default value of 3, but in future it will become mandatory.
+
     :return:      Image as numpy arrays (H, W, C). If loaded from string, the image will be returned as RGB.
     """
     if isinstance(image, np.ndarray):
-        if image.shape[0] == 3:
-            image = image.transpose((1, 2, 0))
+        if image.ndim != 3:
+            raise ValueError(f"Unsupported image shape: {image.shape}. This function only supports 3-dimensional images.")
+        if image.shape[0] == input_image_channels:
+            image = np.ascontiguousarray(image.transpose((1, 2, 0)))
+        elif image.shape[2] == input_image_channels:
+            pass
+        else:
+            raise ValueError(f"Cannot infer image layout (HWC or CHW) for image of shape {image.shape} while C is {input_image_channels}")
+
         return image
     elif isinstance(image, torch.Tensor):
-        image = image.cpu().numpy()
-        if image.shape[0] == 3:
-            image = image.transpose((1, 2, 0))
-        return image
+        image = image.detach().cpu().numpy()
+        return load_image(image=image, input_image_channels=input_image_channels)
     elif isinstance(image, PIL.Image.Image):
         return load_np_image_from_pil(image)
     elif isinstance(image, str):
