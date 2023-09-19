@@ -38,10 +38,16 @@ class BaseDatasetAdapterCollateFN(ABC):
 
     This is done by applying the adapter logic either before or after the original collate function,
     depending on whether the adapter was calibrated on a batch or a sample.
+
+    Note that the original collate function (if any) will still be used, but will be wrapped into this class.
     """
 
     @resolve_param("collate_fn", CollateFunctionsFactory())
     def __init__(self, adapter: BaseDatasetAdapter, collate_fn: Optional[Callable] = None):
+        """
+        :param collate_fn:          Collate function to wrap. If None, the default collate function will be used.
+        :param adapter:             Dataset adapter to use
+        """
         self._adapter = adapter
         self._collate_fn = collate_fn or default_collate
         self._adapt_on_batch = adapter.data_config.is_batch or adapter.data_config.is_batch is None
@@ -112,11 +118,18 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
 
     This is done by applying the adapter logic either before or after the original collate function,
     depending on whether the adapter was calibrated on a batch or a sample.
+
+    Note that the original collate function (if any) will still be used, but will be wrapped into this class.
     """
 
     @resolve_param("collate_fn", CollateFunctionsFactory())
-    def __init__(self, cache_path: str, collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
-        adapter = DetectionDatasetAdapter(cache_path=cache_path, n_classes=n_classes)
+    def __init__(self, adapter_cache_path: str, collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
+        """
+        :param collate_fn:          Collate function to wrap. If None, the default collate function will be used.
+        :param adapter_cache_path:  Path to the cache file.
+        :param n_classes:           Number of classes in the dataset
+        """
+        adapter = DetectionDatasetAdapter(cache_path=adapter_cache_path, n_classes=n_classes)
         super().__init__(adapter=adapter, collate_fn=collate_fn)
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -126,9 +139,18 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         return images, targets
 
     @classmethod
-    def adapt_dataloader(cls, dataloader: torch.utils.data.DataLoader, cache_path: str, n_classes: Optional[int] = None) -> torch.utils.data.DataLoader:
-        dataloader.collate_fn = cls(collate_fn=dataloader.collate_fn, cache_path=cache_path, n_classes=n_classes)
-        cls.dummy_dataloader_iteration(dataloader)
+    def adapt_dataloader(cls, dataloader: torch.utils.data.DataLoader, adapter_cache_path: str, n_classes: Optional[int] = None) -> torch.utils.data.DataLoader:
+        """Adapt a Dataloader to SG format by Wrapping the original collate function to the SG adapter collate function.
+
+        NOTE: This changes in-place the dataloader. If you still want to keep the original dataloader, make sure to pass a copy!
+
+        :param dataloader:          Dataloader to adapt
+        :param adapter_cache_path:  Path to the cache file.
+        :param n_classes:           Number of classes in the dataset
+        :return:                    Adapted Dataloader
+        """
+        dataloader.collate_fn = cls(collate_fn=dataloader.collate_fn, adapter_cache_path=adapter_cache_path, n_classes=n_classes)
+        cls.calibrate_dataloader(dataloader)
         return dataloader
 
 
@@ -138,11 +160,18 @@ class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
 
     This is done by applying the adapter logic either before or after the original collate function,
     depending on whether the adapter was calibrated on a batch or a sample.
+
+    Note that the original collate function (if any) will still be used, but will be wrapped into this class.
     """
 
     @resolve_param("collate_fn", CollateFunctionsFactory())
-    def __init__(self, cache_path: str, collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
-        adapter = SegmentationDatasetAdapter(cache_path=cache_path, n_classes=n_classes)
+    def __init__(self, adapter_cache_path: str, collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
+        """
+        :param collate_fn:          Collate function to wrap. If None, the default collate function will be used.
+        :param adapter_cache_path:  Path to the cache file.
+        :param n_classes:           Number of classes in the dataset
+        """
+        adapter = SegmentationDatasetAdapter(cache_path=adapter_cache_path, n_classes=n_classes)
         super().__init__(adapter=adapter, collate_fn=collate_fn)
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -152,9 +181,18 @@ class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         return images, targets
 
     @classmethod
-    def adapt_dataloader(cls, dataloader: torch.utils.data.DataLoader, cache_path: str, n_classes: Optional[int] = None) -> torch.utils.data.DataLoader:
-        dataloader.collate_fn = cls(collate_fn=dataloader.collate_fn, cache_path=cache_path, n_classes=n_classes)
-        cls.dummy_dataloader_iteration(dataloader)
+    def adapt_dataloader(cls, dataloader: torch.utils.data.DataLoader, adapter_cache_path: str, n_classes: Optional[int] = None) -> torch.utils.data.DataLoader:
+        """Adapt a Dataloader to SG format by Wrapping the original collate function to the SG adapter collate function.
+
+        NOTE: This changes in-place the dataloader. If you still want to keep the original dataloader, make sure to pass a copy!
+
+        :param dataloader:          Dataloader to adapt
+        :param adapter_cache_path:  Path to the cache file.
+        :param n_classes:           Number of classes in the dataset
+        :return:                    Adapted Dataloader
+        """
+        dataloader.collate_fn = cls(collate_fn=dataloader.collate_fn, adapter_cache_path=adapter_cache_path, n_classes=n_classes)
+        cls.calibrate_dataloader(dataloader)
         return dataloader
 
 
@@ -164,11 +202,18 @@ class ClassificationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
 
     This is done by applying the adapter logic either before or after the original collate function,
     depending on whether the adapter was calibrated on a batch or a sample.
+
+    Note that the original collate function (if any) will still be used, but will be wrapped into this class.
     """
 
     @resolve_param("collate_fn", CollateFunctionsFactory())
-    def __init__(self, cache_path: str, collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
-        adapter = ClassificationDatasetAdapter(cache_path=cache_path, n_classes=n_classes)
+    def __init__(self, adapter_cache_path: str, collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
+        """
+        :param collate_fn:          Collate function to wrap. If None, the default collate function will be used.
+        :param adapter_cache_path:  Path to the cache file.
+        :param n_classes:           Number of classes in the dataset
+        """
+        adapter = ClassificationDatasetAdapter(cache_path=adapter_cache_path, n_classes=n_classes)
         super().__init__(adapter=adapter, collate_fn=collate_fn)
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -177,9 +222,18 @@ class ClassificationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         return images, targets
 
     @classmethod
-    def adapt_dataloader(cls, dataloader: torch.utils.data.DataLoader, cache_path: str, n_classes: Optional[int] = None) -> torch.utils.data.DataLoader:
-        dataloader.collate_fn = cls(collate_fn=dataloader.collate_fn, cache_path=cache_path, n_classes=n_classes)
-        cls.dummy_dataloader_iteration(dataloader)
+    def adapt_dataloader(cls, dataloader: torch.utils.data.DataLoader, adapter_cache_path: str, n_classes: Optional[int] = None) -> torch.utils.data.DataLoader:
+        """Adapt a Dataloader to SG format by Wrapping the original collate function to the SG adapter collate function.
+
+        NOTE: This changes in-place the dataloader. If you still want to keep the original dataloader, make sure to pass a copy!
+
+        :param dataloader:          Dataloader to adapt
+        :param adapter_cache_path:  Path to the cache file.
+        :param n_classes:           Number of classes in the dataset
+        :return:                    Adapted Dataloader
+        """
+        dataloader.collate_fn = cls(collate_fn=dataloader.collate_fn, adapter_cache_path=adapter_cache_path, n_classes=n_classes)
+        cls.calibrate_dataloader(dataloader)
         return dataloader
 
 
