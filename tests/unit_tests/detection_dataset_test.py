@@ -168,12 +168,12 @@ class DetectionDatasetTest(unittest.TestCase):
 
         detection_train_params_yolox = {
             "max_epochs": 5,
-            "lr_mode": "cosine",
+            "lr_mode": "CosineLRScheduler",
             "cosine_final_lr_ratio": 0.05,
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": "yolox_loss",
+            "loss": "YoloXDetectionLoss",
             "mixed_precision": False,
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
             "train_metrics_list": [],

@@ -143,12 +143,12 @@ from super_gradients.training.metrics.segmentation_metrics import BinaryIOU
 
 train_params = {
     "max_epochs": 30,
-    "lr_mode": "cosine",
+    "lr_mode": "CosineLRScheduler",
     "initial_lr": 0.005,
     "lr_warmup_epochs": 5,
     "multiply_head_lr": 10,
     "optimizer": "SGD",
-    "loss": "bce_dice_loss",
+    "loss": "BCEDiceLoss",
     "ema": True,
     "zero_weight_decay_on_bias_and_bn": True,
     "average_best_models": True,

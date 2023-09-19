@@ -8,13 +8,13 @@ SG's `super_gradients.training.utils.callbacks` module implements some common us
 
     ModelConversionCheckCallback
     LRCallbackBase
-    EpochStepWarmupLRCallback
-    BatchStepLinearWarmupLRCallback
-    StepLRCallback
-    ExponentialLRCallback
-    PolyLRCallback
-    CosineLRCallback
-    FunctionLRCallback
+    LinearEpochLRWarmup
+    LinearBatchLRWarmup
+    StepLRScheduler
+    ExponentialLRScheduler
+    PolyLRScheduler
+    CosineLRScheduler
+    FunctionLRScheduler
     LRSchedulerCallback
     DetectionVisualizationCallback
     BinarySegmentationVisualizationCallback
@@ -30,7 +30,7 @@ off augmentations and incorporate L1 loss starting from epoch 285:
 max_epochs: 300
 ...
 
-loss: yolox_loss
+loss: YoloXDetectionLoss
 
 ...
 
@@ -237,7 +237,7 @@ valid_dataloader = ...
 model = ...
 
 train_params = {
-    "loss": "cross_entropy",
+    "loss": "LabelSmoothingCrossEntropyLoss",
     "criterion_params": {},
     "phase_callbacks": [SaveFirstBatchCallback()],
     ...

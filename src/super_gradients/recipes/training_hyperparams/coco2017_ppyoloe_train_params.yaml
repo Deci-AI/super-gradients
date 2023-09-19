@@ -4,13 +4,13 @@ defaults:
 max_epochs: 500
 static_assigner_end_epoch: 150
 
-warmup_mode: "linear_batch_step"
+warmup_mode: LinearBatchLRWarmup
 warmup_initial_lr:  1e-6
 lr_warmup_steps: 1000
 lr_warmup_epochs: 0
 
 initial_lr:  2e-3
-lr_mode: cosine
+lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0.1
 
 zero_weight_decay_on_bias_and_bn: False
@@ -19,7 +19,7 @@ batch_accumulate: 1
 save_ckpt_epoch_list: [200, 250, 300, 350, 400, 450]
 
 loss:
-  ppyoloe_loss:
+  PPYoloELoss:
     num_classes: ${arch_params.num_classes}
     reg_max: ${arch_params.head.reg_max}
 

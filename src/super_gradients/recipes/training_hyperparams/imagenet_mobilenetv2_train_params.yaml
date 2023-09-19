@@ -3,7 +3,7 @@ defaults:
 
 max_epochs: 450
 
-lr_mode: step
+lr_mode: StepLRScheduler
 initial_lr: 0.032   # for total batch-size of 512
 lr_decay_factor: 0.973
 lr_updates:
@@ -20,7 +20,7 @@ optimizer_params:
   alpha: 0.9
   eps: 0.001
 
-loss: cross_entropy
+loss: LabelSmoothingCrossEntropyLoss
 
 zero_weight_decay_on_bias_and_bn: True
 ema: True
