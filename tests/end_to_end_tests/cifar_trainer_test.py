@@ -25,7 +25,7 @@ class TestCifarTrainer(unittest.TestCase):
             training_params={
                 "max_epochs": 1,
                 "initial_lr": 0.1,
-                "loss": "cross_entropy",
+                "loss": "CrossEntropyLoss",
                 "train_metrics_list": ["Accuracy"],
                 "valid_metrics_list": ["Accuracy"],
                 "metric_to_watch": "Accuracy",
@@ -44,7 +44,7 @@ class TestCifarTrainer(unittest.TestCase):
             training_params={
                 "max_epochs": 1,
                 "initial_lr": 0.1,
-                "loss": "cross_entropy",
+                "loss": "CrossEntropyLoss",
                 "train_metrics_list": ["Accuracy"],
                 "valid_metrics_list": ["Accuracy"],
                 "metric_to_watch": "Accuracy",

@@ -7,7 +7,7 @@ from super_gradients.common.object_names import Losses
 from super_gradients.common.registry import register_loss
 
 
-@register_loss(Losses.RESCORING_LOSS)
+@register_loss(name=Losses.RESCORING_LOSS, deprecated_name="rescoring_loss")
 class RescoringLoss(nn.Module):
     def __init__(self):
         super().__init__()

@@ -3,13 +3,13 @@ defaults:
 
 max_epochs: 10
 initial_lr: 0.03
-lr_mode: cosine
+lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0
 lr_warmup_epochs: 1
 warmup_initial_lr: 0
-warmup_mode: linear_epoch_step
+warmup_mode: LinearEpochLRWarmup
 ema: False
-loss: cross_entropy
+loss: LabelSmoothingCrossEntropyLoss
 clip_grad_norm: 1
 optimizer: SGD
 optimizer_params:

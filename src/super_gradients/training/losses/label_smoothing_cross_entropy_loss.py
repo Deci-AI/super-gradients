@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
+from super_gradients.common.deprecate import deprecated
 
 
 def onehot(indexes, N=None, ignore_index=None):
@@ -83,12 +84,12 @@ def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction="mea
     return loss
 
 
-@register_loss(Losses.CROSS_ENTROPY)
-class LabelSmoothingCrossEntropyLoss(nn.CrossEntropyLoss):
+@register_loss(name=Losses.CROSS_ENTROPY, deprecated_name="cross_entropy")
+class CrossEntropyLoss(nn.CrossEntropyLoss):
     """CrossEntropyLoss - with ability to recieve distrbution as targets, and optional label smoothing"""
 
     def __init__(self, weight=None, ignore_index=-100, reduction="mean", smooth_eps=None, smooth_dist=None, from_logits=True):
-        super(LabelSmoothingCrossEntropyLoss, self).__init__(weight=weight, ignore_index=ignore_index, reduction=reduction)
+        super(CrossEntropyLoss, self).__init__(weight=weight, ignore_index=ignore_index, reduction=reduction)
         self.smooth_eps = smooth_eps
         self.smooth_dist = smooth_dist
         self.from_logits = from_logits
@@ -109,3 +110,8 @@ class LabelSmoothingCrossEntropyLoss(nn.CrossEntropyLoss):
         # CHANGED TO THE CURRENT FORMAT- OUR CRITERION FUNCTIONS SHOULD ALL NPW RETURN A TUPLE OF (LOSS_FOR_BACKPROP, ADDITIONAL_ITEMS)
         # WHERE ADDITIONAL ITEMS ARE TORCH TENSORS OF SIZE (N_ITEMS,...) DETACHED FROM THEIR GRADIENTS FOR LOGGING
         return loss, loss.unsqueeze(0).detach()
+
+
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=CrossEntropyLoss)
+class LabelSmoothingCrossEntropyLoss(CrossEntropyLoss):
+    ...

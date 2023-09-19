@@ -68,7 +68,7 @@ training_hyperparams:
   sync_bn: True
 
   loss:
-    stdc_loss:
+    STDCLoss:
       num_classes: 19
       ignore_index: 19
       mining_percent: 0.0625 # mining percentage is 1/16 of pixels following original implementation.

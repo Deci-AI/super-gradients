@@ -3,13 +3,13 @@ defaults:
 
 max_epochs: 400
 initial_lr: 0.1
-lr_mode: cosine
+lr_mode: CosineLRScheduler
 lr_warmup_epochs: 5
 ema: False
 save_ckpt_epoch_list: [ 50, 100, 150, 200, 300 ]
 mixed_precision: True
 zero_weight_decay_on_bias_and_bn: True
-loss: cross_entropy
+loss: LabelSmoothingCrossEntropyLoss
 train_metrics_list:                               # metrics for evaluation
   - Accuracy
   - Top5

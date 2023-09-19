@@ -3,11 +3,11 @@ defaults:
 
 max_epochs: 150
 initial_lr: 5e-3
-loss: shelfnet_ohem_loss
+loss: ShelfNetOHEMLoss
 optimizer: SGD
 mixed_precision: True
 batch_accumulate: 3
-lr_mode: poly
+lr_mode: PolyLRScheduler
 optimizer_params:
   momentum: 0.9
   weight_decay: 1e-4
