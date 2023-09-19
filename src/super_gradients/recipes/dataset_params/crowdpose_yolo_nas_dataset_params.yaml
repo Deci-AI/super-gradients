@@ -58,7 +58,7 @@ image_size: 640
 dataset_params_suffix: "default_${dataset_params.image_size}"
 
 train_dataset_params:
-  data_dir: /home/bloodaxe/data/crowdpose
+  data_dir: /data/crowdpose
   images_dir: images
   json_file: crowdpose_trainval.json
 
@@ -115,7 +115,7 @@ train_dataset_params:
     YoloNASPoseTargetsGenerator
 
 val_dataset_params:
-  data_dir: /home/bloodaxe/data/crowdpose
+  data_dir: /data/crowdpose
   images_dir: images
   json_file: crowdpose_test.json
 
