@@ -8,6 +8,44 @@ The model used in this tutorial is [YOLO-NAS](YoloNASQuickstart.md), pre-trained
 
 *Note that the  `model.predict()` method is currently only available for detection tasks.*
 
+## Supported Media Formats
+
+A `mode.predict()` method is built to handle multiple data formats and types. 
+Here is the full list of what `predict()` method can handle:
+
+| Argument Semantics                 | Argument Type      | Supported layout                  | Example                                                                                        | Notes                                                                                            |
+|------------------------------------|--------------------|-----------------------------------|------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| Path to local image                | `str`              | -                                 | `predict("path/to/image.jpg")`                                                                 | All common image extensions are supported.                                                       |
+| Path to images directory           | `str`              | -                                 | `predict("path/to/images/directory")`                                                          |                                                                                                  |
+| Path to local video                | `str`              | -                                 | `predict("path/to/video.mp4")`                                                                 | All common video extensions are supported.                                                       |
+| URL to remote image                | `str`              | -                                 | `predict("https://example.com/image.jpg")`                                                     |                                                                                                  |
+| 3-dimensional Numpy image          | `np.ndarray`       | `[H, W, C]`                       | `predict(np.zeros((480, 640, 3), dtype=np.uint8))`                                             | Channels last, RGB channel order for 3-channel images                                            |
+| 4-dimensional Numpy image          | `np.ndarray`       | `[N, H, W, C]` or `[N, C, H, W]`  | `predict(np.zeros((480, 640, 3), dtype=np.uint8))`                                             | Tensor layout (NHWC or NCHW) is inferred w.r.t to number of input channels of underlying model   |
+| List of 3-dimensional numpy arrays | `List[np.ndarray]` | `[H1, W1, C]`, `[H2, W2, C]`, ... | `predict([np.zeros((480, 640, 3), dtype=np.uint8), np.zeros((384, 512, 3), dtype=np.uint8) ])` | Images may vary in size, but should have same number of channels                                 |
+| 3-dimensional Torch Tensor         | `torch.Tensor`     | `[H, W, C]` or `[C, H, W]`        | `predict(torch.zeros((480, 640, 3), dtype=torch.uint8))`                                       | Tensor layout (HWC or CHW) is inferred w.r.t to number of input channels of underlying model     |
+| 4-dimensional Torch Tensor         | `torch.Tensor`     | `[N, H, W, C]` or `[N, C, H, W]`  | `predict(torch.zeros((4, 480, 640, 3), dtype=torch.uint8))`                                    | Tensor layout (NHWC or NCHW) is inferred w.r.t to number of input channels of underlying model   |
+
+**Important note** - When using batched input (4-dimensional `np.ndarray` or `torch.Tensor`) formats, **normalization and size preprocessing will be applied to these inputs**. 
+This means that the input tensors **should not** be normalized beforehand.
+Here is the example of **incorrect** code of using `model.predict()`:
+
+```python
+# Incorrect code example. Do not use it.
+from super_gradients.training import dataloaders 
+from super_gradients.common.object_names import Models
+from super_gradients.training import models
+
+val_loader = dataloaders.get("coco2017_val_yolo_nas")
+
+model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
+
+for (inputs, *_) in val_loader:  # Error here: inputs as already normalized by dataset class
+    model.predict(inputs).show() # This will not work as expected
+```
+
+Since `model.predict()` encapsulates normalization and size preprocessing, it is not designed to handle pre-normalized images as input.
+Please keep this in mind when using `model.predict()` with batched inputs.
+
 
 ## Detect Objects in Multiple Images
 
