@@ -60,8 +60,8 @@ class BaseDatasetAdapterCollateFN(ABC):
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
 
         if self._require_calibration:
-            # This is required because python `input` is no compatible multiprocessing (num_workers > 0, or DDP)
-            # And if not `is_completely_initialized`, the adapter will need to ask at least one question with this `input`
+            # This is required because python `input` is no compatible multiprocessing (e.g. `num_workers > 0`, or `DDP`)
+            # And if not `is_completely_initialized`, the adapter will need to ask at least one question using the python `input`
             raise RuntimeError(
                 f"Trying to collate using {self.__class__.__name__}, but it was not calibrated yet. Please:"
                 "   - Either specify a cache that was already calibrated to this dataset."
