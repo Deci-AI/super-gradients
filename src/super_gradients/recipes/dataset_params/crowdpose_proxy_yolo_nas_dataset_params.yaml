@@ -54,7 +54,7 @@ keypoint_colors:
   - [148, 103, 189] # head            (12)
   - [31, 119, 180]  # neck            (13)
 
-image_size: 640
+image_size: 512
 dataset_params_suffix: "default_${dataset_params.image_size}"
 
 train_dataset_params:
@@ -62,7 +62,7 @@ train_dataset_params:
   images_dir: images
   json_file: crowdpose_trainval.json
 
-  crowd_annotations_action: mask_as_normal
+  crowd_annotations_action: drop_sample
   min_instance_area: 1
 
   edge_links: ${dataset_params.edge_links}
@@ -87,13 +87,13 @@ train_dataset_params:
 
     - KeypointsRandomAffineTransform:
         max_rotation: 0
-        min_scale: 0.66
-        max_scale: 1.5
+        min_scale: 0.75
+        max_scale: 1.33
         max_translate: 0.1
         image_pad_value: 127
         mask_pad_value: 1
         prob: 0.75
-        interpolation_mode: [0, 1, 2, 3, 4]
+        interpolation_mode: 1
 
     - KeypointsLongestMaxSize:
         max_height: ${dataset_params.image_size}
@@ -119,7 +119,7 @@ val_dataset_params:
   images_dir: images
   json_file: crowdpose_test.json
 
-  crowd_annotations_action: no_action
+  crowd_annotations_action: drop_sample
   min_instance_area: 1
 
   edge_links: ${dataset_params.edge_links}

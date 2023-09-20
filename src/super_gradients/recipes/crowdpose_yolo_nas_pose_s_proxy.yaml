@@ -1,0 +1,19 @@
+defaults:
+  - crowdpose_yolo_nas_pose_s_no_crowd
+  - override dataset_params: crowdpose_proxy_yolo_nas_dataset_params
+
+experiment_suffix: "proxy"
+
+training_hyperparams:
+  phase_callbacks: []
+  initial_lr: 1e-4
+  lr_warmup_steps: 128
+
+dataset_params:
+  train_dataloader_params:
+    batch_size: 96
+    num_workers: 16
+
+  val_dataloader_params:
+    batch_size: 96
+    num_workers: 16
