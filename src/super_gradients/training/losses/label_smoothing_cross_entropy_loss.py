@@ -113,5 +113,6 @@ class CrossEntropyLoss(nn.CrossEntropyLoss):
 
 
 @deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=CrossEntropyLoss)
+@register_loss("LabelSmoothingCrossEntropyLoss")
 class LabelSmoothingCrossEntropyLoss(CrossEntropyLoss):
     ...
