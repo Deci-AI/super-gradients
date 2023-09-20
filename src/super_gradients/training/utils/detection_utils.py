@@ -13,9 +13,16 @@ import torchvision
 from omegaconf import ListConfig
 from torch import nn
 
-
+from super_gradients.common.deprecate import deprecated
 from super_gradients.training.utils.visualization.detection import draw_bbox
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
+from super_gradients.training.datasets.collate_fn import (
+    DatasetItemsException as _DatasetItemsException,
+    DetectionCollateFN as _DetectionCollateFN,
+    PPYoloECollateFN as _PPYoloECollateFN,
+    CrowdDetectionPPYoloECollateFN as _CrowdDetectionPPYoloECollateFN,
+    CrowdDetectionCollateFN as _CrowdDetectionCollateFN,
+)
 
 
 class DetectionTargetsFormat(Enum):
@@ -688,6 +695,31 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     bbox[:, 0::2] = np.clip(bbox[:, 0::2] * scale_ratio + padw, 0, w_max)
     bbox[:, 1::2] = np.clip(bbox[:, 1::2] * scale_ratio + padh, 0, h_max)
     return bbox
+
+
+@deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_DatasetItemsException)
+class DatasetItemsException(_DatasetItemsException):
+    ...
+
+
+@deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_DetectionCollateFN)
+class DetectionCollateFN(_DetectionCollateFN):
+    ...
+
+
+@deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_PPYoloECollateFN)
+class PPYoloECollateFN(_PPYoloECollateFN):
+    ...
+
+
+@deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_CrowdDetectionPPYoloECollateFN)
+class CrowdDetectionPPYoloECollateFN(_CrowdDetectionPPYoloECollateFN):
+    ...
+
+
+@deprecated(deprecated_since="3.3.0", removed_from="3.6.0", target=_CrowdDetectionCollateFN)
+class CrowdDetectionCollateFN(_CrowdDetectionCollateFN):
+    ...
 
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:
