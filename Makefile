@@ -73,8 +73,22 @@ crowdpose_yolo_nas_pose_s_no_crowd_no_ema_local:
     num_gpus=4
 
 crowdpose_yolo_nas_pose_s_proxy:
-	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_no_crowd_no_ema \
-	checkpoint_params.checkpoint_path=/home/bloodaxe/develop/super-gradients/checkpoints/crowdpose_yolo_nas_pose_s_box_focal_1.0_ciou_2.5_dfl_0.01_pose_focal_1.0_reg_34__default_640no_crowd/RUN_20230919_212216_740555/average_model.pth \
+	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
     dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
     dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    num_gpus=1 multi_gpu=Off
+    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_type=focal
+
+	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
+    dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
+    dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
+    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_type=bce
+
+	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
+    dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
+    dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
+    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_weight=10
+
+	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
+    dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
+    dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
+    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.assigner_multiply_by_pose_oks=True
