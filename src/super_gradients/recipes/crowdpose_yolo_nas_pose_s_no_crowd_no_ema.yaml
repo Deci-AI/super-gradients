@@ -1,0 +1,11 @@
+defaults:
+  - crowdpose_yolo_nas_pose_s_no_crowd
+
+experiment_suffix: "no_crowd_no_ema"
+
+training_hyperparams:
+  ema: False
+
+dataset_params:
+  train_dataset_params:
+    crowd_annotations_action: drop_sample
