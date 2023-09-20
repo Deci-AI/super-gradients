@@ -22,6 +22,7 @@ from super_gradients.training.utils.detection_utils import xyxy2cxcywh
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.environment.ddp_utils import get_local_rank
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
+from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
 
 class DatasetItemsException(Exception):
@@ -192,7 +193,8 @@ class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
-        images = images / 255  # TODO: Check if we do this
+        transform = SegmentationDataSet.get_normalize_transform()
+        images = transform(images / 255)  # images are [0-255] after the datasetadapter
         targets = targets.argmax(1)
         return images, targets
 
@@ -234,7 +236,7 @@ class ClassificationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
-        images = images / 255  # TODO: Check if we do this
+        images = images / 255
         return images, targets
 
     @classmethod
