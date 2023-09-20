@@ -49,11 +49,11 @@ class EMAIntegrationTest(unittest.TestCase):
         training_params = {
             "max_epochs": 4,
             "lr_updates": [4],
-            "lr_mode": "step",
+            "lr_mode": "StepLRScheduler",
             "lr_decay_factor": 0.1,
             "lr_warmup_epochs": 0,
             "initial_lr": 0.1,
-            "loss": "cross_entropy",
+            "loss": "CrossEntropyLoss",
             "optimizer": "SGD",
             "criterion_params": {},
             "ema": True,

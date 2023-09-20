@@ -12,9 +12,9 @@ import numpy as np
 import onnx
 import onnxruntime
 import torch
-from deprecated import deprecated
 from torch.utils.data import DataLoader
 from torchmetrics import MetricCollection, Metric
+from torchvision.utils import draw_segmentation_masks
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -32,7 +32,8 @@ from super_gradients.training.utils.distributed_training_utils import maybe_all_
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
 from super_gradients.training.utils.utils import unwrap_model
-from torchvision.utils import draw_segmentation_masks
+from super_gradients.common.deprecate import deprecated
+
 
 logger = get_logger(__name__)
 
@@ -276,8 +277,8 @@ class LRCallbackBase(PhaseCallback):
                 param_group["lr"] = self.lr
 
 
-@register_lr_warmup(LRWarmups.LINEAR_EPOCH_STEP)
-class EpochStepWarmupLRCallback(LRCallbackBase):
+@register_lr_warmup(LRWarmups.LINEAR_EPOCH_STEP, deprecated_name="linear_epoch_step")
+class LinearEpochLRWarmup(LRCallbackBase):
     """
     LR scheduling callback for linear step warmup. This scheduler uses a whole epoch as single step.
     LR climbs from warmup_initial_lr with even steps to initial lr. When warmup_initial_lr is None - LR climb starts from
@@ -286,7 +287,7 @@ class EpochStepWarmupLRCallback(LRCallbackBase):
     """
 
     def __init__(self, **kwargs):
-        super(EpochStepWarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
+        super().__init__(Phase.TRAIN_EPOCH_START, **kwargs)
         self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
         self.warmup_step_size = (
             (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs if self.training_params.lr_warmup_epochs > 0 else 0
@@ -300,20 +301,23 @@ class EpochStepWarmupLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs > 0 and self.training_params.lr_warmup_epochs >= context.epoch
 
 
-@register_lr_warmup(LRWarmups.LINEAR_STEP)
-class LinearStepWarmupLRCallback(EpochStepWarmupLRCallback):
-    """Deprecated, use EpochStepWarmupLRCallback instead"""
-
-    def __init__(self, **kwargs):
-        logger.warning(
-            f"Parameter {LRWarmups.LINEAR_STEP} has been made deprecated and will be removed in the next SG release. "
-            f"Please use `{LRWarmups.LINEAR_EPOCH_STEP}` instead."
-        )
-        super(LinearStepWarmupLRCallback, self).__init__(**kwargs)
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+class EpochStepWarmupLRCallback(LinearEpochLRWarmup):
+    ...
 
 
-@register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP)
-class BatchStepLinearWarmupLRCallback(Callback):
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+class LinearLRWarmup(LinearEpochLRWarmup):
+    ...
+
+
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearEpochLRWarmup)
+class LinearStepWarmupLRCallback(LinearEpochLRWarmup):
+    ...
+
+
+@register_lr_warmup(LRWarmups.LINEAR_BATCH_STEP, deprecated_name="linear_batch_step")
+class LinearBatchLRWarmup(Callback):
     """
     LR scheduling callback for linear step warmup on each batch step.
     LR climbs from warmup_initial_lr with to initial lr.
@@ -339,7 +343,7 @@ class BatchStepLinearWarmupLRCallback(Callback):
         :param kwargs:
         """
 
-        super(BatchStepLinearWarmupLRCallback, self).__init__()
+        super().__init__()
 
         if lr_warmup_steps > train_loader_len:
             logger.warning(
@@ -384,16 +388,21 @@ class BatchStepLinearWarmupLRCallback(Callback):
                 param_group["lr"] = self.lr
 
 
-@register_lr_scheduler(LRSchedulers.STEP)
-class StepLRCallback(LRCallbackBase):
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearBatchLRWarmup)
+class BatchStepLinearWarmupLRCallback(LinearBatchLRWarmup):
+    ...
+
+
+@register_lr_scheduler(LRSchedulers.STEP, deprecated_name="step")
+class StepLRScheduler(LRCallbackBase):
     """
     Hard coded step learning rate scheduling (i.e at specific milestones).
     """
 
     def __init__(self, lr_updates, lr_decay_factor, step_lr_update_freq=None, **kwargs):
-        super(StepLRCallback, self).__init__(Phase.TRAIN_EPOCH_END, **kwargs)
+        super().__init__(Phase.TRAIN_EPOCH_END, **kwargs)
         if step_lr_update_freq and len(lr_updates):
-            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor")
+            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRScheduler constructor")
 
         if step_lr_update_freq:
             max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
@@ -415,8 +424,13 @@ class StepLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch
 
 
-@register_lr_scheduler(LRSchedulers.EXP)
-class ExponentialLRCallback(LRCallbackBase):
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=StepLRScheduler)
+class StepLRCallback(StepLRScheduler):
+    ...
+
+
+@register_lr_scheduler(LRSchedulers.EXP, deprecated_name="exp")
+class ExponentialLRScheduler(LRCallbackBase):
     """
     Exponential decay learning rate scheduling. Decays the learning rate by `lr_decay_factor` every epoch.
     """
@@ -436,14 +450,19 @@ class ExponentialLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@register_lr_scheduler(LRSchedulers.POLY)
-class PolyLRCallback(LRCallbackBase):
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=ExponentialLRScheduler)
+class ExponentialLRCallback(ExponentialLRScheduler):
+    ...
+
+
+@register_lr_scheduler(LRSchedulers.POLY, deprecated_name="poly")
+class PolyLRScheduler(LRCallbackBase):
     """
     Hard coded polynomial decay learning rate scheduling (i.e at specific milestones).
     """
 
     def __init__(self, max_epochs, **kwargs):
-        super(PolyLRCallback, self).__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
+        super().__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
         self.max_epochs = max_epochs
 
     def perform_scheduling(self, context):
@@ -459,14 +478,19 @@ class PolyLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
-@register_lr_scheduler(LRSchedulers.COSINE)
-class CosineLRCallback(LRCallbackBase):
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=PolyLRScheduler)
+class PolyLRCallback(PolyLRScheduler):
+    ...
+
+
+@register_lr_scheduler(LRSchedulers.COSINE, deprecated_name="cosine")
+class CosineLRScheduler(LRCallbackBase):
     """
     Hard coded step Cosine anealing learning rate scheduling.
     """
 
     def __init__(self, max_epochs, cosine_final_lr_ratio, **kwargs):
-        super(CosineLRCallback, self).__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
+        super().__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
         self.max_epochs = max_epochs
         self.cosine_final_lr_ratio = cosine_final_lr_ratio
 
@@ -497,15 +521,20 @@ class CosineLRCallback(LRCallbackBase):
         return lr * (1 - final_lr_ratio) + (initial_lr * final_lr_ratio)
 
 
-@register_lr_scheduler(LRSchedulers.FUNCTION)
-class FunctionLRCallback(LRCallbackBase):
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=CosineLRScheduler)
+class CosineLRCallback(CosineLRScheduler):
+    ...
+
+
+@register_lr_scheduler(LRSchedulers.FUNCTION, deprecated_name="function")
+class FunctionLRScheduler(LRCallbackBase):
     """
     Hard coded rate scheduling for user defined lr scheduling function.
     """
 
-    @deprecated(version="3.2.0", reason="This callback is deprecated and will be removed in future versions.")
+    @deprecated(deprecated_since="3.2.0", removed_from="3.5.0", reason="This callback is deprecated and will be removed in future versions.")
     def __init__(self, max_epochs, lr_schedule_function, **kwargs):
-        super(FunctionLRCallback, self).__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
+        super().__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
         assert callable(lr_schedule_function), "self.lr_function must be callable"
         self.lr_schedule_function = lr_schedule_function
         self.max_epochs = max_epochs
@@ -525,6 +554,11 @@ class FunctionLRCallback(LRCallbackBase):
             iters_per_epoch=self.train_loader_len,
         )
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
+
+
+@deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=FunctionLRScheduler)
+class FunctionLRCallback(FunctionLRScheduler):
+    ...
 
 
 class IllegalLRSchedulerMetric(Exception):
@@ -924,16 +958,18 @@ def create_lr_scheduler_callback(
 
                     When str:
 
-                    Learning rate scheduling policy, one of ['step','poly','cosine','function'].
+                    Learning rate scheduling policy, one of ['StepLRScheduler','PolyLRScheduler','CosineLRScheduler','FunctionLRScheduler'].
 
-                    'step' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
+                    'StepLRScheduler' refers to constant updates at epoch numbers passed through `lr_updates`.
+                        Each update decays the learning rate by `lr_decay_factor`.
 
-                    'cosine' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
+                    'CosineLRScheduler' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
                       The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
 
-                    'poly' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
+                    'PolyLRScheduler' refers to the polynomial decrease:
+                        in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
 
-                    'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
+                    'FunctionLRScheduler' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
 
 
 
@@ -1339,7 +1375,7 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
                 max=False
                 ignore_idx=19),
             ExtremeBatchSegVisualizationCallback(
-                loss_to_monitor="LabelSmoothingCrossEntropyLoss"
+                loss_to_monitor="CrossEntropyLoss"
                 max=True
                 ignore_idx=19)]
                 ...}

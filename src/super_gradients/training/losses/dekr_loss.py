@@ -7,7 +7,7 @@ from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 
 
-@register_loss(Losses.DEKR_LOSS)
+@register_loss(name=Losses.DEKR_LOSS, deprecated_name="dekr_loss")
 class DEKRLoss(nn.Module):
     """
     Implementation of the loss function from the "Bottom-Up Human Pose Estimation Via Disentangled Keypoint Regression"

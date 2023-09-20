@@ -5,7 +5,7 @@ from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.losses.ohem_ce_loss import OhemCELoss
 
 
-@register_loss(Losses.SHELFNET_OHEM_LOSS)
+@register_loss(name=Losses.SHELFNET_OHEM_LOSS, deprecated_name="shelfnet_ohem_loss")
 class ShelfNetOHEMLoss(OhemCELoss):
     def __init__(self, threshold: float = 0.7, mining_percent: float = 1e-4, ignore_lb: int = 255):
         """

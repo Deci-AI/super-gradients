@@ -773,27 +773,29 @@ class Trainer:
 
                 - `lr_updates` : list(int)
 
-                    List of fixed epoch numbers to perform learning rate updates when `lr_mode='step'`.
+                    List of fixed epoch numbers to perform learning rate updates when `lr_mode='StepLRScheduler'`.
 
                 - `lr_decay_factor` : float
 
-                    Decay factor to apply to the learning rate at each update when `lr_mode='step'`.
+                    Decay factor to apply to the learning rate at each update when `lr_mode='StepLRScheduler'`.
 
 
                 -  `lr_mode` : Union[str, Mapping],
 
                     When str:
 
-                    Learning rate scheduling policy, one of ['step','poly','cosine','function'].
+                    Learning rate scheduling policy, one of ['StepLRScheduler','PolyLRScheduler','CosineLRScheduler','FunctionLRScheduler'].
 
-                    'step' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
+                    'StepLRScheduler' refers to constant updates at epoch numbers passed through `lr_updates`.
+                        Each update decays the learning rate by `lr_decay_factor`.
 
-                    'cosine' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
+                    'CosineLRScheduler' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
                       The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
 
-                    'poly' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
+                    'PolyLRScheduler' refers to the polynomial decrease:
+                        in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
 
-                    'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
+                    'FunctionLRScheduler' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
 
 
 
@@ -828,7 +830,7 @@ class Trainer:
 
                 - `lr_schedule_function` : Union[callable,None]
 
-                    Learning rate scheduling function to be used when `lr_mode` is 'function'.
+                    Learning rate scheduling function to be used when `lr_mode` is 'FunctionLRScheduler'.
 
                 - `warmup_mode`: Union[str, Type[LRCallbackBase], None]
 
@@ -851,7 +853,7 @@ class Trainer:
                     The capping is done to avoid interference of warmup with epoch-based schedulers.
 
                 - `cosine_final_lr_ratio` : float (default=0.01)
-                    Final learning rate ratio (only relevant when `lr_mode`='cosine'). The cosine starts from initial_lr and reaches
+                    Final learning rate ratio (only relevant when `lr_mode`='CosineLRScheduler'). The cosine starts from initial_lr and reaches
                      initial_lr * cosine_final_lr_ratio in last epoch
 
                 - `inital_lr` : float
@@ -863,13 +865,13 @@ class Trainer:
                     Loss function for training.
                     One of SuperGradient's built in options:
 
-                              "cross_entropy": LabelSmoothingCrossEntropyLoss,
-                              "mse": MSELoss,
-                              "r_squared_loss": RSquaredLoss,
-                              "detection_loss": YoLoV3DetectionLoss,
-                              "shelfnet_ohem_loss": ShelfNetOHEMLoss,
-                              "shelfnet_se_loss": ShelfNetSemanticEncodingLoss,
-                              "ssd_loss": SSDLoss,
+                        - CrossEntropyLoss,
+                        - MSELoss,
+                        - RSquaredLoss,
+                        - YoLoV3DetectionLoss,
+                        - ShelfNetOHEMLoss,
+                        - ShelfNetSemanticEncodingLoss,
+                        - SSDLoss,
 
 
                     or user defined nn.module loss function.
@@ -1250,6 +1252,10 @@ class Trainer:
         warmup_mode = self.training_params.warmup_mode
         warmup_callback_cls = None
         if isinstance(warmup_mode, str):
+            from super_gradients.common.registry.registry import warn_if_deprecated
+
+            warn_if_deprecated(warmup_mode, LR_WARMUP_CLS_DICT)
+
             warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
         elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
             warmup_callback_cls = warmup_mode

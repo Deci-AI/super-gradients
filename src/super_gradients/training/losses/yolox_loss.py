@@ -81,7 +81,7 @@ class IOUloss(nn.Module):
         return loss
 
 
-@register_loss(Losses.YOLOX_LOSS)
+@register_loss(name=Losses.YOLOX_LOSS, deprecated_name="yolox_loss")
 class YoloXDetectionLoss(_Loss):
     """
     Calculate YOLOX loss:
@@ -626,7 +626,7 @@ class YoloXDetectionLoss(_Loss):
         return num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds
 
 
-@register_loss(Losses.YOLOX_FAST_LOSS)
+@register_loss(name=Losses.YOLOX_FAST_LOSS, deprecated_name="yolox_fast_loss")
 class YoloXFastDetectionLoss(YoloXDetectionLoss):
     """
     A completely new implementation of YOLOX loss.

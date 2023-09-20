@@ -57,7 +57,7 @@ training_hyperparams:
   max_epochs: 500
   initial_lr: 0.0075   # batch size 24
   loss:
-    dice_ce_edge_loss:
+    DiceCEEdgeLoss:
       num_classes: 19
       ignore_index: 19
       num_aux_heads: 1
