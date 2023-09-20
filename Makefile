@@ -76,19 +76,19 @@ crowdpose_yolo_nas_pose_s_proxy:
 	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
     dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
     dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_type=focal
+    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_type=focal &
 
 	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
     dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
     dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_type=bce
+    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_type=bce &
 
 	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
     dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
     dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_weight=10
+    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_weight=10 &
 
 	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
     dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
     dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.assigner_multiply_by_pose_oks=True
+    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.assigner_multiply_by_pose_oks=True &
