@@ -8,6 +8,7 @@ training_hyperparams:
   phase_callbacks: []
   initial_lr: 1e-4
   lr_warmup_steps: 128
+  max_valid_batches: 32 # 32 * 96 = 3072 images per validation epoch
 
 dataset_params:
   train_dataloader_params:
