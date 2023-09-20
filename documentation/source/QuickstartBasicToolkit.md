@@ -61,7 +61,7 @@ model = models.get(Models.RESNET18, num_classes=10)
 training_params = {
     "max_epochs": 20,
     "initial_lr": 0.1,
-    "loss": "cross_entropy",
+    "loss": "LabelSmoothingCrossEntropyLoss",
     "train_metrics_list": [Accuracy(), Top5()],
     "valid_metrics_list": [Accuracy(), Top5()],
     "metric_to_watch": "Accuracy",

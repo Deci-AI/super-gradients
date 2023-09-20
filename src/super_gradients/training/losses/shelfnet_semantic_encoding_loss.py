@@ -6,7 +6,7 @@ from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 
 
-@register_loss(Losses.SHELFNET_SE_LOSS)
+@register_loss(name=Losses.SHELFNET_SE_LOSS, deprecated_name="shelfnet_se_loss")
 class ShelfNetSemanticEncodingLoss(nn.CrossEntropyLoss):
     """2D Cross Entropy Loss with Auxilary Loss"""
 
