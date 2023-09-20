@@ -1606,7 +1606,9 @@ def get_scheduler_state(scheduler) -> Dict:
     :param scheduler: torch.optim.lr_scheduler._LRScheduler, the scheduler
     :return: the scheduler's state_dict
     """
+    from super_gradients.training.utils import torch_version_is_greater_or_equal
+
     state = scheduler.state_dict()
-    if isinstance(scheduler, CyclicLR) and int(torch.version.__version__.split(".")[0]) < 2:
+    if isinstance(scheduler, CyclicLR) and not torch_version_is_greater_or_equal(2, 0):
         del state["_scale_fn_ref"]
     return state
