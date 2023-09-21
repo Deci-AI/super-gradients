@@ -163,6 +163,9 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         :param n_classes:           Number of classes in the dataset
         """
         adapter = DetectionDatasetAdapter(cache_path=adapter_cache_path, n_classes=n_classes)
+
+        # `DetectionCollateFN()` is the default collate_fn for detection.
+        # But if the adapter was used on already collated batches, we don't want to force it.
         base_collate_fn = base_collate_fn or (default_collate if adapter.data_config.is_batch else DetectionCollateFN())
         super().__init__(adapter=adapter, base_collate_fn=base_collate_fn)
 
