@@ -8,12 +8,12 @@ from data_gradients.managers.classification_manager import ClassificationAnalysi
 
 from super_gradients import setup_device
 from super_gradients.training.dataloaders.dataloaders import coco2017_val, cityscapes_stdc_seg50_val, cifar10_val
-from super_gradients.training.datasets.collate_fn import (
+from super_gradients.training.utils.collate_fn import (
     DetectionDatasetAdapterCollateFN,
     SegmentationDatasetAdapterCollateFN,
     ClassificationDatasetAdapterCollateFN,
 )
-from super_gradients.training.datasets.collate_fn import BaseDatasetAdapterCollateFN
+from super_gradients.training.utils.collate_fn import BaseDatasetAdapterCollateFN
 
 
 def test_python_detection():
@@ -107,9 +107,9 @@ def test_from_dict():
     adapted_loader = coco2017_val(
         dataset_params={"max_num_samples": 500, "with_crowd": False},
         dataloader_params={
-            "collate_fn": {
+            "base_collate_fn": {
                 "DetectionDatasetAdapterCollateFN": {
-                    "collate_fn": "DetectionCollateFN",
+                    "base_collate_fn": "DetectionCollateFN",
                     "adapter_cache_path": analyzer.config.cache_path,
                     "n_classes": 80,
                 }
@@ -129,7 +129,7 @@ def test_ddp_from_dict_based_adapter():
     # We use Validation set because it does not include augmentation (which is random and makes it impossible to compare results)
     loader = coco2017_val(
         dataset_params={"max_num_samples": 500, "with_crowd": False},
-        dataloader_params={"num_workers": 4, "collate_fn": "DetectionCollateFN"},
+        dataloader_params={"num_workers": 4, "base_collate_fn": "DetectionCollateFN"},
     )
 
     # We use Validation set because it does not include augmentation (which is random and makes it impossible to compare results)
@@ -137,9 +137,9 @@ def test_ddp_from_dict_based_adapter():
         dataset_params={"max_num_samples": 500, "with_crowd": False},  # `max_num_samples` To make it faster
         dataloader_params={
             "num_workers": 4,
-            "collate_fn": {
+            "base_collate_fn": {
                 "DetectionDatasetAdapterCollateFN": {
-                    "collate_fn": "DetectionCollateFN",
+                    "base_collate_fn": "DetectionCollateFN",
                     "adapter_cache_path": "LOCAL2.json",
                     "n_classes": 80,
                 }
@@ -147,7 +147,7 @@ def test_ddp_from_dict_based_adapter():
         },
     )
 
-    BaseDatasetAdapterCollateFN.calibrate_dataloader(adapted_loader)
+    BaseDatasetAdapterCollateFN.setup_adapter(adapted_loader)
 
     for (adapted_images, adapted_targets), (images, targets) in zip(adapted_loader, loader):
         assert np.isclose(adapted_targets, targets).all()
@@ -160,7 +160,7 @@ def test_ddp_python_based_adapter():
     # We use Validation set because it does not include augmentation (which is random and makes it impossible to compare results)
     loader = coco2017_val(
         dataset_params={"max_num_samples": 500, "with_crowd": False},  # `max_num_samples` To make it faster
-        dataloader_params={"num_workers": 4, "collate_fn": "DetectionCollateFN"},
+        dataloader_params={"num_workers": 4, "base_collate_fn": "DetectionCollateFN"},
     )
     adapted_loader = DetectionDatasetAdapterCollateFN.adapt_dataloader(dataloader=deepcopy(loader), adapter_cache_path="xx.json", n_classes=80)
 

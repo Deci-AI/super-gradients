@@ -43,7 +43,7 @@ class BaseSgVisionDataset(VisionDataset):
         self.target_loader = target_loader
         self._generate_samples_and_targets()
 
-        # IF collate_fn IS PROVIDED IN CTOR WE ASSUME THERE IS A BASE-CLASS INHERITANCE W/O collate_fn IMPLEMENTATION
+        # IF base_collate_fn IS PROVIDED IN CTOR WE ASSUME THERE IS A BASE-CLASS INHERITANCE W/O base_collate_fn IMPLEMENTATION
         if collate_fn is not None:
             self.collate_fn = collate_fn
 
@@ -137,7 +137,7 @@ class DirectoryDataSet(BaseSgVisionDataset):
             :param target_extension:        file extension of the targets
             :param sample_loader:           Func to load samples
             :param target_loader:           Func to load targets
-            :param collate_fn:              collate_fn func to process batches for the Data Loader
+            :param collate_fn:              base_collate_fn func to process batches for the Data Loader
             :param sample_transform:        Func to pre-process samples for data loading
             :param target_transform:        Func to pre-process targets for data loading
         """
@@ -246,7 +246,7 @@ class ListDataset(BaseSgVisionDataset):
             :param target_extension:        file extension of the targets
             :param sample_loader:           Func to load samples
             :param target_loader:           Func to load targets
-            :param collate_fn:              collate_fn func to process batches for the Data Loader
+            :param collate_fn:              base_collate_fn func to process batches for the Data Loader
             :param sample_transform:        Func to pre-process samples for data loading
             :param target_transform:        Func to pre-process targets for data loading
         """

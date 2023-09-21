@@ -1136,7 +1136,7 @@ class Trainer:
         if self.test_loaders is not None and not isinstance(self.test_loaders, dict):
             raise ValueError("`test_loaders` must be a dictionary mapping dataset names to DataLoaders")
 
-        from super_gradients.training.datasets.collate_fn import maybe_calibrate_dataset_adapter
+        from super_gradients.training.utils.collate_fn import maybe_calibrate_dataset_adapter
 
         # Not mandatory but ensures that - if the dataloader use DatasetAdapterCollateFN - the adapter is properly calibrated before iterating over it.
         maybe_calibrate_dataset_adapter(dataloader=self.train_loader)

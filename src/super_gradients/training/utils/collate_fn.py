@@ -2,7 +2,7 @@ from torch.utils.data.dataloader import default_collate
 import random
 from typing import List, Union, Tuple, Optional, Dict, Type, Callable, Iterable
 
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import cv2
 import torch
@@ -17,12 +17,11 @@ from data_gradients.dataset_adapters.classification_adapter import Classificatio
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
-from super_gradients.training.utils.detection_utils import xyxy2cxcywh
-
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.environment.ddp_utils import get_local_rank
+
+
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
-from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
 
 class DatasetItemsException(Exception):
@@ -42,72 +41,79 @@ class BaseDatasetAdapterCollateFN(ABC):
     """Base Collate function that adapts an input dataset to SuperGradients format
 
     This is done by applying the adapter logic either before or after the original collate function,
-    depending on whether the adapter was calibrated on a batch or a sample.
+    depending on whether the adapter was set up on a batch or a sample.
 
     Note that the original collate function (if any) will still be used, but will be wrapped into this class.
     """
 
-    @resolve_param("collate_fn", CollateFunctionsFactory())
-    def __init__(self, adapter: BaseDatasetAdapter, collate_fn: Optional[Callable] = None):
+    @resolve_param("base_collate_fn", CollateFunctionsFactory())
+    def __init__(self, adapter: BaseDatasetAdapter, base_collate_fn: Callable):
         """
-        :param collate_fn:          Collate function to wrap. If None, the default collate function will be used.
+        :param base_collate_fn:     Collate function to wrap. If None, the default collate function will be used.
         :param adapter:             Dataset adapter to use
         """
-        self._adapter = adapter
-        self._collate_fn = collate_fn or default_collate
+        self._require_setup = not adapter.data_config.is_completely_initialized
         self._adapt_on_batch = adapter.data_config.is_batch or adapter.data_config.is_batch is None
 
-        if isinstance(self._collate_fn, type(self)):
-            raise RuntimeError(f"You just tried to instantiate {self.__class__.__name__} with a `collate_fn` of the same type, which is not supported.")
+        self._adapter = adapter
+        self._base_collate_fn = base_collate_fn
 
-        self._require_calibration = not self._adapter.data_config.is_completely_initialized
+        if isinstance(self._base_collate_fn, type(self)):
+            raise RuntimeError(f"You just tried to instantiate {self.__class__.__name__} with a `base_collate_fn` of the same type, which is not supported.")
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
 
-        if self._require_calibration:
+        if self._require_setup:
             # This is required because python `input` is no compatible multiprocessing (e.g. `num_workers > 0`, or `DDP`)
-            # And if not `self._require_calibration`, the adapter will need to ask at least one question using the python `input`
+            # And if not `self._require_setup`, the adapter will need to ask at least one question using the python `input`
             raise RuntimeError(
-                f"Trying to collate using `{self.__class__.__name__}`, but it was not calibrated yet. Please do one of the following\n"
-                f"   - Call `{self.__class__.__name__}(...).calibrate_dataloader(dataloader)` before iterating over the dataloader.\n"
-                f"   - Instantiate `{self.__class__.__name__}(adapter_cache_path=...)` with `adapter_cache_path` mapping to the cache file of "
-                f"an adapter that was already calibrated on this dataset.\n"
+                f"Trying to collate using `{self.__class__.__name__}`, but it was not fully set up yet. Please do one of the following\n"
+                f"   - Call `{self.__class__.__name__}(...).setup_adapter(dataloader)` before iterating over the dataloader.\n"
+                f"   - or Instantiate `{self.__class__.__name__}(adapter_cache_path=...)` with `adapter_cache_path` mapping to the cache file of "
+                f"an adapter that was already set up on this dataset.\n"
             )
 
         if not self._adapt_on_batch:
-            _samples = []
-            for sample in samples:
-                images, targets = self._adapter.adapt(sample)  # Will construct batch of 1
-                images, targets = images.squeeze(0), targets.squeeze(0)  # Extract the sample
-                _samples.append((images, targets))
-            samples = _samples
+            samples = self._adapt_samples(samples=samples)
 
-        batch = self._collate_fn(samples)
+        batch = self._base_collate_fn(samples)
 
         if self._adapt_on_batch:
-            batch = self._adapter.adapt(batch)
+            batch = self._adapt_batch(batch=batch)
 
         images, targets = batch  # At this point we know it is (images, targets) because the adapter was used - either on samples or batch
         return images, targets
 
+    def _adapt_samples(self, samples: Iterable) -> List[Tuple[torch.Tensor, torch.Tensor]]:
+        adapted_samples = []
+        for sample in samples:
+            images, targets = self._adapter.adapt(sample)  # Will construct batch of 1
+            images, targets = images.squeeze(0), targets.squeeze(0)  # Extract the sample
+            adapted_samples.append((images, targets))
+        return adapted_samples
+
+    def _adapt_batch(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        images, targets = self._adapter.adapt(batch)
+        return images, targets
+
     @classmethod
-    def calibrate_dataloader(cls, dataloader: torch.utils.data.DataLoader):
+    def setup_adapter(cls, dataloader: torch.utils.data.DataLoader) -> torch.utils.data.DataLoader:
         """Run a dummy iteration of a dataloader to make sure that the dataloader is properly adapted to SuperGradients format."""
         collate_fn: cls
 
         if not isinstance(dataloader.collate_fn, cls):
             raise RuntimeError(
-                f"`calibrate_dataloader` can only be executed on a Dataloader that has a collate_fn of type: {cls}."
-                f"If you want to use the adapter on this Dataloader, please execute `dataloader.collate_fn = {cls.__name__}(...)` before."
+                f"`setup_adapter` can only be executed on a Dataloader that has a base_collate_fn of type: {cls}."
+                f"If you want to use the adapter on this Dataloader, please execute `dataloader.base_collate_fn = {cls.__name__}(...)` before."
             )
         collate_fn = dataloader.collate_fn
         config = collate_fn._adapter.data_config
 
-        if collate_fn._require_calibration:
+        if collate_fn._require_setup:
 
-            # `_require_calibration` should be set before the following `_ = next(iter(dataloader))` - and not after.
+            # `_require_setup` should be set before the following `_ = next(iter(dataloader))` - and not after.
             # Otherwise the RuntimeError will be thrown.
-            collate_fn._require_calibration = False
+            collate_fn._require_setup = False
 
             if not config.is_completely_initialized:
                 if device_config.assigned_rank <= 0:
@@ -122,40 +128,10 @@ class BaseDatasetAdapterCollateFN(ABC):
                 # We want other processes to all sync with the master cache file.
                 with wait_for_the_master(get_local_rank()):
                     config.update_from_cache_file()
-
-
-def maybe_calibrate_dataset_adapter(dataloader: torch.utils.data.DataLoader):
-    if isinstance(dataloader.collate_fn, BaseDatasetAdapterCollateFN):
-        BaseDatasetAdapterCollateFN.calibrate_dataloader(dataloader=dataloader)
-
-
-@register_collate_function()
-class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
-    """Detection Collate function that adapts an input dataset to SuperGradients format
-
-    This is done by applying the adapter logic either before or after the original collate function,
-    depending on whether the adapter was calibrated on a batch or a sample.
-
-    Note that the original collate function (if any) will still be used, but will be wrapped into this class.
-    """
-
-    @resolve_param("collate_fn", CollateFunctionsFactory())
-    def __init__(self, adapter_cache_path: str, collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
-        """
-        :param collate_fn:          Collate function to wrap. If None, the default collate function will be used.
-        :param adapter_cache_path:  Path to the cache file.
-        :param n_classes:           Number of classes in the dataset
-        """
-        adapter = DetectionDatasetAdapter(cache_path=adapter_cache_path, n_classes=n_classes)
-        super().__init__(adapter=adapter, collate_fn=collate_fn)
-
-    def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
-        images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
-        targets = flatten_bbox_batch(targets)  # (BS, P, 5) -> (N, 6)
-        targets[:, 2:] = xyxy2cxcywh(targets[:, 2:])
-        return images, targets
+        return dataloader
 
     @classmethod
+    @abstractmethod
     def adapt_dataloader(cls, dataloader: torch.utils.data.DataLoader, adapter_cache_path: str, n_classes: Optional[int] = None) -> torch.utils.data.DataLoader:
         """Adapt a Dataloader to SG format by Wrapping the original collate function to the SG adapter collate function.
 
@@ -166,9 +142,44 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         :param n_classes:           Number of classes in the dataset
         :return:                    Adapted Dataloader
         """
-        dataloader.collate_fn = cls(collate_fn=dataloader.collate_fn, adapter_cache_path=adapter_cache_path, n_classes=n_classes)
-        cls.calibrate_dataloader(dataloader)
-        return dataloader
+        ...
+
+
+@register_collate_function()
+class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
+    """Detection Collate function that adapts an input dataset to SuperGradients format
+
+    This is done by applying the adapter logic either before or after the original collate function,
+    depending on whether the adapter was set up on a batch or a sample.
+
+    Note that the original collate function (if any) will still be used, but will be wrapped into this class.
+    """
+
+    @resolve_param("base_collate_fn", CollateFunctionsFactory())
+    def __init__(self, adapter_cache_path: str, base_collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
+        """
+        :param base_collate_fn:     Collate function to wrap. If None, the default collate function will be used.
+        :param adapter_cache_path:  Path to the cache file.
+        :param n_classes:           Number of classes in the dataset
+        """
+        adapter = DetectionDatasetAdapter(cache_path=adapter_cache_path, n_classes=n_classes)
+        base_collate_fn = base_collate_fn or (default_collate if adapter.data_config.is_batch else DetectionCollateFN())
+        super().__init__(adapter=adapter, base_collate_fn=base_collate_fn)
+
+    def _adapt_batch(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        from super_gradients.training.utils.detection_utils import xyxy2cxcywh
+
+        images, targets = super()._adapt_batch(batch)
+
+        # This is only relevant if we adapt on the batch.
+        targets = ensure_flat_bbox_batch(targets)  # If adapter applied on collated batch, the output will be (BS, P, 5). In such case, we want -> (N, 6)
+        targets[:, 2:] = xyxy2cxcywh(targets[:, 2:])  # Adapter returns xyxy
+        return images, targets
+
+    @classmethod
+    def adapt_dataloader(cls, dataloader: torch.utils.data.DataLoader, adapter_cache_path: str, n_classes: Optional[int] = None) -> torch.utils.data.DataLoader:
+        dataloader.collate_fn = cls(base_collate_fn=dataloader.collate_fn, adapter_cache_path=adapter_cache_path, n_classes=n_classes)
+        return cls.setup_adapter(dataloader)
 
 
 @register_collate_function()
@@ -176,22 +187,25 @@ class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
     """Segmentation Collate function that adapts an input dataset to SuperGradients format
 
     This is done by applying the adapter logic either before or after the original collate function,
-    depending on whether the adapter was calibrated on a batch or a sample.
+    depending on whether the adapter was set up on a batch or a sample.
 
     Note that the original collate function (if any) will still be used, but will be wrapped into this class.
     """
 
-    @resolve_param("collate_fn", CollateFunctionsFactory())
-    def __init__(self, adapter_cache_path: str, collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
+    @resolve_param("base_collate_fn", CollateFunctionsFactory())
+    def __init__(self, adapter_cache_path: str, base_collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
         """
-        :param collate_fn:          Collate function to wrap. If None, the default collate function will be used.
+        :param base_collate_fn:     Collate function to wrap. If None, the default collate function will be used.
         :param adapter_cache_path:  Path to the cache file.
         :param n_classes:           Number of classes in the dataset
         """
         adapter = SegmentationDatasetAdapter(cache_path=adapter_cache_path, n_classes=n_classes)
-        super().__init__(adapter=adapter, collate_fn=collate_fn)
+        base_collate_fn = base_collate_fn or default_collate
+        super().__init__(adapter=adapter, base_collate_fn=base_collate_fn)
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
+        from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
+
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
         transform = SegmentationDataSet.get_normalize_transform()
         images = transform(images / 255)  # images are [0-255] after the datasetadapter
@@ -200,18 +214,8 @@ class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
 
     @classmethod
     def adapt_dataloader(cls, dataloader: torch.utils.data.DataLoader, adapter_cache_path: str, n_classes: Optional[int] = None) -> torch.utils.data.DataLoader:
-        """Adapt a Dataloader to SG format by Wrapping the original collate function to the SG adapter collate function.
-
-        NOTE: This changes in-place the dataloader. If you still want to keep the original dataloader, make sure to pass a copy!
-
-        :param dataloader:          Dataloader to adapt
-        :param adapter_cache_path:  Path to the cache file.
-        :param n_classes:           Number of classes in the dataset
-        :return:                    Adapted Dataloader
-        """
-        dataloader.collate_fn = cls(collate_fn=dataloader.collate_fn, adapter_cache_path=adapter_cache_path, n_classes=n_classes)
-        cls.calibrate_dataloader(dataloader)
-        return dataloader
+        dataloader.collate_fn = cls(base_collate_fn=dataloader.collate_fn, adapter_cache_path=adapter_cache_path, n_classes=n_classes)
+        return cls.setup_adapter(dataloader)
 
 
 @register_collate_function()
@@ -219,20 +223,21 @@ class ClassificationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
     """Classification Collate function that adapts an input dataset to SuperGradients format
 
     This is done by applying the adapter logic either before or after the original collate function,
-    depending on whether the adapter was calibrated on a batch or a sample.
+    depending on whether the adapter was set up on a batch or a sample.
 
     Note that the original collate function (if any) will still be used, but will be wrapped into this class.
     """
 
-    @resolve_param("collate_fn", CollateFunctionsFactory())
-    def __init__(self, adapter_cache_path: str, collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
+    @resolve_param("base_collate_fn", CollateFunctionsFactory())
+    def __init__(self, adapter_cache_path: str, base_collate_fn: Optional[Callable] = None, n_classes: Optional[int] = None):
         """
-        :param collate_fn:          Collate function to wrap. If None, the default collate function will be used.
+        :param base_collate_fn:     Collate function to wrap. If None, the default collate function will be used.
         :param adapter_cache_path:  Path to the cache file.
         :param n_classes:           Number of classes in the dataset
         """
         adapter = ClassificationDatasetAdapter(cache_path=adapter_cache_path, n_classes=n_classes)
-        super().__init__(adapter=adapter, collate_fn=collate_fn)
+        base_collate_fn = base_collate_fn or default_collate
+        super().__init__(adapter=adapter, base_collate_fn=base_collate_fn)
 
     def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
@@ -241,21 +246,11 @@ class ClassificationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
 
     @classmethod
     def adapt_dataloader(cls, dataloader: torch.utils.data.DataLoader, adapter_cache_path: str, n_classes: Optional[int] = None) -> torch.utils.data.DataLoader:
-        """Adapt a Dataloader to SG format by Wrapping the original collate function to the SG adapter collate function.
-
-        NOTE: This changes in-place the dataloader. If you still want to keep the original dataloader, make sure to pass a copy!
-
-        :param dataloader:          Dataloader to adapt
-        :param adapter_cache_path:  Path to the cache file.
-        :param n_classes:           Number of classes in the dataset
-        :return:                    Adapted Dataloader
-        """
-        dataloader.collate_fn = cls(collate_fn=dataloader.collate_fn, adapter_cache_path=adapter_cache_path, n_classes=n_classes)
-        cls.calibrate_dataloader(dataloader)
-        return dataloader
+        dataloader.collate_fn = cls(base_collate_fn=dataloader.collate_fn, adapter_cache_path=adapter_cache_path, n_classes=n_classes)
+        return cls.setup_adapter(dataloader)
 
 
-def flatten_bbox_batch(bbox_batch: torch.Tensor) -> torch.Tensor:
+def ensure_flat_bbox_batch(bbox_batch: torch.Tensor) -> torch.Tensor:
     """
     Flatten a batched bounding box tensor and prepend the batch ID to each bounding box. Excludes padding boxes.
 

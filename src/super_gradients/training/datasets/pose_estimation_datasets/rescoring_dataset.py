@@ -63,7 +63,7 @@ class ValTrainRescoringDataset(RescoringDataset):
     on it, this enables us to compute pose estimation metrics after rescoring.
 
     This dataset is intended to be used with DataLoader with batch_size=1.
-    In this case we don't need to padd poses in collate_fn.
+    In this case we don't need to padd poses in base_collate_fn.
     """
 
     def __init__(self, pkl_file: str):

@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from data_gradients.managers.detection_manager import DetectionAnalysisManager
 from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 from data_gradients.managers.classification_manager import ClassificationAnalysisManager
-from super_gradients.training.datasets.collate_fn import (
+from super_gradients.training.utils.collate_fn import (
     DetectionDatasetAdapterCollateFN,
     SegmentationDatasetAdapterCollateFN,
     ClassificationDatasetAdapterCollateFN,
@@ -182,7 +182,9 @@ class TestSegmentationAdapter(unittest.TestCase):
         )
         analyzer_ds.run()
 
-        loader.collate_fn = SegmentationDatasetAdapterCollateFN(collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader.collate_fn = SegmentationDatasetAdapterCollateFN(
+            base_collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6
+        )
 
         for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -263,8 +265,10 @@ class TestClassificationAdapter(unittest.TestCase):
         analyzer_ds.run()
 
         # This is required to use the adapter inside the existing Dataloader.
-        # `collate_fn=loader.collate_fn` ensure to still take into account any collate_fn that was passed to the Dataloader
-        loader.collate_fn = ClassificationDatasetAdapterCollateFN(collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+        # `base_collate_fn=loader.base_collate_fn` ensure to still take into account any base_collate_fn that was passed to the Dataloader
+        loader.collate_fn = ClassificationDatasetAdapterCollateFN(
+            base_collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6
+        )
 
         for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)

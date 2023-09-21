@@ -145,8 +145,8 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
 
 
 def _process_collate_fn_params(dataloader_params):
-    if get_param(dataloader_params, "collate_fn") is not None:
-        dataloader_params["collate_fn"] = CollateFunctionsFactory().get(dataloader_params["collate_fn"])
+    if get_param(dataloader_params, "base_collate_fn") is not None:
+        dataloader_params["base_collate_fn"] = CollateFunctionsFactory().get(dataloader_params["base_collate_fn"])
 
     return dataloader_params
 
