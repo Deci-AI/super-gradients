@@ -1,6 +1,6 @@
 from torch.utils.data.dataloader import default_collate
 import random
-from typing import List, Union, Tuple, Optional, Dict, Type, Callable, Iterable
+from typing import List, Union, Tuple, Optional, Dict, Type, Callable, Iterable, Sequence
 
 from abc import ABC, abstractmethod
 
@@ -85,6 +85,10 @@ class BaseDatasetAdapterCollateFN(ABC):
         return images, targets
 
     def _adapt_samples(self, samples: Iterable) -> List[Tuple[torch.Tensor, torch.Tensor]]:
+        """Apply the adapter logic to a list of samples. This should be called only if the adapter was NOT setup on a batch.
+        :param samples: List of samples to adapt
+        :return:        List of (Image, Targets)
+        """
         adapted_samples = []
         for sample in samples:
             images, targets = self._adapter.adapt(sample)  # Will construct batch of 1
@@ -92,7 +96,11 @@ class BaseDatasetAdapterCollateFN(ABC):
             adapted_samples.append((images, targets))
         return adapted_samples
 
-    def _adapt_batch(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _adapt_batch(self, batch: Sequence[torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Apply the adapter logic to a batch. This should be called only if the adapter was setup on a batch.
+        :param batch: Batch of samples to adapt
+        :return:      Adapted batch (Images, Targets)
+        """
         images, targets = self._adapter.adapt(batch)
         return images, targets
 
