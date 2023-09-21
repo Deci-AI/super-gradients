@@ -13,6 +13,7 @@ from data_gradients.dataset_adapters.base_adapter import BaseDatasetAdapter
 from data_gradients.dataset_adapters.detection_adapter import DetectionDatasetAdapter
 from data_gradients.dataset_adapters.segmentation_adapter import SegmentationDatasetAdapter
 from data_gradients.dataset_adapters.classification_adapter import ClassificationDatasetAdapter
+from data_gradients.dataset_adapters.config.typing import SupportedDataType
 
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -61,7 +62,7 @@ class BaseDatasetAdapterCollateFN(ABC):
         if isinstance(self._base_collate_fn, type(self)):
             raise RuntimeError(f"You just tried to instantiate {self.__class__.__name__} with a `base_collate_fn` of the same type, which is not supported.")
 
-    def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __call__(self, samples: Iterable[SupportedDataType]) -> Tuple[torch.Tensor, torch.Tensor]:
 
         if self._require_setup:
             # This is required because python `input` is no compatible multiprocessing (e.g. `num_workers > 0`, or `DDP`)
@@ -84,7 +85,7 @@ class BaseDatasetAdapterCollateFN(ABC):
         images, targets = batch  # At this point we know it is (images, targets) because the adapter was used - either on samples or batch
         return images, targets
 
-    def _adapt_samples(self, samples: Iterable) -> List[Tuple[torch.Tensor, torch.Tensor]]:
+    def _adapt_samples(self, samples: Iterable[SupportedDataType]) -> List[Tuple[torch.Tensor, torch.Tensor]]:
         """Apply the adapter logic to a list of samples. This should be called only if the adapter was NOT setup on a batch.
         :param samples: List of samples to adapt
         :return:        List of (Image, Targets)
@@ -177,7 +178,7 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         base_collate_fn = base_collate_fn or (default_collate if adapter.data_config.is_batch else DetectionCollateFN())
         super().__init__(adapter=adapter, base_collate_fn=base_collate_fn)
 
-    def _adapt_batch(self, batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _adapt_batch(self, batch: Sequence[torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         from super_gradients.training.utils.detection_utils import xyxy2cxcywh
 
         images, targets = super()._adapt_batch(batch)
@@ -214,7 +215,7 @@ class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         base_collate_fn = base_collate_fn or default_collate
         super().__init__(adapter=adapter, base_collate_fn=base_collate_fn)
 
-    def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __call__(self, samples: Iterable[SupportedDataType]) -> Tuple[torch.Tensor, torch.Tensor]:
         from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
@@ -250,7 +251,7 @@ class ClassificationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         base_collate_fn = base_collate_fn or default_collate
         super().__init__(adapter=adapter, base_collate_fn=base_collate_fn)
 
-    def __call__(self, samples: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __call__(self, samples: Iterable[SupportedDataType]) -> Tuple[torch.Tensor, torch.Tensor]:
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
         images = images / 255
         return images, targets
