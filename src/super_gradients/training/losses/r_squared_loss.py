@@ -9,7 +9,7 @@ from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.utils import convert_to_tensor
 
 
-@register_loss(Losses.R_SQUARED_LOSS)
+@register_loss(name=Losses.R_SQUARED_LOSS, deprecated_name="r_squared_loss")
 class RSquaredLoss(_Loss):
     def forward(self, output, target):
         # FIXME - THIS NEEDS TO BE CHANGED SUCH THAT THIS CLASS INHERETS FROM _Loss (TAKE A LOOK AT YoLoV3DetectionLoss)
