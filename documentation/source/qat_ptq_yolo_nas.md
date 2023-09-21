@@ -20,27 +20,27 @@ Now, let's get to it.
 
 ## Step 0: Installations and Dataset Setup
 
-Follow the setup instructions for RF100:
+Follow the [official instructions](https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog) to download Roboflow100: 
+
+To use this dataset, you **must** download the "coco" format, **NOT** the yolov5.
+
 ```
-        - Follow the official instructions to download Roboflow100: https://github.com/roboflow/roboflow-100-benchmark?ref=roboflow-blog
-            //!\\ To use this dataset, you must download the "coco" format, NOT the yolov5.
+- Your dataset should look like this:
+    rf100
+    ├── 4-fold-defect
+    │      ├─ train
+    │      │    ├─ 000000000001.jpg
+    │      │    ├─ ...
+    │      │    └─ _annotations.coco.json
+    │      ├─ valid
+    │      │    └─ ...
+    │      └─ test
+    │           └─ ...
+    ├── abdomen-mri
+    │      └─ ...
+    └── ...
 
-        - Your dataset should look like this:
-            rf100
-            ├── 4-fold-defect
-            │      ├─ train
-            │      │    ├─ 000000000001.jpg
-            │      │    ├─ ...
-            │      │    └─ _annotations.coco.json
-            │      ├─ valid
-            │      │    └─ ...
-            │      └─ test
-            │           └─ ...
-            ├── abdomen-mri
-            │      └─ ...
-            └── ...
-
-        - Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
+- Install CoCo API: https://github.com/pdollar/coco/tree/master/PythonAPI
 ```
 
 Install the latest version of SG:
