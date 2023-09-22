@@ -7,7 +7,7 @@ dataset_params_suffix: "mosaic_${dataset_params.mosaic_prob}_${dataset_params.im
 
 train_dataset_params:
   include_empty_samples: True
-  min_instance_area: 16
+  min_instance_area: 1
   crowd_annotations_action: mask_as_normal
 
   transforms:
@@ -28,7 +28,7 @@ train_dataset_params:
 
     - KeypointsRandomAffineTransform:
         max_rotation: 5
-        min_scale: 0.5
+        min_scale: 0.75
         max_scale: 1.5
         max_translate: 0.1
         image_pad_value: 127
@@ -60,7 +60,7 @@ train_dataset_params:
 
 val_dataset_params:
   include_empty_samples: True
-  min_instance_area: 0
+  min_instance_area: 1
   transforms:
     - KeypointsLongestMaxSize:
         max_height: ${dataset_params.image_size}

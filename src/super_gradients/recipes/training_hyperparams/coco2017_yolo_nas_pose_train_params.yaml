@@ -1,22 +1,22 @@
 defaults:
   - default_train_params
 
-max_epochs: 300
 
-warmup_mode: "linear_epoch_step"
-warmup_initial_lr:  1e-5
-lr_warmup_steps: 1000
+warmup_mode: "linear_batch_step"
+warmup_initial_lr:  1e-6
+lr_warmup_steps: 128
 lr_warmup_epochs: 10
 
-initial_lr:  1e-3
+initial_lr:  2e-3
 lr_mode: cosine
 cosine_final_lr_ratio: 0.05
+max_epochs: 1000
 
 zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
 
 average_best_models: True
-save_ckpt_epoch_list: [100, 200, 250]
+save_ckpt_epoch_list: [300, 500]
 
 loss: yolo_nas_pose_loss
 
@@ -34,15 +34,15 @@ criterion_params:
     use_cocoeval_formula: True
     pose_classification_loss_type: focal
     rescale_pose_loss_with_assigned_score: True
-    assigner_multiply_by_pose_oks: False
+    assigner_multiply_by_pose_oks: True
 
 optimizer: AdamW
 optimizer_params:
   weight_decay: 0.000001
 
-ema: False
+ema: True
 ema_params:
-  decay: 0.9997
+  decay: 0.997
   decay_type: threshold
 
 mixed_precision: True
@@ -78,6 +78,16 @@ phase_callbacks:
         nms_iou_threshold: 0.7
         pre_nms_max_predictions: 300
         post_nms_max_predictions: 30
+
+  - EarlyStop:
+      phase:
+        _target_: super_gradients.training.utils.callbacks.base_callbacks.Phase
+        value: VALIDATION_EPOCH_END
+      monitor: AP
+      mode: max
+      min_delta: 0.0001
+      patience: 100
+      verbose: True
 
 pre_prediction_callback:
 

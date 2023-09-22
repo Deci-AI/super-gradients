@@ -24,6 +24,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         grid_cell_scale: float = 5.0,
         grid_cell_offset: float = 0.5,
         reg_max: int = 16,
+        inference_mode: bool = False,
         eval_size: Optional[Tuple[int, int]] = None,
         width_mult: float = 1.0,
         pose_offset_multiplier: float = 1.0,
@@ -49,8 +50,8 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
                Default value is True.
 
         """
-        super(YoloNASPoseNDFLHeads, self).__init__(in_channels)
         in_channels = [max(round(c * width_mult), 1) for c in in_channels]
+        super().__init__(in_channels)
 
         self.in_channels = tuple(in_channels)
         self.num_classes = num_classes
@@ -60,6 +61,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         self.eval_size = eval_size
         self.pose_offset_multiplier = pose_offset_multiplier
         self.compensate_grid_cell_offset = compensate_grid_cell_offset
+        self.inference_mode = inference_mode
 
         # Do not apply quantization to this tensor
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
@@ -166,7 +168,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
         decoded_predictions = pred_bboxes, pred_scores, pred_pose_coords, pred_pose_scores
 
-        if torch.jit.is_tracing():
+        if torch.jit.is_tracing() or self.inference_mode:
             return decoded_predictions
 
         anchors, anchor_points, num_anchors_list, _ = generate_anchors_for_grid_cell(feats, self.fpn_strides, self.grid_cell_scale, self.grid_cell_offset)

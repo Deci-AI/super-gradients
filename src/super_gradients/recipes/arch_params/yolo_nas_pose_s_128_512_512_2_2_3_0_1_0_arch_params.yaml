@@ -1,0 +1,43 @@
+defaults:
+  - yolo_nas_pose_s_arch_params
+  - _self_
+
+heads:
+  YoloNASPoseNDFLHeads:
+    heads_list:
+      - YoloNASPoseDFLHead:
+          bbox_inter_channels: 128
+          pose_inter_channels: 128
+          pose_regression_blocks: 2
+          shared_stem: False
+          width_mult: 0.5
+          pose_conf_in_class_head: True
+          pose_block_use_repvgg: False
+          first_conv_group_size: 0
+          num_classes:
+          stride: 8
+          reg_max: 16
+      - YoloNASPoseDFLHead:
+          bbox_inter_channels: 256
+          pose_inter_channels: 512
+          pose_regression_blocks: 2
+          shared_stem: False
+          width_mult: 0.5
+          pose_conf_in_class_head: True
+          pose_block_use_repvgg: False
+          first_conv_group_size: 0
+          num_classes:
+          stride: 16
+          reg_max: 16
+      - YoloNASPoseDFLHead:
+          bbox_inter_channels: 512
+          pose_inter_channels: 512
+          pose_regression_blocks: 3
+          shared_stem: False
+          width_mult: 0.5
+          pose_conf_in_class_head: True
+          pose_block_use_repvgg: False
+          first_conv_group_size: 0
+          num_classes:
+          stride: 32
+          reg_max: 16
