@@ -41,7 +41,7 @@ dataset_params:
   mosaic_prob: 0.5
 
   train_dataloader_params:
-    batch_size: 48
+    batch_size: 32
 
   val_dataloader_params:
-    batch_size: 48
+    batch_size: 32
