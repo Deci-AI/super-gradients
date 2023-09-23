@@ -86,29 +86,34 @@ class PoseEstimationPrediction(Prediction):
         self,
         poses: np.ndarray,
         scores: np.ndarray,
+        bboxes: Optional[np.ndarray],
         edge_links: np.ndarray,
         edge_colors: np.ndarray,
         keypoint_colors: np.ndarray,
         image_shape: Tuple[int, int],
     ):
         """
-        :param poses:
-        :param scores:
-        :param image_shape: Shape of the image the prediction is made on, (H, W). This is used to convert bboxes to xyxy format
+        :param poses:       Predicted poses as a numpy array of shape [Num Poses, Num Joints, 2]
+        :param scores:      Confidence scores for each pose [Num Poses]
+        :param bboxes:      Bounding boxes of each pose in xyxy format [Num Poses, 4]
+        :param image_shape: Shape of the image the prediction is made on, (H, W).
         """
-        self._validate_input(poses, scores, edge_links, edge_colors, keypoint_colors)
+        self._validate_input(poses, scores, bboxes, edge_links, edge_colors, keypoint_colors)
         self.poses = poses
         self.scores = scores
+        self.bboxes = bboxes
         self.edge_links = edge_links
         self.edge_colors = edge_colors
         self.image_shape = image_shape
         self.keypoint_colors = keypoint_colors
 
-    def _validate_input(self, poses: np.ndarray, scores: np.ndarray, edge_links, edge_colors, keypoint_colors) -> None:
+    def _validate_input(self, poses: np.ndarray, scores: np.ndarray, bboxes: Optional[np.ndarray], edge_links, edge_colors, keypoint_colors) -> None:
         if not isinstance(poses, np.ndarray):
             raise ValueError(f"Argument poses must be a numpy array, not {type(poses)}")
         if not isinstance(scores, np.ndarray):
             raise ValueError(f"Argument scores must be a numpy array, not {type(scores)}")
+        if bboxes is not None and not isinstance(bboxes, np.ndarray):
+            raise ValueError(f"Argument bboxes must be a numpy array, not {type(bboxes)}")
         if not isinstance(keypoint_colors, np.ndarray):
             raise ValueError(f"Argument keypoint_colors must be a numpy array, not {type(keypoint_colors)}")
         if len(poses) != len(scores) != len(keypoint_colors):

@@ -92,20 +92,42 @@ heads:
     reg_max: 16
     heads_list:
       - YoloNASPoseDFLHead:
-          inter_channels: 128
+          bbox_inter_channels: 128
+          pose_inter_channels: 128
+          pose_regression_blocks: 2
+          shared_stem: False
           width_mult: 1
+          pose_conf_in_class_head: True
+          pose_block_use_repvgg: False
           first_conv_group_size: 0
+          num_classes:
           stride: 8
+          reg_max: 16
       - YoloNASPoseDFLHead:
-          inter_channels: 256
+          bbox_inter_channels: 256
+          pose_inter_channels: 512
+          pose_regression_blocks: 2
+          shared_stem: False
           width_mult: 1
+          pose_conf_in_class_head: True
+          pose_block_use_repvgg: False
           first_conv_group_size: 0
+          num_classes:
           stride: 16
+          reg_max: 16
       - YoloNASPoseDFLHead:
-          inter_channels: 512
+          bbox_inter_channels: 512
+          pose_inter_channels: 512
+          pose_regression_blocks: 3
+          shared_stem: False
           width_mult: 1
+          pose_conf_in_class_head: True
+          pose_block_use_repvgg: False
           first_conv_group_size: 0
+          num_classes:
           stride: 32
+          reg_max: 16
+
 
 bn_eps: 1e-6
 bn_momentum: 0.1
