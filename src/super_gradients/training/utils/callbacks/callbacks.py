@@ -1128,14 +1128,17 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             self._reset()
 
     def _reset(self):
-        self.extreme_score = -1 * np.inf if self.max else np.inf
+        self.extreme_score = None
         self.extreme_batch = None
         self.extreme_preds = None
         self.extreme_targets = None
         if self.metric is not None:
             self.metric.reset()
 
-    def _is_more_extreme(self, score: float) -> bool:
+    def _is_more_extreme(self, score: Union[float, torch.Tensor]) -> bool:
+        if self.extreme_score is None:
+            return True
+
         if self.max:
             return self.extreme_score < score
         else:
@@ -1159,7 +1162,6 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             self.metric.reset()
 
         else:
-
             # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
             loss_tuple = context.loss_log_items
             if self._first_call:
