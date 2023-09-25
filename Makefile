@@ -44,8 +44,14 @@ coco2017_yolo_nas_pose_s_128_512_512_3_2_2_0_1_1:
 coco2017_yolo_nas_pose_m:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_m $(WANDB_PARAMS)
 
+coco2017_yolo_nas_pose_m_resume:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_m $(WANDB_PARAMS) resume=True
+
 coco2017_yolo_nas_pose_l:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l $(WANDB_PARAMS)
+
+coco2017_yolo_nas_pose_l_resume:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l $(WANDB_PARAMS) resume=True
 
 #coco2017_yolo_nas_pose_s:
 #	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_dataset_params
