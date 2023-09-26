@@ -6,6 +6,7 @@ from typing import Any
 from typing import Union, Optional, List, Tuple
 
 import numpy as np
+import onnx
 import onnxsim
 import torch
 from torch import nn, Tensor
@@ -503,7 +504,10 @@ class ExportablePoseEstimationModel:
                     )
 
                 if onnx_simplify:
-                    onnxsim.simplify(output)
+                    model_opt, check_ok = onnxsim.simplify(output)
+                    if not check_ok:
+                        raise RuntimeError(f"Failed to simplify ONNX model {output}")
+                    onnx.save(model_opt, output)
                     logger.debug(f"Ran onnxsim.simplify on {output}")
             finally:
                 if quantization_mode == ExportQuantizationMode.INT8:
