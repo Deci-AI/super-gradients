@@ -84,7 +84,7 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         self,
         pred_scores: Tensor,
         pred_bboxes: Tensor,
-        pred_poses: Tensor,
+        pred_pose_coords: Tensor,
         anchor_points: Tensor,
         num_anchors_list: list,
         gt_labels: Tensor,
@@ -108,7 +108,7 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
 
         :param pred_scores: Tensor (float32): predicted class probability, shape(B, L, C)
         :param pred_bboxes: Tensor (float32): predicted bounding boxes, shape(B, L, 4)
-        :param pred_poses: Tensor (float32): predicted poses, shape(B, L, 17, 3)
+        :param pred_pose_coords: Tensor (float32): predicted poses, shape(B, L, 17, 2)
         :param anchor_points: Tensor (float32): pre-defined anchors, shape(L, 2), xy format
         :param num_anchors_list: List ( num of anchors in each level, shape(L)
         :param gt_labels: Tensor (int64|int32): Label of gt_bboxes, shape(B, n, 1)
@@ -127,7 +127,7 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         assert gt_labels.ndim == gt_bboxes.ndim and gt_bboxes.ndim == 3
 
         batch_size, num_anchors, num_classes = pred_scores.shape
-        _, _, num_keypoints, _ = pred_poses.shape
+        _, _, num_keypoints, _ = pred_pose_coords.shape
         _, num_max_boxes, _ = gt_bboxes.shape
 
         # negative batch
@@ -152,7 +152,7 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
         ious = batch_iou_similarity(gt_bboxes, pred_bboxes)
 
         if self.multiply_by_pose_oks:
-            pose_oks = batch_pose_oks(gt_poses, pred_poses, gt_bboxes, self.sigmas.to(pred_poses.device))
+            pose_oks = batch_pose_oks(gt_poses, pred_pose_coords, gt_bboxes, self.sigmas.to(pred_pose_coords.device))
             ious = ious * pose_oks
 
         # gather pred bboxes class score
@@ -347,7 +347,7 @@ class YoloNASPoseLoss(nn.Module):
 
     def forward(
         self,
-        outputs: Tuple[Tuple[Tensor, Tensor, Tensor, Tensor], Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]],
+        outputs: Tuple[Tuple[Tensor, Tensor, Tensor, Tensor], Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]],
         targets: Tensor,
     ) -> Tuple[Tensor, Tensor]:
         """
@@ -360,7 +360,8 @@ class YoloNASPoseLoss(nn.Module):
         (
             pred_scores,
             pred_distri,
-            pred_pose_logits,
+            pred_pose_coords,  # [B, Anchors, C, 2]
+            pred_pose_logits,  # [B, Anchors, C]
             anchors,
             anchor_points,
             num_anchors_list,
@@ -382,7 +383,7 @@ class YoloNASPoseLoss(nn.Module):
         assign_result = self.assigner(
             pred_scores=pred_scores.detach().sigmoid(),  # Pred scores are logits on training for numerical stability
             pred_bboxes=pred_bboxes.detach() * stride_tensor,
-            pred_poses=pred_pose_logits.detach(),
+            pred_pose_coords=pred_pose_coords.detach(),
             anchor_points=anchor_points,
             num_anchors_list=num_anchors_list,
             gt_labels=gt_labels,
@@ -418,7 +419,8 @@ class YoloNASPoseLoss(nn.Module):
         loss_iou, loss_dfl, loss_pose_cls, loss_pose_reg = self._bbox_loss(
             pred_distri,
             pred_bboxes,
-            pred_pose_logits,
+            pred_pose_coords=pred_pose_coords,
+            pred_pose_logits=pred_pose_logits,
             stride_tensor=stride_tensor,
             anchor_points=anchor_points_s,
             assign_result=assign_result,
@@ -524,6 +526,7 @@ class YoloNASPoseLoss(nn.Module):
         self,
         pred_dist,
         pred_bboxes,
+        pred_pose_coords,
         pred_pose_logits,
         stride_tensor,
         anchor_points,
@@ -560,8 +563,8 @@ class YoloNASPoseLoss(nn.Module):
             loss_dfl = loss_dfl.sum() / assigned_scores_sum
 
             # Do not divide poses by stride since this would skew the loss and make sigmas incorrect
-            pred_pose_coords = pred_pose_logits[..., 0:2][mask_positive]
-            pred_pose_logits = pred_pose_logits[mask_positive][..., 2:3]
+            pred_pose_coords = pred_pose_coords[mask_positive]
+            pred_pose_logits = pred_pose_logits[mask_positive].unsqueeze(-1)  # To make [Num Instances, Num Joints, 1]
 
             gt_pose_coords = assign_result.assigned_poses[..., 0:2][mask_positive]
             gt_pose_visibility = assign_result.assigned_poses[mask_positive][:, :, 2:3]

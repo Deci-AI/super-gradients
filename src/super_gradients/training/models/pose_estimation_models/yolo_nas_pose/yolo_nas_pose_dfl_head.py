@@ -129,14 +129,15 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
     def out_channels(self):
         return None
 
-    def forward(self, x) -> Tuple[Tensor, Tensor, Tensor]:
+    def forward(self, x) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """
 
         :param x: Input feature map of shape [B, Cin, H, W]
-        :return: Tuple of [reg_output, cls_output, pose_output]
-            - reg_output: Tensor of [B, 4 * (reg_max + 1), H, W]
-            - cls_output: Tensor of [B, 1, H, W]
-            - pose_output: Tensor of [B, num_classes, 3, H, W]
+        :return: Tuple of [reg_output, cls_output, pose_regression, pose_logits]
+            - reg_output:      Tensor of [B, 4 * (reg_max + 1), H, W]
+            - cls_output:      Tensor of [B, 1, H, W]
+            - pose_regression: Tensor of [B, num_classes, 2, H, W]
+            - pose_logits:     Tensor of [B, num_classes, H, W]
         """
         x = self.stem(x)
         pose_features = self.pose_stem(x)
@@ -156,14 +157,15 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         pose_output = self.pose_pred(pose_feat)
 
         if self.pose_conf_in_class_head:
-            pose_logits = cls_output[:, 1:, None, :, :]
+            pose_logits = cls_output[:, 1:, :, :]
             cls_output = cls_output[:, 0:1, :, :]
-            pose_output = pose_output.reshape((pose_output.size(0), self.num_classes, 2, pose_output.size(2), pose_output.size(3)))
-            pose_output = torch.cat((pose_output, pose_logits), dim=2)
+            pose_regression = pose_output.reshape((pose_output.size(0), self.num_classes, 2, pose_output.size(2), pose_output.size(3)))
         else:
             pose_output = pose_output.reshape((pose_output.size(0), self.num_classes, 3, pose_output.size(2), pose_output.size(3)))
+            pose_logits = pose_output[:, :, 2, :, :]
+            pose_regression = pose_output[:, :, 0:2, :, :]
 
-        return reg_output, cls_output, pose_output
+        return reg_output, cls_output, pose_regression, pose_logits
 
     def _initialize_biases(self):
         prior_bias = -math.log((1 - self.prior_prob) / self.prior_prob)
