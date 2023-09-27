@@ -50,6 +50,9 @@ coco2017_yolo_nas_pose_m_resume:
 coco2017_yolo_nas_pose_l:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l $(WANDB_PARAMS)
 
+coco2017_yolo_nas_pose_l_no_ema:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l $(WANDB_PARAMS) training_hyperparams.ema=False
+
 coco2017_yolo_nas_pose_n:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_n $(WANDB_PARAMS)
 
