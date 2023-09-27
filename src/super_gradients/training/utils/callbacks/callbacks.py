@@ -1085,12 +1085,27 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         max_images: int = -1,
     ):
         """
+        :param metric: Metric, will be the metric which is monitored.
 
-        :param metric:
-        :param metric_component_name:
-        :param loss_to_monitor:
-        :param max:
-        :param freq:                   Frequency (in epochs) of performing this callback. 1 means every epoch. 2 means every other epoch. Default is 1.
+        :param metric_component_name: In case metric returns multiple values (as Mapping),
+         the value at metric.compute()[metric_component_name] will be the one monitored.
+
+        :param loss_to_monitor: str, loss_to_monitor corresponding to the 'criterion' passed through training_params in Trainer.train(...).
+         Monitoring loss follows the same logic as metric_to_watch in Trainer.train(..), when watching the loss and should be:
+
+        if hasattr(criterion, "component_names") and criterion.forward(..) returns a tuple:
+            <LOSS_CLASS.__name__>"/"<COMPONENT_NAME>.
+
+        If a single item is returned rather then a tuple:
+            <LOSS_CLASS.__name__>.
+
+        When there is no such attributes and criterion.forward(..) returns a tuple:
+            <LOSS_CLASS.__name__>"/"Loss_"<IDX>
+
+        :param max:                    bool, Whether to take the batch corresponding to the max value of the metric/loss or
+        the minimum (default=False).
+
+        :param freq:                   int, epoch frequency to perform all of the above (default=1).
         :param enable_on_train_loader: Controls whether to enable this callback on the train loader. Default is False.
         :param enable_on_valid_loader: Controls whether to enable this callback on the valid loader. Default is True.
         :param max_images:             Maximum images to save. If -1, save all images.
@@ -1182,7 +1197,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             if self.metric_component_name is not None:
                 if not isinstance(score, Mapping) or (isinstance(score, Mapping) and self.metric_component_name not in score.keys()):
                     raise RuntimeError(
-                        f"metric_component_name: {self.metric_component_name} is not a component " f"of the monitored metric: {self.metric.__class__.__name__}"
+                        f"metric_component_name: {self.metric_component_name} is not a component of the monitored metric: {self.metric.__class__.__name__}"
                     )
                 score = score[self.metric_component_name]
             elif len(score) > 1:
