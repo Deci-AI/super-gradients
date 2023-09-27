@@ -1069,7 +1069,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
 
     :param freq: int, epoch frequency to perform all of the above (default=1).
 
-     Inheritors should implement process_extreme_batch which returns an image, as np.array (uint8) with shape BCHW.
+     Inheritors should implement process_extreme_batch which returns an image, as np.ndarray (uint8) with shape BHWC.
     """
 
     @resolve_param("metric", MetricsFactory())
@@ -1153,7 +1153,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         """
         This method is called right before adding the images to the in  SGLoggger (inside the on_validation_loader_end call).
          It should process self.extreme_batch, self.extreme_preds and self.extreme_targets and output the images, as np.ndarrray.
-         Output should be of shape N,3,H,W and uint8.
+         Output should be of shape N,H,W,3 and uint8.
         :return: images to save, np.ndarray
         """
         raise NotImplementedError
@@ -1373,11 +1373,13 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
     def universal_undo_preprocessing_fn(inputs: torch.Tensor) -> np.ndarray:
         """
         A universal reversing of preprocessing to be passed to DetectionVisualization.visualize_batch's undo_preprocessing_func kwarg.
-        :param inputs:
-        :return:
+        This function scales input tensor to 0..255 range, and cast it to uint8 dtype.
+
+        :param inputs: Input 4D tensor of images in BCHW format with unknown normalization.
+        :return:       Numpy 4D tensor of images in BHWC format, normalized to 0..255 range (uint8).
         """
         inputs -= inputs.min()
-        inputs /= inputs.max()
+        inputs /= inputs.max() + 1e-8
         inputs *= 255
         inputs = inputs.to(torch.uint8)
         inputs = inputs.cpu().numpy()
@@ -1390,7 +1392,7 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
         Processes the extreme batch, and returns list of images for visualization.
         Default implementations stacks GT and prediction overlays horisontally.
 
-        :return: np.ndarray A 4D tensor of [BHWC] shape with visualizations of the extreme batch.
+        :return: np.ndarray A 4D tensor of BHWC shape with visualizations of the extreme batch.
         """
         inputs = self.extreme_batch
         preds = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
@@ -1464,7 +1466,7 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
     :param metric_component_name: In case metric returns multiple values (as Mapping),
      the value at metric.compute()[metric_component_name] will be the one monitored.
 
-    :param loss_to_monitor: str, loss_to_monitor corresponfing to the 'criterion' passed through training_params in Trainer.train(...).
+    :param loss_to_monitor: str, loss_to_monitor corresponding to the 'criterion' passed through training_params in Trainer.train(...).
      Monitoring loss follows the same logic as metric_to_watch in Trainer.train(..), when watching the loss and should be:
 
         if hasattr(criterion, "component_names") and criterion.forward(..) returns a tuple:
@@ -1473,7 +1475,7 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
         If a single item is returned rather then a tuple:
             <LOSS_CLASS.__name__>.
 
-        When there is no such attributesand criterion.forward(..) returns a tuple:
+        When there is no such attributes and criterion.forward(..) returns a tuple:
             <LOSS_CLASS.__name__>"/"Loss_"<IDX>
 
     :param max:                    bool, Whether to take the batch corresponding to the max value of the metric/loss or
