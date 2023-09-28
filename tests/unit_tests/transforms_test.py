@@ -390,7 +390,7 @@ class TestTransforms(unittest.TestCase):
         plt.show()
 
         aug = KeypointsBrightnessContrast(brightness_range=(1.1, 1.5), contrast_range=(1, 1), prob=1)
-        sample = aug(PoseEstimationSample(image=image, joints=None, bboxes=None, areas=None, mask=None, is_crowd=None))
+        sample = aug(PoseEstimationSample(image=image, joints=None, bboxes=None, areas=None, mask=None, is_crowd=None, additional_samples=None))
         plt.figure()
         plt.imshow(sample.image)
         plt.title("Augmented image")
@@ -404,6 +404,7 @@ class TestTransforms(unittest.TestCase):
             is_crowd=np.zeros((1,), dtype=np.bool),
             areas=None,
             bboxes=np.random.randint(0, 64, size=(2, 4)),
+            additional_samples=None,
         )
 
         sample2 = PoseEstimationSample(
@@ -413,6 +414,7 @@ class TestTransforms(unittest.TestCase):
             is_crowd=np.zeros((1,), dtype=np.bool),
             areas=None,
             bboxes=np.random.randint(32, 64, size=(2, 4)),
+            additional_samples=None,
         )
 
         sample3 = PoseEstimationSample(
@@ -422,6 +424,7 @@ class TestTransforms(unittest.TestCase):
             is_crowd=np.zeros((1,), dtype=np.bool),
             areas=None,
             bboxes=np.random.randint(128, 256, size=(2, 4)),
+            additional_samples=None,
         )
 
         sample4 = PoseEstimationSample(
@@ -431,6 +434,7 @@ class TestTransforms(unittest.TestCase):
             is_crowd=np.zeros((1,), dtype=np.bool),
             areas=None,
             bboxes=np.random.randint(0, 32, size=(2, 4)),
+            additional_samples=None,
         )
 
         input_mixup = copy.deepcopy(sample4)

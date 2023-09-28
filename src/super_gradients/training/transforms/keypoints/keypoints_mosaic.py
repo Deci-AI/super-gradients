@@ -89,7 +89,7 @@ class KeypointsMosaic(AbstractKeypointTransform):
 
         is_crowd = np.concatenate([left.is_crowd, right.is_crowd], axis=0)
         areas = self._concatenate_arrays(left.areas, right.areas, shape_if_empty=(0,))
-        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas)
+        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas, additional_samples=None)
 
     def stack_samples_vertically(self, top, bottom):
         max_width = max(top.image.shape[1], bottom.image.shape[1])
@@ -119,7 +119,7 @@ class KeypointsMosaic(AbstractKeypointTransform):
 
         is_crowd = np.concatenate([top.is_crowd, bottom.is_crowd], axis=0)
         areas = self._concatenate_arrays(top.areas, bottom.areas, shape_if_empty=(0,))
-        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas)
+        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas, additional_samples=None)
 
     def _concatenate_arrays(self, arr1: Optional[np.ndarray], arr2: Optional[np.ndarray], shape_if_empty):
         if arr1 is None:

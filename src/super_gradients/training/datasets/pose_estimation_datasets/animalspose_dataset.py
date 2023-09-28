@@ -151,11 +151,4 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
         image = cv2.imread(file_path, cv2.IMREAD_COLOR)
         mask = np.ones(image.shape[:2], dtype=np.float32)
 
-        return PoseEstimationSample(
-            image=image,
-            mask=mask,
-            joints=gt_joints,
-            areas=gt_areas,
-            bboxes=gt_bboxes,
-            is_crowd=gt_iscrowd,
-        )
+        return PoseEstimationSample(image=image, mask=mask, joints=gt_joints, areas=gt_areas, bboxes=gt_bboxes, is_crowd=gt_iscrowd, additional_samples=None)

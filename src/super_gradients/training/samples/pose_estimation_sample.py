@@ -8,7 +8,7 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyw
 __all__ = ["PoseEstimationSample", "PoseEstimationSampleFilter"]
 
 
-@dataclasses.dataclass(slots=True)
+@dataclasses.dataclass
 class PoseEstimationSample:
     """
     :attr image: Input image in [H,W,C] format
@@ -22,13 +22,15 @@ class PoseEstimationSample:
     :attr is_crowd: (Optional) Numpy array of [N] shape with is_crowd flag for each instance
     """
 
+    __slots__ = ["image", "mask", "joints", "areas", "bboxes", "is_crowd", "additional_samples"]
+
     image: np.ndarray
     mask: np.ndarray
     joints: np.ndarray
     areas: Optional[np.ndarray]
     bboxes: Optional[np.ndarray]
     is_crowd: Optional[np.ndarray]
-    additional_samples: List["PoseEstimationSample"] = None
+    additional_samples: Optional[List["PoseEstimationSample"]]
 
 
 class PoseEstimationSampleFilter:
