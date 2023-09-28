@@ -32,6 +32,9 @@ class PoseEstimationSample:
     is_crowd: Optional[np.ndarray]
     additional_samples: Optional[List["PoseEstimationSample"]]
 
+    def to_groundtruth_dict(self):
+        return {"joints": self.joints, "areas": self.areas, "bboxes": self.bboxes, "is_crowd": self.is_crowd}
+
 
 class PoseEstimationSampleFilter:
     @classmethod

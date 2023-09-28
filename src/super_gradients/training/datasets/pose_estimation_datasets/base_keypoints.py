@@ -75,7 +75,7 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         sample = self.transforms(sample)
         targets = self.target_generator(sample)
         # return sample.image, targets, {"dummy": 0}
-        return sample.image, targets, {"groundtruth_samples": sample}
+        return sample.image, targets, sample.to_groundtruth_dict()
 
     def get_dataset_preprocessing_params(self):
         """
