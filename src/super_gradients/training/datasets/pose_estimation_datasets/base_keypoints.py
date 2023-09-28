@@ -3,15 +3,14 @@ import random
 from typing import Tuple, List, Mapping, Any, Union
 
 import numpy as np
-import torch
 from torch.utils.data.dataloader import default_collate, Dataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.module_interfaces import HasPreprocessingParams
-from super_gradients.training.samples import PoseEstimationSample
 from super_gradients.training.datasets.pose_estimation_datasets.target_generators import KeypointsTargetsGenerator
+from super_gradients.training.samples import PoseEstimationSample
 from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, AbstractKeypointTransform
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
 
@@ -70,14 +69,14 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         random_index = random.randrange(0, num_samples)
         return self.load_sample(random_index)
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Any, Mapping[str, Any]]:
+    def __getitem__(self, index: int) -> Tuple[np.ndarray, Any, Mapping[str, Any]]:
         sample = self.load_sample(index)
         sample = self.transforms(sample)
         targets = self.target_generator(sample)
-        # return sample.image, targets, {"dummy": 0}
-        image = sample.image
-        sample.image = None
-        return image, targets, {"gt": sample}
+        return sample.image, targets, self.get_additional_batch_samples(sample, index)
+
+    def get_additional_batch_samples(self, sample: PoseEstimationSample, index) -> Mapping[str, Any]:
+        return sample.get_additional_batch_samples()
 
     def get_dataset_preprocessing_params(self):
         """

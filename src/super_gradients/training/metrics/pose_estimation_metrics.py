@@ -13,8 +13,6 @@ from super_gradients.common.environment.ddp_utils import is_distributed
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching, compute_visible_bbox_xywh
-from super_gradients.training.samples import PoseEstimationSample
-
 from super_gradients.training.utils import convert_to_tensor
 from super_gradients.training.utils.detection_utils import compute_detection_metrics_per_cls
 
@@ -149,7 +147,10 @@ class PoseEstimationMetrics(Metric):
         self,
         preds: Any,
         target: Any,
-        groundtruth_samples: List[PoseEstimationSample],
+        gt_joints,
+        gt_bboxes,
+        gt_areas,
+        gt_iscrowd,
     ):
         """
         Decode the predictions and update the metric
@@ -166,16 +167,22 @@ class PoseEstimationMetrics(Metric):
             self.update_single_image(
                 predicted_poses=predictions[i].poses,
                 predicted_scores=predictions[i].scores,
-                groundtruth=groundtruth_samples[i],
+                gt_joints=gt_joints[i],
+                gt_bboxes=gt_bboxes[i],
+                gt_areas=gt_areas[i],
+                gt_iscrowd=gt_iscrowd[i],
             )
 
     def update_single_image(
         self,
         predicted_poses: Union[Tensor, np.ndarray],
         predicted_scores: Union[Tensor, np.ndarray],
-        groundtruth: PoseEstimationSample,
+        gt_joints,
+        gt_bboxes,
+        gt_areas,
+        gt_iscrowd,
     ):
-        if len(predicted_poses) == 0 and len(groundtruth.joints) == 0:
+        if len(predicted_poses) == 0 and len(gt_joints) == 0:
             return
         if len(predicted_poses) != len(predicted_scores):
             raise ValueError("Length of predicted poses and scores should be equal. Got {} and {}".format(len(predicted_poses), len(predicted_scores)))
@@ -183,16 +190,12 @@ class PoseEstimationMetrics(Metric):
         predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float32, device=self.device)
         predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float32, device=self.device)
 
-        gt_joints = groundtruth.joints
-        gt_bboxes = groundtruth.bboxes
         if gt_bboxes is None:
             gt_bboxes = compute_visible_bbox_xywh(torch.tensor(gt_joints[:, :, 0:2]), torch.tensor(gt_joints[:, :, 2]))
 
-        gt_areas = groundtruth.areas
         if gt_areas is None:
             gt_areas = gt_bboxes[:, 2] * gt_bboxes[:, 3]
 
-        gt_iscrowd = groundtruth.is_crowd
         if gt_iscrowd is None:
             gt_iscrowd = [False] * len(gt_joints)
 
