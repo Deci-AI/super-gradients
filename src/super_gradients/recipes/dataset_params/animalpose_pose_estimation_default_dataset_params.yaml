@@ -119,7 +119,6 @@ train_dataset_params:
         mean: [ 0.485, 0.456, 0.406 ]
         std: [ 0.229, 0.224, 0.225 ]
 
-    - KeypointsImageToTensor
 
 val_dataset_params:
   data_dir: /data/animalpose
@@ -151,7 +150,6 @@ val_dataset_params:
         mean: [ 0.485, 0.456, 0.406 ]
         std: [ 0.229, 0.224, 0.225 ]
 
-    - KeypointsImageToTensor
 
 train_dataloader_params:
   shuffle: True

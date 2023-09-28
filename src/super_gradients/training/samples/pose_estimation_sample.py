@@ -1,12 +1,11 @@
 import dataclasses
 import numpy as np
+
 from typing import Optional, List, Union
 
-__all__ = ["PoseEstimationSample"]
-
-import torch
-
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
+
+__all__ = ["PoseEstimationSample"]
 
 
 @dataclasses.dataclass
@@ -51,11 +50,7 @@ class PoseEstimationSample:
         This function does not remove instances, but may make them subject for removal instead.
         :return: self
         """
-
-        if torch.is_tensor(self.image):
-            _, image_height, image_width = self.image.shape
-        else:
-            image_height, image_width, _ = self.image.shape
+        image_height, image_width, _ = self.image.shape
 
         # Update joints visibility status
         outside_left = self.joints[:, :, 0] < 0

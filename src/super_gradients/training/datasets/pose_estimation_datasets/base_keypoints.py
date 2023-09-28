@@ -73,7 +73,6 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, Any, Mapping[str, Any]]:
         sample = self.load_sample(index)
         sample = self.transforms(sample)
-
         targets = self.target_generator(sample)
         return sample.image, targets, {"groundtruth_samples": sample}
 
@@ -82,7 +81,8 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
 
         :return:
         """
-        pipeline = self.transforms.get_equivalent_preprocessing()
+        image_to_tensor = {Processings.ImagePermute: {"permutation": (2, 0, 1)}}
+        pipeline = self.transforms.get_equivalent_preprocessing() + [image_to_tensor]
         params = dict(
             conf=0.05,
             image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
@@ -104,7 +104,7 @@ class KeypointsCollate:
         targets = []
         extras = []
         for image, target, extra in batch:
-            images.append(image)
+            images.append(np.transpose(image, [2, 0, 1]))  # HWC->CHW
             targets.append(target)
             extras.append(extra)
 

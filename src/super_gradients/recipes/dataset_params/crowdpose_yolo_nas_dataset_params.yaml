@@ -109,7 +109,6 @@ train_dataset_params:
     - KeypointsImageStandardize:
         max_value: 255
 
-    - KeypointsImageToTensor
 
   target_generator:
     YoloNASPoseTargetsGenerator
@@ -141,7 +140,6 @@ val_dataset_params:
     - KeypointsImageStandardize:
         max_value: 255
 
-    - KeypointsImageToTensor
 
   target_generator:
     YoloNASPoseTargetsGenerator

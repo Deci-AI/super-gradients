@@ -4,7 +4,6 @@ from .keypoints_compose import KeypointsCompose
 from .keypoints_hsv import KeypointsHSV
 from .keypoints_image_normalize import KeypointsImageNormalize
 from .keypoints_image_standardize import KeypointsImageStandardize
-from .keypoints_image_to_tensor import KeypointsImageToTensor
 from .keypoints_longest_max_size import KeypointsLongestMaxSize
 from .keypoints_mixup import KeypointsMixup
 from .keypoints_mosaic import KeypointsMosaic
@@ -21,7 +20,6 @@ __all__ = [
     "KeypointsHSV",
     "KeypointsImageNormalize",
     "KeypointsImageStandardize",
-    "KeypointsImageToTensor",
     "KeypointsLongestMaxSize",
     "KeypointsMixup",
     "KeypointsMosaic",
