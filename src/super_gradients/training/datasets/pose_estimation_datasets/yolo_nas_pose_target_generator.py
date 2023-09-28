@@ -8,10 +8,11 @@ from torch.utils.data import default_collate
 from super_gradients.common.registry.registry import register_target_generator, register_collate_function
 from .target_generators import KeypointsTargetsGenerator
 
-__all__ = ["YoloNASPoseTargetsGenerator", "YoloNASPoseTargetsCollateFN"]
 
 from ..data_formats.bbox_formats.xywh import xywh_to_xyxy
 from super_gradients.training.samples import PoseEstimationSample
+
+__all__ = ["YoloNASPoseTargetsGenerator", "YoloNASPoseTargetsCollateFN"]
 
 
 @register_target_generator()
@@ -23,20 +24,16 @@ class YoloNASPoseTargetsGenerator(KeypointsTargetsGenerator):
     def __init__(self):
         pass
 
-    def __call__(self, sample: PoseEstimationSample) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Encode the keypoints into dense targets that participate in loss computation.
-        :param image: Image tensor [H, W, C]
-        :param bboxes: Corresponding bounding boxes [NumInstances, 4] in (x, y, w, h) format
-        :param joints: [Instances, NumJoints, 3]
-        :param mask: [H,W] A mask that indicates which pixels should be included (1) or which one should be excluded (0) from loss computation.
-        :return: A tuple of (boxes, joints, mask)
-        """
+    def __call__(self, sample: PoseEstimationSample) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """ """
         if sample.image.shape[:2] != sample.mask.shape[:2]:
             raise ValueError(f"Image and mask should have the same shape {sample.image.shape[:2]} != {sample.mask.shape[:2]}")
 
         boxes_xyxy = xywh_to_xyxy(sample.bboxes, image_shape=None)
-        return boxes_xyxy, sample.joints
+        is_crowd = sample.is_crowd
+        if is_crowd is None:
+            is_crowd = np.zeros(len(boxes_xyxy))
+        return boxes_xyxy, sample.joints, is_crowd
 
 
 @register_collate_function()
@@ -58,14 +55,10 @@ class YoloNASPoseTargetsCollateFN:
         all_crowd_masks = []
         extras = []
 
-        for image, (boxes, joints), extra in batch:
-            gt_sample: PoseEstimationSample = extra["groundtruth_samples"]
+        for image, (boxes, joints, is_crowd), extra in batch:
             images.append(np.transpose(image, [2, 0, 1]))
             all_boxes.append(torch.from_numpy(boxes))
             all_joints.append(torch.from_numpy(joints))
-            is_crowd = gt_sample.is_crowd
-            if is_crowd is None:
-                is_crowd = np.zeros(len(boxes))
             all_crowd_masks.append(torch.from_numpy(is_crowd.astype(int).reshape((-1, 1))))
             extras.append(extra)
 
