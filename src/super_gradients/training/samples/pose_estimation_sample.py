@@ -1,4 +1,3 @@
-import dataclasses
 import numpy as np
 
 from typing import Optional, List, Union
@@ -8,7 +7,7 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyw
 __all__ = ["PoseEstimationSample"]
 
 
-@dataclasses.dataclass
+# @dataclasses.dataclass
 class PoseEstimationSample:
     """
     :attr image: Input image in [H,W,C] format
@@ -22,13 +21,16 @@ class PoseEstimationSample:
     :attr is_crowd: (Optional) Numpy array of [N] shape with is_crowd flag for each instance
     """
 
-    image: np.ndarray
-    mask: np.ndarray
-    joints: np.ndarray
-    areas: Optional[np.ndarray]
-    bboxes: Optional[np.ndarray]
-    is_crowd: Optional[np.ndarray]
-    additional_samples: List["PoseEstimationSample"] = None
+    __slots__ = ["image", "mask", "joints", "areas", "bboxes", "is_crowd", "additional_samples"]
+
+    def __init__(self, image, mask, joints, areas, bboxes, is_crowd, additional_samples=None):
+        self.image: np.ndarray = image
+        self.mask: np.ndarray = mask
+        self.joints: np.ndarray = joints
+        self.areas: Optional[np.ndarray] = areas
+        self.bboxes: Optional[np.ndarray] = bboxes
+        self.is_crowd: Optional[np.ndarray] = is_crowd
+        self.additional_samples: List["PoseEstimationSample"] = additional_samples
 
     @classmethod
     def compute_area_of_joints_bounding_box(self, joints: np.ndarray) -> np.ndarray:
