@@ -26,84 +26,11 @@ from super_gradients.training.models.pose_estimation_models import YoloNASPose
 
 class TestPoseEstimationMetrics(unittest.TestCase):
     def test_yolo_nas_pose_s(self):
-        # checkpoint_path = ("G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_128_512_512_2_2_3_0_1_0_averaged_sota.pth",)
-        # YoloV8 subset
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.639
-        #  Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.858
-        #  Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.708
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.591
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.720
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.698
-        #  Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.899
-        #  Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.761
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.645
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.773
-        # All images
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.637
-        #  Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.853
-        #  Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.705
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.588
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.718
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.698
-        #  Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.899
-        #  Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.761
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.645
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.773
-        #
-        # checkpoint_path = ("G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_128_512_512_2_2_3_0_1_0_best_sota.pth",)
-        # YoloV8 subset
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.640
-        #  Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.859
-        #  Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.703
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.592
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.720
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.698
-        #  Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.900
-        #  Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.754
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.645
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.771
-        # All images
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.637
-        #  Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.855
-        #  Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.700
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.589
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.719
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.698
-        #  Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.900
-        #  Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.754
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.645
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.772
-
-        # checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_m_ckpt_best.pth"
-        # YoloV8 subset
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.664
-        #  Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.877
-        #  Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.726
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.621
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.735
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.719
-        #  Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.912
-        #  Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.777
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.673
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.786
-        # All images
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.662
-        #  Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.874
-        #  Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.724
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.619
-        #  Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.733
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.719
-        #  Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.912
-        #  Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.777
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.673
-        #  Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.786
-
         model: YoloNASPose = (
             models.get(
-                Models.YOLO_NAS_POSE_M,
+                Models.YOLO_NAS_POSE_L,
                 num_classes=17,
-                # checkpoint_path = "G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_s_128_512_512_2_2_3_0_1_0_averaged_sota.pth",
-                checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_m_ckpt_best.pth",
+                checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_l_ckpt_best.pth",
             )
             .eval()
             .cuda()
