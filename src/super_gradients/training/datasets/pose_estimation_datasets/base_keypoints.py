@@ -67,7 +67,7 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
 
     def load_random_sample(self):
         num_samples = len(self)
-        random_index = random.randint(0, num_samples)
+        random_index = random.randrange(0, num_samples)
         return self.load_sample(random_index)
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, Any, Mapping[str, Any]]:
@@ -75,9 +75,7 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         sample = self.transforms(sample)
 
         targets = self.target_generator(sample)
-        image = sample.image
-        sample.image = None  # This is to save memory & time and not pass image tensor second time from dataloader
-        return image, targets, {"groundtruth_samples": sample}
+        return sample.image, targets, {"groundtruth_samples": sample}
 
     def get_dataset_preprocessing_params(self):
         """
