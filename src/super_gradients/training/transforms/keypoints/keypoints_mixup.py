@@ -38,7 +38,7 @@ class KeypointsMixup(AbstractKeypointTransform):
 
         sample.bboxes = self._concatenate_arrays(sample.bboxes, other.bboxes, (0, 4))
         sample.areas = self._concatenate_arrays(sample.areas, other.areas, (0,))
-        sample.additional_samples = []
+        sample.additional_samples = None
         return sample
 
     def _concatenate_arrays(self, arr1: Optional[np.ndarray], arr2: Optional[np.ndarray], shape_if_empty):

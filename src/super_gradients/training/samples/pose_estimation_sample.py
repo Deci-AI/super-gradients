@@ -28,7 +28,7 @@ class PoseEstimationSample:
     areas: Optional[np.ndarray]
     bboxes: Optional[np.ndarray]
     is_crowd: Optional[np.ndarray]
-    additional_samples: List["PoseEstimationSample"] = dataclasses.field(default_factory=list)
+    additional_samples: List["PoseEstimationSample"] = None
 
     @classmethod
     def compute_area_of_joints_bounding_box(self, joints: np.ndarray) -> np.ndarray:
