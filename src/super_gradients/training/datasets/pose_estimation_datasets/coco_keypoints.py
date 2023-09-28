@@ -1,5 +1,6 @@
 import os
-from typing import Tuple, List, Mapping, Any, Union
+from typing import Tuple, List, Union
+
 import cv2
 import numpy as np
 import pycocotools
@@ -19,8 +20,8 @@ from super_gradients.training.datasets.pose_estimation_datasets.coco_utils impor
     remove_crowd_annotations,
     remove_samples_with_crowd_annotations,
 )
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
-
+from super_gradients.training.samples import PoseEstimationSample
+from super_gradients.training.transforms.keypoint_transforms import AbstractKeypointTransform
 
 logger = get_logger(__name__)
 
@@ -41,7 +42,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         json_file: str,
         include_empty_samples: bool,
         target_generator,
-        transforms: List[KeypointTransform],
+        transforms: List[AbstractKeypointTransform],
         min_instance_area: float,
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
@@ -141,6 +142,7 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
             # so we set is_crowd to False for all annotations
             gt_iscrowd = np.zeros_like(gt_iscrowd, dtype=bool)
 
+        gt_joints = np.array([ann["keypoints"] for ann in anno], dtype=np.float32).reshape((-1, self.num_joints, 3))
         gt_bboxes = np.array([ann["bbox"] for ann in anno], dtype=np.float32).reshape((-1, 4))
         gt_areas = np.array([ann["area"] for ann in anno], dtype=np.float32).reshape((-1))
 
@@ -150,45 +152,25 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
             raise RuntimeError(f"Annotated image size ({image_info['height'],image_info['width']}) does not match image size in file {orig_image.shape[:2]}")
 
         # clip bboxes (xywh) to image boundaries
-        xyxy_bboxes = xywh_to_xyxy(gt_bboxes, image_shape=None)
+        image_height, image_width = orig_image.shape[:2]
+        xyxy_bboxes = xywh_to_xyxy(gt_bboxes, image_shape=(image_height, image_width))
         image_height, image_width = orig_image.shape[:2]
         xyxy_bboxes[:, 0] = np.clip(xyxy_bboxes[:, 0], 0, image_width)
         xyxy_bboxes[:, 1] = np.clip(xyxy_bboxes[:, 1], 0, image_height)
         xyxy_bboxes[:, 2] = np.clip(xyxy_bboxes[:, 2], 0, image_width)
         xyxy_bboxes[:, 3] = np.clip(xyxy_bboxes[:, 3], 0, image_height)
-        gt_bboxes = xyxy_to_xywh(xyxy_bboxes, image_shape=None)
+        gt_bboxes = xyxy_to_xywh(xyxy_bboxes, image_shape=(image_height, image_width))
 
-        joints: np.ndarray = self.get_joints(anno)
         mask: np.ndarray = self.get_mask(anno, image_info)
 
         return PoseEstimationSample(
             image=orig_image,
             mask=mask,
-            joints=joints,
+            joints=gt_joints,
             areas=gt_areas,
             bboxes=gt_bboxes,
             is_crowd=gt_iscrowd,
         )
-
-    def get_joints(self, anno: List[Mapping[str, Any]]) -> np.ndarray:
-        """
-        Decode the keypoints from the COCO annotation and return them as an array of shape [Num Instances, Num Joints, 3].
-        The visibility of keypoints is encoded in the third dimension of the array with following values:
-         - 0 being invisible (outside image)
-         - 1 present in image but occluded
-         - 2 - fully visible
-        :param anno:
-        :return: [Num Instances, Num Joints, 3], where last channel represents (x, y, visibility)
-        """
-        joints = []
-
-        for i, obj in enumerate(anno):
-            keypoints = np.array(obj["keypoints"]).reshape([-1, 3])
-            joints.append(keypoints)
-
-        num_instances = len(joints)
-        joints = np.array(joints, dtype=np.float32).reshape((num_instances, self.num_joints, 3))
-        return joints
 
     def get_mask(self, anno, img_info) -> np.ndarray:
         """

@@ -1,6 +1,5 @@
 import copy
 import unittest
-
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,8 +10,9 @@ from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsRandomAffineTransform,
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
-    PoseEstimationSample,
 )
+from super_gradients.training.samples import PoseEstimationSample
+
 from super_gradients.training.transforms.keypoints import KeypointsBrightnessContrast, KeypointsMosaic
 from super_gradients.training.transforms.transforms import (
     DetectionImagePermute,

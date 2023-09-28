@@ -11,7 +11,7 @@ from .target_generators import KeypointsTargetsGenerator
 __all__ = ["YoloNASPoseTargetsGenerator", "YoloNASPoseTargetsCollateFN"]
 
 from ..data_formats.bbox_formats.xywh import xywh_to_xyxy
-from ...transforms.keypoint_transforms import PoseEstimationSample
+from super_gradients.training.samples import PoseEstimationSample
 
 
 @register_target_generator()

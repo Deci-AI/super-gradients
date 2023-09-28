@@ -9,7 +9,7 @@ from super_gradients.common.registry.registry import register_target_generator
 
 __all__ = ["KeypointsTargetsGenerator", "DEKRTargetsGenerator"]
 
-from super_gradients.training.transforms.keypoint_transforms import PoseEstimationSample
+from super_gradients.training.samples import PoseEstimationSample
 
 
 class KeypointsTargetsGenerator:

@@ -1,17 +1,16 @@
 import random
-from typing import Optional
-
 import numpy as np
 
-from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.registry import register_transform
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
+from typing import Optional
 
-logger = get_logger(__name__)
+from super_gradients.common.registry import register_transform
+from super_gradients.training.samples import PoseEstimationSample
+
+from .abstract_keypoints_transform import AbstractKeypointTransform
 
 
 @register_transform()
-class KeypointsMixup(KeypointTransform):
+class KeypointsMixup(AbstractKeypointTransform):
     """
     Mix two samples together.
 
@@ -32,7 +31,7 @@ class KeypointsMixup(KeypointTransform):
         return sample
 
     def apply_mixup(self, sample: PoseEstimationSample, other: PoseEstimationSample) -> PoseEstimationSample:
-        sample.image = sample.image * 0.5 + other.image * 0.5
+        sample.image = (sample.image * 0.5 + other.image * 0.5).astype(sample.image)
         sample.mask = np.logical_or(sample.mask, other.mask).astype(sample.mask.dtype)
         sample.joints = np.concatenate([sample.joints, other.joints], axis=0)
         sample.is_crowd = np.concatenate([sample.is_crowd, other.is_crowd], axis=0)
@@ -48,3 +47,6 @@ class KeypointsMixup(KeypointTransform):
         if arr2 is None:
             arr2 = np.zeros(shape_if_empty, dtype=np.float32)
         return np.concatenate([arr1, arr2], axis=0)
+
+    def get_equivalent_preprocessing(self):
+        raise RuntimeError(f"{self.__class__} does not have equivalent preprocessing because it is non-deterministic.")

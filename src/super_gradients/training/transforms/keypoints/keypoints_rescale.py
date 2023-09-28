@@ -3,12 +3,14 @@ import cv2
 import numpy as np
 from typing import Tuple, List
 from super_gradients.common.registry import register_transform
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
 from super_gradients.common.object_names import Transforms, Processings
+from super_gradients.training.samples import PoseEstimationSample
+
+from .abstract_keypoints_transform import AbstractKeypointTransform
 
 
 @register_transform(Transforms.KeypointsRescale)
-class KeypointsRescale(KeypointTransform):
+class KeypointsRescale(AbstractKeypointTransform):
     """
     Resize image, mask and joints to target size without preserving aspect ratio.
     """
@@ -41,7 +43,9 @@ class KeypointsRescale(KeypointTransform):
 
             if sample.areas is not None:
                 sample.areas = np.multiply(sample.areas, sx * sy, dtype=np.float32)
-            sample = self.apply_post_transform_sanitization(sample)
+
+            sample = sample.sanitize_sample()
+
         return sample
 
     @classmethod

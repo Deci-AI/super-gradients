@@ -13,7 +13,8 @@ from super_gradients.common.environment.ddp_utils import is_distributed
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching, compute_visible_bbox_xywh
-from super_gradients.training.transforms.keypoint_transforms import PoseEstimationSample
+from super_gradients.training.samples import PoseEstimationSample
+
 from super_gradients.training.utils import convert_to_tensor
 from super_gradients.training.utils.detection_utils import compute_detection_metrics_per_cls
 

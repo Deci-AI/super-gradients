@@ -18,7 +18,9 @@ from super_gradients.training.datasets.pose_estimation_datasets.coco_utils impor
     remove_crowd_annotations,
     remove_samples_with_crowd_annotations,
 )
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
+from super_gradients.training.transforms.keypoint_transforms import AbstractKeypointTransform
+from super_gradients.training.samples import PoseEstimationSample
+
 
 logger = get_logger(__name__)
 
@@ -38,7 +40,7 @@ class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
         images_dir: str,
         json_file: str,
         target_generator,
-        transforms: List[KeypointTransform],
+        transforms: List[AbstractKeypointTransform],
         min_instance_area: float,
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],

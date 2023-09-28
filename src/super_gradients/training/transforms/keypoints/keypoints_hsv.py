@@ -1,15 +1,14 @@
 import random
 
-from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.registry import register_transform
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
 from super_gradients.training.transforms.transforms import augment_hsv
+from super_gradients.training.samples import PoseEstimationSample
 
-logger = get_logger(__name__)
+from .abstract_keypoints_transform import AbstractKeypointTransform
 
 
 @register_transform()
-class KeypointsHSV(KeypointTransform):
+class KeypointsHSV(AbstractKeypointTransform):
     """
     Apply color change in HSV color space to the input image.
 
@@ -42,3 +41,6 @@ class KeypointsHSV(KeypointTransform):
             augment_hsv(image_copy, self.hgain, self.sgain, self.vgain, bgr_channels=(0, 1, 2))
             sample.image = image_copy
         return sample
+
+    def get_equivalent_preprocessing(self):
+        raise RuntimeError(f"{self.__class__} does not have equivalent preprocessing because it is non-deterministic.")

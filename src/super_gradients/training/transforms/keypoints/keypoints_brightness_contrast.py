@@ -1,17 +1,15 @@
 import random
-from typing import Tuple
-
 import numpy as np
 
-from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.registry import register_transform
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
+from typing import Tuple, List
 
-logger = get_logger(__name__)
+from super_gradients.common.registry import register_transform
+from .abstract_keypoints_transform import AbstractKeypointTransform
+from super_gradients.training.samples import PoseEstimationSample
 
 
 @register_transform()
-class KeypointsBrightnessContrast(KeypointTransform):
+class KeypointsBrightnessContrast(AbstractKeypointTransform):
     """
     Apply brightness and contrast change to the input image using following formula:
     image = (image - mean_brightness) * contrast_gain + mean_brightness + brightness_gain
@@ -55,3 +53,6 @@ class KeypointsBrightnessContrast(KeypointTransform):
             max_value = np.iinfo(input_dtype).max
             sample.image = np.clip(image, a_min=min_value, a_max=max_value).astype(input_dtype)
         return sample
+
+    def get_equivalent_preprocessing(self) -> List:
+        raise RuntimeError(f"{self.__class__} does not have equivalent preprocessing because it is non-deterministic.")

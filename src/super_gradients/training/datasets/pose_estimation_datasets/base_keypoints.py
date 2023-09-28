@@ -10,8 +10,9 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.module_interfaces import HasPreprocessingParams
+from super_gradients.training.samples import PoseEstimationSample
 from super_gradients.training.datasets.pose_estimation_datasets.target_generators import KeypointsTargetsGenerator
-from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, KeypointTransform, PoseEstimationSample
+from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, AbstractKeypointTransform
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
 
 logger = get_logger(__name__)
@@ -26,7 +27,7 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
     def __init__(
         self,
         target_generator: KeypointsTargetsGenerator,
-        transforms: List[KeypointTransform],
+        transforms: List[AbstractKeypointTransform],
         min_instance_area: float,
         num_joints: int,
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
@@ -45,8 +46,7 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         """
         super().__init__()
         self.target_generator = target_generator
-        self.transforms = KeypointsCompose(transforms)
-        self.min_instance_area = min_instance_area
+        self.transforms = KeypointsCompose(transforms, load_sample_fn=self.load_random_sample, min_bbox_area=min_instance_area, min_visible_joints=1)
         self.num_joints = num_joints
         self.edge_links = edge_links
         self.edge_colors = edge_colors or generate_color_mapping(len(edge_links))
@@ -57,43 +57,27 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def load_sample(self, index) -> PoseEstimationSample:
+    def load_sample(self, index: int) -> PoseEstimationSample:
         """
-        Read a sample from the disk and return (image, mask, joints, extras) tuple
+        Read a sample from the disk and return a PoseEstimationSample
         :param index: Sample index
-        :return: Tuple of (image, mask, joints, extras)
-            image - Numpy array of [H,W,3] shape, which represents input RGB image
-            mask - Numpy array of [H,W] shape, which represents a binary mask with zero values corresponding to an
-                    ignored region which should not be used for training (contribute to loss)
-            joints - Numpy array of [Num Instances, Num Joints, 3] shape, which represents the skeletons of the instances
-            extras - Dictionary of extra information about the sample that should be included in `extras` dictionary.
+        :return: Returns an instance of PoseEstimationSample that holds complete sample (image and annotations)
         """
         raise NotImplementedError()
 
+    def load_random_sample(self):
+        num_samples = len(self)
+        random_index = random.randint(0, num_samples)
+        return self.load_sample(random_index)
+
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, Any, Mapping[str, Any]]:
         sample = self.load_sample(index)
-        # Before applying the transforms, let's ensure that the sample is consistent - e.g no bboxes are outside of the image
-        sample = KeypointTransform.apply_post_transform_sanitization(sample)
-
-        sample = self.apply_transforms(sample, self.transforms.transforms)
-
-        sample = KeypointTransform.filter_invisible_bboxes(sample)
+        sample = self.transforms(sample)
 
         targets = self.target_generator(sample)
-        return sample.image, targets, {"groundtruth_samples": sample}
-
-    def apply_transforms(self, sample: PoseEstimationSample, transforms: List[KeypointTransform]) -> PoseEstimationSample:
-        applied_transforms_so_far = []
-        for t in transforms:
-            if t.additional_samples_count == 0:
-                sample = t(sample)
-                applied_transforms_so_far.append(t)
-            else:
-                additional_samples = [self.load_sample(index) for index in random.sample(range(len(self)), t.additional_samples_count)]
-                additional_samples = [self.apply_transforms(sample, applied_transforms_so_far) for sample in additional_samples]
-                sample.additional_samples = additional_samples
-                sample = t(sample)
-        return sample
+        image = sample.image
+        sample.image = None  # This is to save memory & time and not pass image tensor second time from dataloader
+        return image, targets, {"groundtruth_samples": sample}
 
     def get_dataset_preprocessing_params(self):
         """

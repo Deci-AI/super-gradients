@@ -12,7 +12,9 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry import register_dataset
 from super_gradients.training.datasets.pose_estimation_datasets import BaseKeypointsDataset
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
+from super_gradients.training.transforms.keypoint_transforms import AbstractKeypointTransform
+from super_gradients.training.samples import PoseEstimationSample
+
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 
 
@@ -69,12 +71,11 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
         images_dir: str,
         json_file: str,
         target_generator,
-        transforms: List[KeypointTransform],
+        transforms: List[AbstractKeypointTransform],
         min_instance_area: float,
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
-        **kwargs,
     ):
         """
 
@@ -98,7 +99,6 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
 
         with open(split_json_file, "r") as f:
             json_annotations = json.load(f)
-        # skeleton = json_annotations["categories"][0]["skeleton"]
 
         joints = json_annotations["categories"][0]["keypoints"]
         num_joints = len(joints)
