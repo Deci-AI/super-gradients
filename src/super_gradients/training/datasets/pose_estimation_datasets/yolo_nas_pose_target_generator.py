@@ -26,14 +26,14 @@ class YoloNASPoseTargetsGenerator(KeypointsTargetsGenerator):
     def __call__(self, sample: PoseEstimationSample) -> Tuple[np.ndarray, np.ndarray]:
         """
         Encode the keypoints into dense targets that participate in loss computation.
-        :param image: Image tensor [3, H, W]
+        :param image: Image tensor [H, W, C]
         :param bboxes: Corresponding bounding boxes [NumInstances, 4] in (x, y, w, h) format
         :param joints: [Instances, NumJoints, 3]
         :param mask: [H,W] A mask that indicates which pixels should be included (1) or which one should be excluded (0) from loss computation.
         :return: A tuple of (boxes, joints, mask)
         """
-        if sample.image.shape[1:3] != sample.mask.shape[:2]:
-            raise ValueError(f"Image and mask should have the same shape {sample.image.shape[1:3]} != {sample.mask.shape[:2]}")
+        if sample.image.shape[:2] != sample.mask.shape[:2]:
+            raise ValueError(f"Image and mask should have the same shape {sample.image.shape[:2]} != {sample.mask.shape[:2]}")
 
         boxes_xyxy = xywh_to_xyxy(sample.bboxes, image_shape=None)
         return boxes_xyxy, sample.joints
@@ -59,19 +59,22 @@ class YoloNASPoseTargetsCollateFN:
         extras = []
 
         for image, (boxes, joints), extra in batch:
-            images.append(image)
+            gt_sample: PoseEstimationSample = extra["groundtruth_samples"]
+            images.append(np.transpose(image, [2, 0, 1]))
             all_boxes.append(torch.from_numpy(boxes))
             all_joints.append(torch.from_numpy(joints))
-            is_crowd = extra.get("gt_is_crowd", np.zeros(len(boxes)).reshape((-1, 1)))
-            all_crowd_masks.append(torch.from_numpy(is_crowd.astype(int)))
+            is_crowd = gt_sample.is_crowd
+            if is_crowd is None:
+                is_crowd = np.zeros(len(boxes))
+            all_crowd_masks.append(torch.from_numpy(is_crowd.astype(int).reshape((-1, 1))))
             extras.append(extra)
 
         images = default_collate(images)
         boxes = flat_collate_tensors_with_batch_index(all_boxes)
         joints = flat_collate_tensors_with_batch_index(all_joints)
-        crowd_poses = flat_collate_tensors_with_batch_index(all_crowd_masks)
+        is_crowd = flat_collate_tensors_with_batch_index(all_crowd_masks)
         extras = {k: [dic[k] for dic in extras] for k in extras[0]}  # Convert list of dicts to dict of lists
-        return images, (boxes, joints, crowd_poses), extras
+        return images, (boxes, joints, is_crowd), extras
 
 
 def flat_collate_tensors_with_batch_index(labels_batch: List[Tensor]) -> Tensor:
