@@ -7,7 +7,7 @@ import numpy as np
 from super_gradients.common.object_names import Transforms
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
-from super_gradients.training.samples import PoseEstimationSample
+from super_gradients.training.samples import PoseEstimationSample, PoseEstimationSampleFilter
 from .abstract_keypoints_transform import AbstractKeypointTransform
 
 
@@ -116,7 +116,7 @@ class KeypointsRandomAffineTransform(AbstractKeypointTransform):
             if sample.areas is not None:
                 sample.areas = self.apply_to_areas(sample.areas, mat_output)
 
-            sample = sample.sanitize_sample()
+            sample = PoseEstimationSampleFilter.sanitize_sample(sample)
 
         return sample
 

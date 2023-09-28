@@ -49,7 +49,7 @@ class KeypointsLongestMaxSize(AbstractKeypointTransform):
 
             if sample.areas is not None:
                 sample.areas = np.multiply(sample.areas, scale**2, dtype=np.float32)
-            sample = sample.sanitize_sample()
+
         return sample
 
     @classmethod

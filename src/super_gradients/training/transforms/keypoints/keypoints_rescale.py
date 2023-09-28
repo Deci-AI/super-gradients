@@ -44,8 +44,6 @@ class KeypointsRescale(AbstractKeypointTransform):
             if sample.areas is not None:
                 sample.areas = np.multiply(sample.areas, sx * sy, dtype=np.float32)
 
-            sample = sample.sanitize_sample()
-
         return sample
 
     @classmethod

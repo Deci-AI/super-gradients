@@ -1,6 +1,6 @@
 from typing import List, Union
 
-from super_gradients.training.samples import PoseEstimationSample
+from super_gradients.training.samples import PoseEstimationSample, PoseEstimationSampleFilter
 from .abstract_keypoints_transform import AbstractKeypointTransform
 
 
@@ -20,7 +20,7 @@ class KeypointsCompose:
         self.min_visible_joints = min_visible_joints
 
     def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
-        sample = sample.sanitize_sample()
+        sample = PoseEstimationSampleFilter.sanitize_sample(sample)
         sample = self._apply_transforms(
             sample, transforms=self.transforms, load_sample_fn=self.load_sample_fn, min_bbox_area=self.min_bbox_area, min_visible_joints=self.min_visible_joints
         )
@@ -77,8 +77,8 @@ class KeypointsCompose:
                 sample.additional_samples = additional_samples
                 sample = t(sample)
 
-            sample = sample.filter_by_visible_joints(min_visible_joints)
-            sample = sample.filter_by_bbox_area(min_bbox_area)
+            sample = PoseEstimationSampleFilter.filter_by_visible_joints(sample, min_visible_joints)
+            sample = PoseEstimationSampleFilter.filter_by_bbox_area(sample, min_bbox_area)
 
         return sample
 

@@ -1,3 +1,3 @@
-from .pose_estimation_sample import PoseEstimationSample
+from .pose_estimation_sample import PoseEstimationSample, PoseEstimationSampleFilter
 
-__all__ = ["PoseEstimationSample"]
+__all__ = ["PoseEstimationSample", "PoseEstimationSampleFilter"]
