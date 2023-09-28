@@ -36,7 +36,6 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         """
 
         :param target_generator: Target generator that will be used to generate the targets for the model.
-            See DEKRTargetsGenerator for an example.
         :param transforms: Transforms to be applied to the image & keypoints
         :param min_instance_area: Minimum area of an instance to be included in the dataset
         :param num_joints: Number of joints to be predicted
@@ -81,7 +80,7 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         sample = KeypointTransform.filter_invisible_bboxes(sample)
 
         targets = self.target_generator(sample)
-        return sample.image, targets, {"gt_joints": sample.joints, "gt_bboxes": sample.bboxes, "gt_areas": sample.areas, "gt_iscrowd": sample.is_crowd}
+        return sample.image, targets, {"groundtruth_samples": sample}
 
     def apply_transforms(self, sample: PoseEstimationSample, transforms: List[KeypointTransform]) -> PoseEstimationSample:
         applied_transforms_so_far = []
