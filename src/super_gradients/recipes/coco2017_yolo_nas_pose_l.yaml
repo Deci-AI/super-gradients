@@ -11,15 +11,8 @@ architecture: yolo_nas_pose_l
 multi_gpu: DDP
 num_gpus: 8
 
-# Assemble experiment suffix
-bbox_cls_loss_suffix: boxcls_${training_hyperparams.criterion_params.classification_loss_type}X${training_hyperparams.criterion_params.classification_loss_weight}
-bbox_reg_loss_suffix: boxreg_${training_hyperparams.criterion_params.regression_iou_loss_type}X${training_hyperparams.criterion_params.iou_loss_weight}_dflX${training_hyperparams.criterion_params.dfl_loss_weight}
-pose_cls_loss_suffix: posecls_${training_hyperparams.criterion_params.pose_classification_loss_type}X${training_hyperparams.criterion_params.pose_cls_loss_weight}
-pose_reg_loss_suffix: poseregX${training_hyperparams.criterion_params.pose_reg_loss_weight}_rscl_${training_hyperparams.criterion_params.rescale_pose_loss_with_assigned_score}_byoks_${training_hyperparams.criterion_params.assigner_multiply_by_pose_oks}
-
-train_suffix: "ema_${training_hyperparams.ema}"
-experiment_suffix: "128_512_512_2_2_3_0_1_0"
-experiment_name: coco2017_${architecture}_${experiment_suffix}_${bbox_cls_loss_suffix}_${bbox_reg_loss_suffix}_${pose_cls_loss_suffix}_${pose_reg_loss_suffix}_${dataset_params.dataset_params_suffix}_${train_suffix}
+experiment_suffix: ""
+experiment_name: coco2017_${architecture}_${experiment_suffix}_${dataset_params.dataset_params_suffix}
 
 ckpt_root_dir:
 
