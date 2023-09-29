@@ -120,6 +120,7 @@ class Transforms:
     KeypointsRandomVerticalFlip = "KeypointsRandomVerticalFlip"
     KeypointsRandomHorizontalFlip = "KeypointsRandomHorizontalFlip"
     KeypointsRescale = "KeypointsRescale"
+    KeypointsRandomRotate90 = "KeypointsRandomRotate90"
 
 
 class Optimizers:
