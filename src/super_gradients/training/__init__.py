@@ -6,10 +6,8 @@ from super_gradients.training.kd_trainer import KDTrainer
 from super_gradients.training.qat_trainer import QATTrainer
 from super_gradients.common import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.pre_launch_callbacks import modify_params_for_qat
-from super_gradients.training.samples import PoseEstimationSample
 
 __all__ = [
-    "PoseEstimationSample",
     "distributed_training_utils",
     "datasets_utils",
     "DataAugmentation",

@@ -5,21 +5,22 @@ from typing import Optional, List, Union
 
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
 
-__all__ = ["PoseEstimationSample", "PoseEstimationSampleFilter"]
+__all__ = ["PoseEstimationSample"]
 
 
 @dataclasses.dataclass
 class PoseEstimationSample:
     """
-    :attr image: Input image in [H,W,C] format
-    :attr mask: Target mask in [H,W] format
-    :attr joints: Target joints in [NumInstances, NumJoints, 3] format. Last dimension contains (x,y,visibility) for each joint.
-    :attr areas: (Optional) Numpy array of [N] shape with area of each instance.
-    Note this is not a bbox area, but area of the object itself.
-    One may use a heuristic `0.53 * box area` as object area approximation if this is not provided.
-    :attr bboxes: (Optional) Numpy array of [N,4] shape with bounding box of each instance (XYWH)
+    :attr image:              Input image in [H,W,C] format
+    :attr mask:               Target mask in [H,W] format
+    :attr joints:             Target joints in [NumInstances, NumJoints, 3] format.
+                              Last dimension contains (x,y,visibility) for each joint.
+    :attr areas:              (Optional) Numpy array of [N] shape with area of each instance.
+                              Note this is not a bbox area, but area of the object itself.
+                              One may use a heuristic `0.53 * box area` as object area approximation if this is not provided.
+    :attr bboxes:             (Optional) Numpy array of [N,4] shape with bounding box of each instance (XYWH)
     :attr additional_samples: (Optional) List of additional samples for the same image.
-    :attr is_crowd: (Optional) Numpy array of [N] shape with is_crowd flag for each instance
+    :attr is_crowd:           (Optional) Numpy array of [N] shape with is_crowd flag for each instance
     """
 
     __slots__ = ["image", "mask", "joints", "areas", "bboxes", "is_crowd", "additional_samples"]
@@ -35,57 +36,62 @@ class PoseEstimationSample:
     def get_additional_batch_samples(self):
         return {"gt_joints": self.joints, "gt_areas": self.areas, "gt_bboxes": self.bboxes, "gt_iscrowd": self.is_crowd}
 
-
-class PoseEstimationSampleFilter:
     @classmethod
-    def compute_area_of_joints_bounding_box(cls, sample) -> np.ndarray:
+    def compute_area_of_joints_bounding_box(cls, joints) -> np.ndarray:
         """
-        Compute area of a bounding box for each instance.
-        :param joints:  [Num Instances, Num Joints, 3]
-        :return: [Num Instances]
+        Compute area of a bounding box enclosing visible joints for each pose instance.
+        :param joints: np.ndarray of [Num Instances, Num Joints, 3] shape (x,y,visibility)
+        :return:       np.ndarray of [Num Instances] shape with box area of the visible joints
+                       (zero if all joints are not visible or only one joint is visible)
         """
-        w = np.max(sample.joints[:, :, 0], axis=-1) - np.min(sample.joints[:, :, 0], axis=-1)
-        h = np.max(sample.joints[:, :, 1], axis=-1) - np.min(sample.joints[:, :, 1], axis=-1)
-        return w * h
+        visible_joints = joints[:, :, 2] > 0
+        xmax = np.max(joints[:, :, 0], axis=-1, where=visible_joints, initial=joints[:, :, 0].min())
+        xmin = np.min(joints[:, :, 0], axis=-1, where=visible_joints, initial=joints[:, :, 0].max())
+        ymax = np.max(joints[:, :, 1], axis=-1, where=visible_joints, initial=joints[:, :, 1].min())
+        ymin = np.min(joints[:, :, 1], axis=-1, where=visible_joints, initial=joints[:, :, 1].max())
 
-    @classmethod
-    def sanitize_sample(cls, sample) -> "PoseEstimationSample":
+        w = xmax - xmin
+        h = ymax - ymin
+        raw_area = w * h
+        area = np.clip(raw_area, a_min=0, a_max=None) * (visible_joints.sum(axis=-1, keepdims=False) > 1)
+        return area
+
+    def sanitize_sample(self) -> "PoseEstimationSample":
         """
         Apply sanity checks on the pose sample, which includes:
         - Clamp bbox coordinates to ensure they are within image boundaries
         - Update visibility status of keypoints if they are outside of image boundaries
         - Update area if bbox clipping occurs
         This function does not remove instances, but may make them subject for removal instead.
-        :return: sample
+        :return: self
         """
-        image_height, image_width, _ = sample.image.shape
+        image_height, image_width, _ = self.image.shape
 
         # Update joints visibility status
-        outside_left = sample.joints[:, :, 0] < 0
-        outside_top = sample.joints[:, :, 1] < 0
-        outside_right = sample.joints[:, :, 0] >= image_width
-        outside_bottom = sample.joints[:, :, 1] >= image_height
+        outside_left = self.joints[:, :, 0] < 0
+        outside_top = self.joints[:, :, 1] < 0
+        outside_right = self.joints[:, :, 0] >= image_width
+        outside_bottom = self.joints[:, :, 1] >= image_height
 
         outside_image_mask = outside_left | outside_top | outside_right | outside_bottom
-        sample.joints[outside_image_mask, 2] = 0
+        self.joints[outside_image_mask, 2] = 0
 
-        if sample.bboxes is not None:
+        if self.bboxes is not None:
             # Clamp bboxes to image boundaries
-            clamped_boxes = xywh_to_xyxy(sample.bboxes, image_shape=(image_height, image_width))
+            clamped_boxes = xywh_to_xyxy(self.bboxes, image_shape=(image_height, image_width))
             clamped_boxes[..., [0, 2]] = np.clip(clamped_boxes[..., [0, 2]], 0, image_width - 1)
             clamped_boxes[..., [1, 3]] = np.clip(clamped_boxes[..., [1, 3]], 0, image_height - 1)
             clamped_boxes = xyxy_to_xywh(clamped_boxes, image_shape=(image_height, image_width))
 
             # Recompute sample areas if they are present
-            if sample.areas is not None:
-                area_reduction_factor = clamped_boxes[..., 2:4].prod(axis=-1) / (sample.bboxes[..., 2:4].prod(axis=-1) + 1e-6)
-                sample.areas = sample.areas * area_reduction_factor
+            if self.areas is not None:
+                area_reduction_factor = clamped_boxes[..., 2:4].prod(axis=-1) / (self.bboxes[..., 2:4].prod(axis=-1) + 1e-6)
+                self.areas = self.areas * area_reduction_factor
 
-            sample.bboxes = clamped_boxes
-        return sample
+            self.bboxes = clamped_boxes
+        return self
 
-    @classmethod
-    def filter_by_mask(cls, sample, mask: np.ndarray) -> "PoseEstimationSample":
+    def filter_by_mask(self, mask: np.ndarray) -> "PoseEstimationSample":
         """
         Remove pose instances with respect to given mask.
 
@@ -94,31 +100,28 @@ class PoseEstimationSampleFilter:
         instance (Let's say you add a distance property for each pose from the camera), then you should override
         this method to do filtering on extra attribute as well.
 
-        :param sample: Instance of PoseEstimationSample to modify. Modification done in-place.
         :param mask:   A boolean or integer mask of samples to keep for given sample
-        :return:       sample
+        :return:       self
         """
-        sample.joints = sample.joints[mask]
-        sample.is_crowd = sample.is_crowd[mask]
-        if sample.bboxes is not None:
-            sample.bboxes = sample.bboxes[mask]
-        if sample.areas is not None:
-            sample.areas = sample.areas[mask]
-        return sample
+        self.joints = self.joints[mask]
+        self.is_crowd = self.is_crowd[mask]
+        if self.bboxes is not None:
+            self.bboxes = self.bboxes[mask]
+        if self.areas is not None:
+            self.areas = self.areas[mask]
+        return self
 
-    @classmethod
-    def filter_by_visible_joints(cls, sample, min_visible_joints) -> "PoseEstimationSample":
+    def filter_by_visible_joints(self, min_visible_joints) -> "PoseEstimationSample":
         """
         Remove instances from the sample which has less than N visible joints
         :param min_visible_joints: A minimal number of visible joints a pose has to have in order to be kept.
         :return: sample
         """
-        visible_joints_mask = sample.joints[:, :, 2] > 0
+        visible_joints_mask = self.joints[:, :, 2] > 0
         keep_mask: np.ndarray = np.sum(visible_joints_mask, axis=-1) >= min_visible_joints
-        return cls.filter_by_mask(sample, keep_mask)
+        return self.filter_by_mask(keep_mask)
 
-    @classmethod
-    def filter_by_bbox_area(cls, sample, min_bbox_area: Union[int, float] = 1) -> "PoseEstimationSample":
+    def filter_by_bbox_area(self, min_bbox_area: Union[int, float] = 1) -> "PoseEstimationSample":
         """
         Remove pose instances that has area of the corresponding bounding box less than a certain threshold.
 
@@ -126,16 +129,15 @@ class PoseEstimationSampleFilter:
         :param min_bbox_area: Minimal bounding box area of the pose to keep.
         :return:              sample
         """
-        if sample.bboxes is None:
-            area = sample.compute_area_of_joints_bounding_box(sample.joints)
+        if self.bboxes is None:
+            area = self.compute_area_of_joints_bounding_box(self.joints)
         else:
-            area = sample.bboxes[..., 2:4].prod(axis=-1)
+            area = self.bboxes[..., 2:4].prod(axis=-1)
 
         keep_mask = area > min_bbox_area
-        return cls.filter_by_mask(sample, keep_mask)
+        return self.filter_by_mask(keep_mask)
 
-    @classmethod
-    def filter_by_pose_area(cls, sample, min_instance_area: Union[int, float] = 1) -> "PoseEstimationSample":
+    def filter_by_pose_area(self, min_instance_area: Union[int, float] = 1) -> "PoseEstimationSample":
         """
         Remove pose instances that has all keypoints marked as invisible or those,
         which area is less than given threshold
@@ -145,17 +147,17 @@ class PoseEstimationSampleFilter:
         :return:                  sample
         """
 
-        visible_joints_mask = sample.joints[:, :, 2] > 0
+        visible_joints_mask = self.joints[:, :, 2] > 0
         keep_mask = np.sum(visible_joints_mask, axis=-1) > 0
 
         # Filter instances with too small area
         if min_instance_area > 0:
-            if sample.areas is None:
-                areas = sample.compute_area_of_joints_bounding_box(sample.joints)
+            if self.areas is None:
+                areas = self.compute_area_of_joints_bounding_box(self.joints)
             else:
-                areas = sample.areas
+                areas = self.areas
 
             keep_area_mask = areas > min_instance_area
             keep_mask &= keep_area_mask
 
-        return cls.filter_by_mask(sample, keep_mask)
+        return self.filter_by_mask(keep_mask)
