@@ -35,11 +35,8 @@ WANDB_PARAMS = training_hyperparams.sg_logger=wandb_sg_logger +training_hyperpar
 examples_to_docs:
 	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute src/super_gradients/examples/model_export/models_export.ipynb
 
-coco2017_yolo_nas_pose_s_128_512_512_2_2_3_0_1_0:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_128_512_512_2_2_3_0_1_0 $(WANDB_PARAMS)
-
-coco2017_yolo_nas_pose_s_128_512_512_3_2_2_0_1_1:
-	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_128_512_512_3_2_2_0_1_1 $(WANDB_PARAMS)
+coco2017_yolo_nas_pose_s:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s $(WANDB_PARAMS)
 
 coco2017_yolo_nas_pose_m:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_m $(WANDB_PARAMS)
@@ -62,59 +59,9 @@ coco2017_yolo_nas_pose_n_resume:
 coco2017_yolo_nas_pose_l_resume:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l $(WANDB_PARAMS) resume=True
 
-#coco2017_yolo_nas_pose_s:
-#	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_weights_and_biases dataset_params=coco_pose_estimation_yolo_nas_dataset_params
-#
-#coco2017_yolo_nas_pose_shared_s:
-#	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_shared_s
-#
-#coco2017_yolo_nas_pose_shared_m:
-#	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_shared_m
-#
-#
-#coco2017_yolo_nas_pose_shared_s_ema_less_mosaic_lr_bce_local:
-#	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_shared_s_ema_less_mosaic_lr_bce_local  dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017 num_gpus=4
-#
-#coco2017_yolo_nas_pose_s_local:
-#	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_local  dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017 num_gpus=4
-#
-#coco2017_yolo_nas_pose_shared_s_local:
-#	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_shared_s_local dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017 num_gpus=4
-#
-#coco2017_yolo_nas_pose_shared_s_384_short:
-#	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_shared_s_384_short dataset_params=coco_pose_estimation_yolo_nas_dataset_params  dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017 num_gpus=4 multi_gpu=DDP
 
-
-crowdpose_yolo_nas_pose_s_no_crowd_local:
-	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_no_crowd \
+crowdpose_yolo_nas_pose_s:
+	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s \
     dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
     dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
     num_gpus=4
-
-crowdpose_yolo_nas_pose_s_no_crowd_no_ema_local:
-	python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_no_crowd_no_ema \
-	checkpoint_params.checkpoint_path=/home/bloodaxe/develop/super-gradients/checkpoints/crowdpose_yolo_nas_pose_s_box_focal_1.0_ciou_2.5_dfl_0.01_pose_focal_1.0_reg_34__default_640no_crowd/RUN_20230919_212216_740555/average_model.pth \
-    dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    num_gpus=4
-
-crowdpose_yolo_nas_pose_s_proxy:
-	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
-    dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_type=focal &
-
-	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
-    dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_type=bce &
-
-	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
-    dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.classification_loss_weight=10 &
-
-	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s_proxy \
-    dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose \
-    num_gpus=1 multi_gpu=Off training_hyperparams.initial_lr=3e-4 training_hyperparams.criterion_params.assigner_multiply_by_pose_oks=True &
