@@ -38,9 +38,12 @@ def convert_to_tensor(array, dtype=None, device=None):
     :param array: torch.tensor / Numpy array / List
     """
     if not torch.is_tensor(array):
-        array = torch.tensor(array)
-
-    return array.to(device=device, dtype=dtype)
+        if isinstance(array, np.ndarray):
+            return torch.from_numpy(array).to(device=device, dtype=dtype)
+        else:
+            return torch.tensor(array, device=device, dtype=dtype)
+    else:
+        return array.to(device=device, dtype=dtype)
 
 
 class HpmStruct:
