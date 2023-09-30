@@ -141,6 +141,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         keypoints: List[Union[np.ndarray, Tensor]],
         bboxes: List[Union[None, np.ndarray, Tensor]],
         scores: Optional[List[Union[None, np.ndarray, Tensor]]],
+        is_crowd: Optional[List[Union[None, np.ndarray, Tensor]]],
         keypoint_colors: List[Tuple[int, int, int]],
         edge_colors: List[Tuple[int, int, int]],
         edge_links: List[Tuple[int, int]],
@@ -152,19 +153,24 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
             keypoints_i = keypoints[i]
             bboxes_i = bboxes[i]
             scores_i = scores[i] if scores is not None else None
+            is_crowd_i = is_crowd[i] if is_crowd is not None else None
+
             if torch.is_tensor(keypoints_i):
                 keypoints_i = keypoints_i.detach().cpu().numpy()
             if torch.is_tensor(bboxes_i):
                 bboxes_i = bboxes_i.detach().cpu().numpy()
             if torch.is_tensor(scores_i):
                 scores_i = scores_i.detach().cpu().numpy()
+            if torch.is_tensor(is_crowd_i):
+                is_crowd_i = is_crowd_i.detach().cpu().numpy()
 
             res_image = image_tensor[i]
             res_image = PoseVisualization.draw_poses(
-                res_image,
+                image=res_image,
                 poses=keypoints_i,
                 boxes=bboxes_i,
                 scores=scores_i,
+                is_crowd=is_crowd_i,
                 show_keypoint_confidence=show_keypoint_confidence,
                 edge_links=edge_links,
                 edge_colors=edge_colors,
@@ -191,6 +197,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
             keypoints=[p.poses for p in predictions],
             bboxes=[p.bboxes for p in predictions],
             scores=[p.scores for p in predictions],
+            is_crowd=None,
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,
             keypoint_colors=self.keypoint_colors,
@@ -202,11 +209,14 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
 
         target_joints_unpacked = undo_flat_collate_tensors_with_batch_index(target_joints, batch_size)
         target_boxes_unpacked = undo_flat_collate_tensors_with_batch_index(target_boxes, batch_size)
+        target_crowd_unpacked = undo_flat_collate_tensors_with_batch_index(target_crowds, batch_size)
+
         images_to_save_gt = self.visualize_batch(
             inputs,
             keypoints=target_joints_unpacked,
             bboxes=target_boxes_unpacked,
             scores=None,
+            is_crowd=target_crowd_unpacked,
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,
             keypoint_colors=self.keypoint_colors,

@@ -119,10 +119,12 @@ class PoseVisualization:
     @classmethod
     def draw_poses(
         self,
+        *,
         image: np.ndarray,
         poses: np.ndarray,
         boxes: Optional[np.ndarray],
         scores: Optional[np.ndarray],
+        is_crowd: Optional[np.ndarray],
         edge_links: Union[np.ndarray, List[Tuple[int, int]]],
         edge_colors: Union[None, np.ndarray, List[Tuple[int, int, int]]],
         keypoint_colors: Union[None, np.ndarray, List[Tuple[int, int, int]]],
@@ -138,6 +140,7 @@ class PoseVisualization:
         :param poses: Predicted poses. Shape [Num Poses, Num Joints, 2] or [Num Poses, Num Joints, 3] if confidence scores are available.
         :param boxes: Optional bounding boxes for each pose. Shape [Num Poses, 4] in XYXY format.
         :param scores: Optional confidence scores for each pose. Shape [Num Poses]
+        :param is_crowd: Optional array of booleans indicating whether each pose is crowd or not. Shape [Num Poses]
         :param edge_links: Array of [Num Links, 2] containing the links between joints to draw.
         :param edge_colors: Array of shape [Num Links, 3] or list of tuples containing the (r,g,b) colors for each joint link.
         :param keypoint_colors: Array of shape [Num Joints, 3] or list of tuples containing the (r,g,b) colors for each keypoint.
@@ -150,6 +153,8 @@ class PoseVisualization:
             raise ValueError("boxes and poses must have the same length")
         if scores is not None and len(scores) != len(poses):
             raise ValueError("conf and poses must have the same length")
+        if is_crowd is not None and len(is_crowd) != len(poses):
+            raise ValueError("is_crowd and poses must have the same length")
 
         # For visualization purposes, sort poses by confidence starting from the least confident
         if scores is not None:
@@ -158,6 +163,8 @@ class PoseVisualization:
             scores = scores[order]
             if boxes is not None:
                 boxes = boxes[order]
+            if is_crowd is not None:
+                is_crowd = is_crowd[order]
 
         res_image = image.copy()
         num_poses = len(poses)
@@ -179,6 +186,12 @@ class PoseVisualization:
             )
 
             if boxes is not None:
+                title = ""
+                if scores is not None:
+                    title += f"Score {scores[pose_index]:.2f}"
+                if is_crowd is not None:
+                    title += f"Crowd {is_crowd[pose_index]}"
+
                 res_image = draw_bbox(
                     image=res_image,
                     x1=int(boxes[pose_index][0]),
@@ -186,7 +199,7 @@ class PoseVisualization:
                     x2=int(boxes[pose_index][2]),
                     y2=int(boxes[pose_index][3]),
                     color=(255, 255, 255),
-                    title=f"{scores[pose_index]:.2f}" if scores is not None else None,
+                    title=title,
                     box_thickness=box_thickness,
                 )
 

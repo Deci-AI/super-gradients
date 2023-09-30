@@ -366,10 +366,11 @@ class TestPoseEstimationModelExport(unittest.TestCase):
             poses = flat_predictions[:, 6:].reshape(-1, 17, 3)
 
             image_8u = PoseVisualization.draw_poses(
-                image_8u,
+                image=image_8u,
                 poses=poses,
                 boxes=boxes,
                 scores=scores,
+                is_crowd=None,
                 show_keypoint_confidence=True,
                 edge_links=self.edge_links,
                 edge_colors=self.edge_colors,
@@ -381,10 +382,11 @@ class TestPoseEstimationModelExport(unittest.TestCase):
             [num_predictions], [pred_boxes], [pred_scores], [pred_joints] = result
 
             image_8u = PoseVisualization.draw_poses(
-                image_8u,
+                image=image_8u,
                 poses=pred_joints[0 : num_predictions[0]],
                 boxes=pred_boxes[0 : num_predictions[0]],
                 scores=pred_scores[0 : num_predictions[0]],
+                is_crowd=None,
                 show_keypoint_confidence=True,
                 edge_links=self.edge_links,
                 edge_colors=self.edge_colors,
