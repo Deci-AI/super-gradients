@@ -393,7 +393,6 @@ class YoloNASPoseLoss(nn.Module):
             pad_gt_mask=pad_gt_mask,
             bg_index=self.num_classes,
         )
-        alpha_l = -1
 
         assigned_labels = assign_result.assigned_labels
         assigned_scores = assign_result.assigned_scores
@@ -403,7 +402,7 @@ class YoloNASPoseLoss(nn.Module):
             one_hot_label = torch.nn.functional.one_hot(assigned_labels, self.num_classes + 1)[..., :-1]
             loss_cls = self._varifocal_loss(pred_scores, assigned_scores, one_hot_label)
         elif self.classification_loss_type == "focal":
-            loss_cls = self._focal_loss(pred_scores, assigned_scores, alpha_l)
+            loss_cls = self._focal_loss(pred_scores, assigned_scores, alpha=-1)
         elif self.classification_loss_type == "bce":
             loss_cls = torch.nn.functional.binary_cross_entropy_with_logits(pred_scores, assigned_scores, reduction="sum")
         else:
@@ -604,11 +603,13 @@ class YoloNASPoseLoss(nn.Module):
     @staticmethod
     def _focal_loss(pred_logits: Tensor, label: Tensor, alpha=0.25, gamma=2.0, reduction="sum") -> Tensor:
         pred_score = pred_logits.sigmoid()
-        weight = (pred_score - label).pow(gamma)
+        weight = torch.abs(pred_score - label).pow(gamma)
         if alpha > 0:
             alpha_t = alpha * label + (1 - alpha) * (1 - label)
             weight *= alpha_t
-        loss = -weight * (label * torch.nn.functional.logsigmoid(pred_logits) + (1 - label) * torch.nn.functional.logsigmoid(-pred_logits))
+        # This is same, but binary_cross_entropy_with_logits is faster
+        # loss = -weight * (label * torch.nn.functional.logsigmoid(pred_logits) + (1 - label) * torch.nn.functional.logsigmoid(-pred_logits))
+        loss = weight * torch.nn.functional.binary_cross_entropy_with_logits(pred_logits, label, reduction="none")
 
         if reduction == "sum":
             loss = loss.sum()
