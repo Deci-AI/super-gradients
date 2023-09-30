@@ -34,6 +34,7 @@ class YoloNASPosePostPredictionCallback:
         self.pre_nms_max_predictions = pre_nms_max_predictions
         self.post_nms_max_predictions = post_nms_max_predictions
 
+    @torch.no_grad()
     def __call__(self, outputs, device: str = None) -> List[PoseEstimationPredictions]:
         """
 

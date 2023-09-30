@@ -187,8 +187,8 @@ class PoseEstimationMetrics(Metric):
         if len(predicted_poses) != len(predicted_scores):
             raise ValueError("Length of predicted poses and scores should be equal. Got {} and {}".format(len(predicted_poses), len(predicted_scores)))
 
-        predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float32, device=self.device)
-        predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float32, device=self.device)
+        predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float32, device="cpu")
+        predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float32, device="cpu")
 
         if gt_bboxes is None:
             gt_bboxes = compute_visible_bbox_xywh(torch.tensor(gt_joints[:, :, 0:2]), torch.tensor(gt_joints[:, :, 2]))
@@ -199,10 +199,10 @@ class PoseEstimationMetrics(Metric):
         if gt_iscrowd is None:
             gt_iscrowd = [False] * len(gt_joints)
 
-        gt_keypoints = convert_to_tensor(gt_joints, dtype=torch.float32, device=self.device)
-        gt_areas = convert_to_tensor(gt_areas, dtype=torch.float32, device=self.device)
-        gt_bboxes = convert_to_tensor(gt_bboxes, dtype=torch.float32, device=self.device)
-        gt_iscrowd = convert_to_tensor(gt_iscrowd, dtype=torch.bool, device=self.device)
+        gt_keypoints = convert_to_tensor(gt_joints, dtype=torch.float32, device="cpu")
+        gt_areas = convert_to_tensor(gt_areas, dtype=torch.float32, device="cpu")
+        gt_bboxes = convert_to_tensor(gt_bboxes, dtype=torch.float32, device="cpu")
+        gt_iscrowd = convert_to_tensor(gt_iscrowd, dtype=torch.bool, device="cpu")
 
         gt_keypoints_xy = gt_keypoints[:, :, 0:2]
         gt_keypoints_visibility = gt_keypoints[:, :, 2]
@@ -235,8 +235,8 @@ class PoseEstimationMetrics(Metric):
             crowd_targets_areas=crowd_targets_areas,
             crowd_targets_bboxes=crowd_targets_bboxes,
             #
-            iou_thresholds=self.iou_thresholds.to(self.device),
-            sigmas=self.oks_sigmas.to(self.device),
+            iou_thresholds=self.iou_thresholds.to("cpu"),
+            sigmas=self.oks_sigmas.to("cpu"),
             top_k=self.max_objects_per_image,
         )
 
