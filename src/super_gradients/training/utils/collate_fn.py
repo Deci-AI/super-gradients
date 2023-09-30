@@ -18,11 +18,6 @@ from data_gradients.dataset_adapters.config.typing_utils import SupportedDataTyp
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.collate_functions_factory import CollateFunctionsFactory
-from super_gradients.common.environment.device_utils import device_config
-from super_gradients.common.environment.ddp_utils import get_local_rank
-
-
-from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
 
 
 class DatasetItemsException(Exception):
@@ -136,13 +131,28 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         base_collate_fn = base_collate_fn or (default_collate if adapter.data_config.is_batch else DetectionCollateFN())
         super().__init__(adapter=adapter, base_collate_fn=base_collate_fn)
 
+    def _adapt_samples(self, samples: Iterable[SupportedDataType]) -> List[Tuple[torch.Tensor, torch.Tensor]]:
+        """Apply the adapter logic to a list of samples. This should be called only if the adapter was NOT setup on a batch.
+        :param samples: List of samples to adapt
+        :return:        List of (Image, Targets)
+        """
+        from super_gradients.training.utils.detection_utils import xyxy2cxcywh
+
+        adapted_samples = []
+        for sample in samples:
+            images, targets = self.adapter.adapt(sample)  # Will construct batch of 1
+            images, targets = images[0], targets[0]  # Extract the sample
+            targets[:, 1:] = xyxy2cxcywh(targets[:, 1:])
+            adapted_samples.append((images, targets))
+        return adapted_samples
+
     def _adapt_batch(self, batch: Sequence[torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         from super_gradients.training.utils.detection_utils import xyxy2cxcywh
 
         images, targets = super()._adapt_batch(batch)
-
+        targets = DetectionCollateFN._format_targets(targets)
         # This is only relevant if we adapt on the batch.
-        targets = ensure_flat_bbox_batch(targets)  # If adapter applied on collated batch, the output will be (BS, P, 5). In such case, we want -> (N, 6)
+        # targets = ensure_flat_bbox_batch(targets)  # If adapter applied on collated batch, the output will be (BS, P, 5). In such case, we want -> (N, 6)
         targets[:, 2:] = xyxy2cxcywh(targets[:, 2:])  # Adapter returns xyxy
         return images, targets
 
@@ -277,13 +287,16 @@ class BaseDataloaderAdapter(ABC):
 def _maybe_setup_adapter(adapter: BaseDatasetAdapter, data: Iterable[SupportedDataType]) -> None:
     """Run a dummy iteration of a dataloader to make sure that the dataloader is properly adapted to SuperGradients format."""
     if not adapter.data_config.is_completely_initialized:
-        if device_config.assigned_rank <= 0:
-            _ = adapter.adapt(next(iter(data)))  # Run a dummy iteration to ensure all the questions are asked.
-            adapter.data_config.dump_cache_file()
+        from super_gradients.common.environment.ddp_utils import is_distributed
 
-        # We want other processes to all sync with the master cache file.
-        with wait_for_the_master(get_local_rank()):
-            adapter.data_config.update_from_cache_file()
+        if is_distributed():
+            raise RuntimeError(
+                f"`{adapter.__class__.__name__}` can be used with DDP only if the it was initialized BEFORE.\n"
+                "   - If you already have a cache file from a previous run, please use it.\n"
+                "   - Otherwise, please run your script WITHOUT DDP first, and then re-run this script on DDP using the cache file name."
+            )  # TODO: Improve - make it more clear and explicit.
+        _ = adapter.adapt(next(iter(data)))  # Run a dummy iteration to ensure all the questions are asked.
+        adapter.data_config.dump_cache_file()
 
 
 def maybe_setup_adapter_collate(dataloader: torch.utils.data.DataLoader) -> torch.utils.data.DataLoader:
@@ -343,14 +356,16 @@ class DetectionCollateFN:
 
         return self._format_images(images_batch), self._format_targets(labels_batch)
 
-    def _format_images(self, images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+    @staticmethod
+    def _format_images(images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
         images_batch = [torch.tensor(img) for img in images_batch]
         images_batch_stack = torch.stack(images_batch, 0)
         if images_batch_stack.shape[3] == 3:
             images_batch_stack = torch.moveaxis(images_batch_stack, -1, 1).float()
         return images_batch_stack
 
-    def _format_targets(self, labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+    @staticmethod
+    def _format_targets(labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
         """
         Stack a batch id column to targets and concatenate
         :param labels_batch: a list of targets per image (each of arbitrary length)
