@@ -63,7 +63,12 @@ coco2017_yolo_nas_pose_l_resume:
 LOCAL_TRAINING_PARAMS = dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose num_gpus=1 multi_gpu=Off
 
 crowdpose_yolo_nas_pose_s:
-	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) &
-	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) training_hyperparams.criterion_params.classification_loss_type=bce &
-	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) training_hyperparams.criterion_params.dfl_loss_weight=1.0 &
-	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) training_hyperparams.criterion_params.pose_cls_loss_weight=0.1 training_hyperparams.criterion_params.pose_reg_loss_weight=5.0 &
+	#	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) &
+	#	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) training_hyperparams.criterion_params.classification_loss_type=bce &
+	#	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) training_hyperparams.criterion_params.dfl_loss_weight=1.0 &
+	#	CUDA_VISIBLE_DEVICES=3 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) training_hyperparams.criterion_params.pose_cls_loss_weight=0.1 training_hyperparams.criterion_params.pose_reg_loss_weight=5.0 &
+
+	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) training_hyperparams.criterion_params.pose_cls_loss_weight=0.10 training_hyperparams.criterion_params.pose_reg_loss_weight=5.0 training_hyperparams.criterion_params.dfl_loss_weight=1.0 &
+	CUDA_VISIBLE_DEVICES=1 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) training_hyperparams.criterion_params.pose_cls_loss_weight=0.01 training_hyperparams.criterion_params.pose_reg_loss_weight=5.0 training_hyperparams.criterion_params.dfl_loss_weight=1.0 &
+	CUDA_VISIBLE_DEVICES=2 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) training_hyperparams.criterion_params.pose_cls_loss_weight=0.01 training_hyperparams.criterion_params.pose_reg_loss_weight=1.0 training_hyperparams.criterion_params.dfl_loss_weight=2.5 &
+	CUDA_VISIBLE_DEVICES=0 python src/super_gradients/train_from_recipe.py --config-name=crowdpose_yolo_nas_pose_s $(LOCAL_TRAINING_PARAMS) training_hyperparams.criterion_params.pose_cls_loss_weight=0.10 training_hyperparams.criterion_params.pose_reg_loss_weight=5.0 training_hyperparams.criterion_params.dfl_loss_weight=1.0 training_hyperparams.criterion_params.classification_loss_type=bce &
