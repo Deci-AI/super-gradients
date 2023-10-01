@@ -144,6 +144,7 @@ def torch_classification():
         use_cache=True,
     )
     analyzer.run()
+
     train_loader = ClassificationDataloaderAdapter.from_dataset(
         dataset=train_set,
         config_path=analyzer.data_config.cache_path,
@@ -320,7 +321,8 @@ def torchvision_segmentation():
         assert labels.shape == torch.Size([20, 720, 720])
 
 
-torchvision_segmentation()
+torch_classification()
+# torchvision_segmentation()
 # torchvision_detection()
 # datagradients_detection()
 # datagradients_segmentation()
