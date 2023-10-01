@@ -52,7 +52,7 @@ class BaseDatasetAdapterCollateFN(ABC):
         self._adapt_on_batch = adapter.data_config.is_batch
 
         self.adapter = adapter
-        self._base_collate_fn = base_collate_fn
+        self._base_collate_fn = base_collate_fn or default_collate
 
         if isinstance(self._base_collate_fn, type(self)):
             raise RuntimeError(f"You just tried to instantiate {self.__class__.__name__} with a `base_collate_fn` of the same type, which is not supported.")
@@ -192,7 +192,7 @@ class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         else:
             raise ValueError("Please either set `adapter_config` or `adapter_cache_path`.")
 
-        super().__init__(adapter=adapter or base_collate_fn, base_collate_fn=base_collate_fn)
+        super().__init__(adapter=adapter, base_collate_fn=base_collate_fn or base_collate_fn)
 
     def __call__(self, samples: Iterable[SupportedDataType]) -> Tuple[torch.Tensor, torch.Tensor]:
         from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
@@ -232,7 +232,7 @@ class ClassificationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         else:
             raise ValueError("Please either set `adapter_config` or `adapter_cache_path`.")
 
-        super().__init__(adapter=adapter or base_collate_fn, base_collate_fn=base_collate_fn)
+        super().__init__(adapter=adapter, base_collate_fn=base_collate_fn or base_collate_fn)
 
     def __call__(self, samples: Iterable[SupportedDataType]) -> Tuple[torch.Tensor, torch.Tensor]:
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
