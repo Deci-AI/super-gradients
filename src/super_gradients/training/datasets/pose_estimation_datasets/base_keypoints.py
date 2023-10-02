@@ -45,7 +45,14 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         """
         super().__init__()
         self.target_generator = target_generator
-        self.transforms = KeypointsCompose(transforms)
+        self.transforms = KeypointsCompose(
+            transforms,
+            # It is important to disable filtering here, because we are passing pose sample as the tuple and we don't
+            # pass the is_crowd vector, so the filtering will be done incorrectly.
+            min_bbox_area=0,
+            min_visible_joints=0,
+            load_sample_fn=None,
+        )
         self.min_instance_area = min_instance_area
         self.num_joints = num_joints
         self.edge_links = edge_links

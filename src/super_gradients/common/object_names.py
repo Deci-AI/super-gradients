@@ -113,11 +113,12 @@ class Transforms:
     KeypointsImageNormalize = "KeypointsImageNormalize"
     KeypointsImageStandardize = "KeypointsImageStandardize"
     KeypointsImageToTensor = "KeypointsImageToTensor"
-    KeypointTransform = "KeypointTransform"
     KeypointsPadIfNeeded = "KeypointsPadIfNeeded"
     KeypointsLongestMaxSize = "KeypointsLongestMaxSize"
     KeypointsRandomVerticalFlip = "KeypointsRandomVerticalFlip"
     KeypointsRandomHorizontalFlip = "KeypointsRandomHorizontalFlip"
+    KeypointsRescale = "KeypointsRescale"
+    KeypointsRandomRotate90 = "KeypointsRandomRotate90"
 
 
 class Optimizers:
@@ -410,6 +411,8 @@ class Datasets:
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
+    ANIMALPOSE_KEY_POINTS_DATASET = "AnimalPoseKeypointsDataset"
+    CROWDPOSE_KEY_POINTS_DATASET = "CrowdPoseKeypointsDataset"
 
 
 class Processings:
@@ -418,6 +421,7 @@ class Processings:
     DetectionLongestMaxSizeRescale = "DetectionLongestMaxSizeRescale"
     DetectionBottomRightPadding = "DetectionBottomRightPadding"
     DetectionRescale = "DetectionRescale"
+    KeypointsRescale = "KeypointsRescale"
     KeypointsLongestMaxSizeRescale = "KeypointsLongestMaxSizeRescale"
     KeypointsBottomRightPadding = "KeypointsBottomRightPadding"
     ImagePermute = "ImagePermute"

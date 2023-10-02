@@ -105,7 +105,7 @@ class PoseEstimationMetrics(Metric):
 
         if oks_sigmas is None:
             if num_joints == 17:
-                oks_sigmas = np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0
+                oks_sigmas = np.array([0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089])
             else:
                 oks_sigmas = np.array([0.1] * num_joints)
                 logger.warning(
