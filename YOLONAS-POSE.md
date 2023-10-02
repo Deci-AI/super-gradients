@@ -5,7 +5,7 @@ Deci is thrilled to announce the release of a new object detection model, YOLO-N
 pose estimation architecture, providing superior real-time object detection capabilities and production-ready performance. 
 Deci's mission is to provide AI teams with tools to remove development barriers and attain efficient inference performance more quickly.
 
-![YOLO-NAS-POSE](documentation/source/images/TODO_yolo_nas_pose_frontier.png)
+![YOLO-NAS-POSE](documentation/source/images/yolo_nas_pose_frontier.png)
 
 The new YOLO-NAS-POSE delivers state-of-the-art (SOTA) performance with the unparalleled accuracy-speed performance, outperforming other models such as YOLOv8-Pose, DEKR and others.
 
@@ -14,28 +14,20 @@ The AutoNAC™ engine lets you input any task, data characteristics (access to d
 and then guides you to find the optimal architecture that delivers the best balance between accuracy and inference speed for your specific application. 
 In addition to being data and hardware aware, the AutoNAC engine considers other components in the inference stack, including compilers and quantization.
 
-In terms of pure numbers, YOLO-NAS-POSE is XXX mAP point more accurate and YYY% faster than equivalent variants of YOLOv8.
-
-| Model            | mAP   | Latency (ms) |
+| Model            | AP    | Latency (ms) |
 |------------------|-------|--------------|
-| YOLO-NAS S       | TODO  | TODO         |
-| YOLO-NAS M       | TODO  | TODO         |
-| YOLO-NAS L       | TODO  | TODO         |
-| YOLO-NAS S INT-8 | TODO  | TODO         |
-| YOLO-NAS M INT-8 | TODO  | TODO         |
-| YOLO-NAS L INT-8 | TODO  | TODO         |
+| YOLO-NAS N       | 59.65 | 2.35 ms      |
+| YOLO-NAS S       | 63.70 | 3.29 ms      |
+| YOLO-NAS M       | 66.20 | 6.87 ms      |
+| YOLO-NAS L       | 67.50 | 8.86 ms      |
 
-mAP numbers in table reported for COCO 2017 Val dataset and latency benchmarked for 640x640 images on Nvidia T4 GPU.
+AP numbers in table reported for COCO 2017 Val dataset and latency benchmarked for 640x640 images on Nvidia T4 GPU.
 No flip-TTA was used.
 
-Similary to YOLO-NAS, YOLO-NAS-POSE architecture employs quantization-aware blocks and selective quantization for optimized performance. 
+Similarly to YOLO-NAS, YOLO-NAS-POSE architecture employs quantization-aware blocks and selective quantization for optimized performance. 
 In fact YOLO-NAS-POSE is a direct successor of YOLO-NAS and uses same backbone and neck as YOLO-NAS. 
 Only the head is different and is optimized by AutoNAC for pose estimation task. 
 That enables us to use transfer learning and fine-tune YOLO-NAS-POSE starting from YOLO-NAS weights.
-
-When converted to its INT8 quantized version, YOLO-NAS-POSE experiences a smaller precision drop (0.51, 0.65, and 0.45 points of mAP for S, M, and L variants) 
-compared to other models that lose 1-2 mAP points during quantization. 
-These techniques culminate in innovative architecture with superior object detection capabilities and top-notch performance.
 
 
 ## Quickstart
@@ -63,31 +55,10 @@ We provide training recipies for training YOLO-NAS-POSE on COCO, CrowdPose and A
 
 #### COCO 2017
 
-* [super_gradients/recipes/coco_yolo_nas_m.yaml](src/super_gradients/recipes/roboflow_yolo_nas_m.yaml)
-* [super_gradients/recipes/coco_yolo_nas_s.yaml](src/super_gradients/recipes/roboflow_yolo_nas_s.yaml)
-* [super_gradients/recipes/coco_yolo_nas_s_qat.yaml](src/super_gradients/recipes/roboflow_yolo_nas_s_qat.yaml)
-
-#### CrowdPose
-* 
-* [super_gradients/recipes/coco_yolo_nas_m.yaml](src/super_gradients/recipes/roboflow_yolo_nas_m.yaml)
-* [super_gradients/recipes/coco_yolo_nas_s.yaml](src/super_gradients/recipes/roboflow_yolo_nas_s.yaml)
-* [super_gradients/recipes/coco_yolo_nas_s_qat.yaml](src/super_gradients/recipes/roboflow_yolo_nas_s_qat.yaml)
-
-#### AnimalPose
-
-* [super_gradients/recipes/coco_yolo_nas_m.yaml](src/super_gradients/recipes/roboflow_yolo_nas_m.yaml)
-* [super_gradients/recipes/coco_yolo_nas_s.yaml](src/super_gradients/recipes/roboflow_yolo_nas_s.yaml)
-* [super_gradients/recipes/coco_yolo_nas_s_qat.yaml](src/super_gradients/recipes/roboflow_yolo_nas_s_qat.yaml)
-
-## Great fine-tuning potential
-
-We demonstrate great performance of YOLO-NAS on downstream tasks. 
-When fine-tuning on AnimalPose our YOLO-NAS-POSE model achieves higher mAP than our nearest competitors:
-
-TODO: Find good dataset for fine-tuning (CrowdPose does not fit well since it is a subset of COCO and subject for data leakage)
-
-
-
+* [super_gradients/recipes/coco2017_yolo_nas_pose_n.yaml](src/super_gradients/recipes/coco2017_yolo_nas_pose_n.yaml)
+* [super_gradients/recipes/coco2017_yolo_nas_pose_s.yaml](src/super_gradients/recipes/coco2017_yolo_nas_pose_s.yaml)
+* [super_gradients/recipes/coco2017_yolo_nas_pose_m.yaml](src/super_gradients/recipes/coco2017_yolo_nas_pose_m.yaml)
+* [super_gradients/recipes/coco2017_yolo_nas_pose_l.yaml](src/super_gradients/recipes/coco2017_yolo_nas_pose_l.yaml)
 
 
 ## Additional resources
@@ -95,7 +66,7 @@ TODO: Find good dataset for fine-tuning (CrowdPose does not fit well since it is
 <tr>
     <td>   
         <a target="_blank" href="https://bit.ly/yolo-nas-starter-notebook">
-            <img src="./documentation/assets/SG_img/colab_logo.png" /> Fine-Tuning Notebook (TODO)
+            <img src="./documentation/assets/SG_img/colab_logo.png" /> Fine-Tuning YoloNAS Pose on AnimalPose dataset Notebook (TODO)
         </a>
     </td>
 </tr><tr>

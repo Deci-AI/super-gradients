@@ -2,7 +2,7 @@ defaults:
   - coco_pose_estimation_dataset_params
   - _self_
 
-mosaic_prob: 0.8
+mosaic_prob: 0.5
 dataset_params_suffix: "mosaic_${dataset_params.mosaic_prob}_${dataset_params.image_size}"
 
 train_dataset_params:
