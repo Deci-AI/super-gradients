@@ -1,3 +1,6 @@
+from typing import Tuple, Type
+
+
 class DatasetValidationException(Exception):
     pass
 
@@ -46,3 +49,16 @@ class UnsupportedBatchItemsFormat(ValueError):
             "To fix this, please change the implementation of your dataset __getitem__ method, so that it would return the items defined above.\n"
         )
         super().__init__(self.message)
+
+
+class DatasetItemsException(Exception):
+    def __init__(self, data_sample: Tuple, collate_type: Type, expected_item_names: Tuple):
+        """
+        :param data_sample:         item(s) returned by a dataset
+        :param collate_type:        type of the collate that caused the exception
+        :param expected_item_names: tuple of names of items that are expected by the collate to be returned from the dataset
+        """
+        collate_type_name = collate_type.__name__
+        num_sample_items = len(data_sample) if isinstance(data_sample, tuple) else 1
+        error_msg = f"`{collate_type_name}` only supports Datasets that return a tuple {expected_item_names}, but got a tuple of len={num_sample_items}"
+        super().__init__(error_msg)

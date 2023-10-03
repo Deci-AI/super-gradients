@@ -16,8 +16,8 @@ from torch import nn
 from super_gradients.common.deprecate import deprecated
 from super_gradients.training.utils.visualization.detection import draw_bbox
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
+from super_gradients.common.exceptions.dataset_exceptions import DatasetItemsException as _DatasetItemsException
 from super_gradients.training.utils.collate_fn import (
-    DatasetItemsException as _DatasetItemsException,
     DetectionCollateFN as _DetectionCollateFN,
     PPYoloECollateFN as _PPYoloECollateFN,
     CrowdDetectionPPYoloECollateFN as _CrowdDetectionPPYoloECollateFN,

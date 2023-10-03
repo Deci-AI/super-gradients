@@ -86,6 +86,23 @@ $ git config --global gpg.program /usr/local/bin/gpg
 $ git config --global commit.gpgsign true
 ```
 
+### I have created PR with unsigned commits. Do I have to start over?
+
+No. What you need to do is create another branch starting from master, then move your commits from PR branch to the 
+new branch and force push it to the remote under the old name. Let's say your PR branch named 'feature/my_awesome_pr'
+then you need to do the following:
+
+```bash
+git checkout master
+git checkout -b feature/my_awesome_pr_signed
+git merge --squash --no-commit feature/my_awesome_pr
+git commit -S -m "My signed commit"
+git push -f origin feature/my_awesome_pr_signed:feature/my_awesome_pr
+```
+
+Last command will overwrite your PR branch with the new signed commit containing all changes from the PR. 
+
+```bash
 
 ## Jupyter Notebooks Contribution
 

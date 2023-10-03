@@ -6,6 +6,7 @@ from typing import Any
 from typing import Union, Optional, List, Tuple
 
 import numpy as np
+import onnx
 import onnxsim
 import torch
 from torch import nn, Tensor
@@ -495,9 +496,12 @@ class ExportableObjectDetectionModel:
                         if onnx_simplify:
                             # If TRT engine is used, we need to run onnxsim.simplify BEFORE attaching NMS,
                             # because EfficientNMS_TRT is not supported by onnxsim and would lead to a runtime error.
-                            onnxsim.simplify(output)
+                            model_opt, simplify_successful = onnxsim.simplify(output)
+                            if not simplify_successful:
+                                raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+                            onnx.save(model_opt, output)
                             logger.debug(f"Ran onnxsim.simplify on model {output}")
-                            # Disable onnx_simplify to avoid running it twice.
+                            # Disable onnx_simplify to avoid running it second time.
                             onnx_simplify = False
 
                         nms_attach_method = attach_tensorrt_nms
@@ -528,7 +532,11 @@ class ExportableObjectDetectionModel:
                     )
 
                 if onnx_simplify:
-                    onnxsim.simplify(output)
+                    model_opt, simplify_successful = onnxsim.simplify(output)
+                    if not simplify_successful:
+                        raise RuntimeError(f"Failed to simplify ONNX model {output} with onnxsim. Please check the logs for details.")
+                    onnx.save(model_opt, output)
+
                     logger.debug(f"Ran onnxsim.simplify on {output}")
             finally:
                 if quantization_mode == ExportQuantizationMode.INT8:

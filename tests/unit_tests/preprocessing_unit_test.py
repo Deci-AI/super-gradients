@@ -22,7 +22,7 @@ from super_gradients.training.processing import (
     ComposeProcessing,
 )
 from super_gradients.training.transforms import DetectionPaddedRescale, DetectionRGB2BGR
-from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
+from super_gradients.training.utils.collate_fn import DetectionCollateFN, CrowdDetectionCollateFN
 
 
 class PreprocessingUnitTest(unittest.TestCase):
