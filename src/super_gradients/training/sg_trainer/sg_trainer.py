@@ -11,6 +11,7 @@ import torch.cuda
 import torch.nn
 import torchmetrics
 from omegaconf import DictConfig, OmegaConf
+from piptools.scripts.sync import _get_installed_distributions
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, SequentialSampler
@@ -40,7 +41,7 @@ from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
 
-
+from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import RepeatAugSampler
 from super_gradients.common.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.metrics.metric_utils import (
@@ -97,7 +98,6 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
-from super_gradients.training import utils as core_utils, models, dataloaders
 
 logger = get_logger(__name__)
 
@@ -1146,7 +1146,6 @@ class Trainer:
 
         if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             # Note: the dataloader uses sampler of the batch_sampler when it is not None.
-
             train_sampler = self.train_loader.batch_sampler.sampler if self.train_loader.batch_sampler is not None else self.train_loader.sampler
             if isinstance(train_sampler, SequentialSampler):
                 raise ValueError(
@@ -1158,7 +1157,6 @@ class Trainer:
                     "The training sampler you are using might not support DDP. "
                     "If it doesnt, please use one of the following sampler: DistributedSampler, RepeatAugSampler"
                 )
-
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
@@ -1876,10 +1874,9 @@ class Trainer:
             "device_type": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
         }
         # ADD INSTALLED PACKAGE LIST + THEIR VERSIONS
-        # if self.training_params.log_installed_packages:
-        # from piptools.scripts.sync import _get_installed_distributions
-        # pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
-        # additional_log_items["installed_packages"] = pkg_list
+        if self.training_params.log_installed_packages:
+            pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
+            additional_log_items["installed_packages"] = pkg_list
 
         dataset_params = {
             "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
