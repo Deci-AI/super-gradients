@@ -593,7 +593,7 @@ jobs:
             python -m pip install torch torchvision torchaudio
             python -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
             python -m pip install onnx_graphsurgeon==0.3.27   --extra-index-url https://pypi.ngc.nvidia.com
-            
+            python -m ipykernel install --name << parameters.sg_new_env_name >>
             make run_and_convert_notebooks_to_docs
 
       - run:
