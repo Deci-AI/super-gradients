@@ -12,7 +12,29 @@ from .abstract_keypoints_transform import AbstractKeypointTransform
 @register_transform()
 class KeypointsMixup(AbstractKeypointTransform):
     """
-    Mix two samples together.
+    Apply mixup augmentation and combine two samples into one.
+    Images are averaged with equal weights. Targets are concatenated without any changes.
+    This transform requires both samples have the same image size. The easiest way to achieve this is to use resize + padding before this transform:
+
+    ```yaml
+    # This will apply KeypointsLongestMaxSize and KeypointsPadIfNeeded to two samples individually
+    # and then apply KeypointsMixup to get a single sample.
+    train_dataset_params:
+        transforms:
+            - KeypointsLongestMaxSize:
+                max_height: ${dataset_params.image_size}
+                max_width: ${dataset_params.image_size}
+
+            - KeypointsPadIfNeeded:
+                min_height: ${dataset_params.image_size}
+                min_width: ${dataset_params.image_size}
+                image_pad_value: [127, 127, 127]
+                mask_pad_value: 1
+                padding_mode: center
+
+            - KeypointsMixup:
+                prob: 0.5
+    ```
 
     :param prob:            Probability to apply the transform.
     """
@@ -26,8 +48,21 @@ class KeypointsMixup(AbstractKeypointTransform):
         self.prob = prob
 
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+        """
+        Apply the transform to a single sample.
+
+        :param sample: An input sample. It should have one additional sample in `additional_samples` field.
+        :return:       A new pose estimation sample that represents the mixup sample.
+        """
         if random.random() < self.prob:
-            sample = self.apply_mixup(sample, sample.additional_samples[0])
+            other = sample.additional_samples[0]
+            if sample.image.shape != other.image.shape:
+                raise RuntimeError(
+                    f"KeypointsMixup requires both samples to have the same image shape. "
+                    f"Got {sample.image.shape} and {other.image.shape}. "
+                    f"Use KeypointsLongestMaxSize and KeypointsPadIfNeeded to resize and pad images before this transform."
+                )
+            sample = self.apply_mixup(sample, other)
         return sample
 
     def apply_mixup(self, sample: PoseEstimationSample, other: PoseEstimationSample) -> PoseEstimationSample:

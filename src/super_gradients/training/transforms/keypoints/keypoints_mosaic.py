@@ -13,6 +13,56 @@ from .abstract_keypoints_transform import AbstractKeypointTransform
 class KeypointsMosaic(AbstractKeypointTransform):
     """
     Assemble 4 samples together to make 2x2 grid.
+    This transform stacks input samples together to make a square with padding if necessary.
+    This transform does not require input samples to have same size.
+    If input samples have different sizes (H1,W1), (H2,W2), (H3,W3), (H4,W4), then resulting mosaic will have
+    height of max(H1,H2) + max(H3,H4) and width of max(W1+W2, W2+W3), assuming the first sample is located in top left corner,
+    second sample is in top right corner, third sample is in bottom left corner and fourth sample is in bottom right corner of mosaic.
+
+    The location of mosaic transform in the transforms list matter.
+    It affects what transforms will be applied to all 4 samples.
+
+    In the example below, KeypointsMosaic goes after KeypointsRandomAffineTransform and KeypointsBrightnessContrast.
+    This means that all 4 samples will be transformed with KeypointsRandomAffineTransform and KeypointsBrightnessContrast.
+
+    ```yaml
+    # This will apply KeypointsRandomAffineTransform and KeypointsBrightnessContrast to four sampls individually
+    # and then assemble them together in mosaic
+    train_dataset_params:
+        transforms:
+            - KeypointsRandomAffineTransform:
+                min_scale: 0.75
+                max_scale: 1.5
+
+            - KeypointsBrightnessContrast:
+                brightness_range: [ 0.8, 1.2 ]
+                contrast_range: [ 0.8, 1.2 ]
+                prob: 0.5
+
+            - KeypointsMosaic:
+                prob: 0.5
+    ```
+
+    Contrary, if one puts KeypointsMosaic before KeypointsRandomAffineTransform and KeypointsBrightnessContrast,
+    then 4 original samples will be assembled in mosaic and then transformed with KeypointsRandomAffineTransform and KeypointsBrightnessContrast:
+
+    ```yaml
+    # This will first assemble 4 samples in mosaic and then apply KeypointsRandomAffineTransform and KeypointsBrightnessContrast to the mosaic.
+    train_dataset_params:
+        transforms:
+            - KeypointsRandomAffineTransform:
+                min_scale: 0.75
+                max_scale: 1.5
+
+            - KeypointsBrightnessContrast:
+                brightness_range: [ 0.8, 1.2 ]
+                contrast_range: [ 0.8, 1.2 ]
+                prob: 0.5
+
+            - KeypointsMosaic:
+                prob: 0.5
+    ```
+
     """
 
     def __init__(self, prob: float, pad_value=(127, 127, 127)):
