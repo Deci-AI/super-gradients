@@ -14,13 +14,13 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
     """
 
     def __init__(self):
-        self.expected_item_names = ("image", "targets", "crowd_targets")
         super().__init__()
+        self.expected_item_names = ("image", "targets", "crowd_targets")
 
-    def _format_batch(self, batch_data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
         try:
-            images_batch, labels_batch, crowd_labels_batch = batch_data
+            images_batch, labels_batch, crowd_labels_batch = list(zip(*data))
         except (ValueError, TypeError):
-            raise DatasetItemsException(data_sample=batch_data, collate_type=type(self), expected_item_names=self.expected_item_names)
+            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
 
         return self._format_images(images_batch), self._format_targets(labels_batch), {"crowd_targets": self._format_targets(crowd_labels_batch)}
