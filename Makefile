@@ -30,6 +30,14 @@ sweeper_test:
 	  exit 1; \
 	fi
 
+# Here you define a list of notebooks we want to execute and convert to markdown files
+# NOTEBOOKS = hellomake.ipynb hellofunc.ipynb helloclass.ipynb
+NOTEBOOKS = src/super_gradients/examples/model_export/models_export.ipynb
+
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
-run_and_convert_notebooks_to_docs:
-	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute src/super_gradients/examples/model_export/models_export.ipynb
+run_and_convert_notebooks_to_docs: $(NOTEBOOKS)
+	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute $@
+
+# This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
+check_notebooks_version_match: $(NOTEBOOKS)
+	python tests/verify_notebook_version.py $@
