@@ -39,16 +39,14 @@ train_dataloader_params:
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
-  collate_fn: # collate function for trainset
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  collate_fn: DetectionCollateFN
 
 val_dataloader_params:
   batch_size: 64
   num_workers: 8
   drop_last: False
   pin_memory: True
-  collate_fn: # collate function for trainset
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  collate_fn: DetectionCollateFN
 
 
 _convert_: all
