@@ -4,8 +4,6 @@ import numpy as np
 
 from super_gradients.training.samples import PoseEstimationSample
 from .abstract_keypoints_transform import AbstractKeypointTransform
-from .keypoints_mixup import KeypointsMixup
-from .keypoints_mosaic import KeypointsMosaic
 
 
 class KeypointsCompose(AbstractKeypointTransform):
@@ -24,8 +22,12 @@ class KeypointsCompose(AbstractKeypointTransform):
         :param load_sample_fn:     A method to load additional samples if needed (for mixup & mosaic augmentations).
                                    Default value is None, which would raise an error if additional samples are needed.
         """
-        if load_sample_fn is None and (KeypointsMixup in transforms or KeypointsMosaic in transforms):
-            raise RuntimeError("KeyointsMixup & KeypointsMosaic augmentations require load_sample_fn to be passed")
+        for transform in transforms:
+            if load_sample_fn is None and transform.additional_samples_count > 0:
+                raise RuntimeError(
+                    f"Detected transform {transform.__class__.__name__} that require {transform.additional_samples_count} "
+                    f"additional samples, but load_sample_fn is None"
+                )
 
         super().__init__()
         self.transforms = transforms
@@ -40,8 +42,9 @@ class KeypointsCompose(AbstractKeypointTransform):
         Apply transformation to pose estimation sample passed as a tuple
         This method acts as a wrapper for apply_to_sample method to support old-style API.
         """
-        if KeypointsMixup in self.transforms or KeypointsMosaic in self.transforms:
-            raise RuntimeError("KeypointsMixup & KeypointsMosaic augmentations are not supported in old-style transforms API")
+        for transform in self.transforms:
+            if transform.additional_samples_count > 0:
+                raise RuntimeError(f"{transform.__class__.__name__} require additional samples that is not supported in old-style transforms API")
 
         for t in self.transforms:
             image, mask, joints, areas, bboxes = t(image, mask, joints, areas, bboxes)
