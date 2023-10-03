@@ -159,10 +159,10 @@ class DetectionDatasetTest(unittest.TestCase):
             ],
         }
         trainset = COCODetectionDataset(**train_dataset_params)
-        train_loader = dataloaders.get(dataset=trainset, dataloader_params={"base_collate_fn": DetectionCollateFN(), "batch_size": 16})
+        train_loader = dataloaders.get(dataset=trainset, dataloader_params={"collate_fn": DetectionCollateFN(), "batch_size": 16})
 
         valset = COCODetectionDataset(**val_dataset_params)
-        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"base_collate_fn": CrowdDetectionCollateFN(), "batch_size": 16})
+        valid_loader = dataloaders.get(dataset=valset, dataloader_params={"collate_fn": CrowdDetectionCollateFN(), "batch_size": 16})
 
         trainer = Trainer("test_detection_metrics_with_classwise_ap")
 

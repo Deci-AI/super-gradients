@@ -37,7 +37,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             :param targets_sub_directory:       name of the targets sub-directory
             :param cache_labels:                "Caches" the labels -> Pre-Loads to memory as a list
             :param cache_images:                "Caches" the images -> Pre-Loads to memory as a list
-            :param collate_fn:                  base_collate_fn func to process batches for the Data Loader
+            :param collate_fn:                  collate_fn func to process batches for the Data Loader
             :param target_extension:            file extension of the targets (default is .png for PASCAL VOC 2012)
             :param transforms:                  transforms to be applied on image and mask
 

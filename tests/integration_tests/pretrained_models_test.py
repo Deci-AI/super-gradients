@@ -99,13 +99,13 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
 
         self.coco_dataset = {
-            "yolox": coco2017_val_yolox(dataloader_params={"base_collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}),
+            "yolox": coco2017_val_yolox(dataloader_params={"collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}),
             "ppyoloe": coco2017_val_ppyoloe(
-                dataloader_params={"base_collate_fn": CrowdDetectionPPYoloECollateFN(), "batch_size": 1},
+                dataloader_params={"collate_fn": CrowdDetectionPPYoloECollateFN(), "batch_size": 1},
                 dataset_params={"with_crowd": True, "ignore_empty_annotations": False},
             ),
             "ssd_mobilenet": coco2017_val_ssd_lite_mobilenet_v2(
-                dataloader_params={"base_collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}
+                dataloader_params={"collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}
             ),
         }
 

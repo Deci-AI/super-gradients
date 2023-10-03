@@ -124,7 +124,7 @@ class MultiScaleCollateFunction(AbstractCollateFunction):
         """
         set parameters for the multi-scale collate function
         the possible image sizes are in range [min_image_size, max_image_size] in steps of image_size_steps
-        a new size will be randomly selected every change_frequency calls to the base_collate_fn()
+        a new size will be randomly selected every change_frequency calls to the collate_fn()
             :param target_size: scales will be [0.66 * target_size, 1.5 * target_size]
             :param min_image_size: the minimum size to scale down to (in pixels)
             :param max_image_size: the maximum size to scale up to (in pixels)

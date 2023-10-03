@@ -1387,6 +1387,6 @@ def _max_targets_deprication(max_targets: Optional[int] = None):
     if max_targets is not None:
         warnings.warn(
             "max_targets is deprecated and will be removed in the future, targets are not padded to the max length anymore. "
-            "If you are using base_collate_fn provided by SG, it is safe to simply drop this argument.",
+            "If you are using collate_fn provided by SG, it is safe to simply drop this argument.",
             DeprecationWarning,
         )

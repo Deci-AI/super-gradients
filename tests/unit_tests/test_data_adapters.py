@@ -265,7 +265,7 @@ class TestClassificationAdapter(unittest.TestCase):
         analyzer_ds.run()
 
         # This is required to use the adapter inside the existing Dataloader.
-        # `base_collate_fn=loader.base_collate_fn` ensure to still take into account any base_collate_fn that was passed to the Dataloader
+        # `base_collate_fn=loader.base_collate_fn` ensure to still take into account any collate_fn that was passed to the Dataloader
         loader.collate_fn = ClassificationDatasetAdapterCollateFN(
             base_collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6
         )

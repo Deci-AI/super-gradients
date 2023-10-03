@@ -160,9 +160,10 @@ def test_ddp_python_based_adapter():
 
 
 if __name__ == "__main__":
+    test_python_segmentation()
     # test_python_detection()
     # test_python_segmentation()
     # test_python_classification()
     # test_from_dict()
-    test_ddp_from_dict_based_adapter()
+    # test_ddp_from_dict_based_adapter()
     # test_ddp_python_based_adapter()
