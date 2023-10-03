@@ -14,7 +14,7 @@ class KeypointsMixup(AbstractKeypointTransform):
     """
     Mix two samples together.
 
-    :attr prob:            Probability to apply the transform.
+    :param prob:            Probability to apply the transform.
     """
 
     def __init__(self, prob: float):

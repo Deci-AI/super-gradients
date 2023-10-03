@@ -13,7 +13,7 @@ class AbstractKeypointTransform(abc.ABC):
     All transforms subclassing it should implement __call__ method which takes image, mask and keypoints as input and
     returns transformed image, mask and keypoints.
 
-    :attr additional_samples_count: Number of additional samples to generate for each image.
+    :param additional_samples_count: Number of additional samples to generate for each image.
                                     This property is used for mixup & mosaic transforms that needs an extra samples.
     """
 

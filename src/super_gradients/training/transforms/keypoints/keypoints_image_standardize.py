@@ -14,7 +14,7 @@ class KeypointsImageStandardize(AbstractKeypointTransform):
     Standardize image pixel values with img/max_value formula.
     Output image will allways have dtype of np.float32.
 
-    :attr max_value: Current maximum value of the image pixels. (usually 255)
+    :param max_value: Current maximum value of the image pixels. (usually 255)
     """
 
     def __init__(self, max_value: float = 255.0):

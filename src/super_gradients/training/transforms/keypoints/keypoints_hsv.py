@@ -12,10 +12,10 @@ class KeypointsHSV(AbstractKeypointTransform):
     """
     Apply color change in HSV color space to the input image.
 
-    :attr prob:            Probability to apply the transform.
-    :attr hgain:           Hue gain.
-    :attr sgain:           Saturation gain.
-    :attr vgain:           Value gain.
+    :param prob:            Probability to apply the transform.
+    :param hgain:           Hue gain.
+    :param sgain:           Saturation gain.
+    :param vgain:           Value gain.
     """
 
     def __init__(self, prob: float, hgain: float, sgain: float, vgain: float):
