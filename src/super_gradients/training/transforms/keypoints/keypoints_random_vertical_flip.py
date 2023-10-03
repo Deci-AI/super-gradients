@@ -42,7 +42,7 @@ class KeypointsRandomVerticalFlip(AbstractKeypointTransform):
 
         return sample
 
-    def apply_to_image(self, image):
+    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
         """
         Flip image vertically
 
@@ -51,12 +51,12 @@ class KeypointsRandomVerticalFlip(AbstractKeypointTransform):
         """
         return np.ascontiguousarray(np.flipud(image))
 
-    def apply_to_keypoints(self, keypoints, rows):
+    def apply_to_keypoints(self, keypoints: np.ndarray, rows: int) -> np.ndarray:
         """
         Flip keypoints vertically
 
         :param keypoints: Input keypoints of [N,K,3] shape
-        :param cols:      Image height
+        :param rows:      Image height
         :return:          Flipped keypoints  of [N,K,3] shape
         """
         keypoints = keypoints.copy()
@@ -68,7 +68,7 @@ class KeypointsRandomVerticalFlip(AbstractKeypointTransform):
         Flip boxes vertically
 
         :param bboxes: Input boxes of [N,4] shape in XYWH format
-        :param cols:   Image width
+        :param rows:   Image height
         :return:       Flipped boxes of [N,4] shape in XYWH format
         """
 
