@@ -14,7 +14,7 @@ from super_gradients.common.exceptions.dataset_exceptions import DatasetValidati
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.models import YoloXPostPredictionCallback
 from super_gradients.training.transforms import DetectionMosaic, DetectionTargetsFormatTransform, DetectionPaddedRescale
-from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
+from super_gradients.training.utils.collate_fn import DetectionCollateFN, CrowdDetectionCollateFN
 
 
 class DummyCOCODetectionDatasetInheritor(COCODetectionDataset):

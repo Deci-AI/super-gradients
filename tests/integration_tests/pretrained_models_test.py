@@ -17,7 +17,7 @@ from super_gradients.training.dataloaders.dataloaders import (
     coco2017_val_ppyoloe,
 )
 from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
-from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN, CrowdDetectionPPYoloECollateFN
+from super_gradients.training.utils.collate_fn import CrowdDetectionCollateFN, CrowdDetectionPPYoloECollateFN
 
 from super_gradients.training.metrics import Accuracy, IoU
 import os
