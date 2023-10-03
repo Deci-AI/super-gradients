@@ -23,6 +23,10 @@ parameters:
     type: boolean
     description: If true will run sanity_test flow
     default: false
+  run_and_convert_notebooks_to_docs:
+    type: boolean
+    description: If true will run run_and_convert_notebooks_to_docs flow
+    default: false
   skip_md_files:
     type: boolean
     default: true
