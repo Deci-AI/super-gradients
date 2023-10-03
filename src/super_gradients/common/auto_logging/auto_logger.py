@@ -32,7 +32,7 @@ class AutoLoggerConfig:
         # Therefore the log file will have the parent PID to being able to discriminate the logs corresponding to a single run.
         timestamp = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
         self._setup_logging(
-            filename=os.path.expanduser(f"~/sg_logs/logs_{os.getppid()}_{timestamp}.log"),
+            filename=os.path.join(env_variables.SUPER_GRADIENTS_LOG_DIR, f"logs_{os.getppid()}_{timestamp}.log"),
             copy_already_logged_messages=False,
             filemode="w",
             log_level=log_level,
