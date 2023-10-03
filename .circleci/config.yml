@@ -586,14 +586,14 @@ jobs:
           command: |
             << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
             source << parameters.sg_new_env_name >>/bin/activate
-            python -m pip install --upgrade setuptools pip wheel
-            python -m pip install -r requirements.txt
-            python -m pip install -r requirements.dev.txt
-            python -m pip install .
-            python -m pip install torch torchvision torchaudio
-            python -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
-            python -m pip install onnx_graphsurgeon==0.3.27   --extra-index-url https://pypi.ngc.nvidia.com
-            python -m ipykernel install --name << parameters.sg_new_env_name >>
+            python3.8 -m pip install --upgrade setuptools pip wheel
+            python3.8 -m pip install -r requirements.txt
+            python3.8 -m pip install -r requirements.dev.txt
+            python3.8 -m pip install .
+            python3.8 -m pip install torch torchvision torchaudio
+            python3.8 -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
+            python3.8 -m pip install onnx_graphsurgeon==0.3.27   --extra-index-url https://pypi.ngc.nvidia.com
+            python3.8 -m ipykernel install --name python3 --user
             make run_and_convert_notebooks_to_docs
 
       - run:
