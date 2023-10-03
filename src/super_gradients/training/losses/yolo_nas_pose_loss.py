@@ -14,7 +14,7 @@ from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 # from super_gradients.training.utils.distributed_training_utils import (
 #    get_world_size,
 # )
-from .ppyolo_loss import GIoULoss, CIoULoss, batch_iou_similarity, check_points_inside_bboxes, gather_topk_anchors, compute_max_iou_anchor
+from .ppyolo_loss import GIoULoss, CIoULoss, batch_iou_similarity, check_points_inside_bboxes, gather_topk_anchors, compute_max_iou_anchor, FocalEIoULoss
 
 from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_target_generator import undo_flat_collate_tensors_with_batch_index
 
@@ -262,7 +262,7 @@ class YoloNASPoseLoss(nn.Module):
         self.dfl_loss_weight = dfl_loss_weight
         self.iou_loss_weight = iou_loss_weight
 
-        self.iou_loss = {"giou": GIoULoss, "ciou": CIoULoss}[regression_iou_loss_type]()
+        self.iou_loss = {"giou": GIoULoss, "ciou": CIoULoss, "eiou": FocalEIoULoss}[regression_iou_loss_type]()
         self.reg_max = reg_max
         self.num_keypoints = num_classes
         self.num_classes = 1  # We have only one class (person)

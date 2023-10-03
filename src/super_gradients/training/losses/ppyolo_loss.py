@@ -9,7 +9,7 @@ import super_gradients
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import cxcywh_to_xyxy
-from super_gradients.training.losses.functional import bbox_ciou_loss
+from super_gradients.training.losses.functional import bbox_ciou_loss, bbox_focal_eiou_loss
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.common.environment.ddp_utils import get_world_size
 
@@ -671,6 +671,34 @@ class CIoULoss(nn.Module):
 
     def forward(self, predictions, targets, loc_weights=None):
         loss = bbox_ciou_loss(predictions, targets, eps=self.eps)
+        if loc_weights is not None:
+            loss = loss * loc_weights
+        if self.reduction == "sum":
+            loss = torch.sum(loss)
+        elif self.reduction == "mean":
+            loss = torch.mean(loss)
+        return loss
+
+
+class FocalEIoULoss(nn.Module):
+    """
+    Complete Focal-EIoU loss
+
+    :param gamma:       gamma for focal loss, default as 0.5
+    :param eps:         epsilon to avoid divide by zero, default as 1e-10
+    :param reduction:   Options are "none", "mean" and "sum". default as none
+    """
+
+    def __init__(self, gamma: float = 0.5, eps: float = 1e-10, reduction: str = "none"):
+        if reduction not in ("none", "mean", "sum"):
+            raise ValueError(f"reduction must be one of 'none', 'mean', 'sum', but got {reduction}")
+        super().__init__()
+        self.gamma = gamma
+        self.eps = eps
+        self.reduction = reduction
+
+    def forward(self, predictions, targets, loc_weights=None):
+        loss = bbox_focal_eiou_loss(predictions, targets, eps=self.eps, gamma=self.gamma)
         if loc_weights is not None:
             loss = loss * loc_weights
         if self.reduction == "sum":

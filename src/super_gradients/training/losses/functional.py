@@ -36,6 +36,32 @@ def bbox_overlap(box1: Tuple[Tensor, Tensor, Tensor, Tensor], box2: Tuple[Tensor
     return iou, overlap, union
 
 
+def get_convex_bbox(box1: Tuple[Tensor, Tensor, Tensor, Tensor], box2: Tuple[Tensor, Tensor, Tensor, Tensor]):
+    b1_x1, b1_y1, b1_x2, b1_y2 = box1
+    b2_x1, b2_y1, b2_x2, b2_y2 = box2
+
+    xc1 = torch.minimum(b1_x1, b2_x1)
+    yc1 = torch.minimum(b1_y1, b2_y1)
+    xc2 = torch.maximum(b1_x2, b2_x2)
+    yc2 = torch.maximum(b1_y2, b2_y2)
+
+    return xc1, yc1, xc2, yc2
+
+
+def get_bbox_center(bbox: Tuple[Tensor, Tensor, Tensor, Tensor]):
+    b1_x1, b1_y1, b1_x2, b1_y2 = bbox
+    cx = (b1_x1 + b1_x2) * 0.5
+    cy = (b1_y1 + b1_y2) * 0.5
+    return cx, cy
+
+
+def get_bbox_width_height(bbox: Tuple[Tensor, Tensor, Tensor, Tensor]):
+    b1_x1, b1_y1, b1_x2, b1_y2 = bbox
+    w = b1_x2 - b1_x1
+    h = b1_y2 - b1_y1
+    return w, h
+
+
 def bbox_ciou_loss(pred_bboxes: Tensor, target_bboxes: Tensor, eps: float) -> Tensor:
     """
     Compute CIoU loss between predicted and target bboxes.
@@ -88,3 +114,44 @@ def bbox_ciou_loss(pred_bboxes: Tensor, target_bboxes: Tensor, eps: float) -> Te
     aspect_ratio_term = v * alpha
 
     return iou_term + distance_term + aspect_ratio_term  # CIoU
+
+
+def bbox_focal_eiou_loss(pred_bboxes: Tensor, target_bboxes: Tensor, gamma: float, eps: float) -> Tensor:
+    """
+    Compute Focal-EIoU loss between predicted and target bboxes.
+    https://arxiv.org/abs/2101.08158
+
+    :param pred_bboxes:   Predicted boxes in xyxy format of [D0, D1,...Di, 4] shape
+    :param target_bboxes: Target boxes in xyxy format of [D0, D1,...Di, 4] shape
+    :return: CIoU loss per each box as tensor of shape [D0, D1,...Di]
+    """
+
+    box1 = pred_bboxes.chunk(4, dim=-1)
+    box2 = target_bboxes.chunk(4, dim=-1)
+
+    iou, overlap, union = bbox_overlap(box1, box2, eps)
+
+    iou_term = 1 - iou
+
+    # convex diagonal squared
+    convex_box = get_convex_bbox(box1, box2)
+    convex_box_width, convex_box_height = get_bbox_center(convex_box)
+    diagonal_distance_squared = convex_box_width**2 + convex_box_height**2
+
+    # centers of boxes
+    b1_cx, b1_cy = get_bbox_center(box1)
+    b2_cx, b2_cy = get_bbox_center(box2)
+
+    # width and height of boxes
+    w1, h1 = get_bbox_width_height(box1)
+    w2, h2 = get_bbox_width_height(box2)
+
+    # compute center distance squared
+    centers_distance_squared = (b1_cx - b2_cx) ** 2 + (b1_cy - b2_cy) ** 2
+    distance_term = centers_distance_squared / (diagonal_distance_squared + eps)
+
+    eiou_term = (h1 - h2) ** 2 / convex_box_height + (w1 - w2) ** 2 / convex_box_width
+    eiou = iou_term + distance_term + eiou_term
+
+    scale_factor = torch.pow(iou, gamma)
+    return eiou * scale_factor
