@@ -12,7 +12,7 @@ import torch.cuda
 import torch.nn
 import torchmetrics
 from omegaconf import DictConfig, OmegaConf
-from piptools.scripts.sync import _get_installed_distributions
+
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, SequentialSampler
@@ -36,6 +36,7 @@ from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
+from super_gradients.common.environment.package_utils import get_installed_packages
 
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import RepeatAugSampler
@@ -1800,8 +1801,7 @@ class Trainer:
         }
         # ADD INSTALLED PACKAGE LIST + THEIR VERSIONS
         if self.training_params.log_installed_packages:
-            pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
-            additional_log_items["installed_packages"] = pkg_list
+            additional_log_items["installed_packages"] = get_installed_packages()
 
         dataset_params = {
             "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
