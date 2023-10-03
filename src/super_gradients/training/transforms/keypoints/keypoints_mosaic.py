@@ -203,7 +203,7 @@ class KeypointsMosaic(AbstractKeypointTransform):
         areas = self._concatenate_arrays(top.areas, bottom.areas, shape_if_empty=(0,))
         return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas, additional_samples=None)
 
-    def _concatenate_arrays(self, arr1: Optional[np.ndarray], arr2: Optional[np.ndarray], shape_if_empty):
+    def _concatenate_arrays(self, arr1: Optional[np.ndarray], arr2: Optional[np.ndarray], shape_if_empty) -> Optional[np.ndarray]:
         """
         Concatenate two arrays. If one of the arrays is None, it will be replaced with array of zeros of given shape.
         This is purely utility function to simplify code of stacking arrays that may be None.
@@ -212,8 +212,10 @@ class KeypointsMosaic(AbstractKeypointTransform):
         :param arr1:           First array
         :param arr2:           Second array
         :param shape_if_empty: Shape of the array to create if one of the arrays is None.
-        :return:               Stacked arrays along first axis.
+        :return:               Stacked arrays along first axis. If both arrays are None, then None is returned.
         """
+        if arr1 is None and arr2 is None:
+            return None
         if arr1 is None:
             arr1 = np.zeros(shape_if_empty, dtype=np.float32)
         if arr2 is None:

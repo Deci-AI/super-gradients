@@ -72,17 +72,16 @@ class KeypointsMixup(AbstractKeypointTransform):
         :param other:  Second sample.
         :return:       Mixup sample.
         """
-        sample.image = (sample.image * 0.5 + other.image * 0.5).astype(sample.image)
-        sample.mask = np.logical_or(sample.mask, other.mask).astype(sample.mask.dtype)
-        sample.joints = np.concatenate([sample.joints, other.joints], axis=0)
-        sample.is_crowd = np.concatenate([sample.is_crowd, other.is_crowd], axis=0)
+        image = (sample.image * 0.5 + other.image * 0.5).astype(sample.image.dtype)
+        mask = np.logical_or(sample.mask, other.mask).astype(sample.mask.dtype)
+        joints = np.concatenate([sample.joints, other.joints], axis=0)
+        is_crowd = np.concatenate([sample.is_crowd, other.is_crowd], axis=0)
 
-        sample.bboxes = self._concatenate_arrays(sample.bboxes, other.bboxes, (0, 4))
-        sample.areas = self._concatenate_arrays(sample.areas, other.areas, (0,))
-        sample.additional_samples = None
-        return sample
+        bboxes = self._concatenate_arrays(sample.bboxes, other.bboxes, (0, 4))
+        areas = self._concatenate_arrays(sample.areas, other.areas, (0,))
+        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas, additional_samples=None)
 
-    def _concatenate_arrays(self, arr1: Optional[np.ndarray], arr2: Optional[np.ndarray], shape_if_empty):
+    def _concatenate_arrays(self, arr1: Optional[np.ndarray], arr2: Optional[np.ndarray], shape_if_empty) -> Optional[np.ndarray]:
         """
         Concatenate two arrays. If one of the arrays is None, it will be replaced with array of zeros of given shape.
         This is purely utility function to simplify code of stacking arrays that may be None.
@@ -91,8 +90,10 @@ class KeypointsMixup(AbstractKeypointTransform):
         :param arr1:           First array
         :param arr2:           Second array
         :param shape_if_empty: Shape of the array to create if one of the arrays is None.
-        :return:               Stacked arrays along first axis.
+        :return:               Stacked arrays along first axis. If both arrays are None, then None is returned.
         """
+        if arr1 is None and arr2 is None:
+            return None
         if arr1 is None:
             arr1 = np.zeros(shape_if_empty, dtype=np.float32)
         if arr2 is None:
