@@ -41,7 +41,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.common.environment.ddp_utils import get_local_rank
 from super_gradients.training.utils.utils import override_default_params_without_nones
 from super_gradients.common.environment.cfg_utils import load_dataset_params
-from super_gradients.training.utils.collate_fn import maybe_setup_adapter_collate
+from super_gradients.training.dataloaders.adapters import maybe_setup_dataloader_adapter
 import torch.distributed as dist
 
 
@@ -83,7 +83,7 @@ def get_data_loader(config_name: str, dataset_cls: object, train: bool, dataset_
     dataloader = DataLoader(dataset=dataset, **dataloader_params)
     dataloader.dataloader_params = dataloader_params
 
-    maybe_setup_adapter_collate(dataloader=dataloader)
+    maybe_setup_dataloader_adapter(dataloader=dataloader)
     return dataloader
 
 
@@ -900,5 +900,5 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
         dataloader_cls = ALL_DATALOADERS[name]
         dataloader = dataloader_cls(dataset_params=dataset_params, dataloader_params=dataloader_params)
 
-    maybe_setup_adapter_collate(dataloader=dataloader)
+    maybe_setup_dataloader_adapter(dataloader=dataloader)
     return dataloader
