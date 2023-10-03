@@ -30,6 +30,7 @@ sweeper_test:
 	  exit 1; \
 	fi
 
-
-examples_to_docs:
+# This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
+run_and_convert_notebooks_to_docs:
 	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute src/super_gradients/examples/model_export/models_export.ipynb
+	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute src/super_gradients/examples/SG_quickstart_classification.ipynb
