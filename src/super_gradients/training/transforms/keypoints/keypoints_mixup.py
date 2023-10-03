@@ -62,10 +62,16 @@ class KeypointsMixup(AbstractKeypointTransform):
                     f"Got {sample.image.shape} and {other.image.shape}. "
                     f"Use KeypointsLongestMaxSize and KeypointsPadIfNeeded to resize and pad images before this transform."
                 )
-            sample = self.apply_mixup(sample, other)
+            sample = self._apply_mixup(sample, other)
         return sample
 
-    def apply_mixup(self, sample: PoseEstimationSample, other: PoseEstimationSample) -> PoseEstimationSample:
+    def _apply_mixup(self, sample: PoseEstimationSample, other: PoseEstimationSample) -> PoseEstimationSample:
+        """
+        Apply mixup augmentation to a single sample.
+        :param sample: First sample.
+        :param other:  Second sample.
+        :return:       Mixup sample.
+        """
         sample.image = (sample.image * 0.5 + other.image * 0.5).astype(sample.image)
         sample.mask = np.logical_or(sample.mask, other.mask).astype(sample.mask.dtype)
         sample.joints = np.concatenate([sample.joints, other.joints], axis=0)
@@ -77,6 +83,16 @@ class KeypointsMixup(AbstractKeypointTransform):
         return sample
 
     def _concatenate_arrays(self, arr1: Optional[np.ndarray], arr2: Optional[np.ndarray], shape_if_empty):
+        """
+        Concatenate two arrays. If one of the arrays is None, it will be replaced with array of zeros of given shape.
+        This is purely utility function to simplify code of stacking arrays that may be None.
+        Arrays must have same number of dims.
+
+        :param arr1:           First array
+        :param arr2:           Second array
+        :param shape_if_empty: Shape of the array to create if one of the arrays is None.
+        :return:               Stacked arrays along first axis.
+        """
         if arr1 is None:
             arr1 = np.zeros(shape_if_empty, dtype=np.float32)
         if arr2 is None:
