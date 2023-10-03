@@ -12,44 +12,57 @@ from .abstract_keypoints_transform import AbstractKeypointTransform
 @register_transform()
 class KeypointsMosaic(AbstractKeypointTransform):
     """
-    Mix two samples together.
-
-    :attr prob:            Probability to apply the transform.
-    :attr hgain:           Hue gain.
-    :attr sgain:           Saturation gain.
-    :attr vgain:           Value gain.
+    Assemble 4 samples together to make 2x2 grid.
     """
 
     def __init__(self, prob: float, pad_value=(127, 127, 127)):
         """
 
-        :param prob:            Probability to apply the transform.
-        :param hgain:           Hue gain.
-        :param sgain:           Saturation gain.
-        :param vgain:           Value gain.
+        :param prob:     Probability to apply the transform.
+        :param pad_value Value to pad the image if size of samples does not match.
         """
         super().__init__(additional_samples_count=3)
         self.prob = prob
         self.pad_value = tuple(pad_value)
 
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+        """
+        Apply transformation to given estimation sample
+
+        :param sample: A pose estimation sample. The sample must have 3 additional samples in it.
+        :return:       A new pose estimation sample that represents the final mosaic.
+        """
         if random.random() < self.prob:
-            sample = self.apply_mosaic(sample, sample.additional_samples)
+            samples = [sample] + sample.additional_samples
+            sample = self._apply_mosaic(samples)
         return sample
 
-    def apply_mosaic(self, sample: PoseEstimationSample, other: List[PoseEstimationSample]) -> PoseEstimationSample:
-        top_left = sample
-        top_right = other[0]
-        btm_left = other[1]
-        btm_right = other[2]
+    def _apply_mosaic(self, samples: List[PoseEstimationSample]) -> PoseEstimationSample:
+        """
+        Actual method to apply mosaic to the sample.
 
-        mosaic_sample = self.stack_samples_vertically(
-            self.stack_samples_horisontally(top_left, top_right, pad_from_top=True), self.stack_samples_horisontally(btm_left, btm_right, pad_from_top=False)
+        :param samples: List of 4 samples to make mosaic from.
+        :return:        A new pose estimation sample that represents the final mosaic.
+        """
+        top_left, top_right, btm_left, btm_right = samples
+
+        mosaic_sample = self._stack_samples_vertically(
+            self._stack_samples_horizontally(top_left, top_right, pad_from_top=True), self._stack_samples_horizontally(btm_left, btm_right, pad_from_top=False)
         )
 
         return mosaic_sample
 
-    def pad_sample(self, sample: PoseEstimationSample, pad_top=0, pad_left=0, pad_right=0, pad_bottom=0):
+    def _pad_sample(self, sample: PoseEstimationSample, pad_top: int = 0, pad_left: int = 0, pad_right: int = 0, pad_bottom: int = 0) -> PoseEstimationSample:
+        """
+        Pad the sample with given padding values.
+
+        :param sample:     Input sample. Sample is modified inplace.
+        :param pad_top:    Padding in pixels from top.
+        :param pad_left:   Padding in pixels from left.
+        :param pad_right:  Padding in pixels from right.
+        :param pad_bottom: Padding in pixels from bottom.
+        :return:           Modified sample.
+        """
         sample.image = cv2.copyMakeBorder(
             sample.image, top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right, borderType=cv2.BORDER_CONSTANT, value=self.pad_value
         )
@@ -63,14 +76,24 @@ class KeypointsMosaic(AbstractKeypointTransform):
 
         return sample
 
-    def stack_samples_horisontally(self, left, right, pad_from_top):
+    def _stack_samples_horizontally(self, left: PoseEstimationSample, right: PoseEstimationSample, pad_from_top: bool) -> PoseEstimationSample:
+        """
+        Stack two samples horizontally.
+
+        :param left:         First sample (Will be located on the left side).
+        :param right:        Second sample (Will be location on the right side).
+        :param pad_from_top: Controls whether images should be padded from top or from bottom if they have different heights.
+        :return:             A stacked sample. If first image has H1,W1 shape and second image has H2,W2 shape,
+                             then resulting image will have max(H1,H2), W1+W2 shape.
+        """
+
         max_height = max(left.image.shape[0], right.image.shape[0])
         if pad_from_top:
-            left = self.pad_sample(left, pad_top=max_height - left.image.shape[0])
-            right = self.pad_sample(right, pad_top=max_height - right.image.shape[0])
+            left = self._pad_sample(left, pad_top=max_height - left.image.shape[0])
+            right = self._pad_sample(right, pad_top=max_height - right.image.shape[0])
         else:
-            left = self.pad_sample(left, pad_bottom=max_height - left.image.shape[0])
-            right = self.pad_sample(right, pad_bottom=max_height - right.image.shape[0])
+            left = self._pad_sample(left, pad_bottom=max_height - left.image.shape[0])
+            right = self._pad_sample(right, pad_bottom=max_height - right.image.shape[0])
 
         image = np.concatenate([left.image, right.image], axis=1)
         mask = np.concatenate([left.mask, right.mask], axis=1)
@@ -91,16 +114,25 @@ class KeypointsMosaic(AbstractKeypointTransform):
         areas = self._concatenate_arrays(left.areas, right.areas, shape_if_empty=(0,))
         return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas, additional_samples=None)
 
-    def stack_samples_vertically(self, top, bottom):
+    def _stack_samples_vertically(self, top: PoseEstimationSample, bottom: PoseEstimationSample) -> PoseEstimationSample:
+        """
+        Stack two samples vertically. If images have different widths, they will be padded to match the width
+        of the widest image. In case padding occurs, it will be done from both sides to keep the images centered.
+
+        :param top:    First sample (Will be located on the top).
+        :param bottom: Second sample (Will be location on the bottom).
+        :return:       A stacked sample. If first image has H1,W1 shape and second image has H2,W2 shape,
+                       then resulting image will have H1+H2, max(W1,W2) shape.
+        """
         max_width = max(top.image.shape[1], bottom.image.shape[1])
 
         pad_left = (max_width - top.image.shape[1]) // 2
         pad_right = max_width - top.image.shape[1] - pad_left
-        top = self.pad_sample(top, pad_left=pad_left, pad_right=pad_right)
+        top = self._pad_sample(top, pad_left=pad_left, pad_right=pad_right)
 
         pad_left = (max_width - bottom.image.shape[1]) // 2
         pad_right = max_width - bottom.image.shape[1] - pad_left
-        bottom = self.pad_sample(bottom, pad_left=pad_left, pad_right=pad_right)
+        bottom = self._pad_sample(bottom, pad_left=pad_left, pad_right=pad_right)
 
         image = np.concatenate([top.image, bottom.image], axis=0)
         mask = np.concatenate([top.mask, bottom.mask], axis=0)
@@ -122,6 +154,16 @@ class KeypointsMosaic(AbstractKeypointTransform):
         return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas, additional_samples=None)
 
     def _concatenate_arrays(self, arr1: Optional[np.ndarray], arr2: Optional[np.ndarray], shape_if_empty):
+        """
+        Concatenate two arrays. If one of the arrays is None, it will be replaced with array of zeros of given shape.
+        This is purely utility function to simplify code of stacking arrays that may be None.
+        Arrays must have same number of dims.
+
+        :param arr1:           First array
+        :param arr2:           Second array
+        :param shape_if_empty: Shape of the array to create if one of the arrays is None.
+        :return:               Stacked arrays along first axis.
+        """
         if arr1 is None:
             arr1 = np.zeros(shape_if_empty, dtype=np.float32)
         if arr2 is None:

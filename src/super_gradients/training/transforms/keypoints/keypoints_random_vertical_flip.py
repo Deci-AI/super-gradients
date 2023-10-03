@@ -14,17 +14,26 @@ class KeypointsRandomVerticalFlip(AbstractKeypointTransform):
     """
 
     def __init__(self, prob: float = 0.5):
+        """
+
+        :param prob: Probability of flipping
+        """
         super().__init__()
         self.prob = prob
 
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+        """
+        Apply transformation to given pose estimation sample
+
+        :param sample: Input pose estimation sample.
+        :return:       A new pose estimation sample.
+        """
         if sample.image.shape[:2] != sample.mask.shape[:2]:
             raise RuntimeError(f"Image shape ({sample.image.shape[:2]}) does not match mask shape ({sample.mask.shape[:2]}).")
 
         if random.random() < self.prob:
             sample.image = self.apply_to_image(sample.image)
             sample.mask = self.apply_to_image(sample.mask)
-
             rows, cols = sample.image.shape[:2]
             sample.joints = self.apply_to_keypoints(sample.joints, rows)
 
@@ -34,14 +43,35 @@ class KeypointsRandomVerticalFlip(AbstractKeypointTransform):
         return sample
 
     def apply_to_image(self, image):
+        """
+        Flip image vertically
+
+        :param image: Input image
+        :return:      Vertically flipped image
+        """
         return np.ascontiguousarray(np.flipud(image))
 
     def apply_to_keypoints(self, keypoints, rows):
+        """
+        Flip keypoints vertically
+
+        :param keypoints: Input keypoints of [N,K,3] shape
+        :param cols:      Image height
+        :return:          Flipped keypoints  of [N,K,3] shape
+        """
         keypoints = keypoints.copy()
         keypoints[:, :, 1] = rows - keypoints[:, :, 1] - 1
         return keypoints
 
-    def apply_to_bboxes(self, bboxes, rows):
+    def apply_to_bboxes(self, bboxes: np.ndarray, rows: int) -> np.ndarray:
+        """
+        Flip boxes vertically
+
+        :param bboxes: Input boxes of [N,4] shape in XYWH format
+        :param cols:   Image width
+        :return:       Flipped boxes of [N,4] shape in XYWH format
+        """
+
         bboxes = bboxes.copy()
         bboxes[:, 1] = rows - (bboxes[:, 1] + bboxes[:, 3]) - 1
         return bboxes
