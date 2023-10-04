@@ -33,11 +33,11 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         self, adapter_config: Optional[DetectionDataConfig] = None, adapter_cache_path: Optional[str] = None, base_collate_fn: Optional[Callable] = None
     ):
         """
-        :param adapter_config:  Adapter configuration. Use this if you want to hard code some specificities about your dataset.
-                                Mutually exclusive with `adapter_cache_path`.
-        :param adapter_cache_path:     Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
-                                Mutually exclusive with `adapter_config`.
-        :param collate_fn:     Collate function to use. Use this if you .If None, the pytorch default collate function will be used.
+        :param adapter_config:      Adapter configuration. Use this if you want to hard code some specificities about your dataset.
+                                    Mutually exclusive with `adapter_cache_path`.
+        :param adapter_cache_path:  Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
+                                    Mutually exclusive with `adapter_config`.
+        :param base_collate_fn:     Collate function to use. Use this if you .If None, the pytorch default collate function will be used.
         """
         if adapter_config and adapter_cache_path:
             raise ValueError("`adapter_config` and `adapter_cache_path` cannot be set at the same time.")
