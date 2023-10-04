@@ -218,6 +218,8 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
         image_processor: Optional[Processing] = None,
         conf: Optional[float] = None,
         iou: Optional[float] = 0.7,
+        pre_nms_max_predictions=300,
+        post_nms_max_predictions=100,
     ) -> None:
         """Set the processing parameters for the dataset.
 
@@ -230,6 +232,8 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
         self._image_processor = image_processor or self._image_processor
         self._default_nms_conf = conf or self._default_nms_conf
         self._default_nms_iou = iou or self._default_nms_iou
+        self._default_pre_nms_max_predictions = pre_nms_max_predictions or self._default_pre_nms_max_predictions
+        self._default_post_nms_max_predictions = post_nms_max_predictions or self._default_post_nms_max_predictions
 
 
 @register_model(Models.YOLO_NAS_POSE_N)

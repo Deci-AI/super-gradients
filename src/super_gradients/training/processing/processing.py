@@ -414,6 +414,8 @@ class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
 class KeypointsLongestMaxSizeRescale(_LongestMaxSizeRescale):
     def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: RescaleMetadata) -> PoseEstimationPrediction:
         predictions.poses = _rescale_keypoints(targets=predictions.poses, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+        if predictions.bboxes is not None:
+            predictions.bboxes = _rescale_bboxes(targets=predictions.bboxes, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
 
 

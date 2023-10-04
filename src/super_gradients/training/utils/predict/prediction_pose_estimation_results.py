@@ -50,7 +50,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
             poses=self.prediction.poses,
             scores=self.prediction.scores,
             is_crowd=None,
-            boxes=self.prediction.boxes,
+            boxes=self.prediction.bboxes,
             edge_links=self.prediction.edge_links,
             edge_colors=edge_colors or self.prediction.edge_colors,
             joint_thickness=joint_thickness,
