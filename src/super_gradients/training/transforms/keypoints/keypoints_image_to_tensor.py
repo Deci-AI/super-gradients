@@ -17,6 +17,9 @@ class KeypointsImageToTensor:
     data samples transform API.
     """
 
+    def __init__(self):
+        self.additional_samples_count = 0
+
     def __call__(
         self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
