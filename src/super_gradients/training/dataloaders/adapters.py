@@ -19,7 +19,7 @@ from super_gradients.training.utils.collate_fn.adapters import (
 class BaseDataloaderAdapterFactory(ABC):
     """Factory class, responsible for adapting datasets/dataloaders to seamlessly work with SG format."""
 
-    @staticmethod
+    @classmethod
     def from_dataset(
         cls,
         dataset: torch.utils.data.Dataset,
@@ -50,7 +50,7 @@ class BaseDataloaderAdapterFactory(ABC):
         dataloader.collate_fn = adapter_collate
         return dataloader
 
-    @staticmethod
+    @classmethod
     def from_dataloader(
         cls,
         dataloader: torch.utils.data.DataLoader,
@@ -76,7 +76,7 @@ class BaseDataloaderAdapterFactory(ABC):
         dataloader.collate_fn = adapter_collate
         return dataloader
 
-    @staticmethod
+    @classmethod
     @abstractmethod
     def _get_collate_fn_class(cls) -> type:
         """
@@ -90,8 +90,9 @@ class BaseDataloaderAdapterFactory(ABC):
 class DetectionDataloaderAdapterFactory(BaseDataloaderAdapterFactory):
     """Factory class, responsible for adapting datasets/dataloaders to seamlessly work with SG YOLOX, YOLONAS and PPYOLOE"""
 
-    @staticmethod
+    @classmethod
     def from_dataset(
+        cls,
         dataset: torch.utils.data.Dataset,
         adapter_config: Optional[DataConfig] = None,
         adapter_cache_path: Optional[str] = None,
@@ -105,19 +106,19 @@ class DetectionDataloaderAdapterFactory(BaseDataloaderAdapterFactory):
             **dataloader_kwargs,
         )
 
-    @staticmethod
+    @classmethod
     def _get_collate_fn_class(cls) -> type:
         return DetectionDatasetAdapterCollateFN
 
 
 class SegmentationDataloaderAdapterFactory(BaseDataloaderAdapterFactory):
-    @staticmethod
+    @classmethod
     def _get_collate_fn_class(cls) -> type:
         return SegmentationDatasetAdapterCollateFN
 
 
 class ClassificationDataloaderAdapterFactory(BaseDataloaderAdapterFactory):
-    @staticmethod
+    @classmethod
     def _get_collate_fn_class(cls) -> type:
         return ClassificationDatasetAdapterCollateFN
 
