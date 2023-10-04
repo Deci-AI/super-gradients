@@ -14,9 +14,6 @@ from super_gradients.training.utils.collate_fn.adapters import (
     DetectionDatasetAdapterCollateFN,
     SegmentationDatasetAdapterCollateFN,
 )
-from super_gradients.common.abstractions.abstract_logger import get_logger
-
-logger = get_logger(__name__)
 
 
 class BaseDataloaderAdapterFactory(ABC):
@@ -95,13 +92,11 @@ class DetectionDataloaderAdapterFactory(BaseDataloaderAdapterFactory):
 
     @staticmethod
     def from_dataset(
-        cls,
         dataset: torch.utils.data.Dataset,
         adapter_config: Optional[DataConfig] = None,
         adapter_cache_path: Optional[str] = None,
         **dataloader_kwargs,
     ) -> torch.utils.data.DataLoader:
-        logger.info(f"You are using {cls.__name__}. Please note that it was designed specifically for YOLOX, YOLONAS and PPYOLOE.")
         return super().from_dataset(
             dataset=dataset,
             adapter_config=adapter_config,

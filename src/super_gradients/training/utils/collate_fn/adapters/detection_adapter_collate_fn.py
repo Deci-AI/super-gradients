@@ -13,10 +13,14 @@ from super_gradients.common.registry import register_collate_function
 from super_gradients.training.utils.collate_fn import DetectionCollateFN
 from super_gradients.training.utils.collate_fn.adapters.base_adapter_collate_fn import BaseDatasetAdapterCollateFN
 
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
+
 
 @register_collate_function()
 class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
-    """Detection Collate function that adapts an input data to SuperGradients format
+    """Detection Collate function that adapts an input data to SuperGradients format for YOLOX, YOLONAS and PPYOLOE.
 
     This is done by applying the adapter logic either before or after the original collate function,
     depending on whether the adapter was set up on a batch or a sample.
@@ -44,6 +48,8 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         else:
             raise ValueError("Please either set `adapter_config` or `adapter_cache_path`.")
 
+        logger.info("You are using Detection Adapter. Please note that it was designed specifically for YOLOX, YOLONAS and PPYOLOE.")
+
         # `DetectionCollateFN()` is the default collate_fn for detection.
         # But if the adapter was used on already collated batches, we don't want to force it.
         base_collate_fn = base_collate_fn or (default_collate if adapter.data_config.is_batch else DetectionCollateFN())
@@ -60,7 +66,7 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         for sample in samples:
             images, targets = self._adapt(sample)  # Will construct batch of 1
             images, targets = images[0], targets[0]  # Extract the sample
-            targets[:, 1:] = xyxy2cxcywh(targets[:, 1:])
+            targets[:, 1:] = xyxy2cxcywh(targets[:, 1:])  # Adapter is designed to work on label_cxcywh format (YOLOX, PPYOLOE, YOLONAS)
             adapted_samples.append((images, targets))
         return adapted_samples
 
@@ -69,7 +75,7 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
 
         images, targets = super()._adapt_batch(batch)
         targets = DetectionCollateFN._format_targets(targets)
-        targets[:, 2:] = xyxy2cxcywh(targets[:, 2:])  # Adapter returns xyxy
+        targets[:, 2:] = xyxy2cxcywh(targets[:, 2:])  # Adapter is designed to work on label_cxcywh format (YOLOX, PPYOLOE, YOLONAS)
         return images, targets
 
 
