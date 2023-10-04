@@ -8,7 +8,7 @@ from super_gradients.training.samples import PoseEstimationSample
 from .abstract_keypoints_transform import AbstractKeypointTransform
 
 
-@register_transform(Transforms.KeypointsLongestMaxSize)
+@register_transform(Transforms.KeypointsRemoveSmallObjects)
 class KeypointsRemoveSmallObjects(AbstractKeypointTransform):
     """
     Remove pose instances from data sample that are too small or have too few visible keypoints.
