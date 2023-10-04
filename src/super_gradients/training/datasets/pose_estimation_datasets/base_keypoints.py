@@ -64,7 +64,12 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         """
         raise NotImplementedError()
 
-    def load_random_sample(self):
+    def load_random_sample(self) -> PoseEstimationSample:
+        """
+        Return a random sample from the dataset
+
+        :return: Instance of PoseEstimationSample
+        """
         num_samples = len(self)
         random_index = random.randrange(0, num_samples)
         return self.load_sample(random_index)
