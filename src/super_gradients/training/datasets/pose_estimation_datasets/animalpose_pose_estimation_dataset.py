@@ -11,18 +11,17 @@ from super_gradients.common.factories.target_generator_factory import TargetGene
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry import register_dataset
-from super_gradients.training.datasets.pose_estimation_datasets import BaseKeypointsDataset
 from super_gradients.training.transforms.keypoint_transforms import AbstractKeypointTransform
 from super_gradients.training.samples import PoseEstimationSample
 
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
+from super_gradients.training.datasets.pose_estimation_datasets.abstract_pose_estimation_dataset import AbstractPoseEstimationDataset
 
 
-@register_dataset(Datasets.ANIMALPOSE_KEY_POINTS_DATASET)
-class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
+@register_dataset(Datasets.ANIMALPOSE_POSE_ESTIMATION_DATASET)
+class AnimalPoseEstimationDataset(AbstractPoseEstimationDataset):
     """
     Dataset class for training pose estimation models on Animal Pose dataset.
-    User should pass a target generator class that is model-specific and generates the targets for the model.
     """
 
     @classmethod

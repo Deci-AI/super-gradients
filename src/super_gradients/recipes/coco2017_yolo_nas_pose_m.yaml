@@ -36,9 +36,6 @@ experiment_name: coco2017_${architecture}_${experiment_suffix}_${dataset_params.
 
 ckpt_root_dir:
 
-train_dataloader: coco2017_pose_train
-val_dataloader: coco2017_pose_val
-
 arch_params:
   num_classes: ${dataset_params.num_joints}
 

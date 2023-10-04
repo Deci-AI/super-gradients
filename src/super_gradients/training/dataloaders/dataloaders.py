@@ -23,7 +23,7 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
     PascalVOCUnifiedDetectionTrainDataset,
     PascalVOCDetectionDataset,
 )
-from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset, AnimalPoseKeypointsDataset
+from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets.rescoring_dataset import TrainRescoringDataset, ValTrainRescoringDataset
 from super_gradients.training.datasets.samplers import RepeatAugSampler
 from super_gradients.training.datasets.segmentation_datasets import (
@@ -837,28 +837,6 @@ def coco2017_pose_val(dataset_params: Dict = None, dataloader_params: Dict = Non
     )
 
 
-@register_dataloader()
-def animalpose_pose_train(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
-    return get_data_loader(
-        config_name="animalpose_pose_estimation_default_dataset_params",
-        dataset_cls=AnimalPoseKeypointsDataset,
-        train=True,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
-
-
-@register_dataloader()
-def animalpose_pose_val(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
-    return get_data_loader(
-        config_name="animalpose_pose_estimation_default_dataset_params",
-        dataset_cls=AnimalPoseKeypointsDataset,
-        train=False,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
-
-
 @register_dataloader(Dataloaders.COCO2017_RESCORING_TRAIN)
 def coco2017_rescoring_train(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return get_data_loader(
@@ -908,6 +886,7 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
 
     if dataset is not None:
         dataloader_params = _process_sampler_params(dataloader_params, dataset, {})
+        dataloader_params = _process_collate_fn_params(dataloader_params)
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
 
         dataloader.dataloader_params = dataloader_params

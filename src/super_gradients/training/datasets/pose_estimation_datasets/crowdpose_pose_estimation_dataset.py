@@ -12,7 +12,6 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
-from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
     CrowdAnnotationActionEnum,
     remove_crowd_annotations,
@@ -20,13 +19,14 @@ from super_gradients.training.datasets.pose_estimation_datasets.coco_utils impor
 )
 from super_gradients.training.transforms.keypoint_transforms import AbstractKeypointTransform
 from super_gradients.training.samples import PoseEstimationSample
+from super_gradients.training.datasets.pose_estimation_datasets.abstract_pose_estimation_dataset import AbstractPoseEstimationDataset
 
 
 logger = get_logger(__name__)
 
 
-@register_dataset(Datasets.CROWDPOSE_KEY_POINTS_DATASET)
-class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
+@register_dataset(Datasets.CROWDPOSE_POSE_ESTIMATION_DATASET)
+class CrowdPoseEstimationDataset(AbstractPoseEstimationDataset):
     """
     Dataset class for training pose estimation models on Crowd Pose dataset.
     Use should pass a target generator class that is model-specific and generates the targets for the model.

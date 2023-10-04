@@ -52,7 +52,7 @@ class YoloNASPoseCollateFN:
         boxes = flat_collate_tensors_with_batch_index(all_boxes)
         joints = flat_collate_tensors_with_batch_index(all_joints)
         is_crowd = flat_collate_tensors_with_batch_index(all_crowd_masks)
-        extras = {"groundtruth_samples": batch}
+        extras = {"gt_samples": batch}
         return all_images, (boxes, joints, is_crowd), extras
 
     def _generate_targets(self, sample: PoseEstimationSample) -> Tuple[Tensor, Tensor, Tensor]:

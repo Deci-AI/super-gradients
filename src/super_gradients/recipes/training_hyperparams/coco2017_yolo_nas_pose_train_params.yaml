@@ -2,7 +2,7 @@ defaults:
   - default_train_params
 
 
-warmup_mode: "linear_batch_step"
+warmup_mode: "LinearBatchLRWarmup"
 warmup_initial_lr:  1e-6
 lr_warmup_steps: 128
 lr_warmup_epochs: 10

@@ -148,27 +148,80 @@ class PoseEstimationMetrics(Metric):
         self,
         preds: Any,
         target: Any,
-        groundtruth_samples: List[PoseEstimationSample],
+        gt_joints: List[np.ndarray] = None,
+        gt_iscrowd: List[np.ndarray] = None,
+        gt_bboxes: List[np.ndarray] = None,
+        gt_areas: List[np.ndarray] = None,
+        gt_samples: List[PoseEstimationSample] = None,
     ):
         """
-        Decode the predictions and update the metric
+        Decode the predictions and update the metric.
 
-        :param preds :           Raw output of the model
+        The signature of this method is a bit complicated, because we want to support both old-style form of
+        passing groundtruth information (gt_joints, gt_iscrowd, gt_bboxes, gt_areas) and a new style of passing
+        groundtruth information as a list of PoseEstimationSample objects.
 
-        :param target:           Targets for the model training (rarely used for evaluation)
+        Passing PoseEstimationSample objects is more convenient and default way to go with sample-centric datasets introduced in SuperGradients 3.3.
+        Two options are mutually exclusive, so if you pass groundtruth_samples, all other arguments are ignored and vice versa.
 
-        :param groundtruth_samples: List of ground-truth samples
+        :param preds :      Raw output of the model
+        :param target:      Targets for the model training (Not used for evaluation)
+        :param gt_joints:   List of ground-truth joints for each image in the batch. Each element is a numpy array of shape (num_instances, num_joints, 3).
+                            Note that augmentation/preprocessing transformations (Affine transforms specifically) must also be applied to gt_joints.
+                            This is to ensure joint coordinates are transforms identically as image. This is differs form COCO evaluation,
+                            where predictions rescaled back to original size of the image.
+                            However, this makes code much more (unnecessary) complicated, so we do it differently and evaluate joints in the coordinate
+                            system of the predicted image.
+
+        :param gt_iscrowd:  Optional argument indicating which instance is annotated with `iscrowd` flog and is not used for evaluation;
+                            If not provided, all instances are considered as non-crowd targets.
+                            For instance, in CrowdPose all instances are considered as "non-crowd".
+
+        :param gt_bboxes:   Bounding boxes of the groundtruth instances (XYWH).
+                            This is COCO-specific and is used in OKS computation for instances w/o visible keypoints.
+                            If not provided, the bounding box is computed as the minimum bounding box that contains all visible keypoints.
+
+        :param gt_areas:    Area of the groundtruth area. in COCO this is the area of the corresponding segmentation mask and not the bounding box,
+                            so it cannot be computed programmatically. It's value used in object-keypoint similarity metric (OKS) computation.
+                            If not provided, the area is computed as the product of the width and height of the bounding box.
+                            (For instance this is used in CrowdPose dataset)
+        :param gt_samples:  List of ground-truth samples
 
         """
         predictions: List[PoseEstimationPredictions] = self.post_prediction_callback(preds)  # Decode raw predictions into poses
+
+        if gt_samples is not None:
+            self._update_with_samples(predictions, gt_samples)
+        else:
+            self._update_with_old_style_args(predictions, gt_joints, gt_bboxes, gt_areas, gt_iscrowd)
+
+    def _update_with_samples(self, predictions: List[PoseEstimationPredictions], gt_samples: List[PoseEstimationSample]):
         for i in range(len(predictions)):
             self.update_single_image(
                 predicted_poses=predictions[i].poses,
                 predicted_scores=predictions[i].scores,
-                gt_joints=groundtruth_samples[i].joints,
-                gt_bboxes=groundtruth_samples[i].bboxes,
-                gt_areas=groundtruth_samples[i].areas,
-                gt_iscrowd=groundtruth_samples[i].is_crowd,
+                gt_joints=gt_samples[i].joints,
+                gt_bboxes=gt_samples[i].bboxes,
+                gt_areas=gt_samples[i].areas,
+                gt_iscrowd=gt_samples[i].is_crowd,
+            )
+
+    def _update_with_old_style_args(
+        self,
+        predictions: List[PoseEstimationPredictions],
+        gt_joints: List[np.ndarray],
+        gt_bboxes: Optional[List[np.ndarray]],
+        gt_areas: Optional[List[np.ndarray]],
+        gt_iscrowd: Optional[List[np.ndarray]],
+    ):
+        for i in range(len(predictions)):
+            self.update_single_image(
+                predicted_poses=predictions[i].poses,
+                predicted_scores=predictions[i].scores,
+                gt_joints=gt_joints[i],
+                gt_bboxes=gt_bboxes[i] if gt_bboxes is not None else None,
+                gt_areas=gt_areas[i] if gt_areas is not None else None,
+                gt_iscrowd=gt_iscrowd[i] if gt_iscrowd is not None else None,
             )
 
     def update_single_image(

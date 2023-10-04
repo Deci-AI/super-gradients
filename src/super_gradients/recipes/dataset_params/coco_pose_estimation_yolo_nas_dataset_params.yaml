@@ -70,9 +70,18 @@ val_dataset_params:
 
 
 train_dataloader_params:
+  dataset: COCOPoseEstimationDataset
+  shuffle: True
+  batch_size: 8
+  num_workers: 8
+  drop_last: True
   pin_memory: False
   collate_fn: YoloNASPoseCollateFN
 
 val_dataloader_params:
+  dataset: COCOPoseEstimationDataset
+  batch_size: 8
+  num_workers: 8
+  drop_last: False
   pin_memory: False
   collate_fn: YoloNASPoseCollateFN
