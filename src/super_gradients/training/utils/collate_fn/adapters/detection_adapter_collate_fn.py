@@ -48,7 +48,7 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         else:
             raise ValueError("Please either set `adapter_config` or `adapter_cache_path`.")
 
-        logger.info("You are using Detection Adapter. Please note that it was designed specifically for YOLOX, YOLONAS and PPYOLOE.")
+        logger.info("You are using Detection Adapter. Please note that it was designed specifically for YOLONAS, YOLOX and PPYOLOE.")
 
         # `DetectionCollateFN()` is the default collate_fn for detection.
         # But if the adapter was used on already collated batches, we don't want to force it.
