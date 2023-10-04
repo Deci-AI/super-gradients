@@ -15,13 +15,13 @@ class KDklDivLoss(KLDivLoss):
         return super(KDklDivLoss, self).forward(torch.log_softmax(student_output, dim=1), torch.softmax(teacher_output, dim=1))
 
 
-@register_loss(Losses.KD_LOSS)
+@register_loss(name=Losses.KD_LOSS, deprecated_name="kd_loss")
 class KDLogitsLoss(_Loss):
     """Knowledge distillation loss, wraps the task loss and distillation loss"""
 
     def __init__(self, task_loss_fn: _Loss, distillation_loss_fn: _Loss = KDklDivLoss(), distillation_loss_coeff: float = 0.5):
         """
-        :param task_loss_fn: task loss. E.g., LabelSmoothingCrossEntropyLoss
+        :param task_loss_fn: task loss. E.g., CrossEntropyLoss
         :param distillation_loss_fn: distillation loss. E.g., KLDivLoss
         :param distillation_loss_coeff:
         """

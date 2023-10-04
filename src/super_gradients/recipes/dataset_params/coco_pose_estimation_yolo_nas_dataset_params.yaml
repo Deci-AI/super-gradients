@@ -4,7 +4,6 @@ defaults:
 
 train_dataset_params:
   include_empty_samples: True
-  min_instance_area: 16
   crowd_annotations_action: mask_as_normal
 
   transforms:
@@ -47,13 +46,17 @@ train_dataset_params:
     - KeypointsImageStandardize:
         max_value: 255
 
+    - KeypointsRemoveSmallObjects:
+        min_instance_area: 1
+        min_visible_keypoints: 1
+
 
   target_generator:
     YoloNASPoseTargetsGenerator
 
 val_dataset_params:
   include_empty_samples: True
-  min_instance_area: 0
+
   transforms:
     - KeypointsLongestMaxSize:
         max_height: ${dataset_params.image_size}

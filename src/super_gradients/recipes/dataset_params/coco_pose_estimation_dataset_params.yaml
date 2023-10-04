@@ -76,7 +76,6 @@ train_dataset_params:
 
   include_empty_samples: False
   crowd_annotations_action: no_action
-  min_instance_area: 64
 
   edge_links: ${dataset_params.edge_links}
   edge_colors: ${dataset_params.edge_colors}
@@ -123,7 +122,6 @@ val_dataset_params:
 
   include_empty_samples: True
   crowd_annotations_action: no_action
-  min_instance_area: 128
 
   edge_links: ${dataset_params.edge_links}
   edge_colors: ${dataset_params.edge_colors}

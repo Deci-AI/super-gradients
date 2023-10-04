@@ -37,7 +37,7 @@ class KeypointsBrightnessContrast(AbstractKeypointTransform):
         self.brightness_range = tuple(brightness_range)
         self.contrast_range = tuple(contrast_range)
 
-    def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+    def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         if random.random() < self.prob:
             contrast_gain = random.uniform(self.contrast_range[0], self.contrast_range[1])
             brightness_gain = random.uniform(self.brightness_range[0], self.brightness_range[1])

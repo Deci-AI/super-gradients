@@ -7,7 +7,6 @@ dataset_params_suffix: "mosaic_${dataset_params.mosaic_prob}_${dataset_params.im
 
 train_dataset_params:
   include_empty_samples: True
-  min_instance_area: 1
   crowd_annotations_action: mask_as_normal
 
   transforms:
@@ -53,13 +52,15 @@ train_dataset_params:
     - KeypointsImageStandardize:
         max_value: 255
 
+    - KeypointsRemoveSmallObjects:
+        min_instance_area: 1
+        min_visible_keypoints: 1
 
   target_generator:
     YoloNASPoseTargetsGenerator
 
 val_dataset_params:
   include_empty_samples: True
-  min_instance_area: 1
   transforms:
     - KeypointsLongestMaxSize:
         max_height: ${dataset_params.image_size}
@@ -74,6 +75,9 @@ val_dataset_params:
 
     - KeypointsImageStandardize:
         max_value: 255
+
+    - KeypointsRemoveSmallObjects:
+        min_instance_area: 1
 
   target_generator:
     YoloNASPoseTargetsGenerator

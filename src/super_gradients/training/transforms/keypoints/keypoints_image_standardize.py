@@ -12,16 +12,27 @@ from .abstract_keypoints_transform import AbstractKeypointTransform
 class KeypointsImageStandardize(AbstractKeypointTransform):
     """
     Standardize image pixel values with img/max_value formula.
+    Output image will allways have dtype of np.float32.
 
-    :attr max_value: Current maximum value of the image pixels. (usually 255)
+    :param max_value: Current maximum value of the image pixels. (usually 255)
     """
 
     def __init__(self, max_value: float = 255.0):
+        """
+
+        :param max_value: A constant value to divide the image by.
+        """
         super().__init__()
         self.max_value = max_value
 
-    def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
-        sample.image = (sample.image / self.max_value).astype(np.float32)
+    def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+        """
+        Apply transformation to given pose estimation sample
+
+        :param sample: A pose estimation sample
+        :return:       Same pose estimation sample with standardized image
+        """
+        sample.image = np.divide(sample.image, self.max_value, dtype=np.float32)
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:

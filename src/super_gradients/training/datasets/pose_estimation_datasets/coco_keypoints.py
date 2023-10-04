@@ -43,7 +43,6 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         include_empty_samples: bool,
         target_generator,
         transforms: List[AbstractKeypointTransform],
-        min_instance_area: float,
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
@@ -102,7 +101,6 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         super().__init__(
             transforms=transforms,
             target_generator=target_generator,
-            min_instance_area=min_instance_area,
             num_joints=num_joints,
             edge_links=edge_links,
             edge_colors=edge_colors,

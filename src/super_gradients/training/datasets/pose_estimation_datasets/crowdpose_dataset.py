@@ -41,7 +41,6 @@ class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
         json_file: str,
         target_generator,
         transforms: List[AbstractKeypointTransform],
-        min_instance_area: float,
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
@@ -56,7 +55,6 @@ class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
         :param target_generator: Target generator that will be used to generate the targets for the model.
             See DEKRTargetsGenerator for an example.
         :param transforms: Transforms to be applied to the image & keypoints
-        :param min_instance_area: Minimum area of an instance to be included in the dataset
         :param edge_links: Edge links between joints
         :param edge_colors: Color of the edge links. If None, the color will be generated randomly.
         :param keypoint_colors: Color of the keypoints. If None, the color will be generated randomly.
@@ -95,7 +93,6 @@ class CrowdPoseKeypointsDataset(BaseKeypointsDataset):
         super().__init__(
             transforms=transforms,
             target_generator=target_generator,
-            min_instance_area=min_instance_area,
             num_joints=num_joints,
             edge_links=edge_links,
             edge_colors=edge_colors,

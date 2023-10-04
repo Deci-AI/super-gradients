@@ -1,5 +1,4 @@
 import random
-
 import numpy as np
 
 from super_gradients.common.object_names import Transforms
@@ -27,13 +26,10 @@ class KeypointsRandomRotate90(AbstractKeypointTransform):
         super().__init__()
         self.prob = prob
 
-    def __repr__(self):
-        return self.__class__.__name__ + f"(prob={self.prob})"
-
-    def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+    def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """
         :param   sample: Input PoseEstimationSample
-        :return: (PoseEstimationSample) result of applying the transform
+        :return:         Result of applying the transform
         """
 
         if random.random() < self.prob:
@@ -51,15 +47,25 @@ class KeypointsRandomRotate90(AbstractKeypointTransform):
         return sample
 
     @classmethod
-    def apply_to_image(cls, image, k):
-        return np.rot90(image, k)
+    def apply_to_image(cls, image: np.ndarray, factor: int) -> np.ndarray:
+        """
+        Rotate image by 90 degrees
+
+        :param image:  Input image
+        :param factor: Number of 90 degree rotations to apply. Order or rotation matches np.rot90
+        :return:       Rotated image
+        """
+        return np.rot90(image, factor)
 
     @classmethod
-    def apply_to_bboxes(cls, bboxes_xywh: np.ndarray, factor, rows: int, cols: int):
+    def apply_to_bboxes(cls, bboxes_xywh: np.ndarray, factor, rows: int, cols: int) -> np.ndarray:
         """
 
         :param bboxes: (N, 4) array of bboxes in XYWH format
-        :return:
+        :param factor: Number of 90 degree rotations to apply. Order or rotation matches np.rot90
+        :param rows:   Number of rows (image height) of the original (input) image
+        :param cols:   Number of cols (image width) of the original (input) image
+        :return:       Transformed bboxes in XYWH format
         """
         from super_gradients.training.transforms.transforms import DetectionRandomRotate90
 
@@ -91,6 +97,9 @@ class KeypointsRandomRotate90(AbstractKeypointTransform):
         else:
             raise ValueError("Parameter n must be in set {0, 1, 2, 3}")
         return np.stack(keypoints, axis=-1)
+
+    def __repr__(self):
+        return self.__class__.__name__ + f"(prob={self.prob})"
 
     def get_equivalent_preprocessing(self):
         raise RuntimeError(f"{self.__class__} does not have equivalent preprocessing because it is non-deterministic.")

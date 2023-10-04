@@ -72,7 +72,6 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
         json_file: str,
         target_generator,
         transforms: List[AbstractKeypointTransform],
-        min_instance_area: float,
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
@@ -86,7 +85,6 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
         :param target_generator: Target generator that will be used to generate the targets for the model.
             See DEKRTargetsGenerator for an example.
         :param transforms: Transforms to be applied to the image & keypoints
-        :param min_instance_area: Minimum area of an instance to be included in the dataset
         """
         split_json_file = os.path.join(data_dir, json_file)
         full_json_file = os.path.join(data_dir, "keypoints.json")
@@ -106,7 +104,6 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
         super().__init__(
             transforms=transforms,
             target_generator=target_generator,
-            min_instance_area=min_instance_area,
             num_joints=num_joints,
             edge_links=edge_links,
             edge_colors=edge_colors,

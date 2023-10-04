@@ -30,7 +30,7 @@ class KeypointsLongestMaxSize(AbstractKeypointTransform):
         self.interpolation = interpolation
         self.prob = prob
 
-    def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+    def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         if random.random() < self.prob:
             height, width = sample.image.shape[:2]
             scale = min(self.max_height / height, self.max_width / width)

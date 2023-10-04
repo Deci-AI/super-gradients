@@ -7,7 +7,7 @@ selective_quantizer_params:
   skip_modules:              # optional list of module names (strings) to skip from quantization
 
 calib_params:
-  histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", mse"], "max" calibrators always use "max"
+  histogram_calib_method: "percentile"  # calibration method for all "histogram" calibrators, acceptable types are ["percentile", "entropy", "mse"], "max" calibrators always use "max"
   percentile: 99.99                     # percentile for all histogram calibrators with method "percentile", other calibrators are not affected
   num_calib_batches:                    # number of batches to use for calibration, if None, 512 / batch_size will be used
   verbose: False                        # if calibrator should be verbose

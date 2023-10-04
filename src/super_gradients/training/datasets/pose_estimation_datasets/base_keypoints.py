@@ -27,7 +27,6 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         self,
         target_generator: KeypointsTargetsGenerator,
         transforms: List[AbstractKeypointTransform],
-        min_instance_area: float,
         num_joints: int,
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
@@ -37,7 +36,6 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
 
         :param target_generator: Target generator that will be used to generate the targets for the model.
         :param transforms: Transforms to be applied to the image & keypoints
-        :param min_instance_area: Minimum area of an instance to be included in the dataset
         :param num_joints: Number of joints to be predicted
         :param edge_links: Edge links between joints
         :param edge_colors: Color of the edge links. If None, the color will be generated randomly.
@@ -45,7 +43,10 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         """
         super().__init__()
         self.target_generator = target_generator
-        self.transforms = KeypointsCompose(transforms, load_sample_fn=self.load_random_sample, min_bbox_area=min_instance_area, min_visible_joints=1)
+        self.transforms = KeypointsCompose(
+            transforms,
+            load_sample_fn=self.load_random_sample,
+        )
         self.num_joints = num_joints
         self.edge_links = edge_links
         self.edge_colors = edge_colors or generate_color_mapping(len(edge_links))
@@ -76,7 +77,7 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
 
     def __getitem__(self, index: int) -> Tuple[np.ndarray, Any, Mapping[str, Any]]:
         sample = self.load_sample(index)
-        sample = self.transforms(sample)
+        sample = self.transforms.apply_to_sample(sample)
         targets = self.target_generator(sample)
         return sample.image, targets, self.get_additional_batch_samples(sample, index)
 

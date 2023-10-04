@@ -1,4 +1,4 @@
-from .keypoints import AbstractKeypointTransform
+from .keypoints import AbstractKeypointTransform, KeypointTransform
 from .keypoints import KeypointsBrightnessContrast
 from .keypoints import KeypointsCompose
 from .keypoints import KeypointsHSV
@@ -12,9 +12,12 @@ from .keypoints import KeypointsRandomAffineTransform
 from .keypoints import KeypointsRandomHorizontalFlip
 from .keypoints import KeypointsRandomVerticalFlip
 from .keypoints import KeypointsRescale
+from .keypoints import KeypointsRandomRotate90
+from .keypoints import KeypointsRemoveSmallObjects
 
 __all__ = [
     "AbstractKeypointTransform",
+    "KeypointTransform",
     "KeypointsBrightnessContrast",
     "KeypointsCompose",
     "KeypointsHSV",
@@ -28,4 +31,6 @@ __all__ = [
     "KeypointsRandomHorizontalFlip",
     "KeypointsRandomVerticalFlip",
     "KeypointsRescale",
+    "KeypointsRandomRotate90",
+    "KeypointsRemoveSmallObjects",
 ]

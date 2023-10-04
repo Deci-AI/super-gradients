@@ -16,7 +16,7 @@ class KeypointsPadIfNeeded(AbstractKeypointTransform):
     Image and mask padded from right and bottom, thus joints remains unchanged.
     """
 
-    def __init__(self, min_height: int, min_width: int, image_pad_value: int, mask_pad_value: float, padding_mode: str):
+    def __init__(self, min_height: int, min_width: int, image_pad_value: int, mask_pad_value: float, padding_mode: str = "bottom_right"):
         """
 
         :param output_size: Desired image size (rows, cols)
@@ -32,7 +32,7 @@ class KeypointsPadIfNeeded(AbstractKeypointTransform):
         self.mask_pad_value = mask_pad_value
         self.padding_mode = padding_mode
 
-    def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+    def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         height, width = sample.image.shape[:2]
         original_dtype = sample.mask.dtype
 

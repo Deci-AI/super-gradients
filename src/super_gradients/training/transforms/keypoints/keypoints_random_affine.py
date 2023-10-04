@@ -1,5 +1,5 @@
 import random
-from typing import List, Union, Iterable
+from typing import List, Union, Iterable, Tuple
 
 import cv2
 import numpy as np
@@ -23,25 +23,29 @@ class KeypointsRandomAffineTransform(AbstractKeypointTransform):
         min_scale: float,
         max_scale: float,
         max_translate: float,
-        image_pad_value: int,
+        image_pad_value: Union[int, float, List[int]],
         mask_pad_value: float,
         interpolation_mode: Union[int, List[int]] = cv2.INTER_LINEAR,
         prob: float = 0.5,
     ):
         """
 
-        :param max_rotation: Max rotation angle in degrees
-        :param min_scale: Lower bound for the scale change. For +- 20% size jitter this should be 0.8
-        :param max_scale: Lower bound for the scale change. For +- 20% size jitter this should be 1.2
-        :param max_translate: Max translation offset in percents of image size
+        :param max_rotation:       Max rotation angle in degrees
+        :param min_scale:          Lower bound for the scale change. For +- 20% size jitter this should be 0.8
+        :param max_scale:          Lower bound for the scale change. For +- 20% size jitter this should be 1.2
+        :param max_translate:      Max translation offset in percents of image size
+        :param image_pad_value:    Value to pad the image during affine transform. Can be single scalar or list.
+                                   If a list is provided, it should have the same length as the number of channels in the image.
+        :param mask_pad_value:     Value to pad the mask during affine transform.
         :param interpolation_mode: A constant integer or list of integers, specifying the interpolation mode to use.
-        Possible values for interpolation_mode:
-          cv2.INTER_NEAREST = 0,
-          cv2.INTER_LINEAR = 1,
-          cv2.INTER_CUBIC = 2,
-          cv2.INTER_AREA = 3,
-          cv2.INTER_LANCZOS4 = 4
-        To use random interpolation modes on each call, set interpolation_mode = (0,1,2,3,4)
+                                   Possible values for interpolation_mode:
+                                     cv2.INTER_NEAREST = 0,
+                                     cv2.INTER_LINEAR = 1,
+                                     cv2.INTER_CUBIC = 2,
+                                     cv2.INTER_AREA = 3,
+                                     cv2.INTER_LANCZOS4 = 4
+                                   To use random interpolation modes on each call, set interpolation_mode = (0,1,2,3,4)
+        :param prob:               Probability to apply the transform.
         """
         super().__init__()
 
@@ -65,14 +69,16 @@ class KeypointsRandomAffineTransform(AbstractKeypointTransform):
             f"prob={self.prob})"
         )
 
-    def _get_affine_matrix(self, img, angle, scale, dx, dy):
+    def _get_affine_matrix(self, img: np.ndarray, angle: float, scale: float, dx: float, dy: float) -> np.ndarray:
         """
+        Compute the affine matrix that combines rotation of image around center, scaling and translation
+        according to given parameters. Order of operations is: scale, rotate, translate.
 
-        :param center: (x,y)
-        :param scale:
-        :param output_size: (rows, cols)
-        :param rot:
-        :return:
+        :param angle: Rotation angle in degrees
+        :param scale: Scaling factor
+        :param dx:    Translation in x direction
+        :param dy:    Translation in y direction
+        :return:      Affine matrix [2,3]
         """
         height, width = img.shape[:2]
         center = (width / 2 + dx * width, height / 2 + dy * height)
@@ -80,14 +86,16 @@ class KeypointsRandomAffineTransform(AbstractKeypointTransform):
 
         return matrix
 
-    def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+    def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """
+        Apply transformation to given pose estimation sample.
+        Since this transformation apply affine transform some keypoints/bboxes may be moved outside the image.
+        After applying the transform, visibility status of joints is updated to reflect the new position of joints.
+        Bounding boxes are clipped to image borders.
+        If sample contains areas, they are scaled according to the applied affine transform.
 
-        :param image: (np.ndarray) Image of shape [H,W,3]
-        :param mask: Single-element array with mask of [H,W] shape.
-        :param joints: Single-element array of joints of [Num instances, Num Joints, 3] shape. Semantics of last channel is: x, y, joint index (?)
-        :param area: Area each instance occipy: [Num instances, 1]
-        :return:
+        :param sample: A pose estimation sample
+        :return:       A transformed pose estimation sample
         """
 
         if random.random() < self.prob:
@@ -104,11 +112,14 @@ class KeypointsRandomAffineTransform(AbstractKeypointTransform):
                 tuple(self.image_pad_value) if isinstance(self.image_pad_value, Iterable) else tuple([self.image_pad_value] * sample.image.shape[-1])
             )
 
-            sample.image = self.apply_to_image(sample.image, mat_output, interpolation, image_pad_value, cv2.BORDER_CONSTANT)
-            sample.mask = self.apply_to_image(sample.mask, mat_output, cv2.INTER_NEAREST, self.mask_pad_value, cv2.BORDER_CONSTANT)
+            sample.image = self.apply_to_image(
+                sample.image, mat_output, interpolation=interpolation, padding_value=image_pad_value, padding_mode=cv2.BORDER_CONSTANT
+            )
+            sample.mask = self.apply_to_image(
+                sample.mask, mat_output, interpolation=cv2.INTER_NEAREST, padding_value=self.mask_pad_value, padding_mode=cv2.BORDER_CONSTANT
+            )
 
-            new_image_shape = sample.image.shape
-            sample.joints = self.apply_to_keypoints(sample.joints, mat_output, new_image_shape)
+            sample.joints = self.apply_to_keypoints(sample.joints, mat_output, sample.image.shape[:2])
 
             if sample.bboxes is not None:
                 sample.bboxes = self.apply_to_bboxes(sample.bboxes, mat_output)
@@ -121,17 +132,24 @@ class KeypointsRandomAffineTransform(AbstractKeypointTransform):
         return sample
 
     @classmethod
-    def apply_to_areas(cls, areas: np.ndarray, mat):
+    def apply_to_areas(cls, areas: np.ndarray, mat: np.ndarray) -> np.ndarray:
+        """
+        Apply affine transform to areas.
+
+        :param areas: [N] Single-dimension array of areas
+        :param mat:   [2,3] Affine transformation matrix
+        :return:      [N] Single-dimension array of areas
+        """
         det = np.linalg.det(mat[:2, :2])
         return (areas * abs(det)).astype(areas.dtype)
 
     @classmethod
-    def apply_to_bboxes(cls, bboxes_xywh: np.ndarray, mat: np.ndarray):
+    def apply_to_bboxes(cls, bboxes_xywh: np.ndarray, mat: np.ndarray) -> np.ndarray:
         """
 
         :param bboxes: (N,4) array of bboxes in XYWH format
-        :param mat:
-        :return:
+        :param mat:    [2,3] Affine transformation matrix
+        :return:       (N,4) array of bboxes in XYWH format
         """
 
         def bbox_shift_scale_rotate(bbox, m):
@@ -156,7 +174,16 @@ class KeypointsRandomAffineTransform(AbstractKeypointTransform):
         return xyxy_to_xywh(bboxes_xyxy, image_shape=None).astype(bboxes_xywh.dtype)
 
     @classmethod
-    def apply_to_keypoints(cls, keypoints: np.ndarray, mat: np.ndarray, image_shape):
+    def apply_to_keypoints(cls, keypoints: np.ndarray, mat: np.ndarray, image_shape: Tuple[int, int]) -> np.ndarray:
+        """
+        Apply affine transform to keypoints.
+
+        :param keypoints:   [N,K,3] array of keypoints in (x,y,visibility) format
+        :param mat:         [2,3] Affine transformation matrix
+        :param image_shape: Image shape after applying affine transform (height, width).
+                            Used to update visibility status of keypoints.
+        :return:            [N,K,3] array of keypoints in (x,y,visibility) format
+        """
         keypoints_with_visibility = keypoints.copy()
         keypoints = keypoints_with_visibility[:, :, 0:2]
 
@@ -179,7 +206,17 @@ class KeypointsRandomAffineTransform(AbstractKeypointTransform):
         return keypoints_with_visibility.astype(dtype, copy=False)
 
     @classmethod
-    def apply_to_image(cls, image, mat, interpolation, padding_value, padding_mode=cv2.BORDER_CONSTANT):
+    def apply_to_image(cls, image: np.ndarray, mat: np.ndarray, interpolation: int, padding_value: Union[int, float, Tuple], padding_mode: int) -> np.ndarray:
+        """
+        Apply affine transform to image.
+
+        :param image:          Input image
+        :param mat:            [2,3] Affine transformation matrix
+        :param interpolation:  Interpolation mode. See cv2.warpAffine for details.
+        :param padding_value:  Value to pad the image during affine transform. See cv2.warpAffine for details.
+        :param padding_mode:   Padding mode. See cv2.warpAffine for details.
+        :return:               Transformed image of the same shape as input image.
+        """
         return cv2.warpAffine(
             image,
             mat,

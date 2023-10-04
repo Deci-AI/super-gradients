@@ -12,10 +12,10 @@ class KeypointsHSV(AbstractKeypointTransform):
     """
     Apply color change in HSV color space to the input image.
 
-    :attr prob:            Probability to apply the transform.
-    :attr hgain:           Hue gain.
-    :attr sgain:           Saturation gain.
-    :attr vgain:           Value gain.
+    :param prob:            Probability to apply the transform.
+    :param hgain:           Hue gain.
+    :param sgain:           Saturation gain.
+    :param vgain:           Value gain.
     """
 
     def __init__(self, prob: float, hgain: float, sgain: float, vgain: float):
@@ -32,7 +32,7 @@ class KeypointsHSV(AbstractKeypointTransform):
         self.sgain = sgain
         self.vgain = vgain
 
-    def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+    def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         if sample.image.shape[2] != 3:
             raise ValueError("HSV transform expects image with 3 channels, got: " + str(sample.image.shape[2]))
 

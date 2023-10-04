@@ -62,7 +62,7 @@ checkpoint_params:
 training_hyperparams:
   sync_bn: True
   loss:
-    dice_ce_edge_loss:
+    DiceCEEdgeLoss:
       num_classes: 19
       ignore_index: 19
       weights: [ 1., 0.6, 0.4, 1. ]

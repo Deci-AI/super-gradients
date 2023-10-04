@@ -708,7 +708,7 @@ class FocalEIoULoss(nn.Module):
         return loss
 
 
-@register_loss(Losses.PPYOLOE_LOSS)
+@register_loss(name=Losses.PPYOLOE_LOSS, deprecated_name="ppyoloe_loss")
 class PPYoloELoss(nn.Module):
     def __init__(
         self,
