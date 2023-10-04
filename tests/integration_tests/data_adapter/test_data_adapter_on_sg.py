@@ -30,7 +30,7 @@ def test_python_detection():
     )
     analyzer.run()
 
-    adapted_loader = DetectionDataloaderAdapter.from_dataloader(dataloader=loader, config_path=analyzer.data_config.cache_path)
+    adapted_loader = DetectionDataloaderAdapter.from_dataloader(dataloader=loader, adapter_cache_path=analyzer.data_config.cache_path)
 
     for (adapted_images, adapted_targets), (images, targets) in zip(adapted_loader, loader):
         assert np.isclose(adapted_targets, targets).all()
@@ -52,7 +52,7 @@ def test_python_segmentation():
     )
     analyzer.run()
 
-    adapted_loader = SegmentationDataloaderAdapter.from_dataloader(dataloader=loader, config_path=analyzer.data_config.cache_path)
+    adapted_loader = SegmentationDataloaderAdapter.from_dataloader(dataloader=loader, adapter_cache_path=analyzer.data_config.cache_path)
 
     for (adapted_images, adapted_targets), (images, targets) in zip(adapted_loader, loader):
         assert np.isclose(adapted_targets, targets).all()
@@ -73,7 +73,7 @@ def test_python_classification():
     )
     analyzer.run()
 
-    adapted_loader = ClassificationDataloaderAdapter.from_dataloader(dataloader=loader, config_path=analyzer.data_config.cache_path)
+    adapted_loader = ClassificationDataloaderAdapter.from_dataloader(dataloader=loader, adapter_cache_path=analyzer.data_config.cache_path)
 
     for (adapted_images, adapted_targets), (images, targets) in zip(adapted_loader, loader):
         assert np.isclose(adapted_targets, targets).all()
@@ -152,7 +152,7 @@ def test_ddp_python_based_adapter():
         dataset_params={"max_num_samples": 500, "with_crowd": False},  # `max_num_samples` To make it faster
         dataloader_params={"num_workers": 4, "collate_fn": "DetectionCollateFN"},
     )
-    adapted_loader = DetectionDataloaderAdapter.from_dataloader(dataloader=loader, config_path="xx2.json")
+    adapted_loader = DetectionDataloaderAdapter.from_dataloader(dataloader=loader, adapter_cache_path="xx2.json")
 
     for (adapted_images, adapted_targets), (images, targets) in zip(adapted_loader, loader):
         assert np.isclose(adapted_targets, targets).all()

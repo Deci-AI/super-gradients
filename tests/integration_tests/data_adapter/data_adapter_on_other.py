@@ -147,7 +147,7 @@ def torch_classification():
 
     train_loader = ClassificationDataloaderAdapter.from_dataset(
         dataset=train_set,
-        config_path=analyzer.data_config.cache_path,
+        adapter_cache_path=analyzer.data_config.cache_path,
         batch_size=20,
     )
 
