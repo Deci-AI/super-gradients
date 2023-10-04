@@ -56,8 +56,6 @@ train_dataset_params:
         min_instance_area: 1
         min_visible_keypoints: 1
 
-  target_generator:
-    YoloNASPoseTargetsGenerator
 
 val_dataset_params:
   include_empty_samples: True
@@ -76,18 +74,11 @@ val_dataset_params:
     - KeypointsImageStandardize:
         max_value: 255
 
-    - KeypointsRemoveSmallObjects:
-        min_instance_area: 1
-
-  target_generator:
-    YoloNASPoseTargetsGenerator
 
 train_dataloader_params:
   pin_memory: False
-  collate_fn:
-    _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
+  collate_fn: YoloNASPoseCollateFN
 
 val_dataloader_params:
   pin_memory: False
-  collate_fn:
-    _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
+  collate_fn: YoloNASPoseCollateFN

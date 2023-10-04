@@ -1,6 +1,6 @@
 import abc
 import random
-from typing import Tuple, List, Mapping, Any, Union
+from typing import Tuple, List, Union
 
 import numpy as np
 from torch.utils.data.dataloader import default_collate, Dataset
@@ -9,7 +9,6 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.object_names import Processings
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.module_interfaces import HasPreprocessingParams
-from super_gradients.training.datasets.pose_estimation_datasets.target_generators import KeypointsTargetsGenerator
 from super_gradients.training.samples import PoseEstimationSample
 from super_gradients.training.transforms.keypoint_transforms import KeypointsCompose, AbstractKeypointTransform
 from super_gradients.training.utils.visualization.utils import generate_color_mapping
@@ -25,7 +24,6 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
 
     def __init__(
         self,
-        target_generator: KeypointsTargetsGenerator,
         transforms: List[AbstractKeypointTransform],
         num_joints: int,
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
@@ -42,7 +40,6 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         :param keypoint_colors: Color of the keypoints. If None, the color will be generated randomly.
         """
         super().__init__()
-        self.target_generator = target_generator
         self.transforms = KeypointsCompose(
             transforms,
             load_sample_fn=self.load_random_sample,
@@ -75,14 +72,10 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         random_index = random.randrange(0, num_samples)
         return self.load_sample(random_index)
 
-    def __getitem__(self, index: int) -> Tuple[np.ndarray, Any, Mapping[str, Any]]:
+    def __getitem__(self, index: int) -> PoseEstimationSample:
         sample = self.load_sample(index)
         sample = self.transforms.apply_to_sample(sample)
-        targets = self.target_generator(sample)
-        return sample.image, targets, self.get_additional_batch_samples(sample, index)
-
-    def get_additional_batch_samples(self, sample: PoseEstimationSample, index) -> Mapping[str, Any]:
-        return sample.get_additional_batch_samples()
+        return sample
 
     def get_dataset_preprocessing_params(self):
         """

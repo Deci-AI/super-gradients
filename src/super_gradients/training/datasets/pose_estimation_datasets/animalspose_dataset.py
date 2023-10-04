@@ -70,7 +70,6 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
         data_dir: str,
         images_dir: str,
         json_file: str,
-        target_generator,
         transforms: List[AbstractKeypointTransform],
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
@@ -103,7 +102,6 @@ class AnimalPoseKeypointsDataset(BaseKeypointsDataset):
 
         super().__init__(
             transforms=transforms,
-            target_generator=target_generator,
             num_joints=num_joints,
             edge_links=edge_links,
             edge_colors=edge_colors,

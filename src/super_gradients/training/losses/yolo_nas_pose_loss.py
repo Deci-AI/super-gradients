@@ -6,17 +6,13 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
-# import super_gradients
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 
-# from super_gradients.training.utils.distributed_training_utils import (
-#    get_world_size,
-# )
 from .ppyolo_loss import GIoULoss, CIoULoss, batch_iou_similarity, check_points_inside_bboxes, gather_topk_anchors, compute_max_iou_anchor, FocalEIoULoss
 
-from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_target_generator import undo_flat_collate_tensors_with_batch_index
+from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_collate_fn import undo_flat_collate_tensors_with_batch_index
 
 
 @dataclasses.dataclass
@@ -248,7 +244,6 @@ class YoloNASPoseLoss(nn.Module):
     ):
         """
         :param num_classes: Number of keypoints
-        :param use_varifocal_loss: Whether to use Varifocal loss for classification loss; otherwise use Focal loss
         :param classification_loss_weight: Classification loss weight
         :param iou_loss_weight: IoU loss weight
         :param dfl_loss_weight: DFL loss weight
@@ -394,19 +389,15 @@ class YoloNASPoseLoss(nn.Module):
             bg_index=self.num_classes,
         )
 
-        assigned_labels = assign_result.assigned_labels
         assigned_scores = assign_result.assigned_scores
 
         # cls loss
-        if self.classification_loss_type == "varifocal":
-            one_hot_label = torch.nn.functional.one_hot(assigned_labels, self.num_classes + 1)[..., :-1]
-            loss_cls = self._varifocal_loss(pred_scores, assigned_scores, one_hot_label)
-        elif self.classification_loss_type == "focal":
+        if self.classification_loss_type == "focal":
             loss_cls = self._focal_loss(pred_scores, assigned_scores, alpha=-1)
         elif self.classification_loss_type == "bce":
             loss_cls = torch.nn.functional.binary_cross_entropy_with_logits(pred_scores, assigned_scores, reduction="sum")
         else:
-            raise ValueError()
+            raise ValueError(f"Unknown classification loss type: {self.classification_loss_type}")
 
         assigned_scores_sum = assigned_scores.sum()
         # if super_gradients.is_distributed():
@@ -620,10 +611,3 @@ class YoloNASPoseLoss(nn.Module):
         else:
             raise ValueError(f"Unsupported reduction type {reduction}")
         return loss
-
-    @staticmethod
-    def _varifocal_loss(pred_logits: Tensor, gt_score: Tensor, label: Tensor, alpha=0.75, gamma=2.0) -> Tensor:
-        pred_score = pred_logits.sigmoid()
-        weight = alpha * pred_score.pow(gamma) * (1 - label) + gt_score * label
-        loss = -weight * (gt_score * torch.nn.functional.logsigmoid(pred_logits) + (1 - gt_score) * torch.nn.functional.logsigmoid(-pred_logits))
-        return loss.sum()

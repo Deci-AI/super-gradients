@@ -7,7 +7,7 @@ from torch import Tensor
 from torchmetrics import Metric
 
 from super_gradients.common.registry.registry import register_callback
-from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_target_generator import undo_flat_collate_tensors_with_batch_index
+from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_collate_fn import undo_flat_collate_tensors_with_batch_index
 from super_gradients.training.utils.callbacks import PhaseContext
 from super_gradients.training.utils.callbacks.callbacks import ExtremeBatchCaseVisualizationCallback
 from super_gradients.training.utils.distributed_training_utils import maybe_all_gather_np_images

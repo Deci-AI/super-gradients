@@ -13,6 +13,7 @@ from super_gradients.common.environment.ddp_utils import is_distributed
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
 from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching, compute_visible_bbox_xywh
+from super_gradients.training.samples import PoseEstimationSample
 from super_gradients.training.utils import convert_to_tensor
 from super_gradients.training.utils.detection_utils import compute_detection_metrics_per_cls
 
@@ -147,10 +148,7 @@ class PoseEstimationMetrics(Metric):
         self,
         preds: Any,
         target: Any,
-        gt_joints,
-        gt_bboxes,
-        gt_areas,
-        gt_iscrowd,
+        groundtruth_samples: List[PoseEstimationSample],
     ):
         """
         Decode the predictions and update the metric
@@ -167,10 +165,10 @@ class PoseEstimationMetrics(Metric):
             self.update_single_image(
                 predicted_poses=predictions[i].poses,
                 predicted_scores=predictions[i].scores,
-                gt_joints=gt_joints[i],
-                gt_bboxes=gt_bboxes[i],
-                gt_areas=gt_areas[i],
-                gt_iscrowd=gt_iscrowd[i],
+                gt_joints=groundtruth_samples[i].joints,
+                gt_bboxes=groundtruth_samples[i].bboxes,
+                gt_areas=groundtruth_samples[i].areas,
+                gt_iscrowd=groundtruth_samples[i].is_crowd,
             )
 
     def update_single_image(

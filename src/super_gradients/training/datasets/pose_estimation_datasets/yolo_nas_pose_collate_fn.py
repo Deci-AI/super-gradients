@@ -5,42 +5,22 @@ import torch
 from torch import Tensor
 from torch.utils.data import default_collate
 
-from super_gradients.common.registry.registry import register_target_generator, register_collate_function
-from .target_generators import KeypointsTargetsGenerator
-
-
-from ..data_formats.bbox_formats.xywh import xywh_to_xyxy
+from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.training.samples import PoseEstimationSample
+from ..data_formats.bbox_formats.xywh import xywh_to_xyxy
 
-__all__ = ["YoloNASPoseTargetsGenerator", "YoloNASPoseTargetsCollateFN"]
-
-
-@register_target_generator()
-class YoloNASPoseTargetsGenerator(KeypointsTargetsGenerator):
-    """
-    Target generator for YoloNASPose model.
-    """
-
-    def __init__(self):
-        pass
-
-    def __call__(self, sample: PoseEstimationSample) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """ """
-        if sample.image.shape[:2] != sample.mask.shape[:2]:
-            raise ValueError(f"Image and mask should have the same shape {sample.image.shape[:2]} != {sample.mask.shape[:2]}")
-
-        boxes_xyxy = xywh_to_xyxy(sample.bboxes, image_shape=None)
-        is_crowd = sample.is_crowd
-        if is_crowd is None:
-            is_crowd = np.zeros(len(boxes_xyxy))
-        return boxes_xyxy, sample.joints, is_crowd
+__all__ = ["YoloNASPoseCollateFN", "undo_flat_collate_tensors_with_batch_index", "flat_collate_tensors_with_batch_index"]
 
 
 @register_collate_function()
-class YoloNASPoseTargetsCollateFN:
-    def __call__(self, batch):
+class YoloNASPoseCollateFN:
+    def __init__(self):
+        pass
+
+    def __call__(self, batch: List[PoseEstimationSample]):
         """
-        Collate samples into a batch. This collate function should be used in conjunction with YoloNASPoseTargetsGenerator.
+        Collate samples into a batch.
+        This collate function is compatible with YoloNASPose model
 
         :param batch: A list of samples from the dataset. Each sample is a tuple of (image, (boxes, joints), extras)
         :return: Tuple of (images, (boxes, joints), extras)
@@ -49,25 +29,47 @@ class YoloNASPoseTargetsCollateFN:
         - joints: [NumInstances, NumJoints, 4] of all poses in a batch. Last dimension represents (batch_index, x, y, visibility)
         - extras: A dict of extra information per image need for metric computation
         """
-        images = []
+        all_images = []
         all_boxes = []
         all_joints = []
         all_crowd_masks = []
-        extras = []
 
-        for image, (boxes, joints, is_crowd), extra in batch:
-            images.append(np.transpose(image, [2, 0, 1]))
-            all_boxes.append(torch.from_numpy(boxes))
-            all_joints.append(torch.from_numpy(joints))
-            all_crowd_masks.append(torch.from_numpy(is_crowd.astype(int).reshape((-1, 1))))
-            extras.append(extra)
+        for sample in batch:
+            # Generate targets
+            boxes, joints, is_crowd = self._generate_targets(sample)
 
-        images = default_collate(images)
+            # Convert image & mask to tensors
+            # Change image layout from HWC to CHW
+            sample.image = torch.from_numpy(np.transpose(sample.image, [2, 0, 1]))
+            sample.mask = torch.from_numpy(sample.mask)
+
+            all_images.append(sample.image)
+            all_boxes.append(boxes)
+            all_joints.append(joints)
+            all_crowd_masks.append(is_crowd)
+
+        all_images = default_collate(all_images)
         boxes = flat_collate_tensors_with_batch_index(all_boxes)
         joints = flat_collate_tensors_with_batch_index(all_joints)
         is_crowd = flat_collate_tensors_with_batch_index(all_crowd_masks)
-        extras = {k: [dic[k] for dic in extras] for k in extras[0]}  # Convert list of dicts to dict of lists
-        return images, (boxes, joints, is_crowd), extras
+        extras = {"groundtruth_samples": batch}
+        return all_images, (boxes, joints, is_crowd), extras
+
+    def _generate_targets(self, sample: PoseEstimationSample) -> Tuple[Tensor, Tensor, Tensor]:
+        """
+        Generate targets for a single sample
+        :param sample:
+        :return:
+        """
+        if sample.image.shape[:2] != sample.mask.shape[:2]:
+            raise ValueError(f"Image and mask should have the same shape {sample.image.shape[:2]} != {sample.mask.shape[:2]}")
+
+        boxes_xyxy = xywh_to_xyxy(sample.bboxes, image_shape=None)
+        is_crowd = sample.is_crowd
+        if is_crowd is None:
+            is_crowd = np.zeros(len(boxes_xyxy))
+
+        return torch.from_numpy(boxes_xyxy), torch.from_numpy(sample.joints), torch.from_numpy(is_crowd.astype(int).reshape((-1, 1)))
 
 
 def flat_collate_tensors_with_batch_index(labels_batch: List[Tensor]) -> Tensor:
