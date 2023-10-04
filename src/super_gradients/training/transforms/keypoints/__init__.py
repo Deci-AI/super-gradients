@@ -14,6 +14,7 @@ from .keypoints_random_vertical_flip import KeypointsRandomVerticalFlip
 from .keypoints_rescale import KeypointsRescale
 from .keypoints_random_rotate90 import KeypointsRandomRotate90
 from .keypoints_image_to_tensor import KeypointsImageToTensor
+from .keypoints_remove_small_objects import KeypointsRemoveSmallObjects
 
 __all__ = [
     "AbstractKeypointTransform",
@@ -33,4 +34,5 @@ __all__ = [
     "KeypointsRescale",
     "KeypointsRandomRotate90",
     "KeypointsImageToTensor",
+    "KeypointsRemoveSmallObjects",
 ]

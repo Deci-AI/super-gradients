@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple, Optional
+from typing import List, Tuple, Optional
 
 import numpy as np
 
@@ -11,14 +11,10 @@ class KeypointsCompose(AbstractKeypointTransform):
     Composes several transforms together
     """
 
-    def __init__(self, transforms: List[AbstractKeypointTransform], min_bbox_area: Union[int, float] = 0, min_visible_joints: int = 0, load_sample_fn=None):
+    def __init__(self, transforms: List[AbstractKeypointTransform], load_sample_fn=None):
         """
 
         :param transforms:         List of keypoint-based transformations
-        :param min_bbox_area:      Minimal bbox area of the pose instances to keep them.
-                                   Default value is 0, which means that all pose instances will be kept.
-        :param min_visible_joints: Minimal number of visible joints to keep the pose instance.
-                                   Default value is 0, which means that all pose instances will be kept.
         :param load_sample_fn:     A method to load additional samples if needed (for mixup & mosaic augmentations).
                                    Default value is None, which would raise an error if additional samples are needed.
         """
@@ -31,9 +27,7 @@ class KeypointsCompose(AbstractKeypointTransform):
 
         super().__init__()
         self.transforms = transforms
-        self.min_bbox_area = min_bbox_area
         self.load_sample_fn = load_sample_fn
-        self.min_visible_joints = min_visible_joints
 
     def __call__(
         self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]
@@ -60,15 +54,11 @@ class KeypointsCompose(AbstractKeypointTransform):
         :return:       Transformed sample.
         """
         sample = sample.sanitize_sample()
-        sample = self._apply_transforms(
-            sample, transforms=self.transforms, load_sample_fn=self.load_sample_fn, min_bbox_area=self.min_bbox_area, min_visible_joints=self.min_visible_joints
-        )
+        sample = self._apply_transforms(sample, transforms=self.transforms, load_sample_fn=self.load_sample_fn)
         return sample
 
     @classmethod
-    def _apply_transforms(
-        cls, sample: PoseEstimationSample, transforms: List[AbstractKeypointTransform], load_sample_fn, min_bbox_area, min_visible_joints
-    ) -> PoseEstimationSample:
+    def _apply_transforms(cls, sample: PoseEstimationSample, transforms: List[AbstractKeypointTransform], load_sample_fn) -> PoseEstimationSample:
         """
         This helper method allows us to query additional samples for mixup & mosaic augmentations
         that would be also passed through augmentation pipeline. Example:
@@ -97,8 +87,7 @@ class KeypointsCompose(AbstractKeypointTransform):
         :param sample:         Input data sample
         :param transforms:     List of transformations to apply
         :param load_sample_fn: A method to load additional samples if needed
-        :param min_bbox_area:  Min bbox area of the pose instances to keep them
-        :return:               Transformed sample
+        :return:               A data sample after applying transformations
         """
         applied_transforms_so_far = []
         for t in transforms:
@@ -109,15 +98,14 @@ class KeypointsCompose(AbstractKeypointTransform):
                 additional_samples = [load_sample_fn() for _ in range(t.additional_samples_count)]
                 additional_samples = [
                     cls._apply_transforms(
-                        sample, applied_transforms_so_far, load_sample_fn=load_sample_fn, min_bbox_area=min_bbox_area, min_visible_joints=min_visible_joints
+                        sample,
+                        applied_transforms_so_far,
+                        load_sample_fn=load_sample_fn,
                     )
                     for sample in additional_samples
                 ]
                 sample.additional_samples = additional_samples
                 sample = t.apply_to_sample(sample)
-
-            sample = sample.filter_by_visible_joints(min_visible_joints)
-            sample = sample.filter_by_bbox_area(min_bbox_area)
 
         return sample
 
