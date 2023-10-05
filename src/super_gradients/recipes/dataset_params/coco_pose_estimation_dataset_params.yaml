@@ -1,6 +1,7 @@
 defaults:
-  - coco_pose_common_dataset_params
+  - coco_pose_estimation_common_dataset_params
   - _self_
+
 
 train_dataset_params:
   data_dir: /data/coco # root path to coco data
@@ -50,9 +51,9 @@ train_dataset_params:
 
 val_dataset_params:
   data_dir: /data/coco/
+
   images_dir: images/val2017
   json_file: annotations/person_keypoints_val2017.json
-
   include_empty_samples: True
   min_instance_area: 128
 
