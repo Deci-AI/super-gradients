@@ -31,7 +31,7 @@ class BaseDataloaderAdapterFactory(ABC):
         """Wrap a DataLoader to adapt its output to fit SuperGradients format for the specific task.
 
         :param dataset:                 Dataset to adapt.
-        :param adapter_config:          Adapter configuration. Use this if you want to hard code some specificities about your dataset.
+        :param adapter_config:          Adapter configuration. Use this if you want to explicitly set some specific params of your dataset.
                                         Mutually exclusive with `adapter_cache_path`.
         :param adapter_cache_path:      Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
                                         Mutually exclusive with `adapter_config`.
@@ -60,7 +60,7 @@ class BaseDataloaderAdapterFactory(ABC):
         """Wrap a DataLoader to adapt its output to fit SuperGradients format for the specific task.
 
         :param dataloader:              DataLoader to adapt.
-        :param adapter_config:          Adapter configuration. Use this if you want to hard code some specificities about your dataset.
+        :param adapter_config:          Adapter configuration. Use this if you want to explicitly set some specific params of your dataset.
                                         Mutually exclusive with `adapter_cache_path`.
         :param adapter_cache_path:      Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
                                         Mutually exclusive with `adapter_config`.
