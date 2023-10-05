@@ -356,14 +356,14 @@ class PoseEstimationPipeline(Pipeline):
         :param model_input:     Model input (i.e. images after preprocessing).
         :return:                Predicted Bboxes.
         """
-        all_poses, all_scores = self.post_prediction_callback(model_output)
-
+        result = self.post_prediction_callback(model_output)
         predictions = []
-        for poses, scores, image in zip(all_poses, all_scores, model_input):
+        for r, image in zip(result, model_input):
             predictions.append(
                 PoseEstimationPrediction(
-                    poses=poses,
-                    scores=scores,
+                    poses=r.poses.cpu().numpy() if torch.is_tensor(r.poses) else r.poses,
+                    scores=r.scores.cpu().numpy() if torch.is_tensor(r.scores) else r.scores,
+                    bboxes=r.bboxes.cpu().numpy() if torch.is_tensor(r.bboxes) else r.bboxes,
                     image_shape=image.shape,
                     edge_links=self.edge_links,
                     edge_colors=self.edge_colors,
