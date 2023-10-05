@@ -190,7 +190,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         """
         inputs = self.universal_undo_preprocessing_fn(self.extreme_batch)
         target_boxes, target_joints, target_crowds = self.extreme_targets
-        predictions = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
+        predictions = self.post_prediction_callback(self.extreme_preds)
 
         images_to_save_preds = self.visualize_batch(
             inputs,

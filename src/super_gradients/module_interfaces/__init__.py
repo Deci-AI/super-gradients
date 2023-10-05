@@ -2,6 +2,7 @@ from .module_interfaces import HasPredict, HasPreprocessingParams, SupportsRepla
 from .exportable_detector import ExportableObjectDetectionModel, AbstractObjectDetectionDecodingModule
 from .exportable_pose_estimation import ExportablePoseEstimationModel, PoseEstimationModelExportResult, AbstractPoseEstimationDecodingModule
 from .exceptions import ModelHasNoPreprocessingParamsException
+from .pose_estimation_post_prediction_callback import AbstractPoseEstimationPostPredictionCallback, PoseEstimationPredictions
 
 __all__ = [
     "HasPredict",
@@ -13,4 +14,6 @@ __all__ = [
     "ExportablePoseEstimationModel",
     "PoseEstimationModelExportResult",
     "AbstractPoseEstimationDecodingModule",
+    "AbstractPoseEstimationPostPredictionCallback",
+    "PoseEstimationPredictions",
 ]

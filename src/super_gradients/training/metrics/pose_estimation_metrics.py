@@ -1,17 +1,16 @@
-import dataclasses
 import itertools
-from typing import Dict, Union, List, Optional, Callable, Iterable, Any
+from typing import Dict, Union, List, Optional, Iterable, Any
 
 import numpy as np
 import torch
 from torch import Tensor
 from torchmetrics import Metric
 
-import super_gradients.common.environment.ddp_utils
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.environment.ddp_utils import is_distributed
+from super_gradients.common.environment.ddp_utils import is_distributed, get_world_size, get_local_rank
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
+from super_gradients.module_interfaces import PoseEstimationPredictions, AbstractPoseEstimationPostPredictionCallback
 from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching, compute_visible_bbox_xywh
 from super_gradients.training.samples import PoseEstimationSample
 from super_gradients.training.utils import convert_to_tensor
@@ -19,18 +18,7 @@ from super_gradients.training.utils.detection_utils import compute_detection_met
 
 logger = get_logger(__name__)
 
-__all__ = ["PoseEstimationMetrics", "PoseEstimationPredictions"]
-
-
-@dataclasses.dataclass
-class PoseEstimationPredictions:
-    """
-    Single image pose estimation predictions.
-    """
-
-    poses: Tensor
-    scores: Tensor
-    bboxes: Optional[Tensor]
+__all__ = ["PoseEstimationMetrics"]
 
 
 @register_metric(Metrics.POSE_ESTIMATION_METRICS)
@@ -56,7 +44,7 @@ class PoseEstimationMetrics(Metric):
 
     def __init__(
         self,
-        post_prediction_callback: Callable[[Any], List[PoseEstimationPredictions]],
+        post_prediction_callback: AbstractPoseEstimationPostPredictionCallback,
         num_joints: int,
         max_objects_per_image: int = 20,
         oks_sigmas: Optional[Iterable] = None,
@@ -302,9 +290,9 @@ class PoseEstimationMetrics(Metric):
         :return:
         """
         if self.world_size is None:
-            self.world_size = super_gradients.common.environment.ddp_utils.get_world_size() if self.is_distributed else -1
+            self.world_size = get_world_size() if self.is_distributed else -1
         if self.rank is None:
-            self.rank = torch.distributed.get_rank() if self.is_distributed else -1
+            self.rank = get_local_rank() if self.is_distributed else -1
 
         if self.is_distributed:
             local_state_dict = self.predictions

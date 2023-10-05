@@ -12,6 +12,9 @@ __all__ = ["PoseEstimationSample"]
 @dataclasses.dataclass
 class PoseEstimationSample:
     """
+    A data class describing a single pose estimation sample that comes from a dataset.
+    It contains both input image and target information to train a pose estimation model.
+
     :param image:              Associated image with a sample. Can be in [H,W,C] or [C,H,W] format
     :param image_layout:       Layout of the image (HWC or CHW)
     :param mask:               Target mask in [H,W] format
