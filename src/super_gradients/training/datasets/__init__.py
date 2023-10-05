@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-
 import cv2
 
 from super_gradients.training.datasets.data_augmentation import DataAugmentation
