@@ -1,5 +1,5 @@
 defaults:
-  - crowdpose_yolo_nas_pose_s_no_crowd
+  - crowdpose_yolo_nas_pose_s
   - override dataset_params: crowdpose_proxy_yolo_nas_dataset_params
 
 experiment_suffix: "proxy"

@@ -1,6 +1,6 @@
 defaults:
   - training_hyperparams: coco2017_yolo_nas_pose_train_params
-  - dataset_params: animalpose_pose_estimation_yolo_nas_pose_dataset_params
+  - dataset_params: animalpose_pose_estimation_yolo_nas_dataset_params
   - arch_params: yolo_nas_pose_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
@@ -25,8 +25,6 @@ experiment_name: animalpose_${architecture}_${experiment_suffix}_${dataset_param
 
 ckpt_root_dir:
 
-train_dataloader: animalpose_pose_train
-val_dataloader: animalpose_pose_val
 
 arch_params:
   num_classes: ${dataset_params.num_joints}

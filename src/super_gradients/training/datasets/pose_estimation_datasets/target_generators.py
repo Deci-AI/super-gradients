@@ -9,19 +9,15 @@ from super_gradients.common.registry.registry import register_target_generator
 
 __all__ = ["KeypointsTargetsGenerator", "DEKRTargetsGenerator"]
 
-from super_gradients.training.samples import PoseEstimationSample
-
 
 class KeypointsTargetsGenerator:
     @abc.abstractmethod
-    def __call__(self, sample: PoseEstimationSample) -> Union[Tensor, Tuple[Tensor, ...], Dict[str, Tensor]]:
+    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray) -> Union[Tensor, Tuple[Tensor, ...], Dict[str, Tensor]]:
         """
         Encode input joints into target tensors
 
         :param image: [C,H,W] Input image tensor
         :param joints: [Num Instances, Num Joints, 3] Last channel represents (x, y, visibility)
-        :param bboxes: [Num Instances, 4] - Corresponding bounding boxes (x, y, w, h) format.
-                       If None targets generator may infer bounding boxes from joints.
         :param mask: [H,W] Mask representing valid image areas. For instance, in COCO dataset crowd targets
                            are not used during training and corresponding instances will be zero-masked.
                            Your implementation may use this mask when generating targets.
@@ -106,7 +102,7 @@ class DEKRTargetsGenerator(KeypointsTargetsGenerator):
         joints = np.array(augmented_joints, dtype=np.float32).reshape((-1, num_joints_with_center, 3))
         return joints
 
-    def __call__(self, sample: PoseEstimationSample) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def __call__(self, image: Tensor, joints: np.ndarray, mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Encode the keypoints into dense targets that participate in loss computation.
         :param image: Image tensor [3, H, W]
@@ -118,20 +114,20 @@ class DEKRTargetsGenerator(KeypointsTargetsGenerator):
             offset     - [NumJoints*2, H // Output Stride, W // Output Stride]
             offset_weight - [NumJoints*2, H // Output Stride, W // Output Stride]
         """
-        if sample.image.shape[1:3] != sample.mask.shape[:2]:
-            raise ValueError(f"Image and mask should have the same shape {sample.image.shape[1:3]} != {sample.mask.shape[:2]}")
+        if image.shape[1:3] != mask.shape[:2]:
+            raise ValueError(f"Image and mask should have the same shape {image.shape[1:3]} != {mask.shape[:2]}")
 
-        if sample.image.shape[1] % self.output_stride != 0 or sample.image.shape[2] % self.output_stride != 0:
+        if image.shape[1] % self.output_stride != 0 or image.shape[2] % self.output_stride != 0:
             raise ValueError("Image shape should be divisible by output stride")
 
-        num_instances, num_joints, _ = sample.joints.shape
+        num_instances, num_joints, _ = joints.shape
         num_joints_with_center = num_joints + 1
 
-        joints, area = self.sort_joints_by_area(sample.joints)
+        joints, area = self.sort_joints_by_area(joints)
         joints = self.augment_with_center_joint(joints)
 
         # Compute the size of the target maps
-        rows, cols = sample.mask.shape
+        rows, cols = mask.shape
         output_rows, output_cols = rows // self.output_stride, cols // self.output_stride
 
         heatmaps = np.zeros(
@@ -223,7 +219,7 @@ class DEKRTargetsGenerator(KeypointsTargetsGenerator):
 
         ignored_hms[ignored_hms == 2] = self.bg_weight
 
-        mask = cv2.resize(sample.mask, dsize=(output_cols, output_rows), interpolation=cv2.INTER_LINEAR)
+        mask = cv2.resize(mask, dsize=(output_cols, output_rows), interpolation=cv2.INTER_LINEAR)
         mask = (mask > 0).astype(np.float32)
         mask = mask * ignored_hms
 
