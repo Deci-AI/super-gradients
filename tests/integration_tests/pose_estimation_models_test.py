@@ -17,7 +17,8 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
     def setUp(self):
         self.oks_sigmas = [0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089]
         self.flip_indexes = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
-        self.data_dir = os.environ.get("SUPER_GRADIENTS_COCO_DATASET_DIR", "G:/coco2017")
+        # This is for easy testing on local machine - you can set this environment variable to your own COCO dataset location
+        self.data_dir = os.environ.get("SUPER_GRADIENTS_COCO_DATASET_DIR", "/data/coco")
 
     def test_dekr_model(self):
         val_loader = get_data_loader(
