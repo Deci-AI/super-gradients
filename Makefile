@@ -69,6 +69,7 @@ coco2017_yolo_nas_pose_l_resume:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l $(WANDB_PARAMS) resume=True
 
 
+LOCAL_COCO_TRAINING_PARAMS = dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/coco2017 dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/coco2017 num_gpus=4 multi_gpu=DDP
 LOCAL_TRAINING_PARAMS = dataset_params.train_dataset_params.data_dir=/home/bloodaxe/data/crowdpose dataset_params.val_dataset_params.data_dir=/home/bloodaxe/data/crowdpose num_gpus=1 multi_gpu=Off
 
 crowdpose_yolo_nas_pose_s:

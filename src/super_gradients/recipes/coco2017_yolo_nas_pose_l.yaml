@@ -20,7 +20,7 @@
 
 defaults:
   - training_hyperparams: coco2017_yolo_nas_pose_train_params
-  - dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
+  - dataset_params: coco_pose_estimation_yolo_nas_mosaic_heavy_dataset_params
   - arch_params: yolo_nas_pose_l_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
@@ -40,11 +40,7 @@ arch_params:
   num_classes: ${dataset_params.num_joints}
 
 training_hyperparams:
-  initial_lr:  1e-4
-
-  ema_params:
-    decay_type: exp
-    beta: 50
+  initial_lr:  8e-5
 
   phase_callbacks:
     # Only EarlyStop no batch visualization
@@ -57,6 +53,14 @@ training_hyperparams:
         min_delta: 0.0001
         patience: 100
         verbose: True
+
+  criterion_params:
+    dfl_loss_weight: 0.5
+    pose_reg_loss_weight: 10
+
+  ema_params:
+    decay_type: exp
+    beta: 50
 
 checkpoint_params:
   # For training Yolo-NAS-S pose estimation model we use pretrained weights for Yolo-NAS-S object detection model.
