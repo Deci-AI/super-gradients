@@ -29,7 +29,6 @@ logger = get_logger(__name__)
 class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
     """
     Dataset class for training pose estimation models on COCO dataset.
-    Use should pass a target generator class that is model-specific and generates the targets for the model.
     """
 
     @resolve_param("transforms", TransformsFactory())
