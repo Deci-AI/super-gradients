@@ -23,28 +23,28 @@ class BaseDataloaderAdapterFactory(ABC):
     def from_dataset(
         cls,
         dataset: torch.utils.data.Dataset,
-        adapter_config: Optional[DataConfig] = None,
-        adapter_cache_path: Optional[str] = None,
+        config: Optional[DataConfig] = None,
+        config_path: Optional[str] = None,
         collate_fn: Optional[callable] = None,
         **dataloader_kwargs,
     ) -> torch.utils.data.DataLoader:
         """Wrap a DataLoader to adapt its output to fit SuperGradients format for the specific task.
 
-        :param dataset:                 Dataset to adapt.
-        :param adapter_config:          Adapter configuration. Use this if you want to explicitly set some specific params of your dataset.
-                                        Mutually exclusive with `adapter_cache_path`.
-        :param adapter_cache_path:      Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
-                                        Mutually exclusive with `adapter_config`.
-        :param collate_fn:              Collate function to use. Use this if you .If None, the pytorch default collate function will be used.
+        :param dataset:         Dataset to adapt.
+        :param config:          Adapter configuration. Use this if you want to explicitly set some specific params of your dataset.
+                                Mutually exclusive with `config_path`.
+        :param config_path:     Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
+                                Mutually exclusive with `config`.
+        :param collate_fn:      Collate function to use. Use this if you .If None, the pytorch default collate function will be used.
 
-        :return:                        Adapted DataLoader.
+        :return:                Adapted DataLoader.
         """
 
         dataloader = torch.utils.data.DataLoader(dataset=dataset, **dataloader_kwargs)
 
         # `AdapterCollateFNClass` depends on the tasks, but just represents the collate function adapter for that specific task.
         AdapterCollateFNClass = cls._get_collate_fn_class()
-        adapter_collate = AdapterCollateFNClass(base_collate_fn=collate_fn, adapter_config=adapter_config, adapter_cache_path=adapter_cache_path)
+        adapter_collate = AdapterCollateFNClass(base_collate_fn=collate_fn, config=config, config_path=config_path)
 
         _maybe_setup_adapter(adapter=adapter_collate.adapter, data=dataset)
         dataloader.collate_fn = adapter_collate
@@ -54,23 +54,23 @@ class BaseDataloaderAdapterFactory(ABC):
     def from_dataloader(
         cls,
         dataloader: torch.utils.data.DataLoader,
-        adapter_config: Optional[DataConfig] = None,
-        adapter_cache_path: Optional[str] = None,
+        config: Optional[DataConfig] = None,
+        config_path: Optional[str] = None,
     ) -> torch.utils.data.DataLoader:
         """Wrap a DataLoader to adapt its output to fit SuperGradients format for the specific task.
 
-        :param dataloader:              DataLoader to adapt.
-        :param adapter_config:          Adapter configuration. Use this if you want to explicitly set some specific params of your dataset.
-                                        Mutually exclusive with `adapter_cache_path`.
-        :param adapter_cache_path:      Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
-                                        Mutually exclusive with `adapter_config`.
+        :param dataloader:      DataLoader to adapt.
+        :param config:          Adapter configuration. Use this if you want to explicitly set some specific params of your dataset.
+                                Mutually exclusive with `config_path`.
+        :param config_path:     Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
+                                Mutually exclusive with `config`.
 
-        :return:                        Adapted DataLoader.
+        :return:                Adapted DataLoader.
         """
 
         # `AdapterCollateFNClass` depends on the tasks, but just represents the collate function adapter for that specific task.
         AdapterCollateFNClass = cls._get_collate_fn_class()
-        adapter_collate = AdapterCollateFNClass(base_collate_fn=dataloader.collate_fn, adapter_config=adapter_config, adapter_cache_path=adapter_cache_path)
+        adapter_collate = AdapterCollateFNClass(base_collate_fn=dataloader.collate_fn, config=config, config_path=config_path)
 
         _maybe_setup_adapter(adapter=adapter_collate.adapter, data=dataloader)
         dataloader.collate_fn = adapter_collate
@@ -94,14 +94,14 @@ class DetectionDataloaderAdapterFactory(BaseDataloaderAdapterFactory):
     def from_dataset(
         cls,
         dataset: torch.utils.data.Dataset,
-        adapter_config: Optional[DataConfig] = None,
-        adapter_cache_path: Optional[str] = None,
+        config: Optional[DataConfig] = None,
+        config_path: Optional[str] = None,
         **dataloader_kwargs,
     ) -> torch.utils.data.DataLoader:
         return super().from_dataset(
             dataset=dataset,
-            adapter_config=adapter_config,
-            adapter_cache_path=adapter_cache_path,
+            config=config,
+            config_path=config_path,
             collate_fn=DetectionCollateFN(),  #
             **dataloader_kwargs,
         )

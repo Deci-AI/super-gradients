@@ -22,8 +22,8 @@ class BaseDatasetAdapterCollateFN(ABC):
     @resolve_param("base_collate_fn", CollateFunctionsFactory())
     def __init__(self, adapter: BaseDatasetAdapter, base_collate_fn: Callable):
         """
-        :param base_collate_fn:     Collate function to wrap. If None, the default collate function will be used.
         :param adapter:             Dataset adapter to use
+        :param base_collate_fn:     Collate function to wrap. If None, the default collate function will be used.
         """
         self._adapt_on_batch = adapter.data_config.is_batch
 
@@ -41,7 +41,7 @@ class BaseDatasetAdapterCollateFN(ABC):
             raise RuntimeError(
                 f"Trying to collate using `{self.__class__.__name__}`, but it was not fully set up yet. Please do one of the following\n"
                 f"   - Call `{self.__class__.__name__}(...).setup_adapter(dataloader)` before iterating over the dataloader.\n"
-                f"   - or Instantiate `{self.__class__.__name__}(adapter_cache_path=...)` with `adapter_cache_path` mapping to the cache file of "
+                f"   - or Instantiate `{self.__class__.__name__}(config_path=...)` with `config_path` mapping to the cache file of "
                 f"an adapter that was already set up on this data.\n"
             )
 

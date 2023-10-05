@@ -29,24 +29,22 @@ class DetectionDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
     """
 
     @resolve_param("base_collate_fn", CollateFunctionsFactory())
-    def __init__(
-        self, adapter_config: Optional[DetectionDataConfig] = None, adapter_cache_path: Optional[str] = None, base_collate_fn: Optional[Callable] = None
-    ):
+    def __init__(self, config: Optional[DetectionDataConfig] = None, config_path: Optional[str] = None, base_collate_fn: Optional[Callable] = None):
         """
-        :param adapter_config:      Adapter configuration. Use this if you want to hard code some specificities about your dataset.
-                                    Mutually exclusive with `adapter_cache_path`.
-        :param adapter_cache_path:  Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
-                                    Mutually exclusive with `adapter_config`.
-        :param base_collate_fn:     Collate function to use. Use this if you .If None, the pytorch default collate function will be used.
+        :param config:          Adapter configuration. Use this if you want to hard code some specificities about your dataset.
+                                Mutually exclusive with `config_path`.
+        :param config_path:     Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
+                                Mutually exclusive with `config`.
+        :param base_collate_fn: Collate function to use. Use this if you .If None, the pytorch default collate function will be used.
         """
-        if adapter_config and adapter_cache_path:
-            raise ValueError("`adapter_config` and `adapter_cache_path` cannot be set at the same time.")
-        elif adapter_config is None and adapter_cache_path:
-            adapter = DetectionDatasetAdapter.from_cache(cache_path=adapter_cache_path)
-        elif adapter_config is not None and adapter_cache_path is None:
-            adapter = DetectionDatasetAdapter(data_config=adapter_config)
+        if config and config_path:
+            raise ValueError("`config` and `config_path` cannot be set at the same time.")
+        elif config is None and config_path:
+            adapter = DetectionDatasetAdapter.from_cache(cache_path=config_path)
+        elif config is not None and config_path is None:
+            adapter = DetectionDatasetAdapter(data_config=config)
         else:
-            raise ValueError("Please either set `adapter_config` or `adapter_cache_path`.")
+            raise ValueError("Please either set `config` or `config_path`.")
 
         logger.info("You are using Detection Adapter. Please note that it was designed specifically for YOLONAS, YOLOX and PPYOLOE.")
 

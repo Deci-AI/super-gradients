@@ -23,22 +23,22 @@ class ClassificationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
     """
 
     @resolve_param("base_collate_fn", CollateFunctionsFactory())
-    def __init__(
-        self, adapter_config: Optional[ClassificationDataConfig] = None, adapter_cache_path: Optional[str] = None, base_collate_fn: Optional[Callable] = None
-    ):
+    def __init__(self, config: Optional[ClassificationDataConfig] = None, config_path: Optional[str] = None, base_collate_fn: Optional[Callable] = None):
         """
-        :param base_collate_fn:     Collate function to wrap. If None, the default collate function will be used.
-        :param adapter_config:      Dataset adapter to use. Mutually exclusive with `adapter_cache_path`.
-        :param adapter_cache_path:  Path to the cache file. Mutually exclusive with `adapter`.
+        :param config:          Adapter configuration. Use this if you want to hard code some specificities about your dataset.
+                                Mutually exclusive with `config_path`.
+        :param config_path:     Adapter cache path. Use this if you want to load and/or save the adapter config from a local path.
+                                Mutually exclusive with `config`.
+        :param base_collate_fn: Collate function to use. Use this if you .If None, the pytorch default collate function will be used.
         """
-        if adapter_config and adapter_cache_path:
-            raise ValueError("`adapter_config` and `adapter_cache_path` cannot be set at the same time.")
-        elif adapter_config is None and adapter_cache_path:
-            adapter = ClassificationDatasetAdapter.from_cache(cache_path=adapter_cache_path)
-        elif adapter_config is not None and adapter_cache_path is None:
-            adapter = ClassificationDatasetAdapter(data_config=adapter_config)
+        if config and config_path:
+            raise ValueError("`config` and `config_path` cannot be set at the same time.")
+        elif config is None and config_path:
+            adapter = ClassificationDatasetAdapter.from_cache(cache_path=config_path)
+        elif config is not None and config_path is None:
+            adapter = ClassificationDatasetAdapter(data_config=config)
         else:
-            raise ValueError("Please either set `adapter_config` or `adapter_cache_path`.")
+            raise ValueError("Please either set `config` or `config_path`.")
 
         super().__init__(adapter=adapter, base_collate_fn=base_collate_fn or base_collate_fn)
 

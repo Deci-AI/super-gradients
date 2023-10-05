@@ -1,18 +1,16 @@
 import cv2
 import torch
-from torch.utils.data import DataLoader
 
 from data_gradients.managers.detection_manager import DetectionAnalysisManager
 from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 from data_gradients.datasets.detection.yolo_format_detection_dataset import YoloFormatDetectionDataset
 from data_gradients.datasets.segmentation.voc_segmentation_dataset import VOCSegmentationDataset
 
-from super_gradients.training.utils.collate_fn import (
-    DetectionDataloaderAdapter,
-    SegmentationDataloaderAdapter,
-    ClassificationDataloaderAdapter,
-    DetectionDatasetAdapterCollateFN,
-    SegmentationDatasetAdapterCollateFN,
+
+from super_gradients.training.dataloaders.adapters import (
+    DetectionDataloaderAdapterFactory,
+    SegmentationDataloaderAdapterFactory,
+    ClassificationDataloaderAdapterFactory,
 )
 
 
@@ -35,23 +33,19 @@ def datagradients_detection():
     )
     analyzer.run()
 
-    train_loader = DataLoader(
-        train_set,
+    train_loader = DetectionDataloaderAdapterFactory.from_dataset(
+        dataset=train_set,
         batch_size=20,
         num_workers=0,
-        collate_fn=DetectionDatasetAdapterCollateFN(adapter_cache_path=analyzer.data_config.cache_path, n_classes=80),
         drop_last=True,
     )
-    DetectionDatasetAdapterCollateFN.setup_adapter(train_loader)
 
-    val_loader = DataLoader(
-        val_set,
+    val_loader = DetectionDataloaderAdapterFactory.from_dataset(
+        dataset=val_set,
         batch_size=20,
         num_workers=0,
-        collate_fn=DetectionDatasetAdapterCollateFN(adapter_cache_path=analyzer.data_config.cache_path, n_classes=80),
         drop_last=True,
     )
-    DetectionDatasetAdapterCollateFN.setup_adapter(val_loader)
 
     for images, labels in train_loader:
         assert images.ndim == 4
@@ -95,23 +89,19 @@ def datagradients_segmentation():
     )
     analyzer.run()
 
-    train_loader = DataLoader(
+    train_loader = SegmentationDataloaderAdapterFactory.from_dataset(
         ResizedVOC(train_set),
         batch_size=20,
         num_workers=0,
-        collate_fn=SegmentationDatasetAdapterCollateFN(adapter_cache_path=analyzer.data_config.cache_path, n_classes=len(train_set.class_names)),
         drop_last=True,
     )
-    SegmentationDatasetAdapterCollateFN.setup_adapter(train_loader)
 
-    val_loader = DataLoader(
+    val_loader = SegmentationDataloaderAdapterFactory.from_dataset(
         ResizedVOC(val_set),
         batch_size=20,
         num_workers=0,
-        collate_fn=SegmentationDatasetAdapterCollateFN(adapter_cache_path=analyzer.data_config.cache_path, n_classes=len(val_set.class_names)),
         drop_last=True,
     )
-    SegmentationDatasetAdapterCollateFN.setup_adapter(val_loader)
 
     for images, labels in train_loader:
         assert images.shape == torch.Size([20, 3, 512, 512])
@@ -145,9 +135,9 @@ def torch_classification():
     )
     analyzer.run()
 
-    train_loader = ClassificationDataloaderAdapter.from_dataset(
+    train_loader = ClassificationDataloaderAdapterFactory.from_dataset(
         dataset=train_set,
-        adapter_cache_path=analyzer.data_config.cache_path,
+        config_path=analyzer.data_config.cache_path,
         batch_size=20,
     )
 
@@ -227,17 +217,17 @@ def torchvision_detection():
     )
 
     analyzer.run()
-    adapter_config = DetectionDataConfig(labels_extractor=voc_format_to_bbox, cache_path=analyzer.data_config.cache_path)
-    train_loader = DetectionDataloaderAdapter.from_dataset(
+    config = DetectionDataConfig(labels_extractor=voc_format_to_bbox, cache_path=analyzer.data_config.cache_path)
+    train_loader = DetectionDataloaderAdapterFactory.from_dataset(
         dataset=train_set,
-        adapter_config=adapter_config,
+        config=config,
         batch_size=20,
         num_workers=0,
         drop_last=True,
     )
-    val_loader = DetectionDataloaderAdapter.from_dataset(
+    val_loader = DetectionDataloaderAdapterFactory.from_dataset(
         dataset=train_set,
-        adapter_config=adapter_config,
+        config=config,
         batch_size=20,
         num_workers=0,
         drop_last=True,
@@ -296,17 +286,17 @@ def torchvision_segmentation():
     )
 
     analyzer.run()
-    adapter_config = SegmentationDataConfig(cache_path=analyzer.data_config.cache_path)
-    train_loader = SegmentationDataloaderAdapter.from_dataset(
+    config = SegmentationDataConfig(cache_path=analyzer.data_config.cache_path)
+    train_loader = SegmentationDataloaderAdapterFactory.from_dataset(
         dataset=train_set,
-        adapter_config=adapter_config,
+        config=config,
         batch_size=20,
         num_workers=0,
         drop_last=True,
     )
-    val_loader = SegmentationDataloaderAdapter.from_dataset(
+    val_loader = SegmentationDataloaderAdapterFactory.from_dataset(
         dataset=train_set,
-        adapter_config=adapter_config,
+        config=config,
         batch_size=20,
         num_workers=0,
         drop_last=True,
@@ -322,8 +312,8 @@ def torchvision_segmentation():
 
 
 torch_classification()
-# torchvision_segmentation()
-# torchvision_detection()
-# datagradients_detection()
-# datagradients_segmentation()
-# torch_classification()
+torchvision_segmentation()
+torchvision_detection()
+datagradients_detection()
+datagradients_segmentation()
+torch_classification()

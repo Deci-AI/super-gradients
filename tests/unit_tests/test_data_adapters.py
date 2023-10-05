@@ -80,9 +80,7 @@ class TestDetectionAdapter(unittest.TestCase):
         )
         analyzer_ds.run()  # Run the analysis. This will create the cache.
 
-        loader = DataLoader(
-            self.dataset, batch_size=2, collate_fn=DetectionDatasetAdapterCollateFN(adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
-        )
+        loader = DataLoader(self.dataset, batch_size=2, collate_fn=DetectionDatasetAdapterCollateFN(config_path=analyzer_ds.config.cache_path, n_classes=6))
 
         for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -102,7 +100,7 @@ class TestDetectionAdapter(unittest.TestCase):
         )
         analyzer_ds.run()  # Run the analysis. This will create the cache.
 
-        loader.collate_fn = DetectionDatasetAdapterCollateFN(collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader.collate_fn = DetectionDatasetAdapterCollateFN(collate_fn=loader.collate_fn, config_path=analyzer_ds.config.cache_path, n_classes=6)
 
         for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -124,7 +122,7 @@ class TestDetectionAdapter(unittest.TestCase):
         )
         analyzer_ds.run()
 
-        loader = DetectionDatasetAdapterCollateFN.adapt_dataloader(dataloader=loader, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader = DetectionDatasetAdapterCollateFN.adapt_dataloader(dataloader=loader, config_path=analyzer_ds.config.cache_path, n_classes=6)
 
         for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -160,9 +158,7 @@ class TestSegmentationAdapter(unittest.TestCase):
         )
         analyzer_ds.run()
 
-        loader = DataLoader(
-            self.dataset, batch_size=2, collate_fn=SegmentationDatasetAdapterCollateFN(adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
-        )
+        loader = DataLoader(self.dataset, batch_size=2, collate_fn=SegmentationDatasetAdapterCollateFN(config_path=analyzer_ds.config.cache_path, n_classes=6))
 
         for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -182,9 +178,7 @@ class TestSegmentationAdapter(unittest.TestCase):
         )
         analyzer_ds.run()
 
-        loader.collate_fn = SegmentationDatasetAdapterCollateFN(
-            base_collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6
-        )
+        loader.collate_fn = SegmentationDatasetAdapterCollateFN(base_collate_fn=loader.collate_fn, config_path=analyzer_ds.config.cache_path, n_classes=6)
 
         for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -205,7 +199,7 @@ class TestSegmentationAdapter(unittest.TestCase):
         analyzer_ds.run()
 
         # This is required to use the adapter inside the existing Dataloader.
-        loader = SegmentationDatasetAdapterCollateFN.adapt_dataloader(dataloader=loader, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader = SegmentationDatasetAdapterCollateFN.adapt_dataloader(dataloader=loader, config_path=analyzer_ds.config.cache_path, n_classes=6)
 
         for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -241,7 +235,7 @@ class TestClassificationAdapter(unittest.TestCase):
         analyzer_ds.run()
 
         loader = DataLoader(
-            self.dataset, batch_size=2, collate_fn=ClassificationDatasetAdapterCollateFN(adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+            self.dataset, batch_size=2, collate_fn=ClassificationDatasetAdapterCollateFN(config_path=analyzer_ds.config.cache_path, n_classes=6)
         )
 
         for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
@@ -266,9 +260,7 @@ class TestClassificationAdapter(unittest.TestCase):
 
         # This is required to use the adapter inside the existing Dataloader.
         # `base_collate_fn=loader.base_collate_fn` ensure to still take into account any collate_fn that was passed to the Dataloader
-        loader.collate_fn = ClassificationDatasetAdapterCollateFN(
-            base_collate_fn=loader.collate_fn, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6
-        )
+        loader.collate_fn = ClassificationDatasetAdapterCollateFN(base_collate_fn=loader.collate_fn, config_path=analyzer_ds.config.cache_path, n_classes=6)
 
         for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -291,7 +283,7 @@ class TestClassificationAdapter(unittest.TestCase):
         analyzer_ds.run()
 
         # This is required to use the adapter inside the existing Dataloader.
-        loader = ClassificationDatasetAdapterCollateFN.adapt_dataloader(dataloader=loader, adapter_cache_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader = ClassificationDatasetAdapterCollateFN.adapt_dataloader(dataloader=loader, config_path=analyzer_ds.config.cache_path, n_classes=6)
 
         for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
