@@ -173,9 +173,8 @@ class DetectionDatasetTest(unittest.TestCase):
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": "YoloXDetectionLoss",
+            "loss": {"YoloXDetectionLoss": {"strides": [8, 16, 32], "num_classes": 80}},
             "mixed_precision": False,
-            "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
             "train_metrics_list": [],
             "valid_metrics_list": [
                 DetectionMetrics(

@@ -1,6 +1,6 @@
 import warnings
 from functools import wraps
-from typing import Optional
+from typing import Optional, Callable
 from pkg_resources import parse_version
 
 
@@ -76,3 +76,41 @@ def deprecated(deprecated_since: str, removed_from: str, target: Optional[callab
         return wrapper
 
     return decorator
+
+
+def deprecated_training_param(deprecated_tparam_name: str, deprecated_since: str, removed_from: str, new_arg_assigner: Callable, message: str = ""):
+    def decorator(func):
+        def wrapper(*args, **training_params):
+            if deprecated_tparam_name in training_params:
+                import super_gradients
+
+                is_still_supported = parse_version(super_gradients.__version__) < parse_version(removed_from)
+                if is_still_supported:
+                    message_prefix = (
+                        f"Training hyperparameter `{deprecated_tparam_name} is deprecated since version `{deprecated_since}` "
+                        f"and will be removed in version `{removed_from}`.\n"
+                    )
+                    warnings.warn(message_prefix + message, DeprecationWarning)
+                    training_params = new_arg_assigner(**training_params)
+                else:
+                    message_prefix = (
+                        f"Training hyperparameter `{deprecated_tparam_name} was deprecate since version `{deprecated_since}` "
+                        f"and was removed in version `{removed_from}`.\n"
+                    )
+                    raise RuntimeError(message_prefix + message)
+
+            return func(*args, **training_params)
+
+        return wrapper
+
+    return decorator
+
+
+def get_deprecated_nested_params_to_factory_format_assigner(param_name: str, nested_params_name: str) -> Callable:
+    def deprecated_nested_params_to_factory_format_assigner(**params):
+        nested_params = params.get(nested_params_name)
+        param_val = params.get(param_name)
+        params[param_name] = {param_val: nested_params}
+        return params
+
+    return deprecated_nested_params_to_factory_format_assigner
