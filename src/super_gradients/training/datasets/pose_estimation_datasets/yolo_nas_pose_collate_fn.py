@@ -40,10 +40,11 @@ class YoloNASPoseCollateFN:
 
             # Convert image & mask to tensors
             # Change image layout from HWC to CHW
-            sample.image = torch.from_numpy(np.transpose(sample.image, [2, 0, 1]))
-            sample.mask = torch.from_numpy(sample.mask)
+            image = torch.from_numpy(np.transpose(sample.image, [2, 0, 1]))
+            sample.image = None
+            sample.mask = None
 
-            all_images.append(sample.image)
+            all_images.append(image)
             all_boxes.append(boxes)
             all_joints.append(joints)
             all_crowd_masks.append(is_crowd)
