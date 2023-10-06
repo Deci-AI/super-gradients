@@ -13,13 +13,11 @@ from super_gradients.training.models.detection_models.customizable_detector impo
 from super_gradients.training.utils.detection_utils import convert_cxcywh_bbox_to_xyxy
 from super_gradients.training.utils.utils import HpmStruct, get_param
 
-DEFAULT_SSD_MOBILENET_V1_ARCH_PARAMS = get_arch_params("ssd_mobilenetv1_arch_params")
-DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = get_arch_params("ssd_lite_mobilenetv2_arch_params")
-
 
 @register_model(Models.SSD_MOBILENET_V1)
 class SSDMobileNetV1(CustomizableDetector, ExportableObjectDetectionModel):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):
+        DEFAULT_SSD_MOBILENET_V1_ARCH_PARAMS = get_arch_params("ssd_mobilenetv1_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(DEFAULT_SSD_MOBILENET_V1_ARCH_PARAMS))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(
@@ -40,6 +38,7 @@ class SSDMobileNetV1(CustomizableDetector, ExportableObjectDetectionModel):
 @register_model(Models.SSD_LITE_MOBILENET_V2)
 class SSDLiteMobileNetV2(CustomizableDetector, ExportableObjectDetectionModel):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):
+        DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = get_arch_params("ssd_lite_mobilenetv2_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(
