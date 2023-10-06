@@ -91,11 +91,12 @@ class KeypointsCompose(AbstractKeypointTransform):
         """
         applied_transforms_so_far = []
         for t in transforms:
-            if t.additional_samples_count == 0:
+            num_additional_samples = t.get_additional_samples_count()
+            if num_additional_samples == 0:
                 sample = t.apply_to_sample(sample)
                 applied_transforms_so_far.append(t)
             else:
-                additional_samples = [load_sample_fn() for _ in range(t.additional_samples_count)]
+                additional_samples = [load_sample_fn() for _ in range(num_additional_samples)]
                 additional_samples = [
                     cls._apply_transforms(
                         sample,
@@ -107,6 +108,7 @@ class KeypointsCompose(AbstractKeypointTransform):
                 sample.additional_samples = additional_samples
                 sample = t.apply_to_sample(sample)
 
+        sample.additional_samples = None  # Clean up possible presence of additional samples
         return sample
 
     def get_equivalent_preprocessing(self) -> List:

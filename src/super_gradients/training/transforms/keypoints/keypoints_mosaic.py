@@ -75,6 +75,14 @@ class KeypointsMosaic(AbstractKeypointTransform):
         self.prob = prob
         self.pad_value = tuple(pad_value)
 
+    def get_additional_samples_count(self) -> int:
+        """
+        For performance reasons, this method actually decides whether
+        transformation will be applied or not and depending on it
+        return the number of additional samples (3) if transformation needs to be applied.
+        """
+        return 3 if random.random() < self.prob else 0
+
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """
         Apply transformation to given estimation sample
@@ -82,7 +90,7 @@ class KeypointsMosaic(AbstractKeypointTransform):
         :param sample: A pose estimation sample. The sample must have 3 additional samples in it.
         :return:       A new pose estimation sample that represents the final mosaic.
         """
-        if random.random() < self.prob:
+        if len(sample.additional_samples) == 3:
             samples = [sample] + sample.additional_samples
             sample = self._apply_mosaic(samples)
         return sample

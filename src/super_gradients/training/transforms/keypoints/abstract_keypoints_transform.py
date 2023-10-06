@@ -23,6 +23,9 @@ class AbstractKeypointTransform(abc.ABC):
         """
         self.additional_samples_count = additional_samples_count
 
+    def get_additional_samples_count(self) -> int:
+        return self.additional_samples_count
+
     def __call__(
         self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
