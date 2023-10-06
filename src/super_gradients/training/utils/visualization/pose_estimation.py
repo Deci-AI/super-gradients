@@ -23,12 +23,12 @@ def draw_skeleton(
     """
     Draw a skeleton on an image.
 
-    :param image: Input image (will not be modified)
-    :param keypoints: Array of [Num Joints, 2] or [Num Joints, 3] containing the keypoints to draw.
-                      First two values are the x and y coordinates, the third (optional, not used) is the confidence score.
-    :param score:     Confidence score of the whole pose
-    :param edge_links: Array of [Num Links, 2] containing the links between joints to draw. Can be None, in which case no links will be drawn.
-    :param edge_colors: Array of shape [Num Links, 3] or list of tuples containing the (r,g,b) colors for each joint link.
+    :param image:           Input image (will not be modified)
+    :param keypoints:       Array of [Num Joints, 2] or [Num Joints, 3] containing the keypoints to draw.
+                            First two values are the x and y coordinates, the third (optional, not used) is the confidence score.
+    :param score:           Confidence score of the whole pose
+    :param edge_links:      Array of [Num Links, 2] containing the links between joints to draw. Can be None, in which case no links will be drawn.
+    :param edge_colors:     Array of shape [Num Links, 3] or list of tuples containing the (r,g,b) colors for each joint link.
     :param joint_thickness: Thickness of the joint links
     :param keypoint_colors: Array of shape [Num Joints, 3] or list of tuples containing the (r,g,b) colors for each keypoint.
     :param keypoint_radius: Radius of the keypoints (in pixels)

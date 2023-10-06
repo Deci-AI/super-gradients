@@ -69,9 +69,9 @@ class DetectionPrediction(Prediction):
 class PoseEstimationPrediction(Prediction):
     """Represents a pose estimation prediction.
 
-    :attr poses: Numpy array of [Num Poses, Num Joints, 2] shape
-    :attr scores: Numpy array of [Num Poses] shape
-    :attr boxes: Numpy array of [Num Poses, 4] shape which represents the bounding boxes of each pose in xyxy format
+    :param poses:  Numpy array of [Num Poses, Num Joints, 2] shape
+    :param scores: Numpy array of [Num Poses] shape
+    :param boxes:  Numpy array of [Num Poses, 4] shape which represents the bounding boxes of each pose in xyxy format
     """
 
     poses: np.ndarray
