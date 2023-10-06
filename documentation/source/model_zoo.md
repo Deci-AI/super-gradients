@@ -97,7 +97,7 @@ All the available models are listed in the column `Model name`.
 | DEKR_W32_NO_DC | dekr_w32_no_dc  | COCO2017 PE | 640x640    | 63.08 / 64.96 / 67.32                           | 13.29 ms                | 15.31 ms                             |                     75.99 ms                      |
 | YoloNAS POSE N | yolo_nas_pose_n | COCO2017 PE | 640x640    | 59.65 / N/A / N/A                               | N/A                     | 2.35 ms                              |                     15.99 ms                      |
 | YoloNAS POSE S | yolo_nas_pose_s | COCO2017 PE | 640x640    | 63.70 / N/A / N/A                               | N/A                     | 3.29 ms                              |                                                   |
-| YoloNAS POSE M | yolo_nas_pose_m | COCO2017 PE | 640x640    | 66.20 / N/A / N/A                               | N/A                     | 6.87 ms                              |                                                   |
+| YoloNAS POSE M | yolo_nas_pose_m | COCO2017 PE | 640x640    | 67.64 / N/A / N/A                               | N/A                     | 6.87 ms                              |                                                   |
 | YoloNAS POSE L | yolo_nas_pose_l | COCO2017 PE | 640x640    | 67.50 / N/A / N/A                               | N/A                     | 8.86 ms                              |                                                   |
 
 
