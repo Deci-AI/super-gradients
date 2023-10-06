@@ -90,7 +90,7 @@ class KeypointsMosaic(AbstractKeypointTransform):
         :param sample: A pose estimation sample. The sample must have 3 additional samples in it.
         :return:       A new pose estimation sample that represents the final mosaic.
         """
-        if len(sample.additional_samples) == 3:
+        if sample.additional_samples is not None and len(sample.additional_samples) == 3:
             samples = [sample] + sample.additional_samples
             sample = self._apply_mosaic(samples)
         return sample
