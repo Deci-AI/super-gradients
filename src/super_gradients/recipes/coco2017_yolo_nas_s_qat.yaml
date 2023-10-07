@@ -7,6 +7,12 @@ checkpoint_params:
   pretrained_weights: coco
   strict_load: key_matching
 
+quantization_params:
+  ptq_only: False
+
+  calib_params:
+    num_calib_batches: 64
+
 experiment_name: coco2017_yolo_nas_s_qat
 
 pre_launch_callbacks_list:
