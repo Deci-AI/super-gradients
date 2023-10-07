@@ -888,6 +888,8 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
 
     if dataset is not None:
         dataloader_params = _process_sampler_params(dataloader_params, dataset, {})
+        dataloader_params = _process_collate_fn_params(dataloader_params)
+
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
 
         dataloader.dataloader_params = dataloader_params
