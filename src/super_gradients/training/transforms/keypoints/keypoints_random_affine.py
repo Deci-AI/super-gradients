@@ -121,8 +121,8 @@ class KeypointsRandomAffineTransform(AbstractKeypointTransform):
 
             sample.joints = self.apply_to_keypoints(sample.joints, mat_output, sample.image.shape[:2])
 
-            if sample.bboxes is not None:
-                sample.bboxes = self.apply_to_bboxes(sample.bboxes, mat_output)
+            if sample.bboxes_xywh is not None:
+                sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, mat_output)
 
             if sample.areas is not None:
                 sample.areas = self.apply_to_areas(sample.areas, mat_output)

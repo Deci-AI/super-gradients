@@ -183,13 +183,19 @@ class PoseEstimationMetrics(Metric):
         else:
             self._update_with_old_style_args(predictions, gt_joints, gt_bboxes, gt_areas, gt_iscrowd)
 
-    def _update_with_samples(self, predictions: List[PoseEstimationPredictions], gt_samples: List[PoseEstimationSample]):
+    def _update_with_samples(self, predictions: List[PoseEstimationPredictions], gt_samples: List[PoseEstimationSample]) -> None:
+        """
+        Update internal state of metric class with a batch of predictions and groundtruth samples.
+
+        :param predictions: Decoded list of pose predictions
+        :param gt_samples:  Corresponding list of groundtruth samples
+        """
         for i in range(len(predictions)):
             self.update_single_image(
                 predicted_poses=predictions[i].poses,
                 predicted_scores=predictions[i].scores,
                 gt_joints=gt_samples[i].joints,
-                gt_bboxes=gt_samples[i].bboxes,
+                gt_bboxes=gt_samples[i].bboxes_xywh,
                 gt_areas=gt_samples[i].areas,
                 gt_iscrowd=gt_samples[i].is_crowd,
             )
@@ -201,7 +207,23 @@ class PoseEstimationMetrics(Metric):
         gt_bboxes: Optional[List[np.ndarray]],
         gt_areas: Optional[List[np.ndarray]],
         gt_iscrowd: Optional[List[np.ndarray]],
-    ):
+    ) -> None:
+        """
+        This method is here for backward compatibility with old-style datasets that do not use PoseEstimationSample objects.
+        The now deprecated way of passing groundtruth information was through a dictionary with 'gt_joints', 'gt_bboxes', 'gt_areas', 'gt_iscrowd' keys
+        which is not convenient and error-prone.
+
+        It is still supported, but we recommend to use PoseEstimationSample objects instead.
+        :param predictions: Decoded pose predictions
+        :param gt_joints: List of ground-truth joints for each image in the batch. Each element is a numpy array of shape (num_instances, num_joints, 3).
+        :param gt_bboxes: List of ground-truth bounding boxes for each image in the batch.
+                          Each element of list is a numpy array of shape (num_instances, 4) and boxes are in XYWH format.
+                          Can be None, in which case bounding boxes are computed as minimum bounding box that contains all visible keypoints.
+        :param gt_areas:  List of ground-truth areas for each image in the batch.
+                          Can be None, in which case areas are computed as the product of the width and height of the bounding box.
+        :param gt_iscrowd: List of single-dimensional numpy arrays of shape (num_instances,) indicating which instance is
+                           annotated with `iscrowd` flog. Objects with `iscrowd` flag are not used for evaluation.
+        """
         for i in range(len(predictions)):
             self.update_single_image(
                 predicted_poses=predictions[i].poses,
@@ -216,11 +238,21 @@ class PoseEstimationMetrics(Metric):
         self,
         predicted_poses: Union[Tensor, np.ndarray],
         predicted_scores: Union[Tensor, np.ndarray],
-        gt_joints,
-        gt_bboxes,
-        gt_areas,
-        gt_iscrowd,
-    ):
+        gt_joints: np.ndarray,
+        gt_bboxes: Optional[np.ndarray],
+        gt_areas: Optional[np.ndarray],
+        gt_iscrowd: Optional[np.ndarray],
+    ) -> None:
+        """
+        Update internal state of metric class with a single image predictions & corresponding groundtruth.
+        Method compute OKS for predicted poses, match them to groundtruth poses and update internal state of the metric.
+        :param predicted_poses:  Predicted poses of shape (num_instances, num_joints, 3)
+        :param predicted_scores: Predicted scores of shape (num_instances,)
+        :param gt_joints:        Groundtruth joints of shape (num_instances, num_joints, 3)
+        :param gt_bboxes:        Groundtruth bounding boxes of shape (num_instances, 4) in XYWH format
+        :param gt_areas:         Groundtruth areas of shape (num_instances,)
+        :param gt_iscrowd:       Groundtruth is_crowd flag of shape (num_instances,)
+        """
         if len(predicted_poses) == 0 and len(gt_joints) == 0:
             return
         if len(predicted_poses) != len(predicted_scores):

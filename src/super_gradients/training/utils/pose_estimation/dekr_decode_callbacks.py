@@ -313,7 +313,7 @@ class DEKRPoseEstimationDecodeCallback(AbstractPoseEstimationPostPredictionCallb
                 PoseEstimationPredictions(
                     poses=poses[: self.max_num_people],
                     scores=scores[: self.max_num_people],
-                    bboxes=None,
+                    bboxes_xyxy=None,
                 )
             )
         return decoded_predictions

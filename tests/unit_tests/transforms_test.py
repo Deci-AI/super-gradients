@@ -391,7 +391,9 @@ class TestTransforms(unittest.TestCase):
         plt.show()
 
         aug = KeypointsBrightnessContrast(brightness_range=(1.1, 1.5), contrast_range=(1, 1), prob=1)
-        sample = aug.apply_to_sample(PoseEstimationSample(image=image, joints=None, bboxes=None, areas=None, mask=None, is_crowd=None, additional_samples=None))
+        sample = aug.apply_to_sample(
+            PoseEstimationSample(image=image, joints=None, bboxes_xywh=None, areas=None, mask=None, is_crowd=None, additional_samples=None)
+        )
         plt.figure()
         plt.imshow(sample.image)
         plt.title("Augmented image")
@@ -404,7 +406,7 @@ class TestTransforms(unittest.TestCase):
             joints=np.random.randint(0, 256, size=(2, 17, 3)),
             is_crowd=np.zeros((2,), dtype=bool),
             areas=None,
-            bboxes=np.random.randint(32, 64, size=(2, 4)),
+            bboxes_xywh=np.random.randint(32, 64, size=(2, 4)),
             additional_samples=None,
         )
 
@@ -414,7 +416,7 @@ class TestTransforms(unittest.TestCase):
             joints=np.random.randint(0, 256, size=(3, 17, 3)),
             is_crowd=np.zeros((3,), dtype=bool),
             areas=None,
-            bboxes=np.random.randint(32, 64, size=(3, 4)),
+            bboxes_xywh=np.random.randint(32, 64, size=(3, 4)),
             additional_samples=None,
         )
 
@@ -430,7 +432,7 @@ class TestTransforms(unittest.TestCase):
             joints=np.random.randint(0, 128, size=(1, 17, 3)),
             is_crowd=np.zeros((1,), dtype=bool),
             areas=None,
-            bboxes=np.random.randint(0, 64, size=(2, 4)),
+            bboxes_xywh=np.random.randint(0, 64, size=(2, 4)),
             additional_samples=None,
         )
 
@@ -440,7 +442,7 @@ class TestTransforms(unittest.TestCase):
             joints=np.random.randint(0, 256, size=(1, 17, 3)),
             is_crowd=np.zeros((1,), dtype=bool),
             areas=None,
-            bboxes=np.random.randint(32, 64, size=(2, 4)),
+            bboxes_xywh=np.random.randint(32, 64, size=(2, 4)),
             additional_samples=None,
         )
 
@@ -450,7 +452,7 @@ class TestTransforms(unittest.TestCase):
             joints=np.random.randint(0, 512, size=(1, 17, 3)),
             is_crowd=np.zeros((1,), dtype=bool),
             areas=None,
-            bboxes=np.random.randint(128, 256, size=(2, 4)),
+            bboxes_xywh=np.random.randint(128, 256, size=(2, 4)),
             additional_samples=None,
         )
 
@@ -460,7 +462,7 @@ class TestTransforms(unittest.TestCase):
             joints=np.random.randint(0, 64, size=(1, 17, 3)),
             is_crowd=np.zeros((1,), dtype=bool),
             areas=None,
-            bboxes=np.random.randint(0, 32, size=(2, 4)),
+            bboxes_xywh=np.random.randint(0, 32, size=(2, 4)),
             additional_samples=None,
         )
 
@@ -483,7 +485,7 @@ class TestTransforms(unittest.TestCase):
         for joints in poses:
             for joint in joints:
                 cv2.circle(image, (int(joint[0]), int(joint[1])), 3, (0, 0, 255), -1)
-        for (x, y, w, h) in sample.bboxes:
+        for (x, y, w, h) in sample.bboxes_xywh:
             x = int(x)
             y = int(y)
             w = int(w)

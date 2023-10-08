@@ -23,18 +23,18 @@ class PoseEstimationSample:
     :param areas:              (Optional) Numpy array of [N] shape with area of each instance.
                                Note this is not a bbox area, but area of the object itself.
                                One may use a heuristic `0.53 * box area` as object area approximation if this is not provided.
-    :param bboxes:             (Optional) Numpy array of [N,4] shape with bounding box of each instance (XYWH)
+    :param bboxes_xywh:        (Optional) Numpy array of [N,4] shape with bounding box of each instance (XYWH)
     :param additional_samples: (Optional) List of additional samples for the same image.
     :param is_crowd:           (Optional) Numpy array of [N] shape with is_crowd flag for each instance
     """
 
-    __slots__ = ["image", "mask", "joints", "areas", "bboxes", "is_crowd", "additional_samples"]
+    __slots__ = ["image", "mask", "joints", "areas", "bboxes_xywh", "is_crowd", "additional_samples"]
 
     image: Union[np.ndarray, torch.Tensor]
     mask: Union[np.ndarray, torch.Tensor]
     joints: np.ndarray
     areas: Optional[np.ndarray]
-    bboxes: Optional[np.ndarray]
+    bboxes_xywh: Optional[np.ndarray]
     is_crowd: Optional[np.ndarray]
     additional_samples: Optional[List["PoseEstimationSample"]]
 
@@ -78,19 +78,19 @@ class PoseEstimationSample:
         outside_image_mask = outside_left | outside_top | outside_right | outside_bottom
         self.joints[outside_image_mask, 2] = 0
 
-        if self.bboxes is not None:
+        if self.bboxes_xywh is not None:
             # Clamp bboxes to image boundaries
-            clamped_boxes = xywh_to_xyxy(self.bboxes, image_shape=(image_height, image_width))
+            clamped_boxes = xywh_to_xyxy(self.bboxes_xywh, image_shape=(image_height, image_width))
             clamped_boxes[..., [0, 2]] = np.clip(clamped_boxes[..., [0, 2]], 0, image_width - 1)
             clamped_boxes[..., [1, 3]] = np.clip(clamped_boxes[..., [1, 3]], 0, image_height - 1)
             clamped_boxes = xyxy_to_xywh(clamped_boxes, image_shape=(image_height, image_width))
 
             # Recompute sample areas if they are present
             if self.areas is not None:
-                area_reduction_factor = clamped_boxes[..., 2:4].prod(axis=-1) / (self.bboxes[..., 2:4].prod(axis=-1) + 1e-6)
+                area_reduction_factor = clamped_boxes[..., 2:4].prod(axis=-1) / (self.bboxes_xywh[..., 2:4].prod(axis=-1) + 1e-6)
                 self.areas = self.areas * area_reduction_factor
 
-            self.bboxes = clamped_boxes
+            self.bboxes_xywh = clamped_boxes
         return self
 
     def filter_by_mask(self, mask: np.ndarray) -> "PoseEstimationSample":
@@ -107,8 +107,8 @@ class PoseEstimationSample:
         """
         self.joints = self.joints[mask]
         self.is_crowd = self.is_crowd[mask]
-        if self.bboxes is not None:
-            self.bboxes = self.bboxes[mask]
+        if self.bboxes_xywh is not None:
+            self.bboxes_xywh = self.bboxes_xywh[mask]
         if self.areas is not None:
             self.areas = self.areas[mask]
         return self
@@ -132,10 +132,10 @@ class PoseEstimationSample:
         :param min_bbox_area: Minimal bounding box area of the pose to keep.
         :return:              A pose sample after filtering.
         """
-        if self.bboxes is None:
+        if self.bboxes_xywh is None:
             area = self.compute_area_of_joints_bounding_box(self.joints)
         else:
-            area = self.bboxes[..., 2:4].prod(axis=-1)
+            area = self.bboxes_xywh[..., 2:4].prod(axis=-1)
 
         keep_mask = area >= min_bbox_area
         return self.filter_by_mask(keep_mask)
@@ -151,9 +151,9 @@ class PoseEstimationSample:
 
         if self.areas is not None:
             areas = self.areas
-        elif self.bboxes is not None:
+        elif self.bboxes_xywh is not None:
             # 0.53 is a heuristic multiplier from COCO to approximate object area from bbox area
-            areas = self.bboxes[..., 2:4].prod(axis=-1, keepdims=False) * 0.53
+            areas = self.bboxes_xywh[..., 2:4].prod(axis=-1, keepdims=False) * 0.53
         else:
             areas = self.compute_area_of_joints_bounding_box(self.joints)
 

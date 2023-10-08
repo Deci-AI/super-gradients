@@ -41,8 +41,8 @@ class KeypointsRandomRotate90(AbstractKeypointTransform):
             sample.mask = self.apply_to_image(sample.mask, factor)
             sample.joints = self.apply_to_keypoints(sample.joints, factor, image_rows, image_cols)
 
-            if sample.bboxes is not None:
-                sample.bboxes = self.apply_to_bboxes(sample.bboxes, factor, image_rows, image_cols)
+            if sample.bboxes_xywh is not None:
+                sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, factor, image_rows, image_cols)
 
         return sample
 
