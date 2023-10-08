@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import unittest
+import tempfile
+import shutil
 
 from data_gradients.managers.detection_manager import DetectionAnalysisManager
 from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
@@ -15,6 +17,12 @@ from super_gradients.training.dataloaders.adapters import (
 
 
 class DataloaderAdapterNonRegressionTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir)
+
     def test_adapter_on_coco2017_val(self):
         # We use Validation set because it does not include augmentation (which is random and makes it impossible to compare results)
         loader = coco2017_val(
@@ -24,6 +32,7 @@ class DataloaderAdapterNonRegressionTest(unittest.TestCase):
 
         analyzer = DetectionAnalysisManager(
             report_title="coco2017_val",
+            log_dir=self.tmp_dir,
             train_data=loader,
             val_data=loader,
             class_names=loader.dataset.classes,
@@ -47,6 +56,7 @@ class DataloaderAdapterNonRegressionTest(unittest.TestCase):
 
         analyzer = SegmentationAnalysisManager(
             report_title="cityscapes_stdc_seg50_val",
+            log_dir=self.tmp_dir,
             train_data=loader,
             val_data=loader,
             class_names=loader.dataset.classes + ["<unknown>"],
@@ -67,6 +77,7 @@ class DataloaderAdapterNonRegressionTest(unittest.TestCase):
 
         analyzer = ClassificationAnalysisManager(
             report_title="test_python_classification",
+            log_dir=self.tmp_dir,
             train_data=loader,
             val_data=loader,
             class_names=list(range(10)),
@@ -91,6 +102,7 @@ class DataloaderAdapterNonRegressionTest(unittest.TestCase):
 
         analyzer = DetectionAnalysisManager(
             report_title="coco2017_val_dict",
+            log_dir=self.tmp_dir,
             train_data=loader,
             val_data=loader,
             class_names=loader.dataset.classes,
@@ -136,7 +148,7 @@ class DataloaderAdapterNonRegressionTest(unittest.TestCase):
                 "collate_fn": {
                     "DetectionDatasetAdapterCollateFN": {
                         "base_collate_fn": "DetectionCollateFN",
-                        "config_path": "test_ddp_from_dict_based_adapter.json",
+                        "config_path": os.path.join(self.tmp_dir, "test_ddp_from_dict_based_adapter.json"),
                     }
                 },
             },
@@ -154,7 +166,10 @@ class DataloaderAdapterNonRegressionTest(unittest.TestCase):
             dataset_params={"max_num_samples": 500, "with_crowd": False},  # `max_num_samples` To make it faster
             dataloader_params={"num_workers": 4, "collate_fn": "DetectionCollateFN"},
         )
-        adapted_loader = DetectionDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path="test_ddp_python_based_adapter.json")
+        adapted_loader = DetectionDataloaderAdapterFactory.from_dataloader(
+            dataloader=loader,
+            config_path=os.path.join(self.tmp_dir, "test_ddp_python_based_adapter.json"),
+        )
 
         for (adapted_images, adapted_targets), (images, targets) in zip(adapted_loader, loader):
             assert np.isclose(adapted_targets, targets).all()
