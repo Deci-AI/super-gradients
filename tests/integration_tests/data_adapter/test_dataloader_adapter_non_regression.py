@@ -14,8 +14,8 @@ from super_gradients.training.dataloaders.adapters import (
 )
 
 
-class PoseEstimationModelsIntegrationTest(unittest.TestCase):
-    def test_python_detection(self):
+class DataloaderAdapterNonRegressionTest(unittest.TestCase):
+    def test_adapter_on_coco2017_val(self):
         # We use Validation set because it does not include augmentation (which is random and makes it impossible to compare results)
         loader = coco2017_val(
             dataset_params={"max_num_samples": 500, "with_crowd": False},
@@ -41,7 +41,7 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
             assert np.isclose(adapted_images, images).all()
         os.remove(analyzer.data_config.cache_path)
 
-    def test_python_segmentation(self):
+    def test_adapter_on_cityscapes_stdc_seg50_val(self):
         # We use Validation set because it does not include augmentation (which is random and makes it impossible to compare results)
         loader = cityscapes_stdc_seg50_val()
 
@@ -61,7 +61,7 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
             assert np.isclose(adapted_targets, targets).all()
         os.remove(analyzer.data_config.cache_path)
 
-    def test_python_classification(self):
+    def test_adapter_on_cifar10_val(self):
         # We use Validation set because it does not include augmentation (which is random and makes it impossible to compare results)
         loader = cifar10_val(dataset_params={"transforms": ["ToTensor"]})
 
@@ -82,7 +82,7 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
             assert np.isclose(adapted_images, images).all()
         os.remove(analyzer.data_config.cache_path)
 
-    def test_from_dict(self):
+    def test_adpter_from_dict(self):
         # We use Validation set because it does not include augmentation (which is random and makes it impossible to compare results)
         loader = coco2017_val(
             dataset_params={"max_num_samples": 500, "with_crowd": False},
@@ -120,8 +120,8 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
         os.remove(analyzer.data_config.cache_path)
 
     def test_ddp_from_dict_based_adapter(self):
-
         # setup_device(num_gpus=3)
+
         # We use Validation set because it does not include augmentation (which is random and makes it impossible to compare results)
         loader = coco2017_val(
             dataset_params={"max_num_samples": 500, "with_crowd": False},
@@ -136,7 +136,7 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
                 "collate_fn": {
                     "DetectionDatasetAdapterCollateFN": {
                         "base_collate_fn": "DetectionCollateFN",
-                        "config_path": "LOCAL_new2.json",
+                        "config_path": "test_ddp_from_dict_based_adapter.json",
                     }
                 },
             },
@@ -154,7 +154,7 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
             dataset_params={"max_num_samples": 500, "with_crowd": False},  # `max_num_samples` To make it faster
             dataloader_params={"num_workers": 4, "collate_fn": "DetectionCollateFN"},
         )
-        adapted_loader = DetectionDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path="xx2.json")
+        adapted_loader = DetectionDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path="test_ddp_python_based_adapter.json")
 
         for (adapted_images, adapted_targets), (images, targets) in zip(adapted_loader, loader):
             assert np.isclose(adapted_targets, targets).all()
@@ -162,8 +162,4 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    PoseEstimationModelsIntegrationTest()
-    # test_ddp_from_dict_based_adapter()
-    # test_python_segmentation()
-    # test_ddp_from_dict_based_adapter()
-    # test_ddp_python_based_adapter()
+    DataloaderAdapterNonRegressionTest()
