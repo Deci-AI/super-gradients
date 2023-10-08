@@ -86,7 +86,7 @@ class PoseEstimationPrediction(Prediction):
         self,
         poses: np.ndarray,
         scores: np.ndarray,
-        bboxes: Optional[np.ndarray],
+        bboxes_xyxy: Optional[np.ndarray],
         edge_links: np.ndarray,
         edge_colors: np.ndarray,
         keypoint_colors: np.ndarray,
@@ -95,13 +95,13 @@ class PoseEstimationPrediction(Prediction):
         """
         :param poses:       Predicted poses as a numpy array of shape [Num Poses, Num Joints, 2]
         :param scores:      Confidence scores for each pose [Num Poses]
-        :param bboxes:      Bounding boxes of each pose in xyxy format [Num Poses, 4]
+        :param bboxes_xyxy:      Bounding boxes of each pose in xyxy format [Num Poses, 4]
         :param image_shape: Shape of the image the prediction is made on, (H, W).
         """
-        self._validate_input(poses, scores, bboxes, edge_links, edge_colors, keypoint_colors)
+        self._validate_input(poses, scores, bboxes_xyxy, edge_links, edge_colors, keypoint_colors)
         self.poses = poses
         self.scores = scores
-        self.bboxes = bboxes
+        self.bboxes = bboxes_xyxy
         self.edge_links = edge_links
         self.edge_colors = edge_colors
         self.image_shape = image_shape

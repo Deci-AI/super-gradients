@@ -356,14 +356,16 @@ class PoseEstimationPipeline(Pipeline):
         :param model_input:     Model input (i.e. images after preprocessing).
         :return:                Predicted Bboxes.
         """
-        result = self.post_prediction_callback(model_output)
-        predictions = []
-        for r, image in zip(result, model_input):
-            predictions.append(
+        list_of_predictions = self.post_prediction_callback(model_output)
+        decoded_predictions = []
+        for image_level_predictions, image in zip(list_of_predictions, model_input):
+            decoded_predictions.append(
                 PoseEstimationPrediction(
-                    poses=r.poses.cpu().numpy() if torch.is_tensor(r.poses) else r.poses,
-                    scores=r.scores.cpu().numpy() if torch.is_tensor(r.scores) else r.scores,
-                    bboxes=r.bboxes_xyxy.cpu().numpy() if torch.is_tensor(r.bboxes_xyxy) else r.bboxes_xyxy,
+                    poses=image_level_predictions.poses.cpu().numpy() if torch.is_tensor(image_level_predictions.poses) else image_level_predictions.poses,
+                    scores=image_level_predictions.scores.cpu().numpy() if torch.is_tensor(image_level_predictions.scores) else image_level_predictions.scores,
+                    bboxes_xyxy=image_level_predictions.bboxes_xyxy.cpu().numpy()
+                    if torch.is_tensor(image_level_predictions.bboxes_xyxy)
+                    else image_level_predictions.bboxes_xyxy,
                     image_shape=image.shape,
                     edge_links=self.edge_links,
                     edge_colors=self.edge_colors,
@@ -371,7 +373,7 @@ class PoseEstimationPipeline(Pipeline):
                 )
             )
 
-        return predictions
+        return decoded_predictions
 
     def _instantiate_image_prediction(self, image: np.ndarray, prediction: PoseEstimationPrediction) -> ImagePrediction:
         return ImagePoseEstimationPrediction(image=image, prediction=prediction, class_names=self.class_names)
