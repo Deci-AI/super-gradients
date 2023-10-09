@@ -1,6 +1,7 @@
 import copy
 import inspect
 import os
+import typing
 from copy import deepcopy
 from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
 
@@ -99,6 +100,8 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
+from super_gradients.module_interfaces import ExportableObjectDetectionModel
+from super_gradients.conversion import ExportQuantizationMode
 
 logger = get_logger(__name__)
 
@@ -2519,9 +2522,26 @@ class Trainer:
         :return: Validation results of the calibrated model.
         """
 
+        logger.debug("Performing post-training quantization (PTQ)...")
+        logger.debug(f"Experiment name {self.experiment_name}")
+
+        run_id = core_utils.get_param(self.training_params, "run_id", None)
+        logger.debug(f"Experiment run id {run_id}")
+
+        self.checkpoints_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
+        logger.debug(f"Checkpoints directory {self.checkpoints_dir_path}")
+
+        os.makedirs(self.checkpoints_dir_path, exist_ok=True)
+
+        from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
+
+        patch_pytorch_quantization_modules_if_needed()
+
         if quantization_params is None:
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             logger.info(f"Using default quantization params: {quantization_params}")
+
+        model = unwrap_model(model)  # Unwrap model in case it is wrapped with DataParallel or DistributedDataParallel
 
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
         calib_params = get_param(quantization_params, "calib_params")
@@ -2560,17 +2580,31 @@ class Trainer:
         logger.info("\n".join(results))
 
         input_shape = next(iter(valid_loader))[0].shape
-        os.makedirs(self.checkpoints_dir_path, exist_ok=True)
-        qdq_onnx_path = os.path.join(self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape))}_ptq.onnx")
-
-        # TODO: modify SG's convert_to_onnx for quantized models and use it instead
-        export_quantized_module_to_onnx(
-            model=model.cpu(),
-            onnx_filename=qdq_onnx_path,
-            input_shape=input_shape,
-            input_size=input_shape,
-            train=False,
-            deepcopy_model=deepcopy_model_for_export,
+        input_shape_with_batch_size_one = tuple([1] + list(input_shape[1:]))
+        qdq_onnx_path = os.path.join(
+            self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_batch_size_one))}_ptq.onnx"
         )
+        logger.debug(f"Output ONNX file path {qdq_onnx_path}")
+
+        if isinstance(model, ExportableObjectDetectionModel):
+            model: ExportableObjectDetectionModel = typing.cast(ExportableObjectDetectionModel, model)
+            export_result = model.export(
+                output=qdq_onnx_path,
+                quantization_mode=ExportQuantizationMode.INT8,
+                input_image_shape=(input_shape_with_batch_size_one[2], input_shape_with_batch_size_one[3]),
+                preprocessing=False,
+                postprocessing=True,
+            )
+            logger.info(repr(export_result))
+        else:
+            # TODO: modify SG's convert_to_onnx for quantized models and use it instead
+            export_quantized_module_to_onnx(
+                model=model.cpu(),
+                onnx_filename=qdq_onnx_path,
+                input_shape=input_shape_with_batch_size_one,
+                input_size=input_shape_with_batch_size_one,
+                train=False,
+                deepcopy_model=deepcopy_model_for_export,
+            )
 
         return valid_metrics_dict
