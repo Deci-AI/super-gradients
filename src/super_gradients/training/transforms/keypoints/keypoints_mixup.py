@@ -77,9 +77,9 @@ class KeypointsMixup(AbstractKeypointTransform):
         joints = np.concatenate([sample.joints, other.joints], axis=0)
         is_crowd = np.concatenate([sample.is_crowd, other.is_crowd], axis=0)
 
-        bboxes = self._concatenate_arrays(sample.bboxes, other.bboxes, (0, 4))
+        bboxes = self._concatenate_arrays(sample.bboxes_xywh, other.bboxes_xywh, (0, 4))
         areas = self._concatenate_arrays(sample.areas, other.areas, (0,))
-        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas, additional_samples=None)
+        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes_xywh=bboxes, areas=areas, additional_samples=None)
 
     def _concatenate_arrays(self, arr1: Optional[np.ndarray], arr2: Optional[np.ndarray], shape_if_empty) -> Optional[np.ndarray]:
         """

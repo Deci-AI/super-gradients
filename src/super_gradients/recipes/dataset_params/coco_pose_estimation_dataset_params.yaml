@@ -86,14 +86,12 @@ train_dataloader_params:
   batch_size: 8
   num_workers: 8
   drop_last: True
-  collate_fn:
-    _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
+  collate_fn: KeypointsCollate
 
 val_dataloader_params:
   batch_size: 24
   num_workers: 8
   drop_last: False
-  collate_fn:
-    _target_: super_gradients.training.datasets.pose_estimation_datasets.KeypointsCollate
+  collate_fn: KeypointsCollate
 
 _convert_: all

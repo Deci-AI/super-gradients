@@ -12,6 +12,8 @@ from .keypoints import KeypointsRandomAffineTransform
 from .keypoints import KeypointsRandomHorizontalFlip
 from .keypoints import KeypointsRandomVerticalFlip
 from .keypoints import KeypointsRescale
+from .keypoints import KeypointsRandomRotate90
+from .keypoints import KeypointsRemoveSmallObjects
 
 __all__ = [
     "AbstractKeypointTransform",
@@ -29,4 +31,6 @@ __all__ = [
     "KeypointsRandomHorizontalFlip",
     "KeypointsRandomVerticalFlip",
     "KeypointsRescale",
+    "KeypointsRandomRotate90",
+    "KeypointsRemoveSmallObjects",
 ]

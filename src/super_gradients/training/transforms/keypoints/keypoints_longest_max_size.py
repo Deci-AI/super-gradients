@@ -44,8 +44,8 @@ class KeypointsLongestMaxSize(AbstractKeypointTransform):
                 raise RuntimeError(f"Image shape is not as expected (scale={scale}, input_shape={height, width}, resized_shape={sample.image.shape[:2]}")
 
             sample.joints = self.apply_to_keypoints(sample.joints, scale)
-            if sample.bboxes is not None:
-                sample.bboxes = self.apply_to_bboxes(sample.bboxes, scale)
+            if sample.bboxes_xywh is not None:
+                sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, scale)
 
             if sample.areas is not None:
                 sample.areas = np.multiply(sample.areas, scale**2, dtype=np.float32)
