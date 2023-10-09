@@ -2521,14 +2521,14 @@ class Trainer:
         :return: Validation results of the calibrated model.
         """
 
-        logger.info("Performing post-training quantization (PTQ)...")
-        logger.info(f"Experiment name {self.experiment_name}")
+        logger.debug("Performing post-training quantization (PTQ)...")
+        logger.debug(f"Experiment name {self.experiment_name}")
 
         run_id = core_utils.get_param(self.training_params, "run_id", None)
-        logger.info(f"Experiment run id {run_id}")
+        logger.debug(f"Experiment run id {run_id}")
 
         self.checkpoints_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
-        logger.info(f"Checkpoints directory {self.checkpoints_dir_path}")
+        logger.debug(f"Checkpoints directory {self.checkpoints_dir_path}")
 
         os.makedirs(self.checkpoints_dir_path, exist_ok=True)
 
@@ -2583,7 +2583,7 @@ class Trainer:
         qdq_onnx_path = os.path.join(
             self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_batch_size_one))}_ptq.onnx"
         )
-        logger.info(f"Output ONNX file path {qdq_onnx_path}")
+        logger.debug(f"Output ONNX file path {qdq_onnx_path}")
 
         if isinstance(model, ExportableObjectDetectionModel):
             model: ExportableObjectDetectionModel = typing.cast(ExportableObjectDetectionModel, model)
