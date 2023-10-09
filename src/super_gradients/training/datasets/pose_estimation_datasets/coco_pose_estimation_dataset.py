@@ -154,7 +154,7 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
         mask: np.ndarray = self.get_mask(anno, image_info)
 
         return PoseEstimationSample(
-            image=orig_image, mask=mask, joints=gt_joints, areas=gt_areas, bboxes=gt_bboxes, is_crowd=gt_iscrowd, additional_samples=None
+            image=orig_image, mask=mask, joints=gt_joints, areas=gt_areas, bboxes_xywh=gt_bboxes, is_crowd=gt_iscrowd, additional_samples=None
         )
 
     def get_mask(self, anno, img_info) -> np.ndarray:

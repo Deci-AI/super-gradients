@@ -64,7 +64,7 @@ class YoloNASPoseCollateFN:
         if sample.image.shape[:2] != sample.mask.shape[:2]:
             raise ValueError(f"Image and mask should have the same shape {sample.image.shape[:2]} != {sample.mask.shape[:2]}")
 
-        boxes_xyxy = xywh_to_xyxy(sample.bboxes, image_shape=None)
+        boxes_xyxy = xywh_to_xyxy(sample.bboxes_xywh, image_shape=None)
         is_crowd = sample.is_crowd
         if is_crowd is None:
             is_crowd = np.zeros(len(boxes_xyxy))

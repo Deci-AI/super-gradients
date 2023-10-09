@@ -148,7 +148,9 @@ class CrowdPoseEstimationDataset(AbstractPoseEstimationDataset):
         joints: np.ndarray = self.get_joints(anno)
         mask: np.ndarray = np.ones((image_height, image_width), dtype=np.uint8)
 
-        return PoseEstimationSample(image=orig_image, mask=mask, joints=joints, areas=gt_areas, bboxes=gt_bboxes, is_crowd=gt_iscrowd, additional_samples=None)
+        return PoseEstimationSample(
+            image=orig_image, mask=mask, joints=joints, areas=gt_areas, bboxes_xywh=gt_bboxes, is_crowd=gt_iscrowd, additional_samples=None
+        )
 
     def get_joints(self, anno: List[Mapping[str, Any]]) -> np.ndarray:
         """
