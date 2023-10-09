@@ -121,8 +121,8 @@ class KeypointsMosaic(AbstractKeypointTransform):
         sample.joints[:, :, 0] += pad_left
         sample.joints[:, :, 1] += pad_top
 
-        sample.bboxes[:, 0] += pad_left
-        sample.bboxes[:, 1] += pad_top
+        sample.bboxes_xywh[:, 0] += pad_left
+        sample.bboxes_xywh[:, 1] += pad_top
 
         return sample
 
@@ -150,7 +150,7 @@ class KeypointsMosaic(AbstractKeypointTransform):
 
         left_sample_width = left.image.shape[1]
 
-        right_bboxes = right.bboxes
+        right_bboxes = right.bboxes_xywh
         if right_bboxes is None:
             right_bboxes = np.zeros((0, 4), dtype=np.float32)
 
@@ -158,11 +158,11 @@ class KeypointsMosaic(AbstractKeypointTransform):
         right_bboxes_offset = np.array([left_sample_width, 0, 0, 0], dtype=right_bboxes.dtype).reshape((1, 4))
 
         joints = np.concatenate([left.joints, right.joints + right_joints_offset], axis=0)
-        bboxes = self._concatenate_arrays(left.bboxes, right_bboxes + right_bboxes_offset, shape_if_empty=(0, 4))
+        bboxes = self._concatenate_arrays(left.bboxes_xywh, right_bboxes + right_bboxes_offset, shape_if_empty=(0, 4))
 
         is_crowd = np.concatenate([left.is_crowd, right.is_crowd], axis=0)
         areas = self._concatenate_arrays(left.areas, right.areas, shape_if_empty=(0,))
-        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas, additional_samples=None)
+        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes_xywh=bboxes, areas=areas, additional_samples=None)
 
     def _stack_samples_vertically(self, top: PoseEstimationSample, bottom: PoseEstimationSample) -> PoseEstimationSample:
         """
@@ -189,7 +189,7 @@ class KeypointsMosaic(AbstractKeypointTransform):
 
         top_sample_height = top.image.shape[0]
 
-        bottom_bboxes = bottom.bboxes
+        bottom_bboxes = bottom.bboxes_xywh
         if bottom_bboxes is None:
             bottom_bboxes = np.zeros((0, 4), dtype=np.float32)
 
@@ -197,11 +197,11 @@ class KeypointsMosaic(AbstractKeypointTransform):
         bottom_bboxes_offset = np.array([0, top_sample_height, 0, 0], dtype=bottom_bboxes.dtype).reshape((1, 4))
 
         joints = np.concatenate([top.joints, bottom.joints + bottom_joints_offset], axis=0)
-        bboxes = self._concatenate_arrays(top.bboxes, bottom_bboxes + bottom_bboxes_offset, shape_if_empty=(0, 4))
+        bboxes = self._concatenate_arrays(top.bboxes_xywh, bottom_bboxes + bottom_bboxes_offset, shape_if_empty=(0, 4))
 
         is_crowd = np.concatenate([top.is_crowd, bottom.is_crowd], axis=0)
         areas = self._concatenate_arrays(top.areas, bottom.areas, shape_if_empty=(0,))
-        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes=bboxes, areas=areas, additional_samples=None)
+        return PoseEstimationSample(image=image, mask=mask, joints=joints, is_crowd=is_crowd, bboxes_xywh=bboxes, areas=areas, additional_samples=None)
 
     def _concatenate_arrays(self, arr1: Optional[np.ndarray], arr2: Optional[np.ndarray], shape_if_empty) -> Optional[np.ndarray]:
         """

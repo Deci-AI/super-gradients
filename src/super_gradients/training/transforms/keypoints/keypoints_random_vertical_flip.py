@@ -37,8 +37,8 @@ class KeypointsRandomVerticalFlip(AbstractKeypointTransform):
             rows, cols = sample.image.shape[:2]
             sample.joints = self.apply_to_keypoints(sample.joints, rows)
 
-            if sample.bboxes is not None:
-                sample.bboxes = self.apply_to_bboxes(sample.bboxes, rows)
+            if sample.bboxes_xywh is not None:
+                sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, rows)
 
         return sample
 

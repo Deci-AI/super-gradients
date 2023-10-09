@@ -65,8 +65,8 @@ class KeypointsPadIfNeeded(AbstractKeypointTransform):
         ).astype(original_dtype)
 
         sample.joints = self.apply_to_keypoints(sample.joints, pad_left, pad_top)
-        if sample.bboxes is not None:
-            sample.bboxes = self.apply_to_bboxes(sample.bboxes, pad_left, pad_top)
+        if sample.bboxes_xywh is not None:
+            sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, pad_left, pad_top)
 
         return sample
 

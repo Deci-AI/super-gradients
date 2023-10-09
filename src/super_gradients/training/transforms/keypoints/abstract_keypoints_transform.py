@@ -35,12 +35,12 @@ class AbstractKeypointTransform(abc.ABC):
             mask=mask,
             joints=joints,
             areas=areas,
-            bboxes=bboxes,
+            bboxes_xywh=bboxes,
             is_crowd=np.zeros(len(joints)),  # Old style API does not pass is_crowd parameter, so we set it to zeros
             additional_samples=None,
         )
         sample = self.apply_to_sample(sample)
-        return sample.image, sample.mask, sample.joints, sample.areas, sample.bboxes
+        return sample.image, sample.mask, sample.joints, sample.areas, sample.bboxes_xywh
 
     @abstractmethod
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:

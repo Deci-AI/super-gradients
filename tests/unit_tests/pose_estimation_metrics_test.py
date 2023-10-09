@@ -2479,7 +2479,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
             # This is out predictions decode function. Here it's no-op since we pass decoded predictions as the input
             # but in real life this post-processing callback should be doing actual pose decoding & NMS
             return [
-                PoseEstimationPredictions(poses=predicted_poses, scores=predicted_scores, bboxes=None)
+                PoseEstimationPredictions(poses=predicted_poses, scores=predicted_scores, bboxes_xyxy=None)
                 for predicted_poses, predicted_scores in zip(preds[0], preds[1])
             ]
 
