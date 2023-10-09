@@ -436,7 +436,8 @@ def maybe_all_reduce_tensor_average(tensor: torch.Tensor) -> torch.Tensor:
     :return:
     """
     if is_distributed():
-        tensor = distributed_all_reduce_tensor_average(tensor=tensor, n=torch.distributed.get_world_size())
+        # .to_dense() is required to ensure we can do maybe_all_reduce_tensor_average(some_vector[3])
+        tensor = distributed_all_reduce_tensor_average(tensor=tensor.to_dense(), n=torch.distributed.get_world_size())
     return tensor
 
 
