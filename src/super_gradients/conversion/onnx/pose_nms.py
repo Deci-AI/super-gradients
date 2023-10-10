@@ -26,6 +26,17 @@ class PoseNMSAndReturnAsBatchedResult(nn.Module):
     __constants__ = ("batch_size", "max_predictions_per_image")
 
     def __init__(self, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int):
+        """
+
+        :param batch_size:                The batch size used for the inference. Since current export does not support dynamic batch size,
+                                          this value must be known at export time.
+        :param num_pre_nms_predictions:   The number of predictions before NMS step (per image).
+                                          Usually it is less than total number of predictions that model outputs
+                                          and top-K predictions are selected (based on score).
+        :param max_predictions_per_image: The number of predictions after NMS step (per image). If after NMS less than
+                                          max_predictions_per_image predictions are left,
+                                          the rest of the predictions will be padded with 0.
+        """
         super().__init__()
         self.batch_size = batch_size
         self.num_pre_nms_predictions = num_pre_nms_predictions
@@ -35,7 +46,7 @@ class PoseNMSAndReturnAsBatchedResult(nn.Module):
         """
         Select the predictions that are output by the NMS plugin.
 
-        :param pred_boxes: [B, N, 4] tensor, float32
+        :param pred_boxes: [B, N, 4] tensor, float32 in XYXY format
         :param pred_scores: [B, N, 1] tensor, float32
         :param pred_joints: [B, N, Num Joints, 3] tensor, float32
         :param selected_indexes: [num_selected_indices, 3], int64 - each row is [batch_indexes, label_indexes, boxes_indexes]
@@ -52,7 +63,6 @@ class PoseNMSAndReturnAsBatchedResult(nn.Module):
         selected_scores = pred_scores[batch_indexes, boxes_indexes, label_indexes]  # [num_detections]
         selected_poses = pred_joints[batch_indexes, boxes_indexes]  # [num_detections, Num Joints, 3]
 
-        # TODO: Refactor this
         predictions = torch.cat([batch_indexes.unsqueeze(1), selected_boxes, selected_scores.unsqueeze(1), selected_poses.flatten(1)], dim=1)
 
         predictions = torch.nn.functional.pad(
@@ -84,7 +94,21 @@ class PoseNMSAndReturnAsBatchedResult(nn.Module):
         return num_predictions.unsqueeze(1), pred_boxes, pred_scores, pred_joints
 
     @classmethod
-    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image, dtype: torch.dtype, device: torch.device) -> gs.Graph:
+    def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int, dtype: torch.dtype, device: torch.device) -> gs.Graph:
+        """
+        Convert this module to a separate ONNX graph in order to attach it to the main model.
+
+        :param batch_size:                The batch size used for the inference. Since current export does not support dynamic batch size,
+                                          this value must be known at export time.
+        :param num_pre_nms_predictions:   The number of predictions before NMS step (per image).
+                                          Usually it is less than total number of predictions that model outputs and top-K
+                                          predictions are selected (based on score).
+        :param max_predictions_per_image: The number of predictions after NMS step (per image). If after NMS less than
+                                          max_predictions_per_image predictions are left, the rest of the predictions will be padded with 0.
+        :param dtype:                     The target dtype for the graph. If user asked for FP16 model we should create underlying graph with FP16 tensors.
+        :param device:                    The target device for exporting graph.
+        :return:                          An instance of GraphSurgeon graph that can be attached to the main model.
+        """
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "PoseNMSAndReturnAsBatchedResult.onnx")
             pre_nms_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
@@ -129,8 +153,11 @@ class PoseNMSAndReturnAsFlatResult(nn.Module):
     def __init__(self, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int):
         """
 
-        :param batch_size:
-        :param num_pre_nms_predictions:
+        :param batch_size:                The batch size used for the inference. Since current export does not support dynamic batch size,
+                                          this value must be known at export time.
+        :param num_pre_nms_predictions:   The number of predictions before NMS step (per image).
+                                          Usually it is less than total number of predictions that model outputs and
+                                          top-K predictions are selected (based on score).
         :param max_predictions_per_image: Not used, exists for compatibility with PoseNMSAndReturnAsBatchedResult
         """
         super().__init__()
@@ -169,6 +196,19 @@ class PoseNMSAndReturnAsFlatResult(nn.Module):
 
     @classmethod
     def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int, dtype: torch.dtype, device: torch.device) -> gs.Graph:
+        """
+        Convert this module to a separate ONNX graph in order to attach it to the main model.
+
+        :param batch_size:                The batch size used for the inference. Since current export does not support dynamic batch size,
+                                          this value must be known at export time.
+        :param num_pre_nms_predictions:   The number of predictions before NMS step (per image).
+                                          Usually it is less than total number of predictions that model outputs and
+                                          top-K predictions are selected (based on score).
+        :param max_predictions_per_image: Not used, exists for compatibility with PoseNMSAndReturnAsBatchedResult
+        :param dtype:                     The target dtype for the graph. If user asked for FP16 model we should create underlying graph with FP16 tensors.
+        :param device:                    The target device for exporting graph.
+        :return:                          An instance of GraphSurgeon graph that can be attached to the main model.
+        """
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "PoseNMSAndReturnAsFlatResult.onnx")
             pre_nms_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
@@ -216,13 +256,13 @@ def attach_onnx_pose_nms(
         - pred_joints: [batch_size, num_pre_nms_predictions, num_joints, 3]
     This function will add the NMS layer to the model and return predictions in the format defined by output_format.
 
-    :param onnx_model_path: Input ONNX model path
-    :param output_onnx_model_path: Output ONNX model path. Can be the same as input model path.
+    :param onnx_model_path:           Input ONNX model path
+    :param output_onnx_model_path:    Output ONNX model path. Can be the same as input model path.
     :param num_pre_nms_predictions:
-    :param batch_size: The batch size used for the inference.
+    :param batch_size:                The batch size used for the inference.
     :param max_predictions_per_image: Maximum number of predictions per image
-    :param confidence_threshold: The confidence threshold to use for detections.
-    :param nms_threshold: The NMS threshold to use for detections.
+    :param confidence_threshold:      The confidence threshold to use for detections.
+    :param nms_threshold:             The NMS threshold to use for detections.
     :param output_predictions_format: The output format of the predictions. Can be "flat" or "batch".
 
     If output_format equals to "flat":
@@ -237,7 +277,8 @@ def attach_onnx_pose_nms(
     - A tensor of [batch_size, max_output_boxes] containing the confidence scores for each detection.
     - A tensor of [batch_size, max_output_boxes, num_joints, 3] containing the predicted pose coordinates and confidence scores for each joint.
 
-    :return: None
+    :param device:                    The device to use for the conversion.
+    :return:                          Function returns None, instead it saves model with attached NMS to output_onnx_model_path
     """
     graph = gs.import_onnx(onnx.load(onnx_model_path))
     graph.fold_constants()
