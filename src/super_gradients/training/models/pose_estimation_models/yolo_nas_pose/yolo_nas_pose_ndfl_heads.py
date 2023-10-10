@@ -96,16 +96,6 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         return heads_list
 
     @torch.jit.ignore
-    def cache_anchors(self, input_size: Tuple[int, int]):
-        self.eval_size = input_size
-        device = infer_model_device(self)
-        dtype = infer_model_dtype(self)
-
-        anchor_points, stride_tensor = self._generate_anchors(dtype=dtype, device=device)
-        self.register_buffer("anchor_points", anchor_points, persistent=False)
-        self.register_buffer("stride_tensor", stride_tensor, persistent=False)
-
-    @torch.jit.ignore
     def _init_weights(self):
         if self.eval_size:
             device = infer_model_device(self)
@@ -115,8 +105,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             self.anchor_points = anchor_points
             self.stride_tensor = stride_tensor
 
-    def forward_eval(self, feats: Tuple[Tensor, ...]):
-
+    def forward(self, feats: Tuple[Tensor, ...]):
         cls_score_list, reg_distri_list, reg_dist_reduced_list = [], [], []
         pose_regression_list = []
         pose_logits_list = []
@@ -183,9 +172,6 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
     @property
     def out_channels(self):
         return None
-
-    def forward(self, feats: Tuple[Tensor]):
-        return self.forward_eval(feats)
 
     def _generate_anchors(self, feats=None, dtype=None, device=None):
         # just use in eval time
