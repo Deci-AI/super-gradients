@@ -303,7 +303,6 @@ class TestDetectionModelExport(unittest.TestCase):
 
         max_predictions_per_image = 300
         with tempfile.TemporaryDirectory() as tmpdirname:
-            tmpdirname = "."
             out_path = os.path.join(tmpdirname, "ppyoloe_s_with_fp16_quantization.onnx")
 
             ppyolo_e: ExportableObjectDetectionModel = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")

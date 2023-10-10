@@ -61,8 +61,7 @@ train_dataloader_params:
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
-  collate_fn: # collate function for trainset
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  collate_fn: DetectionCollateFN
 
 val_dataset_params:
   data_dir: ${..data_dir} # root path to Robflow datasets
@@ -94,8 +93,7 @@ val_dataloader_params:
   drop_last: False
   shuffle: False
   pin_memory: True
-  collate_fn: # collate function for valset
-    _target_: super_gradients.training.utils.detection_utils.CrowdDetectionCollateFN
+  collate_fn: CrowdDetectionCollateFN
 
 
 _convert_: all
