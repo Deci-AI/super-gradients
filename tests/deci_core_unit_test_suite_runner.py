@@ -30,6 +30,7 @@ from tests.unit_tests.detection_utils_test import TestDetectionUtils
 from tests.unit_tests.detection_dataset_test import DetectionDatasetTest
 from tests.unit_tests.export_detection_model_export_test import TestDetectionModelExport
 from tests.unit_tests.export_onnx_test import TestModelsONNXExport
+from tests.unit_tests.export_pose_estimation_model_test import TestPoseEstimationModelExport
 from tests.unit_tests.extreme_batch_cb_test import ExtremeBatchSanityTest
 from tests.unit_tests.load_checkpoint_test import LoadCheckpointTest
 from tests.unit_tests.local_ckpt_head_replacement_test import LocalCkptHeadReplacementTest
@@ -155,6 +156,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionModelExport))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(SlidingWindowTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDeprecationDecorator))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationModelExport))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

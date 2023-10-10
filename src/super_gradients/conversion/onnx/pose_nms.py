@@ -87,28 +87,33 @@ class PoseNMSAndReturnAsBatchedResult(nn.Module):
     def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image, dtype: torch.dtype, device: torch.device) -> gs.Graph:
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "PoseNMSAndReturnAsBatchedResult.onnx")
-            pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
-            pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 3), dtype=dtype, device=device)
-            pred_joints = torch.zeros((batch_size, num_pre_nms_predictions, 17, 3), dtype=dtype, device=device)
+            pre_nms_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
+            pre_nms_scores = torch.zeros((batch_size, num_pre_nms_predictions, 1), dtype=dtype, device=device)
+            pre_nms_joints = torch.zeros((batch_size, num_pre_nms_predictions, 17, 3), dtype=dtype, device=device)
             selected_indexes = torch.zeros((max_predictions_per_image, 3), dtype=torch.int64, device=device)
 
             torch.onnx.export(
                 PoseNMSAndReturnAsBatchedResult(
                     batch_size=batch_size, num_pre_nms_predictions=num_pre_nms_predictions, max_predictions_per_image=max_predictions_per_image
                 ).to(device=device, dtype=dtype),
-                args=(pred_boxes, pred_scores, pred_joints, selected_indexes),
+                args=(pre_nms_boxes, pre_nms_scores, pre_nms_joints, selected_indexes),
                 f=onnx_file,
-                input_names=["raw_boxes", "raw_scores", "raw_joints", "selected_indexes"],
-                output_names=["num_predictions", "pred_boxes", "pred_scores", "pred_joints"],
+                input_names=["input_pre_nms_boxes", "input_pre_nms_scores", "input_pre_nms_joints", "selected_indexes"],
+                output_names=["num_predictions", "post_nms_boxes", "post_nms_scores", "post_nms_joints"],
                 dynamic_axes={
-                    "raw_boxes": {
+                    "input_pre_nms_boxes": {
                         # 0: "batch_size",
                         # 1: "num_anchors"
                     },
-                    "raw_scores": {
+                    "input_pre_nms_scores": {
                         # 0: "batch_size",
                         # 1: "num_anchors",
-                        2: "num_joints",  # TODO: Perhaps, we should make this static
+                    },
+                    "input_pre_nms_joints": {
+                        # 0: "batch_size",
+                        # 1: "num_anchors",
+                        # We can make this static, although it would complicate the code as one would have to pass the number of joints to the function
+                        2: "num_joints",
                     },
                     "selected_indexes": {0: "num_predictions"},
                 },
@@ -166,22 +171,23 @@ class PoseNMSAndReturnAsFlatResult(nn.Module):
     def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int, dtype: torch.dtype, device: torch.device) -> gs.Graph:
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "PoseNMSAndReturnAsFlatResult.onnx")
-            pred_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
-            pred_scores = torch.zeros((batch_size, num_pre_nms_predictions, 1), dtype=dtype, device=device)
-            pred_joints = torch.zeros((batch_size, num_pre_nms_predictions, 17, 3), dtype=dtype, device=device)
+            pre_nms_boxes = torch.zeros((batch_size, num_pre_nms_predictions, 4), dtype=dtype, device=device)
+            pre_nms_scores = torch.zeros((batch_size, num_pre_nms_predictions, 1), dtype=dtype, device=device)
+            pre_nms_joints = torch.zeros((batch_size, num_pre_nms_predictions, 17, 3), dtype=dtype, device=device)
             selected_indexes = torch.zeros((max_predictions_per_image // 2, 3), dtype=torch.int64, device=device)
 
             torch.onnx.export(
                 PoseNMSAndReturnAsFlatResult(
                     batch_size=batch_size, num_pre_nms_predictions=num_pre_nms_predictions, max_predictions_per_image=max_predictions_per_image
                 ),
-                args=(pred_boxes, pred_scores, pred_joints, selected_indexes),
+                args=(pre_nms_boxes, pre_nms_scores, pre_nms_joints, selected_indexes),
                 f=onnx_file,
-                input_names=["raw_boxes", "raw_scores", "raw_joints", "selected_indexes"],
+                input_names=["input_pre_nms_boxes", "input_pre_nms_scores", "input_pre_nms_joints", "selected_indexes"],
                 output_names=["flat_predictions"],
                 dynamic_axes={
-                    "pred_boxes": {},
-                    "pred_joints": {2: "num_joints"},
+                    "input_pre_nms_boxes": {},
+                    "input_pre_nms_scores": {},
+                    "input_pre_nms_joints": {2: "num_joints"},
                     "selected_indexes": {0: "num_predictions"},
                     "flat_predictions": {0: "num_predictions"},
                 },
