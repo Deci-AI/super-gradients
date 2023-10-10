@@ -126,6 +126,7 @@ class Pipeline(ABC):
         from super_gradients.training.utils.media.image import load_images
 
         images = load_images(images)
+
         result_generator = self._generate_prediction_result(images=images, batch_size=batch_size)
         return self._combine_image_prediction_to_images(result_generator, n_images=len(images))
 

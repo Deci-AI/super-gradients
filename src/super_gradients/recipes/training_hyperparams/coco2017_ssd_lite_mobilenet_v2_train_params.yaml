@@ -3,11 +3,11 @@ defaults:
 
 ema: True
 max_epochs: 400
-lr_mode: cosine
+lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0.01
 batch_accumulate: 1
 initial_lr: 0.01
-loss: ssd_loss
+loss: SSDLoss
 
 criterion_params:
   alpha: 1.0

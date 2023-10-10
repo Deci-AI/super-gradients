@@ -8,7 +8,7 @@ from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.losses import YoloXDetectionLoss, YoloXFastDetectionLoss
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X
-from super_gradients.training.utils.detection_utils import DetectionCollateFN
+from super_gradients.training.utils.collate_fn import DetectionCollateFN
 from super_gradients.training.utils.utils import HpmStruct
 
 
