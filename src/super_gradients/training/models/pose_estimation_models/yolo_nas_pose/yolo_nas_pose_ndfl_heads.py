@@ -25,7 +25,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         self,
         num_classes: int,
         in_channels: Tuple[int, int, int],
-        heads_list: Union[str, HpmStruct, DictConfig],
+        heads_list: List[Union[HpmStruct, DictConfig]],
         grid_cell_scale: float = 5.0,
         grid_cell_offset: float = 0.5,
         reg_max: int = 16,
@@ -75,7 +75,7 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         self._init_weights()
 
         factory = det_factory.DetectionModulesFactory()
-        heads_list = self._pass_args(heads_list, factory, num_classes, reg_max)
+        heads_list = self._insert_heads_list_params(heads_list, factory, num_classes, reg_max)
 
         self.num_heads = len(heads_list)
         fpn_strides: List[int] = []
@@ -94,7 +94,18 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         self.num_classes = num_classes
 
     @staticmethod
-    def _pass_args(heads_list, factory, num_classes, reg_max):
+    def _insert_heads_list_params(
+        heads_list: List[Union[HpmStruct, DictConfig]], factory: det_factory.DetectionModulesFactory, num_classes: int, reg_max: int
+    ) -> List[Union[HpmStruct, DictConfig]]:
+        """
+        Injects num_classes and reg_max parameters into the heads_list.
+
+        :param heads_list:  Input heads list
+        :param factory:     DetectionModulesFactory
+        :param num_classes: Number of classes
+        :param reg_max:     Number of bins in the regression head
+        :return:            Heads list with injected parameters
+        """
         for i in range(len(heads_list)):
             heads_list[i] = factory.insert_module_param(heads_list[i], "num_classes", num_classes)
             heads_list[i] = factory.insert_module_param(heads_list[i], "reg_max", reg_max)
