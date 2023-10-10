@@ -13,6 +13,11 @@ from super_gradients.training.utils import HpmStruct, torch_version_is_greater_o
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.training.utils.utils import infer_model_dtype, infer_model_device
 
+# Declare type aliases for better readability
+# We cannot use typing.TypeAlias since it is not supported in python 3.7
+YoloNasPoseDecodedPredictions = Tuple[Tensor, Tensor, Tensor, Tensor]
+YoloNasPoseRawOutputs = Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, List[int], Tensor]
+
 
 @register_detection_module()
 class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
@@ -105,7 +110,22 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
             self.anchor_points = anchor_points
             self.stride_tensor = stride_tensor
 
-    def forward(self, feats: Tuple[Tensor, ...]):
+    def forward(self, feats: Tuple[Tensor, ...]) -> Union[YoloNasPoseDecodedPredictions, Tuple[YoloNasPoseDecodedPredictions, YoloNasPoseRawOutputs]]:
+        """
+        Runs the forward for all the underlying heads and concatenate the predictions to a single result.
+        :param feats: List of feature maps from the neck of different strides
+        :return: Return value depends on the mode:
+        If tracing, a tuple of 4 tensors (decoded predictions) is returned:
+        - pred_bboxes [B, Num Anchors, 4] - Predicted boxes in XYXY format
+        - pred_scores [B, Num Anchors, 1] - Predicted scores for each box
+        - pred_pose_coords [B, Num Anchors, Num Keypoints, 2] - Predicted poses in XY format
+        - pred_pose_scores [B, Num Anchors, Num Keypoints] - Predicted scores for each keypoint
+
+        In training/eval mode, a tuple of 2 tensors returned:
+        - decoded predictions - they are the same as in tracing mode
+        - raw outputs - a tuple of 8 elements in total, this is needed for training the model.
+        """
+
         cls_score_list, reg_distri_list, reg_dist_reduced_list = [], [], []
         pose_regression_list = []
         pose_logits_list = []
