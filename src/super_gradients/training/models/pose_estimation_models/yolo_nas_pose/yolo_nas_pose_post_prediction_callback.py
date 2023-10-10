@@ -50,8 +50,8 @@ class YoloNASPosePostPredictionCallback(AbstractPoseEstimationPostPredictionCall
         for pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores in zip(*predictions):
             # pred_bboxes [Anchors, 4] in XYXY format
             # pred_scores [Anchors, 1] confidence scores [0..1]
-            # pred_pose_coords [Anchors, 17, 2] in (x,y) format
-            # pred_pose_scores [Anchors, 17] confidence scores [0..1]
+            # pred_pose_coords [Anchors, Num Keypoints, 2] in (x,y) format
+            # pred_pose_scores [Anchors, Num Keypoints] confidence scores [0..1]
 
             pred_bboxes_conf = pred_bboxes_conf.squeeze(-1)  # [Anchors]
             conf_mask = pred_bboxes_conf >= self.pose_confidence_threshold  # [Anchors]
@@ -81,7 +81,7 @@ class YoloNASPosePostPredictionCallback(AbstractPoseEstimationPostPredictionCall
                     pred_pose_scores[idx_to_keep].unsqueeze(-1),
                 ],
                 dim=-1,
-            )  # [Instances, 17, 3]
+            )  # [Instances, Num Keypoints, 3]
 
             decoded_predictions.append(
                 PoseEstimationPredictions(

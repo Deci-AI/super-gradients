@@ -62,12 +62,12 @@ def batch_pose_oks(gt_keypoints: torch.Tensor, pred_keypoints: torch.Tensor, gt_
     # Infer pose area from bbox area * 0.53 (COCO heuristic)
     area = (gt_bboxes_xyxy[:, :, 2] - gt_bboxes_xyxy[:, :, 0]) * (gt_bboxes_xyxy[:, :, 3] - gt_bboxes_xyxy[:, :, 1]) * 0.53  # [N, M1]
     area = area[:, :, None, None]  # [N, M1, 1, 1]
-    sigmas = sigmas.reshape([1, 1, 1, -1])  # [1, 1, 1, 17]
+    sigmas = sigmas.reshape([1, 1, 1, -1])  # [1, 1, 1, Num Keypoints]
 
     e: Tensor = d / (2 * sigmas) ** 2 / (area + eps) / 2
-    oks = torch.exp(-e)  # [N, M1, M2, 17]
+    oks = torch.exp(-e)  # [N, M1, M2, Num Keypoints]
 
-    joints1_visiblity = gt_keypoints[:, :, :, 2].gt(0).float().unsqueeze(2)  # [N, M1, 1, 17]
+    joints1_visiblity = gt_keypoints[:, :, :, 2].gt(0).float().unsqueeze(2)  # [N, M1, 1, Num Keypoints]
     num_visible_joints = joints1_visiblity.sum(dim=-1, keepdim=False)  # [N, M1, M2]
     mean_oks = (oks * joints1_visiblity).sum(dim=-1, keepdim=False) / (num_visible_joints + eps)  # [N, M1, M2]
 
@@ -129,11 +129,11 @@ class YoloNASPoseTaskAlignedAssigner(nn.Module):
 
         :param pred_scores: Tensor (float32): predicted class probability, shape(B, L, C)
         :param pred_bboxes: Tensor (float32): predicted bounding boxes, shape(B, L, 4)
-        :param pred_pose_coords: Tensor (float32): predicted poses, shape(B, L, 17, 2)
+        :param pred_pose_coords: Tensor (float32): predicted poses, shape(B, L, Num Keypoints, 2)
         :param anchor_points: Tensor (float32): pre-defined anchors, shape(L, 2), xy format
         :param gt_labels: Tensor (int64|int32): Label of gt_bboxes, shape(B, n, 1)
         :param gt_bboxes: Tensor (float32): Ground truth bboxes, shape(B, n, 4)
-        :param gt_poses: Tensor (float32): Ground truth poses, shape(B, n, 17, 3)
+        :param gt_poses: Tensor (float32): Ground truth poses, shape(B, n, Num Keypoints, 3)
         :param gt_crowd: Tensor (int): Whether the gt is crowd, shape(B, n, 1)
         :param pad_gt_mask: Tensor (float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
         :param bg_index: int ( background index
