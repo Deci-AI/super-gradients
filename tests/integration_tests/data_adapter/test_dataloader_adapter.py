@@ -1,13 +1,15 @@
 import unittest
 import tempfile
+import shutil
 import torch
 
-from torchvision.datasets import VOCDetection, Caltech101
-from torchvision.transforms import Compose, ToTensor, Resize
+from torchvision.datasets import VOCDetection, VOCSegmentation, Caltech101
+from torchvision.transforms import Compose, ToTensor, Resize, InterpolationMode
 
 from data_gradients.managers.detection_manager import DetectionAnalysisManager
 from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 from data_gradients.managers.classification_manager import ClassificationAnalysisManager
+from data_gradients.dataset_adapters.config.data_config import SegmentationDataConfig
 
 from super_gradients.training.dataloaders.adapters import (
     DetectionDataloaderAdapterFactory,
@@ -17,197 +19,198 @@ from super_gradients.training.dataloaders.adapters import (
 
 
 class DataloaderAdapterTest(unittest.TestCase):
-    def torch_classification(self):
-        with tempfile.TemporaryDirectory() as tmpdirname:
+    def setUp(self) -> None:
+        self.tmp_dir = tempfile.mkdtemp()
 
-            class ToRGB:
-                def __call__(self, pic):
-                    return pic.convert("RGB")
+    def tearDown(self):
+        shutil.rmtree(self.tmp_dir)
 
-            train_set = Caltech101(root=tmpdirname, download=True, transform=Compose([ToRGB(), ToTensor(), Resize((512, 512))]))
+    def test_torch_classification(self):
+        class ToRGB:
+            def __call__(self, pic):
+                return pic.convert("RGB")
 
-            analyzer = ClassificationAnalysisManager(
-                train_data=train_set,
-                val_data=train_set,
-                report_title="Caltech101",
-                class_names=train_set.categories,
-                batches_early_stop=4,
-                n_image_channels=3,
-                use_cache=True,
-            )
-            analyzer.run()
+        train_set = Caltech101(root=self.tmp_dir, download=True, transform=Compose([ToRGB(), ToTensor(), Resize((512, 512))]))
 
-            train_loader = ClassificationDataloaderAdapterFactory.from_dataset(
-                dataset=train_set,
-                config_path=analyzer.data_config.cache_path,
-                batch_size=20,
-            )
+        analyzer = ClassificationAnalysisManager(
+            train_data=train_set,
+            val_data=train_set,
+            log_dir=self.tmp_dir,
+            report_title="Caltech101",
+            class_names=train_set.categories,
+            batches_early_stop=4,
+            n_image_channels=3,
+            use_cache=True,
+        )
+        analyzer.run()
 
-            images, labels = next(iter(train_loader))
-            self.assertTrue(images.shape == torch.Size([20, 3, 512, 512]))
-            self.assertTrue(labels.shape == torch.Size([20]))
+        train_loader = ClassificationDataloaderAdapterFactory.from_dataset(
+            dataset=train_set,
+            config_path=analyzer.data_config.cache_path,
+            batch_size=20,
+        )
 
-    def torchvision_detection(self):
+        images, labels = next(iter(train_loader))
+        self.assertTrue(images.shape == torch.Size([20, 3, 512, 512]))
+        self.assertTrue(labels.shape == torch.Size([20]))
 
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            train_set = VOCDetection(
-                root=tmpdirname,
-                image_set="train",
-                download=True,
-                year="2007",
-                transform=Compose([Resize(size=(720, 720))]),
-            )
-            val_set = VOCDetection(
-                root=tmpdirname,
-                image_set="val",
-                download=True,
-                year="2007",
-                transform=Compose([Resize(size=(720, 720))]),
-            )
+    def test_torchvision_detection(self):
 
-            import numpy as np
+        train_set = VOCDetection(
+            root=self.tmp_dir,
+            image_set="train",
+            download=True,
+            year="2007",
+            transform=Compose([Resize(size=(720, 720))]),
+        )
+        val_set = VOCDetection(
+            root=self.tmp_dir,
+            image_set="val",
+            download=True,
+            year="2007",
+            transform=Compose([Resize(size=(720, 720))]),
+        )
 
-            PASCAL_VOC_CLASS_NAMES = (
-                "aeroplane",
-                "bicycle",
-                "bird",
-                "boat",
-                "bottle",
-                "bus",
-                "car",
-                "cat",
-                "chair",
-                "cow",
-                "diningtable",
-                "dog",
-                "horse",
-                "motorbike",
-                "person",
-                "pottedplant",
-                "sheep",
-                "sofa",
-                "train",
-                "tvmonitor",
-            )
+        import numpy as np
 
-            def voc_format_to_bbox(sample: tuple) -> np.ndarray:
-                target_annotations = sample[1]
-                targets = []
-                for target in target_annotations["annotation"]["object"]:
-                    target_bbox = target["bndbox"]
-                    target_np = np.array(
-                        [
-                            PASCAL_VOC_CLASS_NAMES.index(target["name"]),
-                            float(target_bbox["xmin"]),
-                            float(target_bbox["ymin"]),
-                            float(target_bbox["xmax"]),
-                            float(target_bbox["ymax"]),
-                        ]
-                    )
-                    targets.append(target_np)
-                return np.array(targets, dtype=float)
+        PASCAL_VOC_CLASS_NAMES = (
+            "aeroplane",
+            "bicycle",
+            "bird",
+            "boat",
+            "bottle",
+            "bus",
+            "car",
+            "cat",
+            "chair",
+            "cow",
+            "diningtable",
+            "dog",
+            "horse",
+            "motorbike",
+            "person",
+            "pottedplant",
+            "sheep",
+            "sofa",
+            "train",
+            "tvmonitor",
+        )
 
-            from data_gradients.dataset_adapters.config.data_config import DetectionDataConfig
+        def voc_format_to_bbox(sample: tuple) -> np.ndarray:
+            target_annotations = sample[1]
+            targets = []
+            for target in target_annotations["annotation"]["object"]:
+                target_bbox = target["bndbox"]
+                target_np = np.array(
+                    [
+                        PASCAL_VOC_CLASS_NAMES.index(target["name"]),
+                        float(target_bbox["xmin"]),
+                        float(target_bbox["ymin"]),
+                        float(target_bbox["xmax"]),
+                        float(target_bbox["ymax"]),
+                    ]
+                )
+                targets.append(target_np)
+            return np.array(targets, dtype=float)
 
-            analyzer = DetectionAnalysisManager(
-                report_title="VOC_from_torch",
-                train_data=train_set,
-                val_data=val_set,
-                labels_extractor=voc_format_to_bbox,
-                class_names=PASCAL_VOC_CLASS_NAMES,
-                # class_names=train_set,
-                batches_early_stop=20,
-                use_cache=True,  # With this we will be asked about the dataset information only once
-                is_label_first=True,
-                bbox_format="cxcywh",
-            )
+        from data_gradients.dataset_adapters.config.data_config import DetectionDataConfig
 
-            analyzer.run()
-            config = DetectionDataConfig(labels_extractor=voc_format_to_bbox, cache_path=analyzer.data_config.cache_path)
-            train_loader = DetectionDataloaderAdapterFactory.from_dataset(
-                dataset=train_set,
-                config=config,
-                batch_size=20,
-                num_workers=0,
-                drop_last=True,
-            )
-            val_loader = DetectionDataloaderAdapterFactory.from_dataset(
-                dataset=train_set,
-                config=config,
-                batch_size=20,
-                num_workers=0,
-                drop_last=True,
-            )
+        analyzer = DetectionAnalysisManager(
+            report_title="VOC_from_torch",
+            log_dir=self.tmp_dir,
+            train_data=train_set,
+            val_data=val_set,
+            labels_extractor=voc_format_to_bbox,
+            class_names=PASCAL_VOC_CLASS_NAMES,
+            # class_names=train_set,
+            batches_early_stop=20,
+            use_cache=True,  # With this we will be asked about the dataset information only once
+            is_label_first=True,
+            bbox_format="cxcywh",
+        )
 
-            for images, labels in train_loader:
-                self.assertTrue(images.ndim == 4)
-                self.assertTrue(images.shape[:2] == torch.Size([20, 3]))
-                self.assertTrue(labels.ndim == 2)
-                self.assertTrue(labels.shape[-1] == 6)
+        analyzer.run()
+        config = DetectionDataConfig(labels_extractor=voc_format_to_bbox, cache_path=analyzer.data_config.cache_path)
+        train_loader = DetectionDataloaderAdapterFactory.from_dataset(
+            dataset=train_set,
+            config=config,
+            batch_size=20,
+            num_workers=0,
+            drop_last=True,
+        )
+        val_loader = DetectionDataloaderAdapterFactory.from_dataset(
+            dataset=train_set,
+            config=config,
+            batch_size=20,
+            num_workers=0,
+            drop_last=True,
+        )
 
-            for images, labels in val_loader:
-                self.assertTrue(images.ndim == 4)
-                self.assertTrue(images.shape[:2] == torch.Size([20, 3]))
-                self.assertTrue(labels.ndim == 2)
-                self.assertTrue(labels.shape[-1] == 6)
+        for images, labels in train_loader:
+            self.assertTrue(images.ndim == 4)
+            self.assertTrue(images.shape[:2] == torch.Size([20, 3]))
+            self.assertTrue(labels.ndim == 2)
+            self.assertTrue(labels.shape[-1] == 6)
 
-    def torchvision_segmentation(self):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            from torchvision.datasets import VOCSegmentation
-            from data_gradients.dataset_adapters.config.data_config import SegmentationDataConfig
-            from torchvision.transforms import Resize, Compose, InterpolationMode
+        for images, labels in val_loader:
+            self.assertTrue(images.ndim == 4)
+            self.assertTrue(images.shape[:2] == torch.Size([20, 3]))
+            self.assertTrue(labels.ndim == 2)
+            self.assertTrue(labels.shape[-1] == 6)
 
-            train_set = VOCSegmentation(
-                root=tmpdirname,
-                image_set="train",
-                download=True,
-                year="2007",
-                transform=Compose([Resize(size=(720, 720))]),
-                target_transform=Compose([Resize((720, 720), interpolation=InterpolationMode.NEAREST)]),
-            )
-            val_set = VOCSegmentation(
-                root=tmpdirname,
-                image_set="val",
-                download=True,
-                year="2007",
-                transform=Compose([Resize(size=(720, 720))]),
-                target_transform=Compose([Resize((720, 720), interpolation=InterpolationMode.NEAREST)]),
-            )
+    def test_torchvision_segmentation(self):
+        train_set = VOCSegmentation(
+            root=self.tmp_dir,
+            image_set="train",
+            download=True,
+            year="2007",
+            transform=Compose([Resize(size=(720, 720))]),
+            target_transform=Compose([Resize((720, 720), interpolation=InterpolationMode.NEAREST)]),
+        )
+        val_set = VOCSegmentation(
+            root=self.tmp_dir,
+            image_set="val",
+            download=True,
+            year="2007",
+            transform=Compose([Resize(size=(720, 720))]),
+            target_transform=Compose([Resize((720, 720), interpolation=InterpolationMode.NEAREST)]),
+        )
 
-            analyzer = SegmentationAnalysisManager(
-                report_title="VOC_SEG_from_torch2",
-                train_data=train_set,
-                val_data=val_set,
-                class_names=list(range(256)),
-                # class_names=train_set,
-                batches_early_stop=20,
-                use_cache=True,  # With this we will be asked about the dataset information only once
-            )
+        analyzer = SegmentationAnalysisManager(
+            report_title="VOC_SEG_from_torch2",
+            log_dir=self.tmp_dir,
+            train_data=train_set,
+            val_data=val_set,
+            class_names=list(range(256)),
+            # class_names=train_set,
+            batches_early_stop=20,
+            use_cache=True,  # With this we will be asked about the dataset information only once
+        )
 
-            analyzer.run()
-            config = SegmentationDataConfig(cache_path=analyzer.data_config.cache_path)
-            train_loader = SegmentationDataloaderAdapterFactory.from_dataset(
-                dataset=train_set,
-                config=config,
-                batch_size=20,
-                num_workers=0,
-                drop_last=True,
-            )
-            val_loader = SegmentationDataloaderAdapterFactory.from_dataset(
-                dataset=train_set,
-                config=config,
-                batch_size=20,
-                num_workers=0,
-                drop_last=True,
-            )
+        analyzer.run()
+        config = SegmentationDataConfig(cache_path=analyzer.data_config.cache_path)
+        train_loader = SegmentationDataloaderAdapterFactory.from_dataset(
+            dataset=train_set,
+            config=config,
+            batch_size=20,
+            num_workers=0,
+            drop_last=True,
+        )
+        val_loader = SegmentationDataloaderAdapterFactory.from_dataset(
+            dataset=train_set,
+            config=config,
+            batch_size=20,
+            num_workers=0,
+            drop_last=True,
+        )
 
-            for images, labels in train_loader:
-                self.assertTrue(images.shape == torch.Size([20, 3, 720, 720]))
-                self.assertTrue(labels.shape == torch.Size([20, 720, 720]))
+        for images, labels in train_loader:
+            self.assertTrue(images.shape == torch.Size([20, 3, 720, 720]))
+            self.assertTrue(labels.shape == torch.Size([20, 720, 720]))
 
-            for images, labels in val_loader:
-                self.assertTrue(images.shape == torch.Size([20, 3, 720, 720]))
-                self.assertTrue(labels.shape == torch.Size([20, 720, 720]))
+        for images, labels in val_loader:
+            self.assertTrue(images.shape == torch.Size([20, 3, 720, 720]))
+            self.assertTrue(labels.shape == torch.Size([20, 720, 720]))
 
 
 if __name__ == "__main__":
