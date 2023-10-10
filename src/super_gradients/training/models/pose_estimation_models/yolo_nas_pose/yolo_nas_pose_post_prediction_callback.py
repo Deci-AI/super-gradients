@@ -87,7 +87,7 @@ class YoloNASPosePostPredictionCallback(AbstractPoseEstimationPostPredictionCall
                 PoseEstimationPredictions(
                     poses=final_poses[: self.post_nms_max_predictions],
                     scores=final_scores[: self.post_nms_max_predictions],
-                    bboxes=final_bboxes[: self.post_nms_max_predictions],
+                    bboxes_xyxy=final_bboxes[: self.post_nms_max_predictions],
                 )
             )
 
