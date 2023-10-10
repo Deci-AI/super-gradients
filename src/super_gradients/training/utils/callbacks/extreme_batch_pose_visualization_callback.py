@@ -1,5 +1,6 @@
 from typing import Optional, Tuple, Callable, List, Union
 
+import typing
 import numpy as np
 import torch
 from omegaconf import OmegaConf
@@ -7,11 +8,18 @@ from torch import Tensor
 from torchmetrics import Metric
 
 from super_gradients.common.registry.registry import register_callback
-from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_collate_fn import undo_flat_collate_tensors_with_batch_index
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy
 from super_gradients.training.utils.callbacks import PhaseContext
 from super_gradients.training.utils.callbacks.callbacks import ExtremeBatchCaseVisualizationCallback
 from super_gradients.training.utils.distributed_training_utils import maybe_all_gather_np_images
 from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
+
+# These imports are required for type hints and not used anywhere else
+# Wrapping them under typing.TYPE_CHECKING is a legit way to avoid circular imports
+# while still having type hints
+if typing.TYPE_CHECKING:
+    from super_gradients.training.samples import PoseEstimationSample
+    from super_gradients.module_interfaces import PoseEstimationPredictions
 
 
 @register_callback("ExtremeBatchPoseEstimationVisualizationCallback")
@@ -19,43 +27,33 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
     """
     ExtremeBatchPoseEstimationVisualizationCallback
 
-    Visualizes worst/best batch in an epoch for Object detection.
-    For clarity, the batch is saved twice in the SG Logger, once with the model's predictions and once with
-     ground truth targets.
+    Visualizes worst/best batch in an epoch for pose estimation task.
+    This class visualize horizontally-stacked GT and predicted poses.
+    It requires a List[PoseEstimationSample] to be present in additional_batch_items - 'gt_samples'.
 
-    Assumptions on bbox dormats:
-     - After applying post_prediction_callback on context.preds, the predictions are a list/Tensor s.t:
-        predictions[i] is a tensor of shape nx6 - (x1, y1, x2, y2, confidence, class) where x and y are in pixel units.
-
-     - context.targets is a tensor of shape (total_num_targets, 6), in LABEL_CXCYWH format:  (index, label, cx, cy, w, h).
-
-
+    Supported models: YoloNASPose
+    Supported datasets: COCOPoseEstimationDataset, CrowdPoseEstimationDataset, AnimalPoseEstimationDataset
 
     Example usage in Yaml config:
 
         training_hyperparams:
           phase_callbacks:
-            - ExtremeBatchDetectionVisualizationCallback:
-                metric:
-                  DetectionMetrics_050:
-                    score_thres: 0.1
-                    top_k_predictions: 300
-                    num_cls: ${num_classes}
-                    normalize_targets: True
-                    post_prediction_callback:
-                      _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
-                      score_threshold: 0.01
-                      nms_top_k: 1000
-                      max_predictions: 300
-                      nms_threshold: 0.7
-                metric_component_name: 'mAP@0.50'
-                post_prediction_callback:
-                  _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
-                  score_threshold: 0.25
-                  nms_top_k: 1000
-                  max_predictions: 300
-                  nms_threshold: 0.7
-                normalize_targets: True
+              - ExtremeBatchPoseEstimationVisualizationCallback:
+                  keypoint_colors: ${dataset_params.keypoint_colors}
+                  edge_colors: ${dataset_params.edge_colors}
+                  edge_links: ${dataset_params.edge_links}
+                  loss_to_monitor: YoloNASPoseLoss/loss
+                  max: True
+                  freq: 1
+                  max_images: 16
+                  enable_on_train_loader: True
+                  enable_on_valid_loader: True
+                  post_prediction_callback:
+                    _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
+                    pose_confidence_threshold: 0.01
+                    nms_iou_threshold: 0.7
+                    pre_nms_max_predictions: 300
+                    post_nms_max_predictions: 30
 
     :param metric: Metric, will be the metric which is monitored.
 
@@ -185,17 +183,24 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
     @torch.no_grad()
     def process_extreme_batch(self) -> np.ndarray:
         """
-        Processes the extreme batch, and returns 2 image batches for visualization - one with predictions and one with GT boxes.
-        :return:Tuple[np.ndarray, np.ndarray], the predictions batch, the GT batch
+        Processes the extreme batch, and returns batche of images for visualization - predictions and GT poses stacked horizontally.
+
+        :return: np.ndarray - the visualization of predictions and GT
         """
+        if "gt_samples" not in self.extreme_additional_batch_items:
+            raise RuntimeError(
+                "ExtremeBatchPoseEstimationVisualizationCallback requires 'gt_samples' to be present in additional_batch_items."
+                "Currently only YoloNASPose model is supported. Old DEKR recipe is not supported at the moment."
+            )
+
         inputs = self.universal_undo_preprocessing_fn(self.extreme_batch)
-        target_boxes, target_joints, target_crowds = self.extreme_targets
-        predictions = self.post_prediction_callback(self.extreme_preds)
+        gt_samples: List[PoseEstimationSample] = self.extreme_additional_batch_items["gt_samples"]
+        predictions: List[PoseEstimationPredictions] = self.post_prediction_callback(self.extreme_preds)
 
         images_to_save_preds = self.visualize_batch(
-            inputs,
+            image_tensor=inputs,
             keypoints=[p.poses for p in predictions],
-            bboxes=[p.bboxes for p in predictions],
+            bboxes=[p.bboxes_xyxy for p in predictions],
             scores=[p.scores for p in predictions],
             is_crowd=None,
             edge_links=self.edge_links,
@@ -205,18 +210,12 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         )
         images_to_save_preds = np.stack(images_to_save_preds)
 
-        batch_size = len(predictions)
-
-        target_joints_unpacked = undo_flat_collate_tensors_with_batch_index(target_joints, batch_size)
-        target_boxes_unpacked = undo_flat_collate_tensors_with_batch_index(target_boxes, batch_size)
-        target_crowd_unpacked = undo_flat_collate_tensors_with_batch_index(target_crowds, batch_size)
-
         images_to_save_gt = self.visualize_batch(
-            inputs,
-            keypoints=target_joints_unpacked,
-            bboxes=target_boxes_unpacked,
+            image_tensor=inputs,
+            keypoints=[gt.joints for gt in gt_samples],
+            bboxes=[xywh_to_xyxy(gt.bboxes_xywh, image_shape=None) if gt.bboxes_xywh is not None else None for gt in gt_samples],
             scores=None,
-            is_crowd=target_crowd_unpacked,
+            is_crowd=[gt.is_crowd for gt in gt_samples],
             edge_links=self.edge_links,
             edge_colors=self.edge_colors,
             keypoint_colors=self.keypoint_colors,
