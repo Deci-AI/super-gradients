@@ -649,7 +649,6 @@ class YoloNASPoseLoss(nn.Module):
         pred_dist = torch.softmax(pred_dist.reshape([b, l, 4, -1]), dim=-1)
 
         reg_max = pred_dist.size(-1) - 1
-        print("pred_dist shape is", pred_dist.shape, "reg_max", reg_max)
         proj_conv = torch.linspace(0, reg_max, reg_max + 1, device=pred_dist.device).reshape([1, reg_max + 1, 1, 1])
 
         pred_dist = torch.nn.functional.conv2d(pred_dist.permute(0, 3, 1, 2), proj_conv).squeeze(1)
