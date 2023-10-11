@@ -1,12 +1,17 @@
 import unittest
+import warnings
 from typing import Union
 
 from omegaconf import DictConfig
 from torch import nn
 
+from super_gradients import setup_device, Trainer
 from super_gradients.common.registry import register_model
 from super_gradients.training import models
-from super_gradients.training.models import CustomizableDetector, get_arch_params
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
+from super_gradients.training.metrics import Accuracy, Top5
+from super_gradients.training.models import CustomizableDetector, get_arch_params, ResNet18
+from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.utils import arch_params_deprecated
 from super_gradients.training.transforms.transforms import DetectionTargetsFormatTransform, DetectionHorizontalFlip, DetectionPaddedRescale
@@ -97,6 +102,59 @@ class DeprecationsUnitTest(unittest.TestCase):
                 assert isinstance(OldHpmStruct(a=1), HpmStruct)
         except ImportError:
             self.fail("ImportError raised unexpectedly for HpmStruct")
+
+    def test_deprecated_criterion_params(self):
+        with self.assertWarns(DeprecationWarning):
+            warnings.simplefilter("always")
+            train_params = {
+                "max_epochs": 4,
+                "lr_decay_factor": 0.1,
+                "lr_updates": [4],
+                "lr_mode": "StepLRScheduler",
+                "lr_warmup_epochs": 0,
+                "initial_lr": 0.1,
+                "loss": "CrossEntropyLoss",
+                "optimizer": "SGD",
+                "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+                "loss": "CrossEntropyLoss",
+                "train_metrics_list": [],
+                "valid_metrics_list": [],
+                "metric_to_watch": "Accuracy",
+                "greater_metric_to_watch_is_better": True,
+            }
+            train_params = TrainingParams(**train_params)
+            train_params.override(criterion_params={"ignore_index": 0})
+
+    def test_train_with_deprecated_criterion_params(self):
+        setup_device(device="cpu")
+        trainer = Trainer("test_train_with_precise_bn_explicit_size")
+        net = ResNet18(num_classes=5, arch_params={})
+        train_params = {
+            "max_epochs": 2,
+            "lr_updates": [1],
+            "lr_decay_factor": 0.1,
+            "lr_mode": "StepLRScheduler",
+            "lr_warmup_epochs": 0,
+            "initial_lr": 0.1,
+            "loss": "CrossEntropyLoss",
+            "criterion_params": {"ignore_index": -300},
+            "optimizer": "SGD",
+            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+            "train_metrics_list": [Accuracy(), Top5()],
+            "valid_metrics_list": [Accuracy(), Top5()],
+            "metric_to_watch": "Accuracy",
+            "greater_metric_to_watch_is_better": True,
+            "precise_bn": True,
+            "precise_bn_batch_size": 100,
+        }
+        trainer.train(
+            model=net,
+            training_params=train_params,
+            train_loader=classification_test_dataloader(batch_size=10),
+            valid_loader=classification_test_dataloader(batch_size=10),
+        )
+
+        self.assertEqual(trainer.criterion.ignore_index, -300)
 
 
 if __name__ == "__main__":
