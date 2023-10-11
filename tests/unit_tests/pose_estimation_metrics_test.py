@@ -12,6 +12,7 @@ import torch.cuda
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
+from super_gradients.module_interfaces import PoseEstimationPredictions
 from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
     remove_duplicate_annotations,
     make_keypoints_outside_image_invisible,
@@ -56,10 +57,13 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         ) = self.generate_noised_predictions(gt, instance_drop_probability=0.1, pose_offset=1)
 
         # Compute metrics using SG implementation
-        def convert_predictions_to_target_format(preds):
+        def convert_predictions_to_target_format(preds) -> List[PoseEstimationPredictions]:
             # This is out predictions decode function. Here it's no-op since we pass decoded predictions as the input
             # but in real life this post-processing callback should be doing actual pose decoding & NMS
-            return preds
+            return [
+                PoseEstimationPredictions(poses=predicted_poses, scores=predicted_scores, bboxes_xyxy=None)
+                for predicted_poses, predicted_scores in zip(preds[0], preds[1])
+            ]
 
         sg_metrics = PoseEstimationMetrics(
             post_prediction_callback=convert_predictions_to_target_format,
