@@ -143,7 +143,6 @@ class DeprecationsUnitTest(unittest.TestCase):
             "valid_metrics_list": [Accuracy(), Top5()],
             "metric_to_watch": "Accuracy",
             "greater_metric_to_watch_is_better": True,
-            "precise_bn": True,
         }
         trainer.train(
             model=net,
