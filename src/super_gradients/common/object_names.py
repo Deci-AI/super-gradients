@@ -418,6 +418,7 @@ class Datasets:
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
+    COCO_POSE_ESTIMATION_DATASET = "COCOPoseEstimationDataset"
 
 
 class Processings:

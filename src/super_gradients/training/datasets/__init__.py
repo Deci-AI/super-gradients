@@ -22,6 +22,7 @@ from super_gradients.training.datasets.segmentation_datasets.supervisely_persons
 from super_gradients.training.datasets.pose_estimation_datasets import (
     COCOKeypointsDataset,
     BaseKeypointsDataset,
+    COCOPoseEstimationDataset,
 )
 
 
@@ -46,6 +47,7 @@ __all__ = [
     "Cifar100",
     "SuperviselyPersonsDataset",
     "COCOKeypointsDataset",
+    "COCOPoseEstimationDataset",
 ]
 
 cv2.setNumThreads(0)
