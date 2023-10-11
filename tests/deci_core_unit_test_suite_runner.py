@@ -37,6 +37,7 @@ from tests.unit_tests.local_ckpt_head_replacement_test import LocalCkptHeadRepla
 from tests.unit_tests.max_batches_loop_break_test import MaxBatchesLoopBreakTest
 from tests.unit_tests.multiple_ignore_indices_segmentation_metrics_test import TestSegmentationMetricsMultipleIgnored
 from tests.unit_tests.pose_estimation_dataset_test import TestPoseEstimationDataset
+from tests.unit_tests.pose_estimation_sample_test import PoseEstimationSampleTest
 from tests.unit_tests.preprocessing_unit_test import PreprocessingUnitTest
 from tests.unit_tests.quantization_utility_tests import QuantizationUtilityTest
 from tests.unit_tests.random_erase_test import RandomEraseTest
@@ -159,6 +160,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDeprecationDecorator))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationModelExport))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(YoloNASPoseTests))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PoseEstimationSampleTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
