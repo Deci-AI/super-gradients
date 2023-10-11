@@ -73,7 +73,7 @@ In the tutorial provided, we demonstrate how to fine-tune PPLiteSeg on a subset 
 You can run the following code in our [google collab](https://colab.research.google.com/drive/1d7cU0NsUj7jnOF1YSap_DH9r79G3-Cr4?usp=sharing#scrollTo=GqH4VGMroWec).
 
 ## Load a dataset
-In this example we will work with supervisely-persons. If it's the first time you are using this dataset, or if you want to use another dataset please check out [dataset setup instructions](...)
+In this example we will work with supervisely-persons. If it's the first time you are using this dataset, or if you want to use another dataset please check out [dataset setup instructions](Data.md)
 ```py
 from super_gradients.training import dataloaders
 
@@ -143,12 +143,12 @@ from super_gradients.training.metrics.segmentation_metrics import BinaryIOU
 
 train_params = {
     "max_epochs": 30,
-    "lr_mode": "cosine",
+    "lr_mode": "CosineLRScheduler",
     "initial_lr": 0.005,
     "lr_warmup_epochs": 5,
     "multiply_head_lr": 10,
     "optimizer": "SGD",
-    "loss": "bce_dice_loss",
+    "loss": "BCEDiceLoss",
     "ema": True,
     "zero_weight_decay_on_bias_and_bn": True,
     "average_best_models": True,

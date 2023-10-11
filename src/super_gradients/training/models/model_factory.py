@@ -153,6 +153,13 @@ def instantiate_model(
             net = architecture_cls(arch_params=arch_params)
 
         if pretrained_weights:
+            # The logic is follows - first we initialize the preprocessing params using default hard-coded params
+            # If pretrained checkpoint contains preprocessing params, new params will be loaded and override the ones from
+            # this step in load_pretrained_weights_local/load_pretrained_weights
+            if isinstance(net, HasPredict):
+                processing_params = get_pretrained_processing_params(model_name, pretrained_weights)
+                net.set_dataset_processing_params(**processing_params)
+
             if is_remote and pretrained_weights_path:
                 load_pretrained_weights_local(net, model_name, pretrained_weights_path)
             else:
@@ -161,11 +168,6 @@ def instantiate_model(
             if pretrained_weights in PRETRAINED_NUM_CLASSES.keys() and num_classes_new_head != arch_params.num_classes:
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
-
-            # STILL NEED TO GET PREPROCESSING PARAMS IN CASE CHECKPOINT HAS NO RECIPE
-            if isinstance(net, HasPredict):
-                processing_params = get_pretrained_processing_params(model_name, pretrained_weights)
-                net.set_dataset_processing_params(**processing_params)
 
     _add_model_name_attribute(net, model_name)
 

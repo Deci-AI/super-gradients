@@ -1,7 +1,9 @@
 # Training an external model
 
-In this example we will use SuperGradients to train a deep learning segmentation model to extract human portraits from  
-images, i.e., to remove the background from the image. We will show how SuperGradients allows seamless integration of 
+In this example we will use SuperGradients to train a deep learning segmentation model to extract human portraits from 
+images, i.e., to remove the background from the image. 
+
+We will show how SuperGradients allows seamless integration of 
 an external model, dataset, loss function, and metric into the training pipeline. 
 
 ## Quick installation
@@ -561,28 +563,18 @@ Our custom metric is now ready to use with our training pipeline.
 
 ## 5. Experiment configuration
 
-We now have the implementation of all external components we wish to incorporate into our training
-pipeline. Let's put it all together.
+### Trainer
+First, we will initialize the `Trainer`. It handles:
+- Model training
+- Evaluating test data
+- Making predictions
+- Saving and managing checkpoints
 
-First, we will initialize our trainer, which is in charge of training the model, evaluating test data, making 
-predictions, and saving checkpoints. To initialize the trainer, we provide an experiment name, and a checkpoints root 
-directory via the `ckpt_root_dir` parameter. In this directory, all of the experiment's logs, tensorboards, and 
-checkpoint directories will reside. A directory with the experiment's name will be created as a subdirectory of 
-`ckpt_root_dir` as follows:
 
-```
-ckpt_root_dir
-|─── experiment_name_1
-│       ckpt_best.pth                     # Model checkpoint on best epoch
-│       ckpt_latest.pth                   # Model checkpoint on last epoch
-│       average_model.pth                 # Model checkpoint averaged over epochs
-│       events.out.tfevents.1659878383... # Tensorflow artifacts of a specific run
-│       log_Aug07_11_52_48.txt            # Trainer logs of a specific run
-└─── experiment_name_2
-        ...
-```
+To initialize it, you need:
 
-We initialize the trainer as follows:
+- **Experiment Name:** A unique identifier for your training experiment.
+- **Checkpoint Root Directory (`ckpt_root_dir`):** The directory where checkpoints, logs, and tensorboards are saved. While optional, if unspecified, it assumes the presence of a 'checkpoints' directory in your project's root.
 
 ```python
 from super_gradients import Trainer
@@ -593,6 +585,45 @@ CHECKPOINT_DIR = '/path/to/checkpoints/root/dir'
 trainer = Trainer(experiment_name=experiment_name, ckpt_root_dir=CHECKPOINT_DIR)
 ```
 
+### Understanding the Checkpoint Structure
+
+Checkpoints are crucial for progressive training, debugging, and model deployment. SuperGradients organizes them in a structured manner. Here's what the directory hierarchy looks like under your specified `ckpt_root_dir`:
+
+```
+<ckpt_root_dir>
+│
+├── <experiment_name>
+│   │
+│   ├─── <run_dir>
+│   │     ├─ ckpt_best.pth                   # Best performance during validation
+│   │     ├─ ckpt_latest.pth                 # End of the most recent epoch
+│   │     ├─ average_model.pth               # Averaged over specified epochs
+│   │     ├─ ckpt_epoch_*.pth                # Checkpoints from specific epochs (like epoch 10, 15, etc.)
+│   │     ├─ events.out.tfevents.*           # Tensorflow run artifacts
+│   │     └─ log_<timestamp>.txt             # Trainer logs of the specific run
+│   │
+│   └─── <other_run_dir>
+│        └─ ...
+│
+└─── <other_experiment_name>
+    │
+    ├─── <run_dir>
+    │     └─ ...
+    │
+    └─── <another_run_dir>
+          └─ ...
+```
+
+In this structure:
+
+- `ckpt_best.pth`: Saved whenever there's an improvement in the specified validation metric.
+- `ckpt_latest.pth`: Updated at the end of every epoch.
+- `average_model.pth`: Averaged checkpoint, created if `average_best_models` parameter is set to `True`.
+
+> For more information, check out the [dedicated page](.Checkpoints.md).
+
+### Dataloaders 
+
 Next, we initialize the PyTorch dataloaders for our datasets:
 
 ```python
@@ -602,12 +633,14 @@ train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True, num_wo
 val_dataloader = DataLoader(val_dataset, batch_size=16, shuffle=False, num_workers=2)
 ```
 
+### Training Hyperparameters 
+
 And lastly, we need to define the training hyperparameters:
 
 ```python
 train_params = {
     "max_epochs": 100,
-    "lr_mode": "cosine",
+    "lr_mode": "CosineLRScheduler",
     "initial_lr": 0.001,
     "optimizer": "Adam",
     "loss": CustomSegLoss(),
@@ -635,9 +668,9 @@ The above code shows the simplicity of integrating external, user-defined compon
 pipeline. We simply plugged instantiations of our custom loss and metric into the hyperparameters dictionary,
 and we are ready to go.
 
-## 5. Training
+## 6. Training
 
-### 5.A. Training the model
+### 6.A. Training the model
 
 We are all set to start training our model. Simply plug in the model, training and validation dataloaders,
 and training parameters into the trainer's `train()` function:
@@ -696,7 +729,7 @@ SUMMARY OF EPOCH 5
 At the end of each epoch, the different logs and checkpoints are saved in the path defined by `ckpt_root_dir` and
 `experiment_name`. Let's see how we can use Tensorboard to track training process.
 
-### 5.B. Tensorboard logs
+### 6.B. Tensorboard logs
 
 To view the experiment's tensorboard logs, type the following command in the terminal from the
 experiment's path:
@@ -719,7 +752,7 @@ We can also check the validation set's IoU metric's value:
 
 
 
-## 6. Predictions with the trained model
+## 7. Predictions with the trained model
 
 Now that we have a trained model we can use it to make predictions on the test set. First, let's instantiate a test
 dataset:

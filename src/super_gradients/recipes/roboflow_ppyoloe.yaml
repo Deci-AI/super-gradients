@@ -47,7 +47,7 @@ training_hyperparams:
         dataset_name: ${dataset_name}
         output_path: ${result_path}
   loss:
-    ppyoloe_loss:
+    PPYoloELoss:
       num_classes: ${num_classes}
       reg_max: ${arch_params.head.reg_max}
 

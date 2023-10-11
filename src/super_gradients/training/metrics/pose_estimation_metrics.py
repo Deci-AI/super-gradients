@@ -1,17 +1,18 @@
 import itertools
-from typing import Dict, Union, List, Optional, Tuple, Callable, Iterable, Any
+from typing import Dict, Union, List, Optional, Iterable, Any
 
 import numpy as np
 import torch
 from torch import Tensor
 from torchmetrics import Metric
 
-import super_gradients.common.environment.ddp_utils
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.environment.ddp_utils import is_distributed
+from super_gradients.common.environment.ddp_utils import is_distributed, get_world_size, get_local_rank
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
+from super_gradients.module_interfaces import PoseEstimationPredictions, AbstractPoseEstimationPostPredictionCallback
 from super_gradients.training.metrics.pose_estimation_utils import compute_img_keypoint_matching, compute_visible_bbox_xywh
+from super_gradients.training.samples import PoseEstimationSample
 from super_gradients.training.utils import convert_to_tensor
 from super_gradients.training.utils.detection_utils import compute_detection_metrics_per_cls
 
@@ -43,7 +44,7 @@ class PoseEstimationMetrics(Metric):
 
     def __init__(
         self,
-        post_prediction_callback: Callable[[Any], Tuple[Tensor, Tensor]],
+        post_prediction_callback: AbstractPoseEstimationPostPredictionCallback,
         num_joints: int,
         max_objects_per_image: int = 20,
         oks_sigmas: Optional[Iterable] = None,
@@ -105,7 +106,7 @@ class PoseEstimationMetrics(Metric):
 
         if oks_sigmas is None:
             if num_joints == 17:
-                oks_sigmas = np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0
+                oks_sigmas = np.array([0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089])
             else:
                 oks_sigmas = np.array([0.1] * num_joints)
                 logger.warning(
@@ -133,98 +134,160 @@ class PoseEstimationMetrics(Metric):
     @torch.no_grad()
     def update(
         self,
-        preds,
-        target,
-        gt_joints: List[np.ndarray],
+        preds: Any,
+        target: Any,
+        gt_joints: List[np.ndarray] = None,
         gt_iscrowd: List[np.ndarray] = None,
         gt_bboxes: List[np.ndarray] = None,
         gt_areas: List[np.ndarray] = None,
+        gt_samples: List[PoseEstimationSample] = None,
     ):
         """
-        Decode the predictions and update the metric
+        Decode the predictions and update the metric.
 
-        :param preds :           Raw output of the model
+        The signature of this method is a bit complicated, because we want to support both old-style form of
+        passing groundtruth information (gt_joints, gt_iscrowd, gt_bboxes, gt_areas) and a new style of passing
+        groundtruth information as a list of PoseEstimationSample objects.
 
-        :param target:           Targets for the model training (rarely used for evaluation)
+        Passing PoseEstimationSample objects is more convenient and default way to go with sample-centric datasets introduced in SuperGradients 3.3.
+        Two options are mutually exclusive, so if you pass groundtruth_samples, all other arguments are ignored and vice versa.
 
-        :param gt_joints:        List of ground-truth joints for each image in the batch. Each element is a numpy array of shape (num_instances, num_joints, 3).
-                                 Note that augmentation/preprocessing transformations (Affine transforms specifically) must also be applied to gt_joints.
-                                 This is to ensure joint coordinates are transforms identically as image. This is differs form COCO evaluation,
-                                 where predictions rescaled back to original size of the image.
-                                 However, this makes code much more (unnecessary) complicated, so we do it differently and evaluate joints in the coordinate
-                                 system of the predicted image.
+        :param preds :      Raw output of the model
+        :param target:      Targets for the model training (Not used for evaluation)
+        :param gt_joints:   List of ground-truth joints for each image in the batch. Each element is a numpy array of shape (num_instances, num_joints, 3).
+                            Note that augmentation/preprocessing transformations (Affine transforms specifically) must also be applied to gt_joints.
+                            This is to ensure joint coordinates are transforms identically as image. This is differs form COCO evaluation,
+                            where predictions rescaled back to original size of the image.
+                            However, this makes code much more (unnecessary) complicated, so we do it differently and evaluate joints in the coordinate
+                            system of the predicted image.
 
-        :param gt_iscrowd:       Optional argument indicating which instance is annotated with `iscrowd` flog and is not used for evaluation;
-                                 If not provided, all instances are considered as non-crowd targets.
-                                 For instance, in CrowdPose all instances are considered as "non-crowd".
+        :param gt_iscrowd:  Optional argument indicating which instance is annotated with `iscrowd` flog and is not used for evaluation;
+                            If not provided, all instances are considered as non-crowd targets.
+                            For instance, in CrowdPose all instances are considered as "non-crowd".
 
-        :param gt_bboxes:        Bounding boxes of the groundtruth instances (XYWH).
-                                 This is COCO-specific and is used in OKS computation for instances w/o visible keypoints.
-                                 If not provided, the bounding box is computed as the minimum bounding box that contains all visible keypoints.
+        :param gt_bboxes:   Bounding boxes of the groundtruth instances (XYWH).
+                            This is COCO-specific and is used in OKS computation for instances w/o visible keypoints.
+                            If not provided, the bounding box is computed as the minimum bounding box that contains all visible keypoints.
 
-        :param gt_areas:         Area of the groundtruth area. in COCO this is the area of the corresponding segmentation mask and not the bounding box,
-                                 so it cannot be computed programmatically. It's value used in object-keypoint similarity metric (OKS) computation.
-                                 If not provided, the area is computed as the product of the width and height of the bounding box.
-                                 (For instance this is used in CrowdPose dataset)
+        :param gt_areas:    Area of the groundtruth area. in COCO this is the area of the corresponding segmentation mask and not the bounding box,
+                            so it cannot be computed programmatically. It's value used in object-keypoint similarity metric (OKS) computation.
+                            If not provided, the area is computed as the product of the width and height of the bounding box.
+                            (For instance this is used in CrowdPose dataset)
+        :param gt_samples:  List of ground-truth samples
 
         """
-        predicted_poses, predicted_scores = self.post_prediction_callback(preds)  # Decode raw predictions into poses
+        predictions: List[PoseEstimationPredictions] = self.post_prediction_callback(preds)  # Decode raw predictions into poses
 
-        if gt_bboxes is None:
-            gt_bboxes = [compute_visible_bbox_xywh(torch.tensor(joints[:, :, 0:2]), torch.tensor(joints[:, :, 2])) for joints in gt_joints]
+        if gt_samples is not None:
+            self._update_with_samples(predictions, gt_samples)
+        else:
+            self._update_with_old_style_args(predictions, gt_joints, gt_bboxes, gt_areas, gt_iscrowd)
 
-        if gt_areas is None:
-            gt_areas = [bboxes[:, 2] * bboxes[:, 3] for bboxes in gt_bboxes]
+    def _update_with_samples(self, predictions: List[PoseEstimationPredictions], gt_samples: List[PoseEstimationSample]) -> None:
+        """
+        Update internal state of metric class with a batch of predictions and groundtruth samples.
 
-        if gt_iscrowd is None:
-            gt_iscrowd = [[False] * len(x) for x in gt_joints]
-
-        for i in range(len(predicted_poses)):
+        :param predictions: Decoded list of pose predictions
+        :param gt_samples:  Corresponding list of groundtruth samples
+        """
+        for i in range(len(predictions)):
             self.update_single_image(
-                predicted_poses[i], predicted_scores[i], gt_joints[i], gt_areas=gt_areas[i], gt_bboxes=gt_bboxes[i], gt_iscrowd=gt_iscrowd[i]
+                predicted_poses=predictions[i].poses,
+                predicted_scores=predictions[i].scores,
+                gt_joints=gt_samples[i].joints,
+                gt_bboxes=gt_samples[i].bboxes_xywh,
+                gt_areas=gt_samples[i].areas,
+                gt_iscrowd=gt_samples[i].is_crowd,
+            )
+
+    def _update_with_old_style_args(
+        self,
+        predictions: List[PoseEstimationPredictions],
+        gt_joints: List[np.ndarray],
+        gt_bboxes: Optional[List[np.ndarray]],
+        gt_areas: Optional[List[np.ndarray]],
+        gt_iscrowd: Optional[List[np.ndarray]],
+    ) -> None:
+        """
+        This method is here for backward compatibility with old-style datasets that do not use PoseEstimationSample objects.
+        The now deprecated way of passing groundtruth information was through a dictionary with 'gt_joints', 'gt_bboxes', 'gt_areas', 'gt_iscrowd' keys
+        which is not convenient and error-prone.
+
+        It is still supported, but we recommend to use PoseEstimationSample objects instead.
+        :param predictions: Decoded pose predictions
+        :param gt_joints: List of ground-truth joints for each image in the batch. Each element is a numpy array of shape (num_instances, num_joints, 3).
+        :param gt_bboxes: List of ground-truth bounding boxes for each image in the batch.
+                          Each element of list is a numpy array of shape (num_instances, 4) and boxes are in XYWH format.
+                          Can be None, in which case bounding boxes are computed as minimum bounding box that contains all visible keypoints.
+        :param gt_areas:  List of ground-truth areas for each image in the batch.
+                          Can be None, in which case areas are computed as the product of the width and height of the bounding box.
+        :param gt_iscrowd: List of single-dimensional numpy arrays of shape (num_instances,) indicating which instance is
+                           annotated with `iscrowd` flog. Objects with `iscrowd` flag are not used for evaluation.
+        """
+        for i in range(len(predictions)):
+            self.update_single_image(
+                predicted_poses=predictions[i].poses,
+                predicted_scores=predictions[i].scores,
+                gt_joints=gt_joints[i],
+                gt_bboxes=gt_bboxes[i] if gt_bboxes is not None else None,
+                gt_areas=gt_areas[i] if gt_areas is not None else None,
+                gt_iscrowd=gt_iscrowd[i] if gt_iscrowd is not None else None,
             )
 
     def update_single_image(
         self,
         predicted_poses: Union[Tensor, np.ndarray],
         predicted_scores: Union[Tensor, np.ndarray],
-        groundtruths: Union[Tensor, np.ndarray],
-        gt_bboxes: Union[Tensor, np.ndarray],
-        gt_areas: Union[Tensor, np.ndarray],
-        gt_iscrowd: Union[Tensor, np.ndarray, List[bool]],
-    ):
-        if len(predicted_poses) == 0 and len(groundtruths) == 0:
+        gt_joints: np.ndarray,
+        gt_bboxes: Optional[np.ndarray],
+        gt_areas: Optional[np.ndarray],
+        gt_iscrowd: Optional[np.ndarray],
+    ) -> None:
+        """
+        Update internal state of metric class with a single image predictions & corresponding groundtruth.
+        Method compute OKS for predicted poses, match them to groundtruth poses and update internal state of the metric.
+        :param predicted_poses:  Predicted poses of shape (num_instances, num_joints, 3)
+        :param predicted_scores: Predicted scores of shape (num_instances,)
+        :param gt_joints:        Groundtruth joints of shape (num_instances, num_joints, 3)
+        :param gt_bboxes:        Groundtruth bounding boxes of shape (num_instances, 4) in XYWH format
+        :param gt_areas:         Groundtruth areas of shape (num_instances,)
+        :param gt_iscrowd:       Groundtruth is_crowd flag of shape (num_instances,)
+        """
+        if len(predicted_poses) == 0 and len(gt_joints) == 0:
             return
         if len(predicted_poses) != len(predicted_scores):
             raise ValueError("Length of predicted poses and scores should be equal. Got {} and {}".format(len(predicted_poses), len(predicted_scores)))
-        if len(groundtruths) != len(gt_areas) != len(gt_bboxes) != len(gt_iscrowd):
-            raise ValueError(
-                "Length of groundtruths, areas, bboxes and iscrowd should be equal. Got {} and {} and {} and {}".format(
-                    len(groundtruths), len(gt_areas), len(gt_bboxes), len(gt_iscrowd)
-                )
-            )
 
-        predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float32, device=self.device)
-        predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float32, device=self.device)
+        predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float32, device="cpu")
+        predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float32, device="cpu")
 
-        gt_keypoints = convert_to_tensor(groundtruths, dtype=torch.float32, device=self.device)
-        gt_areas = convert_to_tensor(gt_areas, dtype=torch.float32, device=self.device)
-        gt_bboxes = convert_to_tensor(gt_bboxes, dtype=torch.float32, device=self.device)
-        gt_iscrowd = convert_to_tensor(gt_iscrowd, dtype=torch.bool, device=self.device)
+        if gt_bboxes is None:
+            gt_bboxes = compute_visible_bbox_xywh(torch.tensor(gt_joints[:, :, 0:2]), torch.tensor(gt_joints[:, :, 2]))
+
+        if gt_areas is None:
+            gt_areas = gt_bboxes[:, 2] * gt_bboxes[:, 3]
+
+        if gt_iscrowd is None:
+            gt_iscrowd = [False] * len(gt_joints)
+
+        gt_keypoints = convert_to_tensor(gt_joints, dtype=torch.float32, device="cpu")
+        gt_areas = convert_to_tensor(gt_areas, dtype=torch.float32, device="cpu")
+        gt_bboxes = convert_to_tensor(gt_bboxes, dtype=torch.float32, device="cpu")
+        gt_iscrowd = convert_to_tensor(gt_iscrowd, dtype=torch.bool, device="cpu")
 
         gt_keypoints_xy = gt_keypoints[:, :, 0:2]
         gt_keypoints_visibility = gt_keypoints[:, :, 2]
         gt_all_kpts_invisible = gt_keypoints_visibility.eq(0).all(dim=1)
         gt_is_ignore = gt_all_kpts_invisible | gt_iscrowd
 
-        targets = gt_keypoints_xy[~gt_is_ignore] if len(groundtruths) else []
-        targets_visibilities = gt_keypoints_visibility[~gt_is_ignore] if len(groundtruths) else []
-        targets_areas = gt_areas[~gt_is_ignore] if len(groundtruths) else []
+        targets = gt_keypoints_xy[~gt_is_ignore] if len(gt_joints) else []
+        targets_visibilities = gt_keypoints_visibility[~gt_is_ignore] if len(gt_joints) else []
+        targets_areas = gt_areas[~gt_is_ignore] if len(gt_joints) else []
         targets_bboxes = gt_bboxes[~gt_is_ignore]
         targets_ignored = gt_is_ignore[~gt_is_ignore]
 
-        crowd_targets = gt_keypoints_xy[gt_is_ignore] if len(groundtruths) else []
-        crowd_visibilities = gt_keypoints_visibility[gt_is_ignore] if len(groundtruths) else []
+        crowd_targets = gt_keypoints_xy[gt_is_ignore] if len(gt_joints) else []
+        crowd_visibilities = gt_keypoints_visibility[gt_is_ignore] if len(gt_joints) else []
         crowd_targets_areas = gt_areas[gt_is_ignore]
         crowd_targets_bboxes = gt_bboxes[gt_is_ignore]
 
@@ -243,8 +306,8 @@ class PoseEstimationMetrics(Metric):
             crowd_targets_areas=crowd_targets_areas,
             crowd_targets_bboxes=crowd_targets_bboxes,
             #
-            iou_thresholds=self.iou_thresholds.to(self.device),
-            sigmas=self.oks_sigmas.to(self.device),
+            iou_thresholds=self.iou_thresholds.to("cpu"),
+            sigmas=self.oks_sigmas.to("cpu"),
             top_k=self.max_objects_per_image,
         )
 
@@ -259,9 +322,9 @@ class PoseEstimationMetrics(Metric):
         :return:
         """
         if self.world_size is None:
-            self.world_size = super_gradients.common.environment.ddp_utils.get_world_size() if self.is_distributed else -1
+            self.world_size = get_world_size() if self.is_distributed else -1
         if self.rank is None:
-            self.rank = torch.distributed.get_rank() if self.is_distributed else -1
+            self.rank = get_local_rank() if self.is_distributed else -1
 
         if self.is_distributed:
             local_state_dict = self.predictions

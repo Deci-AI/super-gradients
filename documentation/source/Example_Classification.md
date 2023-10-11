@@ -1,4 +1,4 @@
-# Training a classification model and transfer learning
+# Training a Classification Model and Transfer Learning
 
 In this example we will use SuperGradients to train from scratch a ResNet18 model on the CIFAR10 image classification 
 dataset. We will also fine-tune the same model via transfer learning with weights pre-trained on the ImageNet dataset.
@@ -14,41 +14,63 @@ pip install super-gradients
 
 ## 1. Experiment setup
 
-First, we will initialize our trainer, which is a SuperGradients Trainer object.
+First, we will initialize the `Trainer`. It handles:
+- Model training
+- Evaluating test data
+- Making predictions
+- Saving and managing checkpoints
 
-```
+
+To initialize it, you need:
+
+- **Experiment Name:** A unique identifier for your training experiment.
+- **Checkpoint Root Directory (`ckpt_root_dir`):** The directory where checkpoints, logs, and tensorboards are saved. While optional, if unspecified, it assumes the presence of a 'checkpoints' directory in your project's root.
+
+```python
 from super_gradients import Trainer
-```
 
-The trainer is in charge of training the model, evaluating test data, making predictions, and saving checkpoints.
-
-To initialize the trainer, an experiment name must be provided. We will also provide a checkpoints root directory via
-the `ckpt_root_dir` parameter. In this directory, all the experiment's logs, tensorboards, and checkpoints directories 
-will reside. This parameter is optional, and if not provided, it is assumed that a 'checkpoints' directory exists in 
-the project's path.
-
-A directory with the experiment's name will be created as a subdirectory of `ckpt_root_dir` as follows:
-
-```
-ckpt_root_dir
-|─── experiment_name_1
-│       ckpt_best.pth                     # Model checkpoint on best epoch
-│       ckpt_latest.pth                   # Model checkpoint on last epoch
-│       average_model.pth                 # Model checkpoint averaged over epochs
-│       events.out.tfevents.1659878383... # Tensorflow artifacts of a specific run
-│       log_Aug07_11_52_48.txt            # Trainer logs of a specific run
-└─── experiment_name_2
-        ...
-```
-
-We initialize the trainer as follows:
-
-```
 experiment_name = "resnet18_cifar10_example"
 CHECKPOINT_DIR = '/path/to/checkpoints/root/dir'
 
 trainer = Trainer(experiment_name=experiment_name, ckpt_root_dir=CHECKPOINT_DIR)
 ```
+
+### 2. Understanding the Checkpoint Structure
+
+Checkpoints are crucial for progressive training, debugging, and model deployment. SuperGradients organizes them in a structured manner. Here's what the directory hierarchy looks like under your specified `ckpt_root_dir`:
+
+```
+<ckpt_root_dir>
+│
+├── <experiment_name>
+│   │
+│   ├─── <run_dir>
+│   │     ├─ ckpt_best.pth                   # Best performance during validation
+│   │     ├─ ckpt_latest.pth                 # End of the most recent epoch
+│   │     ├─ average_model.pth               # Averaged over specified epochs
+│   │     ├─ ckpt_epoch_*.pth                # Checkpoints from specific epochs (like epoch 10, 15, etc.)
+│   │     ├─ events.out.tfevents.*           # Tensorflow run artifacts
+│   │     └─ log_<timestamp>.txt             # Trainer logs of the specific run
+│   │
+│   └─── <other_run_dir>
+│        └─ ...
+│
+└─── <other_experiment_name>
+    │
+    ├─── <run_dir>
+    │     └─ ...
+    │
+    └─── <another_run_dir>
+          └─ ...
+```
+
+In this structure:
+
+- `ckpt_best.pth`: Saved whenever there's an improvement in the specified validation metric.
+- `ckpt_latest.pth`: Updated at the end of every epoch.
+- `average_model.pth`: Averaged checkpoint, created if `average_best_models` parameter is set to `True`.
+
+> For more information, check out the [dedicated page](.Checkpoints.md).
 
 ## 2. Dataset and dataloaders
 
@@ -296,10 +318,10 @@ Output (Training parameters):
     'launch_tensorboard': False,
     'load_opt_params': True,
     'log_installed_packages': True,
-    'loss': 'cross_entropy',
+    'loss': "LabelSmoothingCrossEntropyLoss",
     'lr_cooldown_epochs': 0,
     'lr_decay_factor': 0.1,
-    'lr_mode': 'step',
+    'lr_mode': 'StepLRScheduler',
     'lr_schedule_function': None,
     'lr_updates': array([100, 150, 200]),
     'lr_warmup_epochs': 0,
@@ -333,7 +355,7 @@ Output (Training parameters):
     'train_metrics_list': ['Accuracy', 'Top5'],
     'valid_metrics_list': ['Accuracy', 'Top5'],
     'warmup_initial_lr': None,
-    'warmup_mode': 'linear_epoch_step',
+    'warmup_mode': 'LinearEpochLRWarmup',
     'zero_weight_decay_on_bias_and_bn': False
 }
 ```

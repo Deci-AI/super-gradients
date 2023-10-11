@@ -1,11 +1,14 @@
 import inspect
 from typing import Callable, Dict, Optional
+import warnings
 
 import torch
 from torch import nn, optim
 import torchvision
 
 from super_gradients.common.object_names import Losses, Transforms, Samplers, Optimizers
+
+_DEPRECATED_KEY = "_deprecated_objects"
 
 
 def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
@@ -16,28 +19,57 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
     :return:            Register function
     """
 
-    def register(name: Optional[str] = None) -> Callable:
+    def register(name: Optional[str] = None, deprecated_name: Optional[str] = None) -> Callable:
         """
         Set up a register decorator.
 
-        :param name: If specified, the decorated object will be registered with this name.
-        :return:     Decorator that registers the callable.
+        :param name:            If specified, the decorated object will be registered with this name. Otherwise, the class name will be used to register.
+        :param deprecated_name: If specified, the decorated object will be registered with this name.
+                                This is done on top of the `official` registration which is done by setting the `name` argument.
+        :return:                Decorator that registers the callable.
         """
 
         def decorator(cls: Callable) -> Callable:
             """Register the decorated callable"""
-            cls_name = name if name is not None else cls.__name__
 
-            if cls_name in registry:
-                ref = registry[cls_name]
-                raise Exception(f"`{cls_name}` is already registered and points to `{inspect.getmodule(ref).__name__}.{ref.__name__}")
+            def _registered_cls(registration_name: str):
+                if registration_name in registry:
+                    registered_cls = registry[registration_name]
+                    if registered_cls != cls:
+                        raise Exception(
+                            f"`{registration_name}` is already registered and points to `{inspect.getmodule(registered_cls).__name__}.{registered_cls.__name__}"
+                        )
+                registry[registration_name] = cls
 
-            registry[cls_name] = cls
+            registration_name = name or cls.__name__
+            _registered_cls(registration_name=registration_name)
+
+            if deprecated_name:
+                # Deprecated objects like other objects - This is meant to avoid any breaking change.
+                _registered_cls(registration_name=deprecated_name)
+
+                # But deprecated objects are also listed in the _deprecated_objects key.
+                # This can later be used in the factories to know if a name is deprecated and how it should be named instead.
+                deprecated_registered_objects = registry.get(_DEPRECATED_KEY, {})
+                deprecated_registered_objects[deprecated_name] = registration_name  # Keep the information about how it should be named.
+                registry[_DEPRECATED_KEY] = deprecated_registered_objects
+
             return cls
 
         return decorator
 
     return register
+
+
+def warn_if_deprecated(name: str, registry: dict):
+    """If the name is deprecated, warn the user about it.
+    :param name:        The name of the object that we want to check if it is deprecated.
+    :param registry:    The registry that may or may not include deprecated objects.
+    """
+    deprecated_names = registry.get(_DEPRECATED_KEY, {})
+    if name in deprecated_names:
+        warnings.simplefilter("once", DeprecationWarning)  # Required, otherwise the warning may never be displayed.
+        warnings.warn(f"Object name `{name}` is now deprecated. Please replace it with `{deprecated_names[name]}`.", DeprecationWarning)
 
 
 ARCHITECTURES = {}
@@ -52,9 +84,9 @@ register_detection_module = create_register_decorator(registry=ALL_DETECTION_MOD
 METRICS = {}
 register_metric = create_register_decorator(registry=METRICS)
 
-LOSSES = {Losses.MSE: nn.MSELoss}
+LOSSES = {}
 register_loss = create_register_decorator(registry=LOSSES)
-
+register_loss(name=Losses.MSE, deprecated_name="mse")(nn.MSELoss)  # Register manually to benefit from deprecated logic
 
 ALL_DATALOADERS = {}
 register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)

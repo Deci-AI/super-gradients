@@ -39,13 +39,13 @@ model = models.get(Models.REGSEG48, pretrained_weights="cityscapes", num_classes
 # DEFINE TRAINING PARAMS. SEE DOCS FOR THE FULL LIST.
 train_params = {
     "max_epochs": 50,
-    "lr_mode": "cosine",
+    "lr_mode": "CosineLRScheduler",
     "initial_lr": 0.0064,  # for batch_size=16
     "optimizer_params": {"momentum": 0.843, "weight_decay": 0.00036, "nesterov": True},
     "cosine_final_lr_ratio": 0.1,
     "multiply_head_lr": 10,
     "optimizer": "SGD",
-    "loss": "bce_dice_loss",
+    "loss": "BCEDiceLoss",
     "ema": True,
     "zero_weight_decay_on_bias_and_bn": True,
     "average_best_models": True,

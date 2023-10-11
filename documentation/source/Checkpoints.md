@@ -79,7 +79,7 @@ model = models.get(model_name=Models.RESNET18, num_classes=10)
 
 train_params = {
     ...
-    "loss": "cross_entropy",
+    "loss": "LabelSmoothingCrossEntropyLoss",
     "criterion_params": {},
     "save_ckpt_epoch_list": [10,15]
     ...
@@ -90,22 +90,28 @@ trainer.train(model=model, training_params=train_params, train_loader=train_data
 Then at the end of the training, our `ckpt_root_dir` contents will look similar to the following:
 
 ```
-my_checkpoints_folder
-├─── my_resnet18_training_experiment
-│   ├── RUN_20230802_131052_651906
-│   │     ├─ ckpt_best.pth                     # Model checkpoint on best epoch
-│   │     ├─ ckpt_latest.pth                   # Model checkpoint on last epoch
-│   │     ├─ average_model.pth                 # Model checkpoint averaged over epochs
-│   │     ├─ ckpt_epoch_10.pth                 # Model checkpoint of epoch 10
-│   │     ├─ ckpt_epoch_15.pth                 # Model checkpoint of epoch 15
-│   │     ├─ events.out.tfevents.1659878383... # Tensorflow artifacts of a specific run
-│   │     └─ log_Aug02_13_10_52.txt            # Trainer logs of a specific run
+<ckpt_root_dir>
+│
+├── <experiment_name>
 │   │
-│   └─ RUN_20230803_121652_243212
+│   ├─── <run_dir>
+│   │     ├─ ckpt_best.pth                   # Best performance during validation
+│   │     ├─ ckpt_latest.pth                 # End of the most recent epoch
+│   │     ├─ average_model.pth               # Averaged over specified epochs
+│   │     ├─ ckpt_epoch_*.pth                # Checkpoints from specific epochs (like epoch 10, 15, etc.)
+│   │     ├─ events.out.tfevents.*           # Tensorflow run artifacts
+│   │     └─ log_<timestamp>.txt             # Trainer logs of the specific run
+│   │
+│   └─── <other_run_dir>
 │        └─ ...
 │
-└─── some_other_training_experiment_name
-        ...
+└─── <other_experiment_name>
+    │
+    ├─── <run_dir>
+    │     └─ ...
+    │
+    └─── <another_run_dir>
+          └─ ...
 ```
 
 Suppose we wish to load the weights from `ckpt_best.pth`. We can simply pass its path to the `checkpoint_path` argument in `models.get(...)`:
@@ -129,6 +135,7 @@ from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_m
 model = models.get(model_name=Models.RESNET18, num_classes=10)
 load_checkpoint_to_model(net=model, ckpt_local_path="/path/to/my_checkpoints_folder/my_resnet18_training_experiment/RUN_20230802_131052_651906/ckpt_best.pth")
 ```
+
 ### Extending the Functionality of PyTorch's `strict` Parameter in `load_state_dict()`
 
 When not familiar with PyTorch's `strict` parameter in `load_state_dict()`, please see [PyTorch's docs on this matter](https://pytorch.org/tutorials/beginner/saving_loading_models.html#id4) first.

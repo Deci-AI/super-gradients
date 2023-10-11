@@ -1,6 +1,7 @@
 from typing import Union, Mapping, Dict
 
 from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
+from super_gradients.common.registry.registry import warn_if_deprecated
 from super_gradients.training.utils.utils import fuzzy_str, fuzzy_keys, get_fuzzy_mapping_param
 
 
@@ -43,6 +44,7 @@ class BaseFactory(AbstractFactory):
            If provided value is not one of the three above, the value will be returned as is
         """
         if isinstance(conf, str):
+            warn_if_deprecated(name=conf, registry=self.type_dict)
             if conf in self.type_dict:
                 return self.type_dict[conf]()
             elif fuzzy_str(conf) in fuzzy_keys(self.type_dict):
@@ -60,6 +62,7 @@ class BaseFactory(AbstractFactory):
             _type = list(conf.keys())[0]  # THE TYPE NAME
             _params = list(conf.values())[0]  # A DICT CONTAINING THE PARAMETERS FOR INIT
             if _type in self.type_dict:
+                warn_if_deprecated(name=_type, registry=self.type_dict)
                 return self.type_dict[_type](**_params)
             elif fuzzy_str(_type) in fuzzy_keys(self.type_dict):
                 return get_fuzzy_mapping_param(_type, self.type_dict)(**_params)

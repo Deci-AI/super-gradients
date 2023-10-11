@@ -7,7 +7,7 @@ from super_gradients.training.losses.bce_loss import BCE
 from super_gradients.training.losses.dice_loss import BinaryDiceLoss
 
 
-@register_loss(Losses.BCE_DICE_LOSS)
+@register_loss(name=Losses.BCE_DICE_LOSS, deprecated_name="bce_dice_loss")
 class BCEDiceLoss(torch.nn.Module):
     """
     Binary Cross Entropy + Dice Loss

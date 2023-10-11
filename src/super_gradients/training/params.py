@@ -48,7 +48,7 @@ DEFAULT_TRAINING_PARAMS = {
         "save_tensorboard_remote": False,  # upload tensorboard files to s3
         "save_logs_remote": False,
     },  # upload log files to s3
-    "warmup_mode": "linear_step",
+    "warmup_mode": "LinearEpochLRWarmup",
     "step_lr_update_freq": None,
     "lr_updates": [],
     "clip_grad_norm": None,
@@ -100,7 +100,7 @@ TRAINING_PARAM_SCHEMA = {
         "lr_warmup_epochs": {"type": "number", "minimum": 0, "maximum": 10},
         "initial_lr": {"type": "number", "exclusiveMinimum": 0, "maximum": 10},
     },
-    "if": {"properties": {"lr_mode": {"const": "step"}}},
+    "if": {"properties": {"lr_mode": {"const": "StepLRScheduler"}}},
     "then": {"required": ["lr_updates", "lr_decay_factor"]},
     "required": ["max_epochs", "lr_mode", "initial_lr", "loss"],
 }

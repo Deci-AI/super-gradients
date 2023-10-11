@@ -9,7 +9,7 @@ from super_gradients.training.models.kd_modules.kd_module import KDOutput
 class SegKDLoss(nn.Module):
     """
     Wrapper loss for semantic segmentation KD.
-    This loss includes two loss components, `ce_loss` i.e CrossEntropyLoss, and `kd_loss` i.e
+    This loss includes two loss components, `ce_loss` i.e CrossEntropyLoss, and `KDLogitsLoss` i.e
     `ChannelWiseKnowledgeDistillationLoss`.
     """
 

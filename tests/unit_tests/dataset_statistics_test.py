@@ -24,9 +24,9 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
 
         training_params = {
             "max_epochs": 1,  # we dont really need the actual training to run
-            "lr_mode": "cosine",
+            "lr_mode": "CosineLRScheduler",
             "initial_lr": 0.01,
-            "loss": "yolox_loss",
+            "loss": "YoloXDetectionLoss",
             "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},
             "dataset_statistics": True,
             "launch_tensorboard": True,
