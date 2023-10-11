@@ -1,7 +1,7 @@
 import collections
 import os
 import tempfile
-from typing import Union, Mapping
+from typing import Union, Mapping, Dict
 
 import pkg_resources
 import torch
@@ -1628,3 +1628,19 @@ def _maybe_load_preprocessing_params(model: Union[nn.Module, HasPredict], checkp
                 "predict make sure to call set_dataset_processing_params."
             )
     return False
+
+
+def get_scheduler_state(scheduler) -> Dict[str, Tensor]:
+    """
+    Wrapper for getting a torch lr scheduler state dict, resolving some issues with CyclicLR
+    (see https://github.com/pytorch/pytorch/pull/91400)
+    :param scheduler: torch.optim.lr_scheduler._LRScheduler, the scheduler
+    :return:          the scheduler's state_dict
+    """
+    from super_gradients.training.utils import torch_version_is_greater_or_equal
+    from torch.optim.lr_scheduler import CyclicLR
+
+    state = scheduler.state_dict()
+    if isinstance(scheduler, CyclicLR) and not torch_version_is_greater_or_equal(2, 0):
+        del state["_scale_fn_ref"]
+    return state

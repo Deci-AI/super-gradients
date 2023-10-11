@@ -77,6 +77,7 @@ from super_gradients.training.utils.checkpoint_utils import (
     read_ckpt_state_dict,
     load_checkpoint_to_model,
     load_pretrained_weights,
+    get_scheduler_state,
 )
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import (
@@ -617,7 +618,7 @@ class Trainer:
             state["processing_params"] = processing_params
 
         if self._torch_lr_scheduler is not None:
-            state["torch_scheduler_state_dict"] = self._torch_lr_scheduler.state_dict()
+            state["torch_scheduler_state_dict"] = get_scheduler_state(self._torch_lr_scheduler)
 
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
