@@ -1131,6 +1131,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self.extreme_batch = None
         self.extreme_preds = None
         self.extreme_targets = None
+        self.extreme_additional_batch_items = None
 
         self._first_call = True
         self._idx_loss_tuple = None
@@ -1224,6 +1225,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             self.extreme_batch = tensor_container_to_device(context.inputs, device="cpu", detach=True, non_blocking=False)
             self.extreme_preds = tensor_container_to_device(context.preds, device="cpu", detach=True, non_blocking=False)
             self.extreme_targets = tensor_container_to_device(context.target, device="cpu", detach=True, non_blocking=False)
+            self.extreme_additional_batch_items = tensor_container_to_device(context.additional_batch_items, device="cpu", detach=True, non_blocking=False)
 
     def _init_loss_attributes(self, context: PhaseContext):
         if self.loss_to_monitor not in context.loss_logging_items_names:
@@ -1236,6 +1238,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self.extreme_batch = None
         self.extreme_preds = None
         self.extreme_targets = None
+        self.extreme_additional_batch_items = None
         if self.metric is not None:
             self.metric.reset()
 

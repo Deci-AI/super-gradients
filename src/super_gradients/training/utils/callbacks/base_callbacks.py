@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import List, Any
 
 from typing import Optional
 import torch
@@ -63,6 +63,7 @@ class PhaseContext:
         valid_metrics: Optional[MetricCollection] = None,  # noqa: ignore
         ema_model: Optional["SgModule"] = None,  # noqa: ignore
         loss_logging_items_names: Optional[List[str]] = None,
+        additional_batch_items: Optional[Any] = None,
     ):
         self.epoch = epoch
         self.batch_idx = batch_idx
@@ -94,6 +95,7 @@ class PhaseContext:
         self.valid_metrics = valid_metrics
         self.ema_model = ema_model
         self.loss_logging_items_names = loss_logging_items_names
+        self.additional_batch_items = additional_batch_items
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():
