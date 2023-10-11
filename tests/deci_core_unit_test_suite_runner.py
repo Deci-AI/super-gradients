@@ -45,6 +45,7 @@ from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.test_deprecations import DeprecationsUnitTest
 from tests.unit_tests.test_min_samples_single_node import TestMinSamplesSingleNode
 from tests.unit_tests.test_train_with_torch_scheduler import TrainWithTorchSchedulerTest
+from tests.unit_tests.test_yolo_nas_pose import YoloNASPoseTests
 from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
 from tests.unit_tests.lr_warmup_test import LRWarmupTest
@@ -157,6 +158,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(SlidingWindowTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDeprecationDecorator))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationModelExport))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(YoloNASPoseTests))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
