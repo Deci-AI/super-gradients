@@ -5,7 +5,6 @@ import gc
 from typing import Any
 from typing import Union, Optional, List, Tuple
 
-import numpy as np
 import onnx
 import onnxsim
 import torch
@@ -15,11 +14,11 @@ from torch.utils.data import DataLoader
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion import ExportTargetBackend, ExportQuantizationMode, DetectionOutputFormatMode
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_install
+from super_gradients.module_interfaces.exceptions import ModelHasNoPreprocessingParamsException
+from super_gradients.module_interfaces.usage_instructions import build_usage_instructions_for_pose_estimation
 from super_gradients.training.utils.export_utils import infer_format_from_file_name, infer_image_shape_from_model, infer_image_input_channels
 from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
 from super_gradients.training.utils.utils import infer_model_device, check_model_contains_quantized_modules, infer_model_dtype
-
-from super_gradients.module_interfaces.exceptions import ModelHasNoPreprocessingParamsException
 
 logger = get_logger(__name__)
 
@@ -226,7 +225,6 @@ class ExportablePoseEstimationModel:
 
         # Do imports here to avoid raising error of missing onnx_graphsurgeon package if it is not needed.
         import_onnx_graphsurgeon_or_install()
-        from super_gradients.conversion.conversion_utils import torch_dtype_to_numpy_dtype
         from super_gradients.conversion.onnx.pose_nms import attach_onnx_pose_nms
         from super_gradients.conversion.preprocessing_modules import CastTensorTo
 
@@ -523,107 +521,24 @@ class ExportablePoseEstimationModel:
             torch.cuda.empty_cache()
 
         # Add usage instructions
-        usage_instructions.append(f"Model exported successfully to {output}")
-        usage_instructions.append(f"Model expects input image of shape [{batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]}]")
-        usage_instructions.append(f"Input image dtype is {input_image_dtype}")
-
-        if preprocessing:
-            usage_instructions.append("Exported model already contains preprocessing (normalization) step, so you don't need to do it manually.")
-            usage_instructions.append("Preprocessing steps to be applied to input image are:")
-            usage_instructions.append(repr(preprocessing_module))
-            usage_instructions.append("")
-
-        if postprocessing:
-            usage_instructions.append("Exported model contains postprocessing (NMS) step with the following parameters:")
-            usage_instructions.append(f"    num_pre_nms_predictions={num_pre_nms_predictions}")
-            usage_instructions.append(f"    max_predictions_per_image={max_predictions_per_image}")
-            usage_instructions.append(f"    nms_threshold={nms_threshold}")
-            usage_instructions.append(f"    confidence_threshold={confidence_threshold}")
-            usage_instructions.append(f"    output_predictions_format={output_predictions_format}")
-            usage_instructions.append("")
-
-        if engine == (ExportTargetBackend.ONNXRUNTIME, ExportTargetBackend.TENSORRT):
-            usage_instructions.append("Exported model is in ONNX format and can be used with ONNXRuntime")
-            usage_instructions.append("To run inference with ONNXRuntime, please use the following code snippet:")
-            usage_instructions.append("")
-            usage_instructions.append("    import onnxruntime")
-            usage_instructions.append("    import numpy as np")
-            usage_instructions.append(f'    session = onnxruntime.InferenceSession("{output}", providers=["CUDAExecutionProvider", "CPUExecutionProvider"])')
-            usage_instructions.append("    inputs = [o.name for o in session.get_inputs()]")
-            usage_instructions.append("    outputs = [o.name for o in session.get_outputs()]")
-
-            dtype_name = np.dtype(torch_dtype_to_numpy_dtype(input_image_dtype)).name
-            usage_instructions.append(
-                f"    example_input_image = np.zeros(({batch_size}, {input_image_channels}, {input_image_shape[0]}, {input_image_shape[1]})).astype(np.{dtype_name})"  # noqa
-            )
-
-            usage_instructions.append("    predictions = session.run(outputs, {inputs[0]: example_input_image})")
-            usage_instructions.append("")
-
-            usage_instructions.append("Exported model can also be used with TensorRT")
-            usage_instructions.append("To run inference with TensorRT, please see TensorRT deployment documentation")
-            usage_instructions.append("You can benchmark the model using the following code snippet:")
-            usage_instructions.append("")
-            usage_instructions.append(
-                f"    trtexec --onnx={output} {'--int8' if quantization_mode == ExportQuantizationMode.INT8 else '--fp16'} --avgRuns=100 --duration=15"
-            )
-            usage_instructions.append("")
-
-        if postprocessing is True:
-            if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
-                usage_instructions.append(f"Exported model has predictions in {output_predictions_format} format:")
-                usage_instructions.append("")
-                usage_instructions.append("    # flat_predictions is a 2D array of [N,K] shape")
-                usage_instructions.append("    # Each row represents (image_index, x_min, y_min, x_max, y_max, confidence, joints...)")
-                usage_instructions.append("    # Please note all values are floats, so you have to convert them to integers if needed")
-                usage_instructions.append("    [flat_predictions] = predictions")
-                if batch_size == 1:
-                    # fmt: off
-                    usage_instructions.append("    pred_bboxes = flat_predictions[1:5]")
-                    usage_instructions.append("    pred_scores = flat_predictions[5]")
-                    usage_instructions.append("    pred_joints = flat_predictions[6:].reshape(-1, 3)")
-                    usage_instructions.append("    for i in range(len(pred_bboxes)):")
-                    usage_instructions.append('        print(f"Detected pose with confidence={confidence}, x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")') # noqa
-                    usage_instructions.append("        for joint_index, (x, y, confidence) in enumerate(pred_joints[i]):")
-                    usage_instructions.append('            print(f"Joint {joint_index} has coordinates x={x}, y={y}, confidence={confidence}")') # noqa
-                    # fmt: on
-                else:
-                    # fmt: off
-                    usage_instructions.append(f"    for current_sample in range({batch_size}):")
-                    usage_instructions.append("    predictions_for_current_sample = predictions[predictions[0] == current_sample]")
-                    usage_instructions.append('    print("Predictions for sample " + str(current_sample))')
-                    usage_instructions.append("    pred_bboxes = flat_predictions[1:5]")
-                    usage_instructions.append("    pred_scores = flat_predictions[5]")
-                    usage_instructions.append("    pred_joints = flat_predictions[6:].reshape(-1, 3)")
-                    usage_instructions.append("    for i in range(len(pred_bboxes)):")
-                    usage_instructions.append('      print(f"Detected pose with confidence={confidence}, x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")') # noqa
-                    usage_instructions.append("      for joint_index, (x, y, confidence) in enumerate(pred_joints[i]):")
-                    usage_instructions.append('         print(f"Joint {joint_index} has coordinates x={x}, y={y}, confidence={confidence}")') # noqa
-                    # fmt: on
-
-            elif output_predictions_format == DetectionOutputFormatMode.BATCH_FORMAT:
-                # fmt: off
-                usage_instructions.append(f"Exported model has predictions in {output_predictions_format} format:")
-                usage_instructions.append("")
-                usage_instructions.append("    num_detections, pred_boxes, pred_scores, pred_joints = predictions")
-                usage_instructions.append("    for image_index in range(num_detections.shape[0]):")
-                usage_instructions.append("      for i in range(num_detections[image_index,0]):")
-                usage_instructions.append("        confidence = pred_scores[image_index, i]")
-                usage_instructions.append("        x_min, y_min, x_max, y_max = pred_boxes[image_index, i]")
-                usage_instructions.append('        pred_joints = pred_joints[image_index, i]')
-                usage_instructions.append('        print(f"Detected object with class_id={class_id}, confidence={confidence}, x_min={x_min}, y_min={y_min}, x_max={x_max}, y_max={y_max}")') # noqa
-                usage_instructions.append("        for joint_index, (x, y, confidence) in enumerate(pred_joints[i]):")
-                usage_instructions.append('           print(f"Joint {joint_index} has coordinates x={x}, y={y}, confidence={confidence}")')  # noqa
-                # fmt: on
-        elif postprocessing is False:
-            usage_instructions.append("Model exported with postprocessing=False")
-            usage_instructions.append("No decoding or NMS is added to the model, so you will have to decode predictions manually.")
-            usage_instructions.append("Please refer to the documentation for the model you exported")
-        elif isinstance(postprocessing, nn.Module):
-            usage_instructions.append("Exported model contains a custom postprocessing step.")
-            usage_instructions.append("We are unable to provide usage instructions to user-provided postprocessing module")
-            usage_instructions.append("But here is the human-friendly representation of the postprocessing module:")
-            usage_instructions.append(repr(postprocessing))
+        usage_instructions = build_usage_instructions_for_pose_estimation(
+            output=output,
+            engine=engine,
+            quantization_mode=quantization_mode,
+            input_image_shape=input_image_shape,
+            input_image_channels=input_image_channels,
+            input_image_dtype=input_image_dtype,
+            batch_size=batch_size,
+            output_predictions_format=output_predictions_format,
+            num_pre_nms_predictions=num_pre_nms_predictions,
+            max_predictions_per_image=max_predictions_per_image,
+            nms_threshold=nms_threshold,
+            confidence_threshold=confidence_threshold,
+            preprocessing=preprocessing,
+            preprocessing_module=preprocessing_module,
+            postprocessing=postprocessing,
+            postprocessing_module=postprocessing_module,
+        )
 
         return PoseEstimationModelExportResult(
             input_image_channels=input_image_channels,
@@ -633,5 +548,5 @@ class ExportablePoseEstimationModel:
             quantization_mode=quantization_mode,
             output=output,
             output_predictions_format=output_predictions_format,
-            usage_instructions="\n".join(usage_instructions),
+            usage_instructions=usage_instructions,
         )

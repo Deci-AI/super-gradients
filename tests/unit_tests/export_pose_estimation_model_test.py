@@ -64,15 +64,16 @@ class TestPoseEstimationModelExport(unittest.TestCase):
                 out_path = os.path.join(tmpdirname, model_type + ".onnx")
                 model: ExportablePoseEstimationModel = models.get(model_type, num_classes=17)
                 model.set_dataset_processing_params(**default_yolo_nas_pose_coco_processing_params())
-                result = model.export(
+                export_result = model.export(
                     out_path,
                     input_image_shape=(64, 64),
                     num_pre_nms_predictions=2000,
                     max_predictions_per_image=1000,
                     output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
                 )
-                assert result.input_image_dtype == torch.uint8
-                assert result.input_image_shape == (64, 64)
+                assert export_result.input_image_dtype == torch.uint8
+                assert export_result.input_image_shape == (64, 64)
+                print(export_result.usage_instructions)
 
     def test_the_most_common_export_use_case(self):
         """
@@ -84,10 +85,12 @@ class TestPoseEstimationModelExport(unittest.TestCase):
             model: ExportablePoseEstimationModel = models.get(self.default_model, num_classes=17)
             model.set_dataset_processing_params(**self.default_params)
 
-            result = model.export(out_path)
-            assert result.input_image_dtype == torch.uint8
-            assert result.input_image_shape == (640, 640)
-            assert result.input_image_channels == 3
+            export_result = model.export(out_path)
+            assert export_result.input_image_dtype == torch.uint8
+            assert export_result.input_image_shape == (640, 640)
+            assert export_result.input_image_channels == 3
+
+            print(export_result.usage_instructions)
 
     def test_models_produce_half(self):
         if not torch.cuda.is_available():
@@ -127,6 +130,7 @@ class TestPoseEstimationModelExport(unittest.TestCase):
                     confidence_threshold=confidence_threshold,
                     nms_threshold=nms_threshold,
                 )
+                print(export_result.usage_instructions)
 
                 [flat_predictions] = self._run_inference_with_onnx(export_result, params=self.custom_params)
 
@@ -155,9 +159,9 @@ class TestPoseEstimationModelExport(unittest.TestCase):
                     nms_threshold=nms_threshold,
                     confidence_threshold=confidence_threshold,
                 )
+                print(export_result.usage_instructions)
 
-                result = self._run_inference_with_onnx(export_result, params=self.custom_params)
-                print(result)
+                self._run_inference_with_onnx(export_result, params=self.custom_params)
 
     def _run_inference_with_onnx(self, export_result: PoseEstimationModelExportResult, params=None):
         if params is None:
