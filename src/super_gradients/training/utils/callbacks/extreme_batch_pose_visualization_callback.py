@@ -1,6 +1,6 @@
+import typing
 from typing import Optional, Tuple, Callable, List, Union
 
-import typing
 import numpy as np
 import torch
 from omegaconf import OmegaConf
@@ -9,9 +9,7 @@ from torchmetrics import Metric
 
 from super_gradients.common.registry.registry import register_callback
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy
-from super_gradients.training.utils.callbacks import PhaseContext
 from super_gradients.training.utils.callbacks.callbacks import ExtremeBatchCaseVisualizationCallback
-from super_gradients.training.utils.distributed_training_utils import maybe_all_gather_np_images
 from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
 
 # These imports are required for type hints and not used anywhere else
@@ -29,7 +27,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
 
     Visualizes worst/best batch in an epoch for pose estimation task.
     This class visualize horizontally-stacked GT and predicted poses.
-    It requires a List[PoseEstimationSample] to be present in additional_batch_items - 'gt_samples'.
+    It requires a key 'gt_samples' (List[PoseEstimationSample]) to be present in additional_batch_items dictionary.
 
     Supported models: YoloNASPose
     Supported datasets: COCOPoseEstimationDataset, CrowdPoseEstimationDataset, AnimalPoseEstimationDataset
@@ -133,7 +131,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         return inputs
 
     @classmethod
-    def visualize_batch(
+    def _visualize_batch(
         cls,
         image_tensor: np.ndarray,
         keypoints: List[Union[np.ndarray, Tensor]],
@@ -144,7 +142,22 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         edge_colors: List[Tuple[int, int, int]],
         edge_links: List[Tuple[int, int]],
         show_keypoint_confidence: bool,
-    ):
+    ) -> List[np.ndarray]:
+        """
+        Generate list of samples visualization of a batch of images with keypoints and bounding boxes.
+
+        :param image_tensor:             Images batch of [Batch Size, 3, H, W] shape with values in [0, 255] range.
+                                         The images should be scaled to [0, 255] range and converted to uint8 type beforehead.
+        :param keypoints:                Keypoints in XY format. Shape [Num Instances, Num Joints, 2]. Can be None.
+        :param bboxes:                   Bounding boxes in XYXY format. Shape [Num Instances, 4]. Can be None.
+        :param scores:                   Keypoint scores. Shape [Num Instances, Num Joints]. Can be None.
+        :param is_crowd:                 Whether each sample is crowd or not. Shape [Num Instances]. Can be None.
+        :param keypoint_colors:          Keypoint colors. Shape [Num Joints, 3]
+        :param edge_colors:              Edge colors between joints. Shape [Num Links, 3]
+        :param edge_links:               Edge links between joints. Shape [Num Links, 2]
+        :param show_keypoint_confidence: Whether to show confidence for each keypoint. Requires `scores` to be not None.
+        :return:                         List of visualization images.
+        """
 
         out_images = []
         for i in range(image_tensor.shape[0]):
@@ -197,7 +210,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         gt_samples: List[PoseEstimationSample] = self.extreme_additional_batch_items["gt_samples"]
         predictions: List[PoseEstimationPredictions] = self.post_prediction_callback(self.extreme_preds)
 
-        images_to_save_preds = self.visualize_batch(
+        images_to_save_preds = self._visualize_batch(
             image_tensor=inputs,
             keypoints=[p.poses for p in predictions],
             bboxes=[p.bboxes_xyxy for p in predictions],
@@ -210,7 +223,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
         )
         images_to_save_preds = np.stack(images_to_save_preds)
 
-        images_to_save_gt = self.visualize_batch(
+        images_to_save_gt = self._visualize_batch(
             image_tensor=inputs,
             keypoints=[gt.joints for gt in gt_samples],
             bboxes=[xywh_to_xyxy(gt.bboxes_xywh, image_shape=None) if gt.bboxes_xywh is not None else None for gt in gt_samples],
@@ -225,29 +238,3 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
 
         # Stack the predictions and GT images together
         return np.concatenate([images_to_save_gt, images_to_save_preds], axis=2)
-
-    def on_train_loader_end(self, context: PhaseContext) -> None:
-        if self.enable_on_train_loader and context.epoch % self.freq == 0:
-            images_to_save_preds_with_gt = self.process_extreme_batch()
-            images_to_save_preds_with_gt = maybe_all_gather_np_images(images_to_save_preds_with_gt)
-
-            if self.max_images is not None:
-                images_to_save_preds_with_gt = images_to_save_preds_with_gt[: self.max_images]
-
-            if not context.ddp_silent_mode:
-                context.sg_logger.add_images(tag=f"train/{self._tag}", images=images_to_save_preds_with_gt, global_step=context.epoch, data_format="NHWC")
-
-            self._reset()
-
-    def on_validation_loader_end(self, context: PhaseContext) -> None:
-        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
-            images_to_save_preds_with_gt = self.process_extreme_batch()
-            images_to_save_preds_with_gt = maybe_all_gather_np_images(images_to_save_preds_with_gt)
-
-            if self.max_images is not None:
-                images_to_save_preds_with_gt = images_to_save_preds_with_gt[: self.max_images]
-
-            if not context.ddp_silent_mode:
-                context.sg_logger.add_images(tag=f"valid/{self._tag}", images=images_to_save_preds_with_gt, global_step=context.epoch, data_format="NHWC")
-
-            self._reset()
