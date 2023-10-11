@@ -475,7 +475,9 @@ class Trainer:
                 if self.pre_prediction_callback is not None:
                     inputs, targets = self.pre_prediction_callback(inputs, targets, batch_idx)
 
-                context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
+                context.update_context(
+                    batch_idx=batch_idx, inputs=inputs, target=targets, additional_batch_items=additional_batch_items, **additional_batch_items
+                )
                 self.phase_callback_handler.on_train_batch_start(context)
 
                 # AUTOCAST IS ENABLED ONLY IF self.training_params.mixed_precision - IF enabled=False AUTOCAST HAS NO EFFECT
@@ -2098,7 +2100,9 @@ class Trainer:
                     inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
                     # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
-                    context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
+                    context.update_context(
+                        batch_idx=batch_idx, inputs=inputs, target=targets, additional_batch_items=additional_batch_items, **additional_batch_items
+                    )
                     if evaluation_type == EvaluationType.VALIDATION:
                         self.phase_callback_handler.on_validation_batch_start(context)
                     else:
