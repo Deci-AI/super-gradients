@@ -28,7 +28,7 @@ from tests.unit_tests import (
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.detection_utils_test import TestDetectionUtils
 from tests.unit_tests.detection_dataset_test import DetectionDatasetTest
-from tests.unit_tests.export_detection_model_export_test import TestDetectionModelExport
+from tests.unit_tests.export_detection_model_test import TestDetectionModelExport
 from tests.unit_tests.export_onnx_test import TestModelsONNXExport
 from tests.unit_tests.export_pose_estimation_model_test import TestPoseEstimationModelExport
 from tests.unit_tests.extreme_batch_cb_test import ExtremeBatchSanityTest
