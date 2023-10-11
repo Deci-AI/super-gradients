@@ -5,7 +5,7 @@ from typing import Union
 from omegaconf import DictConfig
 from torch import nn
 
-from super_gradients import setup_device, Trainer
+from super_gradients import Trainer
 from super_gradients.common.registry import register_model
 from super_gradients.training import models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
@@ -126,7 +126,6 @@ class DeprecationsUnitTest(unittest.TestCase):
             train_params.override(criterion_params={"ignore_index": 0})
 
     def test_train_with_deprecated_criterion_params(self):
-        setup_device(device="cpu")
         trainer = Trainer("test_train_with_precise_bn_explicit_size")
         net = ResNet18(num_classes=5, arch_params={})
         train_params = {
@@ -145,7 +144,6 @@ class DeprecationsUnitTest(unittest.TestCase):
             "metric_to_watch": "Accuracy",
             "greater_metric_to_watch_is_better": True,
             "precise_bn": True,
-            "precise_bn_batch_size": 100,
         }
         trainer.train(
             model=net,
