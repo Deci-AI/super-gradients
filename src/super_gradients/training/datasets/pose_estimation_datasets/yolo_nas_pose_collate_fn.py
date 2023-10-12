@@ -36,7 +36,7 @@ class YoloNASPoseCollateFN:
 
         for sample in batch:
             # Generate targets
-            boxes, joints, is_crowd = self._generate_targets(sample)
+            boxes, joints, is_crowd = self._get_targets(sample)
 
             # Convert image & mask to tensors
             # Change image layout from HWC to CHW
@@ -55,11 +55,14 @@ class YoloNASPoseCollateFN:
         extras = {"gt_samples": batch}
         return all_images, (boxes, joints, is_crowd), extras
 
-    def _generate_targets(self, sample: PoseEstimationSample) -> Tuple[Tensor, Tensor, Tensor]:
+    def _get_targets(self, sample: PoseEstimationSample) -> Tuple[Tensor, Tensor, Tensor]:
         """
-        Generate targets for a single sample
-        :param sample:
-        :return:
+        Generate targets for training YoloNASPose from a single PoseEstimationSample
+        :param sample: Input PoseEstimationSample
+        :return:       Tuple of (boxes, joints, is_crowd)
+                       - boxes - [NumInstances, 4] - torch tensor of bounding boxe (XYXY) for each pose instance in a sample
+                       - joints - [NumInstances, NumJoints, 3] - torch tensor of pose joints for each pose instance in a sample
+                       - is_crowd - [NumInstances, 1] - torch tensor of boolean flags indicating if a pose instance is crowd
         """
         if sample.image.shape[:2] != sample.mask.shape[:2]:
             raise ValueError(f"Image and mask should have the same shape {sample.image.shape[:2]} != {sample.mask.shape[:2]}")
@@ -74,10 +77,10 @@ class YoloNASPoseCollateFN:
 
 def flat_collate_tensors_with_batch_index(labels_batch: List[Tensor]) -> Tensor:
     """
-    Stack a batch id column to targets and concatenate
-    :param labels_batch: a list of targets per image (each of arbitrary length: [N1, ..., C], [N2, ..., C], [N3, ..., C],...)
-    :return: A single tensor of shape [N1+N2+N3+..., ..., C+1], where N is the total number of targets in a batch
-             and the 1st column is batch item index
+    Concatenate tensors along the first dimension and add a sample index as the first element in the last dimension.
+
+    :param labels_batch: A list of targets per image (each of arbitrary length: [N1, ..., C], [N2, ..., C], [N3, ..., C],...)
+    :return:             A single tensor of shape [N1+N2+N3+..., ..., C+1].
     """
     labels_batch_indexed = []
     for i, labels in enumerate(labels_batch):
@@ -87,13 +90,14 @@ def flat_collate_tensors_with_batch_index(labels_batch: List[Tensor]) -> Tensor:
     return torch.cat(labels_batch_indexed, 0)
 
 
-def undo_flat_collate_tensors_with_batch_index(flat_tensor, batch_size: int) -> List[Tensor]:
+def undo_flat_collate_tensors_with_batch_index(flat_tensor: Tensor, batch_size: int) -> List[Tensor]:
     """
     Unrolls the flat tensor into list of tensors per batch item.
     As name suggest it undoes what flat_collate_tensors_with_batch_index does.
-    :param flat_tensor:
-    :param batch_size:
-    :return: List of tensors
+
+    :param flat_tensor: Tensor of shape [N1+N2+N3+..., ..., C+1].
+    :param batch_size:  The batch size (Number of items in the batch)
+    :return:            List of tensors [N1, ..., C], [N2, ..., C], [N3, ..., C],...
     """
     items = []
     batch_index_roi = [slice(None)] + [0] * (flat_tensor.ndim - 1)
