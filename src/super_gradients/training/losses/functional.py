@@ -14,9 +14,9 @@ def bbox_overlap(box1: Tuple[Tensor, Tensor, Tensor, Tensor], box2: Tuple[Tensor
     :param box2:    Tuple containing the x1, y1, x2, y2 coordinates of box2
     :param eps:     epsilon to avoid divide by zero
     :return:        Tuple containing (iou, overlap, union)
-        - iou:      iou of box1 and box2
-        - overlap:  overlap of box1 and box2
-        - union:    union of box1 and box2
+                    - iou:      iou of box1 and box2
+                    - overlap:  overlap of box1 and box2
+                    - union:    union of box1 and box2
     """
     x1, y1, x2, y2 = box1
     x1g, y1g, x2g, y2g = box2
