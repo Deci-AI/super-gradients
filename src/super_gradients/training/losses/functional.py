@@ -8,11 +8,12 @@ from torch import Tensor
 def bbox_overlap(box1: Tuple[Tensor, Tensor, Tensor, Tensor], box2: Tuple[Tensor, Tensor, Tensor, Tensor], eps: float = 1e-10) -> Tuple[Tensor, Tensor, Tensor]:
     """
     Calculate the iou of box1 and box2.
+    Shape of box1 and box2 should be the same, or broadcastable to the same shape.
 
-    :param box1:    box1 with the shape (..., 4)
-    :param box2:    box1 with the shape (..., 4)
+    :param box1:    Tuple containing the x1, y1, x2, y2 coordinates of box1
+    :param box2:    Tuple containing the x1, y1, x2, y2 coordinates of box2
     :param eps:     epsilon to avoid divide by zero
-    :return:
+    :return:        Tuple containing (iou, overlap, union)
         - iou:      iou of box1 and box2
         - overlap:  overlap of box1 and box2
         - union:    union of box1 and box2
@@ -36,7 +37,13 @@ def bbox_overlap(box1: Tuple[Tensor, Tensor, Tensor, Tensor], box2: Tuple[Tensor
     return iou, overlap, union
 
 
-def get_convex_bbox(box1: Tuple[Tensor, Tensor, Tensor, Tensor], box2: Tuple[Tensor, Tensor, Tensor, Tensor]):
+def get_convex_bbox(box1: Tuple[Tensor, Tensor, Tensor, Tensor], box2: Tuple[Tensor, Tensor, Tensor, Tensor]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    """
+    Compute the convex bounding box around box1 and box2
+    :param box1: Tuple containing the x1, y1, x2, y2 coordinates of box1
+    :param box2: Tuple containing the x1, y1, x2, y2 coordinates of box2
+    :return:     Tuple containing the x1, y1, x2, y2 coordinates of the convex bounding box
+    """
     b1_x1, b1_y1, b1_x2, b1_y2 = box1
     b2_x1, b2_y1, b2_x2, b2_y2 = box2
 
@@ -48,14 +55,24 @@ def get_convex_bbox(box1: Tuple[Tensor, Tensor, Tensor, Tensor], box2: Tuple[Ten
     return xc1, yc1, xc2, yc2
 
 
-def get_bbox_center(bbox: Tuple[Tensor, Tensor, Tensor, Tensor]):
+def get_bbox_center(bbox: Tuple[Tensor, Tensor, Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
+    """
+    Compute the center of a bounding box from X1, Y1, X2, Y2 coordinates
+    :param bbox: Tuple of (x1, y1, x2, y2) tensors of arbitrary shape
+    :return:     Tuple of (cx, cy) tensors of the same shape as bbox
+    """
     b1_x1, b1_y1, b1_x2, b1_y2 = bbox
     cx = (b1_x1 + b1_x2) * 0.5
     cy = (b1_y1 + b1_y2) * 0.5
     return cx, cy
 
 
-def get_bbox_width_height(bbox: Tuple[Tensor, Tensor, Tensor, Tensor]):
+def get_bbox_width_height(bbox: Tuple[Tensor, Tensor, Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
+    """
+    Compute the width and height of the bounding box from X1, Y1, X2, Y2 coordinates
+    :param bbox:  Tuple of (x1, y1, x2, y2) tensors of arbitrary shape
+    :return:      Tuple of (w, h) tensors of the same shape as bbox
+    """
     b1_x1, b1_y1, b1_x2, b1_y2 = bbox
     w = b1_x2 - b1_x1
     h = b1_y2 - b1_y1
@@ -73,8 +90,8 @@ def bbox_ciou_loss(pred_bboxes: Tensor, target_bboxes: Tensor, eps: float) -> Te
     b1_x1, b1_y1, b1_x2, b1_y2 = pred_bboxes.chunk(4, dim=-1)
     b2_x1, b2_y1, b2_x2, b2_y2 = target_bboxes.chunk(4, dim=-1)
 
-    box1 = [b1_x1, b1_y1, b1_x2, b1_y2]
-    box2 = [b2_x1, b2_y1, b2_x2, b2_y2]
+    box1 = (b1_x1, b1_y1, b1_x2, b1_y2)
+    box2 = (b2_x1, b2_y1, b2_x2, b2_y2)
     iou, overlap, union = bbox_overlap(box1, box2, eps)
 
     iou_term = 1 - iou
