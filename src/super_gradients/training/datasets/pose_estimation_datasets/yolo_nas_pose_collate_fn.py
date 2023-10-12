@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 import numpy as np
 import torch
@@ -14,10 +14,18 @@ __all__ = ["YoloNASPoseCollateFN", "undo_flat_collate_tensors_with_batch_index",
 
 @register_collate_function()
 class YoloNASPoseCollateFN:
-    def __init__(self):
-        pass
+    def __init__(self, set_image_to_none: bool = True):
+        """
 
-    def __call__(self, batch: List[PoseEstimationSample]):
+        :param set_image_to_none: If True, image and mask properties for each sample will be set to None after collation.
+                                  After we collate images from samples into batch individual images are not needed anymore.
+                                  Keeping them in sample slows down data transfer time and slows training 2X.
+                                  If True, image and mask properties will be set to None after collation.
+                                  If False, image and mask properties will be converted to torch tensors and kept in the sample.
+        """
+        self.set_image_to_none = set_image_to_none
+
+    def __call__(self, batch: List[PoseEstimationSample]) -> Tuple[Tensor, Tuple[Tensor, Tensor, Tensor], Dict]:
         """
         Collate samples into a batch.
         This collate function is compatible with YoloNASPose model
@@ -37,16 +45,23 @@ class YoloNASPoseCollateFN:
         for sample in batch:
             # Generate targets
             boxes, joints, is_crowd = self._get_targets(sample)
+            all_boxes.append(boxes)
+            all_joints.append(joints)
+            all_crowd_masks.append(is_crowd)
 
             # Convert image & mask to tensors
             # Change image layout from HWC to CHW
             sample.image = torch.from_numpy(np.transpose(sample.image, [2, 0, 1]))
             sample.mask = torch.from_numpy(sample.mask)
-
             all_images.append(sample.image)
-            all_boxes.append(boxes)
-            all_joints.append(joints)
-            all_crowd_masks.append(is_crowd)
+
+            # Remove image and mask from sample because at this point we don't need them anymore
+            if self.set_image_to_none:
+                sample.image = None
+                sample.mask = None
+
+            # Make sure additional samples are None, so they don't get collated as it causes collate to slow down
+            sample.additional_samples = None
 
         all_images = default_collate(all_images)
         boxes = flat_collate_tensors_with_batch_index(all_boxes)
