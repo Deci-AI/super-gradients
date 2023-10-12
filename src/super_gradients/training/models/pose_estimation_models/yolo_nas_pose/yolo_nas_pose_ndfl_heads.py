@@ -40,8 +40,10 @@ class YoloNASPoseNDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
 
         :param num_classes: Number of detection classes
         :param in_channels: Number of channels for each feature map (See width_mult)
-        :param grid_cell_scale:
-        :param grid_cell_offset:
+        :param grid_cell_scale: A scaling factor applied to the grid cell coordinates.
+               This scaling factor is used to define anchor boxes (see generate_anchors_for_grid_cell).
+        :param grid_cell_offset: A fixed offset that is added to the grid cell coordinates.
+               This offset represents a 'center' of the cell and is 0.5 by default.
         :param reg_max: Number of bins in the regression head
         :param eval_size: (rows, cols) Size of the image for evaluation. Setting this value can be beneficial for inference speed,
                since anchors will not be regenerated for each forward call.
