@@ -84,7 +84,7 @@ def bbox_ciou_loss(pred_bboxes: Tensor, target_bboxes: Tensor, eps: float) -> Te
     Compute CIoU loss between predicted and target bboxes.
     :param pred_bboxes:   Predicted boxes in xyxy format of [D0, D1,...Di, 4] shape
     :param target_bboxes: Target boxes in xyxy format of [D0, D1,...Di, 4] shape
-    :return: CIoU loss per each box as tensor of shape [D0, D1,...Di]
+    :return:              CIoU loss per each box as tensor of shape [D0, D1,...Di]
     """
 
     b1_x1, b1_y1, b1_x2, b1_y2 = pred_bboxes.chunk(4, dim=-1)
