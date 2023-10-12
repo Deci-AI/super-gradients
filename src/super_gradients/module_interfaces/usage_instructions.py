@@ -98,9 +98,9 @@ Exported model has predictions in {output_predictions_format} format:
 
             if batch_size == 1:
                 usage_instructions += """
-pred_bboxes = flat_predictions[1:5]
-pred_scores = flat_predictions[5]
-pred_joints = flat_predictions[6:].reshape(-1, 3)
+pred_bboxes = flat_predictions[:, 1:5]
+pred_scores = flat_predictions[:, 5]
+pred_joints = flat_predictions[:, 6:].reshape((len(pred_bboxes), -1, 3))
 for i in range(len(pred_bboxes)):
     confidence = pred_scores[i]
     x_min, y_min, x_max, y_max = pred_bboxes[i]
@@ -115,9 +115,9 @@ for i in range(len(pred_bboxes)):
 for current_sample in range({batch_size}):
     predictions_for_current_sample = predictions[predictions[0] == current_sample]
     print("Predictions for sample " + str(current_sample))
-    pred_bboxes = flat_predictions[1:5]
-    pred_scores = flat_predictions[5]
-    pred_joints = flat_predictions[6:].reshape(-1, 3)
+    pred_bboxes = predictions_for_current_sample[:, 1:5]
+    pred_scores = predictions_for_current_sample[:, 5]
+    pred_joints = predictions_for_current_sample[:, 6:].reshape((len(pred_bboxes), -1, 3))
     for i in range(len(pred_bboxes)):
         confidence = pred_scores[i]
         x_min, y_min, x_max, y_max = pred_bboxes[i]
