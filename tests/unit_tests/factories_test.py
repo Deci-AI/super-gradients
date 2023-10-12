@@ -26,7 +26,6 @@ class FactoriesTest(unittest.TestCase):
             "initial_lr": 0.1,
             "loss": "CrossEntropyLoss",
             "optimizer": "torch.optim.ASGD",  # use an optimizer by factory
-            "criterion_params": {},
             "optimizer_params": {"lambd": 0.0001, "alpha": 0.75},
             "train_metrics_list": ["Accuracy", "Top5"],  # use a metric by factory
             "valid_metrics_list": ["Accuracy", "Top5"],  # use a metric by factory
@@ -52,7 +51,6 @@ class FactoriesTest(unittest.TestCase):
             "initial_lr": 0.1,
             "loss": "crossEnt_ropy",
             "optimizer": "AdAm_",  # use an optimizer by factory
-            "criterion_params": {},
             "train_metrics_list": ["accur_acy", "Top_5"],  # use a metric by factory
             "valid_metrics_list": ["aCCuracy", "Top5"],  # use a metric by factory
             "metric_to_watch": "Accurac_Y",
