@@ -16,10 +16,10 @@ In addition to being data and hardware aware, the AutoNAC engine considers other
 
 | Model            | AP    | Latency (ms) |
 |------------------|-------|--------------|
-| YOLO-NAS N       | 59.65 | 2.35 ms      |
-| YOLO-NAS S       | 63.70 | 3.29 ms      |
-| YOLO-NAS M       | 66.20 | 6.87 ms      |
-| YOLO-NAS L       | 67.50 | 8.86 ms      |
+| YOLO-NAS N       | 59.68 | 2.35 ms      |
+| YOLO-NAS S       | 64.15 | 3.29 ms      |
+| YOLO-NAS M       | 67.87 | 6.87 ms      |
+| YOLO-NAS L       | 68.24 | 8.86 ms      |
 
 AP numbers in table reported for COCO 2017 Val dataset and latency benchmarked for 640x640 images on Nvidia T4 GPU.
 No flip-TTA was used.
