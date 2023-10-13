@@ -39,8 +39,11 @@ resume: False
 training_hyperparams:
   max_epochs: 100
   resume: ${resume}
-  criterion_params:
-    num_classes: ${num_classes}
+  loss:
+    YoloXDetectionLoss:
+      strides: [ 8, 16, 32 ]  # output strides of all yolo outputs
+      num_classes: ${num_classes}
+
   train_metrics_list:
     - DetectionMetrics:
         normalize_targets: True

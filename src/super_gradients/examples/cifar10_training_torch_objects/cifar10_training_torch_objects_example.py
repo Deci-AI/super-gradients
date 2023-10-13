@@ -55,7 +55,6 @@ train_params = {
     "phase_callbacks": phase_callbacks,
     "initial_lr": lr,
     "loss": loss_fn,
-    "criterion_params": {},
     "optimizer": optimizer,
     "train_metrics_list": [Accuracy(), Top5()],
     "valid_metrics_list": [Accuracy(), Top5()],
