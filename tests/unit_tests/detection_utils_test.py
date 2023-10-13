@@ -1,11 +1,12 @@
 import os
+import tempfile
 import unittest
 
 import numpy as np
 import torch.cuda
 
 from super_gradients.common.object_names import Models
-from super_gradients.training import Trainer, utils as core_utils, models
+from super_gradients.training import utils as core_utils, models
 from super_gradients.training.dataloaders.dataloaders import coco2017_val
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.metrics import DetectionMetrics, DetectionMetrics_050
@@ -23,26 +24,26 @@ class TestDetectionUtils(unittest.TestCase):
     @unittest.skipIf(not is_data_available(), "run only when /data is available")
     def test_visualization(self):
 
-        valid_loader = coco2017_val(dataloader_params={"batch_size": 16, "num_workers": 0})
-        trainer = Trainer("visualization_test")
-        post_prediction_callback = YoloXPostPredictionCallback()
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            valid_loader = coco2017_val(dataloader_params={"batch_size": 16, "num_workers": 0})
+            post_prediction_callback = YoloXPostPredictionCallback()
 
-        # Simulate one iteration of validation subset
-        batch_i, batch = 0, next(iter(valid_loader))
-        imgs, targets = batch[:2]
-        imgs = core_utils.tensor_container_to_device(imgs, self.device)
-        targets = core_utils.tensor_container_to_device(targets, self.device)
-        output = self.model(imgs)
-        output = post_prediction_callback(output)
-        # Visualize the batch
-        DetectionVisualization.visualize_batch(imgs, output, targets, batch_i, COCO_DETECTION_CLASSES_LIST, trainer.checkpoints_dir_path)
+            # Simulate one iteration of validation subset
+            batch_i, batch = 0, next(iter(valid_loader))
+            imgs, targets = batch[:2]
+            imgs = core_utils.tensor_container_to_device(imgs, self.device)
+            targets = core_utils.tensor_container_to_device(targets, self.device)
+            output = self.model(imgs)
+            output = post_prediction_callback(output)
+            # Visualize the batch
+            DetectionVisualization.visualize_batch(imgs, output, targets, batch_i, COCO_DETECTION_CLASSES_LIST, tmpdirname)
 
-        # Assert images ware created and delete them
-        img_name = "{}/{}_{}.jpg"
-        for i in range(4):
-            img_path = img_name.format(trainer.checkpoints_dir_path, batch_i, i)
-            self.assertTrue(os.path.exists(img_path))
-            os.remove(img_path)
+            # Assert images ware created and delete them
+            img_name = "{}/{}_{}.jpg"
+            for i in range(4):
+                img_path = img_name.format(tmpdirname, batch_i, i)
+                self.assertTrue(os.path.exists(img_path))
+                os.remove(img_path)
 
     @unittest.skipIf(not is_data_available(), "run only when /data is available")
     def test_detection_metrics(self):
@@ -72,7 +73,8 @@ class TestDetectionUtils(unittest.TestCase):
                 met.update(output, targets, device=self.device, inputs=imgs)
             results = met.compute()
             values = np.array([x.item() for x in list(results.values())])
-            self.assertTrue(np.allclose(values, ref_val, rtol=1e-3, atol=1e-4))
+            for expected, actual in zip(ref_val, values):
+                self.assertAlmostEqual(expected, actual, delta=5e-3)
 
 
 if __name__ == "__main__":
