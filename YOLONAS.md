@@ -103,6 +103,11 @@ We demonstrate great performance of YOLO-NAS on downstream tasks. When fine-tuni
 </tr>
 </table>
 
+## Community Resources
+
+This section lists resources showing how to use YOLO-NAS and projects built with YOLO-NAS.
+
+- [How to train YOLO-NAS on a custom dataset](https://blog.roboflow.com/yolo-nas-how-to-train-on-custom-dataset/): Learn how to train a YOLO-NAS model.
 
 ## LICENSE
 
