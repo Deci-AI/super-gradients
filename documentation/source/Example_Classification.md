@@ -308,7 +308,6 @@ Output (Training parameters):
     'ckpt_name': 'ckpt_latest.pth',
     'clip_grad_norm': None,
     'cosine_final_lr_ratio': 0.01,
-    'criterion_params': {},
     'dataset_statistics': False,
     'ema': False,
     'ema_params': {'decay': 0.9999, 'decay_type': 'exp', 'beta': 15},

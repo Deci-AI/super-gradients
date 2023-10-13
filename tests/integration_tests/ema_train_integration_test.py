@@ -55,7 +55,6 @@ class EMAIntegrationTest(unittest.TestCase):
             "initial_lr": 0.1,
             "loss": "CrossEntropyLoss",
             "optimizer": "SGD",
-            "criterion_params": {},
             "ema": True,
             "ema_params": ema_params,
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
