@@ -67,9 +67,11 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
         :param edge_colors:                  Color of the edge links. If None, the color will be generated randomly.
         :param keypoint_colors:              Color of the keypoints. If None, the color will be generated randomly.
         :param remove_duplicate_annotations: If True will remove duplicate instances from the dataset.
-                                             It is known that COCO dataset has some duplicate annotations that and that affects the
+                                             It is known issue of COCO dataset - it has some duplicate annotations that affects the
                                              AP metric on validation greatly. This option allows to remove these duplicates.
                                              However, it is disabled by default to preserve backward compatibility with COCO evaluation.
+                                             When remove_duplicate_annotations is False no action will be taken and these duplicate
+                                             instances will be left unchanged. Default value is False.
         :param crowd_annotations_action:     Action to take for annotations with iscrowd=1. Can be one of the following:
                                              "drop_sample" - Samples with crowd annotations will be dropped from the dataset.
                                              "drop_annotation" - Crowd annotations will be dropped from the dataset.
