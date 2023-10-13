@@ -92,6 +92,16 @@ class YoloNASPoseTests(unittest.TestCase):
         assert (undo_values[2] == values[2]).all()
         assert (undo_values[3] == values[3]).all()
 
+    def test_yolo_nas_pose_replace_classes(self):
+        model = models.get(Models.YOLO_NAS_POSE_N, num_classes=17)
+        model.replace_head(new_num_classes=20)
+        input = torch.randn((1, 3, 640, 640))
+        decoded_predictions, _ = model(input)
+        pred_bboxes, pred_scores, pred_pose_coords, pred_pose_scores = decoded_predictions
+
+        self.assertEqual(pred_pose_coords.shape[2], 20)
+        self.assertEqual(pred_pose_scores.shape[2], 20)
+
 
 if __name__ == "__main__":
     unittest.main()
