@@ -119,7 +119,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
 
     def replace_num_classes(self, num_classes: int, compute_new_weights_fn: Callable[[nn.Module, int], nn.Module]):
         if self.pose_conf_in_class_head:
-            self.cls_pred = compute_new_weights_fn(self.pose_pred, 1 + num_classes)
+            self.cls_pred = compute_new_weights_fn(self.cls_pred, 1 + num_classes)
             self.pose_pred = compute_new_weights_fn(self.pose_pred, 2 * num_classes)
         else:
             self.pose_pred = compute_new_weights_fn(self.pose_pred, 3 * num_classes)
