@@ -16,6 +16,7 @@ class Losses:
     DICE_CE_EDGE_LOSS = "DiceCEEdgeLoss"
     DEKR_LOSS = "DEKRLoss"
     RESCORING_LOSS = "RescoringLoss"
+    YOLONAS_POSE_LOSS = "YoloNASPoseLoss"
 
 
 class Metrics:
@@ -314,6 +315,11 @@ class Models:
     POSE_RESCORING = "pose_rescoring_custom"
     POSE_RESCORING_COCO = "pose_rescoring_coco"
 
+    YOLO_NAS_POSE_N = "yolo_nas_pose_n"
+    YOLO_NAS_POSE_S = "yolo_nas_pose_s"
+    YOLO_NAS_POSE_M = "yolo_nas_pose_m"
+    YOLO_NAS_POSE_L = "yolo_nas_pose_l"
+
 
 class ConcatenatedTensorFormats:
     XYXY_LABEL = "XYXY_LABEL"
@@ -412,6 +418,7 @@ class Datasets:
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
+    COCO_POSE_ESTIMATION_DATASET = "COCOPoseEstimationDataset"
 
 
 class Processings:
