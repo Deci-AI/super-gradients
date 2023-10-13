@@ -9,6 +9,7 @@ from pycocotools.coco import COCO
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.common.factories.type_factory import TypeFactory
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
@@ -29,6 +30,8 @@ logger = get_logger(__name__)
 class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
     """
     Dataset class for training pose estimation models using COCO format dataset.
+    Please note that COCO annotations must have exactly one category (e.g. "person") and
+    keypoints must be defined for this category.
 
     Compatible datasets are
     - COCO2017 dataset
@@ -38,6 +41,7 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
     """
 
     @resolve_param("transforms", TransformsFactory())
+    @resolve_param("crowd_annotations_action", TypeFactory.from_enum_cls(CrowdAnnotationActionEnum))
     def __init__(
         self,
         data_dir: str,
@@ -49,7 +53,7 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         remove_duplicate_annotations: bool = False,
-        crowd_annotations_action: Union[str, CrowdAnnotationActionEnum] = CrowdAnnotationActionEnum.NO_ACTION,
+        crowd_annotations_action: CrowdAnnotationActionEnum = CrowdAnnotationActionEnum.NO_ACTION,
     ):
         """
 
@@ -72,16 +76,6 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
                                              "mask_as_normal" - These annotations will be treated as normal (non-crowd) annotations.
                                              "no_action" - No action will be taken for crowd annotations.
         """
-
-        crowd_annotations_action = CrowdAnnotationActionEnum(crowd_annotations_action)
-        if crowd_annotations_action not in [
-            CrowdAnnotationActionEnum.NO_ACTION,
-            CrowdAnnotationActionEnum.DROP_ANNOTATION,
-            CrowdAnnotationActionEnum.DROP_SAMPLE,
-            CrowdAnnotationActionEnum.MASK_AS_NORMAL,
-        ]:
-            raise ValueError(f"crowd_annotations_action must be one of CrowdAnnotationActionEnum values, got {crowd_annotations_action}")
-
         json_file = os.path.join(data_dir, json_file)
         if not os.path.exists(json_file) or not os.path.isfile(json_file):
             raise FileNotFoundError(f"Annotation file {json_file} does not exist")
