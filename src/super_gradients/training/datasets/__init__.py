@@ -46,6 +46,7 @@ __all__ = [
     "Cifar100",
     "SuperviselyPersonsDataset",
     "COCOKeypointsDataset",
+    "BaseDatasetAdapterCollateFN",
 ]
 
 cv2.setNumThreads(0)
