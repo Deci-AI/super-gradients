@@ -1,0 +1,109 @@
+defaults:
+  - coco_pose_common_dataset_params
+  - _self_
+
+# This is a shortcut parameter to set size of training & validation images.
+image_size: 640
+dataset_params_suffix: "${dataset_params.image_size}"
+
+train_dataset_params:
+  data_dir: /data/coco # root path to coco data
+  images_dir: images/train2017
+  json_file: annotations/person_keypoints_train2017.json
+
+  edge_links: ${dataset_params.edge_links}
+  edge_colors: ${dataset_params.edge_colors}
+  keypoint_colors: ${dataset_params.keypoint_colors}
+
+  include_empty_samples: True
+  crowd_annotations_action: mask_as_normal
+
+  transforms:
+    - KeypointsRandomHorizontalFlip:
+        flip_index: ${dataset_params.flip_indexes}
+        prob: 0.5
+
+    - KeypointsBrightnessContrast:
+        brightness_range: [ 0.8, 1.2 ]
+        contrast_range: [ 0.8, 1.2 ]
+        prob: 0.5
+
+    - KeypointsHSV:
+        hgain: 20
+        sgain: 20
+        vgain: 20
+        prob: 0.5
+
+    - KeypointsRandomAffineTransform:
+        max_rotation: 5
+        min_scale: 0.5
+        max_scale: 1.5
+        max_translate: 0.1
+        image_pad_value: 127
+        mask_pad_value: 1
+        prob: 0.75
+        interpolation_mode: [0, 1, 2, 3, 4]
+
+    - KeypointsLongestMaxSize:
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
+
+    - KeypointsPadIfNeeded:
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
+        image_pad_value: [127, 127, 127]
+        mask_pad_value: 1
+        padding_mode: center
+
+    - KeypointsImageStandardize:
+        max_value: 255
+
+    - KeypointsRemoveSmallObjects:
+        min_instance_area: 1
+        min_visible_keypoints: 1
+
+
+val_dataset_params:
+  data_dir: /data/coco/
+  images_dir: images/val2017
+  json_file: annotations/person_keypoints_val2017.json
+
+  edge_links: ${dataset_params.edge_links}
+  edge_colors: ${dataset_params.edge_colors}
+  keypoint_colors: ${dataset_params.keypoint_colors}
+
+  include_empty_samples: True
+  crowd_annotations_action: no_action
+
+  transforms:
+    - KeypointsLongestMaxSize:
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
+
+    - KeypointsPadIfNeeded:
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
+        image_pad_value: 127
+        mask_pad_value: 1
+        padding_mode: bottom_right
+
+    - KeypointsImageStandardize:
+        max_value: 255
+
+
+train_dataloader_params:
+  dataset: COCOPoseEstimationDataset
+  shuffle: True
+  batch_size: 8
+  num_workers: 8
+  drop_last: True
+  pin_memory: False
+  collate_fn: YoloNASPoseCollateFN
+
+val_dataloader_params:
+  dataset: COCOPoseEstimationDataset
+  batch_size: 8
+  num_workers: 8
+  drop_last: False
+  pin_memory: False
+  collate_fn: YoloNASPoseCollateFN

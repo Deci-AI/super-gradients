@@ -63,7 +63,7 @@ class AbstractPoseEstimationDataset(Dataset, HasPreprocessingParams):
         """
         Read a sample from the disk and return a PoseEstimationSample
         :param index: Sample index
-        :return: Returns an instance of PoseEstimationSample that holds complete sample (image and annotations)
+        :return:      Returns an instance of PoseEstimationSample that holds complete sample (image and annotations)
         """
         raise NotImplementedError()
 
