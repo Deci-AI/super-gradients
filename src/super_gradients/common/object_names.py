@@ -16,6 +16,7 @@ class Losses:
     DICE_CE_EDGE_LOSS = "DiceCEEdgeLoss"
     DEKR_LOSS = "DEKRLoss"
     RESCORING_LOSS = "RescoringLoss"
+    YOLONAS_POSE_LOSS = "YoloNASPoseLoss"
 
 
 class Metrics:
@@ -313,6 +314,11 @@ class Models:
     YOLO_NAS_L = "yolo_nas_l"
     POSE_RESCORING = "pose_rescoring_custom"
     POSE_RESCORING_COCO = "pose_rescoring_coco"
+
+    YOLO_NAS_POSE_N = "yolo_nas_pose_n"
+    YOLO_NAS_POSE_S = "yolo_nas_pose_s"
+    YOLO_NAS_POSE_M = "yolo_nas_pose_m"
+    YOLO_NAS_POSE_L = "yolo_nas_pose_l"
 
 
 class ConcatenatedTensorFormats:

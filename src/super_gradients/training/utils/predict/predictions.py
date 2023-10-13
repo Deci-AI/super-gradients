@@ -76,7 +76,7 @@ class PoseEstimationPrediction(Prediction):
 
     poses: np.ndarray
     scores: np.ndarray
-    boxes: Optional[np.ndarray]
+    bboxes_xyxy: Optional[np.ndarray]
     edge_links: np.ndarray
     edge_colors: np.ndarray
     keypoint_colors: np.ndarray
@@ -101,7 +101,7 @@ class PoseEstimationPrediction(Prediction):
         self._validate_input(poses, scores, bboxes_xyxy, edge_links, edge_colors, keypoint_colors)
         self.poses = poses
         self.scores = scores
-        self.bboxes = bboxes_xyxy
+        self.bboxes_xyxy = bboxes_xyxy
         self.edge_links = edge_links
         self.edge_colors = edge_colors
         self.image_shape = image_shape
