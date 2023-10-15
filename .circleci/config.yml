@@ -870,9 +870,9 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
-  sanity_tests:
-    when:  << pipeline.parameters.run_sanity_tests_flow >>
-    jobs:
+#  sanity_tests:
+#    when:  << pipeline.parameters.run_sanity_tests_flow >>
+#    jobs:
 #      - hydra_sweeper_test:
 #          context:
 #            - slack
