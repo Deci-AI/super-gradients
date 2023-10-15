@@ -79,8 +79,8 @@ model = models.get(model_name=Models.RESNET18, num_classes=10)
 
 train_params = {
     ...
-    "loss": "cross_entropy",
-    "criterion_params": {},
+    "loss": "LabelSmoothingCrossEntropyLoss",
+    
     "save_ckpt_epoch_list": [10,15]
     ...
 }

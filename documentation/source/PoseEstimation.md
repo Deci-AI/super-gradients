@@ -208,7 +208,7 @@ A minimal implementation of a dataset class should look like this:
 ```python
 from super_gradients.training.datasets.pose_estimation_datasets import BaseKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets import KeypointsTargetsGenerator
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform
+from super_gradients.training.transforms.keypoint_transforms import AbstractKeypointTransform
 from typing import Tuple, Dict, Any, List
 import numpy as np
 import cv2
@@ -219,7 +219,7 @@ class MyNewPoseEstimationDataset(BaseKeypointsDataset):
             image_paths,
             joint_paths,
             target_generator: KeypointsTargetsGenerator,
-            transforms: List[KeypointTransform],
+            transforms: List[AbstractKeypointTransform],
             min_instance_area: float = 0.0,
     ):
         super().__init__(target_generator, transforms, min_instance_area)
@@ -284,7 +284,7 @@ Then, the full configuration file should look like this:
 num_joints: 17
 
 # OKs sigma values take from https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocotools/cocoeval.py#L523
-oks_sigmas: [0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 1.007, 1.007, 0.087, 0.087, 0.089, 0.089]
+oks_sigmas: [0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089]
 
 train_dataset_params:
   image_paths: /my_new_dataset/train/images 

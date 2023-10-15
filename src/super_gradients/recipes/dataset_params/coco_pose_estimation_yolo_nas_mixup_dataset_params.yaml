@@ -1,15 +1,11 @@
 defaults:
-  - coco_pose_estimation_dataset_params
+  - coco_pose_estimation_yolo_nas_dataset_params
   - _self_
 
 mixup_prob: 0.8
 dataset_params_suffix: "mixup_${dataset_params.mixup_prob}_${dataset_params.image_size}"
 
 train_dataset_params:
-  include_empty_samples: True
-  min_instance_area: 16
-  crowd_annotations_action: mask_as_normal
-
   transforms:
     - KeypointsRandomHorizontalFlip:
         flip_index: ${dataset_params.flip_indexes}
@@ -53,40 +49,6 @@ train_dataset_params:
     - KeypointsImageStandardize:
         max_value: 255
 
-    - KeypointsImageToTensor
-
-  target_generator:
-    YoloNASPoseTargetsGenerator
-
-val_dataset_params:
-  include_empty_samples: True
-  min_instance_area: 0
-  transforms:
-    - KeypointsLongestMaxSize:
-        max_height: ${dataset_params.image_size}
-        max_width: ${dataset_params.image_size}
-
-    - KeypointsPadIfNeeded:
-        min_height: ${dataset_params.image_size}
-        min_width: ${dataset_params.image_size}
-        image_pad_value: 127
-        mask_pad_value: 1
-        padding_mode: bottom_right
-
-    - KeypointsImageStandardize:
-        max_value: 255
-
-    - KeypointsImageToTensor
-
-  target_generator:
-    YoloNASPoseTargetsGenerator
-
-train_dataloader_params:
-  pin_memory: False
-  collate_fn:
-    _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
-
-val_dataloader_params:
-  pin_memory: False
-  collate_fn:
-    _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
+    - KeypointsRemoveSmallObjects:
+        min_instance_area: 1
+        min_visible_keypoints: 1

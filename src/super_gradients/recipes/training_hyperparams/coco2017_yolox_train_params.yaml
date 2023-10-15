@@ -2,7 +2,7 @@ defaults:
   - default_train_params
 
 max_epochs: 300
-lr_mode: cosine
+lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0.05
 lr_warmup_epochs: 5
 lr_cooldown_epochs: 15
@@ -12,11 +12,10 @@ batch_accumulate: 1
 
 save_ckpt_epoch_list: [285]
 
-loss: yolox_loss
-
-criterion_params:
-  strides: [8, 16, 32]  # output strides of all yolo outputs
-  num_classes: 80
+loss:
+  YoloXDetectionLoss:
+    strides: [8, 16, 32]  # output strides of all yolo outputs
+    num_classes: 80
 
 
 

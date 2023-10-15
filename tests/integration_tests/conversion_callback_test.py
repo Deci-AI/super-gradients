@@ -54,12 +54,11 @@ class ConversionCallbackTest(unittest.TestCase):
                 "max_epochs": 2,
                 "lr_updates": [1],
                 "lr_decay_factor": 0.1,
-                "lr_mode": "step",
+                "lr_mode": "StepLRScheduler",
                 "lr_warmup_epochs": 0,
                 "initial_lr": 0.1,
-                "loss": "cross_entropy",
+                "loss": "CrossEntropyLoss",
                 "optimizer": "SGD",
-                "criterion_params": {},
                 "train_metrics_list": [Accuracy(), Top5()],
                 "valid_metrics_list": [Accuracy(), Top5()],
                 "metric_to_watch": "Accuracy",
@@ -90,7 +89,7 @@ class ConversionCallbackTest(unittest.TestCase):
                 }
             elif re.search(r"regseg", architecture_name):
                 return {
-                    "loss": "cross_entropy",
+                    "loss": "CrossEntropyLoss",
                 }
             else:
                 raise Exception("You tried to run a conversion test on an unknown architecture")
@@ -107,7 +106,7 @@ class ConversionCallbackTest(unittest.TestCase):
             train_params = {
                 "max_epochs": 3,
                 "initial_lr": 1e-2,
-                "lr_mode": "poly",
+                "lr_mode": "PolyLRScheduler",
                 "ema": True,  # unlike the paper (not specified in paper)
                 "optimizer": "SGD",
                 "optimizer_params": {"weight_decay": 5e-4, "momentum": 0.9},

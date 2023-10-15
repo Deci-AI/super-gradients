@@ -2,7 +2,7 @@ defaults:
   - default_train_params
 
 max_epochs: 150
-lr_mode: cosine
+lr_mode: CosineLRScheduler
 initial_lr: 0.1
 optimizer: SGD
 
@@ -10,9 +10,9 @@ optimizer_params:
   weight_decay: 0.00004
 
 lr_warmup_epochs: 5
-loss: cross_entropy
-criterion_params:
-  smooth_eps: 0.1
+loss:
+  LabelSmoothingCrossEntropyLoss:
+    smooth_eps: 0.1
 
 zero_weight_decay_on_bias_and_bn: True
 ema: True

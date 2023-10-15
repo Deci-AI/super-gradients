@@ -1,0 +1,15 @@
+# Proxy dataset params can be used for HPS search
+# It reduces training resolution to 512x512 and drop data samples (not individual instances) with crowd annotations
+
+defaults:
+  - crowdpose_yolo_nas_dataset_params
+  - _self_
+
+image_size: 512
+dataset_params_suffix: "proxy_${dataset_params.image_size}"
+
+train_dataset_params:
+  crowd_annotations_action: drop_sample
+
+val_dataset_params:
+  crowd_annotations_action: drop_sample

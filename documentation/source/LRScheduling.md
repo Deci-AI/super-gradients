@@ -7,15 +7,15 @@ Learning rate scheduling type is controlled by the training parameter `lr_mode`.
 
         When str:
 
-        Learning rate scheduling policy, one of ['step','poly','cosine','function'].
+        Learning rate scheduling policy, one of ['StepLRScheduler','PolyLRScheduler','CosineLRScheduler','FunctionLRScheduler'].
 
-        'step' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
+        'StepLRScheduler' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
 
-        'cosine' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983. The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
+        'CosineLRScheduler' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983. The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
 
-        'poly' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
+        'PolyLRScheduler' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
 
-        'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
+        'FunctionLRScheduler' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
 
 For example, the training code below will start with an initial learning rate of 0.1 and decay by 0.1 at epochs 100,150 and 200:
 
@@ -30,7 +30,7 @@ valid_dataloader = ...
 model = ...
 train_params = {
     "initial_lr": 0.1,
-    "lr_mode":"step",
+    "lr_mode":"StepLRScheduler",
     "lr_updates": [100, 150, 200],
     "lr_decay_factor": 0.1,
     ...,
@@ -45,7 +45,7 @@ trainer.train(model=model, training_params=train_params, train_loader=train_data
 ```yaml
 training_hyperparams:
     initial_lr: 0.1
-    lr_mode: step
+    lr_mode: StepLRScheduler
     user_lr_updates:
       - 100
       - 150
@@ -66,7 +66,7 @@ Prerequisites: [phase callbacks](PhaseCallbacks.md), [training with configuratio
 In SG, learning rate schedulers are implemented as [phase callbacks](PhaseCallbacks.md).
 They read the learning rate from the `PhaseContext` in their `__call__` method, calculate the new learning rate according to the current state of training, and update the optimizer's param groups.
 
-For example, the code snippet from the previous section translates "lr_mode":"step" to a `super_gradients.training.utils.callbacks.callbacks.StepLRCallback` instance, which is added to the phase callbacks list.
+For example, the code snippet from the previous section translates "lr_mode":"StepLRScheduler" to a `super_gradients.training.utils.callbacks.callbacks.StepLRScheduler` instance, which is added to the phase callbacks list.
 
 ### Implementing Your Own Scheduler
 A custom learning rate scheduler should inherit from `LRCallbackBase`, so let's take a look at it:
@@ -299,7 +299,7 @@ train_params = {
     "initial_lr": 0.1,
     "loss": torch.nn.CrossEntropyLoss(),
     "optimizer": "SGD",
-    "criterion_params": {},
+    
     "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
     "train_metrics_list": [Accuracy()],
     "valid_metrics_list": [Accuracy()],
@@ -327,7 +327,6 @@ training_hyperparams:
     initial_lr: 0.1
     loss: CrossEntropyLoss
     optimizer: SGD
-    criterion_params: {}
     optimizer_params:
       weight_decay: 1e-4
       momentum: 0.9
@@ -366,7 +365,7 @@ train_params = {
     "initial_lr": 0.1,
     "loss": torch.nn.CrossEntropyLoss(),
     "optimizer": "SGD",
-    "criterion_params": {},
+    
     "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
     "train_metrics_list": [Accuracy()],
     "valid_metrics_list": [Accuracy()],
@@ -398,7 +397,6 @@ training_hyperparams:
     initial_lr: 0.1
     loss: CrossEntropyLoss
     optimizer: SGD
-    criterion_params: {}
     optimizer_params:
       weight_decay: 1e-4
       momentum: 0.9

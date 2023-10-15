@@ -1,10 +1,21 @@
 defaults:
-  - coco_pose_estimation_dataset_params
+  - coco_pose_common_dataset_params
   - _self_
 
+# This is a shortcut parameter to set size of training & validation images.
+image_size: 640
+dataset_params_suffix: "${dataset_params.image_size}"
+
 train_dataset_params:
+  data_dir: /data/coco # root path to coco data
+  images_dir: images/train2017
+  json_file: annotations/person_keypoints_train2017.json
+
+  edge_links: ${dataset_params.edge_links}
+  edge_colors: ${dataset_params.edge_colors}
+  keypoint_colors: ${dataset_params.keypoint_colors}
+
   include_empty_samples: True
-  min_instance_area: 16
   crowd_annotations_action: mask_as_normal
 
   transforms:
@@ -47,14 +58,23 @@ train_dataset_params:
     - KeypointsImageStandardize:
         max_value: 255
 
-    - KeypointsImageToTensor
+    - KeypointsRemoveSmallObjects:
+        min_instance_area: 1
+        min_visible_keypoints: 1
 
-  target_generator:
-    YoloNASPoseTargetsGenerator
 
 val_dataset_params:
+  data_dir: /data/coco/
+  images_dir: images/val2017
+  json_file: annotations/person_keypoints_val2017.json
+
+  edge_links: ${dataset_params.edge_links}
+  edge_colors: ${dataset_params.edge_colors}
+  keypoint_colors: ${dataset_params.keypoint_colors}
+
   include_empty_samples: True
-  min_instance_area: 0
+  crowd_annotations_action: no_action
+
   transforms:
     - KeypointsLongestMaxSize:
         max_height: ${dataset_params.image_size}
@@ -70,17 +90,20 @@ val_dataset_params:
     - KeypointsImageStandardize:
         max_value: 255
 
-    - KeypointsImageToTensor
-
-  target_generator:
-    YoloNASPoseTargetsGenerator
 
 train_dataloader_params:
+  dataset: COCOPoseEstimationDataset
+  shuffle: True
+  batch_size: 8
+  num_workers: 8
+  drop_last: True
   pin_memory: False
-  collate_fn:
-    _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
+  collate_fn: YoloNASPoseCollateFN
 
 val_dataloader_params:
+  dataset: COCOPoseEstimationDataset
+  batch_size: 8
+  num_workers: 8
+  drop_last: False
   pin_memory: False
-  collate_fn:
-    _target_: super_gradients.training.datasets.pose_estimation_datasets.YoloNASPoseTargetsCollateFN
+  collate_fn: YoloNASPoseCollateFN

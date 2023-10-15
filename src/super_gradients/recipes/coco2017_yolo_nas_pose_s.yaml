@@ -1,3 +1,34 @@
+# YoloNASPose training on COCO2017 Dataset
+# All YoloNASPose models trained in 640x640 resolution
+#
+# Instructions:
+#   0. Have super-gradients installed (pip install super-gradients==3.3 or clone the repo and `pip install -e .`)
+#   1. Make sure that the data is stored folder specified at `dataset_params.dataset_dir` (Default is /data/coco) or
+#      add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below
+#   2. Run the command to start the training:
+#         yolo_nas_pose_n: python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_pose_n
+#         yolo_nas_pose_s: python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_pose_s
+#         yolo_nas_pose_m: python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_pose_m
+#         yolo_nas_pose_l: python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_pose_l
+#
+# Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.01, IoU threshold 0.7, test on original resolution):
+#         yolo_nas_pose_n: 93h on 8 NVIDIA GeForce RTX 3090, AP: 59.68 (val)
+#         yolo_nas_pose_s: 52h on 8 NVIDIA GeForce RTX 3090, AP: 64.15 (val)
+#         yolo_nas_pose_m: 57h on 8 NVIDIA GeForce RTX 3090, AP: 67.87 (val)
+#         yolo_nas_pose_l: 80h on 8 NVIDIA GeForce RTX 3090, AP: 68.24 (val)
+#
+# Offline evaluation using COCOEval for S variant:
+#         Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.642
+#         Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.856
+#         Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.703
+#         Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.594
+#         Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.723
+#         Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.702
+#         Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.901
+#         Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.759
+#         Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.650
+#         Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.775
+
 defaults:
   - training_hyperparams: coco2017_yolo_nas_pose_train_params
   - dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
@@ -11,54 +42,13 @@ architecture: yolo_nas_pose_s
 multi_gpu: DDP
 num_gpus: 8
 
-# Assemble experiment suffix
-bbox_cls_loss_suffix: box_${training_hyperparams.criterion_params.classification_loss_type}_${training_hyperparams.criterion_params.classification_loss_weight}
-bbox_reg_loss_suffix: ${training_hyperparams.criterion_params.regression_iou_loss_type}_${training_hyperparams.criterion_params.iou_loss_weight}_dfl_${training_hyperparams.criterion_params.dfl_loss_weight}
-pose_cls_loss_suffix: pose_${training_hyperparams.criterion_params.pose_classification_loss_type}_${training_hyperparams.criterion_params.pose_cls_loss_weight}
-pose_reg_loss_suffix: reg_${training_hyperparams.criterion_params.pose_reg_loss_weight}
-
-head_suffix: ""
-experiment_suffix: "ema_less_mosaic_rescale_loss_lr_focal"
-experiment_name: coco2017_${architecture}_${bbox_cls_loss_suffix}_${bbox_reg_loss_suffix}_${pose_cls_loss_suffix}_${pose_reg_loss_suffix}_${head_suffix}_${dataset_params.dataset_params_suffix}${experiment_suffix}
+experiment_suffix: ""
+experiment_name: coco2017_${architecture}_${experiment_suffix}_${dataset_params.dataset_params_suffix}
 
 ckpt_root_dir:
 
-train_dataloader: coco2017_pose_train
-val_dataloader: coco2017_pose_val
-
 arch_params:
   num_classes: ${dataset_params.num_joints}
-
-training_hyperparams:
-  # phase_callbacks: [ ] # Disable visualization
-  criterion_params:
-    classification_loss_type: focal
-    pose_classification_loss_type: focal
-    rescale_pose_loss_with_assigned_score: True
-    pose_reg_loss_weight: 34
-
-  ema: True
-  ema_params:
-    decay: 0.997
-    decay_type: threshold
-
-  initial_lr:  2e-3
-  max_epochs: 1000
-  cosine_final_lr_ratio: 0.05
-
-  sg_logger: wandb_sg_logger
-  sg_logger_params:
-    api_server: https://wandb.research.deci.ai
-    entity: super-gradients
-    launch_tensorboard: false
-    monitor_system: true
-    project_name: PoseEstimation
-    save_checkpoints_remote: true
-    save_logs_remote: true
-    save_tensorboard_remote: false
-    tb_files_user_prompt: false
-    tensorboard_port: null
-
 
 checkpoint_params:
   # For training Yolo-NAS-S pose estimation model we use pretrained weights for Yolo-NAS-S object detection model.
@@ -70,7 +60,6 @@ checkpoint_params:
 
 dataset_params:
   mosaic_prob: 0.5
-
 
   train_dataloader_params:
     batch_size: 48

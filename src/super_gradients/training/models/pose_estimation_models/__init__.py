@@ -8,7 +8,6 @@ from .yolo_nas_pose import (
     YoloNASPose_L,
     YoloNASPoseNDFLHeads,
     YoloNASPoseDFLHead,
-    YoloNASPoseBoxesPostPredictionCallback,
 )
 from .pose_former import PoseFormer, PoseFormer_B5, PoseFormer_B2
 
@@ -26,5 +25,4 @@ __all__ = [
     "YoloNASPoseDFLHead",
     "YoloNASPoseNDFLHeads",
     "YoloNASPosePostPredictionCallback",
-    "YoloNASPoseBoxesPostPredictionCallback",
 ]

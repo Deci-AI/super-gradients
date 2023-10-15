@@ -1,34 +1,22 @@
 import os
 from typing import Tuple, List, Mapping, Any, Union
-from enum import Enum
+
 import cv2
 import numpy as np
 import pycocotools
 from pycocotools.coco import COCO
+from torch import Tensor
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.object_names import Datasets, Processings
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.target_generator_factory import TargetGeneratorsFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
-from super_gradients.common.object_names import Datasets, Processings
-from super_gradients.common.registry.registry import register_dataset
-from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
 from super_gradients.training.datasets.pose_estimation_datasets.base_keypoints import BaseKeypointsDataset
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
-
+from super_gradients.training.transforms.keypoint_transforms import KeypointTransform
 
 logger = get_logger(__name__)
-
-
-class CrowdAnnotationActionEnum(str, Enum):
-    """
-    Enum that contains possible actions to take for crowd annotations.
-    """
-
-    DROP_SAMPLE = "drop_sample"
-    DROP_ANNOTATION = "drop_annotation"
-    MASK_AS_NORMAL = "mask_as_normal"
-    NO_ACTION = "no_action"
 
 
 @register_dataset(Datasets.COCO_KEY_POINTS_DATASET)
@@ -52,8 +40,6 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         edge_links: Union[List[Tuple[int, int]], np.ndarray],
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
-        remove_duplicate_annotations: bool = False,
-        crowd_annotations_action: Union[str, CrowdAnnotationActionEnum] = CrowdAnnotationActionEnum.NO_ACTION,
     ):
         """
 
@@ -69,42 +55,10 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         :param edge_links: Edge links between joints
         :param edge_colors: Color of the edge links. If None, the color will be generated randomly.
         :param keypoint_colors: Color of the keypoints. If None, the color will be generated randomly.
-        :param crowd_annotations_action: Action to take for annotations with iscrowd=1. Can be one of the following:
-            - "drop_sample" - Samples with crowd annotations will be dropped from the dataset.
-            - "drop_annotation" - Crowd annotations will be dropped from the dataset.
-            - "mask_as_normal" - These annotations will be treated as normal (non-crowd) annotations.
-            - "no_action" - No action will be taken for crowd annotations.
         """
 
-        crowd_annotations_action = CrowdAnnotationActionEnum(crowd_annotations_action)
-        if crowd_annotations_action not in [
-            CrowdAnnotationActionEnum.NO_ACTION,
-            CrowdAnnotationActionEnum.DROP_ANNOTATION,
-            CrowdAnnotationActionEnum.DROP_SAMPLE,
-            CrowdAnnotationActionEnum.MASK_AS_NORMAL,
-        ]:
-            raise ValueError(f"crowd_annotations_action must be one of CrowdAnnotationActionEnum values, got {crowd_annotations_action}")
-
         json_file = os.path.join(data_dir, json_file)
-        if not os.path.exists(json_file) or not os.path.isfile(json_file):
-            raise FileNotFoundError(f"Annotation file {json_file} does not exist")
-
         coco = COCO(json_file)
-
-        if remove_duplicate_annotations:
-            from .coco_utils import remove_duplicate_annotations as remove_duplicate_annotations_fn
-
-            coco = remove_duplicate_annotations_fn(coco)
-
-        if crowd_annotations_action == CrowdAnnotationActionEnum.DROP_SAMPLE:
-            from .coco_utils import remove_samples_with_crowd_annotations
-
-            coco = remove_samples_with_crowd_annotations(coco)
-        elif crowd_annotations_action == CrowdAnnotationActionEnum.DROP_ANNOTATION:
-            from .coco_utils import remove_crowd_annotations
-
-            coco = remove_crowd_annotations(coco)
-
         if len(coco.dataset["categories"]) != 1:
             raise ValueError("Dataset must contain exactly one category")
         joints = coco.dataset["categories"][0]["keypoints"]
@@ -124,21 +78,25 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         self.coco = coco
         self.ids = list(self.coco.imgs.keys())
         self.joints = joints
-        self.crowd_annotations_action = crowd_annotations_action
 
         if not include_empty_samples:
-            subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id)) > 0]
+            subset = [img_id for img_id in self.ids if len(self.coco.getAnnIds(imgIds=img_id, iscrowd=None)) > 0]
             self.ids = subset
 
     def __len__(self):
         return len(self.ids)
 
-    def load_sample(self, index: int) -> PoseEstimationSample:
-        """
+    def __getitem__(self, index: int) -> Tuple[Tensor, Any, Mapping[str, Any]]:
+        img, mask, gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.load_sample(index)
+        img, mask, gt_joints, gt_areas, gt_bboxes = self.transforms(img, mask, gt_joints, areas=gt_areas, bboxes=gt_bboxes)
 
-        :param index:
-        :return: Tuple of (image, mask, joints, instance areas, instance bounding boxes, is_crowd)
-        """
+        image_shape = img.size(1), img.size(2)
+        gt_joints, gt_areas, gt_bboxes, gt_iscrowd = self.filter_joints(image_shape, gt_joints, gt_areas, gt_bboxes, gt_iscrowd)
+
+        targets = self.target_generator(img, gt_joints, mask)
+        return img, targets, {"gt_joints": gt_joints, "gt_bboxes": gt_bboxes, "gt_iscrowd": gt_iscrowd, "gt_areas": gt_areas}
+
+    def load_sample(self, index):
         img_id = self.ids[index]
         image_info = self.coco.loadImgs(img_id)[0]
         file_name = image_info["file_name"]
@@ -147,12 +105,6 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         anno = self.coco.loadAnns(ann_ids)
 
         gt_iscrowd = np.array([bool(ann["iscrowd"]) for ann in anno]).reshape((-1))
-
-        if self.crowd_annotations_action == CrowdAnnotationActionEnum.MASK_AS_NORMAL:
-            # If crowd_annotations_action is "include", we treat crowd annotations as normal annotations
-            # so we set is_crowd to False for all annotations
-            gt_iscrowd = np.zeros_like(gt_iscrowd, dtype=bool)
-
         gt_bboxes = np.array([ann["bbox"] for ann in anno], dtype=np.float32).reshape((-1, 4))
         gt_areas = np.array([ann["area"] for ann in anno], dtype=np.float32).reshape((-1))
 
@@ -161,26 +113,48 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         if orig_image.shape[0] != image_info["height"] or orig_image.shape[1] != image_info["width"]:
             raise RuntimeError(f"Annotated image size ({image_info['height'],image_info['width']}) does not match image size in file {orig_image.shape[:2]}")
 
-        # clip bboxes (xywh) to image boundaries
-        xyxy_bboxes = xywh_to_xyxy(gt_bboxes, image_shape=None)
-        image_height, image_width = orig_image.shape[:2]
-        xyxy_bboxes[:, 0] = np.clip(xyxy_bboxes[:, 0], 0, image_width)
-        xyxy_bboxes[:, 1] = np.clip(xyxy_bboxes[:, 1], 0, image_height)
-        xyxy_bboxes[:, 2] = np.clip(xyxy_bboxes[:, 2], 0, image_width)
-        xyxy_bboxes[:, 3] = np.clip(xyxy_bboxes[:, 3], 0, image_height)
-        gt_bboxes = xyxy_to_xywh(xyxy_bboxes, image_shape=None)
-
         joints: np.ndarray = self.get_joints(anno)
         mask: np.ndarray = self.get_mask(anno, image_info)
 
-        return PoseEstimationSample(
-            image=orig_image,
-            mask=mask,
-            joints=joints,
-            areas=gt_areas,
-            bboxes=gt_bboxes,
-            is_crowd=gt_iscrowd,
-        )
+        return orig_image, mask, joints, gt_areas, gt_bboxes, gt_iscrowd
+
+    def filter_joints(
+        self,
+        image_shape,
+        joints: np.ndarray,
+        areas: np.ndarray,
+        bboxes: np.ndarray,
+        is_crowd: np.ndarray,
+    ):
+        """
+        Filter instances that are either too small or do not have visible keypoints.
+
+        :param image: Image if [H,W,C] shape. Used to infer image boundaries
+        :param joints: Array of shape [Num Instances, Num Joints, 3]
+        :param areas: Array of shape [Num Instances] with area of each instance.
+                      Instance area comes from segmentation mask from COCO annotation file.
+        :param bboxes: Array of shape [Num Instances, 4] for bounding boxes in XYWH format.
+                       Bounding boxes comes from segmentation mask from COCO annotation file.
+        :param: is_crowd: Array of shape [Num Instances] indicating whether an instance is a crowd target.
+        :return: [New Num Instances, Num Joints, 3], New Num Instances <= Num Instances
+        """
+
+        # Update visibility of joints for those that are outside the image
+        outside_image_mask = (joints[:, :, 0] < 0) | (joints[:, :, 1] < 0) | (joints[:, :, 0] >= image_shape[1]) | (joints[:, :, 1] >= image_shape[0])
+        joints[outside_image_mask, 2] = 0
+
+        # Filter instances with all invisible keypoints
+        instances_with_visible_joints = np.count_nonzero(joints[:, :, 2], axis=-1) > 0
+        instances_with_good_area = areas > self.min_instance_area
+
+        keep_mask = instances_with_visible_joints & instances_with_good_area
+
+        joints = joints[keep_mask]
+        areas = areas[keep_mask]
+        bboxes = bboxes[keep_mask]
+        is_crowd = is_crowd[keep_mask]
+
+        return joints, areas, bboxes, is_crowd
 
     def get_joints(self, anno: List[Mapping[str, Any]]) -> np.ndarray:
         """

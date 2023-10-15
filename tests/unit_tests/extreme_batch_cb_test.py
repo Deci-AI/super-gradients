@@ -40,7 +40,7 @@ class ExtremeBatchSanityTest(unittest.TestCase):
             "max_epochs": 3,
             "initial_lr": 1e-2,
             "loss": DDRNetLoss(),
-            "lr_mode": "poly",
+            "lr_mode": "PolyLRScheduler",
             "ema": True,
             "optimizer": "SGD",
             "mixed_precision": False,
@@ -56,7 +56,7 @@ class ExtremeBatchSanityTest(unittest.TestCase):
             "max_epochs": 3,
             "initial_lr": 1e-2,
             "loss": PPYoloELoss(num_classes=1, use_static_assigner=False, reg_max=16),
-            "lr_mode": "poly",
+            "lr_mode": "PolyLRScheduler",
             "ema": True,
             "optimizer": "SGD",
             "mixed_precision": False,
@@ -118,6 +118,24 @@ class ExtremeBatchSanityTest(unittest.TestCase):
     def test_segmentation_extreme_batch_with_loss_sanity(self):
         trainer, model = setup_trainer_and_model_seg("test_segmentation_extreme_batch_with_loss_sanity")
         self.seg_training_params["phase_callbacks"] = [ExtremeBatchSegVisualizationCallback(loss_to_monitor="DDRNetLoss/aux_loss1")]
+        trainer.train(
+            model=model, training_params=self.seg_training_params, train_loader=segmentation_test_dataloader(), valid_loader=segmentation_test_dataloader()
+        )
+
+    def test_segmentation_extreme_batch_train_only(self):
+        trainer, model = setup_trainer_and_model_seg("test_segmentation_extreme_batch_train_only")
+        self.seg_training_params["phase_callbacks"] = [
+            ExtremeBatchSegVisualizationCallback(loss_to_monitor="DDRNetLoss/aux_loss1", enable_on_train_loader=True, enable_on_valid_loader=False)
+        ]
+        trainer.train(
+            model=model, training_params=self.seg_training_params, train_loader=segmentation_test_dataloader(), valid_loader=segmentation_test_dataloader()
+        )
+
+    def test_segmentation_extreme_batch_train_and_valid(self):
+        trainer, model = setup_trainer_and_model_seg("test_segmentation_extreme_batch_train_and_valid")
+        self.seg_training_params["phase_callbacks"] = [
+            ExtremeBatchSegVisualizationCallback(loss_to_monitor="DDRNetLoss/aux_loss1", enable_on_train_loader=True, enable_on_valid_loader=True)
+        ]
         trainer.train(
             model=model, training_params=self.seg_training_params, train_loader=segmentation_test_dataloader(), valid_loader=segmentation_test_dataloader()
         )

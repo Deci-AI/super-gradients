@@ -1,22 +1,22 @@
 class Losses:
     """Static class holding all the supported loss names"""
 
-    CROSS_ENTROPY = "cross_entropy"
-    MSE = "mse"
-    R_SQUARED_LOSS = "r_squared_loss"
-    SHELFNET_OHEM_LOSS = "shelfnet_ohem_loss"
-    SHELFNET_SE_LOSS = "shelfnet_se_loss"
-    YOLOX_LOSS = "yolox_loss"
-    PPYOLOE_LOSS = "ppyoloe_loss"
-    YOLONAS_POSE_LOSS = "yolo_nas_pose_loss"
-    YOLOX_FAST_LOSS = "yolox_fast_loss"
-    SSD_LOSS = "ssd_loss"
-    STDC_LOSS = "stdc_loss"
-    BCE_DICE_LOSS = "bce_dice_loss"
-    KD_LOSS = "kd_loss"
-    DICE_CE_EDGE_LOSS = "dice_ce_edge_loss"
-    DEKR_LOSS = "dekr_loss"
-    RESCORING_LOSS = "rescoring_loss"
+    CROSS_ENTROPY = "CrossEntropyLoss"
+    MSE = "MSE"
+    R_SQUARED_LOSS = "RSquaredLoss"
+    SHELFNET_OHEM_LOSS = "ShelfNetOHEMLoss"
+    SHELFNET_SE_LOSS = "ShelfNetSemanticEncodingLoss"
+    YOLOX_LOSS = "YoloXDetectionLoss"
+    PPYOLOE_LOSS = "PPYoloELoss"
+    YOLOX_FAST_LOSS = "YoloXFastDetectionLoss"
+    SSD_LOSS = "SSDLoss"
+    STDC_LOSS = "STDCLoss"
+    BCE_DICE_LOSS = "BCEDiceLoss"
+    KD_LOSS = "KDLogitsLoss"
+    DICE_CE_EDGE_LOSS = "DiceCEEdgeLoss"
+    DEKR_LOSS = "DEKRLoss"
+    RESCORING_LOSS = "RescoringLoss"
+    YOLONAS_POSE_LOSS = "YoloNASPoseLoss"
 
 
 class Metrics:
@@ -114,12 +114,13 @@ class Transforms:
     KeypointsImageNormalize = "KeypointsImageNormalize"
     KeypointsImageStandardize = "KeypointsImageStandardize"
     KeypointsImageToTensor = "KeypointsImageToTensor"
-    KeypointTransform = "KeypointTransform"
     KeypointsPadIfNeeded = "KeypointsPadIfNeeded"
     KeypointsLongestMaxSize = "KeypointsLongestMaxSize"
     KeypointsRandomVerticalFlip = "KeypointsRandomVerticalFlip"
     KeypointsRandomHorizontalFlip = "KeypointsRandomHorizontalFlip"
     KeypointsRescale = "KeypointsRescale"
+    KeypointsRandomRotate90 = "KeypointsRandomRotate90"
+    KeypointsRemoveSmallObjects = "KeypointsRemoveSmallObjects"
 
 
 class Optimizers:
@@ -156,19 +157,19 @@ class Callbacks:
 class LRSchedulers:
     """Static class to hold all the supported LR Scheduler names"""
 
-    STEP = "step"
-    POLY = "poly"
-    COSINE = "cosine"
-    EXP = "exp"
-    FUNCTION = "function"
+    STEP = "StepLRScheduler"
+    POLY = "PolyLRScheduler"
+    COSINE = "CosineLRScheduler"
+    EXP = "ExponentialLRScheduler"
+    FUNCTION = "FunctionLRScheduler"
 
 
 class LRWarmups:
     """Static class to hold all the supported LR Warmup names"""
 
-    LINEAR_STEP = "linear_step"
-    LINEAR_EPOCH_STEP = "linear_epoch_step"
-    LINEAR_BATCH_STEP = "linear_batch_step"
+    LINEAR_STEP = "LinearEpochLRWarmup"
+    LINEAR_EPOCH_STEP = "LinearEpochLRWarmup"
+    LINEAR_BATCH_STEP = "LinearBatchLRWarmup"
 
 
 class Samplers:
@@ -314,11 +315,10 @@ class Models:
     POSE_RESCORING = "pose_rescoring_custom"
     POSE_RESCORING_COCO = "pose_rescoring_coco"
 
+    YOLO_NAS_POSE_N = "yolo_nas_pose_n"
     YOLO_NAS_POSE_S = "yolo_nas_pose_s"
     YOLO_NAS_POSE_M = "yolo_nas_pose_m"
     YOLO_NAS_POSE_L = "yolo_nas_pose_l"
-
-    YOLO_NAS_POSE_SHARED_S = "yolo_nas_pose_shared_s"
 
 
 class ConcatenatedTensorFormats:
@@ -418,8 +418,8 @@ class Datasets:
     SUPERVISELY_PERSONS_DATASET = "SuperviselyPersonsDataset"
     PASCAL_VOC_AND_AUG_UNIFIED_DATASET = "PascalVOCAndAUGUnifiedDataset"
     COCO_KEY_POINTS_DATASET = "COCOKeypointsDataset"
-    ANIMALPOSE_KEY_POINTS_DATASET = "AnimalPoseKeypointsDataset"
-    CROWDPOSE_KEY_POINTS_DATASET = "CrowdPoseKeypointsDataset"
+    COCO_POSE_ESTIMATION_DATASET = "COCOPoseEstimationDataset"
+    ANIMALPOSE_POSE_ESTIMATION_DATASET = "AnimalPoseEstimationDataset"
 
 
 class Processings:

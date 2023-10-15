@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-
 import cv2
 
 from super_gradients.training.datasets.data_augmentation import DataAugmentation
@@ -22,16 +21,14 @@ from super_gradients.training.datasets.segmentation_datasets.coco_segmentation i
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
 from super_gradients.training.datasets.pose_estimation_datasets import (
     COCOKeypointsDataset,
-    AnimalPoseKeypointsDataset,
-    CrowdPoseKeypointsDataset,
     BaseKeypointsDataset,
+    COCOPoseEstimationDataset,
+    AnimalPoseEstimationDataset,
 )
 
 
 __all__ = [
     "BaseKeypointsDataset",
-    "CrowdPoseKeypointsDataset",
-    "AnimalPoseKeypointsDataset",
     "DataAugmentation",
     "ListDataset",
     "DirectoryDataSet",
@@ -51,6 +48,9 @@ __all__ = [
     "Cifar100",
     "SuperviselyPersonsDataset",
     "COCOKeypointsDataset",
+    "COCOPoseEstimationDataset",
+    "AnimalPoseEstimationDataset",
+    "BaseDatasetAdapterCollateFN",
 ]
 
 cv2.setNumThreads(0)

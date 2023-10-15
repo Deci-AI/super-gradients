@@ -6,7 +6,7 @@ from super_gradients.training import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models import LeNet
-from super_gradients.training.utils.callbacks import TestLRCallback, LRCallbackBase, Phase, Callback, PhaseContext, CosineLRCallback
+from super_gradients.training.utils.callbacks import TestLRCallback, LRCallbackBase, Phase, Callback, PhaseContext, CosineLRScheduler
 
 
 class CollectLRCallback(Callback):
@@ -58,12 +58,11 @@ class LRWarmupTest(unittest.TestCase):
             "max_epochs": 5,
             "lr_updates": [],
             "lr_decay_factor": 0.1,
-            "lr_mode": "step",
+            "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 3,
             "initial_lr": 1,
-            "loss": "cross_entropy",
+            "loss": "CrossEntropyLoss",
             "optimizer": "SGD",
-            "criterion_params": {},
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [Accuracy()],
             "valid_metrics_list": [Accuracy()],
@@ -71,7 +70,7 @@ class LRWarmupTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
             "ema": False,
             "phase_callbacks": phase_callbacks,
-            "warmup_mode": "linear_epoch_step",
+            "warmup_mode": "LinearEpochLRWarmup",
         }
 
         expected_lrs = [0.25, 0.5, 0.75, 1.0, 1.0]
@@ -94,12 +93,11 @@ class LRWarmupTest(unittest.TestCase):
         train_params = {
             "max_epochs": 5,
             "cosine_final_lr_ratio": 0.2,
-            "lr_mode": "cosine",
+            "lr_mode": "CosineLRScheduler",
             "lr_warmup_epochs": 3,
             "initial_lr": 1,
-            "loss": "cross_entropy",
+            "loss": "CrossEntropyLoss",
             "optimizer": "SGD",
-            "criterion_params": {},
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [Accuracy()],
             "valid_metrics_list": [Accuracy()],
@@ -107,7 +105,7 @@ class LRWarmupTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
             "ema": False,
             "phase_callbacks": phase_callbacks,
-            "warmup_mode": "linear_epoch_step",
+            "warmup_mode": "LinearEpochLRWarmup",
         }
 
         expected_lrs = [0.25, 0.5, 0.75, 0.9236067977499791, 0.4763932022500211]
@@ -137,15 +135,14 @@ class LRWarmupTest(unittest.TestCase):
 
         train_params = {
             "max_epochs": max_epochs,
-            "lr_mode": "cosine",
+            "lr_mode": "CosineLRScheduler",
             "cosine_final_lr_ratio": cosine_final_lr_ratio,
             "warmup_initial_lr": warmup_initial_lr,
-            "warmup_mode": "linear_batch_step",
+            "warmup_mode": "LinearBatchLRWarmup",
             "lr_warmup_steps": lr_warmup_steps,
             "initial_lr": 1,
-            "loss": "cross_entropy",
+            "loss": "CrossEntropyLoss",
             "optimizer": "SGD",
-            "criterion_params": {},
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [Accuracy()],
             "valid_metrics_list": [Accuracy()],
@@ -161,7 +158,7 @@ class LRWarmupTest(unittest.TestCase):
         expected_warmup_lrs = np.linspace(warmup_initial_lr, initial_lr, lr_warmup_steps).tolist()
         total_steps = max_epochs * len(train_loader) - lr_warmup_steps
 
-        expected_cosine_lrs = CosineLRCallback.compute_learning_rate(
+        expected_cosine_lrs = CosineLRScheduler.compute_learning_rate(
             step=np.arange(0, total_steps), total_steps=total_steps, initial_lr=initial_lr, final_lr_ratio=cosine_final_lr_ratio
         )
 
@@ -186,13 +183,12 @@ class LRWarmupTest(unittest.TestCase):
             "max_epochs": 5,
             "lr_updates": [],
             "lr_decay_factor": 0.1,
-            "lr_mode": "step",
+            "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 3,
             "initial_lr": 1,
             "warmup_initial_lr": 4.0,
-            "loss": "cross_entropy",
+            "loss": "CrossEntropyLoss",
             "optimizer": "SGD",
-            "criterion_params": {},
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [Accuracy()],
             "valid_metrics_list": [Accuracy()],
@@ -200,7 +196,7 @@ class LRWarmupTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
             "ema": False,
             "phase_callbacks": [collect_lr_callback],
-            "warmup_mode": "linear_epoch_step",
+            "warmup_mode": "LinearEpochLRWarmup",
         }
 
         expected_lrs = [4.0, 3.0, 2.0, 1.0, 1.0]
@@ -224,11 +220,10 @@ class LRWarmupTest(unittest.TestCase):
             "max_epochs": 5,
             "lr_updates": [],
             "lr_decay_factor": 0.1,
-            "lr_mode": "step",
+            "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 3,
-            "loss": "cross_entropy",
+            "loss": "CrossEntropyLoss",
             "optimizer": "SGD",
-            "criterion_params": {},
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [Accuracy()],
             "valid_metrics_list": [Accuracy()],

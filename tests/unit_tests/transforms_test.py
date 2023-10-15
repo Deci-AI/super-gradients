@@ -1,18 +1,19 @@
 import copy
 import unittest
-
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
+from super_gradients.training.transforms import KeypointsMixup, KeypointsCompose
 from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsRandomHorizontalFlip,
     KeypointsRandomVerticalFlip,
     KeypointsRandomAffineTransform,
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
-    PoseEstimationSample,
 )
+from super_gradients.training.samples import PoseEstimationSample
+
 from super_gradients.training.transforms.keypoints import KeypointsBrightnessContrast, KeypointsMosaic
 from super_gradients.training.transforms.transforms import (
     DetectionImagePermute,
@@ -390,47 +391,79 @@ class TestTransforms(unittest.TestCase):
         plt.show()
 
         aug = KeypointsBrightnessContrast(brightness_range=(1.1, 1.5), contrast_range=(1, 1), prob=1)
-        sample = aug(PoseEstimationSample(image=image, joints=None, bboxes=None, areas=None, mask=None, is_crowd=None))
+        sample = aug.apply_to_sample(
+            PoseEstimationSample(image=image, joints=None, bboxes_xywh=None, areas=None, mask=None, is_crowd=None, additional_samples=None)
+        )
         plt.figure()
         plt.imshow(sample.image)
         plt.title("Augmented image")
         plt.show()
+
+    def test_keypoints_mixup(self):
+        sample1 = PoseEstimationSample(
+            image=np.zeros((256, 256, 3), dtype=np.uint8) + np.array([55, 0, 0], dtype=np.uint8),
+            mask=np.zeros((256, 256), dtype=np.uint8),
+            joints=np.random.randint(0, 256, size=(2, 17, 3)),
+            is_crowd=np.zeros((2,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(32, 64, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        sample2 = PoseEstimationSample(
+            image=np.zeros((256, 256, 3), dtype=np.uint8) + np.array([55, 0, 0], dtype=np.uint8),
+            mask=np.zeros((256, 256), dtype=np.uint8),
+            joints=np.random.randint(0, 256, size=(3, 17, 3)),
+            is_crowd=np.zeros((3,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(32, 64, size=(3, 4)),
+            additional_samples=None,
+        )
+
+        compose = KeypointsCompose([KeypointsMixup(prob=1)], load_sample_fn=lambda: sample2)
+        sample = compose.apply_to_sample(sample1)
+        self.assertEqual(sample.image.shape, (256, 256, 3))
+        self.assertEqual(len(sample.joints), len(sample1.joints) + len(sample2.joints))
 
     def test_keypoints_mosaic(self):
         sample1 = PoseEstimationSample(
             image=np.zeros((128, 128, 3), dtype=np.uint8) + 255,
             mask=np.zeros((128, 128), dtype=np.uint8),
             joints=np.random.randint(0, 128, size=(1, 17, 3)),
-            is_crowd=np.zeros((1,), dtype=np.bool),
+            is_crowd=np.zeros((1,), dtype=bool),
             areas=None,
-            bboxes=np.random.randint(0, 64, size=(2, 4)),
+            bboxes_xywh=np.random.randint(0, 64, size=(2, 4)),
+            additional_samples=None,
         )
 
         sample2 = PoseEstimationSample(
             image=np.zeros((256, 256, 3), dtype=np.uint8) + np.array([55, 0, 0], dtype=np.uint8),
             mask=np.zeros((256, 256), dtype=np.uint8),
             joints=np.random.randint(0, 256, size=(1, 17, 3)),
-            is_crowd=np.zeros((1,), dtype=np.bool),
+            is_crowd=np.zeros((1,), dtype=bool),
             areas=None,
-            bboxes=np.random.randint(32, 64, size=(2, 4)),
+            bboxes_xywh=np.random.randint(32, 64, size=(2, 4)),
+            additional_samples=None,
         )
 
         sample3 = PoseEstimationSample(
             image=np.zeros((512, 512, 3), dtype=np.uint8) + np.array([0, 55, 0], dtype=np.uint8),
             mask=np.zeros((512, 512), dtype=np.uint8),
             joints=np.random.randint(0, 512, size=(1, 17, 3)),
-            is_crowd=np.zeros((1,), dtype=np.bool),
+            is_crowd=np.zeros((1,), dtype=bool),
             areas=None,
-            bboxes=np.random.randint(128, 256, size=(2, 4)),
+            bboxes_xywh=np.random.randint(128, 256, size=(2, 4)),
+            additional_samples=None,
         )
 
         sample4 = PoseEstimationSample(
             image=np.zeros((64, 64, 3), dtype=np.uint8) + np.array([0, 0, 55], dtype=np.uint8),
             mask=np.zeros((64, 64), dtype=np.uint8),
             joints=np.random.randint(0, 64, size=(1, 17, 3)),
-            is_crowd=np.zeros((1,), dtype=np.bool),
+            is_crowd=np.zeros((1,), dtype=bool),
             areas=None,
-            bboxes=np.random.randint(0, 32, size=(2, 4)),
+            bboxes_xywh=np.random.randint(0, 32, size=(2, 4)),
+            additional_samples=None,
         )
 
         input_mixup = copy.deepcopy(sample4)
@@ -442,7 +475,7 @@ class TestTransforms(unittest.TestCase):
         self.show_sample(sample4)
 
         aug = KeypointsMosaic(prob=1)
-        sample = aug(input_mixup)
+        sample = aug.apply_to_sample(input_mixup)
 
         self.show_sample(sample)
 
@@ -452,7 +485,7 @@ class TestTransforms(unittest.TestCase):
         for joints in poses:
             for joint in joints:
                 cv2.circle(image, (int(joint[0]), int(joint[1])), 3, (0, 0, 255), -1)
-        for (x, y, w, h) in sample.bboxes:
+        for (x, y, w, h) in sample.bboxes_xywh:
             x = int(x)
             y = int(y)
             w = int(w)

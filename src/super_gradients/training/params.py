@@ -1,3 +1,4 @@
+from super_gradients.common.deprecate import deprecated_training_param, get_deprecated_nested_params_to_factory_format_assigner
 from super_gradients.training.utils import HpmStruct
 from copy import deepcopy
 
@@ -9,7 +10,6 @@ DEFAULT_TRAINING_PARAMS = {
     "cosine_final_lr_ratio": 0.01,
     "optimizer": "SGD",
     "optimizer_params": {},
-    "criterion_params": {},
     "ema": False,
     "batch_accumulate": 1,  # number of batches to accumulate before every backward pass
     "ema_params": {},
@@ -48,7 +48,7 @@ DEFAULT_TRAINING_PARAMS = {
         "save_tensorboard_remote": False,  # upload tensorboard files to s3
         "save_logs_remote": False,
     },  # upload log files to s3
-    "warmup_mode": "linear_step",
+    "warmup_mode": "LinearEpochLRWarmup",
     "step_lr_update_freq": None,
     "lr_updates": [],
     "clip_grad_norm": None,
@@ -100,7 +100,7 @@ TRAINING_PARAM_SCHEMA = {
         "lr_warmup_epochs": {"type": "number", "minimum": 0, "maximum": 10},
         "initial_lr": {"type": "number", "exclusiveMinimum": 0, "maximum": 10},
     },
-    "if": {"properties": {"lr_mode": {"const": "step"}}},
+    "if": {"properties": {"lr_mode": {"const": "StepLRScheduler"}}},
     "then": {"required": ["lr_updates", "lr_decay_factor"]},
     "required": ["max_epochs", "lr_mode", "initial_lr", "loss"],
 }
@@ -115,6 +115,9 @@ class TrainingParams(HpmStruct):
         if len(entries) > 0:
             self.override(**entries)
 
+    @deprecated_training_param(
+        "criterion_params", "3.2.1", "3.5.0", new_arg_assigner=get_deprecated_nested_params_to_factory_format_assigner("loss", "criterion_params")
+    )
     def override(self, **entries):
         super().override(**entries)
         self.validate()

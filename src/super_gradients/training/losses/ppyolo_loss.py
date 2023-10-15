@@ -1,5 +1,5 @@
 from typing import Mapping, Tuple, Union, Optional
-import dataclasses
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -9,7 +9,6 @@ import super_gradients
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import cxcywh_to_xyxy
-from super_gradients.training.losses.functional import bbox_ciou_loss
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.common.environment.ddp_utils import get_world_size
 
@@ -255,14 +254,6 @@ def compute_max_iou_gt(ious: Tensor) -> Tensor:
     return is_max_iou.astype(ious.dtype)
 
 
-@dataclasses.dataclass
-class BoxesAssignmentResult:
-    assigned_labels: Tensor
-    assigned_bboxes: Tensor
-    assigned_scores: Tensor
-    assigned_gt_index: Tensor
-
-
 class ATSSAssigner(nn.Module):
     """Bridging the Gap Between Anchor-based and Anchor-free Detection
     via Adaptive Training Sample Selection
@@ -315,7 +306,7 @@ class ATSSAssigner(nn.Module):
         bg_index: int,
         gt_scores: Optional[Tensor] = None,
         pred_bboxes: Optional[Tensor] = None,
-    ) -> BoxesAssignmentResult:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         This code is based on https://github.com/fcjian/TOOD/blob/master/mmdet/core/bbox/assigners/atss_assigner.py
 
@@ -356,13 +347,7 @@ class ATSSAssigner(nn.Module):
             assigned_labels = torch.full([batch_size, num_anchors], bg_index, dtype=torch.long, device=anchor_bboxes.device)
             assigned_bboxes = torch.zeros([batch_size, num_anchors, 4], device=anchor_bboxes.device)
             assigned_scores = torch.zeros([batch_size, num_anchors, self.num_classes], device=anchor_bboxes.device)
-            assigned_gt_index = torch.zeros([batch_size, num_anchors], dtype=torch.long, device=gt_labels.device)
-            return BoxesAssignmentResult(
-                assigned_labels=assigned_labels,
-                assigned_bboxes=assigned_bboxes,
-                assigned_scores=assigned_scores,
-                assigned_gt_index=assigned_gt_index,
-            )
+            return assigned_labels, assigned_bboxes, assigned_scores
 
         # 1. compute iou between gt and anchor bbox, [B, n, L]
         ious = iou_similarity(gt_bboxes.reshape([-1, 4]), anchor_bboxes)
@@ -439,9 +424,7 @@ class ATSSAssigner(nn.Module):
             gather_scores = torch.where(mask_positive_sum > 0, gather_scores, torch.zeros_like(gather_scores))
             assigned_scores *= gather_scores.unsqueeze(-1)
 
-        return BoxesAssignmentResult(
-            assigned_labels=assigned_labels, assigned_bboxes=assigned_bboxes, assigned_scores=assigned_scores, assigned_gt_index=assigned_gt_index
-        )
+        return assigned_labels, assigned_bboxes, assigned_scores
 
 
 class TaskAlignedAssigner(nn.Module):
@@ -473,7 +456,7 @@ class TaskAlignedAssigner(nn.Module):
         pad_gt_mask: Tensor,
         bg_index: int,
         gt_scores: Optional[Tensor] = None,
-    ) -> BoxesAssignmentResult:
+    ):
         """
         This code is based on https://github.com/fcjian/TOOD/blob/master/mmdet/core/bbox/assigners/task_aligned_assigner.py
 
@@ -510,10 +493,7 @@ class TaskAlignedAssigner(nn.Module):
             assigned_labels = torch.full([batch_size, num_anchors], bg_index, dtype=torch.long, device=gt_labels.device)
             assigned_bboxes = torch.zeros([batch_size, num_anchors, 4], device=gt_labels.device)
             assigned_scores = torch.zeros([batch_size, num_anchors, num_classes], device=gt_labels.device)
-            assigned_gt_index = torch.zeros([batch_size, num_anchors], dtype=torch.long, device=gt_labels.device)
-            return BoxesAssignmentResult(
-                assigned_labels=assigned_labels, assigned_bboxes=assigned_bboxes, assigned_scores=assigned_scores, assigned_gt_index=assigned_gt_index
-            )
+            return assigned_labels, assigned_bboxes, assigned_scores
 
         # compute iou between gt and pred bbox, [B, n, L]
         ious = batch_iou_similarity(gt_bboxes, pred_bboxes)
@@ -568,12 +548,7 @@ class TaskAlignedAssigner(nn.Module):
         alignment_metrics = alignment_metrics.max(dim=-2).values.unsqueeze(-1)
         assigned_scores = assigned_scores * alignment_metrics
 
-        return BoxesAssignmentResult(
-            assigned_labels=assigned_labels,
-            assigned_bboxes=assigned_bboxes,
-            assigned_scores=assigned_scores,
-            assigned_gt_index=assigned_gt_index,
-        )
+        return assigned_labels, assigned_bboxes, assigned_scores
 
 
 class GIoULoss(object):
@@ -653,34 +628,7 @@ class GIoULoss(object):
         return loss * self.loss_weight
 
 
-class CIoULoss(nn.Module):
-    """
-    Complete IoU loss
-
-    :param loss_weight: giou loss weight, default as 1
-    :param eps:         epsilon to avoid divide by zero, default as 1e-10
-    :param reduction:   Options are "none", "mean" and "sum". default as none
-    """
-
-    def __init__(self, eps: float = 1e-10, reduction: str = "none"):
-        if reduction not in ("none", "mean", "sum"):
-            raise ValueError(f"reduction must be one of 'none', 'mean', 'sum', but got {reduction}")
-        super().__init__()
-        self.eps = eps
-        self.reduction = reduction
-
-    def forward(self, predictions, targets, loc_weights=None):
-        loss = bbox_ciou_loss(predictions, targets, eps=self.eps)
-        if loc_weights is not None:
-            loss = loss * loc_weights
-        if self.reduction == "sum":
-            loss = torch.sum(loss)
-        elif self.reduction == "mean":
-            loss = torch.mean(loss)
-        return loss
-
-
-@register_loss(Losses.PPYOLOE_LOSS)
+@register_loss(name=Losses.PPYOLOE_LOSS, deprecated_name="ppyoloe_loss")
 class PPYoloELoss(nn.Module):
     def __init__(
         self,

@@ -2,18 +2,18 @@
 
 SuperGradients can support any PyTorch-based loss function. Additionally, multiple Loss function implementations for various tasks are also supported:
 
-    cross_entropy
-    mse
-    r_squared_loss
-    shelfnet_ohem_loss
-    shelfnet_se_loss
-    yolox_loss
-    yolox_fast_loss
-    ssd_loss
-    stdc_loss
-    bce_dice_loss
-    kd_loss
-    dice_ce_edge_loss
+    LabelSmoothingCrossEntropyLoss
+    MSE
+    RSquaredLoss
+    ShelfNetOHEMLoss
+    ShelfNetSemanticEncodingLoss
+    YoloXDetectionLoss
+    YoloXFastDetectionLoss
+    SSDLoss
+    STDCLoss
+    BCEDiceLoss
+    KDLogitsLoss
+    DiceCEEdgeLoss
 
 All the above, are just string aliases for the underlying torch.nn.Module classes, implementing the specified loss functions.
 
@@ -31,8 +31,7 @@ model = ...
 
 train_params = {
    ...
-   "loss": "cross_entropy",
-   "criterion_params": {}
+   "loss": "LabelSmoothingCrossEntropyLoss",
    ...
 }
 trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
@@ -42,7 +41,7 @@ Since most IDEs support auto-completion, for your convenience, you can use our o
 ```python
 from super_gradients.common.object_names import Losses
 ```
-Then simply instead of "cross_entropy", use 
+Then simply instead of "LabelSmoothingCrossEntropyLoss", use 
 ```python
 Losses.CROSS_ENTROPY
 ```
@@ -54,14 +53,11 @@ When doing so, in your `my_training_hyperparams.yaml` file:
 ```yaml
 ...
 
-loss: yolox_loss
-
-criterion_params:
-   strides: [8, 16, 32]  # output strides of all yolo outputs
-   num_classes: 80
+loss: 
+  YoloXDetectionLoss:
+    strides: [8, 16, 32]  # output strides of all yolo outputs
+    num_classes: 80
 ```
-
-Note that two `training_params` parameters define the loss function:  `loss` which defines the type of the loss, and`criterion_params` dictionary which will be unpacked to the underlying `yolox_loss` class constructor.
 
 ## Passing Instantiated nn.Module Objects as Loss Functions
 
@@ -201,9 +197,11 @@ Then, in your `my_training_hyperparams.yaml`, use `"my_loss"` in the same way as
 ```yaml
 ...
 
-loss: my_loss
+loss:
+  my_loss:
+    my_loss_arg1: ...
+    my_loss_arg2: ...
 
-criterion_params:
   ...
 ```
 

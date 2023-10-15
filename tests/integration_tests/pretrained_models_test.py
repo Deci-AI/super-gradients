@@ -17,7 +17,7 @@ from super_gradients.training.dataloaders.dataloaders import (
     coco2017_val_ppyoloe,
 )
 from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
-from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN, CrowdDetectionPPYoloECollateFN
+from super_gradients.training.utils.collate_fn import CrowdDetectionCollateFN, CrowdDetectionPPYoloECollateFN
 
 from super_gradients.training.metrics import Accuracy, IoU
 import os
@@ -86,8 +86,8 @@ class PretrainedModelsTest(unittest.TestCase):
             "lr_updates": [1],
             "lr_decay_factor": 0.1,
             "initial_lr": 0.6,
-            "loss": "cross_entropy",
-            "lr_mode": "step",
+            "loss": "CrossEntropyLoss",
+            "lr_mode": "StepLRScheduler",
             "optimizer_params": {"weight_decay": 0.000, "momentum": 0.9},
             "train_metrics_list": [Accuracy()],
             "valid_metrics_list": [Accuracy()],
@@ -128,13 +128,12 @@ class PretrainedModelsTest(unittest.TestCase):
         ssd_dboxes = DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS["heads"]["SSDHead"]["anchors"]
         self.transfer_detection_train_params_ssd = {
             "max_epochs": 3,
-            "lr_mode": "cosine",
+            "lr_mode": "CosineLRScheduler",
             "initial_lr": 0.01,
             "cosine_final_lr_ratio": 0.01,
             "lr_warmup_epochs": 3,
             "batch_accumulate": 1,
-            "loss": "ssd_loss",
-            "criterion_params": {"dboxes": ssd_dboxes},
+            "loss": {"SSDLoss": {"dboxes": ssd_dboxes}},
             "optimizer": "SGD",
             "warmup_momentum": 0.8,
             "optimizer_params": {"momentum": 0.937, "weight_decay": 0.0005, "nesterov": True},
@@ -145,13 +144,12 @@ class PretrainedModelsTest(unittest.TestCase):
         }
         self.transfer_detection_train_params_yolox = {
             "max_epochs": 3,
-            "lr_mode": "cosine",
+            "lr_mode": "CosineLRScheduler",
             "cosine_final_lr_ratio": 0.05,
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": "yolox_loss",
-            "criterion_params": {"strides": [8, 16, 32], "num_classes": 5},  # output strides of all yolo outputs
+            "loss": {"YoloXDetectionLoss": {"strides": [8, 16, 32], "num_classes": 5}},
             "train_metrics_list": [],
             "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=5)],
             "metric_to_watch": "mAP@0.50:0.95",
@@ -215,7 +213,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "max_epochs": 3,
             "initial_lr": 1e-2,
             "loss": DDRNetLoss(),
-            "lr_mode": "poly",
+            "lr_mode": "PolyLRScheduler",
             "ema": True,  # unlike the paper (not specified in paper)
             "average_best_models": True,
             "optimizer": "SGD",
@@ -232,7 +230,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "max_epochs": 3,
             "initial_lr": 1e-2,
             "loss": STDCLoss(num_classes=5),
-            "lr_mode": "poly",
+            "lr_mode": "PolyLRScheduler",
             "ema": True,  # unlike the paper (not specified in paper)
             "optimizer": "SGD",
             "optimizer_params": {"weight_decay": 5e-4, "momentum": 0.9},
@@ -246,8 +244,8 @@ class PretrainedModelsTest(unittest.TestCase):
         self.regseg_transfer_segmentation_train_params = {
             "max_epochs": 3,
             "initial_lr": 1e-2,
-            "loss": "cross_entropy",
-            "lr_mode": "poly",
+            "loss": "CrossEntropyLoss",
+            "lr_mode": "PolyLRScheduler",
             "ema": True,  # unlike the paper (not specified in paper)
             "optimizer": "SGD",
             "optimizer_params": {"weight_decay": 5e-4, "momentum": 0.9},

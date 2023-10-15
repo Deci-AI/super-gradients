@@ -23,7 +23,7 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
     PascalVOCUnifiedDetectionTrainDataset,
     PascalVOCDetectionDataset,
 )
-from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset, AnimalPoseKeypointsDataset
+from super_gradients.training.datasets.pose_estimation_datasets import COCOKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets.rescoring_dataset import TrainRescoringDataset, ValTrainRescoringDataset
 from super_gradients.training.datasets.samplers import RepeatAugSampler
 from super_gradients.training.datasets.segmentation_datasets import (
@@ -41,6 +41,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.common.environment.ddp_utils import get_local_rank
 from super_gradients.training.utils.utils import override_default_params_without_nones
 from super_gradients.common.environment.cfg_utils import load_dataset_params
+from super_gradients.training.dataloaders.adapters import maybe_setup_dataloader_adapter
 import torch.distributed as dist
 
 
@@ -79,8 +80,13 @@ def get_data_loader(config_name: str, dataset_cls: object, train: bool, dataset_
 
     dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
 
+    # Ensure there is no dataset in dataloader_params (Could be there if the user provided dataset class name)
+    _ = dataloader_params.pop("dataset")
+
     dataloader = DataLoader(dataset=dataset, **dataloader_params)
     dataloader.dataloader_params = dataloader_params
+
+    maybe_setup_dataloader_adapter(dataloader=dataloader)
     return dataloader
 
 
@@ -147,7 +153,6 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
 def _process_collate_fn_params(dataloader_params):
     if get_param(dataloader_params, "collate_fn") is not None:
         dataloader_params["collate_fn"] = CollateFunctionsFactory().get(dataloader_params["collate_fn"])
-
     return dataloader_params
 
 
@@ -837,28 +842,6 @@ def coco2017_pose_val(dataset_params: Dict = None, dataloader_params: Dict = Non
     )
 
 
-@register_dataloader()
-def animalpose_pose_train(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
-    return get_data_loader(
-        config_name="animalpose_pose_estimation_default_dataset_params",
-        dataset_cls=AnimalPoseKeypointsDataset,
-        train=True,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
-
-
-@register_dataloader()
-def animalpose_pose_val(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
-    return get_data_loader(
-        config_name="animalpose_pose_estimation_default_dataset_params",
-        dataset_cls=AnimalPoseKeypointsDataset,
-        train=False,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
-
-
 @register_dataloader(Dataloaders.COCO2017_RESCORING_TRAIN)
 def coco2017_rescoring_train(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return get_data_loader(
@@ -908,6 +891,8 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
 
     if dataset is not None:
         dataloader_params = _process_sampler_params(dataloader_params, dataset, {})
+        dataloader_params = _process_collate_fn_params(dataloader_params)
+
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
 
         dataloader.dataloader_params = dataloader_params
@@ -920,4 +905,5 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
         dataloader_cls = ALL_DATALOADERS[name]
         dataloader = dataloader_cls(dataset_params=dataset_params, dataloader_params=dataloader_params)
 
+    maybe_setup_dataloader_adapter(dataloader=dataloader)
     return dataloader

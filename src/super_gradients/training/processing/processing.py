@@ -302,6 +302,12 @@ class _KeypointsPadding(Processing, ABC):
             shift_h=-metadata.padding_coordinates.top,
             shift_w=-metadata.padding_coordinates.left,
         )
+        if predictions.bboxes_xyxy is not None:
+            predictions.bboxes_xyxy = _shift_bboxes(
+                targets=predictions.bboxes_xyxy,
+                shift_h=-metadata.padding_coordinates.top,
+                shift_w=-metadata.padding_coordinates.left,
+            )
         return predictions
 
     @abstractmethod
@@ -414,6 +420,8 @@ class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
 class KeypointsLongestMaxSizeRescale(_LongestMaxSizeRescale):
     def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: RescaleMetadata) -> PoseEstimationPrediction:
         predictions.poses = _rescale_keypoints(targets=predictions.poses, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+        if predictions.bboxes_xyxy is not None:
+            predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
 
 
@@ -421,6 +429,8 @@ class KeypointsLongestMaxSizeRescale(_LongestMaxSizeRescale):
 class KeypointsRescale(_Rescale):
     def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: RescaleMetadata) -> PoseEstimationPrediction:
         predictions.poses = _rescale_keypoints(targets=predictions.poses, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+        if predictions.bboxes_xyxy is not None:
+            predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
 
 
@@ -648,6 +658,84 @@ def default_dekr_coco_processing_params() -> dict:
     return params
 
 
+def default_yolo_nas_pose_coco_processing_params():
+    image_processor = ComposeProcessing(
+        [
+            ReverseImageChannels(),
+            KeypointsLongestMaxSizeRescale(output_shape=(640, 640)),
+            KeypointsBottomRightPadding(output_shape=(640, 640), pad_value=127),
+            StandardizeImage(max_value=255.0),
+            ImagePermute(permutation=(2, 0, 1)),
+        ]
+    )
+
+    edge_links = [
+        [0, 1],
+        [0, 2],
+        [1, 2],
+        [1, 3],
+        [2, 4],
+        [3, 5],
+        [4, 6],
+        [5, 6],
+        [5, 7],
+        [5, 11],
+        [6, 8],
+        [6, 12],
+        [7, 9],
+        [8, 10],
+        [11, 12],
+        [11, 13],
+        [12, 14],
+        [13, 15],
+        [14, 16],
+    ]
+
+    edge_colors = [
+        (214, 39, 40),  # Nose -> LeftEye
+        (148, 103, 189),  # Nose -> RightEye
+        (44, 160, 44),  # LeftEye -> RightEye
+        (140, 86, 75),  # LeftEye -> LeftEar
+        (227, 119, 194),  # RightEye -> RightEar
+        (127, 127, 127),  # LeftEar -> LeftShoulder
+        (188, 189, 34),  # RightEar -> RightShoulder
+        (127, 127, 127),  # Shoulders
+        (188, 189, 34),  # LeftShoulder -> LeftElbow
+        (140, 86, 75),  # LeftTorso
+        (23, 190, 207),  # RightShoulder -> RightElbow
+        (227, 119, 194),  # RightTorso
+        (31, 119, 180),  # LeftElbow -> LeftArm
+        (255, 127, 14),  # RightElbow -> RightArm
+        (148, 103, 189),  # Waist
+        (255, 127, 14),  # Left Hip -> Left Knee
+        (214, 39, 40),  # Right Hip -> Right Knee
+        (31, 119, 180),  # Left Knee -> Left Ankle
+        (44, 160, 44),  # Right Knee -> Right Ankle
+    ]
+
+    keypoint_colors = [
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+    ]
+    params = dict(image_processor=image_processor, conf=0.5, edge_links=edge_links, edge_colors=edge_colors, keypoint_colors=keypoint_colors)
+    return params
+
+
 def default_imagenet_processing_params() -> dict:
     """Processing parameters commonly used for training resnet on Imagenet dataset."""
     image_processor = ComposeProcessing(
@@ -686,6 +774,9 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
 
     if pretrained_weights == "coco_pose" and model_name in ("dekr_w32_no_dc", "dekr_custom"):
         return default_dekr_coco_processing_params()
+
+    if pretrained_weights == "coco_pose" and model_name.startswith("yolo_nas_pose"):
+        return default_yolo_nas_pose_coco_processing_params()
 
     if pretrained_weights == "imagenet" and model_name in {"vit_base", "vit_large", "vit_huge"}:
         return default_vit_imagenet_processing_params()

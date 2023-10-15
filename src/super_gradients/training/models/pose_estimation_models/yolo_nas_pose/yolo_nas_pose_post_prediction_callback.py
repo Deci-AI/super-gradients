@@ -1,12 +1,13 @@
+from typing import List, Tuple
+
 import torch
 import torchvision
-from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimationPredictions
-from typing import List
 from torch import Tensor
-import numpy as np
+
+from super_gradients.module_interfaces import AbstractPoseEstimationPostPredictionCallback, PoseEstimationPredictions
 
 
-class YoloNASPosePostPredictionCallback:
+class YoloNASPosePostPredictionCallback(AbstractPoseEstimationPostPredictionCallback):
     """
     A post-prediction callback for YoloNASPose model.
     Performs confidence thresholding, Top-K and NMS steps.
@@ -20,10 +21,10 @@ class YoloNASPosePostPredictionCallback:
         post_nms_max_predictions: int,
     ):
         """
-        :param score_threshold: Pose detection confidence threshold
-        :param nms_threshold: IoU threshold for NMS step.
-        :param pre_nms_max_predictions: Number of predictions participating in NMS step
-        :param post_nms_max_predictions: maximum number of boxes to return after NMS step
+        :param pose_confidence_threshold: Pose detection confidence threshold
+        :param nms_iou_threshold:         IoU threshold for NMS step.
+        :param pre_nms_max_predictions:   Number of predictions participating in NMS step
+        :param post_nms_max_predictions:  Maximum number of boxes to return after NMS step
         """
         if post_nms_max_predictions > pre_nms_max_predictions:
             raise ValueError("post_nms_max_predictions must be less than pre_nms_max_predictions")
@@ -34,12 +35,13 @@ class YoloNASPosePostPredictionCallback:
         self.pre_nms_max_predictions = pre_nms_max_predictions
         self.post_nms_max_predictions = post_nms_max_predictions
 
-    def __call__(self, outputs, device: str = None) -> List[PoseEstimationPredictions]:
+    @torch.no_grad()
+    def __call__(self, outputs: Tuple[Tuple[Tensor, Tensor, Tensor, Tensor], ...]) -> List[PoseEstimationPredictions]:
         """
+        Take YoloNASPose's predictions and decode them into usable pose predictions.
 
-        :param outputs:
-        :param device:
-        :return:
+        :param outputs: Output of the model's forward() method
+        :return:        List of decoded predictions for each image in the batch.
         """
         # First is model predictions, second element of tuple is logits for loss computation
         predictions = outputs[0]
@@ -48,8 +50,8 @@ class YoloNASPosePostPredictionCallback:
         for pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores in zip(*predictions):
             # pred_bboxes [Anchors, 4] in XYXY format
             # pred_scores [Anchors, 1] confidence scores [0..1]
-            # pred_pose_coords [Anchors, 17, 2] in (x,y) format
-            # pred_pose_scores [Anchors, 17] confidence scores [0..1]
+            # pred_pose_coords [Anchors, Num Keypoints, 2] in (x,y) format
+            # pred_pose_scores [Anchors, Num Keypoints] confidence scores [0..1]
 
             pred_bboxes_conf = pred_bboxes_conf.squeeze(-1)  # [Anchors]
             conf_mask = pred_bboxes_conf >= self.pose_confidence_threshold  # [Anchors]
@@ -79,31 +81,14 @@ class YoloNASPosePostPredictionCallback:
                     pred_pose_scores[idx_to_keep].unsqueeze(-1),
                 ],
                 dim=-1,
-            )  # [Instances, 17, 3]
+            )  # [Instances, Num Keypoints, 3]
 
             decoded_predictions.append(
                 PoseEstimationPredictions(
                     poses=final_poses[: self.post_nms_max_predictions],
                     scores=final_scores[: self.post_nms_max_predictions],
-                    bboxes=final_bboxes[: self.post_nms_max_predictions],
+                    bboxes_xyxy=final_bboxes[: self.post_nms_max_predictions],
                 )
             )
 
         return decoded_predictions
-
-
-class YoloNASPoseBoxesPostPredictionCallback(YoloNASPosePostPredictionCallback):
-    """
-    A post-prediction callback for YoloNASPose model to decode ONLY bounding boxes.
-    This is useful for computing Box-related metrics
-    """
-
-    def __call__(self, outputs, device: str = None) -> List[Tensor]:
-        predictions: List[PoseEstimationPredictions] = super().__call__(outputs)
-        result: List[Tensor] = []
-        for p in predictions:
-            #  nx6 (x1, y1, x2, y2, confidence, class) in pixel units
-            labels = np.zeros((len(p.bboxes), 1), dtype=np.float32)
-            final_boxes = np.concatenate([p.bboxes, p.scores, labels], axis=1)
-            result.append(torch.from_numpy(final_boxes))
-        return result

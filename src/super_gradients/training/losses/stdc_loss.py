@@ -111,7 +111,7 @@ class DetailLoss(_Loss):
         return self.weights[0] * bce_loss + self.weights[1] * dice_loss
 
 
-@register_loss(Losses.STDC_LOSS)
+@register_loss(name=Losses.STDC_LOSS, deprecated_name="stdc_loss")
 class STDCLoss(_Loss):
     """
     Loss class of STDC-Seg training.

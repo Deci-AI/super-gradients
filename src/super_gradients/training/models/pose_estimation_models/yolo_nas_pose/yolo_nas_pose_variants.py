@@ -1,10 +1,10 @@
 import copy
 from functools import lru_cache
-from typing import Union, Optional, List, Tuple
-
+from typing import Union, Optional, List, Tuple, Any
+import torch
 import numpy as np
 from omegaconf import DictConfig
-
+from torch import Tensor
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
@@ -18,13 +18,78 @@ from super_gradients.training.utils import get_param
 from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.predict import PoseEstimationPrediction
 from super_gradients.training.utils.utils import HpmStruct
-
+from super_gradients.module_interfaces import AbstractPoseEstimationDecodingModule, ExportablePoseEstimationModel
 from .yolo_nas_pose_post_prediction_callback import YoloNASPosePostPredictionCallback
 
 logger = get_logger(__name__)
 
 
-class YoloNASPose(CustomizableDetector):
+class YoloNASPoseDecodingModule(AbstractPoseEstimationDecodingModule):
+    __constants__ = ["num_pre_nms_predictions"]
+
+    def __init__(
+        self,
+        num_pre_nms_predictions: int = 1000,
+    ):
+        super().__init__()
+        self.num_pre_nms_predictions = num_pre_nms_predictions
+
+    @torch.jit.ignore
+    def infer_total_number_of_predictions(self, inputs: Any) -> int:
+        """
+
+        :param inputs: YoloNASPose model outputs
+        :return:
+        """
+        if torch.jit.is_tracing():
+            pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores = inputs
+        else:
+            pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores = inputs[0]
+
+        return pred_bboxes_xyxy.size(1)
+
+    def get_num_pre_nms_predictions(self) -> int:
+        return self.num_pre_nms_predictions
+
+    def forward(self, inputs: Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, ...]]):
+        """
+        Decode YoloNASPose model outputs into bounding boxes, confidence scores and pose coordinates and scores
+
+        :param inputs: YoloNASPose model outputs
+        :return: Tuple of (pred_bboxes, pred_scores, pred_joints)
+        - pred_bboxes: [Batch, num_pre_nms_predictions, 4] Bounding of associated with pose in XYXY format
+        - pred_scores: [Batch, num_pre_nms_predictions, 1] Confidence scores [0..1] for entire pose
+        - pred_joints: [Batch, num_pre_nms_predictions, Num Joints, 3] Joints in (x,y,confidence) format
+        """
+        if torch.jit.is_tracing():
+            pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores = inputs
+        else:
+            pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores = inputs[0]
+
+        nms_top_k = self.num_pre_nms_predictions
+
+        topk_candidates = torch.topk(pred_bboxes_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
+
+        offsets = nms_top_k * torch.arange(pred_bboxes_conf.size(0), device=pred_bboxes_conf.device)
+        flat_indices = topk_candidates.indices + offsets.reshape(pred_bboxes_conf.size(0), 1)
+        flat_indices = torch.flatten(flat_indices)
+
+        pred_poses_and_scores = torch.cat([pred_pose_coords, pred_pose_scores.unsqueeze(3)], dim=3)
+
+        output_pred_bboxes = pred_bboxes_xyxy.reshape(-1, pred_bboxes_xyxy.size(2))[flat_indices, :].reshape(
+            pred_bboxes_xyxy.size(0), nms_top_k, pred_bboxes_xyxy.size(2)
+        )
+        output_pred_scores = pred_bboxes_conf.reshape(-1, pred_bboxes_conf.size(2))[flat_indices, :].reshape(
+            pred_bboxes_conf.size(0), nms_top_k, pred_bboxes_conf.size(2)
+        )
+        output_pred_joints = pred_poses_and_scores.reshape(-1, pred_poses_and_scores.size(2), 3)[flat_indices, :, :].reshape(
+            pred_poses_and_scores.size(0), nms_top_k, pred_poses_and_scores.size(2), pred_poses_and_scores.size(3)
+        )
+
+        return output_pred_bboxes, output_pred_scores, output_pred_joints
+
+
+class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
     def __init__(
         self,
         backbone: Union[str, dict, HpmStruct, DictConfig],
@@ -36,7 +101,16 @@ class YoloNASPose(CustomizableDetector):
         inplace_act: Optional[bool] = True,
         in_channels: int = 3,
     ):
-        super().__init__(backbone, heads, neck, num_classes, bn_eps, bn_momentum, inplace_act, in_channels)
+        super().__init__(
+            backbone=backbone,
+            heads=heads,
+            neck=neck,
+            num_classes=num_classes,
+            bn_eps=bn_eps,
+            bn_momentum=bn_momentum,
+            inplace_act=inplace_act,
+            in_channels=in_channels,
+        )
         self._edge_links = None
         self._edge_colors = None
         self._keypoint_colors = None
@@ -45,6 +119,9 @@ class YoloNASPose(CustomizableDetector):
         self._default_nms_iou = None
         self._default_pre_nms_max_predictions = None
         self._default_post_nms_max_predictions = None
+
+    def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractPoseEstimationDecodingModule:
+        return YoloNASPoseDecodingModule(num_pre_nms_predictions)
 
     def predict(
         self,
@@ -141,6 +218,8 @@ class YoloNASPose(CustomizableDetector):
         image_processor: Optional[Processing] = None,
         conf: Optional[float] = None,
         iou: Optional[float] = 0.7,
+        pre_nms_max_predictions=300,
+        post_nms_max_predictions=100,
     ) -> None:
         """Set the processing parameters for the dataset.
 
@@ -153,12 +232,14 @@ class YoloNASPose(CustomizableDetector):
         self._image_processor = image_processor or self._image_processor
         self._default_nms_conf = conf or self._default_nms_conf
         self._default_nms_iou = iou or self._default_nms_iou
+        self._default_pre_nms_max_predictions = pre_nms_max_predictions or self._default_pre_nms_max_predictions
+        self._default_post_nms_max_predictions = post_nms_max_predictions or self._default_post_nms_max_predictions
 
 
-@register_model(Models.YOLO_NAS_POSE_S)
-class YoloNASPose_S(YoloNASPose):
+@register_model(Models.YOLO_NAS_POSE_N)
+class YoloNASPose_N(YoloNASPose):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
-        default_arch_params = get_arch_params("yolo_nas_pose_s_arch_params")
+        default_arch_params = get_arch_params("yolo_nas_pose_n_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(
@@ -177,10 +258,10 @@ class YoloNASPose_S(YoloNASPose):
         return self.heads.num_classes
 
 
-@register_model(Models.YOLO_NAS_POSE_SHARED_S)
-class YoloNASPoseShared_S(YoloNASPose):
+@register_model(Models.YOLO_NAS_POSE_S)
+class YoloNASPose_S(YoloNASPose):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig]):
-        default_arch_params = get_arch_params("yolo_nas_pose_s_shared_arch_params")
+        default_arch_params = get_arch_params("yolo_nas_pose_s_arch_params")
         merged_arch_params = HpmStruct(**copy.deepcopy(default_arch_params))
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(

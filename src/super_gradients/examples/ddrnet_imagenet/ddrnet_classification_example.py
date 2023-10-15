@@ -39,13 +39,13 @@ devices = torch.cuda.device_count() if not distributed else 1
 
 train_params_ddr = {
     "max_epochs": args.max_epochs,
-    "lr_mode": "step",
+    "lr_mode": "StepLRScheduler",
     "lr_updates": [30, 60, 90],
     "lr_decay_factor": 0.1,
     "initial_lr": 0.1 * devices,
     "optimizer": "SGD",
     "optimizer_params": {"weight_decay": 0.0001, "momentum": 0.9, "nesterov": True},
-    "loss": "cross_entropy",
+    "loss": "CrossEntropyLoss",
     "train_metrics_list": [Accuracy(), Top5()],
     "valid_metrics_list": [Accuracy(), Top5()],
     "metric_to_watch": "Accuracy",

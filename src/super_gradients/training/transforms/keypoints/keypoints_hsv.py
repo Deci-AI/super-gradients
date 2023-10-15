@@ -1,22 +1,21 @@
 import random
 
-from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.registry import register_transform
-from super_gradients.training.transforms.keypoint_transforms import KeypointTransform, PoseEstimationSample
 from super_gradients.training.transforms.transforms import augment_hsv
+from super_gradients.training.samples import PoseEstimationSample
 
-logger = get_logger(__name__)
+from .abstract_keypoints_transform import AbstractKeypointTransform
 
 
 @register_transform()
-class KeypointsHSV(KeypointTransform):
+class KeypointsHSV(AbstractKeypointTransform):
     """
     Apply color change in HSV color space to the input image.
 
-    :attr prob:            Probability to apply the transform.
-    :attr hgain:           Hue gain.
-    :attr sgain:           Saturation gain.
-    :attr vgain:           Value gain.
+    :param prob:            Probability to apply the transform.
+    :param hgain:           Hue gain.
+    :param sgain:           Saturation gain.
+    :param vgain:           Value gain.
     """
 
     def __init__(self, prob: float, hgain: float, sgain: float, vgain: float):
@@ -33,7 +32,7 @@ class KeypointsHSV(KeypointTransform):
         self.sgain = sgain
         self.vgain = vgain
 
-    def __call__(self, sample: PoseEstimationSample) -> PoseEstimationSample:
+    def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         if sample.image.shape[2] != 3:
             raise ValueError("HSV transform expects image with 3 channels, got: " + str(sample.image.shape[2]))
 
@@ -42,3 +41,6 @@ class KeypointsHSV(KeypointTransform):
             augment_hsv(image_copy, self.hgain, self.sgain, self.vgain, bgr_channels=(0, 1, 2))
             sample.image = image_copy
         return sample
+
+    def get_equivalent_preprocessing(self):
+        raise RuntimeError(f"{self.__class__} does not have equivalent preprocessing because it is non-deterministic.")

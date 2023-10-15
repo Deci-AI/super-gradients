@@ -28,9 +28,8 @@ lr_decay_factor: 0.1
 lr_mode: step
 lr_warmup_epochs: 0
 initial_lr: 0.1
-loss: cross_entropy
+loss: LabelSmoothingCrossEntropyLoss
 optimizer: SGD
-criterion_params: {}
 
 optimizer_params:
   weight_decay: 1e-4
