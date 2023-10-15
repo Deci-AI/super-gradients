@@ -870,9 +870,9 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
-  sanity_tests:
-    when:  << pipeline.parameters.run_sanity_tests_flow >>
-    jobs:
+#  sanity_tests:
+#    when:  << pipeline.parameters.run_sanity_tests_flow >>
+#    jobs:
 #      - hydra_sweeper_test:
 #          context:
 #            - slack
@@ -894,9 +894,9 @@ workflows:
 #      - recipe_accuracy_tests:
 #          context:
 #            - slack
-      - run_and_convert_notebooks_to_docs:
-          context:
-            - slack
+#      - run_and_convert_notebooks_to_docs:
+#          context:
+#            - slack
 
   run_and_convert_notebooks_to_docs:
     when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
@@ -954,10 +954,10 @@ workflows:
 #          context:
 #            - slack
 #          <<: *release_tag_filter
-      - run_and_convert_notebooks_to_docs:
-          context:
-            - slack
-          <<: *release_tag_filter
+#      - run_and_convert_notebooks_to_docs:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
       - release_version:
           py_version: "3.8"
           requires:
@@ -969,7 +969,7 @@ workflows:
 #            - recipe_sanity_tests_segmentation
 #            - recipe_sanity_tests_detection
 #            - recipe_sanity_tests_pose_estimation
-            - run_and_convert_notebooks_to_docs
+#            - run_and_convert_notebooks_to_docs
           <<: *release_tag_filter
       - deci-common/pip_upload_package_from_codeartifact_to_global_pypi:
           package_name: "super-gradients"
