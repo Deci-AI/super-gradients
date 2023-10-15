@@ -60,8 +60,6 @@ training_hyperparams:
 
   max_epochs: 100
   mixed_precision: True
-  criterion_params:
-    num_classes: ${num_classes}
 
 
   phase_callbacks: []

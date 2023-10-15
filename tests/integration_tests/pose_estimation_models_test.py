@@ -111,12 +111,12 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
 
         for inputs, targets, extras in tqdm(val_loader):
             with torch.no_grad(), torch.cuda.amp.autocast(True):
-                predictions = model(inputs.cuda(non_blocking=True))
+                raw_predictions = model(inputs.cuda(non_blocking=True))
 
-                [all_poses], _ = post_prediction_callback(predictions)
-                all_poses, new_scores = rescoring(torch.tensor(all_poses).cuda())
+                [predictions] = post_prediction_callback(raw_predictions)
+                all_poses, new_scores = rescoring(torch.tensor(predictions.poses).cuda())
 
-                metric.update(preds=(all_poses.unsqueeze(0), new_scores.unsqueeze(0)), target=targets, **extras)
+                metric.update(preds=(all_poses, new_scores), target=targets, **extras)
 
         stats = metric.compute()
         self.assertAlmostEqual(stats["AP"], 0.6734, delta=0.05)

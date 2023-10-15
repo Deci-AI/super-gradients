@@ -50,6 +50,7 @@ __all__ = [
     "COCOKeypointsDataset",
     "COCOPoseEstimationDataset",
     "AnimalPoseEstimationDataset",
+    "BaseDatasetAdapterCollateFN",
 ]
 
 cv2.setNumThreads(0)

@@ -62,7 +62,6 @@ train_dataset_params:
   images_dir: images
   json_file: crowdpose_trainval.json
   include_empty_samples: True
-
   crowd_annotations_action: mask_as_normal
 
   edge_links: ${dataset_params.edge_links}

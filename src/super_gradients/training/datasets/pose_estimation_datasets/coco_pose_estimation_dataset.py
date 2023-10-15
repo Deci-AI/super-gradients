@@ -9,6 +9,7 @@ from pycocotools.coco import COCO
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.common.factories.type_factory import TypeFactory
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
@@ -29,6 +30,8 @@ logger = get_logger(__name__)
 class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
     """
     Dataset class for training pose estimation models using COCO format dataset.
+    Please note that COCO annotations must have exactly one category (e.g. "person") and
+    keypoints must be defined for this category.
 
     Compatible datasets are
     - COCO2017 dataset
@@ -38,6 +41,7 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
     """
 
     @resolve_param("transforms", TransformsFactory())
+    @resolve_param("crowd_annotations_action", TypeFactory.from_enum_cls(CrowdAnnotationActionEnum))
     def __init__(
         self,
         data_dir: str,
@@ -49,7 +53,7 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
         edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
         remove_duplicate_annotations: bool = False,
-        crowd_annotations_action: Union[str, CrowdAnnotationActionEnum] = CrowdAnnotationActionEnum.NO_ACTION,
+        crowd_annotations_action: CrowdAnnotationActionEnum = CrowdAnnotationActionEnum.NO_ACTION,
     ):
         """
 
@@ -63,25 +67,17 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
         :param edge_colors:                  Color of the edge links. If None, the color will be generated randomly.
         :param keypoint_colors:              Color of the keypoints. If None, the color will be generated randomly.
         :param remove_duplicate_annotations: If True will remove duplicate instances from the dataset.
-                                             It is known that COCO dataset has some duplicate annotations that and that affects the
+                                             It is known issue of COCO dataset - it has some duplicate annotations that affects the
                                              AP metric on validation greatly. This option allows to remove these duplicates.
                                              However, it is disabled by default to preserve backward compatibility with COCO evaluation.
+                                             When remove_duplicate_annotations is False no action will be taken and these duplicate
+                                             instances will be left unchanged. Default value is False.
         :param crowd_annotations_action:     Action to take for annotations with iscrowd=1. Can be one of the following:
                                              "drop_sample" - Samples with crowd annotations will be dropped from the dataset.
                                              "drop_annotation" - Crowd annotations will be dropped from the dataset.
                                              "mask_as_normal" - These annotations will be treated as normal (non-crowd) annotations.
                                              "no_action" - No action will be taken for crowd annotations.
         """
-
-        crowd_annotations_action = CrowdAnnotationActionEnum(crowd_annotations_action)
-        if crowd_annotations_action not in [
-            CrowdAnnotationActionEnum.NO_ACTION,
-            CrowdAnnotationActionEnum.DROP_ANNOTATION,
-            CrowdAnnotationActionEnum.DROP_SAMPLE,
-            CrowdAnnotationActionEnum.MASK_AS_NORMAL,
-        ]:
-            raise ValueError(f"crowd_annotations_action must be one of CrowdAnnotationActionEnum values, got {crowd_annotations_action}")
-
         json_file = os.path.join(data_dir, json_file)
         if not os.path.exists(json_file) or not os.path.isfile(json_file):
             raise FileNotFoundError(f"Annotation file {json_file} does not exist")

@@ -1,6 +1,6 @@
 import warnings
 from functools import wraps
-from typing import Optional
+from typing import Optional, Callable
 from pkg_resources import parse_version
 
 
@@ -76,3 +76,104 @@ def deprecated(deprecated_since: str, removed_from: str, target: Optional[callab
         return wrapper
 
     return decorator
+
+
+def deprecated_training_param(deprecated_tparam_name: str, deprecated_since: str, removed_from: str, new_arg_assigner: Callable, message: str = ""):
+    """
+    Decorator for deprecating training hyperparameters.
+
+    Recommended tp be used as a decorator on top of super_gradients.training.params.TrainingParams's override method:
+
+        class TrainingParams(HpmStruct):
+        def __init__(self, **entries):
+            # WE initialize by the default training params, overridden by the provided params
+            default_training_params = deepcopy(DEFAULT_TRAINING_PARAMS)
+            super().__init__(**default_training_params)
+        self.set_schema(TRAINING_PARAM_SCHEMA)
+            if len(entries) > 0:
+                self.override(**entries)
+
+    @deprecated_training_param(
+        "criterion_params", "3.2.1", "3.3.0", new_arg_assigner=get_deprecated_nested_params_to_factory_format_assigner("loss", "criterion_params")
+    )
+    def override(self, **entries):
+        super().override(**entries)
+        self.validate()
+
+
+    :param deprecated_tparam_name: str, the name of the deprecated hyperparameter.
+    :param deprecated_since: str, SG version of deprecation.
+    :param removed_from: str, SG version of removal.
+    :param new_arg_assigner: Callable, a handler to assign the deprecated parameter value to the updated
+     hyperparameter entry.
+    :param message: str, message to append to the deprecation warning (default="")
+    :return:
+    """
+
+    def decorator(func):
+        def wrapper(*args, **training_params):
+            if deprecated_tparam_name in training_params:
+                import super_gradients
+
+                is_still_supported = parse_version(super_gradients.__version__) < parse_version(removed_from)
+                if is_still_supported:
+                    message_prefix = (
+                        f"Training hyperparameter `{deprecated_tparam_name} is deprecated since version `{deprecated_since}` "
+                        f"and will be removed in version `{removed_from}`.\n"
+                    )
+                    warnings.warn(message_prefix + message, DeprecationWarning)
+                    training_params = new_arg_assigner(**training_params)
+                else:
+                    message_prefix = (
+                        f"Training hyperparameter `{deprecated_tparam_name} was deprecate since version `{deprecated_since}` "
+                        f"and was removed in version `{removed_from}`.\n"
+                    )
+                    raise RuntimeError(message_prefix + message)
+
+            return func(*args, **training_params)
+
+        return wrapper
+
+    return decorator
+
+
+def get_deprecated_nested_params_to_factory_format_assigner(param_name: str, nested_params_name: str) -> Callable:
+    """
+    Returns an assigner to be used by deprecated_training_param decorator.
+
+    The assigner takes a deprecated parameter name, and its __init___ arguments that previously were passed
+     through nested_params_name entry in training_params and manipulates the training_params so they are in 'Factory' format.
+     For example:
+
+    class TrainingParams(HpmStruct):
+        def __init__(self, **entries):
+            # WE initialize by the default training params, overridden by the provided params
+            default_training_params = deepcopy(DEFAULT_TRAINING_PARAMS)
+            super().__init__(**default_training_params)
+        self.set_schema(TRAINING_PARAM_SCHEMA)
+            if len(entries) > 0:
+                self.override(**entries)
+
+    @deprecated_training_param(
+        "criterion_params", "3.2.1", "3.3.0", new_arg_assigner=get_deprecated_nested_params_to_factory_format_assigner("loss", "criterion_params")
+    )
+    def override(self, **entries):
+        super().override(**entries)
+        self.validate()
+
+
+    then under the hood, training_params.loss will be set to
+     {training_params.loss: training_params.criterion_params}
+
+    :param param_name: str, parameter name (for example, 'loss').
+    :param nested_params_name: str, nested_params_name (for example, 'criterion_params')
+    :return: Callable as described above.
+    """
+
+    def deprecated_nested_params_to_factory_format_assigner(**params):
+        nested_params = params.get(nested_params_name)
+        param_val = params.get(param_name)
+        params[param_name] = {param_val: nested_params}
+        return params
+
+    return deprecated_nested_params_to_factory_format_assigner

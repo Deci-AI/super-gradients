@@ -24,14 +24,16 @@ class DetectionCollateFN:
 
         return self._format_images(images_batch), self._format_targets(labels_batch)
 
-    def _format_images(self, images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+    @staticmethod
+    def _format_images(images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
         images_batch = [torch.tensor(img) for img in images_batch]
         images_batch_stack = torch.stack(images_batch, 0)
         if images_batch_stack.shape[3] == 3:
             images_batch_stack = torch.moveaxis(images_batch_stack, -1, 1).float()
         return images_batch_stack
 
-    def _format_targets(self, labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
+    @staticmethod
+    def _format_targets(labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
         """
         Stack a batch id column to targets and concatenate
         :param labels_batch: a list of targets per image (each of arbitrary length)
