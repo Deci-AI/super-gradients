@@ -16,6 +16,8 @@ experiment_name: coco2017_pose_${architecture}${experiment_suffix}
 
 ckpt_root_dir:
 
+training_hyperparams:
+  initial_lr:  8e-5
 
 arch_params:
   num_classes: ${dataset_params.num_joints}
