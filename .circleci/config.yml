@@ -954,10 +954,10 @@ workflows:
 #          context:
 #            - slack
 #          <<: *release_tag_filter
-      - run_and_convert_notebooks_to_docs:
-          context:
-            - slack
-          <<: *release_tag_filter
+#      - run_and_convert_notebooks_to_docs:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
       - release_version:
           py_version: "3.8"
           requires:
