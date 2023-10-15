@@ -56,7 +56,7 @@ class PoseFormer(SgModule):
         factory = DetectionModulesFactory()
         self.head = factory.get(factory.insert_module_param(heads, "in_channels", (embedding_dim, embedding_dim, embedding_dim)))
 
-        self.init_params()
+        # self.init_params()
 
         self.num_classes = num_classes
 
