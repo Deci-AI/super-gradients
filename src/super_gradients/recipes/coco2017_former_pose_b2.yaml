@@ -1,4 +1,3 @@
-
 defaults:
   - training_hyperparams: coco2017_yolo_nas_pose_train_params
   - dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
@@ -12,39 +11,14 @@ architecture: pose_former_b2
 multi_gpu: DDP
 num_gpus: 8
 
-# Assemble experiment suffix
-bbox_cls_loss_suffix: box_${training_hyperparams.criterion_params.classification_loss_type}_${training_hyperparams.criterion_params.classification_loss_weight}
-bbox_reg_loss_suffix: ${training_hyperparams.criterion_params.regression_iou_loss_type}_${training_hyperparams.criterion_params.iou_loss_weight}_dfl_${training_hyperparams.criterion_params.dfl_loss_weight}
-pose_cls_loss_suffix: pose_${training_hyperparams.criterion_params.pose_classification_loss_type}_${training_hyperparams.criterion_params.pose_cls_loss_weight}
-pose_reg_loss_suffix: reg_${training_hyperparams.criterion_params.pose_reg_loss_weight}
-
-head_suffix: ""
-experiment_suffix: "ema_less_mosaic_rescale_loss_lr_focal"
-experiment_name: coco2017_${architecture}_${bbox_cls_loss_suffix}_${bbox_reg_loss_suffix}_${pose_cls_loss_suffix}_${pose_reg_loss_suffix}_${head_suffix}_${dataset_params.dataset_params_suffix}${experiment_suffix}
+experiment_suffix: ""
+experiment_name: coco2017_pose_${architecture}${experiment_suffix}
 
 ckpt_root_dir:
 
-train_dataloader: coco2017_pose_train
-val_dataloader: coco2017_pose_val
 
 arch_params:
   num_classes: ${dataset_params.num_joints}
-
-training_hyperparams:
-  initial_lr: 1e-4
-
-  sg_logger: wandb_sg_logger
-  sg_logger_params:
-    api_server: https://wandb.research.deci.ai
-    entity: super-gradients
-    launch_tensorboard: false
-    monitor_system: true
-    project_name: PoseEstimation
-    save_checkpoints_remote: true
-    save_logs_remote: true
-    save_tensorboard_remote: false
-    tb_files_user_prompt: false
-    tensorboard_port: null
 
 checkpoint_params:
   checkpoint_path: https://sghub.deci.ai/models/segformer_b2_cityscapes.pth

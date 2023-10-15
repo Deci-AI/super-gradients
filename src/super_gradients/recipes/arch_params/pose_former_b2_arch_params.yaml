@@ -9,13 +9,48 @@ backbone:
   in_channels: 3
 
 head:
-  YoloNASPoseSharedHead:
+  YoloNASPoseNDFLHeads:
     num_classes: 17
     reg_max: 16
-    inter_channels: 256
-    bbox_inter_channels: 128
-    pose_inter_channels: 256
-    width_mult: 0.5
-    fpn_strides: [8, 16, 32]
+    pose_offset_multiplier: 1.0
+    compensate_grid_cell_offset: True
+    inference_mode: False # True used only when benchmarking
+    heads_list:
+      - YoloNASPoseDFLHead:
+          bbox_inter_channels: 128
+          pose_inter_channels: 128
+          pose_regression_blocks: 2
+          shared_stem: False
+          width_mult: 0.75
+          pose_conf_in_class_head: True
+          pose_block_use_repvgg: False
+          first_conv_group_size: 0
+          num_classes:
+          stride: 8
+          reg_max: 16
+      - YoloNASPoseDFLHead:
+          bbox_inter_channels: 256
+          pose_inter_channels: 512
+          pose_regression_blocks: 2
+          shared_stem: False
+          width_mult: 0.75
+          pose_conf_in_class_head: True
+          pose_block_use_repvgg: False
+          first_conv_group_size: 0
+          num_classes:
+          stride: 16
+          reg_max: 16
+      - YoloNASPoseDFLHead:
+          bbox_inter_channels: 512
+          pose_inter_channels: 512
+          pose_regression_blocks: 3
+          shared_stem: False
+          width_mult: 0.75
+          pose_conf_in_class_head: True
+          pose_block_use_repvgg: False
+          first_conv_group_size: 0
+          num_classes:
+          stride: 32
+          reg_max: 16
 
 _convert_: all

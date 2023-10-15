@@ -1,5 +1,5 @@
 defaults:
-  - training_hyperparams: coco2017_yolo_nas_pose_train_params_v2
+  - training_hyperparams: coco2017_yolo_nas_pose_train_params
   - dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
   - arch_params: pose_former_b5_arch_params
   - checkpoint_params: default_checkpoint_params
@@ -9,15 +9,12 @@ defaults:
 architecture: pose_former_b5
 
 multi_gpu: DDP
-num_gpus: 4
+num_gpus: 8
 
 experiment_suffix: ""
 experiment_name: coco2017_pose_${architecture}${experiment_suffix}
 
 ckpt_root_dir:
-
-train_dataloader: coco2017_pose_train
-val_dataloader: coco2017_pose_val
 
 arch_params:
   num_classes: ${dataset_params.num_joints}
@@ -29,16 +26,10 @@ checkpoint_params:
     value: key_matching
 
 dataset_params:
-  train_dataset_params:
-    data_dir: /home/bloodaxe/data/coco2017
-
-  val_dataset_params:
-    data_dir: /home/bloodaxe/data/coco2017
+  mosaic_prob: 0.5
 
   train_dataloader_params:
     batch_size: 6
-    persistent_workers: True
 
   val_dataloader_params:
     batch_size: 6
-    persistent_workers: True
