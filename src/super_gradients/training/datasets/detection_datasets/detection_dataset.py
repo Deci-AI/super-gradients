@@ -293,6 +293,21 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
 
         return non_empty_annotations, empty_annotations
 
+    def _validate_annotation(self, annotation: dict) -> Union[dict, None]:
+        """Subclass every field listed in self.target_fields. It could be targets, crowd_targets, ...
+
+        :param annotation: Dict representing the annotation of a specific image
+        :return:           Subclassed annotation if non-empty after subclassing, otherwise None
+        """
+        class_index = _get_class_index_in_target(target_format=self.original_target_format)
+        for field in self.target_fields:
+            targets = annotation[field]
+            for target in targets:
+                class_id = int(target[class_index])
+                if class_id not in range(self.all_classes_list):
+                    raise ValueError(f"Invalid `class_id={class_id}`. It should be between (0 - {len(self.all_classes_list) - 1}).")
+        return annotation
+
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
         """Subclass every field listed in self.target_fields. It could be targets, crowd_targets, ...
 
