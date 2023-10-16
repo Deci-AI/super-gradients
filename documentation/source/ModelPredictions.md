@@ -93,6 +93,7 @@ images_predictions.show(box_thickness=2, show_confidence=True)
 - `box_thickness`: Thickness of bounding boxes.
 - `show_confidence`: Whether to show confidence scores on the image.
 - `color_mapping`: List of tuples representing the colors for each class.
+- `class_names`: List of class names to display. Only classes that the model was trained on are supported. By default, show all these classes.
 
 ### Save the Images with Detected Objects
 To save the images with detected objects as separate files, call the `images_predictions.save()` method and specify the output folder.
