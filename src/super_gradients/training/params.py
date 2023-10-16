@@ -38,15 +38,16 @@ DEFAULT_TRAINING_PARAMS = {
     "lr_mode": None,
     "phase_callbacks": None,
     "log_installed_packages": True,
-    "sg_logger": "base_sg_logger",
-    "sg_logger_params": {
-        "tb_files_user_prompt": False,  # Asks User for Tensorboard Deletion Prompt
-        "project_name": "",
-        "launch_tensorboard": False,
-        "tensorboard_port": None,
-        "save_checkpoints_remote": False,  # upload checkpoint files to s3
-        "save_tensorboard_remote": False,  # upload tensorboard files to s3
-        "save_logs_remote": False,
+    "sg_logger": {
+        "base_sg_logger": {
+            "tb_files_user_prompt": False,  # Asks User for Tensorboard Deletion Prompt
+            "project_name": "",
+            "launch_tensorboard": False,
+            "tensorboard_port": None,
+            "save_checkpoints_remote": False,  # upload checkpoint files to s3
+            "save_tensorboard_remote": False,  # upload tensorboard files to s3
+            "save_logs_remote": False,
+        }
     },  # upload log files to s3
     "warmup_mode": "LinearEpochLRWarmup",
     "step_lr_update_freq": None,
@@ -68,8 +69,8 @@ DEFAULT_TRAINING_PARAMS = {
     "resume_from_remote_sg_logger": False,  # When true, ckpt_name (checkpoint filename to resume, ckpt_latest.pth by
     # default) will be downloaded into the experiment checkpoints directory prior to loading weights, then resumed
     # from that checkpoint. The source is unique to every logger, and currently supported for WandB loggers only.
-    # Note that for this to work, the experiment must be ran with sg_logger_params.save_checkpoints_remote=True. For
-    # WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
+    # Note that for this to work, the experiment must be ran with sg_logger.save_checkpoints_remote=True. For
+    # WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger arguments.
     "torch_compile": False,  # Enable or disable use of torch.compile to optimize the model
     "torch_compile_loss": False,  # Enable or disable use of torch.compile to optimize the loss
     "torch_compile_options": {
@@ -117,6 +118,9 @@ class TrainingParams(HpmStruct):
 
     @deprecated_training_param(
         "criterion_params", "3.2.1", "3.5.0", new_arg_assigner=get_deprecated_nested_params_to_factory_format_assigner("loss", "criterion_params")
+    )
+    @deprecated_training_param(
+        "sg_logger_params", "3.3.1", "3.5.0", new_arg_assigner=get_deprecated_nested_params_to_factory_format_assigner("sg_logger", "sg_logger_params")
     )
     def override(self, **entries):
         super().override(**entries)

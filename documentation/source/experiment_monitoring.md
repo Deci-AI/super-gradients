@@ -26,15 +26,18 @@ model = ...
 
 training_params = {
     ...                               # Your training params
-    "sg_logger": "dagshub_sg_logger", # DagsHub Logger, see class super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger for details
-    "sg_logger_params":               # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger
-      {
-        "dagshub_repository": "<REPO_OWNER>/<REPO_NAME>", # Optional: Your DagsHub project name, consisting of the owner name, followed by '/', and the repo name. If this is left empty, you'll be prompted in your run to fill it in manually.
-        "log_mlflow_only": False, # Optional: Change to true to bypass logging to DVC, and log all artifacts only to MLflow
-        "save_checkpoints_remote": True,
-        "save_tensorboard_remote": True,
-        "save_logs_remote": True,
-      }
+    "sg_logger": {
+        "dagshub_sg_logger":  # DagsHub Logger, see class super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger for details
+        # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger
+            {
+                "dagshub_repository": "<REPO_OWNER>/<REPO_NAME>",
+                # Optional: Your DagsHub project name, consisting of the owner name, followed by '/', and the repo name. If this is left empty, you'll be prompted in your run to fill it in manually.
+                "log_mlflow_only": False,
+                # Optional: Change to true to bypass logging to DVC, and log all artifacts only to MLflow
+                "save_checkpoints_remote": True,
+                "save_tensorboard_remote": True,
+                "save_logs_remote": True,
+            }}
 }
 
 trainer.train(model=model, training_params=training_params, ...)
@@ -56,17 +59,19 @@ model = ...
 
 training_params = {
     ...                             # Your training params
-    "sg_logger": "wandb_sg_logger", # Weights&Biases Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger for details
-    "sg_logger_params":             # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger
-      {
-        "project_name": "project_name", # W&B project name
-        "save_checkpoints_remote": True,
-        "save_tensorboard_remote": True,
-        "save_logs_remote": True,
-        "entity": "<YOUR-ENTITY-NAME>",         # username or team name where you're sending runs
-        "api_server": "<OPTIONAL-WANDB-URL>"    # Optional: In case your experiment tracking is not hosted at wandb servers
-      }
-}
+    "sg_logger":
+    {"wandb_sg_logger":
+     # Weights&Biases Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger for details
+       # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger
+{
+    "project_name": "project_name",  # W&B project name
+    "save_checkpoints_remote": True,
+    "save_tensorboard_remote": True,
+    "save_logs_remote": True,
+    "entity": "<YOUR-ENTITY-NAME>",  # username or team name where you're sending runs
+    "api_server": "<OPTIONAL-WANDB-URL>"  # Optional: In case your experiment tracking is not hosted at wandb servers
+}}}
+
 
 trainer.train(model=model, training_params=training_params, ...)
 ```
@@ -87,14 +92,15 @@ model = ...
 
 training_params = {
     ...                                 # Your training params
-    "sg_logger": "clearml_sg_logger",   # ClearML Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.ClearMLSGLogger for details
-    "sg_logger_params":                 # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.ClearMLSGLogger 
-      {
-        "project_name": "project_name", # ClearML project name
-        "save_checkpoints_remote": True,
-        "save_tensorboard_remote": True,
-        "save_logs_remote": True,
-      } 
+    "sg_logger":   # ClearML Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.ClearMLSGLogger for details
+    {
+        "clearml_sg_logger":  # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.ClearMLSGLogger 
+            {
+                "project_name": "project_name",  # ClearML project name
+                "save_checkpoints_remote": True,
+                "save_tensorboard_remote": True,
+                "save_logs_remote": True,
+            }}
 }
 
 trainer.train(model=model, training_params=training_params, ...)
@@ -177,8 +183,8 @@ model = ...
 
 training_params = {
     ...,                                                    # Your training params
-    "sg_logger": "CustomSGLogger",                          # Your custom CustomSGLogger
-    "sg_logger_params": {"project_name": "my_project_name"} # Params that will be passed to __init__ of your CustomSGLogger  
+    "sg_logger": {"CustomSGLogger":  # Your custom CustomSGLogger
+                      {"project_name": "my_project_name"}}, # Params that will be passed to __init__ of your CustomSGLogger  
 }
 
 trainer.train(model=model, training_params=training_params, ...)
@@ -188,7 +194,7 @@ trainer.train(model=model, training_params=training_params, ...)
 
 - `@multi_process_safe` prevents multiple training nodes to do the same action. Check out [DDP documentation](device.md) for more details
 - `@register_logger()` registers your class into our factory, allowing it to be instantiated from a string.
-- `sg_logger_params` only requires `project_name`, the rest is provided by the Trainer.
+- It is only required to pass `project_name`, the rest is provided by the Trainer.
 
 
 ## Uploading custom objects with a callback
@@ -227,16 +233,16 @@ We encourage you to check out the API documentation of `super_gradients.common.s
 
 
 ## Chose your monitoring tool in the recipes
-You can update a [recipe](configuration_files.md) to use the monitoring tool you want by setting the `sg_logger` and `sg_logger_params` in [recipes/training_hyperparams](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/training_hyperparams).
+You can update a [recipe](configuration_files.md) to use the monitoring tool you want by setting the `sg_logger` in [recipes/training_hyperparams](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes/training_hyperparams).
 
 Here is an example for WandB;
 ```yaml
-sg_logger: wandb_sg_logger, # Weights&Biases Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger for details
-sg_logger_params:             # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger
-  project_name: project_name, # W&B project name
-  save_checkpoints_remote: True,
-  save_tensorboard_remote: True,
-  save_logs_remote: True,
-  entity: <YOUR-ENTITY-NAME>,         # username or team name where you're sending runs
-  api_server: <OPTIONAL-WANDB-URL>    # Optional: In case your experiment tracking is not hosted at wandb servers
+sg_logger: # Weights&Biases Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger for details
+    wandb_sg_logger:             # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger
+      project_name: project_name, # W&B project name
+      save_checkpoints_remote: True,
+      save_tensorboard_remote: True,
+      save_logs_remote: True,
+      entity: <YOUR-ENTITY-NAME>,         # username or team name where you're sending runs
+      api_server: <OPTIONAL-WANDB-URL>    # Optional: In case your experiment tracking is not hosted at wandb servers
 ```

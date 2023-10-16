@@ -101,7 +101,8 @@ class WandBSGLogger(BaseSGLogger):
                 if self._resume_from_remote_sg_logger:
                     raise RuntimeError(
                         "For WandB loggers, when training_params.resume_from_remote_sg_logger=True "
-                        "pass the run id through the wandb_id arg in sg_logger_params"
+                        "pass the run id through the wandb_id arg in sg_logger training_param \n"
+                        "(i.e training_params = {...'sg_logger':{'wandb_sg_logger'{'wandb_id': 1234567,..}}"
                     )
                 wandb_id = self._get_wandb_id()
 

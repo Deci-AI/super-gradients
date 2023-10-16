@@ -67,7 +67,7 @@ class DagsHubSGLogger(BaseSGLogger):
         :param monitor_system:          Save the system statistics (GPU utilization, CPU, ...) in the tensorboard
         :param dagshub_repository:      Format: <dagshub_username>/<dagshub_reponame> format is set correctly to avoid
                                         any potential issues. If you are utilizing the dagshub_sg_logger, please specify
-                                        the dagshub_repository in sg_logger_params to prevent any interruptions from
+                                        the dagshub_repository in sg_logger arguments to prevent any interruptions from
                                         prompts during automated pipelines. In the event that the repository does not
                                         exist, it will be created automatically on your behalf.
         :param log_mlflow_only:         Skip logging to DVC, use MLflow for all artifacts being logged

@@ -50,7 +50,7 @@ The checkpoint keys:
 ## Remote Checkpoint Saving with SG Loggers
 
 SG supports remote checkpoint saving using 3rd party tools (for example, [Weights & Biases](https://www.google.com/aclk?sa=l&ai=DChcSEwi1iaLxhYj9AhXejWgJHZYqCGIYABAAGgJ3Zg&sig=AOD64_30zInAUka20YKKdULr8PHnLnLWgg&q&adurl&ved=2ahUKEwiKxZvxhYj9AhUzTKQEHSJwCkcQ0Qx6BAgGEAE)).
-To do so, specify `save_checkpoints_remote=True` inside `sg_logger_params` training_param.
+To do so, specify `save_checkpoints_remote=True` inside `sg_logger`' training_param arguments.
 See our documentation on [Third-party experiment monitoring](experiment_monitoring.md).
 
 
@@ -325,14 +325,15 @@ See usage in our [resume_experiment_example](https://github.com/Deci-AI/super-gr
 SG supports saving checkpoints throughout the training process in the remote storage defined by `SG Logger` (more info about this object and it's role during training in SG at [Third-party experiment monitoring](experiment_monitoring.md).)
 Suppose we run an experiment with a `WandB` SG logger, then our `training_hyperparams` should hold:
 ```yaml
-sg_logger: wandb_sg_logger, # Weights&Biases Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger for details
-sg_logger_params:             # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger
-  project_name: project_name, # W&B project name
-  save_checkpoints_remote: True,
-  save_tensorboard_remote: True,
-  save_logs_remote: True,
-  entity: <YOUR-ENTITY-NAME>,         # username or team name where you're sending runs
-  api_server: <OPTIONAL-WANDB-URL>    # Optional: In case your experiment tracking is not hosted at wandb servers
+sg_logger: 
+  wandb_sg_logger: # Weights&Biases Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger for details
+             # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger
+      project_name: project_name, # W&B project name
+      save_checkpoints_remote: True,
+      save_tensorboard_remote: True,
+      save_logs_remote: True,
+      entity: <YOUR-ENTITY-NAME>,         # username or team name where you're sending runs
+      api_server: <OPTIONAL-WANDB-URL>    # Optional: In case your experiment tracking is not hosted at wandb servers
 ```
 
 The `save_checkpoints_remote` flag is set which will result in saving checkpoints in WandB throughout training.
@@ -341,17 +342,17 @@ Now, in case the training was interrupted, we can resume it from the checkpoint 
 ```yaml
 resume_from_remote_sg_logger: True
 ```
-2. Pass `run_id` through  `wandb_id` to `sg_logger_params`:
+2. Pass `run_id` through the `wandb_id` argument of `sg_logger` training parameter:
 ```yaml
-sg_logger: wandb_sg_logger, # Weights&Biases Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger for details
-sg_logger_params:             # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger
-  wandb_id: <YOUR_RUN_ID>
-  project_name: project_name, # W&B project name
-  save_checkpoints_remote: True,
-  save_tensorboard_remote: True,
-  save_logs_remote: True,
-  entity: <YOUR-ENTITY-NAME>,         # username or team name where you're sending runs
-  api_server: <OPTIONAL-WANDB-URL>    # Optional: In case your experiment tracking is not hosted at wandb servers
+sg_logger: # Weights&Biases Logger, see class super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger for details
+    wandb_sg_logger:             # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.wandb_sg_logger.WandBSGLogger
+      wandb_id: <YOUR_RUN_ID>
+      project_name: project_name, # W&B project name
+      save_checkpoints_remote: True,
+      save_tensorboard_remote: True,
+      save_logs_remote: True,
+      entity: <YOUR-ENTITY-NAME>,         # username or team name where you're sending runs
+      api_server: <OPTIONAL-WANDB-URL>    # Optional: In case your experiment tracking is not hosted at wandb servers
 ```
 
 And that's it! Once you re-launch your training, `ckpt_latest.pth` (by default) will be downloaded to the checkpoints directory, and the training will resume from it just as if it was locally stored.

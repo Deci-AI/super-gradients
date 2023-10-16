@@ -503,15 +503,18 @@ trainer = Trainer("experiment_name")
 model = ...
 
 training_params = { ...  # Your training params
-                   "sg_logger": "dagshub_sg_logger",  # DagsHub Logger, see class super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger for details
-                   "sg_logger_params":  # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger
-                     {
-                       "dagshub_repository": "<REPO_OWNER>/<REPO_NAME>", # Optional: Your DagsHub project name, consisting of the owner name, followed by '/', and the repo name. If this is left empty, you'll be prompted in your run to fill it in manually.
-                       "log_mlflow_only": False, # Optional: Change to true to bypass logging to DVC, and log all artifacts only to MLflow  
-                       "save_checkpoints_remote": True,
-                       "save_tensorboard_remote": True,
-                       "save_logs_remote": True,
-                     }
+                   "sg_logger": {"dagshub_sg_logger":
+                                 # DagsHub Logger, see class super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger for details
+                                 # Params that will be passes to __init__ of the logger super_gradients.common.sg_loggers.dagshub_sg_logger.DagsHubSGLogger
+                                 {
+                                     "dagshub_repository": "<REPO_OWNER>/<REPO_NAME>",
+                                     # Optional: Your DagsHub project name, consisting of the owner name, followed by '/', and the repo name. If this is left empty, you'll be prompted in your run to fill it in manually.
+                                     "log_mlflow_only": False,
+                                     # Optional: Change to true to bypass logging to DVC, and log all artifacts only to MLflow  
+                                     "save_checkpoints_remote": True,
+                                     "save_tensorboard_remote": True,
+                                     "save_logs_remote": True,
+                                 }}
                    }
 ```
 
@@ -529,14 +532,15 @@ from super_gradients import Trainer
 trainer = Trainer("experiment_name")
 
 train_params = { ... # training parameters
-                "sg_logger": "wandb_sg_logger", # Weights&Biases Logger, see class WandBSGLogger for details
-                "sg_logger_params": # paramenters that will be passes to __init__ of the logger 
-                  {
-                    "project_name": "project_name", # W&B project name
-                    "save_checkpoints_remote": True
-                    "save_tensorboard_remote": True
-                    "save_logs_remote": True
-                  } 
+                     # Weights&Biases Logger, see class WandBSGLogger for details # paramenters that will be passes to __init__ of the logger 
+
+                "sg_logger": {"wandb_sg_logger":
+                              {
+                                  "project_name": "project_name",  # W&B project name
+                                  "save_checkpoints_remote": True
+                                  "save_tensorboard_remote": True
+                                  "save_logs_remote": True
+                              }}
                }
 ```
 
@@ -553,14 +557,14 @@ from super_gradients import Trainer
 trainer = Trainer("experiment_name")
 
 train_params = { ... # training parameters
-                "sg_logger": "clearml_sg_logger", # ClearML Logger, see class ClearMLSGLogger for details
-                "sg_logger_params": # paramenters that will be passes to __init__ of the logger 
-                  {
-                    "project_name": "project_name", # ClearML project name
+                "sg_logger": {"clearml_sg_logger"""  # ClearML Logger, see class ClearMLSGLogger for details
+                # paramenters that will be passes to __init__ of the logger 
+                {
+                    "project_name": "project_name",  # ClearML project name
                     "save_checkpoints_remote": True,
                     "save_tensorboard_remote": True,
                     "save_logs_remote": True,
-                  } 
+                }}
                }
 ```
 

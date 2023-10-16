@@ -344,8 +344,10 @@ Output (Training parameters):
     'save_model': True,
     'save_tensorboard_to_s3': False,
     'seed': 42,
-    'sg_logger': 'base_sg_logger',
-    'sg_logger_params': {'tb_files_user_prompt': False, 'launch_tensorboard': False, 'tensorboard_port': None, 'save_checkpoints_remote': False, 'save_tensorboard_remote': False, 'save_logs_remote': False, 'monitor_system': True},
+    'sg_logger':
+        {'base_sg_logger': {'tb_files_user_prompt': False, 'launch_tensorboard': False, 'tensorboard_port': None,
+                            'save_checkpoints_remote': False, 'save_tensorboard_remote': False,
+                            'save_logs_remote': False, 'monitor_system': True}},
     'silent_mode': False,
     'step_lr_update_freq': None,
     'sync_bn': False,
@@ -366,7 +368,6 @@ It is also possible to change training parameters after obtaining them, for exam
 
 ```python
 training_params["max_epochs"] = 15
-training_params["sg_logger_params"]["launch_tensorboard"] = True
 ```
 
 ## 5. Training, checkpointing, and transfer learning

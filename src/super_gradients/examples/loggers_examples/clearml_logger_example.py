@@ -20,12 +20,13 @@ training_params = {
     "valid_metrics_list": [Accuracy(), Top5()],
     "metric_to_watch": "Accuracy",
     "greater_metric_to_watch_is_better": True,
-    "sg_logger": "clearml_sg_logger",
-    "sg_logger_params": {
-        "project_name": "project_name",  # ClearML project name
-        "save_checkpoints_remote": True,
-        "save_tensorboard_remote": True,
-        "save_logs_remote": True,
+    "sg_logger": {
+        "clearml_sg_logger": {
+            "project_name": "project_name",  # ClearML project name
+            "save_checkpoints_remote": True,
+            "save_tensorboard_remote": True,
+            "save_logs_remote": True,
+        }
     },
 }
 

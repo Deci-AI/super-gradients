@@ -1085,9 +1085,20 @@ class Trainer:
                     and remote storage. By overriding the default base_sg_logger, you can change the storage location, support external monitoring and logging
                     or support remote storage.
 
-                -   `sg_logger_params` : dict
+                -   `sg_logger_params` : DEPRECATED - USE FACTORY FORMAT WITH THE `sg_logger` trainnig_param instead
+                        i.e
 
-                    SGLogger parameters
+                        "sg_logger": {"base_sg_logger":
+                                    {
+                                        "tb_files_user_prompt": False,  # Asks User for Tensorboard Deletion Prompt
+                                        "project_name": "",
+                                        "launch_tensorboard": False,
+                                        "tensorboard_port": None,
+                                        "save_checkpoints_remote": False,  # upload checkpoint files to s3
+                                        "save_tensorboard_remote": False,  # upload tensorboard files to s3
+                                        "save_logs_remote": False,
+                                    }
+                                }
 
                 -   `clip_grad_norm` : float
 
@@ -1118,8 +1129,9 @@ class Trainer:
                        prior to loading weights, then training is resumed from that checkpoint. The source is unique to
                        every logger, and currently supported for WandB loggers only.
 
-                       IMPORTANT: Only works for experiments that were ran with sg_logger_params.save_checkpoints_remote=True.
-                       IMPORTANT: For WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger_params.
+                       IMPORTANT: Only works for experiments that were ran with sg_logger.save_checkpoints_remote=True.
+                       IMPORTANT: For WandB loggers, one must also pass the run id through the wandb_id arg in sg_logger arguments.
+                       (i.e training_params = {...'sg_logger':{'wandb_sg_logger'{'wandb_id': 1234567,..}}
 
 
 
@@ -1825,6 +1837,9 @@ class Trainer:
         if sg_logger is None:
             raise RuntimeError("sg_logger must be defined in training params (see default_training_params)")
 
+        if isinstance(sg_logger, Mapping):
+            ((sg_logger, sg_logger_params),) = sg_logger.items()
+
         if isinstance(sg_logger, AbstractSGLogger):
             self.sg_logger = sg_logger
         elif isinstance(sg_logger, str):
@@ -1833,7 +1848,6 @@ class Trainer:
             if sg_logger_cls is None:
                 raise RuntimeError(f"sg_logger={sg_logger} not registered in SuperGradients. Available {list(SG_LOGGERS.keys())}")
 
-            sg_logger_params = core_utils.get_param(self.training_params, "sg_logger_params", {})
             if issubclass(sg_logger_cls, BaseSGLogger):
                 sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
 

@@ -113,10 +113,8 @@ class DeprecationsUnitTest(unittest.TestCase):
                 "lr_mode": "StepLRScheduler",
                 "lr_warmup_epochs": 0,
                 "initial_lr": 0.1,
-                "loss": "CrossEntropyLoss",
                 "optimizer": "SGD",
                 "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                "loss": "CrossEntropyLoss",
                 "train_metrics_list": [],
                 "valid_metrics_list": [],
                 "metric_to_watch": "Accuracy",
@@ -126,7 +124,7 @@ class DeprecationsUnitTest(unittest.TestCase):
             train_params.override(criterion_params={"ignore_index": 0})
 
     def test_train_with_deprecated_criterion_params(self):
-        trainer = Trainer("test_train_with_precise_bn_explicit_size")
+        trainer = Trainer("test_train_with_deprecated_criterion_params")
         net = ResNet18(num_classes=5, arch_params={})
         train_params = {
             "max_epochs": 2,
@@ -152,6 +150,72 @@ class DeprecationsUnitTest(unittest.TestCase):
         )
 
         self.assertEqual(trainer.criterion.ignore_index, -300)
+
+    def test_deprecated_sg_logger_params(self):
+        with self.assertWarns(DeprecationWarning):
+            warnings.simplefilter("always")
+            train_params = {
+                "max_epochs": 4,
+                "lr_decay_factor": 0.1,
+                "lr_updates": [4],
+                "lr_mode": "StepLRScheduler",
+                "lr_warmup_epochs": 0,
+                "initial_lr": 0.1,
+                "optimizer": "SGD",
+                "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+                "train_metrics_list": [],
+                "valid_metrics_list": [],
+                "metric_to_watch": "Accuracy",
+                "greater_metric_to_watch_is_better": True,
+            }
+            train_params = TrainingParams(**train_params)
+            train_params.override(
+                sg_logger_params={
+                    "tb_files_user_prompt": False,  # Asks User for Tensorboard Deletion Prompt
+                    "project_name": "",
+                    "launch_tensorboard": False,
+                    "tensorboard_port": None,
+                    "save_checkpoints_remote": False,  # upload checkpoint files to s3
+                    "save_tensorboard_remote": False,  # upload tensorboard files to s3
+                    "save_logs_remote": False,
+                }
+            )
+
+    def test_train_with_deprecated_sg_logger_params(self):
+        trainer = Trainer("test_train_with_precise_bn_explicit_size")
+        net = ResNet18(num_classes=5, arch_params={})
+        train_params = {
+            "max_epochs": 2,
+            "lr_updates": [1],
+            "lr_decay_factor": 0.1,
+            "lr_mode": "StepLRScheduler",
+            "lr_warmup_epochs": 0,
+            "initial_lr": 0.1,
+            "loss": "CrossEntropyLoss",
+            "sg_logger_params": {
+                "tb_files_user_prompt": False,  # Asks User for Tensorboard Deletion Prompt
+                "project_name": "test_deprecated_sg_logger_params",
+                "launch_tensorboard": False,
+                "tensorboard_port": None,
+                "save_checkpoints_remote": False,  # upload checkpoint files to s3
+                "save_tensorboard_remote": False,  # upload tensorboard files to s3
+                "save_logs_remote": False,
+            },
+            "optimizer": "SGD",
+            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+            "train_metrics_list": [Accuracy(), Top5()],
+            "valid_metrics_list": [Accuracy(), Top5()],
+            "metric_to_watch": "Accuracy",
+            "greater_metric_to_watch_is_better": True,
+        }
+        trainer.train(
+            model=net,
+            training_params=train_params,
+            train_loader=classification_test_dataloader(batch_size=10),
+            valid_loader=classification_test_dataloader(batch_size=10),
+        )
+
+        self.assertEqual(trainer.sg_logger.project_name, "test_deprecated_sg_logger_params")
 
 
 if __name__ == "__main__":
