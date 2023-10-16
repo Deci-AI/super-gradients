@@ -1838,7 +1838,7 @@ class Trainer:
             raise RuntimeError("sg_logger must be defined in training params (see default_training_params)")
 
         if isinstance(sg_logger, Mapping):
-            ((sg_logger, sg_logger_params),) = sg_logger.items()
+            sg_logger, sg_logger_params = next(iter(sg_logger.items()))
 
         if isinstance(sg_logger, AbstractSGLogger):
             self.sg_logger = sg_logger
