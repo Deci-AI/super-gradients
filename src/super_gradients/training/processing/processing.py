@@ -139,7 +139,7 @@ class ImagePermute(Processing):
     """
 
     def __init__(self, permutation: Tuple[int, int, int] = (2, 0, 1)):
-        self.permutation = permutation
+        self.permutation = tuple(permutation)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         processed_image = np.ascontiguousarray(image.transpose(*self.permutation))
@@ -187,7 +187,7 @@ class StandardizeImage(Processing):
 
     def __init__(self, max_value: float = 255.0):
         super().__init__()
-        self.max_value = max_value
+        self.max_value = float(max_value)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         """Reverse the channel order of an image.
@@ -246,7 +246,7 @@ class _DetectionPadding(Processing, ABC):
     """
 
     def __init__(self, output_shape: Tuple[int, int], pad_value: int):
-        self.output_shape = output_shape
+        self.output_shape = tuple(output_shape)
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
@@ -288,7 +288,7 @@ class _KeypointsPadding(Processing, ABC):
     """
 
     def __init__(self, output_shape: Tuple[int, int], pad_value: int):
-        self.output_shape = output_shape
+        self.output_shape = tuple(output_shape)
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
@@ -351,7 +351,7 @@ class _Rescale(Processing, ABC):
     """
 
     def __init__(self, output_shape: Tuple[int, int]):
-        self.output_shape = output_shape
+        self.output_shape = tuple(output_shape)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
         scale_factor_h, scale_factor_w = self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1]
@@ -378,7 +378,7 @@ class _LongestMaxSizeRescale(Processing, ABC):
     """
 
     def __init__(self, output_shape: Tuple[int, int]):
-        self.output_shape = output_shape
+        self.output_shape = tuple(output_shape)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
         height, width = image.shape[:2]
@@ -443,7 +443,7 @@ class ClassificationProcess(Processing, ABC):
 class Resize(ClassificationProcess):
     def __init__(self, size: int = 224):
         super().__init__()
-        self.size = size
+        self.size = int(size)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         """Resize an image.
@@ -477,7 +477,7 @@ class CenterCrop(ClassificationProcess):
 
     def __init__(self, size: int = 224):
         super().__init__()
-        self.size = size
+        self.size = int(size)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         """Crops the given image at the center.
