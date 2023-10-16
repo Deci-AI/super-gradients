@@ -53,8 +53,8 @@ release_tag_filter: &release_tag_filter
 release_candidate_filter: &release_candidate_filter
   filters:
     branches:
-      # Apply to master branch and other branches that start with "master"
-      only: /^master.*/
+      # Apply to master_330
+      only: master_330
 
 release_candidate_tag_filter: &release_candidate_tag_filter
   filters:
