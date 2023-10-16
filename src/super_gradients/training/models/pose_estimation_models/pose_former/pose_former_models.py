@@ -7,8 +7,10 @@ from torch import nn
 
 from super_gradients.common.factories.detection_modules_factory import DetectionModulesFactory
 from super_gradients.common.registry import register_model
+from super_gradients.module_interfaces import ExportablePoseEstimationModel, AbstractPoseEstimationDecodingModule
 from super_gradients.modules import ConvBNAct
 from super_gradients.training.models import SgModule
+from super_gradients.training.models.pose_estimation_models.yolo_nas_pose.yolo_nas_pose_variants import YoloNASPoseDecodingModule
 from super_gradients.training.models.segmentation_models.segformer import MiTBackBone
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils import get_param
@@ -19,7 +21,7 @@ def resize_like(x, y):
 
 
 @register_model()
-class PoseFormer(SgModule):
+class PoseFormer(SgModule, ExportablePoseEstimationModel):
     def __init__(
         self,
         backbone: Union[str, dict, HpmStruct, DictConfig],
@@ -128,6 +130,9 @@ class PoseFormer(SgModule):
             else:
                 multiply_lr_params[name] = param
         return multiply_lr_params.items(), no_multiply_params.items()
+
+    def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractPoseEstimationDecodingModule:
+        return YoloNASPoseDecodingModule(num_pre_nms_predictions)
 
 
 @register_model()
