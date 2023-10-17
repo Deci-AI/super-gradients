@@ -74,6 +74,16 @@ class TestModelPredict(unittest.TestCase):
                     target_bboxes_format="xyxy",
                 )
 
+    def test_predict_class_names(self):
+        for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.PP_YOLOE_S]:
+            model = models.get(model_name, pretrained_weights="coco")
+
+            predictions = model.predict(self.np_array_images)
+            _ = predictions.show(class_names=["person", "bicycle", "car", "motorcycle", "airplane", "bus"])
+
+            with self.assertRaises(ValueError):
+                _ = predictions.show(class_names=["human"])
+
 
 if __name__ == "__main__":
     unittest.main()
