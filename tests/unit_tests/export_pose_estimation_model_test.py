@@ -16,6 +16,7 @@ from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail
 from super_gradients.module_interfaces import ExportablePoseEstimationModel, PoseEstimationModelExportResult
 from super_gradients.training import models
 from super_gradients.training.dataloaders import coco2017_val  # noqa
+from super_gradients.training.models.pose_estimation_models.yolo_nas_pose.yolo_nas_pose_variants import YoloNASPoseDecodingModule
 from super_gradients.training.processing.processing import (
     default_yolo_nas_pose_coco_processing_params,
     ComposeProcessing,
@@ -56,6 +57,23 @@ class TestPoseEstimationModelExport(unittest.TestCase):
             keypoint_colors=np.random.randint(0, 255, size=(20, 3)).tolist(),
         )
 
+    def test_export_decoding_module_bs_3(self):
+        num_pre_nms_predictions = 1000
+        batch_size = 3
+        module = YoloNASPoseDecodingModule(num_pre_nms_predictions)
+
+        pred_bboxes_xyxy = torch.rand(batch_size, 8400, 4)
+        pred_bboxes_conf = torch.rand(batch_size, 8400, 1).sigmoid()
+        pred_pose_coords = torch.rand(batch_size, 8400, 20, 2)
+        pred_pose_scores = torch.rand(batch_size, 8400, 20).sigmoid()
+
+        inputs = (pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores)
+        _ = module([inputs])  # Check that normal forward() works
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            out_path = os.path.join(tmpdirname, "model.onnx")
+            torch.onnx.export(module, (inputs,), out_path)
+
     def test_export_model_on_small_size(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
             for model_type in [
@@ -73,6 +91,26 @@ class TestPoseEstimationModelExport(unittest.TestCase):
                 )
                 assert export_result.input_image_dtype == torch.uint8
                 assert export_result.input_image_shape == (64, 64)
+                print(export_result.usage_instructions)
+
+    def test_export_model_with_batch_size_4(self):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            for model_type in [
+                Models.YOLO_NAS_POSE_S,
+            ]:
+                out_path = os.path.join(tmpdirname, model_type + ".onnx")
+                model: ExportablePoseEstimationModel = models.get(model_type, num_classes=17)
+                model.set_dataset_processing_params(**default_yolo_nas_pose_coco_processing_params())
+                export_result = model.export(
+                    out_path,
+                    batch_size=4,
+                    input_image_shape=(640, 640),
+                    num_pre_nms_predictions=2000,
+                    max_predictions_per_image=1000,
+                    output_predictions_format=DetectionOutputFormatMode.FLAT_FORMAT,
+                )
+                assert export_result.input_image_dtype == torch.uint8
+                assert export_result.input_image_shape == (640, 640)
                 print(export_result.usage_instructions)
 
     def test_the_most_common_export_use_case(self):
