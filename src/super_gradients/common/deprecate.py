@@ -112,7 +112,7 @@ def deprecated_training_param(deprecated_tparam_name: str, deprecated_since: str
 
     def decorator(func):
         def wrapper(*args, **training_params):
-            if deprecated_tparam_name in training_params:
+            if training_params.get(deprecated_tparam_name):
                 import super_gradients
 
                 is_still_supported = parse_version(super_gradients.__version__) < parse_version(removed_from)
