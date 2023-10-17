@@ -256,7 +256,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         if self.class_inclusion_list is not None:
             sample_annotations = self._sub_class_annotation(annotation=sample_annotations)
 
-        self._validate_annotation(annotation=sample_annotations)
         return sample_annotations
 
     def _load_all_annotations(self, n_samples: int) -> Tuple[Dict[int, Dict[str, Any]], Dict[int, Dict[str, Any]]]:
@@ -294,18 +293,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
             logger.warning(f"Found {n_invalid_bbox} invalid bbox that were ignored. For more information, please set `show_all_warnings=True`.")
 
         return non_empty_annotations, empty_annotations
-
-    def _validate_annotation(self, annotation: dict):
-        """Raise an error if an annotation is invalid.
-        :param annotation: Dict representing the annotation of a specific image
-        """
-        class_index = _get_class_index_in_target(target_format=self.original_target_format)
-        for field in self.target_fields:
-            targets = annotation[field]
-            for target in targets:
-                class_id = int(target[class_index])
-                if class_id not in range(len(self.all_classes_list)):
-                    raise ValueError(f"Invalid `class_id={class_id}`. It should be between (0 - {len(self.all_classes_list) - 1}).")
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
         """Subclass every field listed in self.target_fields. It could be targets, crowd_targets, ...
