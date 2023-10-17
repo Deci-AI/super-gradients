@@ -205,19 +205,19 @@ class TestParseYoloLabelFile(unittest.TestCase):
 
     def test_valid_label(self):
         with patch("builtins.open", mock_open(read_data=self.sample_data_valid)):
-            labels, invalid_labels = YoloDarknetFormatDetectionDataset._parse_yolo_label_file("mock_path", 3)
+            labels, invalid_labels = YoloDarknetFormatDetectionDataset._parse_yolo_label_file("mock_path", num_classes=3)
             np.testing.assert_array_equal(labels, np.array([[0, 0.5, 0.5, 0.1, 0.1], [1, 0.6, 0.6, 0.2, 0.2]]))
             self.assertEqual(invalid_labels, [])
 
     def test_invalid_format(self):
         with patch("builtins.open", mock_open(read_data=self.sample_data_invalid_format)):
-            labels, invalid_labels = YoloDarknetFormatDetectionDataset._parse_yolo_label_file("mock_path", 3)
+            labels, invalid_labels = YoloDarknetFormatDetectionDataset._parse_yolo_label_file("mock_path", num_classes=3)
             np.testing.assert_array_equal(labels, np.array([[1, 0.6, 0.6, 0.2, 0.2]]))
             self.assertEqual(invalid_labels, ["0 0.5\n"])
 
     def test_invalid_class(self):
         with patch("builtins.open", mock_open(read_data=self.sample_data_invalid_class)):
-            labels, invalid_labels = YoloDarknetFormatDetectionDataset._parse_yolo_label_file("mock_path", 3, ignore_invalid_labels=True)
+            labels, invalid_labels = YoloDarknetFormatDetectionDataset._parse_yolo_label_file("mock_path", num_classes=3)
             self.assertEqual(len(labels), 0)
             self.assertEqual(invalid_labels, ["-1 0.5 0.5 0.1 0.1\n", "3 0.6 0.6 0.2 0.2"])
 
