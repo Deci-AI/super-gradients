@@ -304,7 +304,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
             targets = annotation[field]
             for target in targets:
                 class_id = int(target[class_index])
-                if class_id not in range(self.all_classes_list):
+                if class_id not in range(len(self.all_classes_list)):
                     raise ValueError(f"Invalid `class_id={class_id}`. It should be between (0 - {len(self.all_classes_list) - 1}).")
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
