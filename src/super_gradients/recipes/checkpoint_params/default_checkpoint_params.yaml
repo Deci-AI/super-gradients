@@ -7,3 +7,9 @@ strict_load: # key matching strictness for loading checkpoint's weights
   _target_: super_gradients.training.sg_trainer.StrictLoad
   value: no_key_matching
 pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
+
+# num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
+# Used when num_classes != checkpoint_num_class.
+# In this case, the module will be initialized with checkpoint_num_class, then weights will be loaded.
+# Finally model.replace_head(new_num_classes=num_classes) is called to replace the head with new_num_classes.
+checkpoint_num_classes: # number of classes in the checkpoint
