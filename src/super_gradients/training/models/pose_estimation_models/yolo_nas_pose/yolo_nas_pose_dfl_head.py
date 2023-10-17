@@ -1,13 +1,15 @@
 import math
 from functools import partial
-from typing import Tuple, Callable
+from typing import Tuple, Callable, Type
 
 import torch
 from torch import nn, Tensor
 
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.common.registry import register_detection_module
 from super_gradients.module_interfaces import SupportsReplaceNumClasses
-from super_gradients.modules import ConvBNReLU, QARepVGGBlock
+from super_gradients.modules import QARepVGGBlock, ConvBNAct
 from super_gradients.modules.base_modules import BaseDetectionModule
 from super_gradients.modules.utils import width_multiplier
 
@@ -19,6 +21,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
     This class implements single-class object detection and keypoints regression on a single scale feature map
     """
 
+    @resolve_param("activation", ActivationsTypeFactory())
     def __init__(
         self,
         in_channels: int,
@@ -35,6 +38,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
         reg_max: int,
         cls_dropout_rate: float = 0.0,
         reg_dropout_rate: float = 0.0,
+        activation: Type[nn.Module] = nn.ReLU,
     ):
         """
         Initialize the YoloNASDFLHead
@@ -69,7 +73,7 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
 
         if self.shared_stem:
             max_input = max(bbox_inter_channels, pose_inter_channels)
-            self.stem = ConvBNReLU(in_channels, max_input, kernel_size=1, stride=1, padding=0, bias=False)
+            self.stem = ConvBNAct(in_channels, max_input, kernel_size=1, stride=1, padding=0, bias=False, activation_type=activation)
 
             if max_input != pose_inter_channels:
                 self.pose_stem = nn.Conv2d(max_input, pose_inter_channels, kernel_size=1, stride=1, padding=0, bias=False)
@@ -83,21 +87,33 @@ class YoloNASPoseDFLHead(BaseDetectionModule, SupportsReplaceNumClasses):
 
         else:
             self.stem = nn.Identity()
-            self.pose_stem = ConvBNReLU(in_channels, pose_inter_channels, kernel_size=1, stride=1, padding=0, bias=False)
-            self.bbox_stem = ConvBNReLU(in_channels, bbox_inter_channels, kernel_size=1, stride=1, padding=0, bias=False)
+            self.pose_stem = ConvBNAct(in_channels, pose_inter_channels, kernel_size=1, stride=1, padding=0, bias=False, activation_type=activation)
+            self.bbox_stem = ConvBNAct(in_channels, bbox_inter_channels, kernel_size=1, stride=1, padding=0, bias=False, activation_type=activation)
 
-        first_cls_conv = [ConvBNReLU(bbox_inter_channels, bbox_inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
-        self.cls_convs = nn.Sequential(*first_cls_conv, ConvBNReLU(bbox_inter_channels, bbox_inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
+        first_cls_conv = (
+            [ConvBNAct(bbox_inter_channels, bbox_inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False, activation_type=activation)]
+            if groups
+            else []
+        )
+        self.cls_convs = nn.Sequential(
+            *first_cls_conv, ConvBNAct(bbox_inter_channels, bbox_inter_channels, kernel_size=3, stride=1, padding=1, bias=False, activation_type=activation)
+        )
 
-        first_reg_conv = [ConvBNReLU(bbox_inter_channels, bbox_inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)] if groups else []
-        self.reg_convs = nn.Sequential(*first_reg_conv, ConvBNReLU(bbox_inter_channels, bbox_inter_channels, kernel_size=3, stride=1, padding=1, bias=False))
+        first_reg_conv = (
+            [ConvBNAct(bbox_inter_channels, bbox_inter_channels, kernel_size=3, stride=1, padding=1, groups=groups, bias=False, activation_type=activation)]
+            if groups
+            else []
+        )
+        self.reg_convs = nn.Sequential(
+            *first_reg_conv, ConvBNAct(bbox_inter_channels, bbox_inter_channels, kernel_size=3, stride=1, padding=1, bias=False, activation_type=activation)
+        )
 
         if pose_block_use_repvgg:
             pose_block = partial(QARepVGGBlock, use_alpha=True)
         else:
-            pose_block = partial(ConvBNReLU, kernel_size=3, stride=1, padding=1, bias=False)
+            pose_block = partial(ConvBNAct, kernel_size=3, stride=1, padding=1, bias=False)
 
-        pose_convs = [pose_block(pose_inter_channels, pose_inter_channels) for _ in range(pose_regression_blocks)]
+        pose_convs = [pose_block(pose_inter_channels, pose_inter_channels, activation_type=activation) for _ in range(pose_regression_blocks)]
         self.pose_convs = nn.Sequential(*pose_convs)
 
         self.reg_pred = nn.Conv2d(bbox_inter_channels, 4 * (reg_max + 1), 1, 1, 0)

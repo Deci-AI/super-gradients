@@ -103,6 +103,15 @@ class YoloNASPoseTests(unittest.TestCase):
         self.assertEqual(pred_pose_coords.shape[2], 20)
         self.assertEqual(pred_pose_scores.shape[2], 20)
 
+    def test_pose_former_b2(self):
+        model = models.get(
+            "PoseFormer_B2", num_classes=17, checkpoint_path="https://sghub.deci.ai/models/segformer_b2_cityscapes.pth", strict_load=StrictLoad.KEY_MATCHING
+        )
+        x = torch.rand((1, 3, 640, 640))
+        y = model(x)
+        print(y)
+        pass
+
     def test_pose_former(self):
         model = models.get(
             "PoseFormer_B5", num_classes=17, checkpoint_path="https://sghub.deci.ai/models/segformer_b5_cityscapes.pth", strict_load=StrictLoad.KEY_MATCHING

@@ -8,7 +8,6 @@ from torch import nn
 from super_gradients.common.factories.detection_modules_factory import DetectionModulesFactory
 from super_gradients.common.registry import register_model
 from super_gradients.module_interfaces import ExportablePoseEstimationModel, AbstractPoseEstimationDecodingModule
-from super_gradients.modules import ConvBNAct
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.pose_estimation_models.yolo_nas_pose.yolo_nas_pose_variants import YoloNASPoseDecodingModule
 from super_gradients.training.models.segmentation_models.segformer import MiTBackBone
@@ -25,6 +24,7 @@ class PoseFormer(SgModule, ExportablePoseEstimationModel):
     def __init__(
         self,
         backbone: Union[str, dict, HpmStruct, DictConfig],
+        neck: Union[str, dict, HpmStruct, DictConfig],
         heads: Union[str, dict, HpmStruct, DictConfig],
         num_classes: int,
         embedding_dim: int = 512,
@@ -56,18 +56,21 @@ class PoseFormer(SgModule, ExportablePoseEstimationModel):
         )
 
         factory = DetectionModulesFactory()
-        self.head = factory.get(factory.insert_module_param(heads, "in_channels", (embedding_dim, embedding_dim, embedding_dim)))
+        self.neck = factory.get(factory.insert_module_param(neck, "in_channels", tuple(backbone["encoder_embed_dims"])))
+        self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.neck.out_channels))
+
+        # self.head = factory.get(factory.insert_module_param(heads, "in_channels", (embedding_dim, embedding_dim, embedding_dim)))
 
         # self.init_params()
 
         self.num_classes = num_classes
 
-        self.use_sliding_window_validation = False
-        input_channels = sum(backbone["encoder_embed_dims"][1:])
+        # self.use_sliding_window_validation = False
+        # input_channels = sum(backbone["encoder_embed_dims"][1:])
 
-        self.f1_path = ConvBNAct(input_channels, embedding_dim, kernel_size=3, padding=1, bias=False, activation_type=nn.GELU)
-        self.f2_path = ConvBNAct(input_channels, embedding_dim, kernel_size=3, padding=1, bias=False, activation_type=nn.GELU)
-        self.f3_path = ConvBNAct(input_channels, embedding_dim, kernel_size=3, padding=1, bias=False, activation_type=nn.GELU)
+        # self.f1_path = ConvBNAct(input_channels, embedding_dim, kernel_size=3, padding=1, bias=False, activation_type=nn.GELU)
+        # self.f2_path = ConvBNAct(input_channels, embedding_dim, kernel_size=3, padding=1, bias=False, activation_type=nn.GELU)
+        # self.f3_path = ConvBNAct(input_channels, embedding_dim, kernel_size=3, padding=1, bias=False, activation_type=nn.GELU)
 
     def init_params(self):
         for m in self.modules():
@@ -84,13 +87,9 @@ class PoseFormer(SgModule, ExportablePoseEstimationModel):
                 nn.init.zeros_(m.bias)
 
     def _forward(self, x: torch.Tensor) -> torch.Tensor:
-        f1, f2, f3 = self.backbone(x)[1:]
-        # fmt: off
-        f1_out = self.f1_path(torch.cat([f1,                  resize_like(f2, f1), resize_like(f3, f1)], dim=1)) # noqa
-        f2_out = self.f2_path(torch.cat([resize_like(f1, f2), f2,                  resize_like(f3, f2)], dim=1)) # noqa
-        f3_out = self.f3_path(torch.cat([resize_like(f1, f3), resize_like(f2, f3), f3                 ], dim=1)) # noqa
-        # fmt: on
-        out = self.head([f1_out, f2_out, f3_out])
+        features = self.backbone(x)
+        features = self.neck(features)
+        out = self.heads(features)
         return out
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -145,6 +144,7 @@ class PoseFormer_B2(PoseFormer):
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(
             backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
             heads=merged_arch_params.head,
             num_classes=get_param(merged_arch_params, "num_classes", None),
         )
@@ -160,6 +160,7 @@ class PoseFormer_B5(PoseFormer):
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(
             backbone=merged_arch_params.backbone,
+            neck=merged_arch_params.neck,
             heads=merged_arch_params.head,
             num_classes=get_param(merged_arch_params, "num_classes", None),
         )

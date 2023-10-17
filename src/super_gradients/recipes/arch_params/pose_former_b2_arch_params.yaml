@@ -8,6 +8,47 @@ backbone:
   encoder_layers: [3, 4, 6, 3]
   in_channels: 3
 
+neck:
+  YoloNASPANNeckWithC2:
+
+    neck1:
+      YoloNASUpStage:
+        out_channels: 128
+        num_blocks: 2
+        hidden_channels: 48
+        width_mult: 1
+        depth_mult: 1
+        activation_type: gelu
+        reduce_channels: True
+
+    neck2:
+      YoloNASUpStage:
+        out_channels: 64
+        num_blocks: 2
+        hidden_channels: 32
+        width_mult: 1
+        depth_mult: 1
+        activation_type: gelu
+        reduce_channels: True
+
+    neck3:
+      YoloNASDownStage:
+        out_channels: 128
+        num_blocks: 2
+        hidden_channels: 48
+        activation_type: gelu
+        width_mult: 1
+        depth_mult: 1
+
+    neck4:
+      YoloNASDownStage:
+        out_channels: 256
+        num_blocks: 2
+        hidden_channels: 48
+        activation_type: gelu
+        width_mult: 1
+        depth_mult: 1
+
 head:
   YoloNASPoseNDFLHeads:
     num_classes: 17
@@ -28,6 +69,7 @@ head:
           num_classes:
           stride: 8
           reg_max: 16
+          activation: gelu
       - YoloNASPoseDFLHead:
           bbox_inter_channels: 256
           pose_inter_channels: 512
@@ -40,6 +82,7 @@ head:
           num_classes:
           stride: 16
           reg_max: 16
+          activation: gelu
       - YoloNASPoseDFLHead:
           bbox_inter_channels: 512
           pose_inter_channels: 512
@@ -52,5 +95,6 @@ head:
           num_classes:
           stride: 32
           reg_max: 16
+          activation: gelu
 
 _convert_: all
