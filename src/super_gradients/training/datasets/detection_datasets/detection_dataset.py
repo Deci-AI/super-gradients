@@ -255,6 +255,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         # Filter out classes that are not in self.class_inclusion_list
         if self.class_inclusion_list is not None:
             sample_annotations = self._sub_class_annotation(annotation=sample_annotations)
+
+        self._validate_annotation(annotation=sample_annotations)
         return sample_annotations
 
     def _load_all_annotations(self, n_samples: int) -> Tuple[Dict[int, Dict[str, Any]], Dict[int, Dict[str, Any]]]:
@@ -293,11 +295,9 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
 
         return non_empty_annotations, empty_annotations
 
-    def _validate_annotation(self, annotation: dict) -> Union[dict, None]:
-        """Subclass every field listed in self.target_fields. It could be targets, crowd_targets, ...
-
+    def _validate_annotation(self, annotation: dict):
+        """Raise an error if an annotation is invalid.
         :param annotation: Dict representing the annotation of a specific image
-        :return:           Subclassed annotation if non-empty after subclassing, otherwise None
         """
         class_index = _get_class_index_in_target(target_format=self.original_target_format)
         for field in self.target_fields:
@@ -306,7 +306,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
                 class_id = int(target[class_index])
                 if class_id not in range(self.all_classes_list):
                     raise ValueError(f"Invalid `class_id={class_id}`. It should be between (0 - {len(self.all_classes_list) - 1}).")
-        return annotation
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
         """Subclass every field listed in self.target_fields. It could be targets, crowd_targets, ...

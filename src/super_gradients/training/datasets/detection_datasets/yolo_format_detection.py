@@ -213,9 +213,9 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
     @staticmethod
     def _parse_yolo_label_file(
         label_file_path: str,
-        num_classes: int,
         ignore_invalid_labels: bool = True,
         show_warnings: bool = True,
+        num_classes: Optional[int] = None,
     ) -> Tuple[np.ndarray, List[str]]:
         """Parse a single label file in yolo format.
 
@@ -223,6 +223,8 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         :param label_file_path:         Path to the label file in yolo format.
         :param ignore_invalid_labels:   Whether to ignore labels that fail to be parsed. If True ignores and logs a warning, otherwise raise an error.
         :param show_warnings:           Whether to show the warnings or not.
+        :param num_classes:             Number of classes in the dataset. Used to ensure that class ids are within the range [0, num_classes - 1].
+                                        If None, ignore.
 
         :return:
             - labels:           np.ndarray of shape (n_labels, 5) in yolo format (LABEL_NORMALIZED_CXCYWH)
@@ -236,8 +238,10 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
             try:
                 label_id, cx, cw, w, h = line.split()
                 label_id, cx, cw, w, h = int(label_id), float(cx), float(cw), float(w), float(h)
-                if label_id and label_id not in range(num_classes):
+
+                if (num_classes is not None) and (label_id not in range(num_classes)):
                     raise ValueError(f"`class_id={label_id}` invalid. It should be between (0 - {num_classes - 1}).")
+
                 labels_yolo_format.append([label_id, cx, cw, w, h])
             except Exception as e:
                 error_msg = (
