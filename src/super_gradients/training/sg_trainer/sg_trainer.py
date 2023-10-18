@@ -265,6 +265,7 @@ class Trainer:
             pretrained_weights=cfg.checkpoint_params.pretrained_weights,
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
+            checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
         )
 
         # INSTANTIATE DATA LOADERS
