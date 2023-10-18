@@ -24,7 +24,7 @@ class PoseFormer(SgModule, ExportablePoseEstimationModel):
     def __init__(
         self,
         backbone: Union[str, dict, HpmStruct, DictConfig],
-        neck: Union[str, dict, HpmStruct, DictConfig],
+        neck: Union[dict, HpmStruct, DictConfig, None],
         heads: Union[str, dict, HpmStruct, DictConfig],
         num_classes: int,
         embedding_dim: int = 512,
@@ -56,8 +56,15 @@ class PoseFormer(SgModule, ExportablePoseEstimationModel):
         )
 
         factory = DetectionModulesFactory()
-        self.neck = factory.get(factory.insert_module_param(neck, "in_channels", tuple(backbone["encoder_embed_dims"])))
-        self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.neck.out_channels))
+        input_channels = tuple(backbone["encoder_embed_dims"])
+        if neck is not None:
+            self.neck = factory.get(factory.insert_module_param(neck, "in_channels", input_channels))
+            input_channels = self.neck.out_channels
+        else:
+            self.neck = nn.Identity()
+
+        self.output_features = slice(-3, None)
+        self.heads = factory.get(factory.insert_module_param(heads, "in_channels", input_channels[self.output_features]))
 
         # self.head = factory.get(factory.insert_module_param(heads, "in_channels", (embedding_dim, embedding_dim, embedding_dim)))
 
@@ -89,6 +96,8 @@ class PoseFormer(SgModule, ExportablePoseEstimationModel):
     def _forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self.backbone(x)
         features = self.neck(features)
+        # Take last 3 features (No-op if head present, otherwise exclude stride 4 features)
+        features = features[self.output_features]
         out = self.heads(features)
         return out
 
@@ -144,8 +153,8 @@ class PoseFormer_B2(PoseFormer):
         merged_arch_params.override(**arch_params.to_dict())
         super().__init__(
             backbone=merged_arch_params.backbone,
-            neck=merged_arch_params.neck,
-            heads=merged_arch_params.head,
+            neck=get_param(merged_arch_params, "neck"),
+            heads=get_param(merged_arch_params, "head"),
             num_classes=get_param(merged_arch_params, "num_classes", None),
         )
 
