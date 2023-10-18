@@ -184,6 +184,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
 
         yolo_format_target, invalid_labels = self._parse_yolo_label_file(
             label_file_path=label_path,
+            num_classes=len(self.all_classes_list),
             ignore_invalid_labels=self.ignore_invalid_labels,
             show_warnings=self.show_all_warnings,
         )
@@ -210,13 +211,20 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         return annotation
 
     @staticmethod
-    def _parse_yolo_label_file(label_file_path: str, ignore_invalid_labels: bool = True, show_warnings: bool = True) -> Tuple[np.ndarray, List[str]]:
+    def _parse_yolo_label_file(
+        label_file_path: str,
+        ignore_invalid_labels: bool = True,
+        show_warnings: bool = True,
+        num_classes: Optional[int] = None,
+    ) -> Tuple[np.ndarray, List[str]]:
         """Parse a single label file in yolo format.
 
         #TODO: Add support for additional fields (with ConcatenatedTensorFormat)
         :param label_file_path:         Path to the label file in yolo format.
         :param ignore_invalid_labels:   Whether to ignore labels that fail to be parsed. If True ignores and logs a warning, otherwise raise an error.
         :param show_warnings:           Whether to show the warnings or not.
+        :param num_classes:             Number of classes in the dataset. Used to ensure that class ids are within the range [0, num_classes - 1].
+                                        If None, ignore.
 
         :return:
             - labels:           np.ndarray of shape (n_labels, 5) in yolo format (LABEL_NORMALIZED_CXCYWH)
@@ -229,12 +237,21 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         for line in filter(lambda x: x != "\n", lines):
             try:
                 label_id, cx, cw, w, h = line.split()
-                labels_yolo_format.append([int(label_id), float(cx), float(cw), float(w), float(h)])
+                label_id, cx, cw, w, h = int(label_id), float(cx), float(cw), float(w), float(h)
+
+                if (num_classes is not None) and (label_id not in range(num_classes)):
+                    raise ValueError(f"`class_id={label_id}` invalid. It should be between (0 - {num_classes - 1}).")
+
+                labels_yolo_format.append([label_id, cx, cw, w, h])
             except Exception as e:
+                error_msg = (
+                    f"Line `{line}` of file {label_file_path} will be ignored because not cannot be parsed to (label, cx, cy, w, h) format, "
+                    f"with Exception:\n{e}"
+                )
                 if ignore_invalid_labels:
                     invalid_labels.append(line)
                     if show_warnings:
-                        logger.warning(f"Line `{line}` of file {label_file_path} will be ignored because not in LABEL_NORMALIZED_CXCYWH format: {e}")
+                        logger.warning(error_msg)
                 else:
-                    raise e
+                    raise RuntimeError(error_msg)
         return np.array(labels_yolo_format) if labels_yolo_format else np.zeros((0, 5)), invalid_labels

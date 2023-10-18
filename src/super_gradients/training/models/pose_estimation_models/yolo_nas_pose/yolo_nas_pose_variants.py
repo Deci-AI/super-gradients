@@ -71,7 +71,7 @@ class YoloNASPoseDecodingModule(AbstractPoseEstimationDecodingModule):
         topk_candidates = torch.topk(pred_bboxes_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
 
         offsets = nms_top_k * torch.arange(pred_bboxes_conf.size(0), device=pred_bboxes_conf.device)
-        flat_indices = topk_candidates.indices + offsets.reshape(pred_bboxes_conf.size(0), 1)
+        flat_indices = topk_candidates.indices + offsets.reshape(pred_bboxes_conf.size(0), 1, 1)
         flat_indices = torch.flatten(flat_indices)
 
         pred_poses_and_scores = torch.cat([pred_pose_coords, pred_pose_scores.unsqueeze(3)], dim=3)

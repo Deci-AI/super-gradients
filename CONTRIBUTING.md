@@ -66,11 +66,11 @@ You can find more information [here](https://withblue.ink/2020/05/17/how-and-why
 
 ### Add GPG key to GitHub
 
-1. [Generate a new GPG key](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key) 
+1. [Generate a new GPG key](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key). After completing the steps 1-9 you'll see the console message containing generated key ID (e.g. <i>3AA5C34371567BD2</i>).
 2. Copy the GPG key by running the command on step 12 from the link above
     
 ```bash
-$ gpg --armor --export 3AA5C34371567BD2
+$ gpg --armor --export <YOUR_GPG_KEY_ID>
 ```
     
 3. [Add the new GPG key to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-new-gpg-key-to-your-github-account)
@@ -81,9 +81,21 @@ $ gpg --armor --export 3AA5C34371567BD2
 - [From Terminal](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits), but first also do:
     
 ```bash
-$ git config --global user.signingkey 3AA5C34371567BD2
-$ git config --global gpg.program /usr/local/bin/gpg
+$ git config --global user.signingkey <YOUR_GPG_KEY_ID>
+$ git config --global gpg.program $(which gpg)
 $ git config --global commit.gpgsign true
+```
+
+### Making signed commits
+Use ```-S``` flag to sign your commit:
+```bash
+git commit -S -m "Making my first signed commit"
+```
+
+
+You could run the next command to ensure the commit has been signed:
+```bash
+git log --show-signature -1
 ```
 
 ### I have created PR with unsigned commits. Do I have to start over?
@@ -100,18 +112,32 @@ git commit -S -m "My signed commit"
 git push -f origin feature/my_awesome_pr_signed:feature/my_awesome_pr
 ```
 
-Last command will overwrite your PR branch with the new signed commit containing all changes from the PR. 
+The last command will overwrite your PR branch with the new signed commit containing all changes from the PR. 
 
+
+### GPG debug
+Some of contributors can face this problem while making their first commit:
+```
+error: gpg failed to sign the data
+fatal: failed to write commit object
+```
+You could consider adding ```GIT_TRACE=1``` at the beginning of the ```git commit``` command, this will show you what the commit command does under the hood. In case you are seeing something like this 
 ```bash
+18:57:12.099725 run-command.c:663       trace: run_command: /usr/bin/gpg --status-fd=2 -bsau <YOUR_GPG_KEY_ID>
+```
+extract the GPG command (```/usr/bin/gpg --status-fd=2 -bsau <YOUR_GPG_KEY_ID>```) and execute it separately. Now you can check what happened while running the GPG signature.
 
-## Jupyter Notebooks Contribution
+
+
+### Jupyter Notebooks Contribution
 
 Pulling updates from remote might cause merge conflicts with jupyter notebooks. The tool [nbdime](https://nbdime.readthedocs.io/en/latest/) might solve this.
 * Installing nbdime
 ```
-pip install ndime
+pip install nbdime
 ```
 * Run a diff between two notebooks
 ```
 nbdiff notebook_1.ipynb notebook_2.ipynb
 ```
+

@@ -30,7 +30,7 @@ class DetectionPrediction(Prediction):
         :param image_shape: Shape of the image the prediction is made on, (H, W). This is used to convert bboxes to xyxy format
 
         :param target_bboxes: np.ndarray, ground truth bounding boxes as np.ndarray of shape (image_i_object_count, 4)
-         When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one).
+         When not None, will plot the predictions and the ground truth bounding boxes side by side (i.e 2 images stitched as one)
 
         :param target_labels: np.ndarray, ground truth target class indices as an np.ndarray of shape (image_i_object_count).
 
