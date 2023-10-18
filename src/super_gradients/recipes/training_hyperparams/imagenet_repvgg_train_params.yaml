@@ -2,11 +2,11 @@ defaults:
   - default_train_params
 
 max_epochs: 120
-lr_mode: cosine
+lr_mode: CosineLRScheduler
 initial_lr: 0.1
 cosine_final_lr_ratio: 0
 
-loss: cross_entropy
+loss: LabelSmoothingCrossEntropyLoss
 
 zero_weight_decay_on_bias_and_bn: True
 average_best_models: True

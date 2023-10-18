@@ -52,7 +52,7 @@ class HardMiningCrossEntropyLoss(_Loss):
         return closs
 
 
-@register_loss(Losses.SSD_LOSS)
+@register_loss(name=Losses.SSD_LOSS, deprecated_name="ssd_loss")
 class SSDLoss(_Loss):
     """
         Implements the loss as the sum of the followings:

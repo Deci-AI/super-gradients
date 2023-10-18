@@ -8,16 +8,15 @@ ema_params:
   beta: 20
 
 max_epochs: 150
-lr_mode: cosine
+lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0.1
 batch_accumulate: 1
 initial_lr: 1e-3
-loss: dekr_loss
-
-criterion_params:
-  heatmap_loss: qfl
-  heatmap_loss_factor: 1.0
-  offset_loss_factor: 0.1
+loss:
+  DEKRLoss:
+    heatmap_loss: qfl
+    heatmap_loss_factor: 1.0
+    offset_loss_factor: 0.1
 
 mixed_precision: True
 

@@ -52,7 +52,7 @@ training_hyperparams:
   sync_bn: True
   resume: ${resume}
   max_epochs: 800
-  lr_mode: poly
+  lr_mode: PolyLRScheduler
   initial_lr: 0.02   # for effective batch_size=16
   lr_warmup_epochs: 0
   optimizer: SGD
@@ -62,9 +62,9 @@ training_hyperparams:
 
   ema: True
 
-  loss: cross_entropy
-  criterion_params:
-    ignore_index: ${cityscapes_ignored_label}
+  loss:
+    LabelSmoothingCrossEntropyLoss:
+      ignore_index: ${cityscapes_ignored_label}
 
   train_metrics_list:
     - PixelAccuracy:

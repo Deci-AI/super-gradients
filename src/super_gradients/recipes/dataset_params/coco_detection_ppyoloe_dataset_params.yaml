@@ -55,15 +55,15 @@ train_dataloader_params:
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
-  collate_fn: # collate function for trainset
-    _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
-    random_resize_sizes: [ 320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768 ]
-    random_resize_modes:
-      - 0 # cv::INTER_NEAREST
-      - 1 # cv::INTER_LINEAR
-      - 2 # cv::INTER_CUBIC
-      - 3 # cv::INTER_AREA
-      - 4 # cv::INTER_LANCZOS4
+  collate_fn:
+    PPYoloECollateFN:
+      random_resize_sizes: [ 320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768 ]
+      random_resize_modes:
+        - 0 # cv::INTER_NEAREST
+        - 1 # cv::INTER_LINEAR
+        - 2 # cv::INTER_CUBIC
+        - 3 # cv::INTER_AREA
+        - 4 # cv::INTER_LANCZOS4
 
 val_dataset_params:
   data_dir: /data/coco # root path to coco data
@@ -93,7 +93,6 @@ val_dataloader_params:
   drop_last: False
   shuffle: False
   pin_memory: False
-  collate_fn: # collate function for valset
-    _target_: super_gradients.training.utils.detection_utils.CrowdDetectionPPYoloECollateFN
+  collate_fn: CrowdDetectionPPYoloECollateFN
 
 _convert_: all

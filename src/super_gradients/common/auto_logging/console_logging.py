@@ -7,6 +7,7 @@ import atexit
 from threading import Lock
 
 from super_gradients.common.environment.ddp_utils import multi_process_safe, is_main_process
+from super_gradients.common.environment.env_variables import env_variables
 
 
 class BufferWriter:
@@ -117,7 +118,7 @@ class ConsoleSink:
     @multi_process_safe
     def _setup(self):
         """On instantiation, setup the default sink file."""
-        filename = Path.home() / "sg_logs" / "console.log"
+        filename = Path(env_variables.SUPER_GRADIENTS_LOG_DIR) / "console.log"
         filename.parent.mkdir(exist_ok=True)
         self.filename = str(filename)
         os.makedirs(os.path.dirname(self.filename), exist_ok=True)

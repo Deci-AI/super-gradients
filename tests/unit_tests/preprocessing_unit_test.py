@@ -22,7 +22,7 @@ from super_gradients.training.processing import (
     ComposeProcessing,
 )
 from super_gradients.training.transforms import DetectionPaddedRescale, DetectionRGB2BGR
-from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
+from super_gradients.training.utils.collate_fn import DetectionCollateFN, CrowdDetectionCollateFN
 
 
 class PreprocessingUnitTest(unittest.TestCase):
@@ -97,13 +97,12 @@ class PreprocessingUnitTest(unittest.TestCase):
 
         detection_train_params_yolox = {
             "max_epochs": 1,
-            "lr_mode": "cosine",
+            "lr_mode": "CosineLRScheduler",
             "cosine_final_lr_ratio": 0.05,
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": "yolox_loss",
-            "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
+            "loss": {"YoloXDetectionLoss": {"strides": [8, 16, 32], "num_classes": 80}},
             "train_metrics_list": [],
             "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80)],
             "metric_to_watch": "mAP@0.50:0.95",
@@ -168,13 +167,12 @@ class PreprocessingUnitTest(unittest.TestCase):
 
         detection_train_params_yolox = {
             "max_epochs": 1,
-            "lr_mode": "cosine",
+            "lr_mode": "CosineLRScheduler",
             "cosine_final_lr_ratio": 0.05,
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": "yolox_loss",
-            "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
+            "loss": {"YoloXDetectionLoss": {"strides": [8, 16, 32], "num_classes": 80}},
             "train_metrics_list": [],
             "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80)],
             "metric_to_watch": "mAP@0.50:0.95",

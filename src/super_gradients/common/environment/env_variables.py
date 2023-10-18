@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Optional
 
 
@@ -44,6 +45,10 @@ class EnvironmentVariables:
     @HYDRA_FULL_ERROR.setter
     def HYDRA_FULL_ERROR(self, value: str):
         os.environ["HYDRA_FULL_ERROR"] = value
+
+    @property
+    def SUPER_GRADIENTS_LOG_DIR(self) -> str:
+        return os.getenv("SUPER_GRADIENTS_LOG_DIR", default=str(Path.home() / "sg_logs"))
 
 
 env_variables = EnvironmentVariables()

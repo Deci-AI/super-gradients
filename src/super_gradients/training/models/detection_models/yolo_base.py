@@ -87,17 +87,17 @@ class YoloXPostPredictionCallback(DetectionPostPredictionCallback):
         multi_label_per_box: bool = True,
     ):
         """
-        :param conf: confidence threshold
-        :param iou: IoU threshold                                       (used in NMS_Type.ITERATIVE)
-        :param classes: (optional list) filter by class                 (used in NMS_Type.ITERATIVE)
-        :param nms_type: the type of nms to use (iterative or matrix)
-        :param max_predictions: maximum number of boxes to output       (used in NMS_Type.MATRIX)
-        :param with_confidence: in NMS, whether to multiply objectness  (used in NMS_Type.ITERATIVE)
-                                score with class score
-        :param class_agnostic_nms: indicates how boxes of different classes will be treated during
-                                   NMS step (used in NMS_Type.ITERATIVE and NMS_Type.MATRIX)
-                                   True - NMS will be performed on all classes together.
-                                   False - NMS will be performed on each class separately (default).
+        :param conf:                confidence threshold
+        :param iou:                 IoU threshold                                   (used in NMS_Type.ITERATIVE)
+        :param classes:             (optional list) filter by class                 (used in NMS_Type.ITERATIVE)
+        :param nms_type:            the type of nms to use (iterative or matrix)
+        :param max_predictions:     maximum number of boxes to output       (used in NMS_Type.MATRIX)
+        :param with_confidence:     in NMS, whether to multiply objectness  (used in NMS_Type.ITERATIVE)
+                                    score with class score
+        :param class_agnostic_nms:  indicates how boxes of different classes will be treated during
+                                    NMS step (used in NMS_Type.ITERATIVE and NMS_Type.MATRIX)
+                                    True - NMS will be performed on all classes together.
+                                    False - NMS will be performed on each class separately (default).
         :param multi_label_per_box: controls whether to decode multiple labels per box (used in NMS_Type.ITERATIVE)
                                     True - each anchor can produce multiple labels of different classes
                                            that pass confidence threshold check (default).
@@ -561,18 +561,20 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         conf: Optional[float] = None,
         batch_size: int = 32,
         fuse_model: bool = True,
+        show_progress_bar: bool = True,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
-        :param images:      Images to predict.
-        :param iou:         (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:        (Optional) Below the confidence threshold, prediction are discarded.
-                            If None, the default value associated to the training is used.
-        :param batch_size:  Maximum number of images to process at the same time.
-        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param images:            Images to predict.
+        :param iou:               (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:              (Optional) Below the confidence threshold, prediction are discarded.
+                                  If None, the default value associated to the training is used.
+        :param batch_size:        Maximum number of images to process at the same time.
+        :param fuse_model:        If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param show_progress_bar: If True, show a progress bar.
         """
         pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
-        return pipeline(images, batch_size=batch_size)  # type: ignore
+        return pipeline(images, batch_size=batch_size, show_progress_bar=show_progress_bar)  # type: ignore
 
     def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
         """Predict using webcam.

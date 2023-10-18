@@ -11,7 +11,7 @@ from super_gradients.common.registry.registry import register_loss
 from super_gradients.training.losses.mask_loss import MaskAttentionLoss
 
 
-@register_loss(Losses.DICE_CE_EDGE_LOSS)
+@register_loss(name=Losses.DICE_CE_EDGE_LOSS, deprecated_name="dice_ce_edge_loss")
 class DiceCEEdgeLoss(_Loss):
     def __init__(
         self,

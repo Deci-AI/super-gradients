@@ -56,7 +56,7 @@ class Pipeline(ABC):
     :param image_processor: A single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:          The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param dtype:           Specify the dtype of the inputs. If None, will use the dtype of the model's parameters.
-    :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    :param fuse_model:      If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
     """
 
     def __init__(
@@ -90,7 +90,7 @@ class Pipeline(ABC):
         self.model.prep_model_for_conversion(input_size=input_example.shape[-2:])
         self.fuse_model = False
 
-    def __call__(self, inputs: Union[str, ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> ImagesPredictions:
+    def __call__(self, inputs: Union[str, ImageSource, List[ImageSource]], batch_size: Optional[int] = 32, show_progress_bar: bool = True) -> ImagesPredictions:
         """Predict an image or a list of images.
 
         Supported types include:
@@ -100,41 +100,47 @@ class Pipeline(ABC):
             - PIL.Image.Image:  A PIL Image object
             - List:             A list of images of any of the above image types (list of videos not supported).
 
-        :param inputs:      inputs to the model, which can be any of the above-mentioned types.
-        :param batch_size:  Maximum number of images to process at the same time.
-        :return:            Results of the prediction.
+        :param inputs:              inputs to the model, which can be any of the above-mentioned types.
+        :param batch_size:          Maximum number of images to process at the same time.
+        :param show_progress_bar:   If True, show a progress bar.
+        :return:                    Results of the prediction.
         """
 
         if includes_video_extension(inputs):
-            return self.predict_video(inputs, batch_size)
+            return self.predict_video(inputs, batch_size, show_progress_bar=show_progress_bar)
         elif check_image_typing(inputs):
-            return self.predict_images(inputs, batch_size)
+            return self.predict_images(inputs, batch_size, show_progress_bar=show_progress_bar)
         else:
             raise ValueError(f"Input {inputs} not supported for prediction.")
 
-    def predict_images(self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = 32) -> ImagesPredictions:
+    def predict_images(
+        self, images: Union[ImageSource, List[ImageSource]], batch_size: Optional[int] = 32, show_progress_bar: bool = True
+    ) -> ImagesPredictions:
         """Predict an image or a list of images.
 
-        :param images:      Images to predict.
-        :param batch_size:  The size of each batch.
-        :return:            Results of the prediction.
+        :param images:              Images to predict.
+        :param batch_size:          The size of each batch.
+        :param show_progress_bar:   If True, show a progress bar.
+        :return:                    Results of the prediction.
         """
         from super_gradients.training.utils.media.image import load_images
 
         images = load_images(images)
-        result_generator = self._generate_prediction_result(images=images, batch_size=batch_size)
-        return self._combine_image_prediction_to_images(result_generator, n_images=len(images))
 
-    def predict_video(self, video_path: str, batch_size: Optional[int] = 32) -> VideoPredictions:
+        result_generator = self._generate_prediction_result(images=images, batch_size=batch_size)
+        return self._combine_image_prediction_to_images(result_generator, n_images=len(images), show_progress_bar=show_progress_bar)
+
+    def predict_video(self, video_path: str, batch_size: Optional[int] = 32, show_progress_bar: bool = True) -> VideoPredictions:
         """Predict on a video file, by processing the frames in batches.
 
-        :param video_path:  Path to the video file.
-        :param batch_size:  The size of each batch.
-        :return:            Results of the prediction.
+        :param video_path:          Path to the video file.
+        :param batch_size:          The size of each batch.
+        :param show_progress_bar:   If True, show a progress bar.
+        :return:                    Results of the prediction.
         """
         video_frames, fps = load_video(file_path=video_path)
         result_generator = self._generate_prediction_result(images=video_frames, batch_size=batch_size)
-        return self._combine_image_prediction_to_video(result_generator, fps=fps, n_images=len(video_frames))
+        return self._combine_image_prediction_to_video(result_generator, fps=fps, n_images=len(video_frames), show_progress_bar=show_progress_bar)
 
     def predict_webcam(self) -> None:
         """Predict using webcam"""
@@ -227,24 +233,28 @@ class Pipeline(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _combine_image_prediction_to_images(self, images_prediction_lst: Iterable[ImagePrediction], n_images: Optional[int] = None) -> ImagesPredictions:
+    def _combine_image_prediction_to_images(
+        self, images_prediction_lst: Iterable[ImagePrediction], n_images: Optional[int] = None, show_progress_bar: bool = True
+    ) -> ImagesPredictions:
         """Instantiate an object wrapping the list of images and the pipeline's predictions on them.
 
         :param images_prediction_lst:   List of image predictions.
         :param n_images:                (Optional) Number of images in the list. This used for tqdm progress bar to work with iterables, but is not required.
+        :param show_progress_bar:       If True, show a progress bar.
         :return:                        Object wrapping the list of image predictions.
         """
         raise NotImplementedError
 
     @abstractmethod
     def _combine_image_prediction_to_video(
-        self, images_prediction_lst: Iterable[ImagePrediction], fps: float, n_images: Optional[int] = None
+        self, images_prediction_lst: Iterable[ImagePrediction], fps: float, n_images: Optional[int] = None, show_progress_bar: bool = True
     ) -> VideoPredictions:
         """Instantiate an object holding the video frames and the pipeline's predictions on it.
 
         :param images_prediction_lst:   List of image predictions.
         :param fps:                     Frames per second.
         :param n_images:                (Optional) Number of images in the list. This used for tqdm progress bar to work with iterables, but is not required.
+        :param show_progress_bar:       If True, show a progress bar.
         :return:                        Object wrapping the list of image predictions as a Video.
         """
         raise NotImplementedError
@@ -303,20 +313,24 @@ class DetectionPipeline(Pipeline):
         return ImageDetectionPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
-        self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None
+        self, images_predictions: Iterable[ImageDetectionPrediction], n_images: Optional[int] = None, show_progress_bar: bool = True
     ) -> ImagesDetectionPrediction:
-        if n_images is not None and n_images == 1:
+        if (n_images is not None and n_images == 1) or not show_progress_bar:
             # Do not show tqdm progress bar if there is only one image
             images_predictions = [next(iter(images_predictions))]
         else:
-            images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+            images_predictions = [
+                image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images", disable=not show_progress_bar)
+            ]
 
         return ImagesDetectionPrediction(_images_prediction_lst=images_predictions)
 
     def _combine_image_prediction_to_video(
-        self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
+        self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None, show_progress_bar: bool = True
     ) -> VideoDetectionPrediction:
-        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
+        images_predictions = [
+            image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video", disable=not show_progress_bar)
+        ]
         return VideoDetectionPrediction(_images_prediction_lst=images_predictions, fps=fps)
 
 
@@ -355,14 +369,16 @@ class PoseEstimationPipeline(Pipeline):
         :param model_input:     Model input (i.e. images after preprocessing).
         :return:                Predicted Bboxes.
         """
-        all_poses, all_scores = self.post_prediction_callback(model_output)
-
-        predictions = []
-        for poses, scores, image in zip(all_poses, all_scores, model_input):
-            predictions.append(
+        list_of_predictions = self.post_prediction_callback(model_output)
+        decoded_predictions = []
+        for image_level_predictions, image in zip(list_of_predictions, model_input):
+            decoded_predictions.append(
                 PoseEstimationPrediction(
-                    poses=poses,
-                    scores=scores,
+                    poses=image_level_predictions.poses.cpu().numpy() if torch.is_tensor(image_level_predictions.poses) else image_level_predictions.poses,
+                    scores=image_level_predictions.scores.cpu().numpy() if torch.is_tensor(image_level_predictions.scores) else image_level_predictions.scores,
+                    bboxes_xyxy=image_level_predictions.bboxes_xyxy.cpu().numpy()
+                    if torch.is_tensor(image_level_predictions.bboxes_xyxy)
+                    else image_level_predictions.bboxes_xyxy,
                     image_shape=image.shape,
                     edge_links=self.edge_links,
                     edge_colors=self.edge_colors,
@@ -370,26 +386,30 @@ class PoseEstimationPipeline(Pipeline):
                 )
             )
 
-        return predictions
+        return decoded_predictions
 
     def _instantiate_image_prediction(self, image: np.ndarray, prediction: PoseEstimationPrediction) -> ImagePrediction:
         return ImagePoseEstimationPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
-        self, images_predictions: Iterable[PoseEstimationPrediction], n_images: Optional[int] = None
+        self, images_predictions: Iterable[PoseEstimationPrediction], n_images: Optional[int] = None, show_progress_bar: bool = True
     ) -> ImagesPoseEstimationPrediction:
-        if n_images is not None and n_images == 1:
+        if (n_images is not None and n_images == 1) or not show_progress_bar:
             # Do not show tqdm progress bar if there is only one image
             images_predictions = [next(iter(images_predictions))]
         else:
-            images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+            images_predictions = [
+                image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images", disable=not show_progress_bar)
+            ]
 
         return ImagesPoseEstimationPrediction(_images_prediction_lst=images_predictions)
 
     def _combine_image_prediction_to_video(
-        self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
+        self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None, show_progress_bar: bool = True
     ) -> VideoPoseEstimationPrediction:
-        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
+        images_predictions = [
+            image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video", disable=not show_progress_bar)
+        ]
         return VideoPoseEstimationPrediction(_images_prediction_lst=images_predictions, fps=fps)
 
 
@@ -435,17 +455,19 @@ class ClassificationPipeline(Pipeline):
         return ImageClassificationPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
-        self, images_predictions: Iterable[ImageClassificationPrediction], n_images: Optional[int] = None
+        self, images_predictions: Iterable[ImageClassificationPrediction], n_images: Optional[int] = None, show_progress_bar: bool = True
     ) -> ImagesClassificationPrediction:
-        if n_images is not None and n_images == 1:
+        if (n_images is not None and n_images == 1) or not show_progress_bar:
             # Do not show tqdm progress bar if there is only one image
             images_predictions = [next(iter(images_predictions))]
         else:
-            images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
+            images_predictions = [
+                image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images", disable=not show_progress_bar)
+            ]
 
         return ImagesClassificationPrediction(_images_prediction_lst=images_predictions)
 
     def _combine_image_prediction_to_video(
-        self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
+        self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None, show_progress_bar: bool = True
     ) -> ImagesClassificationPrediction:
         raise NotImplementedError("This feature is not available for Classification task")

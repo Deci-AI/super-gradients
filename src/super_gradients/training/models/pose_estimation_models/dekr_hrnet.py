@@ -608,7 +608,9 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
         )
         return pipeline
 
-    def predict(self, images: ImageSource, conf: Optional[float] = None, batch_size: int = 32, fuse_model: bool = True) -> ImagesPoseEstimationPrediction:
+    def predict(
+        self, images: ImageSource, conf: Optional[float] = None, batch_size: int = 32, fuse_model: bool = True, show_progress_bar: bool = True
+    ) -> ImagesPoseEstimationPrediction:
         """Predict an image or a list of images.
 
         :param images:  Images to predict.
@@ -616,9 +618,10 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
                         If None, the default value associated to the training is used.
         :param batch_size:  Maximum number of images to process at the same time.
         :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param show_progress_bar: If True, show a progress bar during prediction.
         """
         pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model)
-        return pipeline(images, batch_size=batch_size)  # type: ignore
+        return pipeline(images, batch_size=batch_size, show_progress_bar=show_progress_bar)  # type: ignore
 
     def predict_webcam(self, conf: Optional[float] = None, fuse_model: bool = True):
         """Predict using webcam.

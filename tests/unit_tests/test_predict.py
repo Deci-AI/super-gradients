@@ -74,6 +74,13 @@ class TestModelPredict(unittest.TestCase):
                     target_bboxes_format="xyxy",
                 )
 
+    def test_progress_bar(self):
+        model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
+
+        predictions = model.predict(self.images, show_progress_bar=False)
+
+        self.assertTrue(len(predictions) == len(self.images))
+
 
 if __name__ == "__main__":
     unittest.main()

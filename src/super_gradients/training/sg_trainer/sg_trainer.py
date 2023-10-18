@@ -1,6 +1,7 @@
 import copy
 import inspect
 import os
+import typing
 from copy import deepcopy
 from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
 
@@ -11,7 +12,7 @@ import torch.cuda
 import torch.nn
 import torchmetrics
 from omegaconf import DictConfig, OmegaConf
-from piptools.scripts.sync import _get_installed_distributions
+
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, SequentialSampler
@@ -40,6 +41,7 @@ from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
+from super_gradients.common.environment.package_utils import get_installed_packages
 
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import RepeatAugSampler
@@ -83,6 +85,7 @@ from super_gradients.training.utils.checkpoint_utils import (
     read_ckpt_state_dict,
     load_checkpoint_to_model,
     load_pretrained_weights,
+    get_scheduler_state,
 )
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import (
@@ -98,6 +101,8 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.common.environment.cfg_utils import load_experiment_cfg, add_params_to_cfg, load_recipe
 from super_gradients.common.factories.pre_launch_callbacks_factory import PreLaunchCallbacksFactory
 from super_gradients.training.params import TrainingParams
+from super_gradients.module_interfaces import ExportableObjectDetectionModel
+from super_gradients.conversion import ExportQuantizationMode
 
 logger = get_logger(__name__)
 
@@ -470,7 +475,9 @@ class Trainer:
                 if self.pre_prediction_callback is not None:
                     inputs, targets = self.pre_prediction_callback(inputs, targets, batch_idx)
 
-                context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
+                context.update_context(
+                    batch_idx=batch_idx, inputs=inputs, target=targets, additional_batch_items=additional_batch_items, **additional_batch_items
+                )
                 self.phase_callback_handler.on_train_batch_start(context)
 
                 # AUTOCAST IS ENABLED ONLY IF self.training_params.mixed_precision - IF enabled=False AUTOCAST HAS NO EFFECT
@@ -660,7 +667,7 @@ class Trainer:
             state["processing_params"] = processing_params
 
         if self._torch_lr_scheduler is not None:
-            state["torch_scheduler_state_dict"] = self._torch_lr_scheduler.state_dict()
+            state["torch_scheduler_state_dict"] = get_scheduler_state(self._torch_lr_scheduler)
 
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
@@ -773,27 +780,29 @@ class Trainer:
 
                 - `lr_updates` : list(int)
 
-                    List of fixed epoch numbers to perform learning rate updates when `lr_mode='step'`.
+                    List of fixed epoch numbers to perform learning rate updates when `lr_mode='StepLRScheduler'`.
 
                 - `lr_decay_factor` : float
 
-                    Decay factor to apply to the learning rate at each update when `lr_mode='step'`.
+                    Decay factor to apply to the learning rate at each update when `lr_mode='StepLRScheduler'`.
 
 
                 -  `lr_mode` : Union[str, Mapping],
 
                     When str:
 
-                    Learning rate scheduling policy, one of ['step','poly','cosine','function'].
+                    Learning rate scheduling policy, one of ['StepLRScheduler','PolyLRScheduler','CosineLRScheduler','FunctionLRScheduler'].
 
-                    'step' refers to constant updates at epoch numbers passed through `lr_updates`. Each update decays the learning rate by `lr_decay_factor`.
+                    'StepLRScheduler' refers to constant updates at epoch numbers passed through `lr_updates`.
+                        Each update decays the learning rate by `lr_decay_factor`.
 
-                    'cosine' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
+                    'CosineLRScheduler' refers to the Cosine Anealing policy as mentioned in https://arxiv.org/abs/1608.03983.
                       The final learning rate ratio is controlled by `cosine_final_lr_ratio` training parameter.
 
-                    'poly' refers to the polynomial decrease: in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
+                    'PolyLRScheduler' refers to the polynomial decrease:
+                        in each epoch iteration `self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)`
 
-                    'function' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
+                    'FunctionLRScheduler' refers to a user-defined learning rate scheduling function, that is passed through `lr_schedule_function`.
 
 
 
@@ -828,7 +837,7 @@ class Trainer:
 
                 - `lr_schedule_function` : Union[callable,None]
 
-                    Learning rate scheduling function to be used when `lr_mode` is 'function'.
+                    Learning rate scheduling function to be used when `lr_mode` is 'FunctionLRScheduler'.
 
                 - `warmup_mode`: Union[str, Type[LRCallbackBase], None]
 
@@ -851,7 +860,7 @@ class Trainer:
                     The capping is done to avoid interference of warmup with epoch-based schedulers.
 
                 - `cosine_final_lr_ratio` : float (default=0.01)
-                    Final learning rate ratio (only relevant when `lr_mode`='cosine'). The cosine starts from initial_lr and reaches
+                    Final learning rate ratio (only relevant when `lr_mode`='CosineLRScheduler'). The cosine starts from initial_lr and reaches
                      initial_lr * cosine_final_lr_ratio in last epoch
 
                 - `inital_lr` : float
@@ -863,13 +872,13 @@ class Trainer:
                     Loss function for training.
                     One of SuperGradient's built in options:
 
-                              "cross_entropy": LabelSmoothingCrossEntropyLoss,
-                              "mse": MSELoss,
-                              "r_squared_loss": RSquaredLoss,
-                              "detection_loss": YoLoV3DetectionLoss,
-                              "shelfnet_ohem_loss": ShelfNetOHEMLoss,
-                              "shelfnet_se_loss": ShelfNetSemanticEncodingLoss,
-                              "ssd_loss": SSDLoss,
+                        - CrossEntropyLoss,
+                        - MSELoss,
+                        - RSquaredLoss,
+                        - YoLoV3DetectionLoss,
+                        - ShelfNetOHEMLoss,
+                        - ShelfNetSemanticEncodingLoss,
+                        - SSDLoss,
 
 
                     or user defined nn.module loss function.
@@ -1178,11 +1187,7 @@ class Trainer:
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
 
-        # Allowing loading instantiated loss or string
-        if isinstance(self.training_params.loss, str):
-            self.criterion = LossesFactory().get({self.training_params.loss: self.training_params.criterion_params})
-
-        elif isinstance(self.training_params.loss, Mapping):
+        if isinstance(self.training_params.loss, Mapping) or isinstance(self.training_params.loss, str):
             self.criterion = LossesFactory().get(self.training_params.loss)
 
         elif isinstance(self.training_params.loss, nn.Module):
@@ -1240,6 +1245,10 @@ class Trainer:
         warmup_mode = self.training_params.warmup_mode
         warmup_callback_cls = None
         if isinstance(warmup_mode, str):
+            from super_gradients.common.registry.registry import warn_if_deprecated
+
+            warn_if_deprecated(warmup_mode, LR_WARMUP_CLS_DICT)
+
             warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
         elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
             warmup_callback_cls = warmup_mode
@@ -1869,8 +1878,7 @@ class Trainer:
         }
         # ADD INSTALLED PACKAGE LIST + THEIR VERSIONS
         if self.training_params.log_installed_packages:
-            pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
-            additional_log_items["installed_packages"] = pkg_list
+            additional_log_items["installed_packages"] = get_installed_packages()
 
         dataset_params = {
             "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
@@ -2088,7 +2096,9 @@ class Trainer:
                     inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
                     # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
-                    context.update_context(batch_idx=batch_idx, inputs=inputs, target=targets, **additional_batch_items)
+                    context.update_context(
+                        batch_idx=batch_idx, inputs=inputs, target=targets, additional_batch_items=additional_batch_items, **additional_batch_items
+                    )
                     if evaluation_type == EvaluationType.VALIDATION:
                         self.phase_callback_handler.on_validation_batch_start(context)
                     else:
@@ -2512,9 +2522,26 @@ class Trainer:
         :return: Validation results of the calibrated model.
         """
 
+        logger.debug("Performing post-training quantization (PTQ)...")
+        logger.debug(f"Experiment name {self.experiment_name}")
+
+        run_id = core_utils.get_param(self.training_params, "run_id", None)
+        logger.debug(f"Experiment run id {run_id}")
+
+        self.checkpoints_dir_path = get_checkpoints_dir_path(ckpt_root_dir=self.ckpt_root_dir, experiment_name=self.experiment_name, run_id=run_id)
+        logger.debug(f"Checkpoints directory {self.checkpoints_dir_path}")
+
+        os.makedirs(self.checkpoints_dir_path, exist_ok=True)
+
+        from super_gradients.training.utils.quantization.fix_pytorch_quantization_modules import patch_pytorch_quantization_modules_if_needed
+
+        patch_pytorch_quantization_modules_if_needed()
+
         if quantization_params is None:
             quantization_params = load_recipe("quantization_params/default_quantization_params").quantization_params
             logger.info(f"Using default quantization params: {quantization_params}")
+
+        model = unwrap_model(model)  # Unwrap model in case it is wrapped with DataParallel or DistributedDataParallel
 
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
         calib_params = get_param(quantization_params, "calib_params")
@@ -2553,17 +2580,31 @@ class Trainer:
         logger.info("\n".join(results))
 
         input_shape = next(iter(valid_loader))[0].shape
-        os.makedirs(self.checkpoints_dir_path, exist_ok=True)
-        qdq_onnx_path = os.path.join(self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape))}_ptq.onnx")
-
-        # TODO: modify SG's convert_to_onnx for quantized models and use it instead
-        export_quantized_module_to_onnx(
-            model=model.cpu(),
-            onnx_filename=qdq_onnx_path,
-            input_shape=input_shape,
-            input_size=input_shape,
-            train=False,
-            deepcopy_model=deepcopy_model_for_export,
+        input_shape_with_batch_size_one = tuple([1] + list(input_shape[1:]))
+        qdq_onnx_path = os.path.join(
+            self.checkpoints_dir_path, f"{self.experiment_name}_{'x'.join((str(x) for x in input_shape_with_batch_size_one))}_ptq.onnx"
         )
+        logger.debug(f"Output ONNX file path {qdq_onnx_path}")
+
+        if isinstance(model, ExportableObjectDetectionModel):
+            model: ExportableObjectDetectionModel = typing.cast(ExportableObjectDetectionModel, model)
+            export_result = model.export(
+                output=qdq_onnx_path,
+                quantization_mode=ExportQuantizationMode.INT8,
+                input_image_shape=(input_shape_with_batch_size_one[2], input_shape_with_batch_size_one[3]),
+                preprocessing=False,
+                postprocessing=True,
+            )
+            logger.info(repr(export_result))
+        else:
+            # TODO: modify SG's convert_to_onnx for quantized models and use it instead
+            export_quantized_module_to_onnx(
+                model=model.cpu(),
+                onnx_filename=qdq_onnx_path,
+                input_shape=input_shape_with_batch_size_one,
+                input_size=input_shape_with_batch_size_one,
+                train=False,
+                deepcopy_model=deepcopy_model_for_export,
+            )
 
         return valid_metrics_dict
