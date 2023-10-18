@@ -65,10 +65,6 @@ class PoseNMSAndReturnAsBatchedResult(nn.Module):
 
         predictions = torch.cat([batch_indexes.unsqueeze(1), selected_boxes, selected_scores.unsqueeze(1), selected_poses.flatten(1)], dim=1)
 
-        predictions = torch.nn.functional.pad(
-            predictions, (0, 0, 0, self.max_predictions_per_image * self.batch_size - predictions.size(0)), value=-1, mode="constant"
-        )
-
         batch_predictions = torch.zeros(
             (self.batch_size, self.max_predictions_per_image, 4 + 1 + selected_poses.size(1) * selected_poses.size(2)),
             dtype=predictions.dtype,
@@ -79,10 +75,13 @@ class PoseNMSAndReturnAsBatchedResult(nn.Module):
         masks = batch_indexes.view(-1, 1).eq(predictions[:, 0].view(1, -1))  # [B, N]
 
         num_predictions = torch.sum(masks, dim=1).long()
+        num_predictions_capped = torch.clamp_max(num_predictions, self.max_predictions_per_image)
 
         for i in range(self.batch_size):
             selected_predictions = predictions[masks[i]]
-            selected_predictions = selected_predictions[:, 1:]
+            # Selected predictions are sorted by score, so we can just take the top N predictions
+            selected_predictions = selected_predictions[: self.max_predictions_per_image, 1:]
+
             batch_predictions[i] = torch.nn.functional.pad(
                 selected_predictions, (0, 0, 0, self.max_predictions_per_image - selected_predictions.size(0)), value=0, mode="constant"
             )
@@ -91,7 +90,7 @@ class PoseNMSAndReturnAsBatchedResult(nn.Module):
         pred_scores = batch_predictions[:, :, 4]
         pred_joints = batch_predictions[:, :, 5:].reshape(self.batch_size, self.max_predictions_per_image, -1, 3)
 
-        return num_predictions.unsqueeze(1), pred_boxes, pred_scores, pred_joints
+        return num_predictions_capped.unsqueeze(1), pred_boxes, pred_scores, pred_joints
 
     @classmethod
     def as_graph(cls, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int, dtype: torch.dtype, device: torch.device) -> gs.Graph:
@@ -165,17 +164,17 @@ class PoseNMSAndReturnAsFlatResult(nn.Module):
         self.num_pre_nms_predictions = num_pre_nms_predictions
         self.max_predictions_per_image = max_predictions_per_image
 
-    def forward(self, pred_boxes: Tensor, pred_scores: Tensor, pred_joints: Tensor, selected_indexes: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, pred_boxes: Tensor, pred_scores: Tensor, pred_joints: Tensor, selected_indexes: Tensor) -> Tensor:
         """
         Select the predictions that are output by the NMS plugin.
 
-        :param pred_boxes: [B, N, 4] tensor, float32
-        :param pred_scores: [B, N, 1] tensor, float32
-        :param pred_joints: [B, N, Num Joints, 3] tensor, float32
+        :param pred_boxes:       [B, N, 4] tensor, float32
+        :param pred_scores:      [B, N, 1] tensor, float32
+        :param pred_joints:      [B, N, Num Joints, 3] tensor, float32
         :param selected_indexes: [num_selected_indices, 3], int64 - each row is [batch_indexes, label_indexes, boxes_indexes]
 
-        :return: A single tensor of [Nout, 7] shape, where Nout is the total number of detections across all images in the batch.
-        Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
+        :return:                 A single tensor of [Nout, 7] shape, where Nout is the total number of detections across all images in the batch.
+                                 Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
 
         """
         batch_indexes, label_indexes, boxes_indexes = selected_indexes[:, 0], selected_indexes[:, 1], selected_indexes[:, 2]
@@ -183,13 +182,36 @@ class PoseNMSAndReturnAsFlatResult(nn.Module):
         selected_boxes = pred_boxes[batch_indexes, boxes_indexes]  # [num_detections, 4]
         selected_scores = pred_scores[batch_indexes, boxes_indexes, label_indexes].unsqueeze(1)  # [num_detections, 1]
         selected_poses = pred_joints[batch_indexes, boxes_indexes].flatten(start_dim=1)  # [num_detections, (Num Joints * 3)]
+        dtype = selected_scores.dtype
+
+        if self.batch_size > 1:
+            # Calculate cumulative count of selected predictions for each batch index
+            # This will give us a tensor of shape [num_selected_indices] where the value at each position
+            # represents the number of predictions for the corresponding batch index up to that position.
+            cumulative_masks = batch_indexes.view(-1, 1) == torch.arange(self.batch_size, device=batch_indexes.device).view(1, -1)
+            cumulative_counts = cumulative_masks.float().cumsum(dim=0)
+
+            # Create a mask to ensure we only keep max_predictions_per_image detections per image
+            mask = ((cumulative_counts <= self.max_predictions_per_image) * cumulative_masks).any(dim=1)
+
+            # Select the boxes, scores and labels using the mask
+            final_boxes = selected_boxes[mask]
+            final_scores = selected_scores[mask]
+            final_poses = selected_poses[mask]
+            final_batch_indexes = batch_indexes[mask].unsqueeze(-1)
+
+        else:
+            final_boxes = selected_boxes[: self.max_predictions_per_image]
+            final_scores = selected_scores[: self.max_predictions_per_image]
+            final_poses = selected_poses[: self.max_predictions_per_image]
+            final_batch_indexes = batch_indexes[: self.max_predictions_per_image].unsqueeze(-1)
 
         return torch.cat(
             [
-                batch_indexes.unsqueeze(1).to(selected_boxes.dtype),
-                selected_boxes,
-                selected_scores,
-                selected_poses,
+                final_batch_indexes.to(dtype),
+                final_boxes,
+                final_scores,
+                final_poses,
             ],
             dim=1,
         )
