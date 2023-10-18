@@ -12,7 +12,7 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
     def __init__(self, score_threshold: float, nms_threshold: float, nms_top_k: int, max_predictions: int, multi_label_per_box: bool = True):
         """
         :param score_threshold: Predictions confidence threshold. Predictions with score lower than score_threshold will not participate in Top-K & NMS
-        :param iou: IoU threshold for NMS step.
+        :param nms_threshold: IoU threshold for NMS step.
         :param nms_top_k: Number of predictions participating in NMS step
         :param max_predictions: maximum number of boxes to return after NMS step
         :param multi_label_per_box: controls whether to decode multiple labels per box.
