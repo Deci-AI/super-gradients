@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import Callable, Optional, TYPE_CHECKING
 
 from torch import nn
@@ -69,3 +70,29 @@ class SupportsReplaceNumClasses:
         :return: None
         """
         raise NotImplementedError(f"replace_num_classes is not implemented in the derived class {self.__class__.__name__}")
+
+
+class SupportsReplaceInChannels(ABC):
+    """
+    Protocol interface for modules that support replacing the number of input channels.
+    Derived classes should implement the `replace_in_channels` method.
+
+    This interface class serves the purpose of explicitly indicating whether a class supports optimized input channel replacement:
+
+    >>> class InputLayer(nn_Module, SupportsReplaceInChannels):
+    >>>    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Callable[[nn.Module, int], nn.Module] = None):
+    >>>       ...
+
+    """
+
+    # @abstractmethod
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]]):
+        """
+        Replace the number of input channels in the module.
+
+        :param in_channels:             New number of input channels.
+        :param compute_new_weights_fn:  An optional function that computes the new weights for the new input channels.
+                                        It takes the existing nn_Module and returns a new one.
+        :return: None
+        """
+        raise NotImplementedError(f"`replace_in_channels` is not implemented in the derived class `{self.__class__.__name__}`")

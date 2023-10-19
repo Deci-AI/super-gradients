@@ -470,6 +470,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         self.in_channels = 3
 
         self.num_classes = self.arch_params.num_classes
+
         # THE MODEL'S MODULES
         self._backbone = backbone(arch_params=self.arch_params)
         if hasattr(self._backbone, "backbone_connection_channels"):

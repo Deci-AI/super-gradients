@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import Union, List, Optional, Callable
 
 import torch
 from omegaconf import DictConfig
@@ -11,6 +11,8 @@ from super_gradients.training.models import MobileNet, MobileNetV2
 from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
 from super_gradients.training.utils.utils import HpmStruct
 from torch import nn
+from super_gradients.module_interfaces import SupportsReplaceInChannels
+
 
 __all__ = [
     "PANNeck",
@@ -28,7 +30,7 @@ __all__ = [
 
 
 @register_detection_module()
-class NStageBackbone(BaseDetectionModule):
+class NStageBackbone(BaseDetectionModule, SupportsReplaceInChannels):
     """
     A backbone with a stem -> N stages -> context module
     Returns outputs of the layers listed in out_layers
@@ -61,6 +63,19 @@ class NStageBackbone(BaseDetectionModule):
 
         self.out_layers = out_layers
         self._out_channels = self._define_out_channels()
+
+    # def replace_in_channels(self, in_channels: int):
+    #     import super_gradients.common.factories.detection_modules_factory as det_factory
+    #
+    #     factory = det_factory.DetectionModulesFactory()
+    #
+    #     self.in_channels = in_channels
+    #     if isinstance(self.backbone, SupportsReplaceInChannels):
+    #         self.backbone.replace_in_channels(self.in_channels, replace_in_channels_with_random_weights)
+    #     else:
+    #         self.heads_params = factory.insert_module_param(self.heads_params, "in_channels", self.in_channels)
+    #         self.backbone = factory.get(self.backbone_params)
+    #         self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)  # TODO: check if this is needed
 
     def _define_out_channels(self):
         out_channels = []
@@ -176,14 +191,15 @@ class NHeads(BaseDetectionModule):
         return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
 
 
-class MultiOutputBackbone(BaseDetectionModule):
+class MultiOutputBackbone(BaseDetectionModule, SupportsReplaceInChannels):
     """
     Defines a backbone using MultiOutputModule with the interface of BaseDetectionModule
     """
 
     def __init__(self, in_channels: int, backbone: nn.Module, out_layers: List):
         super().__init__(in_channels)
-        self.multi_output_backbone = MultiOutputModule(backbone, out_layers)
+        self.in_channels = in_channels
+        self.multi_output_backbone = MultiOutputModule(module=backbone, output_paths=out_layers)
         self._out_channels = [x.shape[1] for x in self.forward(torch.empty((1, in_channels, 64, 64)))]
 
     @property
@@ -192,6 +208,10 @@ class MultiOutputBackbone(BaseDetectionModule):
 
     def forward(self, x):
         return self.multi_output_backbone(x)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        self.self.multi_output_backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 @register_detection_module()

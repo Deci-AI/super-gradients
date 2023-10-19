@@ -14,8 +14,9 @@ from omegaconf import DictConfig
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
-from super_gradients.module_interfaces import SupportsReplaceNumClasses, HasPredict
+from super_gradients.module_interfaces import SupportsReplaceNumClasses, SupportsReplaceInChannels, HasPredict
 from super_gradients.modules.head_replacement_utils import replace_num_classes_with_random_weights
+from super_gradients.modules.backbone_replacement_utils import replace_in_channels_with_random_weights
 from super_gradients.training.utils.utils import HpmStruct, arch_params_deprecated
 from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
@@ -58,6 +59,7 @@ class CustomizableDetector(HasPredict, SgModule):
         super().__init__()
 
         self.heads_params = heads
+        self.backbone_params = backbone
         self.bn_eps = bn_eps
         self.bn_momentum = bn_momentum
         self.inplace_act = inplace_act
@@ -68,7 +70,7 @@ class CustomizableDetector(HasPredict, SgModule):
         if num_classes is not None:
             self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", num_classes)
 
-        self.backbone = factory.get(factory.insert_module_param(backbone, "in_channels", in_channels))
+        self.backbone = factory.get(factory.insert_module_param(self.backbone_params, "in_channels", 5))
         if neck is not None:
             self.neck = factory.get(factory.insert_module_param(neck, "in_channels", self.backbone.out_channels))
             self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.neck.out_channels))
@@ -115,6 +117,16 @@ class CustomizableDetector(HasPredict, SgModule):
             self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", new_num_classes)
             self.heads = factory.get(factory.insert_module_param(self.heads_params, "in_channels", self.neck.out_channels))
             self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)
+
+    def replace_in_channels(self, in_channels: int):
+        factory = det_factory.DetectionModulesFactory()
+        self.in_channels = in_channels
+        if isinstance(self.backbone, SupportsReplaceInChannels):
+            self.backbone.replace_in_channels(self.in_channels, replace_in_channels_with_random_weights)
+        else:
+            self.heads_params = factory.insert_module_param(self.heads_params, "in_channels", self.in_channels)
+            self.backbone = factory.get(self.backbone_params)
+            self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)  # TODO: check if this is needed
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:

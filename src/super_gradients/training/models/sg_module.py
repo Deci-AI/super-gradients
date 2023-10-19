@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional, Callable
 
 from torch import nn
 
@@ -61,4 +61,7 @@ class SgModule(nn.Module):
         class to implement.
         """
 
+        raise NotImplementedError
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         raise NotImplementedError

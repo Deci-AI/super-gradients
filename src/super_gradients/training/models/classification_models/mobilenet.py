@@ -3,9 +3,11 @@
 See the paper "MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications"
 for more details.
 """
+from typing import Optional, Callable
 import torch.nn as nn
 import torch.nn.functional as F
 from super_gradients.training.models import BaseClassifier
+from super_gradients.module_interfaces import SupportsReplaceInChannels
 
 
 class Block(nn.Module):
@@ -24,14 +26,16 @@ class Block(nn.Module):
         return out
 
 
-class MobileNet(BaseClassifier):
+class MobileNet(BaseClassifier, SupportsReplaceInChannels):
     # (128,2) means conv planes=128, conv stride=2, by default conv stride=1
     cfg = [64, 128, (128, 2), 256, (256, 2), 512, 512, 512, 512, 512, (512, 2), 1024, (1024, 2)]
 
     def __init__(self, num_classes=10, backbone_mode=False, up_to_layer=None, in_channels: int = 3):
         super(MobileNet, self).__init__()
         self.backbone_mode = backbone_mode
-        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1, bias=False)
+        self.in_channels = in_channels
+
+        self.conv1 = nn.Conv2d(self.in_channels, 32, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(32)
         self.layers = self._make_layers(in_planes=32, up_to_layer=up_to_layer if up_to_layer is not None else len(self.cfg))
 
@@ -60,3 +64,11 @@ class MobileNet(BaseClassifier):
             out = self.linear(out)
 
         return out
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.backbone_replacement_utils import replace_in_channels_with_random_weights
+
+        compute_new_weights_fn = compute_new_weights_fn or replace_in_channels_with_random_weights
+
+        self.in_channels = in_channels
+        self.conv1 = compute_new_weights_fn(module=self.conv1, in_channels=self.in_channels)

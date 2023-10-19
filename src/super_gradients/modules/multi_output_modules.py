@@ -1,9 +1,12 @@
 from collections import OrderedDict
+from typing import Optional, Callable
 from torch import nn
 from omegaconf.listconfig import ListConfig
 
+from super_gradients.module_interfaces import SupportsReplaceInChannels
 
-class MultiOutputModule(nn.Module):
+
+class MultiOutputModule(nn.Module, SupportsReplaceInChannels):
     """
     This module wraps around a container nn.Module (such as Module, Sequential and ModuleList) and allows to extract
     multiple output from its inner modules on each forward call() (as a list of output tensors)
@@ -99,3 +102,7 @@ class MultiOutputModule(nn.Module):
     def _slice_odict(self, odict: OrderedDict, start: int, end: int):
         """Slice an OrderedDict in the same logic list,tuple... are sliced"""
         return OrderedDict([(k, v) for (k, v) in odict.items() if k in list(odict.keys())[start:end]])
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        if isinstance(self._modules["0"], SupportsReplaceInChannels):
+            self.self.multi_output_backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)

@@ -20,7 +20,7 @@ Modifications by / Copyright 2021 Ross Wightman, original copyrights below
 # --------------------------------------------------------'
 import math
 from functools import partial
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Callable
 
 import torch
 import torch.nn as nn
@@ -322,7 +322,10 @@ class Beit(BaseClassifier):
         self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
         self.grad_checkpointing = False
 
-        self.patch_embed = PatchEmbed(img_size=image_size, patch_size=patch_size, in_channels=in_chans, hidden_dim=embed_dim)
+        self.image_size = image_size
+        self.patch_size = patch_size
+        self.in_channels = in_chans
+        self.patch_embed = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=self.in_channels, hidden_dim=self.embed_dim)
         num_patches = self.patch_embed.num_patches
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
@@ -452,6 +455,10 @@ class Beit(BaseClassifier):
             self.head = new_head
         else:
             self.head = nn.Linear(self.head.in_features, new_num_classes)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        self.patch_embed = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=self.in_channels, hidden_dim=self.embed_dim)
 
 
 @register_model(Models.BEIT_BASE_PATCH16_224)
