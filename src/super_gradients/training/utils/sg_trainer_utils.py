@@ -459,6 +459,7 @@ def log_main_training_params(
 
     iterations_per_epoch = int(train_dataloader_len) if max_train_batches is None else max_train_batches
     gradients_updates_per_epoch = int(iterations_per_epoch / batch_accumulate)
+    what_used_str = "len(train_loader)" if max_train_batches is None else "max_train_batches"
 
     msg = (
         "TRAINING PARAMETERS:\n"
@@ -469,8 +470,8 @@ def log_main_training_params(
         f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n"
         f"    - Total batch size:             {num_gpus * batch_size:<10} (num_gpus * batch_size)\n"
         f"    - Effective Batch size:         {num_gpus * batch_size * batch_accumulate:<10} (num_gpus * batch_size * batch_accumulate)\n"
-        f"    - Iterations per epoch:         {iterations_per_epoch:<10} (len(train_loader) OR max_train_batches)\n"
-        f"    - Gradient updates per epoch:   {gradients_updates_per_epoch:<10} (len(train_loader) OR max_train_batches / batch_accumulate)\n"
+        f"    - Iterations per epoch:         {iterations_per_epoch:<10} ({what_used_str})\n"
+        f"    - Gradient updates per epoch:   {gradients_updates_per_epoch:<10} ({what_used_str} / batch_accumulate)\n"
     )
 
     logger.info(msg)
