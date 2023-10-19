@@ -277,6 +277,7 @@ class CustomAnyNet(AnyNetX):
 class NASRegNet(RegNetX):
     def __init__(self, arch_params):
         """All parameters are provided as a single structure list: arch_params.structure"""
+        # FIXME: `arch_params.structure` is not set by default. This model cannot be loaded.
         structure = arch_params.structure
         super().__init__(
             initial_width=structure[0],

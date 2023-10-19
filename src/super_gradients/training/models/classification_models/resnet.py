@@ -342,9 +342,14 @@ class CustomizedResnet(ResNet):
 @register_model(Models.CUSTOM_RESNET50)
 class CustomizedResnet50(ResNet):
     def __init__(self, arch_params, num_classes=None):
+
+        # Fixme: decide what to do with this, with this quick fix `model.get` would still fail, just be more explicit...
+        if get_param(arch_params, "structure") is None:
+            raise ValueError(f"`arch_params.structure` is required to build {self.__class__.__name__}.")
+
         super().__init__(
-            Bottleneck,
-            arch_params.structure,
+            block=Bottleneck,
+            num_blocks=arch_params.structure,
             width_mult=arch_params.width_mult,
             num_classes=num_classes or arch_params.num_classes,
             droppath_prob=get_param(arch_params, "droppath_prob", 0),

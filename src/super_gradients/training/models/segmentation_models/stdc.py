@@ -246,6 +246,7 @@ class STDCClassificationBase(SgModule):
 
 @register_model(Models.STDC_CUSTOM_CLS)
 class STDCClassification(STDCClassificationBase):
+    # TODO: Here backbone can be None... but expected type is STDCBackbone. get_param cannot handle this anyway because there is no factory...
     def __init__(self, arch_params: HpmStruct):
         super().__init__(
             backbone=get_param(arch_params, "backbone"), num_classes=get_param(arch_params, "num_classes"), dropout=get_param(arch_params, "dropout", 0.2)
@@ -592,7 +593,7 @@ class CustomSTDCSegmentation(STDCSegmentationBase):
 
     def __init__(self, arch_params: HpmStruct):
         super().__init__(
-            backbone=get_param(arch_params, "backbone"),
+            backbone=get_param(arch_params, "backbone"),  # FIXME: how to handle arch_params=None? It is NOT suppported by base class,
             num_classes=get_param(arch_params, "num_classes"),
             context_fuse_channels=get_param(arch_params, "context_fuse_channels", 128),
             ffm_channels=get_param(arch_params, "ffm_channels", 256),

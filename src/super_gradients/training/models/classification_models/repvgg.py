@@ -138,7 +138,7 @@ class RepVggCustom(RepVGG):
             struct=arch_params.struct,
             num_classes=arch_params.num_classes,
             width_multiplier=arch_params.width_multiplier,
-            build_residual_branches=arch_params.build_residual_branches,
+            build_residual_branches=get_param(arch_params, "build_residual_branches", True),
             use_se=get_param(arch_params, "use_se", False),
             backbone_mode=get_param(arch_params, "backbone_mode", False),
             in_channels=get_param(arch_params, "in_channels", 3),
