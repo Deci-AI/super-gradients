@@ -191,7 +191,7 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
             num_detections_per_image = torch.clamp_max(num_detections_per_image, self.max_predictions_per_image)  # [N, B]
 
             # Create a mask to ensure we only keep max_predictions_per_image detections per image
-            mask = ((cumulative_counts <= num_detections_per_image) & detections_in_images_mask).any(dim=1)
+            mask = ((cumulative_counts <= num_detections_per_image) & detections_in_images_mask).any(dim=1, keepdim=False)  # [N]
 
             if self.use_boolean_gather:
                 final_results = flat_results[mask]
