@@ -475,7 +475,7 @@ class Trainer:
             context.update_context(loss_avg_meter=loss_avg_meter, metrics_compute_fn=self.train_metrics)
 
             for batch_idx, batch_items in enumerate(progress_bar_train_loader):
-                if self.max_train_batches is not None and self.max_train_batches <= batch_idx:
+                if expected_iterations <= batch_idx:
                     break
 
                 batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
@@ -2110,7 +2110,7 @@ class Trainer:
                 progress_bar_data_loader.set_description(pbar_start_msg)
             with torch.no_grad():
                 for batch_idx, batch_items in enumerate(progress_bar_data_loader):
-                    if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches <= batch_idx:
+                    if evaluation_type == EvaluationType.VALIDATION and expected_iterations <= batch_idx:
                         break
 
                     batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
