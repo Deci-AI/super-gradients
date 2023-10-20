@@ -81,21 +81,20 @@ class PoseNMSAndReturnAsBatchedResult(nn.Module):
         # pre_nms_vs_predictions_mask contains True if the corresponding detection index is equal to the corresponding pre_nms index
         pre_nms_vs_predictions_mask = pre_nms_indexes.view(-1, 1) == boxes_indexes.view(1, -1)  # [N, L]
 
-        image_indexes = torch.arange(start=0, end=self.batch_size, step=1, device=pred_boxes.device).to(dtype=pred_boxes.dtype)
+        image_indexes = torch.arange(start=0, end=self.batch_size, step=1, device=pred_boxes.device)
         batch_indexes_mask = image_indexes.view(-1, 1).eq(batch_indexes.view(1, -1))  # [B, L]
 
         final_mask = batch_indexes_mask.unsqueeze(1) & pre_nms_vs_predictions_mask.unsqueeze(0)  # [B, N, L]
         final_mask = final_mask.any(dim=2, keepdims=False)  # [B, N]
 
-        scores_for_topk = pred_scores[:, :, 0] * final_mask  # [B, N]
+        pred_scores = pred_scores[:, :, 0]  # # [B, N]
+        scores_for_topk = pred_scores * final_mask  # [B, N]
 
         order = torch.topk(scores_for_topk, dim=1, k=self.max_predictions_per_image, largest=True, sorted=True)
 
-        final_boxes = torch.gather(pred_boxes, dim=1, index=order.indices.unsqueeze(-1).expand(-1, -1, 4))  # [B, N, 4]
-        final_scores = torch.gather(pred_scores[:, :, 0], dim=1, index=order.indices)  # [B, N]
-        final_poses = torch.gather(
-            pred_joints, dim=1, index=order.indices.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, pred_joints.size(2), pred_joints.size(3))
-        )  # [B, N, Num Joints, 3]
+        final_boxes = pred_boxes[image_indexes[:, None], order.indices]  # [B, N, 4]
+        final_scores = pred_scores[image_indexes[:, None], order.indices]  # [B, N]
+        final_poses = pred_joints[image_indexes[:, None], order.indices]  # [B, N, Num Joints, 3]
 
         # Count number of predictions for each image in batch
         num_predictions = torch.sum(batch_indexes_mask.float(), dim=1, keepdim=True).long()  # [B, 1]
@@ -125,6 +124,7 @@ class PoseNMSAndReturnAsBatchedResult(nn.Module):
                                           max_predictions_per_image predictions are left, the rest of the predictions will be padded with 0.
         :param dtype:                     The target dtype for the graph. If user asked for FP16 model we should create underlying graph with FP16 tensors.
         :param device:                    The target device for exporting graph.
+        :param onnx_export_kwargs: (dict) Optional keyword arguments for torch.onnx.export() function.
         :return:                          An instance of GraphSurgeon graph that can be attached to the main model.
         """
         if onnx_export_kwargs is None:
@@ -250,6 +250,7 @@ class PoseNMSAndReturnAsFlatResult(nn.Module):
         :param max_predictions_per_image: Not used, exists for compatibility with PoseNMSAndReturnAsBatchedResult
         :param dtype:                     The target dtype for the graph. If user asked for FP16 model we should create underlying graph with FP16 tensors.
         :param device:                    The target device for exporting graph.
+        :param onnx_export_kwargs: (dict) Optional keyword arguments for torch.onnx.export() function.
         :return:                          An instance of GraphSurgeon graph that can be attached to the main model.
         """
         if onnx_export_kwargs is None:
