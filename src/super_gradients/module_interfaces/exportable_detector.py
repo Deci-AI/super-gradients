@@ -529,6 +529,7 @@ class ExportableObjectDetectionModel:
                         batch_size=batch_size,
                         output_predictions_format=output_predictions_format,
                         device=device,
+                        onnx_export_kwargs=onnx_export_kwargs,
                     )
 
                 if onnx_simplify:

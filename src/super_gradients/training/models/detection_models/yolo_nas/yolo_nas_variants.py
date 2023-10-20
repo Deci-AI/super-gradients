@@ -68,6 +68,24 @@ class YoloNASDecodingModule(AbstractObjectDetectionDecodingModule):
 
 
 class YoloNAS(ExportableObjectDetectionModel, CustomizableDetector):
+    """
+
+    Export to ONNX/TRT Support matrix
+    ONNX files generated with PyTorch 2.0.1 for ONNX opset_version=14
+
+    | Batch Size | Export Engine | Format | OnnxRuntime 1.13.1 | TensorRT 8.4.2 | TensorRT 8.5.3 |
+    |------------|---------------|--------|--------------------|----------------|----------------|
+    | 1          | ONNX          | Flat   | Yes                | Yes            | Yes            |
+    | >1         | ONNX          | Flat   | Yes                | No             | Yes            |
+    | 1          | ONNX          | Batch  | Yes                | No             | Yes            |
+    | >1         | ONNX          | Batch  | Yes                | No             | No             |
+    | 1          | TensorRT      | Flat   | No                 | No             | Yes            |
+    | >1         | TensorRT      | Flat   | No                 | No             | Yes            |
+    | 1          | TensorRT      | Batch  | No                 | Yes            | Yes            |
+    | >1         | TensorRT      | Batch  | No                 | Yes            | Yes            |
+
+    """
+
     def __init__(
         self,
         backbone: Union[str, dict, HpmStruct, DictConfig],

@@ -1,5 +1,6 @@
 import os
 import tempfile
+from typing import Optional, Mapping
 
 import numpy as np
 import onnx
@@ -10,7 +11,8 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
 from super_gradients.conversion.conversion_utils import numpy_dtype_to_torch_dtype
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
-from super_gradients.conversion.onnx.utils import append_graphs
+from super_gradients.conversion.indexing_tricks import gather_with_float_mask
+from super_gradients.conversion.onnx.utils import append_graphs, iteratively_infer_shapes
 
 logger = get_logger(__name__)
 
@@ -18,23 +20,35 @@ gs = import_onnx_graphsurgeon_or_fail_with_instructions()
 
 
 class ConvertTRTFormatToFlatTensor(nn.Module):
-    __constants__ = ["batch_size", "max_predictions_per_image"]
+    __constants__ = ["batch_size", "max_predictions_per_image", "use_boolean_gather"]
 
-    def __init__(self, batch_size: int, max_predictions_per_image: int):
+    def __init__(self, batch_size: int, max_predictions_per_image: int, use_boolean_gather: bool = True):
+        """
+        Convert the predictions from TensorRT format to flat tensor format.
+
+        :param batch_size:                A fixed batch size for the model
+        :param max_predictions_per_image: Maximum number of predictions per image
+        :param use_boolean_gather:        If True, allow using `data[mask]` construction where `mask` is a boolean mask.
+                                          TensorRT 8.5.3 supports this, but TensorRT 8.4.2 does not.
+                                          If False, will use `gather_with_float_mask` as a workaround for TensorRT 8.4.2.
+                                          It costs a bit more performance, but it is compatible with both versions.
+        """
         super().__init__()
         self.batch_size = batch_size
         self.max_predictions_per_image = max_predictions_per_image
+        self.use_boolean_gather = use_boolean_gather
 
     def forward(self, num_predictions: Tensor, pred_boxes: Tensor, pred_scores: Tensor, pred_classes: Tensor) -> Tensor:
         """
-        Convert the predictions from "batch" format to "flat" tensor.
+        Convert the predictions from "batch" format to "flat" format.
+
         :param num_predictions: [B,1] The number of predictions for each image in the batch.
-        :param pred_boxes: [B, max_predictions_per_image, 4] The predicted bounding boxes for each image in the batch.
-        :param pred_scores: [B, max_predictions_per_image] The predicted scores for each image in the batch.
-        :param pred_classes: [B, max_predictions_per_image] The predicted classes for each image in the batch.
-        :return: Tensor of shape [N, 7] The predictions in flat tensor format.
-            N is the total number of predictions in the entire batch.
-            Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
+        :param pred_boxes:      [B, max_predictions_per_image, 4] The predicted bounding boxes for each image in the batch.
+        :param pred_scores:     [B, max_predictions_per_image] The predicted scores for each image in the batch.
+        :param pred_classes:    [B, max_predictions_per_image] The predicted classes for each image in the batch.
+        :return:                Tensor of shape [N, 7] The predictions in flat tensor format.
+                                N is the total number of predictions in the entire batch.
+                                Each row will contain [image_index, x1, y1, x2, y2, class confidence, class index] values.
 
         """
         batch_indexes = (
@@ -57,14 +71,36 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
         )  # [B, max_predictions_per_image, 8]
 
         num_predictions = num_predictions.repeat(1, self.max_predictions_per_image)  # [B, max_predictions_per_image]
+        mask: Tensor = (flat_predictions[:, :, 0] < num_predictions) & (flat_predictions[:, :, 1] == batch_indexes)  # [B, max_predictions_per_image]
 
-        mask = (flat_predictions[:, :, 0] < num_predictions) & (flat_predictions[:, :, 1] == batch_indexes)  # [B, max_predictions_per_image]
+        if self.use_boolean_gather:
+            # TensorRT 8.5.3 Compatible
+            flat_predictions = flat_predictions[mask]
+            flat_predictions = flat_predictions[:, 1:8]  # [N, 7]
 
-        flat_predictions = flat_predictions[mask]  # [N, 7]
-        return flat_predictions[:, 1:]
+        else:
+            # TensorRT 8.4.2 Compatible
+            flat_predictions = flat_predictions.reshape(-1, flat_predictions.shape[-1])  # [B x max_predictions_per_image, 8]
+
+            # This is a trick to sort flat predictions by confidence (desc) and by image index (asc), while keeping the padding values at the end
+            # It expects that predictions are in [0..1] range
+            flat_mask_with_scores = mask.reshape(-1).float() * (
+                flat_predictions[:, 6].float() + (self.batch_size - batch_indexes.reshape(-1).float())
+            )  # [B x max_predictions_per_image]
+
+            flat_predictions = gather_with_float_mask(
+                flat_predictions[:, 1:8], flat_mask_with_scores, self.max_predictions_per_image * self.batch_size
+            )  # [N, 7]
+
+        return flat_predictions
 
     @classmethod
-    def as_graph(cls, batch_size: int, max_predictions_per_image: int, dtype: torch.dtype, device: torch.device) -> gs.Graph:
+    def as_graph(
+        cls, batch_size: int, max_predictions_per_image: int, dtype: torch.dtype, device: torch.device, onnx_export_kwargs: Optional[Mapping] = None
+    ) -> gs.Graph:
+        if onnx_export_kwargs is None:
+            onnx_export_kwargs = {}
+
         with tempfile.TemporaryDirectory() as tmpdirname:
             onnx_file = os.path.join(tmpdirname, "ConvertTRTFormatToFlatTensor.onnx")
 
@@ -80,9 +116,13 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
                 input_names=["num_detections", "pred_boxes", "pred_scores", "pred_classes"],
                 output_names=["flat_predictions"],
                 dynamic_axes={"flat_predictions": {0: "num_predictions"}},
+                **onnx_export_kwargs,
             )
 
             convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
+            convert_format_graph = convert_format_graph.fold_constants().cleanup().toposort()
+            convert_format_graph = iteratively_infer_shapes(convert_format_graph)
+            # convert_format_graph.outputs[0].shape = [-1, 7] TODO Check whether it is needed
             return convert_format_graph
 
 
@@ -96,6 +136,7 @@ def attach_tensorrt_nms(
     batch_size: int,
     output_predictions_format: DetectionOutputFormatMode,
     device: torch.device,
+    onnx_export_kwargs: Optional[Mapping] = None,
 ):
     """
     Attach TensorRT NMS plugin to the ONNX model
@@ -107,6 +148,7 @@ def attach_tensorrt_nms(
     :param batch_size:
     :return:
     """
+
     graph = gs.import_onnx(onnx.load(onnx_model_path))
     # graph.fold_constants()
 
@@ -159,7 +201,11 @@ def attach_tensorrt_nms(
 
     if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
         convert_format_graph = ConvertTRTFormatToFlatTensor.as_graph(
-            batch_size=batch_size, max_predictions_per_image=max_predictions_per_image, dtype=numpy_dtype_to_torch_dtype(pred_boxes.dtype), device=device
+            batch_size=batch_size,
+            max_predictions_per_image=max_predictions_per_image,
+            dtype=numpy_dtype_to_torch_dtype(pred_boxes.dtype),
+            device=device,
+            onnx_export_kwargs=onnx_export_kwargs,
         )
         graph = append_graphs(graph, convert_format_graph)
     elif output_predictions_format == DetectionOutputFormatMode.BATCH_FORMAT:
@@ -168,8 +214,8 @@ def attach_tensorrt_nms(
         raise NotImplementedError(f"Currently not supports output_predictions_format: {output_predictions_format}")
 
     # Final cleanup & save
-    graph.cleanup().toposort()
-    # iteratively_infer_shapes(graph)
+    graph = graph.cleanup().toposort()
+    graph = iteratively_infer_shapes(graph)
 
     logger.debug(f"Final graph outputs: {graph.outputs}")
 
