@@ -14,7 +14,6 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.conversion.conversion_enums import DetectionOutputFormatMode
 from super_gradients.conversion.conversion_utils import numpy_dtype_to_torch_dtype
 from super_gradients.conversion.gs_utils import import_onnx_graphsurgeon_or_fail_with_instructions
-from super_gradients.conversion.indexing_tricks import gather_with_float_mask
 from super_gradients.conversion.onnx.utils import append_graphs, iteratively_infer_shapes
 
 logger = get_logger(__name__)
@@ -143,14 +142,13 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
 
 
 class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
-    __constants__ = ("batch_size", "num_pre_nms_predictions", "max_predictions_per_image", "use_boolean_gather")
+    __constants__ = ("batch_size", "num_pre_nms_predictions", "max_predictions_per_image")
 
-    def __init__(self, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int, use_boolean_gather: bool = True):
+    def __init__(self, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int):
         super().__init__()
         self.batch_size = batch_size
         self.num_pre_nms_predictions = num_pre_nms_predictions
         self.max_predictions_per_image = max_predictions_per_image
-        self.use_boolean_gather = use_boolean_gather
 
     def forward(self, pred_boxes: Tensor, pred_scores: Tensor, selected_indexes: Tensor) -> Tensor:
         """
@@ -193,18 +191,7 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
             # Create a mask to ensure we only keep max_predictions_per_image detections per image
             mask = ((cumulative_counts <= num_detections_per_image) & detections_in_images_mask).any(dim=1, keepdim=False)  # [N]
 
-            if self.use_boolean_gather:
-                final_results = flat_results[mask]
-            else:
-                pad_size = self.num_pre_nms_predictions * self.batch_size - flat_results.size(0)
-                flat_results_padded = torch.nn.functional.pad(flat_results, [0, 0, 0, pad_size], value=-1, mode="constant")
-                mask_padded = torch.nn.functional.pad(mask.float(), (0, pad_size), value=0, mode="constant") > 0
-
-                # This is a trick to sort flat predictions by confidence (desc) and by image index (asc), while keeping the padding values at the end
-                mask_with_scores = mask_padded.float() * (flat_results_padded[:, 5].float() + (self.batch_size - flat_results_padded[:, 0].float()))
-
-                # Select the boxes, scores and labels using the mask
-                final_results = gather_with_float_mask(flat_results_padded, mask_with_scores, self.num_pre_nms_predictions * self.batch_size)
+            final_results = flat_results[mask]
         else:
             final_results = flat_results[: self.max_predictions_per_image]
 
