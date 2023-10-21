@@ -12,7 +12,7 @@ from super_gradients.modules.multi_output_modules import MultiOutputModule
 from super_gradients.training.models import MobileNet, MobileNetV2
 from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
 from super_gradients.training.utils.utils import HpmStruct
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 __all__ = [
@@ -31,7 +31,7 @@ __all__ = [
 
 
 @register_detection_module()
-class NStageBackbone(BaseDetectionModule, SupportsReplaceInChannels):
+class NStageBackbone(BaseDetectionModule, SupportsReplaceInputChannels):
     """
     A backbone with a stem -> N stages -> context module
     Returns outputs of the layers listed in out_layers
@@ -87,13 +87,13 @@ class NStageBackbone(BaseDetectionModule, SupportsReplaceInChannels):
         return outputs
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        if isinstance(self.stem, SupportsReplaceInChannels):
+        if isinstance(self.stem, SupportsReplaceInputChannels):
             self.stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
             raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
 
     def get_input_channels(self) -> int:
-        if isinstance(self.stem, SupportsReplaceInChannels):
+        if isinstance(self.stem, SupportsReplaceInputChannels):
             return self.stem.get_input_channels()
         else:
             raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `get_input_channels`")
@@ -191,7 +191,7 @@ class NHeads(BaseDetectionModule):
         return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
 
 
-class MultiOutputBackbone(BaseDetectionModule, SupportsReplaceInChannels):
+class MultiOutputBackbone(BaseDetectionModule, SupportsReplaceInputChannels):
     """
     Defines a backbone using MultiOutputModule with the interface of BaseDetectionModule
     """

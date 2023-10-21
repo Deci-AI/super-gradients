@@ -12,7 +12,7 @@ from super_gradients.common.object_names import Models
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.modules import ConvBNReLU
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 DEFAULT_REGSEG48_BACKBONE_PARAMS = {
     "stages": [
@@ -295,13 +295,13 @@ class RegSeg(SgModule):
         self.head = RegSegHead(self.decoder.out_channels, new_num_classes, head_config)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        if isinstance(self.stem, SupportsReplaceInChannels):
+        if isinstance(self.stem, SupportsReplaceInputChannels):
             self.stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
             raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_in_channels`")
 
     def get_input_channels(self) -> int:
-        if isinstance(self.stem, SupportsReplaceInChannels):
+        if isinstance(self.stem, SupportsReplaceInputChannels):
             return self.stem.get_input_channels()
         else:
             raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `get_input_channels`")

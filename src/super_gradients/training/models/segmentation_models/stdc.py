@@ -17,7 +17,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.modules import ConvBNReLU, Residual
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 # default STDC argument as paper.
@@ -101,7 +101,7 @@ class STDCBlock(nn.Module):
         return first_conv.get_input_channels()
 
 
-class AbstractSTDCBackbone(nn.Module, SupportsReplaceInChannels, ABC):
+class AbstractSTDCBackbone(nn.Module, SupportsReplaceInputChannels, ABC):
     """
     All backbones for STDC segmentation models must implement this class.
     """
@@ -208,12 +208,12 @@ class STDCBackbone(AbstractSTDCBackbone):
         return self.out_widths
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        from super_gradients.module_interfaces import SupportsReplaceInChannels
+        from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
         first_stage: nn.Sequential = next(iter(self.stages.values()))  # noqa
         first_block = first_stage[0]
 
-        if isinstance(first_block, SupportsReplaceInChannels):
+        if isinstance(first_block, SupportsReplaceInputChannels):
             first_block.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
             raise NotImplementedError(f"`{first_block.__class__.__name__}` does not support `replace_in_channels`")
@@ -221,7 +221,7 @@ class STDCBackbone(AbstractSTDCBackbone):
     def get_input_channels(self) -> int:
         first_stage: nn.Sequential = next(iter(self.stages.values()))  # noqa
         first_block = first_stage[0]
-        if isinstance(first_block, SupportsReplaceInChannels):
+        if isinstance(first_block, SupportsReplaceInputChannels):
             return first_block.get_input_channels()
         else:
             raise NotImplementedError(f"`{first_block.__class__.__name__}` does not support `get_input_channels`")

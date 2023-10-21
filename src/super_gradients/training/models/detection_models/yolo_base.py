@@ -30,7 +30,7 @@ from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
@@ -289,7 +289,7 @@ class DetectX(nn.Module):
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).to(dtype)
 
 
-class AbstractYoloBackbone(SupportsReplaceInChannels):
+class AbstractYoloBackbone(SupportsReplaceInputChannels):
     def __init__(self, arch_params):
         # CREATE A LIST CONTAINING THE LAYERS TO EXTRACT FROM THE BACKBONE AND ADD THE FINAL LAYER
         self._layer_idx_to_extract = [idx for sub_l in arch_params.skip_connections_dict.values() for idx in sub_l]
@@ -721,13 +721,13 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         return YoloXDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions, **kwargs)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        if isinstance(self._backbone, SupportsReplaceInChannels):
+        if isinstance(self._backbone, SupportsReplaceInputChannels):
             self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
             raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_in_channels`")
 
     def get_input_channels(self) -> int:
-        if isinstance(self._backbone, SupportsReplaceInChannels):
+        if isinstance(self._backbone, SupportsReplaceInputChannels):
             return self._backbone.get_input_channels()
         else:
             raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `get_input_channels`")

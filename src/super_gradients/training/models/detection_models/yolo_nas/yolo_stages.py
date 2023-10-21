@@ -11,7 +11,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.modules import QARepVGGBlock, Conv
 from super_gradients.modules.utils import width_multiplier
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 __all__ = ["YoloNASStage", "YoloNASUpStage", "YoloNASStem", "YoloNASDownStage", "YoloNASBottleneck"]
@@ -148,7 +148,7 @@ class YoloNASCSPLayer(nn.Module):
 
 
 @register_detection_module()
-class YoloNASStem(BaseDetectionModule, SupportsReplaceInChannels):
+class YoloNASStem(BaseDetectionModule, SupportsReplaceInputChannels):
     """
     Stem module for YoloNAS. Consists of a single QARepVGGBlock with stride of two.
     """

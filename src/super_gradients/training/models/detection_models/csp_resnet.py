@@ -15,7 +15,7 @@ __all__ = ["CSPResNetBackbone", "CSPResNetBasicBlock"]
 
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
 from super_gradients.common.environment.ddp_utils import get_local_rank
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 class CSPResNetBasicBlock(nn.Module):
@@ -112,7 +112,7 @@ class CSPResStage(nn.Module):
 
 
 @register_detection_module()
-class CSPResNetBackbone(nn.Module, SupportsReplaceInChannels):
+class CSPResNetBackbone(nn.Module, SupportsReplaceInputChannels):
     """
     CSPResNet backbone
     """

@@ -13,7 +13,7 @@ from super_gradients.common.object_names import Models
 from super_gradients.training.models.classification_models.resnet import BasicResNetBlock, Bottleneck
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import get_param, HpmStruct
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 """
 paper: Deep Dual-resolution Networks for Real-time and
@@ -192,7 +192,7 @@ class UpscaleOnline(nn.Module):
         return F.interpolate(x, size=[output_height, output_width], mode=self.mode)
 
 
-class DDRBackBoneBase(nn.Module, SupportsReplaceInChannels, ABC):
+class DDRBackBoneBase(nn.Module, SupportsReplaceInputChannels, ABC):
     """A base class defining functions that must be supported by DDRBackBones"""
 
     def validate_backbone_attributes(self):
@@ -257,13 +257,13 @@ class RegnetDDRBackBone(DDRBackBoneBase):
         self.layer4 = regnet_module.net.stage_3
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        if isinstance(self.stem, SupportsReplaceInChannels):
+        if isinstance(self.stem, SupportsReplaceInputChannels):
             self.stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
             raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
 
     def get_input_channels(self) -> int:
-        if isinstance(self.stem, SupportsReplaceInChannels):
+        if isinstance(self.stem, SupportsReplaceInputChannels):
             return self.stem.get_input_channels()
         else:
             raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")

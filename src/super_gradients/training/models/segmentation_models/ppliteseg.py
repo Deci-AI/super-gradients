@@ -12,7 +12,7 @@ from super_gradients.training.models.segmentation_models.common import Segmentat
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import HpmStruct, get_param, torch_version_is_greater_or_equal
 from super_gradients.training.models.segmentation_models.context_modules import SPPM
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 class UAFM(nn.Module):
@@ -69,7 +69,7 @@ class UAFM(nn.Module):
         return reduced
 
 
-class PPLiteSegEncoder(nn.Module, SupportsReplaceInChannels):
+class PPLiteSegEncoder(nn.Module, SupportsReplaceInputChannels):
     """
     Encoder for PPLiteSeg, include backbone followed by a context module.
     """
@@ -100,7 +100,7 @@ class PPLiteSegEncoder(nn.Module, SupportsReplaceInChannels):
         self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
-        if isinstance(self.backbone, SupportsReplaceInChannels):
+        if isinstance(self.backbone, SupportsReplaceInputChannels):
             return self.backbone.get_input_channels()
         else:
             raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `get_input_channels`")

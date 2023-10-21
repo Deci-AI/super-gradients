@@ -3,10 +3,10 @@ from typing import Optional, Callable
 from torch import nn
 from omegaconf.listconfig import ListConfig
 
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
-class MultiOutputModule(nn.Module, SupportsReplaceInChannels):
+class MultiOutputModule(nn.Module, SupportsReplaceInputChannels):
     """
     This module wraps around a container nn.Module (such as Module, Sequential and ModuleList) and allows to extract
     multiple output from its inner modules on each forward call() (as a list of output tensors)
@@ -105,14 +105,14 @@ class MultiOutputModule(nn.Module, SupportsReplaceInChannels):
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         module = self._modules["0"]
-        if isinstance(module, SupportsReplaceInChannels):
+        if isinstance(module, SupportsReplaceInputChannels):
             module.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
             raise NotImplementedError(f"`{module.__class__.__name__}` does not support `replace_in_channels`")
 
     def get_input_channels(self) -> int:
         module = self._modules["0"]
-        if isinstance(module, SupportsReplaceInChannels):
+        if isinstance(module, SupportsReplaceInputChannels):
             return module.get_input_channels()
         else:
             raise NotImplementedError(f"`{module.__class__.__name__}` does not support `get_input_channels`")

@@ -3,10 +3,10 @@ from typing import Union, Tuple, Type, Callable, Optional
 from torch import nn
 
 from super_gradients.modules.utils import autopad
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
-class ConvBNAct(nn.Module, SupportsReplaceInChannels):
+class ConvBNAct(nn.Module, SupportsReplaceInputChannels):
     """
     Class for Convolution2d-Batchnorm2d-Activation layer.
         Default behaviour is Conv-BN-Act. To exclude Batchnorm module use

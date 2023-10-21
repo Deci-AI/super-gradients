@@ -12,7 +12,7 @@ from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.modules.conv_bn_relu_block import ConvBNReLU
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import register_model
-from super_gradients.module_interfaces import SupportsReplaceInChannels
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 from typing import List, Tuple
@@ -160,7 +160,7 @@ class EncoderBlock(nn.Module):
         return x
 
 
-class MiTBackBone(nn.Module, SupportsReplaceInChannels):
+class MiTBackBone(nn.Module, SupportsReplaceInputChannels):
     def __init__(
         self,
         embed_dims: List[int],
