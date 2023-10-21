@@ -2,7 +2,7 @@
 Implementation of paper: "Rethinking BiSeNet For Real-time Semantic Segmentation", https://arxiv.org/abs/2104.13188
 Based on original implementation: https://github.com/MichaelFan01/STDC-Seg, cloned 23/08/2021, commit 59ff37f
 """
-from typing import Union, List
+from typing import Union, List, Optional, Callable
 from abc import ABC, abstractmethod
 
 import torch
@@ -17,6 +17,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.modules import ConvBNReLU, Residual
 from super_gradients.training.models.segmentation_models.common import SegmentationHead
+from super_gradients.module_interfaces import SupportsReplaceInChannels
 
 
 # default STDC argument as paper.
@@ -91,8 +92,13 @@ class STDCBlock(nn.Module):
         out = torch.cat(out_list, dim=1)
         return out
 
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        first_conv: ConvBNReLU = self.conv_list[0]  # noqa
+        first_conv.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
-class AbstractSTDCBackbone(nn.Module, ABC):
+
+class AbstractSTDCBackbone(nn.Module, SupportsReplaceInChannels, ABC):
     """
     All backbones for STDC segmentation models must implement this class.
     """
@@ -198,6 +204,19 @@ class STDCBackbone(AbstractSTDCBackbone):
     def get_backbone_output_number_of_channels(self) -> List[int]:
         return self.out_widths
 
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.module_interfaces import SupportsReplaceInChannels
+
+        self.in_channels = in_channels
+
+        first_stage: nn.Sequential = next(iter(self.stages.values()))  # noqa
+        first_block = first_stage[0]
+
+        if isinstance(first_block, SupportsReplaceInChannels):
+            first_block.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        else:
+            raise NotImplementedError(f"`{first_block.__class__.__name__}` does not support `replace_in_channels`")
+
 
 class STDCClassificationBase(SgModule):
     """
@@ -242,6 +261,10 @@ class STDCClassificationBase(SgModule):
         out = self.dropout(out)
         out = self.linear(out)
         return out
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 @register_model(Models.STDC_CUSTOM_CLS)
@@ -390,6 +413,10 @@ class ContextPath(nn.Module):
 
         context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
         self.context_embedding.to_fixed_size(context_embedding_up_size)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 class STDCSegmentationBase(SgModule):
@@ -581,6 +608,10 @@ class STDCSegmentationBase(SgModule):
             else:
                 multiply_lr_params[name] = param
         return multiply_lr_params.items(), no_multiply_params.items()
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        self.cp.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 @register_model(Models.STDC_CUSTOM)

@@ -2,15 +2,16 @@ from abc import ABC, abstractmethod
 from typing import Union, List, Optional, Callable
 
 import torch
+from torch import nn
 from omegaconf import DictConfig
 from omegaconf.listconfig import ListConfig
+
 from super_gradients.common.registry.registry import register_detection_module
 from super_gradients.modules.base_modules import BaseDetectionModule
 from super_gradients.modules.multi_output_modules import MultiOutputModule
 from super_gradients.training.models import MobileNet, MobileNetV2
 from super_gradients.training.models.classification_models.mobilenetv2 import InvertedResidual
 from super_gradients.training.utils.utils import HpmStruct
-from torch import nn
 from super_gradients.module_interfaces import SupportsReplaceInChannels
 
 
@@ -64,19 +65,6 @@ class NStageBackbone(BaseDetectionModule, SupportsReplaceInChannels):
         self.out_layers = out_layers
         self._out_channels = self._define_out_channels()
 
-    # def replace_in_channels(self, in_channels: int):
-    #     import super_gradients.common.factories.detection_modules_factory as det_factory
-    #
-    #     factory = det_factory.DetectionModulesFactory()
-    #
-    #     self.in_channels = in_channels
-    #     if isinstance(self.backbone, SupportsReplaceInChannels):
-    #         self.backbone.replace_in_channels(self.in_channels, replace_in_channels_with_random_weights)
-    #     else:
-    #         self.heads_params = factory.insert_module_param(self.heads_params, "in_channels", self.in_channels)
-    #         self.backbone = factory.get(self.backbone_params)
-    #         self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)  # TODO: check if this is needed
-
     def _define_out_channels(self):
         out_channels = []
         for layer in self.out_layers:
@@ -97,6 +85,13 @@ class NStageBackbone(BaseDetectionModule, SupportsReplaceInChannels):
                 outputs.append(x)
 
         return outputs
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        if isinstance(self.stem, SupportsReplaceInChannels):
+            self.stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        else:
+            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
 
 
 @register_detection_module()
@@ -211,7 +206,7 @@ class MultiOutputBackbone(BaseDetectionModule, SupportsReplaceInChannels):
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self.in_channels = in_channels
-        self.self.multi_output_backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        self.multi_output_backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 @register_detection_module()

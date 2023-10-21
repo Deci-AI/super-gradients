@@ -1,3 +1,4 @@
+from typing import Callable, Optional
 from torch import nn
 
 from super_gradients.common.registry.registry import register_model
@@ -40,11 +41,13 @@ class DarkResidualBlock(nn.Module):
 
 
 class Darknet53Base(SgModule):
-    def __init__(self):
+    def __init__(self, in_channels: int = 3):
         super(Darknet53Base, self).__init__()
         # THE MODULES LIST IS APPROACHABLE FROM "OUTSIDE THE CLASS - SO WE CAN CHANGE IT'S STRUCTURE"
+        self.in_channels = in_channels
+
         self.modules_list = nn.ModuleList()
-        self.modules_list.append(create_conv_module(3, 32))  # 0
+        self.modules_list.append(create_conv_module(self.in_channels, 32))  # 0
         self.modules_list.append(create_conv_module(32, 64, stride=2))  # 1
         self.modules_list.append(self._make_layer(DarkResidualBlock, in_channels=64, num_blocks=1))  # 2
         self.modules_list.append(create_conv_module(64, 128, stride=2))  # 3
@@ -60,7 +63,6 @@ class Darknet53Base(SgModule):
         out = x
         for i, module in enumerate(self.modules_list):
             out = self.modules_list[i](out)
-
         return out
 
     def _make_layer(self, block, in_channels, num_blocks):
@@ -68,6 +70,12 @@ class Darknet53Base(SgModule):
         for i in range(0, num_blocks):
             layers.append(block(in_channels))
         return nn.Sequential(*layers)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+
+        self.in_channels = in_channels
+        self.modules_list[0] = compute_new_weights(module=self.modules_list[0], in_channels=self.in_channels, fn=compute_new_weights_fn)
 
 
 @register_model(Models.DARKNET53)

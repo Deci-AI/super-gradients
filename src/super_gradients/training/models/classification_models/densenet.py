@@ -1,3 +1,5 @@
+from typing import Optional, Callable
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -131,6 +133,12 @@ class DenseNet(BaseClassifier):
         out = torch.flatten(out, 1)
         out = self.classifier(out)
         return out
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+
+        self.in_channels = in_channels
+        self.features[0] = compute_new_weights(module=self.features[0], in_channels=self.in_channels, fn=compute_new_weights_fn)
 
 
 @register_model(Models.CUSTOM_DENSENET)

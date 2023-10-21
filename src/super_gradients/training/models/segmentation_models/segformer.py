@@ -1,3 +1,5 @@
+from typing import Optional, Callable
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,6 +12,7 @@ from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.modules.conv_bn_relu_block import ConvBNReLU
 from super_gradients.common.object_names import Models
 from super_gradients.common.registry.registry import register_model
+from super_gradients.module_interfaces import SupportsReplaceInChannels
 
 
 from typing import List, Tuple
@@ -49,6 +52,11 @@ class PatchEmbedding(nn.Module):
         x = self.norm(x)
 
         return x, h, w
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+
+        self.proj = compute_new_weights(module=self.proj, in_channels=in_channels, fn=compute_new_weights_fn)
 
 
 # TODO: extract this block to src/super_gradients/modules/transformer_modules and reuse the same module of Beit and
@@ -149,7 +157,7 @@ class EncoderBlock(nn.Module):
         return x
 
 
-class MiTBackBone(nn.Module):
+class MiTBackBone(nn.Module, SupportsReplaceInChannels):
     def __init__(
         self,
         embed_dims: List[int],
@@ -243,6 +251,10 @@ class MiTBackBone(nn.Module):
             features.append(x)
 
         return features
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        first_patch: PatchEmbedding = self.patch_embed[0]
+        first_patch.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 # TODO: extract this block to src/super_gradients/modules/transformer_modules and reuse the same module of Beit and
@@ -444,6 +456,9 @@ class SegFormer(SegmentationModule):
             else:
                 multiply_lr_params[name] = param
         return multiply_lr_params.items(), no_multiply_params.items()
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 class SegFormerCustom(SegFormer):

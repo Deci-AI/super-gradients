@@ -4,7 +4,7 @@ Shelfnet
 paper: https://arxiv.org/abs/1811.11254
 based on: https://github.com/juntang-zhuang/ShelfNet
 """
-
+from typing import Callable, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -459,6 +459,10 @@ class ShelfNetBase(ShelfNetModuleBase):
             param_groups[i]["lr"] = lr * 10
 
         return param_groups
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 class ShelfNetHW(ShelfNetBase):

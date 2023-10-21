@@ -6,7 +6,7 @@ See the paper "ShuffleNet V2: Practical Guidelines for Efficient CNN Architectur
 
 Code taken from torchvision/models/shufflenetv2.py
 """
-from typing import List
+from typing import List, Callable, Optional
 
 import torch
 from torch import Tensor
@@ -120,6 +120,7 @@ class ShuffleNetV2Base(BaseClassifier):
         backbone_mode: bool = False,
         num_classes: int = 1000,
         block: nn.Module = ChannelShuffleInvertedResidual,
+        in_channels: int = 3,
     ):
         super(ShuffleNetV2Base, self).__init__()
 
@@ -132,13 +133,14 @@ class ShuffleNetV2Base(BaseClassifier):
         self.structure = structure
         self.out_channels = stages_out_channels
 
-        input_channels = 3
+        self.in_channels = in_channels
         output_channels = self.out_channels[0]
         self.conv1 = nn.Sequential(
-            nn.Conv2d(input_channels, output_channels, 3, 2, 1, bias=False),
+            nn.Conv2d(self.in_channels, output_channels, 3, 2, 1, bias=False),
             nn.BatchNorm2d(output_channels),
             nn.ReLU(inplace=True),
         )
+
         input_channels = output_channels
 
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -199,6 +201,12 @@ class ShuffleNetV2Base(BaseClassifier):
             x = x.view(x.size(0), -1)
             x = self.fc(x)
         return x
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+
+        self.in_channels = in_channels
+        self.conv1 = compute_new_weights(module=self.conv1, in_channels=self.in_channels, fn=compute_new_weights_fn)
 
 
 @register_model(Models.SHUFFLENET_V2_X0_5)

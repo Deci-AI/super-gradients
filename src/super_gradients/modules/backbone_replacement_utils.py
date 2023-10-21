@@ -1,9 +1,18 @@
-from typing import Union
+from typing import Union, Optional, Callable
 
 import torch
 from torch import nn
 
 __all__ = ["replace_in_channels_with_random_weights"]
+
+
+def compute_new_weights(
+    module: Union[nn.Conv2d, nn.Linear, nn.Module],
+    in_channels: int,
+    fn: Optional[Callable[[nn.Module, int], nn.Module]] = None,
+) -> nn.Module:
+    fn = fn or replace_in_channels_with_random_weights
+    return fn(module=module, in_channels=in_channels)
 
 
 def replace_in_channels_with_random_weights(module: Union[nn.Conv2d, nn.Linear, nn.Module], in_channels: int) -> nn.Module:
@@ -43,5 +52,9 @@ def replace_in_channels_with_random_weights(module: Union[nn.Conv2d, nn.Linear, 
             torch.nn.init.normal_(new_module.bias, mean=module.bias.mean().item(), std=module.bias.std().item())
 
         return new_module
+    elif isinstance(module, nn.Sequential):
+        # TODO: check - is it as safe as it looks ? Any possible side effect?
+        module[0] = replace_in_channels_with_random_weights(module=module[0], in_channels=in_channels)
+        return module
     else:
         raise ValueError(f"Module {module} does not support replacing the input channels")

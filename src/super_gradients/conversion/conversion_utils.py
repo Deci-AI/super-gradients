@@ -12,7 +12,7 @@ _DTYPE_CORRESPONDENCE = [
     (torch.int16, np.int16),
     (torch.int8, np.int8),
     (torch.uint8, np.uint8),
-    (torch.bool, np.bool),
+    # (torch.bool, np.bool),
 ]
 
 

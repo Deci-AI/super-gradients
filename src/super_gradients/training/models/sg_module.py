@@ -3,9 +3,10 @@ from typing import Union, Optional, Callable
 from torch import nn
 
 from super_gradients.training.utils.utils import HpmStruct
+from super_gradients.module_interfaces import SupportsReplaceInChannels
 
 
-class SgModule(nn.Module):
+class SgModule(nn.Module, SupportsReplaceInChannels):
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
 

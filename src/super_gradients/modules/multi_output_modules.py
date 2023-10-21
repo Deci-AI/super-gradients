@@ -104,5 +104,8 @@ class MultiOutputModule(nn.Module, SupportsReplaceInChannels):
         return OrderedDict([(k, v) for (k, v) in odict.items() if k in list(odict.keys())[start:end]])
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        if isinstance(self._modules["0"], SupportsReplaceInChannels):
-            self.self.multi_output_backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        module = self._modules["0"]
+        if isinstance(module, SupportsReplaceInChannels):
+            module.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        else:
+            raise NotImplementedError(f"`{module.__class__.__name__}` does not support `replace_in_channels`")

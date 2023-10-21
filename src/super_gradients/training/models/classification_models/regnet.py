@@ -4,6 +4,7 @@ Implementation of paradigm described in paper published by Facebook AI Research 
 @author: Signatrix GmbH
 Code taken from: https://github.com/signatrix/regnet - MIT Licence
 """
+from typing import Optional, Callable
 import numpy as np
 import torch
 import torch.nn as nn
@@ -35,7 +36,8 @@ class Head(nn.Module):  # From figure 3
 class Stem(nn.Module):  # From figure 3
     def __init__(self, in_channels, out_channels):
         super(Stem, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1, bias=False)
+        self.in_channels = in_channels
+        self.conv = nn.Conv2d(self.in_channels, out_channels, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn = nn.BatchNorm2d(out_channels)
         self.rl = nn.ReLU()
 
@@ -44,6 +46,12 @@ class Stem(nn.Module):  # From figure 3
         x = self.bn(x)
         x = self.rl(x)
         return x
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+
+        self.in_channels = in_channels
+        self.conv = compute_new_weights(module=self.conv, in_channels=self.in_channels, fn=compute_new_weights_fn)
 
 
 class XBlock(nn.Module):  # From figure 4
@@ -168,6 +176,11 @@ class AnyNetX(BaseClassifier):
             self.net.head = new_head
         else:
             self.net.head = Head(self.ls_block_width[-1], new_num_classes, self.dropout_prob)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        stem: Stem = self.net[0]
+        stem.replace_in_channels(in_channels=self.in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 def regnet_params_to_blocks(initial_width, slope, quantized_param, network_depth, bottleneck_ratio, group_width):

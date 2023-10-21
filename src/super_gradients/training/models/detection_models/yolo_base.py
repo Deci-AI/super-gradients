@@ -1,7 +1,7 @@
 import collections
 import math
 import warnings
-from typing import Union, Type, List, Tuple, Optional, Any
+from typing import Union, Type, List, Tuple, Optional, Any, Callable
 from functools import lru_cache
 
 import numpy as np
@@ -30,6 +30,7 @@ from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.module_interfaces import SupportsReplaceInChannels
 
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
@@ -288,7 +289,7 @@ class DetectX(nn.Module):
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).to(dtype)
 
 
-class AbstractYoloBackbone:
+class AbstractYoloBackbone(SupportsReplaceInChannels):
     def __init__(self, arch_params):
         # CREATE A LIST CONTAINING THE LAYERS TO EXTRACT FROM THE BACKBONE AND ADD THE FINAL LAYER
         self._layer_idx_to_extract = [idx for sub_l in arch_params.skip_connections_dict.values() for idx in sub_l]
@@ -320,6 +321,9 @@ class YoloDarknetBackbone(AbstractYoloBackbone, CSPDarknet53):
 
     def forward(self, x):
         return AbstractYoloBackbone.forward(self, x)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        CSPDarknet53.replace_in_channels(self, in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
@@ -715,6 +719,14 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return YoloXDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions, **kwargs)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+
+        self.in_channels = in_channels
+        if isinstance(self._backbone, SupportsReplaceInChannels):
+            self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        else:
+            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_in_channels`")
 
 
 class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):

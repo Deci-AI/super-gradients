@@ -5,7 +5,7 @@ arXiv preprint arXiv:2010.11929 (2020)
 
 Code adapted from https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vit.py
 """
-
+from typing import Optional, Callable
 import torch
 from torch import nn
 from einops import repeat
@@ -161,7 +161,12 @@ class ViT(BaseClassifier):
 
         num_patches = (image_height // patch_height) * (image_width // patch_width)
 
-        self.patch_embedding = PatchEmbed(image_size, patch_size, in_channels=in_channels, hidden_dim=hidden_dim)
+        self.image_size = image_size
+        self.patch_size = patch_size
+        self.in_channels = in_channels
+        self.hidden_dim = hidden_dim
+        self.patch_embedding = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=in_channels, hidden_dim=self.hidden_dim)
+
         self.cls_token = nn.Parameter(torch.randn(1, 1, hidden_dim))
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, hidden_dim))
         self.dropout = nn.Dropout(emb_dropout_prob)
@@ -196,6 +201,10 @@ class ViT(BaseClassifier):
             self.head = new_head
         else:
             self.head = nn.Linear(self.head.in_features, new_num_classes)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        self.patch_embedding = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=in_channels, hidden_dim=self.hidden_dim)
 
 
 @register_model(Models.VIT_BASE)

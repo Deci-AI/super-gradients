@@ -1,8 +1,9 @@
 from functools import lru_cache
-from typing import Union, Optional, List, Tuple, Any
+from typing import Union, Optional, List, Tuple, Any, Callable
 
 import torch
 from torch import Tensor
+from torch import nn
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -246,6 +247,10 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return PPYoloEDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 @register_model(Models.PP_YOLOE_S)

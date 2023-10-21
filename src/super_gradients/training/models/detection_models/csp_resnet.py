@@ -1,7 +1,7 @@
 import collections
 import os.path
 from pathlib import Path
-from typing import List, Type, Tuple, Union, Optional
+from typing import List, Type, Tuple, Union, Optional, Callable
 
 import torch
 from super_gradients.common.registry.registry import register_detection_module
@@ -15,6 +15,7 @@ __all__ = ["CSPResNetBackbone", "CSPResNetBasicBlock"]
 
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master
 from super_gradients.common.environment.ddp_utils import get_local_rank
+from super_gradients.module_interfaces import SupportsReplaceInChannels
 
 
 class CSPResNetBasicBlock(nn.Module):
@@ -111,7 +112,7 @@ class CSPResStage(nn.Module):
 
 
 @register_detection_module()
-class CSPResNetBackbone(nn.Module):
+class CSPResNetBackbone(nn.Module, SupportsReplaceInChannels):
     """
     CSPResNet backbone
     """
@@ -146,6 +147,7 @@ class CSPResNetBackbone(nn.Module):
         super().__init__()
         channels = [max(round(num_channels * width_mult), 1) for num_channels in channels]
         layers = [max(round(num_layers * depth_mult), 1) for num_layers in layers]
+        self.in_channels = in_channels
 
         if use_large_stem:
             self.stem = nn.Sequential(
@@ -243,3 +245,8 @@ class CSPResNetBackbone(nn.Module):
     @property
     def out_channels(self) -> Tuple[int]:
         return tuple(self._out_channels)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        first_layer: ConvBNAct = self.stem[0]
+        first_layer.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)

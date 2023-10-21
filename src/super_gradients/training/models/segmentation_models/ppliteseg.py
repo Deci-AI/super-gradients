@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from typing import Union, List
+from typing import Union, List, Optional, Callable
 from super_gradients.modules import ConvBNReLU
 
 from super_gradients.common.registry.registry import register_model
@@ -12,6 +12,7 @@ from super_gradients.training.models.segmentation_models.common import Segmentat
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import HpmStruct, get_param, torch_version_is_greater_or_equal
 from super_gradients.training.models.segmentation_models.context_modules import SPPM
+from super_gradients.module_interfaces import SupportsReplaceInChannels
 
 
 class UAFM(nn.Module):
@@ -68,7 +69,7 @@ class UAFM(nn.Module):
         return reduced
 
 
-class PPLiteSegEncoder(nn.Module):
+class PPLiteSegEncoder(nn.Module, SupportsReplaceInChannels):
     """
     Encoder for PPLiteSeg, include backbone followed by a context module.
     """
@@ -94,6 +95,10 @@ class PPLiteSegEncoder(nn.Module):
         y = self.context_module(feats[-1])
         feats = [conv(f) for conv, f in zip(self.proj_convs, feats)]
         return feats + [y]
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 class PPLiteSegDecoder(nn.Module):
@@ -292,6 +297,10 @@ class PPLiteSegBase(SegmentationModule):
         for module in self.modules():
             if isinstance(module, SegmentationHead):
                 module.replace_num_classes(new_num_classes)
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.in_channels = in_channels
+        self.encoder.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
 @register_model(Models.PP_LITE_B_SEG)

@@ -8,6 +8,7 @@ License: Apache Version 2.0, January 2004 http://www.apache.org/licenses/
 
 Pre-trained ImageNet model: 'deci-model-repository/mobilenet_v2/ckpt_best.pth'
 """
+from typing import Optional, Callable
 import numpy as np
 import torch
 import torch.nn as nn
@@ -125,7 +126,7 @@ class MobileNetV2(MobileNetBase):
         self.last_channel = make_divisible(last_channel * width_mult) if width_mult > 1.0 else last_channel
 
         curr_channels = 32
-        self.features = [conv_bn(in_channels, curr_channels, 2)]
+        self.features = [conv_bn(self.in_channels, curr_channels, stride=2)]
         # building inverted residual blocks
         for t, c, n, s in self.interverted_residual_setting:
             output_channel = make_divisible(c * width_mult) if t > 1 else c
@@ -187,6 +188,12 @@ class MobileNetV2(MobileNetBase):
                 n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+
+        self.in_channels = in_channels
+        self.features[0] = compute_new_weights(module=self.features[0], in_channels=self.in_channels, fn=compute_new_weights_fn)
 
 
 @register_model(Models.MOBILENET_V2)

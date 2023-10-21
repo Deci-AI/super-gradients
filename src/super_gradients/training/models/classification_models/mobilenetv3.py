@@ -5,7 +5,7 @@ Ruoming Pang, Vijay Vasudevan, Quoc V. Le, Hartwig Adam. (2019).
 Searching for MobileNetV3
 arXiv preprint arXiv:1905.02244.
 """
-
+from typing import Optional, Callable
 import torch.nn as nn
 import math
 
@@ -119,15 +119,16 @@ class InvertedResidual(nn.Module):
 
 
 class MobileNetV3(MobileNetBase):
-    def __init__(self, cfgs, mode, num_classes=1000, width_mult=1.0, in_channels=3):
+    def __init__(self, cfgs, mode, num_classes=1000, width_mult=1.0, in_channels: int = 3):
         super(MobileNetV3, self).__init__()
         # setting of inverted residual blocks
         self.cfgs = cfgs
         assert mode in ["large", "small"]
 
         # building first layer
+        self.in_channels = in_channels
         curr_channels = _make_divisible(16 * width_mult, 8)
-        layers = [conv_3x3_bn(in_channels, curr_channels, 2)]
+        layers = [conv_3x3_bn(self.in_channels, curr_channels, 2)]
         # building inverted residual blocks
         block = InvertedResidual
         for k, t, c, use_se, use_hs, s in self.cfgs:
@@ -172,6 +173,12 @@ class MobileNetV3(MobileNetBase):
                 n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+
+        self.in_channels = in_channels
+        self.features[0] = compute_new_weights(module=self.features[0], in_channels=self.in_channels, fn=compute_new_weights_fn)
 
 
 @register_model(Models.MOBILENET_V3_LARGE)

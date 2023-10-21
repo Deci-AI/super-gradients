@@ -1,11 +1,12 @@
-from typing import Union, Tuple, Type
+from typing import Union, Tuple, Type, Callable, Optional
 
 from torch import nn
 
 from super_gradients.modules.utils import autopad
+from super_gradients.module_interfaces import SupportsReplaceInChannels
 
 
-class ConvBNAct(nn.Module):
+class ConvBNAct(nn.Module, SupportsReplaceInChannels):
     """
     Class for Convolution2d-Batchnorm2d-Activation layer.
         Default behaviour is Conv-BN-Act. To exclude Batchnorm module use
@@ -40,11 +41,13 @@ class ConvBNAct(nn.Module):
         if activation_kwargs is None:
             activation_kwargs = {}
 
+        self.in_channels = in_channels
+
         self.seq = nn.Sequential()
         self.seq.add_module(
             "conv",
             nn.Conv2d(
-                in_channels,
+                self.in_channels,
                 out_channels,
                 kernel_size=kernel_size,
                 stride=stride,
@@ -67,6 +70,12 @@ class ConvBNAct(nn.Module):
     def forward(self, x):
         return self.seq(x)
 
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+
+        self.in_channels = in_channels
+        self.seq[0] = compute_new_weights(module=self.seq[0], in_channels=self.in_channels, fn=compute_new_weights_fn)
+
 
 class Conv(nn.Module):
     # STANDARD CONVOLUTION
@@ -76,7 +85,8 @@ class Conv(nn.Module):
     def __init__(self, input_channels, output_channels, kernel, stride, activation_type: Type[nn.Module], padding: int = None, groups: int = None):
         super().__init__()
 
-        self.conv = nn.Conv2d(input_channels, output_channels, kernel, stride, autopad(kernel, padding), groups=groups or 1, bias=False)
+        self.in_channels = input_channels
+        self.conv = nn.Conv2d(self.in_channels, output_channels, kernel, stride, autopad(kernel, padding), groups=groups or 1, bias=False)
         self.bn = nn.BatchNorm2d(output_channels)
         self.act = activation_type()
 
@@ -85,3 +95,9 @@ class Conv(nn.Module):
 
     def fuseforward(self, x):
         return self.act(self.conv(x))
+
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+
+        self.in_channels = in_channels
+        self.conv = compute_new_weights(module=self.conv, in_channels=self.in_channels, fn=compute_new_weights_fn)
