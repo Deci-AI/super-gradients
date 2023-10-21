@@ -124,12 +124,16 @@ def attach_tensorrt_nms(
     """
     Attach TensorRT NMS plugin to the ONNX model
 
-    :param onnx_model_path:
-    :param output_onnx_model_path:
-    :param max_predictions_per_image: Maximum number of predictions per image
-    :param precision:
-    :param batch_size:
-    :return:
+    :param onnx_model_path:           Path to the original model in ONNX format to attach the NMS plugin to.
+    :param output_onnx_model_path:    Path to save the new ONNX model with the NMS plugin attached.
+    :param num_pre_nms_predictions:   Number of predictions that goes into NMS.
+    :param max_predictions_per_image: Maximum number of predictions per image (after NMS).
+    :param batch_size:                Batch size of the model.
+    :param confidence_threshold:      Confidence threshold for NMS step.
+    :param nms_threshold:             NMS IoU threshold.
+    :param output_predictions_format: Output predictions format.
+    :param device:                    Device to run the model on.
+    :param onnx_export_kwargs:        Additional kwargs to pass to torch.onnx.export
     """
 
     graph = gs.import_onnx(onnx.load(onnx_model_path))
