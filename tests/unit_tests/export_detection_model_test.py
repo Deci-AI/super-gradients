@@ -648,7 +648,8 @@ class TestDetectionModelExport(unittest.TestCase):
                     np.testing.assert_allclose(flat_predictions_torch.numpy(), flat_predictions_onnx, rtol=1e-3, atol=1e-3)
 
     def test_onnx_nms_flat_result(self):
-        max_predictions = 100
+        num_pre_nms_predictions = 1024
+        max_predictions_per_image = 128
         batch_size = 7
 
         if torch.cuda.is_available():
@@ -658,38 +659,52 @@ class TestDetectionModelExport(unittest.TestCase):
             available_devices = ["cpu"]
             available_dtypes = [torch.float32]
 
-        for device in available_devices:
-            for dtype in available_dtypes:
+        for max_detections in [0, num_pre_nms_predictions // 2, num_pre_nms_predictions, num_pre_nms_predictions * 2]:
+            for device in available_devices:
+                for dtype in available_dtypes:
 
-                # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
-                # And also can handle dynamic shapes input
-                pred_boxes = torch.randn((batch_size, max_predictions, 4), dtype=dtype)
-                pred_scores = torch.randn((batch_size, max_predictions, 40), dtype=dtype)
-                selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
+                    # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
+                    # And also can handle dynamic shapes input
+                    pred_boxes = torch.randn((batch_size, num_pre_nms_predictions, 4), dtype=dtype)
+                    pred_scores = torch.randn((batch_size, num_pre_nms_predictions, 40), dtype=dtype)
 
-                torch_module = PickNMSPredictionsAndReturnAsFlatResult(
-                    batch_size=batch_size, num_pre_nms_predictions=max_predictions, max_predictions_per_image=max_predictions
-                )
-                torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
+                    selected_indexes = []
+                    for batch_index in range(batch_size):
+                        # num_detections = random.randrange(0, max_detections) if max_detections > 0 else 0
+                        num_detections = max_detections
+                        for _ in range(num_detections):
+                            selected_indexes.append([batch_index, random.randrange(0, 40), random.randrange(0, num_pre_nms_predictions)])
+                    selected_indexes = torch.tensor(selected_indexes, dtype=torch.int64).view(-1, 3)
 
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    onnx_file = os.path.join(temp_dir, "PickNMSPredictionsAndReturnAsFlatResult.onnx")
-                    graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph(
-                        batch_size=batch_size, num_pre_nms_predictions=max_predictions, max_predictions_per_image=max_predictions, device=device, dtype=dtype
+                    torch_module = PickNMSPredictionsAndReturnAsFlatResult(
+                        batch_size=batch_size, num_pre_nms_predictions=num_pre_nms_predictions, max_predictions_per_image=max_predictions_per_image
                     )
+                    torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
 
-                    model = gs.export_onnx(graph)
-                    onnx.checker.check_model(model)
-                    onnx.save(model, onnx_file)
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        onnx_file = os.path.join(temp_dir, "PickNMSPredictionsAndReturnAsFlatResult.onnx")
+                        graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph(
+                            batch_size=batch_size,
+                            num_pre_nms_predictions=num_pre_nms_predictions,
+                            max_predictions_per_image=max_predictions_per_image,
+                            device=device,
+                            dtype=dtype,
+                        )
 
-                    session = onnxruntime.InferenceSession(onnx_file)
+                        model = gs.export_onnx(graph)
+                        onnx.checker.check_model(model)
+                        onnx.save(model, onnx_file)
 
-                    inputs = [o.name for o in session.get_inputs()]
-                    outputs = [o.name for o in session.get_outputs()]
+                        session = onnxruntime.InferenceSession(onnx_file)
 
-                    [onnx_result] = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+                        inputs = [o.name for o in session.get_inputs()]
+                        outputs = [o.name for o in session.get_outputs()]
 
-                    np.testing.assert_allclose(torch_result.numpy(), onnx_result, rtol=1e-3, atol=1e-3)
+                        [onnx_result] = session.run(
+                            outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()}
+                        )
+
+                        np.testing.assert_allclose(torch_result.numpy(), onnx_result, rtol=1e-3, atol=1e-3)
 
     def test_onnx_nms_batch_result(self):
         num_pre_nms_predictions = 1024

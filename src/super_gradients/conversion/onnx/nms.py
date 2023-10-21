@@ -157,6 +157,12 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
 
 
 class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
+    """
+    Select the output from ONNX NMS node and return them in flat format.
+
+    This module is NOT compatible with TensorRT engine (Tested on TensorRT 8.4.2, 8.5.3 and 8.6.1) when using batch size > 1.
+    """
+
     __constants__ = ("batch_size", "num_pre_nms_predictions", "max_predictions_per_image")
 
     def __init__(self, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int):
@@ -191,22 +197,25 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
 
         if self.batch_size > 1:
             # Compute a mask of shape [N,B] where each row contains True if the corresponding prediction belongs to the corresponding batch index
-            detections_in_images_mask = batch_indexes.view(-1, 1) == torch.arange(self.batch_size, dtype=batch_indexes.dtype, device=batch_indexes.device).view(
-                1, -1
-            )
+            image_index = torch.arange(self.batch_size, dtype=batch_indexes.dtype, device=batch_indexes.device)
+
+            detections_in_images_mask = image_index.view(1, self.batch_size) == batch_indexes.view(-1, 1)  # [num_selected_indices, B]
+
+            # Compute total number of detections per image
+            num_detections_per_image = torch.sum(detections_in_images_mask, dim=0, keepdim=True)  # [1, B]
+
+            # Cap the number of detections per image to max_predictions_per_image
+            num_detections_per_image = torch.clamp_max(num_detections_per_image, self.max_predictions_per_image)  # [1, B]
 
             # Calculate cumulative count of selected predictions for each batch index
-            # This will give us a tensor of shape [num_selected_indices] where the value at each position
+            # This will give us a tensor of shape [num_selected_indices, B] where the value at each position
             # represents the number of predictions for the corresponding batch index up to that position.
-            cumulative_counts = detections_in_images_mask.float().cumsum(dim=0)  # [N,B]
-
-            num_detections_per_image = torch.sum(detections_in_images_mask, dim=0, keepdim=True)  # [N, B]
-            num_detections_per_image = torch.clamp_max(num_detections_per_image, self.max_predictions_per_image)  # [N, B]
+            cumulative_counts = detections_in_images_mask.float().cumsum(dim=0)  # [num_selected_indices, B]
 
             # Create a mask to ensure we only keep max_predictions_per_image detections per image
             mask = ((cumulative_counts <= num_detections_per_image) & detections_in_images_mask).any(dim=1, keepdim=False)  # [N]
 
-            final_results = flat_results[mask]
+            final_results = flat_results[mask > 0]
         else:
             final_results = flat_results[: self.max_predictions_per_image]
 
@@ -242,7 +251,7 @@ class PickNMSPredictionsAndReturnAsFlatResult(nn.Module):
                     "pred_boxes": {},
                     "pred_scores": {2: "num_classes"},
                     "selected_indexes": {0: "num_predictions"},
-                    "flat_predictions": {0: "num_predictions"},
+                    "flat_predictions": {0: "num_output_predictions"},
                 },
                 **onnx_export_kwargs,
             )
