@@ -607,43 +607,44 @@ class TestDetectionModelExport(unittest.TestCase):
             available_devices = ["cpu"]
             available_dtypes = [torch.float32]
 
-        for device in available_devices:
-            for dtype in available_dtypes:
+        for num_predictions_max in [0, max_predictions_per_image // 2, max_predictions_per_image]:
+            for device in available_devices:
+                for dtype in available_dtypes:
 
-                num_detections = torch.randint(1, max_predictions_per_image, (batch_size, 1), dtype=torch.int32)
-                detection_boxes = torch.randn((batch_size, max_predictions_per_image, 4), dtype=dtype)
-                detection_scores = torch.randn((batch_size, max_predictions_per_image), dtype=dtype)
-                detection_classes = torch.randint(0, 80, (batch_size, max_predictions_per_image), dtype=torch.int32)
+                    num_detections = torch.randint(0, num_predictions_max + 1, (batch_size, 1), dtype=torch.int32)
+                    detection_boxes = torch.randn((batch_size, max_predictions_per_image, 4), dtype=dtype)
+                    detection_scores = torch.randn((batch_size, max_predictions_per_image)).sigmoid().to(dtype)
+                    detection_classes = torch.randint(0, 80, (batch_size, max_predictions_per_image), dtype=torch.int32)
 
-                torch_module = ConvertTRTFormatToFlatTensor(batch_size, max_predictions_per_image)
-                flat_predictions_torch = torch_module(num_detections, detection_boxes, detection_scores, detection_classes)
-                print(flat_predictions_torch.shape, flat_predictions_torch.dtype, flat_predictions_torch)
+                    torch_module = ConvertTRTFormatToFlatTensor(batch_size, max_predictions_per_image)
+                    flat_predictions_torch = torch_module(num_detections, detection_boxes, detection_scores, detection_classes)
+                    print(flat_predictions_torch.shape, flat_predictions_torch.dtype, flat_predictions_torch)
 
-                onnx_file = "ConvertTRTFormatToFlatTensor.onnx"
+                    onnx_file = "ConvertTRTFormatToFlatTensor.onnx"
 
-                graph = ConvertTRTFormatToFlatTensor.as_graph(
-                    batch_size=batch_size, max_predictions_per_image=max_predictions_per_image, dtype=dtype, device=device
-                )
-                model = gs.export_onnx(graph)
-                onnx.checker.check_model(model)
-                onnx.save(model, onnx_file)
+                    graph = ConvertTRTFormatToFlatTensor.as_graph(
+                        batch_size=batch_size, max_predictions_per_image=max_predictions_per_image, dtype=dtype, device=device
+                    )
+                    model = gs.export_onnx(graph)
+                    onnx.checker.check_model(model)
+                    onnx.save(model, onnx_file)
 
-                session = onnxruntime.InferenceSession(onnx_file)
+                    session = onnxruntime.InferenceSession(onnx_file)
 
-                inputs = [o.name for o in session.get_inputs()]
-                outputs = [o.name for o in session.get_outputs()]
+                    inputs = [o.name for o in session.get_inputs()]
+                    outputs = [o.name for o in session.get_outputs()]
 
-                [flat_predictions_onnx] = session.run(
-                    output_names=outputs,
-                    input_feed={
-                        inputs[0]: num_detections.numpy(),
-                        inputs[1]: detection_boxes.numpy(),
-                        inputs[2]: detection_scores.numpy(),
-                        inputs[3]: detection_classes.numpy(),
-                    },
-                )
+                    [flat_predictions_onnx] = session.run(
+                        output_names=outputs,
+                        input_feed={
+                            inputs[0]: num_detections.numpy(),
+                            inputs[1]: detection_boxes.numpy(),
+                            inputs[2]: detection_scores.numpy(),
+                            inputs[3]: detection_classes.numpy(),
+                        },
+                    )
 
-                np.testing.assert_allclose(flat_predictions_torch.numpy(), flat_predictions_onnx, rtol=1e-3, atol=1e-3)
+                    np.testing.assert_allclose(flat_predictions_torch.numpy(), flat_predictions_onnx, rtol=1e-3, atol=1e-3)
 
     def test_onnx_nms_flat_result(self):
         max_predictions = 100
