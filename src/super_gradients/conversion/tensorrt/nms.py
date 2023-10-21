@@ -106,7 +106,6 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
             convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
             convert_format_graph = convert_format_graph.fold_constants().cleanup().toposort()
             convert_format_graph = iteratively_infer_shapes(convert_format_graph)
-            # convert_format_graph.outputs[0].shape = [-1, 7] # TODO Check whether it is needed
             return convert_format_graph
 
 
