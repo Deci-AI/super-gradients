@@ -190,9 +190,9 @@ class CSPDarknet53(SgModule):
                 deprecated_since="3.3.0",
                 removed_from="4.0.0",
             )
-            self.in_channels = get_param(arch_params, "channels_in")
+            in_channels = get_param(arch_params, "channels_in")
         else:
-            self.in_channels = get_param(arch_params, "in_channels", 3)
+            in_channels = get_param(arch_params, "in_channels", 3)
 
         yolo_type = get_param(arch_params, "yolo_type", "yoloX")
         depthwise = get_param(arch_params, "depthwise", False)
@@ -204,7 +204,7 @@ class CSPDarknet53(SgModule):
         self._modules_list = nn.ModuleList()
 
         if get_param(arch_params, "stem_type") == "6x6" or yolo_type == "yoloX":
-            self._modules_list.append(Conv(self.in_channels, width_mult(64), 6, 2, activation_type, padding=2))  # 0
+            self._modules_list.append(Conv(in_channels, width_mult(64), 6, 2, activation_type, padding=2))  # 0
         else:
             raise NotImplementedError(f"Yolo type: {yolo_type} is not supported")
 
@@ -231,6 +231,5 @@ class CSPDarknet53(SgModule):
         return self._modules_list(x)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         first_block: Conv = self._modules_list[0]  # noqa
         first_block.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)

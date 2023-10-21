@@ -84,9 +84,8 @@ class ResNeXt(BaseClassifier):
         self.dilation = 1
         self.inplanes = 64
         self.base_width = bottleneck_width
-        self.in_channels = in_channels
 
-        self.conv1 = nn.Conv2d(self.in_channels, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(self.inplanes)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(GroupedConvBlock, 64, layers[0])
@@ -139,7 +138,6 @@ class ResNeXt(BaseClassifier):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
-        self.in_channels = in_channels
         self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
 
 

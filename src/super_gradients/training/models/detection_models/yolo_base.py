@@ -722,7 +722,6 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
 
-        self.in_channels = in_channels
         if isinstance(self._backbone, SupportsReplaceInChannels):
             self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:

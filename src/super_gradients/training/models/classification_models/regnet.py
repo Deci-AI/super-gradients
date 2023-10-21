@@ -36,8 +36,7 @@ class Head(nn.Module):  # From figure 3
 class Stem(nn.Module):  # From figure 3
     def __init__(self, in_channels, out_channels):
         super(Stem, self).__init__()
-        self.in_channels = in_channels
-        self.conv = nn.Conv2d(self.in_channels, out_channels, kernel_size=3, stride=2, padding=1, bias=False)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn = nn.BatchNorm2d(out_channels)
         self.rl = nn.ReLU()
 
@@ -50,7 +49,6 @@ class Stem(nn.Module):  # From figure 3
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
-        self.in_channels = in_channels
         self.conv = compute_new_weights(module=self.conv, in_channels=in_channels, fn=compute_new_weights_fn)
 
 
@@ -134,13 +132,11 @@ class AnyNetX(BaseClassifier):
         input_channels=3,
     ):
         super(AnyNetX, self).__init__()
-        self.in_channels = input_channels
-
         verify_correctness_of_parameters(ls_num_blocks, ls_block_width, ls_bottleneck_ratio, ls_group_width)
         self.net = nn.Sequential()
         self.backbone_mode = backbone_mode
         prev_block_width = 32
-        self.net.add_module("stem", Stem(in_channels=self.in_channels, out_channels=prev_block_width))
+        self.net.add_module("stem", Stem(in_channels=input_channels, out_channels=prev_block_width))
 
         for i, (num_blocks, block_width, bottleneck_ratio, group_width) in enumerate(zip(ls_num_blocks, ls_block_width, ls_bottleneck_ratio, ls_group_width)):
             self.net.add_module(
@@ -180,7 +176,6 @@ class AnyNetX(BaseClassifier):
             self.net.head = Head(self.ls_block_width[-1], new_num_classes, self.dropout_prob)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         stem: Stem = self.net[0]
         stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 

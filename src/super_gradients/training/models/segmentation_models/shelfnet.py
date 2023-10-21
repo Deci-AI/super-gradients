@@ -432,8 +432,6 @@ class ShelfNetBase(ShelfNetModuleBase):
         super().__init__()
         self.net_output_mid_channels_num = net_output_mid_channels_num
         self.backbone = backbone(self.num_classes)
-        self.in_channels = self.backbone.in_channels
-
         self.layers = layers
         self.planes = planes
 
@@ -463,8 +461,11 @@ class ShelfNetBase(ShelfNetModuleBase):
         return param_groups
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    @property
+    def in_channels(self):
+        return self.backbone.in_channels
 
 
 class ShelfNetHW(ShelfNetBase):

@@ -97,7 +97,6 @@ class PPLiteSegEncoder(nn.Module, SupportsReplaceInChannels):
         return feats + [y]
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
@@ -299,7 +298,6 @@ class PPLiteSegBase(SegmentationModule):
                 module.replace_num_classes(new_num_classes)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         self.encoder.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 

@@ -147,7 +147,6 @@ class CSPResNetBackbone(nn.Module, SupportsReplaceInChannels):
         super().__init__()
         channels = [max(round(num_channels * width_mult), 1) for num_channels in channels]
         layers = [max(round(num_layers * depth_mult), 1) for num_layers in layers]
-        self.in_channels = in_channels
 
         if use_large_stem:
             self.stem = nn.Sequential(
@@ -247,6 +246,5 @@ class CSPResNetBackbone(nn.Module, SupportsReplaceInChannels):
         return tuple(self._out_channels)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         first_layer: ConvBNAct = self.stem[0]
         first_layer.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)

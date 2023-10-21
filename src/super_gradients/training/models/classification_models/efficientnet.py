@@ -446,9 +446,9 @@ class EfficientNet(BaseClassifier):
         Conv2d = get_same_padding_conv2d(image_size=image_size)
 
         # Stem
-        self.in_channels = 3  # rgb
+        in_channels = 3  # rgb
         out_channels = round_filters(32, width_coefficient, depth_divisor, min_depth)  # number of output channels
-        self._conv_stem = Conv2d(self.in_channels, out_channels, kernel_size=3, stride=2, bias=False)
+        self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
         self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         image_size = calculate_output_image_size(image_size, 2)
 
@@ -542,8 +542,8 @@ class EfficientNet(BaseClassifier):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import replace_in_channels_with_random_weights
 
+        # FIXME remove and use new func
         compute_new_weights_fn = compute_new_weights_fn or replace_in_channels_with_random_weights
-        self.in_channels = in_channels
         self._conv_stem = compute_new_weights_fn(module=self._conv_stem, in_channels=in_channels)
 
     def load_state_dict(self, state_dict: dict, strict: bool = True):

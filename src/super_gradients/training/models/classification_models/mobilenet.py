@@ -33,9 +33,7 @@ class MobileNet(BaseClassifier, SupportsReplaceInChannels):
     def __init__(self, num_classes=10, backbone_mode=False, up_to_layer=None, in_channels: int = 3):
         super(MobileNet, self).__init__()
         self.backbone_mode = backbone_mode
-        self.in_channels = in_channels
-
-        self.conv1 = nn.Conv2d(self.in_channels, 32, kernel_size=3, stride=2, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(32)
         self.layers = self._make_layers(in_planes=32, up_to_layer=up_to_layer if up_to_layer is not None else len(self.cfg))
 
@@ -68,7 +66,6 @@ class MobileNet(BaseClassifier, SupportsReplaceInChannels):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import replace_in_channels_with_random_weights
 
+        # FIXME use new func
         compute_new_weights_fn = compute_new_weights_fn or replace_in_channels_with_random_weights
-
-        self.in_channels = in_channels
         self.conv1 = compute_new_weights_fn(module=self.conv1, in_channels=in_channels)

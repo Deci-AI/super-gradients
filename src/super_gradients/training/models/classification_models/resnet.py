@@ -90,9 +90,8 @@ class CifarResNet(BaseClassifier):
         self.expansion = expansion
         self.structure = [num_blocks, width_mult]
         self.in_planes = width_multiplier(64, width_mult)
-        self.in_channels = in_channels
 
-        self.conv1 = nn.Conv2d(self.in_channels, width_multiplier(64, width_mult), kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, width_multiplier(64, width_mult), kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(width_multiplier(64, width_mult))
         self.layer1 = self._make_layer(block, width_multiplier(64, width_mult), num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, width_multiplier(128, width_mult), num_blocks[1], stride=2)
@@ -131,7 +130,6 @@ class CifarResNet(BaseClassifier):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
-        self.in_channels = in_channels
         self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
 
 
@@ -154,12 +152,11 @@ class ResNet(BaseClassifier):
         self.structure = [num_blocks, width_mult]
         self.in_planes = width_multiplier(64, width_mult)
         self.input_batchnorm = input_batchnorm
-        self.in_channels = in_channels
 
         if self.input_batchnorm:
-            self.bn0 = nn.BatchNorm2d(num_features=self.in_channels)
+            self.bn0 = nn.BatchNorm2d(num_features=in_channels)
 
-        self.conv1 = nn.Conv2d(self.in_channels, width_multiplier(64, width_mult), kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, width_multiplier(64, width_mult), kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(width_multiplier(64, width_mult))
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
@@ -245,8 +242,6 @@ class ResNet(BaseClassifier):
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
-
-        self.in_channels = in_channels
 
         if self.input_batchnorm:
             self.bn0 = nn.BatchNorm2d(num_features=self.in_channels)

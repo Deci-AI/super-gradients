@@ -93,7 +93,6 @@ class STDCBlock(nn.Module):
         return out
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         first_conv: ConvBNReLU = self.conv_list[0]  # noqa
         first_conv.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
@@ -102,8 +101,6 @@ class AbstractSTDCBackbone(nn.Module, SupportsReplaceInChannels, ABC):
     """
     All backbones for STDC segmentation models must implement this class.
     """
-
-    in_channels: int
 
     def validate_backbone(self):
         if len(self.get_backbone_output_number_of_channels()) != 3:
@@ -209,8 +206,6 @@ class STDCBackbone(AbstractSTDCBackbone):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.module_interfaces import SupportsReplaceInChannels
 
-        self.in_channels = in_channels
-
         first_stage: nn.Sequential = next(iter(self.stages.values()))  # noqa
         first_block = first_stage[0]
 
@@ -228,8 +223,6 @@ class STDCClassificationBase(SgModule):
     def __init__(self, backbone: STDCBackbone, num_classes: int, dropout: float):
         super(STDCClassificationBase, self).__init__()
         self.backbone = backbone
-        self.in_channels = backbone.in_channels
-
         last_channels = self.backbone.out_widths[-1]
         head_channels = max(1024, last_channels)
 
@@ -267,8 +260,11 @@ class STDCClassificationBase(SgModule):
         return out
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    @property
+    def in_channels(self):
+        return self.backbone.in_channels
 
 
 @register_model(Models.STDC_CUSTOM_CLS)
@@ -419,7 +415,6 @@ class ContextPath(nn.Module):
         self.context_embedding.to_fixed_size(context_embedding_up_size)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 
@@ -452,7 +447,6 @@ class STDCSegmentationBase(SgModule):
         super(STDCSegmentationBase, self).__init__()
         backbone.validate_backbone()
         self._use_aux_heads = use_aux_heads
-        self.in_channels = backbone.in_channels
 
         self.cp = ContextPath(backbone, context_fuse_channels, use_aux_heads=use_aux_heads)
 
@@ -615,8 +609,11 @@ class STDCSegmentationBase(SgModule):
         return multiply_lr_params.items(), no_multiply_params.items()
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         self.cp.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    @property
+    def in_channels(self):
+        return self.backbone.in_channels
 
 
 @register_model(Models.STDC_CUSTOM)

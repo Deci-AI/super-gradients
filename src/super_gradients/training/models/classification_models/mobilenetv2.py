@@ -108,7 +108,7 @@ class MobileNetV2(MobileNetBase):
         in_channels=3,
     ) -> object:
         super(MobileNetV2, self).__init__()
-        self.in_channels = in_channels
+        self.in_channels = in_channels  # FIXME: handle this
         block = InvertedResidual
         last_channel = 1280
         # IF STRUCTURE IS NONE - USE THE DEFAULT STRUCTURE NOTED
@@ -126,7 +126,7 @@ class MobileNetV2(MobileNetBase):
         self.last_channel = make_divisible(last_channel * width_mult) if width_mult > 1.0 else last_channel
 
         curr_channels = 32
-        self.features = [conv_bn(self.in_channels, curr_channels, stride=2)]
+        self.features = [conv_bn(in_channels, curr_channels, 2)]
         # building inverted residual blocks
         for t, c, n, s in self.interverted_residual_setting:
             output_channel = make_divisible(c * width_mult) if t > 1 else c
@@ -192,7 +192,6 @@ class MobileNetV2(MobileNetBase):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
-        self.in_channels = in_channels
         self.features[0] = compute_new_weights(module=self.features[0], in_channels=in_channels, fn=compute_new_weights_fn)
 
 

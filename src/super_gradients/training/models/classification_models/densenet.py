@@ -87,13 +87,12 @@ class DenseNet(BaseClassifier):
         :param in_channels:         number of channels in the input image
         """
         super(DenseNet, self).__init__()
-        self.in_channels = in_channels
 
         # First convolution
         self.features = nn.Sequential(
             OrderedDict(
                 [
-                    ("conv0", nn.Conv2d(self.in_channels, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
+                    ("conv0", nn.Conv2d(in_channels, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
                     ("norm0", nn.BatchNorm2d(num_init_features)),
                     ("relu0", nn.ReLU(inplace=True)),
                     ("pool0", nn.MaxPool2d(kernel_size=3, stride=2, padding=1)),
@@ -139,7 +138,6 @@ class DenseNet(BaseClassifier):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
-        self.in_channels = in_channels
         self.features[0] = compute_new_weights(module=self.features[0], in_channels=in_channels, fn=compute_new_weights_fn)
 
 

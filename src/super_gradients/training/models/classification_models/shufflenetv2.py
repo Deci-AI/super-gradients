@@ -133,10 +133,9 @@ class ShuffleNetV2Base(BaseClassifier):
         self.structure = structure
         self.out_channels = stages_out_channels
 
-        self.in_channels = in_channels
         output_channels = self.out_channels[0]
         self.conv1 = nn.Sequential(
-            nn.Conv2d(self.in_channels, output_channels, 3, 2, 1, bias=False),
+            nn.Conv2d(in_channels, output_channels, 3, 2, 1, bias=False),
             nn.BatchNorm2d(output_channels),
             nn.ReLU(inplace=True),
         )
@@ -205,7 +204,6 @@ class ShuffleNetV2Base(BaseClassifier):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
-        self.in_channels = in_channels
         self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
 
 

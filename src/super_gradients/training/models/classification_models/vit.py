@@ -163,7 +163,6 @@ class ViT(BaseClassifier):
 
         self.image_size = image_size
         self.patch_size = patch_size
-        self.in_channels = in_channels
         self.hidden_dim = hidden_dim
         self.patch_embedding = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=in_channels, hidden_dim=self.hidden_dim)
 
@@ -203,7 +202,6 @@ class ViT(BaseClassifier):
             self.head = nn.Linear(self.head.in_features, new_num_classes)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         self.patch_embedding = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=in_channels, hidden_dim=self.hidden_dim)
 
 

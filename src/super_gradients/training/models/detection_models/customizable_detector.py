@@ -59,7 +59,6 @@ class CustomizableDetector(HasPredict, SgModule):
         super().__init__()
 
         self.heads_params = heads
-        self.backbone_params = backbone
         self.bn_eps = bn_eps
         self.bn_momentum = bn_momentum
         self.inplace_act = inplace_act
@@ -70,7 +69,7 @@ class CustomizableDetector(HasPredict, SgModule):
         if num_classes is not None:
             self.heads_params = factory.insert_module_param(self.heads_params, "num_classes", num_classes)
 
-        self.backbone = factory.get(factory.insert_module_param(self.backbone_params, "in_channels", 5))
+        self.backbone = factory.get(factory.insert_module_param(backbone, "in_channels", in_channels))
         if neck is not None:
             self.neck = factory.get(factory.insert_module_param(neck, "in_channels", self.backbone.out_channels))
             self.heads = factory.get(factory.insert_module_param(heads, "in_channels", self.neck.out_channels))
@@ -119,14 +118,10 @@ class CustomizableDetector(HasPredict, SgModule):
             self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)
 
     def replace_in_channels(self, in_channels: int):
-        factory = det_factory.DetectionModulesFactory()
-        self.in_channels = in_channels
         if isinstance(self.backbone, SupportsReplaceInChannels):
             self.backbone.replace_in_channels(self.in_channels, replace_in_channels_with_random_weights)
         else:
-            self.heads_params = factory.insert_module_param(self.heads_params, "in_channels", self.in_channels)
-            self.backbone = factory.get(self.backbone_params)
-            self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)  # TODO: check if this is needed
+            raise  # FIXME
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:

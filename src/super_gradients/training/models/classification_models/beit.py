@@ -324,8 +324,7 @@ class Beit(BaseClassifier):
 
         self.image_size = image_size
         self.patch_size = patch_size
-        self.in_channels = in_chans
-        self.patch_embed = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=self.in_channels, hidden_dim=self.embed_dim)
+        self.patch_embed = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=in_chans, hidden_dim=self.embed_dim)
         num_patches = self.patch_embed.num_patches
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
@@ -457,7 +456,6 @@ class Beit(BaseClassifier):
             self.head = nn.Linear(self.head.in_features, new_num_classes)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         self.patch_embed = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=in_channels, hidden_dim=self.embed_dim)
 
 

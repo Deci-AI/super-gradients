@@ -87,7 +87,6 @@ class NStageBackbone(BaseDetectionModule, SupportsReplaceInChannels):
         return outputs
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         if isinstance(self.stem, SupportsReplaceInChannels):
             self.stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
@@ -193,7 +192,6 @@ class MultiOutputBackbone(BaseDetectionModule, SupportsReplaceInChannels):
 
     def __init__(self, in_channels: int, backbone: nn.Module, out_layers: List):
         super().__init__(in_channels)
-        self.in_channels = in_channels
         self.multi_output_backbone = MultiOutputModule(module=backbone, output_paths=out_layers)
         self._out_channels = [x.shape[1] for x in self.forward(torch.empty((1, in_channels, 64, 64)))]
 
@@ -205,7 +203,6 @@ class MultiOutputBackbone(BaseDetectionModule, SupportsReplaceInChannels):
         return self.multi_output_backbone(x)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         self.multi_output_backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
 

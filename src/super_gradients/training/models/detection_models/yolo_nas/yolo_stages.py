@@ -159,7 +159,7 @@ class YoloNASStem(BaseDetectionModule, SupportsReplaceInChannels):
         :param in_channels: Number of input channels
         :param out_channels: Number of output channels
         """
-        super().__init__(in_channels)
+        super().__init__(in_channels)  # FIXME: handle self.in_channels (?)
         self._out_channels = out_channels
         self.conv = QARepVGGBlock(in_channels, out_channels, stride=2, use_residual_connection=False)
 
@@ -171,7 +171,6 @@ class YoloNASStem(BaseDetectionModule, SupportsReplaceInChannels):
         return self.conv(x)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         # TODO: check if it makes sens to repalce the whole `QARepVGGBlock` - I think yes
         self.conv = QARepVGGBlock(self.in_channels, self._out_channels, stride=2, use_residual_connection=False)
 

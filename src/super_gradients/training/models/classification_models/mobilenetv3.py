@@ -126,9 +126,8 @@ class MobileNetV3(MobileNetBase):
         assert mode in ["large", "small"]
 
         # building first layer
-        self.in_channels = in_channels
         curr_channels = _make_divisible(16 * width_mult, 8)
-        layers = [conv_3x3_bn(self.in_channels, curr_channels, 2)]
+        layers = [conv_3x3_bn(in_channels, curr_channels, 2)]
         # building inverted residual blocks
         block = InvertedResidual
         for k, t, c, use_se, use_hs, s in self.cfgs:
@@ -177,7 +176,6 @@ class MobileNetV3(MobileNetBase):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
-        self.in_channels = in_channels
         self.features[0] = compute_new_weights(module=self.features[0], in_channels=in_channels, fn=compute_new_weights_fn)
 
 
