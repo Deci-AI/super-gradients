@@ -25,6 +25,17 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
     __constants__ = ("batch_size", "max_predictions_per_image")
 
     def __init__(self, batch_size: int, num_pre_nms_predictions: int, max_predictions_per_image: int):
+        """
+        Select the predictions from ONNX NMS node and return them in batch format.
+
+        :param batch_size:                A fixed batch size for the model
+        :param num_pre_nms_predictions:   The number of predictions before NMS step
+        :param max_predictions_per_image: Maximum number of predictions per image
+        """
+        if max_predictions_per_image > num_pre_nms_predictions:
+            raise ValueError(
+                f"max_predictions_per_image ({max_predictions_per_image}) cannot be greater than num_pre_nms_predictions ({num_pre_nms_predictions})"
+            )
         super().__init__()
         self.batch_size = batch_size
         self.num_pre_nms_predictions = num_pre_nms_predictions
@@ -68,26 +79,30 @@ class PickNMSPredictionsAndReturnAsBatchedResult(nn.Module):
 
             batch_predictions = torch.zeros((self.batch_size, self.max_predictions_per_image, 6), dtype=predictions.dtype, device=predictions.device)
 
-            image_indexes = torch.arange(start=0, end=self.batch_size, step=1, device=predictions.device).to(dtype=predictions.dtype)
-            masks = image_indexes.view(-1, 1).eq(batch_indexes.view(1, -1))  # [B, N]
+            image_indexes = torch.arange(start=0, end=self.batch_size, step=1, device=predictions.device)
+            masks = image_indexes.view(self.batch_size, 1) == batch_indexes.view(1, selected_indexes.size(0))  # [B, L]
 
-            num_predictions = torch.sum(masks, dim=1).long()
+            # Add dummy row to mask and predictions to ensure that we always have at least one prediction per image
+            # ONNX/TRT deals poorly with tensors that has zero dims, and we need to ensure that we always have at least one prediction per image
+            masks = torch.cat([masks, torch.zeros((self.batch_size, 1), dtype=masks.dtype, device=predictions.device)], dim=1)  # [B, L+1]
+            predictions = torch.cat([predictions, torch.zeros((1, 6), dtype=predictions.dtype, device=predictions.device)], dim=0)  # [L+1, 6]
+
+            num_predictions = torch.sum(masks, dim=1, keepdim=True).long()
             num_predictions_capped = torch.clamp_max(num_predictions, self.max_predictions_per_image)
 
             for i in range(self.batch_size):
                 selected_predictions = predictions[masks[i]]
-                pad_size = torch.clamp_min(self.max_predictions_per_image - selected_predictions.size(0), 0)
-
+                pad_size = self.num_pre_nms_predictions - selected_predictions.size(0)
+                selected_predictions = torch.nn.functional.pad(selected_predictions, [0, 0, 0, pad_size], value=-1, mode="constant")
                 selected_predictions = selected_predictions[0 : self.max_predictions_per_image]
-                selected_predictions_with_pad = torch.nn.functional.pad(selected_predictions, [0, 0, 0, pad_size], value=-1, mode="constant")
 
-                batch_predictions[i] = selected_predictions_with_pad[0 : self.max_predictions_per_image]
+                batch_predictions[i] = selected_predictions
 
             pred_boxes = batch_predictions[:, :, 0:4]
             pred_scores = batch_predictions[:, :, 4]
             pred_classes = batch_predictions[:, :, 5].long()
 
-            return num_predictions_capped.unsqueeze(1), pred_boxes, pred_scores, pred_classes
+            return num_predictions_capped, pred_boxes, pred_scores, pred_classes
 
     @classmethod
     def as_graph(

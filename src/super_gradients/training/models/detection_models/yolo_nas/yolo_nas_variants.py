@@ -75,10 +75,10 @@ class YoloNAS(ExportableObjectDetectionModel, CustomizableDetector):
 
     | Batch Size | Export Engine | Format | OnnxRuntime 1.13.1 | TensorRT 8.4.2 | TensorRT 8.5.3 | TensorRT 8.6.1 |
     |------------|---------------|--------|--------------------|----------------|----------------|----------------|
-    | 1          | ONNX          | Flat   | Yes                |                |                |
-    | >1         | ONNX          | Flat   | Yes                |                |                |
-    | 1          | ONNX          | Batch  | Yes                |                |                |
-    | >1         | ONNX          | Batch  | Yes                |                |                |
+    | 1          | ONNX          | Flat   | Yes                | Yes            | Yes            | Yes            |
+    | >1         | ONNX          | Flat   | Yes                | No             | No             | No             |
+    | 1          | ONNX          | Batch  | Yes                | No             | Yes            | Yes            |
+    | >1         | ONNX          | Batch  | Yes                | No             | No             | Yes            |
     | 1          | TensorRT      | Flat   | No                 | No             | Yes            | Yes            |
     | >1         | TensorRT      | Flat   | No                 | No             | Yes            | Yes            |
     | 1          | TensorRT      | Batch  | No                 | Yes            | Yes            | Yes            |
