@@ -132,6 +132,9 @@ class CifarResNet(BaseClassifier):
 
         self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
 
+    def get_input_channels(self) -> int:
+        return self.conv1.in_channels
+
 
 class ResNet(BaseClassifier):
     def __init__(
@@ -247,6 +250,9 @@ class ResNet(BaseClassifier):
             self.bn0 = nn.BatchNorm2d(num_features=self.in_channels)
 
         self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.conv1.in_channels
 
 
 @register_model(Models.RESNET18)

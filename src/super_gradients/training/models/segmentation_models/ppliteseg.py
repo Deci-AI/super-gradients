@@ -99,6 +99,12 @@ class PPLiteSegEncoder(nn.Module, SupportsReplaceInChannels):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
+    def get_input_channels(self) -> int:
+        if isinstance(self.backbone, SupportsReplaceInChannels):
+            return self.backbone.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `get_input_channels`")
+
 
 class PPLiteSegDecoder(nn.Module):
     """
@@ -299,6 +305,9 @@ class PPLiteSegBase(SegmentationModule):
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self.encoder.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.encoder.get_input_channels()
 
 
 @register_model(Models.PP_LITE_B_SEG)

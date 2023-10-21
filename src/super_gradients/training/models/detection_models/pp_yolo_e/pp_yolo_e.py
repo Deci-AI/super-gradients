@@ -125,9 +125,6 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
 
-    def get_input_channels(self) -> int:
-        return self.in_channels
-
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
 
@@ -250,6 +247,9 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.backbone.get_input_channels()
 
 
 @register_model(Models.PP_YOLOE_S)

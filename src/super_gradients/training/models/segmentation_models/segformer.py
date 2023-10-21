@@ -58,6 +58,9 @@ class PatchEmbedding(nn.Module):
 
         self.proj = compute_new_weights(module=self.proj, in_channels=in_channels, fn=compute_new_weights_fn)
 
+    def get_input_channels(self) -> int:
+        return self.proj.in_channels
+
 
 # TODO: extract this block to src/super_gradients/modules/transformer_modules and reuse the same module of Beit and
 #       other ViTs
@@ -255,6 +258,10 @@ class MiTBackBone(nn.Module, SupportsReplaceInChannels):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         first_patch: PatchEmbedding = self.patch_embed[0]
         first_patch.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        first_patch: PatchEmbedding = self.patch_embed[0]
+        return first_patch.get_input_channels()
 
 
 # TODO: extract this block to src/super_gradients/modules/transformer_modules and reuse the same module of Beit and
@@ -459,6 +466,9 @@ class SegFormer(SegmentationModule):
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self._backbone.get_input_channels()
 
 
 class SegFormerCustom(SegFormer):

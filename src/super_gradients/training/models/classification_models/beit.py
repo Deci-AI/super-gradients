@@ -458,6 +458,9 @@ class Beit(BaseClassifier):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self.patch_embed = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=in_channels, hidden_dim=self.embed_dim)
 
+    def get_input_channels(self) -> int:
+        return self.patch_embed.get_input_channels()
+
 
 @register_model(Models.BEIT_BASE_PATCH16_224)
 class BeitBasePatch16_224(Beit):

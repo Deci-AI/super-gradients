@@ -546,6 +546,9 @@ class EfficientNet(BaseClassifier):
         compute_new_weights_fn = compute_new_weights_fn or replace_in_channels_with_random_weights
         self._conv_stem = compute_new_weights_fn(module=self._conv_stem, in_channels=in_channels)
 
+    def get_input_channels(self) -> int:
+        return self._conv_stem.in_channels
+
     def load_state_dict(self, state_dict: dict, strict: bool = True):
         """
         load_state_dict - Overloads the base method and calls it to load a modified dict for usage as a backbone

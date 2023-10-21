@@ -248,3 +248,7 @@ class CSPResNetBackbone(nn.Module, SupportsReplaceInChannels):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         first_layer: ConvBNAct = self.stem[0]
         first_layer.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        first_layer: ConvBNAct = self.stem[0]
+        return first_layer.get_input_channels()

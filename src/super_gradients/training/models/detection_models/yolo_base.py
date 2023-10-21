@@ -325,6 +325,9 @@ class YoloDarknetBackbone(AbstractYoloBackbone, CSPDarknet53):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         CSPDarknet53.replace_in_channels(self, in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
+    def get_input_channels(self) -> int:
+        return CSPDarknet53.get_input_channels(self)
+
 
 class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
     """Implements the Regnet module and inherits the forward pass to extract layers indicated in arch_params"""
@@ -499,9 +502,6 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return YoloXPostPredictionCallback(conf=conf, iou=iou)
-
-    def get_input_channels(self) -> int:
-        return self.in_channels
 
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
@@ -721,11 +721,16 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         return YoloXDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions, **kwargs)
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-
         if isinstance(self._backbone, SupportsReplaceInChannels):
             self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
             raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_in_channels`")
+
+    def get_input_channels(self) -> int:
+        if isinstance(self._backbone, SupportsReplaceInChannels):
+            return self._backbone.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `get_input_channels`")
 
 
 class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):

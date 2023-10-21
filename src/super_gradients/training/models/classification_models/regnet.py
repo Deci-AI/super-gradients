@@ -51,6 +51,9 @@ class Stem(nn.Module):  # From figure 3
 
         self.conv = compute_new_weights(module=self.conv, in_channels=in_channels, fn=compute_new_weights_fn)
 
+    def get_input_channels(self) -> int:
+        return self.conv.in_channels
+
 
 class XBlock(nn.Module):  # From figure 4
     def __init__(self, in_channels, out_channels, bottleneck_ratio, group_width, stride, se_ratio=None, droppath_prob=0.0):
@@ -178,6 +181,10 @@ class AnyNetX(BaseClassifier):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         stem: Stem = self.net[0]
         stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        stem: Stem = self.net[0]
+        return stem.get_input_channels()
 
 
 def regnet_params_to_blocks(initial_width, slope, quantized_param, network_depth, bottleneck_ratio, group_width):

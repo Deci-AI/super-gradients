@@ -238,8 +238,7 @@ class BasicDDRBackBone(DDRBackBoneBase):
 
         self.stem[0][0] = compute_new_weights(module=self.stem[0][0], in_channels=in_channels, fn=compute_new_weights_fn)
 
-    @property
-    def in_channels(self):
+    def get_input_channels(self) -> int:
         return self.stem[0][0].in_channels
 
 
@@ -263,10 +262,9 @@ class RegnetDDRBackBone(DDRBackBoneBase):
         else:
             raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
 
-    @property
-    def in_channels(self):
+    def get_input_channels(self) -> int:
         if isinstance(self.stem, SupportsReplaceInChannels):
-            return self.stem.in_channels
+            return self.stem.get_input_channels()
         else:
             raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
 
@@ -534,9 +532,8 @@ class DDRNet(SegmentationModule):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
-    @property
-    def in_channels(self):
-        return self._backbone.in_channels
+    def get_input_channels(self) -> int:
+        return self._backbone.get_input_channels()
 
 
 class DDRNetCustom(DDRNet):

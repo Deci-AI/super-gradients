@@ -140,6 +140,9 @@ class ResNeXt(BaseClassifier):
 
         self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
 
+    def get_input_channels(self) -> int:
+        return self.conv1.in_channels
+
 
 class CustomizedResNeXt(ResNeXt):
     def __init__(self, arch_params):

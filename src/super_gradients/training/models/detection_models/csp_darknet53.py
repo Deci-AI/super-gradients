@@ -233,3 +233,7 @@ class CSPDarknet53(SgModule):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         first_block: Conv = self._modules_list[0]  # noqa
         first_block.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        first_block: Conv = self._modules_list[0]  # noqa
+        return first_block.get_input_channels()

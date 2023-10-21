@@ -463,9 +463,8 @@ class ShelfNetBase(ShelfNetModuleBase):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
-    @property
-    def in_channels(self):
-        return self.backbone.in_channels
+    def get_input_channels(self) -> int:
+        return self.backbone.get_input_channels()
 
 
 class ShelfNetHW(ShelfNetBase):

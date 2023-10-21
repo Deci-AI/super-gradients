@@ -73,6 +73,9 @@ class ConvBNAct(nn.Module, SupportsReplaceInChannels):
 
         self.seq[0] = compute_new_weights(module=self.seq[0], in_channels=in_channels, fn=compute_new_weights_fn)
 
+    def get_input_channels(self) -> int:
+        return self.seq[0].in_channels
+
 
 class Conv(nn.Module):
     # STANDARD CONVOLUTION
@@ -96,3 +99,6 @@ class Conv(nn.Module):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
         self.conv = compute_new_weights(module=self.conv, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.conv.in_channels

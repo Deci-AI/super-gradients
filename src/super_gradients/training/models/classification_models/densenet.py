@@ -140,6 +140,9 @@ class DenseNet(BaseClassifier):
 
         self.features[0] = compute_new_weights(module=self.features[0], in_channels=in_channels, fn=compute_new_weights_fn)
 
+    def get_input_channels(self) -> int:
+        return self.features[0].in_channels
+
 
 @register_model(Models.CUSTOM_DENSENET)
 class CustomizedDensnet(DenseNet):

@@ -172,7 +172,10 @@ class YoloNASStem(BaseDetectionModule, SupportsReplaceInChannels):
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         # TODO: check if it makes sens to repalce the whole `QARepVGGBlock` - I think yes
-        self.conv = QARepVGGBlock(self.in_channels, self._out_channels, stride=2, use_residual_connection=False)
+        self.conv = QARepVGGBlock(in_channels, self._out_channels, stride=2, use_residual_connection=False)
+
+    def get_input_channels(self) -> int:
+        return self.conv.in_channels
 
 
 @register_detection_module()

@@ -5,7 +5,7 @@ A base for a detection network built according to the following scheme:
  * each module accepts in_channels and other parameters
  * each module defines out_channels property on construction
 """
-from typing import Union, Optional, List
+from typing import Union, Optional, List, Callable
 from functools import lru_cache
 
 import torch
@@ -117,11 +117,17 @@ class CustomizableDetector(HasPredict, SgModule):
             self.heads = factory.get(factory.insert_module_param(self.heads_params, "in_channels", self.neck.out_channels))
             self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)
 
-    def replace_in_channels(self, in_channels: int):
+    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         if isinstance(self.backbone, SupportsReplaceInChannels):
-            self.backbone.replace_in_channels(self.in_channels, replace_in_channels_with_random_weights)
+            self.backbone.replace_in_channels(in_channels, replace_in_channels_with_random_weights)
         else:
-            raise  # FIXME
+            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `replace_in_channels`")
+
+    def get_input_channels(self) -> int:
+        if isinstance(self.backbone, SupportsReplaceInChannels):
+            return self.backbone.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `replace_in_channels`")
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
@@ -146,13 +152,6 @@ class CustomizableDetector(HasPredict, SgModule):
         self._image_processor = image_processor or self._image_processor
         self._default_nms_iou = iou or self._default_nms_iou
         self._default_nms_conf = conf or self._default_nms_conf
-
-    def get_input_channels(self) -> int:
-        """
-        Get the number of input channels for the model.
-        :return: (int) Number of input channels.
-        """
-        return self.in_channels
 
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor

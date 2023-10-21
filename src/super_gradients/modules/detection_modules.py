@@ -92,6 +92,12 @@ class NStageBackbone(BaseDetectionModule, SupportsReplaceInChannels):
         else:
             raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
 
+    def get_input_channels(self) -> int:
+        if isinstance(self.stem, SupportsReplaceInChannels):
+            return self.stem.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `get_input_channels`")
+
 
 @register_detection_module()
 class PANNeck(BaseDetectionModule):
@@ -204,6 +210,9 @@ class MultiOutputBackbone(BaseDetectionModule, SupportsReplaceInChannels):
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self.multi_output_backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.multi_output_backbone.get_input_channels()
 
 
 @register_detection_module()

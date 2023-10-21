@@ -300,6 +300,12 @@ class RegSeg(SgModule):
         else:
             raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_in_channels`")
 
+    def get_input_channels(self) -> int:
+        if isinstance(self.stem, SupportsReplaceInChannels):
+            return self.stem.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `get_input_channels`")
+
 
 @register_model(Models.REGSEG48)
 class RegSeg48(RegSeg):

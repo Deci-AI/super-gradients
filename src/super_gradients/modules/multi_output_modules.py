@@ -109,3 +109,10 @@ class MultiOutputModule(nn.Module, SupportsReplaceInChannels):
             module.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
             raise NotImplementedError(f"`{module.__class__.__name__}` does not support `replace_in_channels`")
+
+    def get_input_channels(self) -> int:
+        module = self._modules["0"]
+        if isinstance(module, SupportsReplaceInChannels):
+            return module.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{module.__class__.__name__}` does not support `get_input_channels`")

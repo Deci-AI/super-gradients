@@ -1,5 +1,5 @@
 import copy
-from typing import List, Tuple, Optional, Callable
+from typing import List, Tuple
 
 import torch
 from torch import nn, Tensor
@@ -85,12 +85,6 @@ class PoseRescoringNet(SgModule):
         feature = [joint_relate, joint_length, visibility]
         feature = torch.cat(feature, dim=-1)
         return feature
-
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
-
-        # TODO: check if this is correct. Im confused by `get_feature`
-        self.layers[0] = compute_new_weights(module=self.layers[0], in_channels=in_channels, fn=compute_new_weights_fn)
 
 
 @register_model(Models.POSE_RESCORING_COCO)

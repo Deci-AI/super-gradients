@@ -97,6 +97,5 @@ class SupportsReplaceInChannels(ABC):
         """
         raise NotImplementedError(f"`replace_in_channels` is not implemented in the derived class `{self.__class__.__name__}`")
 
-    @property
-    def in_channels(self):
-        raise NotImplementedError(f"`in_channels` is not implemented in the derived class `{self.__class__.__name__}`")
+    def get_input_channels(self) -> int:
+        raise NotImplementedError(f"`get_input_channels` is not implemented in the derived class `{self.__class__.__name__}`")

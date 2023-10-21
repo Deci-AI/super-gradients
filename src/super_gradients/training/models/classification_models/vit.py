@@ -39,6 +39,9 @@ class PatchEmbed(nn.Module):
         x = self.norm(x)
         return x
 
+    def get_input_channels(self) -> int:
+        return self.proj.in_channels
+
 
 class FeedForward(nn.Module):
     """
@@ -203,6 +206,9 @@ class ViT(BaseClassifier):
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self.patch_embedding = PatchEmbed(img_size=self.image_size, patch_size=self.patch_size, in_channels=in_channels, hidden_dim=self.hidden_dim)
+
+    def get_input_channels(self) -> int:
+        return self.patch_embedding.get_input_channels()
 
 
 @register_model(Models.VIT_BASE)
