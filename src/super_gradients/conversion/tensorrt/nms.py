@@ -20,6 +20,8 @@ gs = import_onnx_graphsurgeon_or_fail_with_instructions()
 
 class ConvertTRTFormatToFlatTensor(nn.Module):
     """
+    Convert the predictions from EfficientNMS_TRT node format to flat tensor format.
+
     This node is supported on TensorRT 8.5.3+
     """
 
@@ -53,27 +55,25 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
             torch.arange(start=0, end=self.batch_size, step=1, device=num_predictions.device).view(-1, 1).repeat(1, pred_scores.shape[1])
         )  # [B, max_predictions_per_image]
 
-        preds_indexes = (
-            torch.arange(start=0, end=self.max_predictions_per_image, step=1, device=num_predictions.device).view(1, -1, 1).repeat(self.batch_size, 1, 1)
-        )  # [B, max_predictions_per_image, 1]
+        preds_indexes = torch.arange(start=0, end=self.max_predictions_per_image, step=1, device=num_predictions.device).view(
+            1, -1
+        )  # [1, max_predictions_per_image]
 
         flat_predictions = torch.cat(
             [
-                preds_indexes.to(dtype=pred_scores.dtype),
                 batch_indexes.unsqueeze(-1).to(dtype=pred_scores.dtype),
                 pred_boxes,
                 pred_scores.unsqueeze(dim=-1),
                 pred_classes.unsqueeze(dim=-1).to(pred_scores.dtype),
             ],
             dim=-1,
-        )  # [B, max_predictions_per_image, 8]
+        )  # [B, max_predictions_per_image, 7]
 
-        num_predictions = num_predictions.repeat(1, self.max_predictions_per_image)  # [B, max_predictions_per_image]
-        mask: Tensor = (flat_predictions[:, :, 0] < num_predictions) & (flat_predictions[:, :, 1] == batch_indexes)  # [B, max_predictions_per_image]
+        mask: Tensor = preds_indexes < num_predictions.view((self.batch_size, 1))  # [B, max_predictions_per_image]
 
         #  Compatible
-        mask = torch.flatten(mask)
-        flat_predictions = flat_predictions[:, :, 1:8].reshape(self.max_predictions_per_image * self.batch_size, 7)
+        mask = mask.view(-1)
+        flat_predictions = flat_predictions.view(self.max_predictions_per_image * self.batch_size, 7)
         flat_predictions = flat_predictions[mask]  # [N, 7]
 
         return flat_predictions
@@ -86,7 +86,7 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
             onnx_export_kwargs = {}
 
         with tempfile.TemporaryDirectory() as tmpdirname:
-            onnx_file = os.path.join(tmpdirname, "ConvertTRTFormatToFlatTensor.onnx")
+            onnx_file = os.path.join(tmpdirname, "ConvertTRTFormatToFlatTensorTMP.onnx")
 
             num_detections = torch.randint(1, max_predictions_per_image, (batch_size, 1), dtype=torch.int32, device=device)
             pred_boxes = torch.zeros((batch_size, max_predictions_per_image, 4), dtype=dtype, device=device)
@@ -106,7 +106,7 @@ class ConvertTRTFormatToFlatTensor(nn.Module):
             convert_format_graph = gs.import_onnx(onnx.load(onnx_file))
             convert_format_graph = convert_format_graph.fold_constants().cleanup().toposort()
             convert_format_graph = iteratively_infer_shapes(convert_format_graph)
-            # convert_format_graph.outputs[0].shape = [-1, 7] TODO Check whether it is needed
+            # convert_format_graph.outputs[0].shape = [-1, 7] # TODO Check whether it is needed
             return convert_format_graph
 
 
