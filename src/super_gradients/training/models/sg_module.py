@@ -64,5 +64,5 @@ class SgModule(nn.Module, SupportsReplaceInputChannels):
 
         raise NotImplementedError
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         raise NotImplementedError

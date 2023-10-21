@@ -96,8 +96,8 @@ class PPLiteSegEncoder(nn.Module, SupportsReplaceInputChannels):
         feats = [conv(f) for conv, f in zip(self.proj_convs, feats)]
         return feats + [y]
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         if isinstance(self.backbone, SupportsReplaceInputChannels):
@@ -303,8 +303,8 @@ class PPLiteSegBase(SegmentationModule):
             if isinstance(module, SegmentationHead):
                 module.replace_num_classes(new_num_classes)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.encoder.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.encoder.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self.encoder.get_input_channels()

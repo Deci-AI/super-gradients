@@ -330,16 +330,16 @@ class QARepVGGBlock(nn.Module):
         else:
             self.partial_fusion()
 
-    # def replace_in_channels(self, new_in_channels: int):
+    # def replace_input_channels(self, new_in_channels: int):
     #     """
     #     Replace the in_channels of the block and initialize the new channels with random weights.
     #     """
     #     # Replace the 3x3 branch
-    #     new_branch_3x3_conv = replace_in_channels_with_random_weights(self.branch_3x3.conv, new_in_channels)
+    #     new_branch_3x3_conv = replace_input_channels_with_random_weights(self.branch_3x3.conv, new_in_channels)
     #     self.branch_3x3.conv = new_branch_3x3_conv
     #
     #     # Replace the 1x1 branch
-    #     new_branch_1x1_conv = replace_in_channels_with_random_weights(self.branch_1x1, new_in_channels)
+    #     new_branch_1x1_conv = replace_input_channels_with_random_weights(self.branch_1x1, new_in_channels)
     #     self.branch_1x1 = new_branch_1x1_conv
     #
     #     self.in_channels = new_in_channels

@@ -294,11 +294,11 @@ class RegSeg(SgModule):
     def replace_head(self, new_num_classes: int, head_config: dict):
         self.head = RegSegHead(self.decoder.out_channels, new_num_classes, head_config)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         if isinstance(self.stem, SupportsReplaceInputChannels):
-            self.stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+            self.stem.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
-            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_in_channels`")
+            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_input_channels`")
 
     def get_input_channels(self) -> int:
         if isinstance(self.stem, SupportsReplaceInputChannels):

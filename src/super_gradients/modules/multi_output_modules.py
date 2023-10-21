@@ -103,12 +103,12 @@ class MultiOutputModule(nn.Module, SupportsReplaceInputChannels):
         """Slice an OrderedDict in the same logic list,tuple... are sliced"""
         return OrderedDict([(k, v) for (k, v) in odict.items() if k in list(odict.keys())[start:end]])
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         module = self._modules["0"]
         if isinstance(module, SupportsReplaceInputChannels):
-            module.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+            module.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
-            raise NotImplementedError(f"`{module.__class__.__name__}` does not support `replace_in_channels`")
+            raise NotImplementedError(f"`{module.__class__.__name__}` does not support `replace_input_channels`")
 
     def get_input_channels(self) -> int:
         module = self._modules["0"]

@@ -170,7 +170,7 @@ class YoloNASStem(BaseDetectionModule, SupportsReplaceInputChannels):
     def forward(self, x: Tensor) -> Tensor:
         return self.conv(x)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         # TODO: check if it makes sens to repalce the whole `QARepVGGBlock` - I think yes
         self.conv = QARepVGGBlock(in_channels, self._out_channels, stride=2, use_residual_connection=False)
 

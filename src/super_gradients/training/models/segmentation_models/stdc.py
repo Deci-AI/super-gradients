@@ -92,9 +92,9 @@ class STDCBlock(nn.Module):
         out = torch.cat(out_list, dim=1)
         return out
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         first_conv: ConvBNReLU = self.conv_list[0]  # noqa
-        first_conv.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        first_conv.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         first_conv: ConvBNReLU = self.conv_list[0]  # noqa
@@ -207,16 +207,16 @@ class STDCBackbone(AbstractSTDCBackbone):
     def get_backbone_output_number_of_channels(self) -> List[int]:
         return self.out_widths
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
         first_stage: nn.Sequential = next(iter(self.stages.values()))  # noqa
         first_block = first_stage[0]
 
         if isinstance(first_block, SupportsReplaceInputChannels):
-            first_block.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+            first_block.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
-            raise NotImplementedError(f"`{first_block.__class__.__name__}` does not support `replace_in_channels`")
+            raise NotImplementedError(f"`{first_block.__class__.__name__}` does not support `replace_input_channels`")
 
     def get_input_channels(self) -> int:
         first_stage: nn.Sequential = next(iter(self.stages.values()))  # noqa
@@ -271,8 +271,8 @@ class STDCClassificationBase(SgModule):
         out = self.linear(out)
         return out
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self.backbone.get_input_channels()
@@ -425,8 +425,8 @@ class ContextPath(nn.Module):
         context_embedding_up_size = (input_size[-2] // 32, input_size[-1] // 32)
         self.context_embedding.to_fixed_size(context_embedding_up_size)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self.backbone.get_input_channels()
@@ -622,8 +622,8 @@ class STDCSegmentationBase(SgModule):
                 multiply_lr_params[name] = param
         return multiply_lr_params.items(), no_multiply_params.items()
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.cp.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.cp.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self.cp.get_input_channels()

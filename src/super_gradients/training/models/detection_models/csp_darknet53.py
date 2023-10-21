@@ -53,7 +53,7 @@ class GroupedConvBlock(nn.Module):
     def forward(self, x):
         return self.conv(self.dconv(x))
 
-    # TODO: add replace_in_channels()
+    # TODO: add replace_input_channels()
 
 
 class Bottleneck(nn.Module):
@@ -230,9 +230,9 @@ class CSPDarknet53(SgModule):
     def forward(self, x):
         return self._modules_list(x)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         first_block: Conv = self._modules_list[0]  # noqa
-        first_block.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        first_block.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         first_block: Conv = self._modules_list[0]  # noqa

@@ -63,7 +63,7 @@ class MobileNet(BaseClassifier, SupportsReplaceInputChannels):
 
         return out
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
         self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels)

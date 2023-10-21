@@ -356,7 +356,7 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
         self.transition_offset = self._make_transition_for_head(self.head_inp_channels, offset_channels)
         self.offset_feature_layers, self.offset_final_layer = self._make_separete_regression_head(self.config_offset)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
         self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)

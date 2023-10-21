@@ -233,7 +233,7 @@ class BasicDDRBackBone(DDRBackBoneBase):
         )
         self.layer4 = _make_layer(block=block, in_planes=width * 4, planes=width * 8, num_blocks=layers[3], stride=2)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
         self.stem[0][0] = compute_new_weights(module=self.stem[0][0], in_channels=in_channels, fn=compute_new_weights_fn)
@@ -256,17 +256,17 @@ class RegnetDDRBackBone(DDRBackBoneBase):
         self.layer3 = nn.ModuleList([regnet_module.net.stage_2])
         self.layer4 = regnet_module.net.stage_3
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         if isinstance(self.stem, SupportsReplaceInputChannels):
-            self.stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+            self.stem.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
-            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
+            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_input_channels`")
 
     def get_input_channels(self) -> int:
         if isinstance(self.stem, SupportsReplaceInputChannels):
             return self.stem.get_input_channels()
         else:
-            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
+            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_input_channels`")
 
 
 class DDRNet(SegmentationModule):
@@ -529,8 +529,8 @@ class DDRNet(SegmentationModule):
                 multiply_lr_params[name] = param
         return multiply_lr_params.items(), no_multiply_params.items()
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self._backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self._backbone.get_input_channels()

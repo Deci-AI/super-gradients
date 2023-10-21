@@ -107,10 +107,10 @@ class DynamicModelTests(unittest.TestCase):
             with self.subTest(model_name=model_name):
                 model = models.get(model_name, num_classes=20)
 
-                model.replace_in_channels(3)
+                model.replace_input_channels(3)
                 self.assertEqual(model.get_input_channels(), 3)
 
-                model.replace_in_channels(51)
+                model.replace_input_channels(51)
                 self.assertEqual(model.get_input_channels(), 51)
 
 

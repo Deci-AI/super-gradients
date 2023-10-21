@@ -245,8 +245,8 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return PPYoloEDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self.backbone.get_input_channels()

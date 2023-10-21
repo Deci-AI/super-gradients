@@ -16,7 +16,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
 from super_gradients.module_interfaces import SupportsReplaceNumClasses, SupportsReplaceInputChannels, HasPredict
 from super_gradients.modules.head_replacement_utils import replace_num_classes_with_random_weights
-from super_gradients.modules.backbone_replacement_utils import replace_in_channels_with_random_weights
+from super_gradients.modules.backbone_replacement_utils import replace_input_channels_with_random_weights
 from super_gradients.training.utils.utils import HpmStruct, arch_params_deprecated
 from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
@@ -117,17 +117,17 @@ class CustomizableDetector(HasPredict, SgModule):
             self.heads = factory.get(factory.insert_module_param(self.heads_params, "in_channels", self.neck.out_channels))
             self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         if isinstance(self.backbone, SupportsReplaceInputChannels):
-            self.backbone.replace_in_channels(in_channels, replace_in_channels_with_random_weights)
+            self.backbone.replace_input_channels(in_channels, replace_input_channels_with_random_weights)
         else:
-            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `replace_in_channels`")
+            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `replace_input_channels`")
 
     def get_input_channels(self) -> int:
         if isinstance(self.backbone, SupportsReplaceInputChannels):
             return self.backbone.get_input_channels()
         else:
-            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `replace_in_channels`")
+            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `replace_input_channels`")
 
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:

@@ -53,7 +53,7 @@ class PatchEmbedding(nn.Module):
 
         return x, h, w
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
         self.proj = compute_new_weights(module=self.proj, in_channels=in_channels, fn=compute_new_weights_fn)
@@ -255,9 +255,9 @@ class MiTBackBone(nn.Module, SupportsReplaceInputChannels):
 
         return features
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         first_patch: PatchEmbedding = self.patch_embed[0]
-        first_patch.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        first_patch.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         first_patch: PatchEmbedding = self.patch_embed[0]
@@ -464,8 +464,8 @@ class SegFormer(SegmentationModule):
                 multiply_lr_params[name] = param
         return multiply_lr_params.items(), no_multiply_params.items()
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self._backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self._backbone.get_input_channels()

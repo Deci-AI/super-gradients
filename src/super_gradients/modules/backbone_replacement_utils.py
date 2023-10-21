@@ -3,7 +3,7 @@ from typing import Union, Optional, Callable
 import torch
 from torch import nn
 
-__all__ = ["replace_in_channels_with_random_weights"]
+__all__ = ["replace_input_channels_with_random_weights"]
 
 
 def compute_new_weights(
@@ -11,11 +11,11 @@ def compute_new_weights(
     in_channels: int,
     fn: Optional[Callable[[nn.Module, int], nn.Module]] = None,
 ) -> nn.Module:
-    fn = fn or replace_in_channels_with_random_weights
+    fn = fn or replace_input_channels_with_random_weights
     return fn(module=module, in_channels=in_channels)
 
 
-def replace_in_channels_with_random_weights(module: Union[nn.Conv2d, nn.Linear, nn.Module], in_channels: int) -> nn.Module:
+def replace_input_channels_with_random_weights(module: Union[nn.Conv2d, nn.Linear, nn.Module], in_channels: int) -> nn.Module:
     """
     Replace the input channels in the module with random weights.
     This is useful for replacing the input layer of a model.

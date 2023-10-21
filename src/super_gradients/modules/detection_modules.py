@@ -86,11 +86,11 @@ class NStageBackbone(BaseDetectionModule, SupportsReplaceInputChannels):
 
         return outputs
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         if isinstance(self.stem, SupportsReplaceInputChannels):
-            self.stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+            self.stem.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
-            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
+            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_input_channels`")
 
     def get_input_channels(self) -> int:
         if isinstance(self.stem, SupportsReplaceInputChannels):
@@ -208,8 +208,8 @@ class MultiOutputBackbone(BaseDetectionModule, SupportsReplaceInputChannels):
     def forward(self, x):
         return self.multi_output_backbone(x)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.multi_output_backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.multi_output_backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self.multi_output_backbone.get_input_channels()

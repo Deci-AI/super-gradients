@@ -75,18 +75,18 @@ class SupportsReplaceNumClasses:
 class SupportsReplaceInputChannels(ABC):
     """
     Protocol interface for modules that support replacing the number of input channels.
-    Derived classes should implement the `replace_in_channels` method.
+    Derived classes should implement the `replace_input_channels` method.
 
     This interface class serves the purpose of explicitly indicating whether a class supports optimized input channel replacement:
 
     >>> class InputLayer(nn_Module, SupportsReplaceInputChannels):
-    >>>    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Callable[[nn.Module, int], nn.Module] = None):
+    >>>    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Callable[[nn.Module, int], nn.Module] = None):
     >>>       ...
 
     """
 
     # @abstractmethod
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]]):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]]):
         """
         Replace the number of input channels in the module.
 
@@ -95,7 +95,7 @@ class SupportsReplaceInputChannels(ABC):
                                         It takes the existing nn_Module and returns a new one.
         :return: None
         """
-        raise NotImplementedError(f"`replace_in_channels` is not implemented in the derived class `{self.__class__.__name__}`")
+        raise NotImplementedError(f"`replace_input_channels` is not implemented in the derived class `{self.__class__.__name__}`")
 
     def get_input_channels(self) -> int:
         raise NotImplementedError(f"`get_input_channels` is not implemented in the derived class `{self.__class__.__name__}`")

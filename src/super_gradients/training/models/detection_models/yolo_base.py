@@ -322,8 +322,8 @@ class YoloDarknetBackbone(AbstractYoloBackbone, CSPDarknet53):
     def forward(self, x):
         return AbstractYoloBackbone.forward(self, x)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        CSPDarknet53.replace_in_channels(self, in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        CSPDarknet53.replace_input_channels(self, in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return CSPDarknet53.get_input_channels(self)
@@ -720,11 +720,11 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return YoloXDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions, **kwargs)
 
-    def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         if isinstance(self._backbone, SupportsReplaceInputChannels):
-            self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+            self._backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
         else:
-            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_in_channels`")
+            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_input_channels`")
 
     def get_input_channels(self) -> int:
         if isinstance(self._backbone, SupportsReplaceInputChannels):
