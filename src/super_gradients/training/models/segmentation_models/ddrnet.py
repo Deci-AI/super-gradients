@@ -236,8 +236,11 @@ class BasicDDRBackBone(DDRBackBoneBase):
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
-        self.in_channels = in_channels
-        self.stem[0][0] = compute_new_weights(module=self.stem[0][0], in_channels=self.in_channels, fn=compute_new_weights_fn)
+        self.stem[0][0] = compute_new_weights(module=self.stem[0][0], in_channels=in_channels, fn=compute_new_weights_fn)
+
+    @property
+    def in_channels(self):
+        return self.stem[0][0].in_channels
 
 
 class RegnetDDRBackBone(DDRBackBoneBase):
@@ -255,10 +258,15 @@ class RegnetDDRBackBone(DDRBackBoneBase):
         self.layer4 = regnet_module.net.stage_3
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-
-        self.in_channels = in_channels
         if isinstance(self.stem, SupportsReplaceInChannels):
             self.stem.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        else:
+            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
+
+    @property
+    def in_channels(self):
+        if isinstance(self.stem, SupportsReplaceInChannels):
+            return self.stem.in_channels
         else:
             raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `replace_in_channels`")
 
@@ -316,7 +324,7 @@ class DDRNet(SegmentationModule):
         assert not (use_aux_heads and classification_mode), "auxiliary head cannot be used in classification mode"
 
         assert isinstance(backbone, DDRBackBoneBase), "The backbone must inherit from AbstractDDRBackBone"
-        self._backbone = backbone
+        self._backbone: DDRBackBoneBase = backbone
         self._backbone.validate_backbone_attributes()
         out_chan_backbone = self._backbone.get_backbone_output_number_of_channels()
 
@@ -524,8 +532,11 @@ class DDRNet(SegmentationModule):
         return multiply_lr_params.items(), no_multiply_params.items()
 
     def replace_in_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        self.in_channels = in_channels
         self._backbone.replace_in_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    @property
+    def in_channels(self):
+        return self._backbone.in_channels
 
 
 class DDRNetCustom(DDRNet):

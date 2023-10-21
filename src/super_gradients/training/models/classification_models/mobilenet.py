@@ -71,4 +71,4 @@ class MobileNet(BaseClassifier, SupportsReplaceInChannels):
         compute_new_weights_fn = compute_new_weights_fn or replace_in_channels_with_random_weights
 
         self.in_channels = in_channels
-        self.conv1 = compute_new_weights_fn(module=self.conv1, in_channels=self.in_channels)
+        self.conv1 = compute_new_weights_fn(module=self.conv1, in_channels=in_channels)

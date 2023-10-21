@@ -96,3 +96,7 @@ class SupportsReplaceInChannels(ABC):
         :return: None
         """
         raise NotImplementedError(f"`replace_in_channels` is not implemented in the derived class `{self.__class__.__name__}`")
+
+    @property
+    def in_channels(self):
+        raise NotImplementedError(f"`in_channels` is not implemented in the derived class `{self.__class__.__name__}`")

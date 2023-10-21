@@ -75,7 +75,7 @@ class _Transition(nn.Sequential):
 
 
 class DenseNet(BaseClassifier):
-    def __init__(self, growth_rate: int, structure: list, num_init_features: int, bn_size: int, drop_rate: float, num_classes: int):
+    def __init__(self, growth_rate: int, structure: list, num_init_features: int, bn_size: int, drop_rate: float, num_classes: int, in_channels: int = 3):
         """
         :param growth_rate:         number of filter to add each layer (noted as 'k' in the paper)
         :param structure:           how many layers in each pooling block - sequentially
@@ -84,14 +84,16 @@ class DenseNet(BaseClassifier):
                                         (i.e. bn_size * k featurs in the bottleneck)
         :param drop_rate:           dropout rate after each dense layer
         :param num_classes:         number of classes in the classification task
+        :param in_channels:         number of channels in the input image
         """
         super(DenseNet, self).__init__()
+        self.in_channels = in_channels
 
         # First convolution
         self.features = nn.Sequential(
             OrderedDict(
                 [
-                    ("conv0", nn.Conv2d(3, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
+                    ("conv0", nn.Conv2d(self.in_channels, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
                     ("norm0", nn.BatchNorm2d(num_init_features)),
                     ("relu0", nn.ReLU(inplace=True)),
                     ("pool0", nn.MaxPool2d(kernel_size=3, stride=2, padding=1)),
@@ -138,7 +140,7 @@ class DenseNet(BaseClassifier):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
         self.in_channels = in_channels
-        self.features[0] = compute_new_weights(module=self.features[0], in_channels=self.in_channels, fn=compute_new_weights_fn)
+        self.features[0] = compute_new_weights(module=self.features[0], in_channels=in_channels, fn=compute_new_weights_fn)
 
 
 @register_model(Models.CUSTOM_DENSENET)

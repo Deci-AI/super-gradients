@@ -432,6 +432,8 @@ class ShelfNetBase(ShelfNetModuleBase):
         super().__init__()
         self.net_output_mid_channels_num = net_output_mid_channels_num
         self.backbone = backbone(self.num_classes)
+        self.in_channels = self.backbone.in_channels
+
         self.layers = layers
         self.planes = planes
 

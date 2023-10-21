@@ -103,6 +103,8 @@ class AbstractSTDCBackbone(nn.Module, SupportsReplaceInChannels, ABC):
     All backbones for STDC segmentation models must implement this class.
     """
 
+    in_channels: int
+
     def validate_backbone(self):
         if len(self.get_backbone_output_number_of_channels()) != 3:
             raise ValueError(f"Backbone for STDC segmentation must output 3 feature maps," f" found: {len(self.get_backbone_output_number_of_channels())}.")
@@ -226,6 +228,8 @@ class STDCClassificationBase(SgModule):
     def __init__(self, backbone: STDCBackbone, num_classes: int, dropout: float):
         super(STDCClassificationBase, self).__init__()
         self.backbone = backbone
+        self.in_channels = backbone.in_channels
+
         last_channels = self.backbone.out_widths[-1]
         head_channels = max(1024, last_channels)
 
@@ -448,6 +452,7 @@ class STDCSegmentationBase(SgModule):
         super(STDCSegmentationBase, self).__init__()
         backbone.validate_backbone()
         self._use_aux_heads = use_aux_heads
+        self.in_channels = backbone.in_channels
 
         self.cp = ContextPath(backbone, context_fuse_channels, use_aux_heads=use_aux_heads)
 

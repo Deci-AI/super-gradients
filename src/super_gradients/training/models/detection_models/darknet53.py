@@ -75,7 +75,7 @@ class Darknet53Base(SgModule):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
         self.in_channels = in_channels
-        self.modules_list[0] = compute_new_weights(module=self.modules_list[0], in_channels=self.in_channels, fn=compute_new_weights_fn)
+        self.modules_list[0] = compute_new_weights(module=self.modules_list[0], in_channels=in_channels, fn=compute_new_weights_fn)
 
 
 @register_model(Models.DARKNET53)

@@ -544,7 +544,7 @@ class EfficientNet(BaseClassifier):
 
         compute_new_weights_fn = compute_new_weights_fn or replace_in_channels_with_random_weights
         self.in_channels = in_channels
-        self._conv_stem = compute_new_weights_fn(module=self._conv_stem, in_channels=self.in_channels)
+        self._conv_stem = compute_new_weights_fn(module=self._conv_stem, in_channels=in_channels)
 
     def load_state_dict(self, state_dict: dict, strict: bool = True):
         """

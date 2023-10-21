@@ -140,7 +140,7 @@ class ResNeXt(BaseClassifier):
         from super_gradients.modules.backbone_replacement_utils import compute_new_weights
 
         self.in_channels = in_channels
-        self.conv1 = compute_new_weights(module=self.conv1, in_channels=self.in_channels, fn=compute_new_weights_fn)
+        self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
 
 
 class CustomizedResNeXt(ResNeXt):
