@@ -85,17 +85,19 @@ class SupportsReplaceInputChannels(ABC):
 
     """
 
-    # @abstractmethod
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]]):
         """
         Replace the number of input channels in the module.
 
         :param in_channels:             New number of input channels.
-        :param compute_new_weights_fn:  An optional function that computes the new weights for the new input channels.
+        :param compute_new_weights_fn:  (Optional) function that computes the new weights for the new input channels.
                                         It takes the existing nn_Module and returns a new one.
-        :return: None
         """
         raise NotImplementedError(f"`replace_input_channels` is not implemented in the derived class `{self.__class__.__name__}`")
 
     def get_input_channels(self) -> int:
+        """Get the number of input channels for the model.
+
+        :return: Number of input channels.
+        """
         raise NotImplementedError(f"`get_input_channels` is not implemented in the derived class `{self.__class__.__name__}`")
