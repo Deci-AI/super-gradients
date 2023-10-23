@@ -337,7 +337,7 @@ class BaseSGLogger(AbstractSGLogger):
         but who knows what it will be suited for later.
 
         :param tag:         Identifier of the summary.
-        :param state_dict:  Checkpoint state_dict.
+        :param summary_dict:  Checkpoint summary_dict.
         :param global_step: Epoch number.
         """
 
