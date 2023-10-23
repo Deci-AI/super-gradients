@@ -1,14 +1,14 @@
 """
-Script that saves a merged (i.e no inheritance from other yaml configuration files),
+Script that saves a exportd (i.e no inheritance from other yaml configuration files),
  .yaml file that can be ran on its own without the need to keep other configurations which the original
   file inherits from.
 
 Usage:
-    python merge_recipe --config_name=cifar10_resnet -> saves cifar10_resnet_complete.yaml in path/to/super_gradients/recipes
+    python export_recipe --config_name=cifar10_resnet -> saves cifar10_resnet_complete.yaml in path/to/super_gradients/recipes
 
-    python merge_recipe --config_dir=/path/to/recipes/ config_name=my_recipe.yaml -> saves config_name_complete.yaml in /path/to/recipes/
+    python export_recipe --config_dir=/path/to/recipes/ config_name=my_recipe.yaml -> saves config_name_complete.yaml in /path/to/recipes/
 
-    python merge_recipe --config_dir=/path/to/recipes/ config_name=my_recipe.yaml save_path=/other/recipes/dir/my_complete_recipe.yaml
+    python export_recipe --config_dir=/path/to/recipes/ config_name=my_recipe.yaml save_path=/other/recipes/dir/my_complete_recipe.yaml
      -> saves the complete receip in /other/recipes/dir/my_complete_recipe.yaml
 
 :arg config_name: The .yaml config filename (can leave the .yaml postfix out, but not mandatory).
