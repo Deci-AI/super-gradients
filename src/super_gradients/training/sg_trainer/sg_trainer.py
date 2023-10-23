@@ -636,6 +636,7 @@ class Trainer:
         self,
         optimizer: torch.optim.Optimizer = None,
         epoch: int = None,
+        train_metrics_dict: Optional[Dict[str, float]] = None,
         validation_results_dict: Optional[Dict[str, float]] = None,
         context: PhaseContext = None,
     ) -> None:
@@ -650,10 +651,18 @@ class Trainer:
 
         # COMPUTE THE CURRENT metric
         # IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES
-        metric = validation_results_dict[self.metric_to_watch]
+        curr_tracked_metric = validation_results_dict[self.metric_to_watch]
+
+        # create metrics dict to save
+        all_metrics = {
+            "tracked_metric_name": self.metric_to_watch,
+            "metrics": {"valid": {metric_name: validation_results_dict[metric_name] for metric_name in self.valid_metrics}},
+        }
+        if train_metrics_dict is not None:
+            all_metrics["metrics"]["train"] = {metric_name: train_metrics_dict[metric_name].item() for metric_name in self.train_metrics}
 
         # BUILD THE state_dict
-        state = {"net": unwrap_model(self.net).state_dict(), "acc": metric, "epoch": epoch}
+        state = {"net": unwrap_model(self.net).state_dict(), "acc": curr_tracked_metric, "epoch": epoch, "all_metrics": all_metrics}
 
         if optimizer is not None:
             state["optimizer_state_dict"] = optimizer.state_dict()
@@ -673,23 +682,28 @@ class Trainer:
 
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
+        self.sg_logger.add_yaml_summary(tag="metrics_latest", summary_dict=all_metrics)
 
         # SAVE MODEL AT SPECIFIC EPOCHS DETERMINED BY save_ckpt_epoch_list
         if epoch in self.training_params.save_ckpt_epoch_list:
             self.sg_logger.add_checkpoint(tag=f"ckpt_epoch_{epoch}.pth", state_dict=state, global_step=epoch)
+            self.sg_logger.add_yaml_summary(tag="metrics_epoch", summary_dict=all_metrics, global_step=epoch)
 
         # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
-        if (metric > self.best_metric and self.greater_metric_to_watch_is_better) or (metric < self.best_metric and not self.greater_metric_to_watch_is_better):
+        if (curr_tracked_metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
+            curr_tracked_metric < self.best_metric and not self.greater_metric_to_watch_is_better
+        ):
             # STORE THE CURRENT metric AS BEST
-            self.best_metric = metric
+            self.best_metric = curr_tracked_metric
             self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
+            self.sg_logger.add_yaml_summary(tag="metrics_best", summary_dict=all_metrics)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_validation_end_best_epoch(context)
 
-            if isinstance(metric, torch.Tensor):
-                metric = metric.item()
-            logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(metric))
+            if isinstance(curr_tracked_metric, torch.Tensor):
+                curr_tracked_metric = curr_tracked_metric.item()
+            logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(curr_tracked_metric))
 
         if self.training_params.average_best_models:
             net_for_averaging = unwrap_model(self.ema_model.ema if self.ema else self.net)
@@ -1180,6 +1194,7 @@ class Trainer:
         random_seed(is_ddp=device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=device_config.device, seed=self.training_params.seed)
 
         silent_mode = self.training_params.silent_mode or self.ddp_silent_mode
+
         # METRICS
         self._set_train_metrics(train_metrics_list=self.training_params.train_metrics_list)
         self._set_valid_metrics(valid_metrics_list=self.training_params.valid_metrics_list)
@@ -1918,7 +1933,13 @@ class Trainer:
 
         # SAVE THE CHECKPOINT
         if self.training_params.save_model:
-            self._save_checkpoint(self.optimizer, epoch + 1, validation_results_dict, context)
+            self._save_checkpoint(
+                optimizer=self.optimizer,
+                epoch=epoch + 1,
+                train_metrics_dict=train_metrics_dict,
+                validation_results_dict=validation_results_dict,
+                context=context,
+            )
 
     def _get_epoch_start_logging_values(self) -> dict:
         """Get all the values that should be logged at the start of each epoch.
