@@ -447,19 +447,34 @@ def get_callable_param_names(obj: callable) -> Tuple[str]:
 
 
 def log_main_training_params(
-    multi_gpu: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, train_dataset_length: int, train_dataloader_len: int
+    multi_gpu: MultiGPUMode,
+    num_gpus: int,
+    batch_size: int,
+    batch_accumulate: int,
+    train_dataset_length: int,
+    train_dataloader_len: int,
+    max_train_batches: Optional[int] = None,
 ):
     """Log training parameters"""
+
+    iterations_per_epoch = int(train_dataloader_len) if max_train_batches is None else max_train_batches
+    gradients_updates_per_epoch = int(iterations_per_epoch / batch_accumulate)
+    what_used_str = "len(train_loader)" if max_train_batches is None else "max_train_batches"
+
     msg = (
         "TRAINING PARAMETERS:\n"
         f"    - Mode:                         {multi_gpu.name if multi_gpu else 'Single GPU'}\n"
         f"    - Number of GPUs:               {num_gpus if 'cuda' in device_config.device  else 0:<10} ({torch.cuda.device_count()} available on the machine)\n"
-        f"    - Dataset size:                 {train_dataset_length:<10} (len(train_set))\n"
+        f"    - Full dataset size:            {train_dataset_length:<10} (len(train_set))\n"
         f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n"
         f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n"
         f"    - Total batch size:             {num_gpus * batch_size:<10} (num_gpus * batch_size)\n"
         f"    - Effective Batch size:         {num_gpus * batch_size * batch_accumulate:<10} (num_gpus * batch_size * batch_accumulate)\n"
-        f"    - Iterations per epoch:         {int(train_dataloader_len):<10} (len(train_loader))\n"
-        f"    - Gradient updates per epoch:   {int(train_dataloader_len / batch_accumulate):<10} (len(train_loader) / batch_accumulate)\n"
+        f"    - Iterations per epoch:         {iterations_per_epoch:<10} ({what_used_str})\n"
+        f"    - Gradient updates per epoch:   {gradients_updates_per_epoch:<10} ({what_used_str} / batch_accumulate)\n"
     )
+
     logger.info(msg)
+
+    if max_train_batches:
+        logger.warning(f"max_train_batch is set to {max_train_batches}. This limits the number of iterations per epoch and gradient updates per epoch.")
