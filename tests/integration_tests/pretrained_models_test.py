@@ -1001,17 +1001,20 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_models(self):
         from super_gradients.training.pretrained_models import MODEL_URLS
 
-        def get_model_and_dataset_names(model_with_dataset_name: str):
+        def get_model_and_dataset_names(pretrained_model_key: str):
+            """Extract model and dataset names from the pretrained model key.
+            E.g. "shelfnet34_lw_coco_segmentation_subclass" -> ("shelfnet34_lw", "coco_segmentation_subclass")
+            """
             from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
             from super_gradients.common.registry.registry import ARCHITECTURES
 
             for dataset_name in PRETRAINED_NUM_CLASSES.keys():
-                if model_with_dataset_name.endswith(f"_{dataset_name}"):
-                    model_name = model_with_dataset_name.replace(f"_{dataset_name}", "")
+                if pretrained_model_key.endswith(f"_{dataset_name}"):
+                    model_name = pretrained_model_key.replace(f"_{dataset_name}", "")
                     if model_name in ARCHITECTURES:
                         return model_name, dataset_name
 
-            raise ValueError(f"Model {model_with_dataset_name} cannot be instantiated without explicit")
+            raise ValueError(f"Model {pretrained_model_key} cannot be instantiated without explicit")
 
         def can_model_forward(model, input_channels: int) -> bool:
             """Checks if the given model can perform a forward pass on inputs of certain sizes."""
