@@ -458,8 +458,12 @@ class Trainer:
         # SET THE MODEL IN training STATE
         self.net.train()
 
+        expected_iterations = len(self.train_loader) if self.max_train_batches is None else self.max_train_batches
+
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
-        with tqdm(self.train_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_train_loader:
+        with tqdm(
+            self.train_loader, total=expected_iterations, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode
+        ) as progress_bar_train_loader:
             progress_bar_train_loader.set_description(f"Train epoch {context.epoch}")
 
             # RESET/INIT THE METRIC LOGGERS
@@ -471,6 +475,9 @@ class Trainer:
             context.update_context(loss_avg_meter=loss_avg_meter, metrics_compute_fn=self.train_metrics)
 
             for batch_idx, batch_items in enumerate(progress_bar_train_loader):
+                if expected_iterations <= batch_idx:
+                    break
+
                 batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
                 inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
@@ -509,9 +516,6 @@ class Trainer:
 
                 progress_bar_train_loader.set_postfix(**pbar_message_dict)
                 self.phase_callback_handler.on_train_batch_end(context)
-
-                if self.max_train_batches is not None and self.max_train_batches - 1 <= batch_idx:
-                    break
 
             self.train_monitored_values = sg_trainer_utils.update_monitored_values_dict(
                 monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict
@@ -1346,20 +1350,22 @@ class Trainer:
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
+        self.max_train_batches = self.training_params.max_train_batches
+        self.max_valid_batches = self.training_params.max_valid_batches
+
         if self.training_params.max_train_batches is not None:
             if self.training_params.max_train_batches > len(self.train_loader):
                 logger.warning("max_train_batches is greater than len(self.train_loader) and will have no effect.")
+                self.max_train_batches = len(self.train_loader)
             elif self.training_params.max_train_batches <= 0:
                 raise ValueError("max_train_batches must be positive.")
 
         if self.training_params.max_valid_batches is not None:
             if self.training_params.max_valid_batches > len(self.valid_loader):
                 logger.warning("max_valid_batches is greater than len(self.valid_loader) and will have no effect.")
+                self.max_valid_batches = len(self.valid_loader)
             elif self.training_params.max_valid_batches <= 0:
                 raise ValueError("max_valid_batches must be positive.")
-
-        self.max_train_batches = self.training_params.max_train_batches
-        self.max_valid_batches = self.training_params.max_valid_batches
 
         # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
         self._first_backward = True
@@ -1409,6 +1415,7 @@ class Trainer:
             batch_accumulate=self.batch_accumulate,
             train_dataset_length=len(self.train_loader.dataset),
             train_dataloader_len=len(self.train_loader),
+            max_train_batches=self.max_train_batches,
         )
 
         processing_params = self._get_preprocessing_from_valid_loader()
@@ -2035,7 +2042,12 @@ class Trainer:
         self._reset_metrics()
         self.valid_metrics.to(device_config.device)
         return self.evaluate(
-            data_loader=self.valid_loader, metrics=self.valid_metrics, evaluation_type=EvaluationType.VALIDATION, epoch=context.epoch, silent_mode=silent_mode
+            data_loader=self.valid_loader,
+            metrics=self.valid_metrics,
+            evaluation_type=EvaluationType.VALIDATION,
+            epoch=context.epoch,
+            silent_mode=silent_mode,
+            max_batches=self.max_valid_batches,
         )
 
     def _test_epoch(self, data_loader: DataLoader, context: PhaseContext, silent_mode: bool = False, dataset_name: str = "") -> Dict[str, float]:
@@ -2068,6 +2080,7 @@ class Trainer:
         silent_mode: bool = False,
         metrics_progress_verbose: bool = False,
         dataset_name: str = "",
+        max_batches: Optional[int] = None,
     ) -> Dict[str, float]:
         """
         Evaluates the model on given dataloader and metrics.
@@ -2102,7 +2115,11 @@ class Trainer:
             loss_logging_items_names=self.loss_logging_items_names,
         )
 
-        with tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode) as progress_bar_data_loader:
+        expected_iterations = len(data_loader) if max_batches is None else max_batches
+
+        with tqdm(
+            data_loader, total=expected_iterations, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode
+        ) as progress_bar_data_loader:
 
             if not silent_mode:
                 # PRINT TITLES
@@ -2112,9 +2129,11 @@ class Trainer:
                 if epoch:
                     pbar_start_msg += f" epoch {epoch}"
                 progress_bar_data_loader.set_description(pbar_start_msg)
-
             with torch.no_grad():
                 for batch_idx, batch_items in enumerate(progress_bar_data_loader):
+                    if evaluation_type == EvaluationType.VALIDATION and expected_iterations <= batch_idx:
+                        break
+
                     batch_items = core_utils.tensor_container_to_device(batch_items, device_config.device, non_blocking=True)
                     inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
 
@@ -2148,9 +2167,6 @@ class Trainer:
                         pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
                         progress_bar_data_loader.set_postfix(**pbar_message_dict)
-
-                    if evaluation_type == EvaluationType.VALIDATION and self.max_valid_batches is not None and self.max_valid_batches - 1 <= batch_idx:
-                        break
 
             logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
             # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
