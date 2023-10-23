@@ -9,6 +9,7 @@ from hydra import initialize_config_dir, compose
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import OmegaConf, open_dict, DictConfig
 
+from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 from super_gradients.common.environment.path_utils import normalize_path
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
 
@@ -167,3 +168,29 @@ def override_cfg(cfg: DictConfig, overrides: Union[DictConfig, Dict[str, Any]]) 
     """
     with open_dict(cfg):  # This is required to add new fields to existing config
         cfg.merge_with(overrides)
+
+
+def export_recipe(config_name: str, save_path: str = None, config_dir: str = pkg_resources.resource_filename("super_gradients.recipes", "")):
+    """
+    saves a complete (i.e no inheritance from other yaml configuration files),
+     .yaml file that can be ran on its own without the need to keep other configurations which the original
+      file inherits from.
+
+    :param config_name: The .yaml config filename (can leave the .yaml postfix out, but not mandatory).
+
+    :param save_path: The config directory path, as absolute file system path.
+        When None, will use SG's recipe directory (i.e path/to/super_gradients/recipes)
+
+    :param config_dir: The config directory path, as absolute file system path.
+        When None, will use SG's recipe directory (i.e path/to/super_gradients/recipes)
+
+    """
+    if save_path is None:
+        save_path = os.path.join(os.getcwd(), config_name).replace(".yaml", "") + "_complete.yaml"
+    # NEED TO REGISTER RESOLVERS FIRST
+    register_hydra_resolvers()
+    GlobalHydra.instance().clear()
+    with initialize_config_dir(config_dir=normalize_path(config_dir), version_base="1.2"):
+        cfg = compose(config_name=config_name)
+        OmegaConf.save(config=cfg, f=save_path)
+        print(f"Successfully saved recipe at {save_path}. \n" f"Recipe content:\n {cfg}")
