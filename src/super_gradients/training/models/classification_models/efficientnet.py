@@ -540,11 +540,9 @@ class EfficientNet(BaseClassifier):
             self._fc = nn.Linear(self._fc.in_features, new_num_classes)
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        from super_gradients.modules.backbone_replacement_utils import replace_input_channels_with_random_weights
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
 
-        # FIXME remove and use new func
-        compute_new_weights_fn = compute_new_weights_fn or replace_input_channels_with_random_weights
-        self._conv_stem = compute_new_weights_fn(module=self._conv_stem, in_channels=in_channels)
+        self._conv_stem = replace_conv2d_input_channels(conv=self._conv_stem, in_channels=in_channels, fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self._conv_stem.in_channels

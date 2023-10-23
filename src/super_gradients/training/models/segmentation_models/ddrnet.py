@@ -234,9 +234,9 @@ class BasicDDRBackBone(DDRBackBoneBase):
         self.layer4 = _make_layer(block=block, in_planes=width * 4, planes=width * 8, num_blocks=layers[3], stride=2)
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
 
-        self.stem[0][0] = compute_new_weights(module=self.stem[0][0], in_channels=in_channels, fn=compute_new_weights_fn)
+        self.stem[0][0] = replace_conv2d_input_channels(conv=self.stem[0][0], in_channels=in_channels, fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self.stem[0][0].in_channels

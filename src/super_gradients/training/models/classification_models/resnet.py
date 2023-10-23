@@ -128,9 +128,9 @@ class CifarResNet(BaseClassifier):
         return out
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
 
-        self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
+        self.conv1 = replace_conv2d_input_channels(conv=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self.conv1.in_channels
@@ -244,12 +244,12 @@ class ResNet(BaseClassifier):
             self.linear = nn.Linear(width_multiplier(512, self.width_mult) * self.expansion, new_num_classes)
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
 
         if self.input_batchnorm:
             self.bn0 = nn.BatchNorm2d(num_features=self.in_channels)
 
-        self.conv1 = compute_new_weights(module=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
+        self.conv1 = replace_conv2d_input_channels(conv=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self.conv1.in_channels

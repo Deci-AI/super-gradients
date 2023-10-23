@@ -108,7 +108,7 @@ class MobileNetV2(MobileNetBase):
         in_channels=3,
     ) -> object:
         super(MobileNetV2, self).__init__()
-        self.in_channels = in_channels  # FIXME: handle this
+        self.in_channels = in_channels
         block = InvertedResidual
         last_channel = 1280
         # IF STRUCTURE IS NONE - USE THE DEFAULT STRUCTURE NOTED
@@ -190,9 +190,10 @@ class MobileNetV2(MobileNetBase):
                 m.bias.data.zero_()
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
 
-        self.features[0][0] = compute_new_weights(module=self.features[0][0], in_channels=in_channels, fn=compute_new_weights_fn)
+        self.features[0][0] = replace_conv2d_input_channels(conv=self.features[0][0], in_channels=in_channels, fn=compute_new_weights_fn)
+        self.in_channels = self.get_input_channels()
 
     def get_input_channels(self) -> int:
         return self.features[0][0].in_channels

@@ -47,9 +47,9 @@ class Stem(nn.Module):  # From figure 3
         return x
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
-        from super_gradients.modules.backbone_replacement_utils import compute_new_weights
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
 
-        self.conv = compute_new_weights(module=self.conv, in_channels=in_channels, fn=compute_new_weights_fn)
+        self.conv = replace_conv2d_input_channels(conv=self.conv, in_channels=in_channels, fn=compute_new_weights_fn)
 
     def get_input_channels(self) -> int:
         return self.conv.in_channels
