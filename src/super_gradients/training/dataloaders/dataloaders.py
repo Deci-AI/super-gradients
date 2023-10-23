@@ -19,6 +19,7 @@ from super_gradients.training.datasets.classification_datasets.cifar import (
     Cifar100,
 )
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, RoboflowDetectionDataset, YoloDarknetFormatDetectionDataset
+from super_gradients.training.datasets.detection_datasets.heads_detection import HeadsDetectionDataset
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import (
     PascalVOCUnifiedDetectionTrainDataset,
     PascalVOCDetectionDataset,
@@ -43,7 +44,6 @@ from super_gradients.training.utils.utils import override_default_params_without
 from super_gradients.common.environment.cfg_utils import load_dataset_params
 from super_gradients.training.dataloaders.adapters import maybe_setup_dataloader_adapter
 import torch.distributed as dist
-
 
 logger = get_logger(__name__)
 
@@ -855,6 +855,50 @@ def coco2017_rescoring_val(dataset_params: Dict = None, dataloader_params: Dict 
     return get_data_loader(
         config_name="coco_pose_estimation_rescoring_dataset_params",
         dataset_cls=ValTrainRescoringDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader("heads_detection_train")
+def heads_detection_train(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="heads_detection_dataset_params",
+        dataset_cls=HeadsDetectionDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader("heads_detection_val")
+def heads_detection_val(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="heads_detection_dataset_params",
+        dataset_cls=HeadsDetectionDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader("widerface_train")
+def widerface_train(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="widerface_detection_dataset_params",
+        dataset_cls=YoloDarknetFormatDetectionDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+@register_dataloader("widerface_val")
+def widerface_val(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="widerface_detection_dataset_params",
+        dataset_cls=YoloDarknetFormatDetectionDataset,
         train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,

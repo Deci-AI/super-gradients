@@ -1,0 +1,116 @@
+train_dataset_params:
+  data_dir: /home/shay.aharon/widerface_yolo/ # TO FILL: Where the data is stored.
+  images_dir: train # TO FILL: Local path to directory that includes all the images. Path relative to `data_dir`. Can be the same as `labels_dir`.
+  labels_dir: train # TO FILL: Local path to directory that includes all the labels. Path relative to `data_dir`. Can be the same as `images_dir`.
+  classes: [face] # TO FILL: List of classes used in your dataset.
+  input_dim: [640, 640]
+  cache_dir:
+  cache: False
+  cache_annotations: True
+  ignore_empty_annotations: True
+  transforms:
+    - DetectionRandomAffine:
+        degrees: 0.0
+        translate: 0.1
+        scales:
+          - 0.5
+          - 1.5
+        shear: 0.0
+        target_size: ${dataset_params.train_dataset_params.input_dim}
+        filter_box_candidates: false
+        wh_thr: 2
+        area_thr: 0.1
+        ar_thr: 20
+        border_value: 128
+    - DetectionRandomRotate90:
+        prob: 0.5
+    - DetectionHSV:
+        prob: 1.0
+        hgain: 5
+        sgain: 30
+        vgain: 30
+    - DetectionHorizontalFlip:
+        prob: 0.5
+    - DetectionPaddedRescale:
+        input_dim: ${dataset_params.train_dataset_params.input_dim}
+    - DetectionStandardize:
+        max_value: 255.0
+    - DetectionTargetsFormatTransform:
+        input_dim: ${dataset_params.train_dataset_params.input_dim}
+        output_format: LABEL_CXCYWH
+#    - DetectionMosaic:
+#        input_dim: ${dataset_params.train_dataset_params.input_dim}
+#        prob: 0.5
+#    - DetectionRandomAffine:
+#        degrees: 10.                  # rotation degrees, randomly sampled from [-degrees, degrees]
+#        translate: 0.1                # image translation fraction
+#        scales: [ 0.1, 2 ]              # random rescale range (keeps size by padding/cropping) after mosaic transform.
+#        shear: 2.0                    # shear degrees, randomly sampled from [-degrees, degrees]
+#        target_size: ${dataset_params.train_dataset_params.input_dim}
+#        filter_box_candidates: False   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
+#        wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
+#        area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
+#        ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
+#    - DetectionMixup:
+#        input_dim: ${dataset_params.train_dataset_params.input_dim}
+#        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
+#        prob: 1.0                       # probability to apply per-sample mixup
+#        flip_prob: 0.5                  # probability to apply horizontal flip
+#    - DetectionHSV:
+#        prob: 1.0                       # probability to apply HSV transform
+#        hgain: 5                        # HSV transform hue gain (randomly sampled from [-hgain, hgain])
+#        sgain: 30                       # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
+#        vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
+#    - DetectionHorizontalFlip:
+#        prob: 0.5                       # probability to apply horizontal flip
+#    - DetectionPaddedRescale:
+#        input_dim: ${dataset_params.train_dataset_params.input_dim}
+#    - DetectionTargetsFormatTransform:
+#        input_dim: ${dataset_params.train_dataset_params.input_dim}
+#        output_format: LABEL_CXCYWH
+  class_inclusion_list:
+  max_num_samples:
+
+train_dataloader_params:
+  batch_size: 4
+  num_workers: 8
+  shuffle: True
+  drop_last: True
+  pin_memory: True
+  collate_fn: DetectionCollateFN
+
+val_dataset_params:
+  data_dir: /home/shay.aharon/widerface_yolo/ # TO FILL: Where the data is stored.
+  images_dir: val # TO FILL: Local path to directory that includes all the images. Path relative to `data_dir`. Can be the same as `labels_dir`.
+  labels_dir: val # TO FILL: Local path to directory that includes all the labels. Path relative to `data_dir`. Can be the same as `images_dir`.
+  classes: [face] # TO FILL: List of classes used in your dataset.
+  input_dim: [640, 640]
+  cache_dir:
+  cache: False
+  cache_annotations: True
+  ignore_empty_annotations: True
+  transforms:
+#  - DetectionPaddedRescale:
+#      input_dim: ${dataset_params.val_dataset_params.input_dim}
+#  - DetectionTargetsFormatTransform:
+#      input_dim: ${dataset_params.val_dataset_params.input_dim}
+#      output_format: LABEL_CXCYWH
+    - DetectionPaddedRescale:
+        input_dim: ${dataset_params.val_dataset_params.input_dim}
+        pad_value: 114
+    - DetectionStandardize:
+        max_value: 255.0
+    - DetectionTargetsFormatTransform:
+        input_dim: ${dataset_params.val_dataset_params.input_dim}
+        output_format: LABEL_CXCYWH
+  class_inclusion_list:
+  max_num_samples:
+
+val_dataloader_params:
+  batch_size: 4
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+  collate_fn: DetectionCollateFN
+
+_convert_: all

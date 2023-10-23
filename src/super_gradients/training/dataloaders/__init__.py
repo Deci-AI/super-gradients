@@ -57,6 +57,10 @@ from .dataloaders import (
     pascal_voc_detection_val,
     get_data_loader,
     get,
+    heads_detection_train,
+    heads_detection_val,
+    widerface_train,
+    widerface_val,
 )
 
 __all__ = [
@@ -118,4 +122,8 @@ __all__ = [
     "pascal_voc_detection_val",
     "get_data_loader",
     "get",
+    "widerface_train",
+    "widerface_val",
+    "heads_detection_train",
+    "heads_detection_val",
 ]

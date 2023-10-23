@@ -1,0 +1,126 @@
+defaults:
+  - training_hyperparams: coco2017_yolo_nas_train_params
+  - dataset_params: widerface_detection_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - arch_params: yolo_nas_s_arch_params
+  - _self_
+  - variable_setup
+
+train_dataloader: widerface_train
+val_dataloader: widerface_val
+
+train_dataloader_params:
+  batch_size: 4
+
+val_dataloader_params:
+  batch_size: 8
+
+num_classes: 1
+
+architecture: yolo_nas_s
+arch_params:
+  num_classes: ${num_classes}
+
+
+load_checkpoint: False
+checkpoint_params:
+  pretrained_weights: coco
+
+
+result_path: # By defaults saves results in checkpoints directory
+resume: False
+training_hyperparams:
+  sg_logger: wandb_sg_logger
+  sg_logger_params:
+    project_name: WiderFAce
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    tb_files_user_prompt: false
+    launch_tensorboard: false
+    tensorboard_port: null
+    save_checkpoints_remote: false
+    save_tensorboard_remote: false
+    save_logs_remote: false
+    monitor_system: false
+
+  resume: ${resume}
+  zero_weight_decay_on_bias_and_bn: True
+
+  lr_warmup_epochs: 3
+  warmup_mode: LinearEpochLRWarmup
+
+  initial_lr: 8e-5
+  cosine_final_lr_ratio: 0.1
+
+  optimizer_params:
+    weight_decay: 0.0001
+
+  ema: True
+  ema_params:
+    decay: 0.9
+
+  mixed_precision: True
+
+  phase_callbacks:
+    - ExtremeBatchDetectionVisualizationCallback:
+        metric: # Defines which metric to observe
+          DetectionMetrics:
+            score_thres: 0.1
+            top_k_predictions: 300
+            num_cls: 1
+            normalize_targets: True
+            post_prediction_callback:
+              _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
+              score_threshold: 0.01
+              nms_top_k: 1000
+              max_predictions: 300
+              nms_threshold: 0.7
+        max: False # Indicates that we want to log batch with the lowest metric value
+        metric_component_name: 'mAP@0.50:0.95'
+        post_prediction_callback:
+          _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
+          score_threshold: 0.25
+          nms_top_k: 1000
+          max_predictions: 300
+          nms_threshold: 0.7
+        normalize_targets: True
+        classes: ["face"]
+
+  loss:
+    PPYoloELoss:
+      num_classes: ${num_classes}
+      reg_max: 16
+
+  valid_metrics_list:
+    - DetectionMetrics_050_095:
+        score_thres: 0.1
+        top_k_predictions: 300
+        num_cls: ${arch_params.num_classes}
+        normalize_targets: True
+        post_prediction_callback:
+          _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
+          score_threshold: 0.01
+          nms_top_k: 1000
+          max_predictions: 300
+          nms_threshold: 0.7
+
+    - DetectionMetrics_050:
+        score_thres: 0.1
+        top_k_predictions: 300
+        num_cls: ${arch_params.num_classes}
+        normalize_targets: True
+        post_prediction_callback:
+          _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
+          score_threshold: 0.01
+          nms_top_k: 1000
+          max_predictions: 300
+          nms_threshold: 0.7
+
+pre_prediction_callback:
+
+metric_to_watch: 'mAP@0.50:0.95'
+
+multi_gpu: Off
+num_gpus: 1
+
+experiment_name: yolonas_s_widerface_lr8e-5_coco_recipe_300_epochs_lightaug_standardized_no_affine_filter

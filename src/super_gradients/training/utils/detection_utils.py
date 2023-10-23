@@ -421,8 +421,8 @@ class DetectionVisualization:
         :param is_target: Indicate if the bounding box is a ground-truth box or not
 
         """
-        color = color_mapping[class_id]
-        class_name = class_names[class_id]
+        color = color_mapping[int(class_id)]
+        class_name = class_names[int(class_id)]
 
         if is_target:
             title = f"[GT] {class_name}"
