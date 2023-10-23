@@ -31,6 +31,7 @@ def replace_conv2d_input_channels_with_random_weights(conv: nn.Conv2d, in_channe
     :param in_channels: New number of input channels.
     :return:            Conv2d with new number of input channels.
     """
+
     if in_channels % conv.groups != 0:
         raise ValueError(
             f"Incompatible number of input channels ({in_channels}) with the number of groups ({conv.groups})."
@@ -49,7 +50,15 @@ def replace_conv2d_input_channels_with_random_weights(conv: nn.Conv2d, in_channe
         device=conv.weight.device,
         dtype=conv.weight.dtype,
     )
-    torch.nn.init.normal_(new_conv.weight, mean=conv.weight.mean().item(), std=conv.weight.std().item())
+
+    if in_channels <= conv.in_channels:
+        new_conv.weight.data = conv.weight.data[:, :in_channels, ...]
+    else:
+        new_conv.weight.data[:, : conv.in_channels, ...] = conv.weight.data
+
+        # Pad the remaining channels with random weights
+        torch.nn.init.normal_(new_conv.weight.data[:, conv.in_channels :, ...], mean=conv.weight.mean().item(), std=conv.weight.std().item())
+
     if conv.bias is not None:
         torch.nn.init.normal_(new_conv.bias, mean=conv.bias.mean().item(), std=conv.bias.std().item())
 
