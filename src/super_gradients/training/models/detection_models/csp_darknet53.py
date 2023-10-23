@@ -228,7 +228,9 @@ class CSPDarknet53(SgModule):
             self._modules_list.append(nn.Linear(1024, self.num_classes))
 
     def forward(self, x):
-        return self._modules_list(x)
+        for module in self._modules_list:
+            x = module(x)
+        return x
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         first_block: Conv = self._modules_list[0]  # noqa
