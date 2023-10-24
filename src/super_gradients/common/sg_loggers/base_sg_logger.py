@@ -336,15 +336,14 @@ class BaseSGLogger(AbstractSGLogger):
         Initially added for saving metrics to yaml to store it in something easily parsable (easier than .pth checkpoints),
         but who knows what it will be suited for later.
 
-        :param tag:         Identifier of the summary.
+        :param tag:           Identifier of the summary.
         :param summary_dict:  Checkpoint summary_dict.
-        :param global_step: Epoch number.
+        :param global_step:   Epoch number.
         """
 
         name = tag + (f"_{global_step}" if global_step is not None else "") + ".yml"
-        with open(os.path.join(self._local_dir, name), "w") as outfile:
-            yaml.dump(summary_dict, outfile, default_flow_style=False)
-            outfile.close()
+        with open(os.path.join(self._local_dir, name), "w", encoding="utf-8") as outfile:
+            yaml.safe_dump(summary_dict, outfile, default_flow_style=False)
 
     def add(self, tag: str, obj: Any, global_step: int = None):
         pass
