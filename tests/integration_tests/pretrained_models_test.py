@@ -1036,13 +1036,12 @@ class PretrainedModelsTest(unittest.TestCase):
 
                 # skip models that cannot be instantiated with models.get() without explicit arch_params for now..
                 try:
-                    model = models.get(model_name, pretrained_weights=dataset_name)
+                    model = models.get(model_name, pretrained_weights=dataset_name, num_input_channels=4)
                 except Exception:
                     continue  # We skip models that cannot be instantiated with models.get() without explicit arch_params for now
 
-                model.replace_input_channels(3)
-                self.assertEqual(model.get_input_channels(), 3)
-                self.assertTrue(can_model_forward(model=model, input_channels=3))
+                self.assertEqual(model.get_input_channels(), 4)
+                self.assertTrue(can_model_forward(model=model, input_channels=4))
 
                 model.replace_input_channels(51)
                 self.assertEqual(model.get_input_channels(), 51)

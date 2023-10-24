@@ -121,11 +121,10 @@ class DynamicModelTests(unittest.TestCase):
 
         for model_name in MODELS:
             with self.subTest(model_name=model_name):
-                model = models.get(model_name, num_classes=20)
 
-                model.replace_input_channels(3)
-                self.assertEqual(model.get_input_channels(), 3)
-                self.assertTrue(can_model_forward(model=model, input_channels=3))
+                model = models.get(model_name, num_classes=20, num_input_channels=4)
+                self.assertEqual(model.get_input_channels(), 4)
+                self.assertTrue(can_model_forward(model=model, input_channels=4))
 
                 model.replace_input_channels(51)
                 self.assertEqual(model.get_input_channels(), 51)
