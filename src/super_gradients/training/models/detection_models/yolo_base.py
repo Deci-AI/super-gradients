@@ -723,6 +723,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         if isinstance(self._backbone, SupportsReplaceInputChannels):
             self._backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+            self.in_channels = self.get_input_channels()
         else:
             raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_input_channels`")
 

@@ -107,7 +107,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         self.backbone = CSPResNetBackbone(**arch_params["backbone"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
         self.neck = PPYoloECSPPAN(**arch_params["neck"], depth_mult=arch_params["depth_mult"], width_mult=arch_params["width_mult"])
         self.head = PPYOLOEHead(**arch_params["head"], width_mult=arch_params["width_mult"], num_classes=arch_params["num_classes"])
-        self.in_channels = 3  # FIXME handle this
+        self.in_channels = 3
 
         self._class_names: Optional[List[str]] = None
         self._image_processor: Optional[Processing] = None
@@ -247,6 +247,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         self.backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        self.in_channels = self.get_input_channels()
 
     def get_input_channels(self) -> int:
         return self.backbone.get_input_channels()

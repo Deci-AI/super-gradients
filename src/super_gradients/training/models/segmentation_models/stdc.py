@@ -95,6 +95,7 @@ class STDCBlock(nn.Module):
     def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
         first_conv: ConvBNReLU = self.conv_list[0]  # noqa
         first_conv.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        self.in_channels = self.get_input_channels()
 
     def get_input_channels(self) -> int:
         first_conv: ConvBNReLU = self.conv_list[0]  # noqa
