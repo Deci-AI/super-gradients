@@ -210,4 +210,6 @@ class CSPDarknet53(SgModule):
             self._modules_list.append(nn.Linear(1024, self.num_classes))
 
     def forward(self, x):
-        return self._modules_list(x)
+        for module in self._modules_list:
+            x = module(x)
+        return x
