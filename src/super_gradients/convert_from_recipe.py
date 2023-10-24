@@ -9,7 +9,6 @@ import collections
 import os.path
 from typing import Tuple, Mapping, Dict
 
-import black
 import hydra
 import pkg_resources
 from hydra.core.global_hydra import GlobalHydra
@@ -23,6 +22,34 @@ from super_gradients.common.environment.path_utils import normalize_path
 from super_gradients.training.utils import get_param
 
 logger = get_logger(__name__)
+
+
+def import_black_or_fail_with_instructions():
+    try:
+        import black
+
+        return black
+    except ImportError:
+        raise ImportError(
+            "Black is not installed. Please install it with `pip install black` and try again. "
+            "If you are using a virtual environment, make sure it is activated."
+        )
+
+
+def import_black_or_install():
+    try:
+        import black
+
+        return black
+    except ImportError:
+        import pip
+
+        pip.main(["install", "black==22.10.0"])
+
+        return import_black_or_fail_with_instructions()
+
+
+black = import_black_or_install()
 
 
 def recursively_walk_and_extract_hydra_targets(cfg, objects=None, prefix=None) -> Tuple[DictConfig, Dict[str, Mapping]]:
