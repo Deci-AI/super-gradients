@@ -237,6 +237,7 @@ class BasicDDRBackBone(DDRBackBoneBase):
         from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
 
         self.stem[0][0] = replace_conv2d_input_channels(conv=self.stem[0][0], in_channels=in_channels, fn=compute_new_weights_fn)
+        self.input_channels = self.get_input_channels()
 
     def get_input_channels(self) -> int:
         return self.stem[0][0].in_channels
