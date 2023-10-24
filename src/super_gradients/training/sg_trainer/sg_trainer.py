@@ -1603,7 +1603,7 @@ class Trainer:
 
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
 
-        if mixed_precision_enabled and device_config.device == "cpu":
+        if mixed_precision_enabled and not device_config.is_cuda:
             warnings.warn("Mixed precision training is not supported on CPU. Disabling mixed precision. (i.e. `mixed_precision=False`)")
             mixed_precision_enabled = False
 
