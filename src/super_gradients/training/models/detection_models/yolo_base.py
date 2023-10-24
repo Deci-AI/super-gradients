@@ -736,13 +736,15 @@ class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):
         if self.with_confidence:
             pred_scores = pred_scores * conf
 
-        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
         nms_top_k = self.num_pre_nms_predictions
+        batch_size, num_anchors, _ = pred_scores.size()
+
+        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
         topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
 
-        offsets = nms_top_k * torch.arange(pred_cls_conf.size(0), device=pred_cls_conf.device)
-        flat_indices = topk_candidates.indices + offsets.reshape(pred_cls_conf.size(0), 1)
-        flat_indices = torch.flatten(flat_indices)
+        offsets = num_anchors * torch.arange(batch_size, device=pred_cls_conf.device)
+        indices_with_offset = topk_candidates.indices + offsets.reshape(batch_size, 1)
+        flat_indices = torch.flatten(indices_with_offset)
 
         output_pred_bboxes = pred_bboxes.reshape(-1, pred_bboxes.size(2))[flat_indices, :].reshape(pred_bboxes.size(0), nms_top_k, pred_bboxes.size(2))
         output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
