@@ -636,6 +636,11 @@ class Trainer:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_train_batch_gradient_step_end(context)
 
+    def __maybe_get_item_from_tensor(self, value: Union[float, torch.Tensor]) -> float:
+        if isinstance(value, torch.Tensor):
+            return value.item()
+        return value
+
     def _save_checkpoint(
         self,
         optimizer: torch.optim.Optimizer = None,
@@ -658,12 +663,21 @@ class Trainer:
         curr_tracked_metric = validation_results_dict[self.metric_to_watch]
 
         # create metrics dict to save
+        valid_metrics_titles = get_metrics_titles(self.valid_metrics)
+
         all_metrics = {
             "tracked_metric_name": self.metric_to_watch,
-            "metrics": {"valid": {metric_name: validation_results_dict[metric_name] for metric_name in self.valid_metrics}},
+            "metrics": {
+                "valid": {metric_name: self.__maybe_get_item_from_tensor(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles}
+            },
         }
+
+        train_metrics_titles = get_metrics_titles(self.train_metrics)
+
         if train_metrics_dict is not None:
-            all_metrics["metrics"]["train"] = {metric_name: train_metrics_dict[metric_name].item() for metric_name in self.train_metrics}
+            all_metrics["metrics"]["train"] = {
+                metric_name: self.__maybe_get_item_from_tensor(train_metrics_dict[metric_name]) for metric_name in train_metrics_titles
+            }
 
         # BUILD THE state_dict
         state = {"net": unwrap_model(self.net).state_dict(), "acc": curr_tracked_metric, "epoch": epoch, "all_metrics": all_metrics}
@@ -705,8 +719,7 @@ class Trainer:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_validation_end_best_epoch(context)
 
-            if isinstance(curr_tracked_metric, torch.Tensor):
-                curr_tracked_metric = curr_tracked_metric.item()
+            curr_tracked_metric = self.__maybe_get_item_from_tensor(curr_tracked_metric)
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(curr_tracked_metric))
 
         if self.training_params.average_best_models:

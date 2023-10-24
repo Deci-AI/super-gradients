@@ -13,7 +13,7 @@ class DummyMetric(Metric):
         pass
 
     def compute(self):
-        return 1
+        return 1.0
 
 
 class TrainWithTorchSchedulerTest(unittest.TestCase):
