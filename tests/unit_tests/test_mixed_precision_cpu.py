@@ -28,7 +28,7 @@ class TestMixedPrecisionDisabled(unittest.TestCase):
                 "valid_metrics_list": [Accuracy(), Top5()],
                 "metric_to_watch": "Accuracy",
                 "greater_metric_to_watch_is_better": True,
-                "mixed_precision": True,  # This is not supported for CPU (which is used for testing)
+                "mixed_precision": True,  # This is not supported for CPU, so we expect a warning to be raised AND the code to run
             }
             import warnings
 
