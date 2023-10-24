@@ -28,6 +28,15 @@ A new export API is introduced in SG 3.2.0. It is aimed to simplify the export p
 - Customising NMS parameters and number of detections per image
 - Customising output format (flat or batched)
 
+
+```python
+!pip install super_gradients==3.3.1
+```
+
+    ERROR: Could not find a version that satisfies the requirement super_gradients==3.3.1 (from versions: 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1, 1.5.2, 1.6.0, 1.7.1, 1.7.2, 1.7.3, 1.7.4, 1.7.5, 2.0.0, 2.0.1, 2.1.0, 2.2.0, 2.5.0, 2.6.0, 3.0.0, 3.0.1, 3.0.2, 3.0.3, 3.0.4, 3.0.5, 3.0.6, 3.0.7, 3.0.8, 3.0.9, 3.1.0, 3.1.1, 3.1.2, 3.1.3, 3.2.0, 3.2.1, 3.3.0)
+    ERROR: No matching distribution found for super_gradients==3.3.1
+    
+
 ### Minimalistic export example
 
 Let start with the most simple example of exporting a model to ONNX format.
@@ -203,9 +212,9 @@ pred_boxes, pred_boxes.shape
              [ 35.71795, 249.40926, 176.62216, 544.69794],
              [182.39618, 249.49301, 301.44122, 529.3324 ],
              ...,
-             [  0.     ,   0.     ,   0.     ,   0.     ],
-             [  0.     ,   0.     ,   0.     ,   0.     ],
-             [  0.     ,   0.     ,   0.     ,   0.     ]]], dtype=float32),
+             [ -1.     ,  -1.     ,  -1.     ,  -1.     ],
+             [ -1.     ,  -1.     ,  -1.     ,  -1.     ],
+             [ -1.     ,  -1.     ,  -1.     ,  -1.     ]]], dtype=float32),
      (1, 1000, 4))
 
 
@@ -219,8 +228,8 @@ pred_scores, pred_scores.shape
 
 
 
-    (array([[0.9694027, 0.9693378, 0.9665707, 0.9619047, 0.7538769, ...,
-             0.       , 0.       , 0.       , 0.       , 0.       ]],
+    (array([[ 0.9694027,  0.9693378,  0.9665707,  0.9619047,  0.7538769, ...,
+             -1.       , -1.       , -1.       , -1.       , -1.       ]],
            dtype=float32),
      (1, 1000))
 
@@ -235,8 +244,8 @@ pred_classes, pred_classes.shape
 
 
 
-    (array([[0, 0, 0, 0, 0, 0, 0, 0, 2, 2, ..., 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-           dtype=int64),
+    (array([[ 0,  0,  0,  0,  0,  0,  0,  0,  2,  2, ..., -1, -1, -1, -1, -1,
+             -1, -1, -1, -1, -1]], dtype=int64),
      (1, 1000))
 
 
@@ -295,7 +304,7 @@ show_predictions_from_batch_format(image, result)
 
 
     
-![png](models_export_files/models_export_18_0.png)
+![png](models_export_files/models_export_19_0.png)
     
 
 
@@ -411,7 +420,7 @@ show_predictions_from_flat_format(image, result)
 
 
     
-![png](models_export_files/models_export_24_0.png)
+![png](models_export_files/models_export_25_0.png)
     
 
 
@@ -447,7 +456,7 @@ show_predictions_from_flat_format(image, result)
 
 
     
-![png](models_export_files/models_export_26_0.png)
+![png](models_export_files/models_export_27_0.png)
     
 
 
@@ -481,7 +490,7 @@ show_predictions_from_flat_format(image, result)
 
 
     
-![png](models_export_files/models_export_28_0.png)
+![png](models_export_files/models_export_29_0.png)
     
 
 
@@ -522,12 +531,12 @@ result = session.run(outputs, {inputs[0]: image_bchw})
 show_predictions_from_flat_format(image, result)
 ```
 
-     25%|█████████████████████████████████████████████████                                                                                                                                                   | 4/16 [00:11<00:34,  2.90s/it]
+     25%|██████████████████████████████▊                                                                                            | 4/16 [00:11<00:33,  2.79s/it]
     
 
 
     
-![png](models_export_files/models_export_30_1.png)
+![png](models_export_files/models_export_31_1.png)
     
 
 
