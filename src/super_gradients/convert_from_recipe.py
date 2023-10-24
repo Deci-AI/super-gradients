@@ -55,6 +55,7 @@ def recursively_walk_and_extract_hydra_targets(cfg, objects=None, prefix=None) -
 
 def convert_from_recipe(cfg: DictConfig, output_script_path: str):
     cfg = Trainer._trigger_cfg_modifying_callbacks(cfg)
+    OmegaConf.resolve(cfg)
 
     device = get_param(cfg, "device")
     multi_gpu = get_param(cfg, "multi_gpu")
