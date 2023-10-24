@@ -509,7 +509,7 @@ class ExportableObjectDetectionModel:
                         if output_predictions_format == DetectionOutputFormatMode.FLAT_FORMAT:
                             logger.warning(
                                 "Support of flat predictions format in TensorRT is experimental and may not work on all versions of TensorRT. "
-                                "We recommend using TensorRT 8.4.1 or newer. On older versions this format will not work. "
+                                "We recommend using TensorRT 8.5.3 or newer. On older versions of TensorRT this format will not work. "
                                 "If you encountering issues loading exported model in TensorRT, please try upgrading TensorRT to latest version. "
                                 "Alternatively, you can export the model to output predictions in batch format by "
                                 "specifying output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT. "
@@ -529,6 +529,7 @@ class ExportableObjectDetectionModel:
                         batch_size=batch_size,
                         output_predictions_format=output_predictions_format,
                         device=device,
+                        onnx_export_kwargs=onnx_export_kwargs,
                     )
 
                 if onnx_simplify:
