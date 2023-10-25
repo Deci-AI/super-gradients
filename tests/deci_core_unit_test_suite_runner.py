@@ -26,6 +26,7 @@ from tests.unit_tests import (
     TestDeprecationDecorator,
 )
 from tests.end_to_end_tests import TestTrainer
+from tests.unit_tests.convert_from_recipe_tests import TestConvertFromRecipe
 from tests.unit_tests.detection_utils_test import TestDetectionUtils
 from tests.unit_tests.detection_dataset_test import DetectionDatasetTest, TestParseYoloLabelFile
 from tests.unit_tests.export_detection_model_test import TestDetectionModelExport
@@ -162,6 +163,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationModelExport))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(YoloNASPoseTests))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PoseEstimationSampleTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestConvertFromRecipe))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

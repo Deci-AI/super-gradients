@@ -7,7 +7,8 @@ For recipe's specific instructions and details refer to the recipe's configurati
 import argparse
 import collections
 import os.path
-from typing import Tuple, Mapping, Dict
+import pathlib
+from typing import Tuple, Mapping, Dict, Union
 
 import hydra
 import pkg_resources
@@ -75,12 +76,20 @@ def recursively_walk_and_extract_hydra_targets(cfg, objects=None, prefix=None) -
             item, objects = recursively_walk_and_extract_hydra_targets(item, objects, prefix=f"{prefix}_{index}")
             cfg[index] = item
     else:
-        print(f"Skipping {cfg}")
         pass
     return cfg, objects
 
 
-def convert_from_recipe(cfg: DictConfig, output_script_path: str):
+def convert_from_recipe(config_name: Union[str, pathlib.Path], config_dir: Union[str, pathlib.Path], output_script_path: Union[str, pathlib.Path]):
+    config_name = str(config_name)
+    config_dir = str(config_dir)
+    output_script_path = str(output_script_path)
+
+    register_hydra_resolvers()
+    GlobalHydra.instance().clear()
+    with hydra.initialize_config_dir(config_dir=normalize_path(config_dir), version_base="1.2"):
+        cfg = hydra.compose(config_name=config_name)
+
     cfg = Trainer._trigger_cfg_modifying_callbacks(cfg)
     OmegaConf.resolve(cfg)
 
@@ -90,7 +99,6 @@ def convert_from_recipe(cfg: DictConfig, output_script_path: str):
     if multi_gpu is False:
         multi_gpu = MultiGPUMode.OFF
     num_gpus = get_param(cfg, "num_gpus")
-    print(device, multi_gpu, num_gpus)
 
     train_dataloader = get_param(cfg, "train_dataloader")
     train_dataset_params = OmegaConf.to_container(cfg.dataset_params.train_dataset_params, resolve=True)
@@ -103,8 +111,11 @@ def convert_from_recipe(cfg: DictConfig, output_script_path: str):
     num_classes = cfg.arch_params.num_classes
     arch_params = OmegaConf.to_container(cfg.arch_params, resolve=True)
 
+    strict_load = cfg.checkpoint_params.strict_load
+    if isinstance(strict_load, Mapping) and "_target_" in strict_load:
+        strict_load = hydra.utils.instantiate(strict_load)
+
     training_hyperparams, hydra_instantiated_objects = recursively_walk_and_extract_hydra_targets(cfg.training_hyperparams)
-    print(hydra_instantiated_objects)
 
     checkpoint_num_classes = get_param(cfg.checkpoint_params, "checkpoint_num_classes")
     content = f"""
@@ -128,7 +139,7 @@ def main():
         model_name="{cfg.architecture}",
         num_classes=num_classes,
         arch_params=arch_params,
-        strict_load={hydra.utils.instantiate(cfg.checkpoint_params.strict_load)},
+        strict_load={strict_load},
         pretrained_weights={cfg.checkpoint_params.pretrained_weights},
         checkpoint_path={cfg.checkpoint_params.checkpoint_path},
         load_backbone={cfg.checkpoint_params.load_backbone},
@@ -176,7 +187,6 @@ if __name__ == "__main__":
     for key in hydra_instantiated_objects.keys():
         key_to_search = f"'{key}'"
         key_to_replace_with = f"{key}"
-        print(key_to_search, key_to_replace_with, key_to_search in content)
         content = content.replace(key_to_search, key_to_replace_with)
 
     with open(output_script_path, "w") as f:
@@ -194,12 +204,7 @@ def main() -> None:
     save_path = args.save_path or os.path.splitext(os.path.basename(args.config_name))[0] + ".py"
     logger.info(f"Saving recipe script to {save_path}")
 
-    register_hydra_resolvers()
-    GlobalHydra.instance().clear()
-    with hydra.initialize_config_dir(config_dir=normalize_path(args.config_dir), version_base="1.2"):
-        cfg = hydra.compose(config_name=args.config_name)
-
-    convert_from_recipe(cfg, save_path)
+    convert_from_recipe(args.config_name, args.config_dir, save_path)
 
 
 if __name__ == "__main__":
