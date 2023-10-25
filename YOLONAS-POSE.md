@@ -95,9 +95,7 @@ We provide training recipies for training YOLO-NAS-POSE on COCO, CrowdPose and A
 
 ## LICENSE
 
-TODO: Refine license ?
-
 The YOLO-NAS-POSE model is available under an open-source license with pre-trained weights available for non-commercial use on SuperGradients, Deci's PyTorch-based, open-source, computer vision training library. 
 With SuperGradients, users can train models from scratch or fine-tune existing ones, leveraging advanced built-in training techniques like Distributed Data Parallel, Exponential Moving Average, Automatic mixed precision, and Quantization Aware Training.
 
-License file is available here: [YOLO-NAS WEIGHTS LICENSE](LICENSE.YOLONAS.md)
+License file is available here: [YOLO-NAS-POSE WEIGHTS LICENSE](LICENSE.YOLONAS-POSE.md)
