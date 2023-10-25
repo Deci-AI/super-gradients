@@ -24,18 +24,21 @@ from tests.unit_tests import (
     TestPostPredictionCallback,
     TestModelPredict,
     TestDeprecationDecorator,
+    TestMixedPrecisionDisabled,
 )
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.detection_utils_test import TestDetectionUtils
-from tests.unit_tests.detection_dataset_test import DetectionDatasetTest
+from tests.unit_tests.detection_dataset_test import DetectionDatasetTest, TestParseYoloLabelFile
 from tests.unit_tests.export_detection_model_test import TestDetectionModelExport
 from tests.unit_tests.export_onnx_test import TestModelsONNXExport
+from tests.unit_tests.export_pose_estimation_model_test import TestPoseEstimationModelExport
 from tests.unit_tests.extreme_batch_cb_test import ExtremeBatchSanityTest
 from tests.unit_tests.load_checkpoint_test import LoadCheckpointTest
 from tests.unit_tests.local_ckpt_head_replacement_test import LocalCkptHeadReplacementTest
 from tests.unit_tests.max_batches_loop_break_test import MaxBatchesLoopBreakTest
 from tests.unit_tests.multiple_ignore_indices_segmentation_metrics_test import TestSegmentationMetricsMultipleIgnored
 from tests.unit_tests.pose_estimation_dataset_test import TestPoseEstimationDataset
+from tests.unit_tests.pose_estimation_sample_test import PoseEstimationSampleTest
 from tests.unit_tests.preprocessing_unit_test import PreprocessingUnitTest
 from tests.unit_tests.quantization_utility_tests import QuantizationUtilityTest
 from tests.unit_tests.random_erase_test import RandomEraseTest
@@ -44,6 +47,7 @@ from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.test_deprecations import DeprecationsUnitTest
 from tests.unit_tests.test_min_samples_single_node import TestMinSamplesSingleNode
 from tests.unit_tests.test_train_with_torch_scheduler import TrainWithTorchSchedulerTest
+from tests.unit_tests.test_yolo_nas_pose import YoloNASPoseTests
 from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
 from tests.unit_tests.lr_warmup_test import LRWarmupTest
@@ -133,6 +137,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestRepVGGBlock))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LocalCkptHeadReplacementTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DetectionDatasetTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestParseYoloLabelFile))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestModelsONNXExport))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MaxBatchesLoopBreakTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestTrainingUtils))
@@ -155,6 +160,10 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionModelExport))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(SlidingWindowTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDeprecationDecorator))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationModelExport))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(YoloNASPoseTests))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PoseEstimationSampleTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestMixedPrecisionDisabled))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

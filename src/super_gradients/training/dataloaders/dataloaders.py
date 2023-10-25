@@ -41,6 +41,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 from super_gradients.common.environment.ddp_utils import get_local_rank
 from super_gradients.training.utils.utils import override_default_params_without_nones
 from super_gradients.common.environment.cfg_utils import load_dataset_params
+from super_gradients.training.dataloaders.adapters import maybe_setup_dataloader_adapter
 import torch.distributed as dist
 
 
@@ -81,6 +82,8 @@ def get_data_loader(config_name: str, dataset_cls: object, train: bool, dataset_
 
     dataloader = DataLoader(dataset=dataset, **dataloader_params)
     dataloader.dataloader_params = dataloader_params
+
+    maybe_setup_dataloader_adapter(dataloader=dataloader)
     return dataloader
 
 
@@ -147,7 +150,6 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
 def _process_collate_fn_params(dataloader_params):
     if get_param(dataloader_params, "collate_fn") is not None:
         dataloader_params["collate_fn"] = CollateFunctionsFactory().get(dataloader_params["collate_fn"])
-
     return dataloader_params
 
 
@@ -886,6 +888,8 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
 
     if dataset is not None:
         dataloader_params = _process_sampler_params(dataloader_params, dataset, {})
+        dataloader_params = _process_collate_fn_params(dataloader_params)
+
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
 
         dataloader.dataloader_params = dataloader_params
@@ -898,4 +902,5 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
         dataloader_cls = ALL_DATALOADERS[name]
         dataloader = dataloader_cls(dataset_params=dataset_params, dataloader_params=dataloader_params)
 
+    maybe_setup_dataloader_adapter(dataloader=dataloader)
     return dataloader

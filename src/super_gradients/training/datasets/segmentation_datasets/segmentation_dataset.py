@@ -114,9 +114,12 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             :param image:  The input image to transform
             :return:       The transformed image
         """
-        sample_transform = transform.Compose([transform.ToTensor(), transform.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-
+        sample_transform = transform.Compose([transform.ToTensor(), SegmentationDataSet.get_normalize_transform()])
         return sample_transform(image)
+
+    @staticmethod
+    def get_normalize_transform():
+        return transform.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
     @staticmethod
     def target_loader(target_path: str) -> Image:

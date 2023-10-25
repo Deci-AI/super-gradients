@@ -1,4 +1,3 @@
-from super_gradients.common.deprecate import deprecated_training_param, get_deprecated_nested_params_to_factory_format_assigner
 from super_gradients.training.utils import HpmStruct
 from copy import deepcopy
 
@@ -115,9 +114,6 @@ class TrainingParams(HpmStruct):
         if len(entries) > 0:
             self.override(**entries)
 
-    @deprecated_training_param(
-        "criterion_params", "3.2.1", "3.3.0", new_arg_assigner=get_deprecated_nested_params_to_factory_format_assigner("loss", "criterion_params")
-    )
     def override(self, **entries):
         super().override(**entries)
         self.validate()

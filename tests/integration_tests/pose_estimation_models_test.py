@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import torch
@@ -14,14 +15,17 @@ from super_gradients.training.utils.pose_estimation import RescoringPoseEstimati
 
 class PoseEstimationModelsIntegrationTest(unittest.TestCase):
     def setUp(self):
-        self.oks_sigmas = [0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 1.007, 1.007, 0.087, 0.087, 0.089, 0.089]
+        self.oks_sigmas = [0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062, 0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089]
         self.flip_indexes = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
+        # This is for easy testing on local machine - you can set this environment variable to your own COCO dataset location
+        self.data_dir = os.environ.get("SUPER_GRADIENTS_COCO_DATASET_DIR", "/data/coco")
 
     def test_dekr_model(self):
         val_loader = get_data_loader(
             "coco_pose_estimation_dekr_dataset_params",
             COCOKeypointsDataset,
             train=False,
+            dataset_params=dict(data_dir=self.data_dir),
             dataloader_params=dict(num_workers=0),
         )
 
@@ -54,6 +58,7 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
             "coco_pose_estimation_dekr_dataset_params",
             COCOKeypointsDataset,
             train=False,
+            dataset_params=dict(data_dir=self.data_dir),
             dataloader_params=dict(num_workers=0),
         )
 
@@ -84,6 +89,7 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
             "coco_pose_estimation_dekr_dataset_params",
             COCOKeypointsDataset,
             train=False,
+            dataset_params=dict(data_dir=self.data_dir),
             dataloader_params=dict(batch_size=1, num_workers=0),
         )
 
@@ -105,12 +111,12 @@ class PoseEstimationModelsIntegrationTest(unittest.TestCase):
 
         for inputs, targets, extras in tqdm(val_loader):
             with torch.no_grad(), torch.cuda.amp.autocast(True):
-                predictions = model(inputs.cuda(non_blocking=True))
+                raw_predictions = model(inputs.cuda(non_blocking=True))
 
-                [all_poses], _ = post_prediction_callback(predictions)
-                all_poses, new_scores = rescoring(torch.tensor(all_poses).cuda())
+                [predictions] = post_prediction_callback(raw_predictions)
+                all_poses, new_scores = rescoring(torch.tensor(predictions.poses).cuda())
 
-                metric.update(preds=(all_poses.unsqueeze(0), new_scores.unsqueeze(0)), target=targets, **extras)
+                metric.update(preds=(all_poses, new_scores), target=targets, **extras)
 
         stats = metric.compute()
         self.assertAlmostEqual(stats["AP"], 0.6734, delta=0.05)

@@ -22,6 +22,7 @@ class TrainWithPreciseBNTest(unittest.TestCase):
             "lr_warmup_epochs": 0,
             "initial_lr": 0.1,
             "loss": "CrossEntropyLoss",
+            "criterion_params": {"ignore_index": 0},
             "optimizer": "SGD",
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [Accuracy(), Top5()],

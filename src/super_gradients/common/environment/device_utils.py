@@ -19,9 +19,23 @@ def _get_assigned_rank() -> int:
 
 @dataclasses.dataclass
 class DeviceConfig:
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    _device: str = "cuda" if torch.cuda.is_available() else "cpu"
     multi_gpu: str = None
     assigned_rank: int = dataclasses.field(default=_get_assigned_rank(), init=False)
+
+    @property
+    def device(self) -> str:
+        return self._device
+
+    @device.setter
+    def device(self, value: str):
+        if "cuda" in value and not torch.cuda.is_available():
+            raise ValueError("CUDA is not available, cannot set device to cuda")
+        self._device = value
+
+    @property
+    def is_cuda(self):
+        return "cuda" in self._device
 
 
 # Singleton holding the device information

@@ -507,7 +507,7 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch torchvision torchaudio   
+            python3.8 -m pip install torch torchvision torchaudio
             make sweeper_test
 
       - run:

@@ -36,8 +36,8 @@ NOTEBOOKS = src/super_gradients/examples/model_export/models_export.ipynb
 
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
 run_and_convert_notebooks_to_docs: $(NOTEBOOKS)
-	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute $@
+	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute $^
 
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
 check_notebooks_version_match: $(NOTEBOOKS)
-	python tests/verify_notebook_version.py $@
+	python tests/verify_notebook_version.py $^
