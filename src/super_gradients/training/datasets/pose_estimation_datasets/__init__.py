@@ -4,13 +4,11 @@ from super_gradients.training.datasets.pose_estimation_datasets.target_generator
 from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_collate_fn import YoloNASPoseCollateFN
 
 from .abstract_pose_estimation_dataset import AbstractPoseEstimationDataset
-from .animalpose_pose_estimation_dataset import AnimalPoseEstimationDataset
 from .coco_pose_estimation_dataset import COCOPoseEstimationDataset
 
 __all__ = [
     "AbstractPoseEstimationDataset",
     "COCOPoseEstimationDataset",
-    "AnimalPoseEstimationDataset",
     "COCOKeypointsDataset",
     "BaseKeypointsDataset",
     "KeypointsCollate",

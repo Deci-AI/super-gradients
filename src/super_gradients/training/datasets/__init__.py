@@ -23,7 +23,6 @@ from super_gradients.training.datasets.pose_estimation_datasets import (
     COCOKeypointsDataset,
     BaseKeypointsDataset,
     COCOPoseEstimationDataset,
-    AnimalPoseEstimationDataset,
 )
 
 
@@ -49,7 +48,6 @@ __all__ = [
     "SuperviselyPersonsDataset",
     "COCOKeypointsDataset",
     "COCOPoseEstimationDataset",
-    "AnimalPoseEstimationDataset",
     "BaseDatasetAdapterCollateFN",
 ]
 
