@@ -67,12 +67,13 @@ class YoloNASPoseDecodingModule(AbstractPoseEstimationDecodingModule):
             pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores = inputs[0]
 
         nms_top_k = self.num_pre_nms_predictions
+        batch_size, num_anchors, _ = pred_bboxes_conf.size()
 
         topk_candidates = torch.topk(pred_bboxes_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
 
-        offsets = nms_top_k * torch.arange(pred_bboxes_conf.size(0), device=pred_bboxes_conf.device)
-        flat_indices = topk_candidates.indices + offsets.reshape(pred_bboxes_conf.size(0), 1)
-        flat_indices = torch.flatten(flat_indices)
+        offsets = num_anchors * torch.arange(batch_size, device=pred_bboxes_conf.device)
+        indices_with_offset = topk_candidates.indices + offsets.reshape(batch_size, 1, 1)
+        flat_indices = torch.flatten(indices_with_offset)
 
         pred_poses_and_scores = torch.cat([pred_pose_coords, pred_pose_scores.unsqueeze(3)], dim=3)
 
@@ -90,6 +91,21 @@ class YoloNASPoseDecodingModule(AbstractPoseEstimationDecodingModule):
 
 
 class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
+    """
+    YoloNASPose model
+
+    Exported model support matrix
+
+    | Batch Size | Format | OnnxRuntime 1.13.1 | TensorRT 8.4.2 | TensorRT 8.5.3 | TensorRT 8.6.1 |
+    |------------|--------|--------------------|----------------|----------------|----------------|
+    | 1          | Flat   | Yes                | Yes            | Yes            | Yes            |
+    | >1         | Flat   | Yes                | Yes            | Yes            | Yes            |
+    | 1          | Batch  | Yes                | No             | No             | Yes            |
+    | >1         | Batch  | Yes                | No             | No             | Yes            |
+
+    ONNX files generated with PyTorch 2.0.1 for ONNX opset_version=14
+    """
+
     def __init__(
         self,
         backbone: Union[str, dict, HpmStruct, DictConfig],
