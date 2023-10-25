@@ -54,7 +54,6 @@ def mute_non_linux_dataloader_worker_process() -> None:
         Knowing that depending on how the script is launched, main_process might be child of other non "python" processes such as:
                 ssh(non-python) -> pycharm(non-python) -> main_process(python) -> ...
     """
-    return
 
     if is_non_linux_dataloader_worker_process():
         mute_current_process()
