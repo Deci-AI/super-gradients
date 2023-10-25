@@ -2,6 +2,7 @@ import copy
 import inspect
 import os
 import typing
+import warnings
 from copy import deepcopy
 from typing import Union, Tuple, Mapping, Dict, Any, List, Optional
 
@@ -1359,7 +1360,7 @@ class Trainer:
 
         self.pre_prediction_callback = CallbacksFactory().get(self.training_params.pre_prediction_callback)
 
-        self._initialize_mixed_precision(self.training_params.mixed_precision)
+        self.training_params.mixed_precision = self._initialize_mixed_precision(self.training_params.mixed_precision)
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
@@ -1629,11 +1630,16 @@ class Trainer:
         self.test_metrics = MetricCollection(test_metrics_list)
 
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
+
+        if mixed_precision_enabled and not device_config.is_cuda:
+            warnings.warn("Mixed precision training is not supported on CPU. Disabling mixed precision. (i.e. `mixed_precision=False`)")
+            mixed_precision_enabled = False
+
         # SCALER IS ALWAYS INITIALIZED BUT IS DISABLED IF MIXED PRECISION WAS NOT SET
         self.scaler = GradScaler(enabled=mixed_precision_enabled)
 
         if mixed_precision_enabled:
-            assert device_config.device.startswith("cuda"), "mixed precision is not available for CPU"
+
             if device_config.multi_gpu == MultiGPUMode.DATA_PARALLEL:
                 # IN DATAPARALLEL MODE WE NEED TO WRAP THE FORWARD FUNCTION OF OUR MODEL SO IT WILL RUN WITH AUTOCAST.
                 # BUT SINCE THE MODULE IS CLONED TO THE DEVICES ON EACH FORWARD CALL OF A DATAPARALLEL MODEL,
@@ -1649,6 +1655,7 @@ class Trainer:
                     logger.warning("Mixed Precision - scaler state_dict not found in loaded model. This may case issues " "with loss scaling")
                 else:
                     self.scaler.load_state_dict(scaler_state_dict)
+        return mixed_precision_enabled
 
     def _validate_final_average_model(self, context: PhaseContext, checkpoint_dir_path: str, cleanup_snapshots_pkl_file=False):
         """
