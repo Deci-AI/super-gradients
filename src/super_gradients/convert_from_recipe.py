@@ -1,14 +1,21 @@
 """
 Entry point for converting recipe file to self-contained train.py file.
 
-General use: python -m super_gradients.convert_from_recipe --config-name="DESIRED_RECIPE".
-For recipe's specific instructions and details refer to the recipe's configuration file in the recipes directory.
+Convert a recipe YAML file to a self-contained <train.py> file that can be run with python <train.py>.
+Generated file will contain all training hyperparameters from input recipe file but will be self-contained (no dependencies on original recipe).
+
+Limitations: Converting a recipe with command-line overrides of some parameters in this recipe is not supported.
+
+General use: python -m super_gradients.convert_from_recipe DESIRED_RECIPE OUTPUT_SCRIPT
+Example:     python -m super_gradients.convert_from_recipe coco2017_yolo_nas_s train_coco2017_yolo_nas_s.py
+
+For recipe's specific instructions and details refer to the recipe's configuration file in the recipes' directory.
 """
 import argparse
 import collections
 import os.path
 import pathlib
-from typing import Tuple, Mapping, Dict, Union
+from typing import Tuple, Mapping, Dict, Union, Optional
 
 import hydra
 import pkg_resources
@@ -25,35 +32,43 @@ from super_gradients.training.utils import get_param
 logger = get_logger(__name__)
 
 
-def import_black_or_fail_with_instructions():
+def try_import_black():
+    """
+    Attempts to import black code formatter.
+    If black is not installed, it will attempt to install it with pip.
+    If installation fails, it will return None
+    """
     try:
         import black
 
         return black
     except ImportError:
-        raise ImportError(
-            "Black is not installed. Please install it with `pip install black` and try again. "
-            "If you are using a virtual environment, make sure it is activated."
-        )
+        logger.info("Trying to install black using pip to enable formatting of the generated script.")
+        try:
+            import pip
+
+            pip.main(["install", "black==22.10.0"])
+            import black
+
+            logger.info("Black installed via pip. ")
+            return black
+        except Exception:
+            logger.info("Black installation failed. Formatting of the generated script will be disabled.")
+            return None
 
 
-def import_black_or_install():
-    try:
-        import black
+def recursively_walk_and_extract_hydra_targets(
+    cfg: DictConfig, objects: Optional[Mapping] = None, prefix: Optional[str] = None
+) -> Tuple[DictConfig, Dict[str, Mapping]]:
+    """
+    Iterates over the input config, extracts all hydra targets present in it and replace them with variable references.
+    Extracted hydra targets are stored in the objects dictionary (Used to generated instantiations of the objects in the generated script).
 
-        return black
-    except ImportError:
-        import pip
-
-        pip.main(["install", "black==22.10.0"])
-
-        return import_black_or_fail_with_instructions()
-
-
-black = import_black_or_install()
-
-
-def recursively_walk_and_extract_hydra_targets(cfg, objects=None, prefix=None) -> Tuple[DictConfig, Dict[str, Mapping]]:
+    :param cfg:     Input config
+    :param objects: Dictionary of extracted hydra targets
+    :param prefix:  A prefix variable to track the path to the current config (Used to give variables meaningful name)
+    :return:        A new config and the dictionary of objects that must be created in the generated script
+    """
     if objects is None:
         objects = collections.OrderedDict()
     if prefix is None:
@@ -80,7 +95,18 @@ def recursively_walk_and_extract_hydra_targets(cfg, objects=None, prefix=None) -
     return cfg, objects
 
 
-def convert_from_recipe(config_name: Union[str, pathlib.Path], config_dir: Union[str, pathlib.Path], output_script_path: Union[str, pathlib.Path]):
+def convert_from_recipe(config_name: Union[str, pathlib.Path], config_dir: Union[str, pathlib.Path], output_script_path: Union[str, pathlib.Path]) -> None:
+    """
+    Convert a recipe YAML file to a self-contained <train.py> file that can be run with python <train.py>.
+    Generated file will contain all training hyperparameters from input recipe file but will be self-contained (no dependencies on original recipe).
+
+    Limitations: Converting a recipe with command-line overrides of some paramters in this recipe is not supported.
+
+    :param config_name:        Name of the recipe file (can be with or without .yaml extension)
+    :param config_dir:         Directory where the recipe file is located
+    :param output_script_path: Path to the output .py file
+    :return:                   None
+    """
     config_name = str(config_name)
     config_dir = str(config_dir)
     output_script_path = str(output_script_path)
@@ -190,15 +216,17 @@ if __name__ == "__main__":
         content = content.replace(key_to_search, key_to_replace_with)
 
     with open(output_script_path, "w") as f:
-        content = black.format_str(content, mode=black.FileMode(line_length=120))
+        black = try_import_black()
+        if black is not None:
+            content = black.format_str(content, mode=black.FileMode(line_length=160))
         f.write(content)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("config_name", type=str, help=".yaml filename")
+    parser.add_argument("save_path", type=str, default=None, help="Destination path to the output .py file")
     parser.add_argument("--config_dir", type=str, default=pkg_resources.resource_filename("super_gradients.recipes", ""), help="The config directory path")
-    parser.add_argument("--save_path", type=str, default=None, help="Destination path to the output .py file")
     args = parser.parse_args()
 
     save_path = args.save_path or os.path.splitext(os.path.basename(args.config_name))[0] + ".py"
