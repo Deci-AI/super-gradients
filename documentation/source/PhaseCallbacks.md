@@ -238,7 +238,7 @@ model = ...
 
 train_params = {
     "loss": "LabelSmoothingCrossEntropyLoss",
-    
+    "criterion_params": {},
     "phase_callbacks": [SaveFirstBatchCallback()],
     ...
 }

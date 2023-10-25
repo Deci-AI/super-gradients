@@ -25,6 +25,7 @@ from tests.unit_tests import (
     TestModelPredict,
     TestDeprecationDecorator,
     DynamicModelTests,
+    TestMixedPrecisionDisabled,
 )
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.detection_utils_test import TestDetectionUtils
@@ -163,6 +164,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationModelExport))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(YoloNASPoseTests))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PoseEstimationSampleTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestMixedPrecisionDisabled))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DynamicModelTests))
 
     def _add_modules_to_end_to_end_tests_suite(self):
