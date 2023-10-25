@@ -1222,7 +1222,11 @@ class Trainer:
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
 
-        if isinstance(self.training_params.loss, Mapping) or isinstance(self.training_params.loss, str):
+        # Allowing loading instantiated loss or string
+        if isinstance(self.training_params.loss, str):
+            self.criterion = LossesFactory().get({self.training_params.loss: self.training_params.criterion_params})
+
+        elif isinstance(self.training_params.loss, Mapping):
             self.criterion = LossesFactory().get(self.training_params.loss)
 
         elif isinstance(self.training_params.loss, nn.Module):

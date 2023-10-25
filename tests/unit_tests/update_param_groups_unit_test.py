@@ -40,6 +40,7 @@ class UpdateParamGroupsTest(unittest.TestCase):
             "lr_decay_factor": 1,
             "loss": "CrossEntropyLoss",
             "optimizer": "SGD",
+            "criterion_params": {},
             "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
             "train_metrics_list": [Accuracy()],
             "valid_metrics_list": [Accuracy()],
