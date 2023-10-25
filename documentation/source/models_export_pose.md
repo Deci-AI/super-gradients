@@ -1,5 +1,6 @@
-# This tutorial shows how to export YoloNAS-Pose model to ONNX format for deployment to ONNX-compatible runtimes and accelerators.
+# Pose Estimation Models Export
 
+This tutorial shows how to export YoloNAS-Pose model to ONNX format for deployment to ONNX-compatible runtimes and accelerators.
 
 From this tutorial you will learn:
 

@@ -37,14 +37,4 @@ prediction.show()
 yolo_nas_pose.export("yolo_nas_pose.onnx")
 ```
 
-Please follow our [Model Export](models_export.md) tutorial for more details.
-
-
-## Creating a model for a non-RGB image
-
-You can create a model taking arbitrary number of channels by passing the number of channels to the arch_params argument.
-Important thing to keep in mind that in this case you cannot use the available pretrained weights and have to provde `num_classes` parameter explicitly.
-
-```python
-custom_mode = models.get(Models.YOLO_NAS_POSE_S, arch_params=dict(in_channels=2), num_classes=15)
-```
+Please follow our [Pose Estimation Models Export](models_export_pose.md) tutorial for more details.
