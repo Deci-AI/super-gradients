@@ -1,8 +1,11 @@
 import os
 import unittest
 
+import torch
 from torch.utils.data import DataLoader
 
+from super_gradients import setup_device
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.cfg_utils import load_dataset_params
 from super_gradients.common.object_names import Models
 from super_gradients.training import Trainer
@@ -10,7 +13,8 @@ from super_gradients.training import models
 from super_gradients.training.dataloaders import get_data_loader
 from super_gradients.training.datasets import COCOPoseEstimationDataset
 from super_gradients.training.metrics import PoseEstimationMetrics
-from super_gradients.training.models.pose_estimation_models import YoloNASPose
+
+logger = get_logger(__name__)
 
 
 class YoloNASPoseIntegrationTest(unittest.TestCase):
@@ -60,6 +64,8 @@ class YoloNASPoseIntegrationTest(unittest.TestCase):
         return loader
 
     def _predict_and_evaluate(self, model, experiment_name):
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        setup_device(device=device)
         trainer = Trainer(experiment_name)
         metric = PoseEstimationMetrics(
             post_prediction_callback=model.get_post_prediction_callback(conf=0.01, iou=0.7, post_nms_max_predictions=30),
@@ -68,34 +74,26 @@ class YoloNASPoseIntegrationTest(unittest.TestCase):
         )
         loader = self._coco2017_val_yolo_nas_pose()
         metric_values = trainer.test(model=model, test_loader=loader, test_metrics_list=[metric])
-        print(experiment_name, metric_values)
+        logger.info(experiment_name, metric_values)
         return metric_values
 
     def test_yolo_nas_pose_n_coco(self):
-        model: YoloNASPose = models.get(
-            Models.YOLO_NAS_POSE_N, num_classes=17, checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_final/yolo_nas_pose_n_coco_pose.pth"
-        )
+        model = models.get(Models.YOLO_NAS_POSE_N, pretrained_weights="coco_pose")
         metric_values = self._predict_and_evaluate(model, "test_yolo_nas_n_coco")
         self.assertAlmostEqual(metric_values["AP"], 0.5968, delta=0.001)
 
     def test_yolo_nas_s_coco(self):
-        model = models.get(
-            Models.YOLO_NAS_POSE_S, num_classes=17, checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_final/yolo_nas_pose_s_coco_pose.pth"
-        )
+        model = models.get(Models.YOLO_NAS_POSE_S, num_classes=17, pretrained_weights="coco_pose")
         metric_values = self._predict_and_evaluate(model, "test_yolo_nas_s_coco")
         self.assertAlmostEqual(metric_values["AP"], 0.6416, delta=0.001)
 
     def test_yolo_nas_m_coco(self):
-        model = models.get(
-            Models.YOLO_NAS_POSE_M, num_classes=17, checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_final/yolo_nas_pose_m_coco_pose.pth"
-        )
+        model = models.get(Models.YOLO_NAS_POSE_M, pretrained_weights="coco_pose")
         metric_values = self._predict_and_evaluate(model, "test_yolo_nas_m_coco")
         self.assertAlmostEqual(metric_values["AP"], 0.6790, delta=0.001)
 
     def test_yolo_nas_l_coco(self):
-        model = models.get(
-            Models.YOLO_NAS_POSE_L, num_classes=17, checkpoint_path="G:/super-gradients/checkpoints/coco2017_yolo_nas_pose_final/yolo_nas_pose_l_coco_pose.pth"
-        )
+        model = models.get(Models.YOLO_NAS_POSE_L, pretrained_weights="coco_pose")
         metric_values = self._predict_and_evaluate(model, "test_yolo_nas_l_coco")
         self.assertAlmostEqual(metric_values["AP"], 0.6828, delta=0.001)
 
