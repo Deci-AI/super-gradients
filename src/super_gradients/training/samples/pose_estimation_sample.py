@@ -38,9 +38,6 @@ class PoseEstimationSample:
     is_crowd: Optional[np.ndarray]
     additional_samples: Optional[List["PoseEstimationSample"]]
 
-    def get_additional_batch_samples(self):
-        return {"gt_joints": self.joints, "gt_areas": self.areas, "gt_bboxes": self.bboxes, "gt_iscrowd": self.is_crowd}
-
     @classmethod
     def compute_area_of_joints_bounding_box(cls, joints) -> np.ndarray:
         """

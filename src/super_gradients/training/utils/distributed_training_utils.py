@@ -248,8 +248,6 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = No
         setup_cpu(multi_gpu, num_gpus)
     elif device == "cuda":
         setup_gpu(multi_gpu, num_gpus)
-    elif device == "mps":
-        setup_mps(multi_gpu, num_gpus)
     else:
         raise ValueError(f"Only valid values for device are: 'cpu' and 'cuda'. Received: '{device}'")
 
@@ -288,20 +286,6 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None)
         initialize_ddp()
     elif multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
         restart_script_with_ddp(num_gpus=num_gpus)
-
-
-def setup_mps(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None):
-    """
-    If required, launch ddp subprocesses.
-    :param multi_gpu:    DDP, DP, Off or AUTO
-    :param num_gpus:     Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
-    """
-
-    if multi_gpu != MultiGPUMode.OFF:
-        raise ValueError(f"device='mps' and multi_gpu={multi_gpu} are not compatible together.")
-
-    device_config.device = "mps"
-    device_config.multi_gpu = MultiGPUMode.OFF
 
 
 def _resolve_gpu_params(multi_gpu: MultiGPUMode, num_gpus: int) -> Tuple[MultiGPUMode, int]:
