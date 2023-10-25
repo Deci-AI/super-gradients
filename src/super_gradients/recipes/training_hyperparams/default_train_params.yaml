@@ -38,7 +38,7 @@ zero_weight_decay_on_bias_and_bn: False # whether to apply weight decay on batch
 
 
 loss: # Loss function for training (str as one of SuperGradient's built in options, or torch.nn.module)
-criterion_params: {} # (DEPRECATED) when `loss` is one of SuperGradient's built in options, it will be initialized with criterion_params.
+criterion_params: {} # when `loss` is one of SuperGradient's built in options, it will be initialized with criterion_params.
 
 
 ema: False # whether to use Model Exponential Moving Average

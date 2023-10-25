@@ -32,6 +32,7 @@ model = ...
 train_params = {
    ...
    "loss": "LabelSmoothingCrossEntropyLoss",
+   "criterion_params": {}
    ...
 }
 trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=valid_dataloader)
@@ -53,11 +54,14 @@ When doing so, in your `my_training_hyperparams.yaml` file:
 ```yaml
 ...
 
-loss: 
-  YoloXDetectionLoss:
-    strides: [8, 16, 32]  # output strides of all yolo outputs
-    num_classes: 80
+loss: YoloXDetectionLoss
+
+criterion_params:
+   strides: [8, 16, 32]  # output strides of all yolo outputs
+   num_classes: 80
 ```
+
+Note that two `training_params` parameters define the loss function:  `loss` which defines the type of the loss, and`criterion_params` dictionary which will be unpacked to the underlying `YoloXDetectionLoss` class constructor.
 
 ## Passing Instantiated nn.Module Objects as Loss Functions
 
@@ -197,11 +201,9 @@ Then, in your `my_training_hyperparams.yaml`, use `"my_loss"` in the same way as
 ```yaml
 ...
 
-loss:
-  my_loss:
-    my_loss_arg1: ...
-    my_loss_arg2: ...
+loss: my_loss
 
+criterion_params:
   ...
 ```
 
