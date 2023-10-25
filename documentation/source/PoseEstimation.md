@@ -208,7 +208,7 @@ A minimal implementation of a dataset class should look like this:
 ```python
 from super_gradients.training.datasets.pose_estimation_datasets import BaseKeypointsDataset
 from super_gradients.training.datasets.pose_estimation_datasets import KeypointsTargetsGenerator
-from super_gradients.training.transforms.keypoint_transforms import AbstractKeypointTransform
+from super_gradients.training.transforms.keypoint_transforms import KeypointTransform
 from typing import Tuple, Dict, Any, List
 import numpy as np
 import cv2
@@ -219,7 +219,7 @@ class MyNewPoseEstimationDataset(BaseKeypointsDataset):
             image_paths,
             joint_paths,
             target_generator: KeypointsTargetsGenerator,
-            transforms: List[AbstractKeypointTransform],
+            transforms: List[KeypointTransform],
             min_instance_area: float = 0.0,
     ):
         super().__init__(target_generator, transforms, min_instance_area)
