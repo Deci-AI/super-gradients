@@ -13,10 +13,32 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 from super_gradients.module_interfaces import PoseEstimationPredictions
+from super_gradients.training.datasets.pose_estimation_datasets.coco_utils import (
+    remove_duplicate_annotations,
+    make_keypoints_outside_image_invisible,
+    remove_crowd_annotations,
+    remove_empty_samples,
+)
 from super_gradients.training.metrics.pose_estimation_metrics import PoseEstimationMetrics
 
 
 class TestPoseEstimationMetrics(unittest.TestCase):
+    def _load_coco_groundtruth(self, with_crowd: bool, with_duplicates: bool, with_invisible_keypoitns: bool, with_empty_samples: bool = True):
+        gt_annotations_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data/coco2017/annotations/person_keypoints_val2017.json")
+        assert os.path.isfile(gt_annotations_path)
+
+        gt = COCO(gt_annotations_path)
+        if not with_duplicates:
+            gt = remove_duplicate_annotations(gt)
+        if not with_invisible_keypoitns:
+            gt = make_keypoints_outside_image_invisible(gt)
+        if not with_crowd:
+            gt = remove_crowd_annotations(gt)
+
+        if not with_empty_samples:
+            gt = remove_empty_samples(gt)
+        return gt
+
     def _internal_compare_method(self, with_crowd: bool, with_duplicates: bool, with_invisible_keypoitns: bool, device: str):
         random.seed(0)
         np.random.seed(0)
