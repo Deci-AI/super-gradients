@@ -47,8 +47,12 @@ def transfer_weights(model: nn.Module, model_state_dict: Mapping[str, Tensor]) -
         except RuntimeError:
             pass
 
-    transfered_layers_fraction = transfered_weights / len(model_state_dict)
-    logger.info(f"Transfered {transfered_weights} ({(100*transfered_layers_fraction):.2f}%) weights from the checkpoint state dict")
+    percentage_of_checkpoint = transfered_weights / len(model_state_dict)
+    percentage_of_model = transfered_weights / len(model.state_dict())
+    logger.debug(
+        f"Transfered {transfered_weights} ({(100*percentage_of_checkpoint):.2f}%) weights from the checkpoint. "
+        f"{(100*percentage_of_model):.2f}% of the model layers were initialized using checkpoint."
+    )
 
 
 def maybe_remove_module_prefix(state_dict: Mapping[str, Tensor], prefix: str = "module.") -> Mapping[str, Tensor]:
