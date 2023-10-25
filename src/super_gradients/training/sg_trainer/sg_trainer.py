@@ -1908,6 +1908,10 @@ class Trainer:
         if additional_configs_to_log is not None:
             hyper_param_config["additional_configs_to_log"] = additional_configs_to_log
         self.sg_logger.add_config("hyper_params", hyper_param_config)
+
+        # add environment to logger, if needed
+        self.sg_logger.add_environment("environment", hyper_param_config["additional_log_items"].get("installed_packages", None))
+
         self.sg_logger.flush()
 
     def _get_hyper_param_config(self):

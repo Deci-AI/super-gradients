@@ -149,6 +149,16 @@ class AbstractSGLogger(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def add_environment(self, tag: str, env_dict: Optional[dict]):
+        """
+        Method for storing environment lib versions somewhere in checkpoint
+
+        :param tag:      file identifier.
+        :param env_dict: dictionary of environment lib versions.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def add_file(self, file_name: str = None):
         """
         Add a file from the checkpoint directory to the logger (usually, upload the file or adds it to an artifact)

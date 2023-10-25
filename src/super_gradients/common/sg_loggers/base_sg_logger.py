@@ -169,6 +169,19 @@ class BaseSGLogger(AbstractSGLogger):
         self._write_to_log_file(log_lines)
 
     @multi_process_safe
+    def add_environment(self, tag: str, env_dict: Optional[dict]):
+        """
+        Adds environment to <tag>.txt.
+
+        :param tag:      file identifier.
+        :param env_dict: dictionary of environment lib versions.
+        """
+        if env_dict is not None:
+            lines = [f"{lib}=={version}\n" for lib, version in env_dict.items()]
+            with open(os.path.join(self._local_dir, tag + ".txt"), "w", encoding="utf-8") as env_file:
+                env_file.writelines(lines)
+
+    @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: Union[int, TimeUnit] = None):
         if isinstance(global_step, TimeUnit):
             global_step = global_step.get_value()
