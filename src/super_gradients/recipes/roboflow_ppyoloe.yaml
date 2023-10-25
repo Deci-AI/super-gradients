@@ -40,6 +40,8 @@ training_hyperparams:
   resume: ${resume}
   max_epochs: 100
   mixed_precision: True
+  criterion_params:
+    num_classes: ${num_classes}
   phase_callbacks:
     - RoboflowResultCallback:
         dataset_name: ${dataset_name}
