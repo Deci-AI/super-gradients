@@ -44,24 +44,26 @@ training_hyperparams:
     monitor_system: false
 
   resume: ${resume}
+  max_epochs: 300
+  lr_mode: CosineLRScheduler
+  cosine_final_lr_ratio: 0.05
+  lr_warmup_epochs: 5
+  lr_cooldown_epochs: 15
+  initial_lr:  0.02
   zero_weight_decay_on_bias_and_bn: True
+  batch_accumulate: 1
 
-  lr_warmup_epochs: 3
-  warmup_mode: LinearEpochLRWarmup
-
-  initial_lr: 8e-5
-  cosine_final_lr_ratio: 0.1
-
+  save_ckpt_epoch_list: [285]
+  optimizer: SGD
   optimizer_params:
-    weight_decay: 0.0001
+    momentum: 0.9
+    weight_decay: 0.0005
+    nesterov: True
 
   ema: True
-  ema_params:
-    decay: 0.9
-
   mixed_precision: True
 
-  phase_callbacks:
+#  phase_callbacks:
 #    - ExtremeBatchDetectionVisualizationCallback:
 #        metric: # Defines which metric to observe
 #          DetectionMetrics:
