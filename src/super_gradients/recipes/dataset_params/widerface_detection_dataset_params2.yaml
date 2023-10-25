@@ -9,46 +9,59 @@ train_dataset_params:
   cache_annotations: True
   ignore_empty_annotations: True
   transforms:
-    - DetectionMosaic:
-        input_dim: ${dataset_params.train_dataset_params.input_dim}
-        prob: 1.
     - DetectionRandomAffine:
-        degrees: 10.                  # rotation degrees, randomly sampled from [-degrees, degrees]
-        translate: 0.1                # image translation fraction
-        scales: [ 0.1, 2 ]              # random rescale range (keeps size by padding/cropping) after mosaic transform.
-        shear: 2.0                    # shear degrees, randomly sampled from [-degrees, degrees]
-        target_size: ${dataset_params.train_dataset_params.input_dim}
+        degrees: 0                    # rotation degrees, randomly sampled from [-degrees, degrees]
+        translate: 0.25               # image translation fraction
+        scales: [ 0.5, 1.5 ]          # random rescale range (keeps size by padding/cropping) after mosaic transform.
+        shear: 0.0                    # shear degrees, randomly sampled from [-degrees, degrees]
+        target_size:
         filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
         wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
-        area_thr: 0.05                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
+        area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
         ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
-    - DetectionMixup:
-        input_dim: ${dataset_params.train_dataset_params.input_dim}
-        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
-        prob: 1.0                       # probability to apply per-sample mixup
-        flip_prob: 0.5                  # probability to apply horizontal flip
+    - DetectionRandomRotate90:
+        prob: 0.5
+    - DetectionRGB2BGR:
+        prob: 0.25
     - DetectionHSV:
-        prob: 1.0                       # probability to apply HSV transform
-        hgain: 5                        # HSV transform hue gain (randomly sampled from [-hgain, hgain])
+        prob: 0.5                       # probability to apply HSV transform
+        hgain: 18                       # HSV transform hue gain (randomly sampled from [-hgain, hgain])
         sgain: 30                       # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
         vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
     - DetectionHorizontalFlip:
         prob: 0.5                       # probability to apply horizontal flip
-    - DetectionPaddedRescale:
-        input_dim: ${dataset_params.train_dataset_params.input_dim}
+    - DetectionMixup:
+        input_dim:
+        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
+        prob: 0.5                       # probability to apply per-sample mixup
+        flip_prob: 0.5                  # probability to apply horizontal flip
+    - DetectionNormalize:
+        mean: [ 123.675, 116.28, 103.53 ]
+        std: [ 58.395,  57.12,  57.375 ]
     - DetectionTargetsFormatTransform:
-        input_dim: ${dataset_params.train_dataset_params.input_dim}
         output_format: LABEL_CXCYWH
   class_inclusion_list:
   max_num_samples:
 
 train_dataloader_params:
-  batch_size: 4
+  batch_size: 8
   num_workers: 8
   shuffle: True
   drop_last: True
-  pin_memory: True
-  collate_fn: DetectionCollateFN
+  # Disable pin_memory due to presence of PPYoloECollateFN with uses random resize during training
+  pin_memory: False
+  worker_init_fn:
+    _target_: super_gradients.training.utils.utils.load_func
+    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
+  collate_fn:
+    PPYoloECollateFN:
+      random_resize_sizes: [ 320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768 ]
+      random_resize_modes:
+        - 0 # cv::INTER_NEAREST
+        - 1 # cv::INTER_LINEAR
+        - 2 # cv::INTER_CUBIC
+        - 3 # cv::INTER_AREA
+        - 4 # cv::INTER_LANCZOS4
 
 val_dataset_params:
   data_dir: /home/shay.aharon/widerface_yolo/ # TO FILL: Where the data is stored.
@@ -59,18 +72,20 @@ val_dataset_params:
   cache_dir:
   cache: False
   cache_annotations: True
-  ignore_empty_annotations: True
+  ignore_empty_annotations: False
   transforms:
-  - DetectionPaddedRescale:
-      input_dim: ${dataset_params.val_dataset_params.input_dim}
-  - DetectionTargetsFormatTransform:
-      input_dim: ${dataset_params.val_dataset_params.input_dim}
-      output_format: LABEL_CXCYWH
+    - DetectionRescale:
+        output_shape: [640, 640]
+    - DetectionNormalize:
+        mean: [ 123.675, 116.28, 103.53 ]
+        std: [ 58.395,  57.12,  57.375 ]
+    - DetectionTargetsFormatTransform:
+        output_format: LABEL_CXCYWH
   class_inclusion_list:
   max_num_samples:
 
 val_dataloader_params:
-  batch_size: 4
+  batch_size: 8
   num_workers: 8
   drop_last: False
   pin_memory: True
