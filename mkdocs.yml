@@ -30,6 +30,7 @@ nav:
     - Training: ./documentation/source/Recipes_Training.md
     - Factories: ./documentation/source/Recipes_Factories.md
     - Custom Recipes: ./documentation/source/Recipes_Custom.md
+  - Experiment Management: ./documentation/source/experiment_management.md
   - Checkpoints: ./documentation/source/Checkpoints.md
   - Docker: ./documentation/source/SGDocker.md
   - Output Adapter: ./documentation/source/DetectionOutputAdapter.md

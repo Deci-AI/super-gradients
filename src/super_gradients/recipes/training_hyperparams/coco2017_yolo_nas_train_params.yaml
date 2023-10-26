@@ -17,11 +17,11 @@ batch_accumulate: 1
 
 save_ckpt_epoch_list: [100, 200, 250]
 
-loss:
-  PPYoloELoss:
-    use_static_assigner: False
-    num_classes: ${arch_params.num_classes}
-    reg_max: 16
+loss: PPYoloELoss
+criterion_params:
+  use_static_assigner: False
+  num_classes: ${arch_params.num_classes}
+  reg_max: 16
 
 optimizer: AdamW
 optimizer_params:
