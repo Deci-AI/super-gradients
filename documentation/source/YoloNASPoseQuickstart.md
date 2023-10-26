@@ -31,7 +31,7 @@ prediction.show()
 <img src="images/yolo_nas_pose_beatles-abbeyroad.png" width="750">
 </div>
 
-## Export to ONNX
+## Export to ONNX & TensorRT
 
 ```python
 yolo_nas_pose.export("yolo_nas_pose.onnx")
