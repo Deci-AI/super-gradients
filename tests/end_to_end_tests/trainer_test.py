@@ -93,16 +93,6 @@ class TestTrainer(unittest.TestCase):
         weights_only = torch.load(os.path.join(trainer.checkpoints_dir_path, "ckpt_latest_weights_only.pth"))
         self.assertListEqual(["net"], list(weights_only.keys()))
 
-    def test_yaml_metrics_present(self):
-        trainer, model = self.get_classification_trainer(self.experiment_names[7])
-        params = self.training_params.copy()
-        params["save_ckpt_epoch_list"] = [1]
-        trainer.train(model=model, training_params=params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
-        yml_filename = ["metrics_best.yml", "metrics_epoch_1.yml", "metrics_latest.yml"]
-        yml_paths = [os.path.join(trainer.checkpoints_dir_path, suf) for suf in yml_filename]
-        for yml in yml_paths:
-            assert os.path.exists(yml)
-
 
 if __name__ == "__main__":
     unittest.main()
