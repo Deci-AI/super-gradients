@@ -24,7 +24,7 @@ checkpoint_params:
 result_path: # By defaults saves results in checkpoints directory
 resume: False
 
-multi_gpu: DDP
-num_gpus: 4
+multi_gpu: Off
+num_gpus: 1
 
 experiment_name: yolonas_s_widerface_ppyoloe_coco_recipe

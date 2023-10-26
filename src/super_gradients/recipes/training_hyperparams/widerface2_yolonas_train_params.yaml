@@ -5,11 +5,11 @@ max_epochs: 500
 static_assigner_end_epoch: 150
 
 warmup_mode: LinearBatchLRWarmup
-warmup_initial_lr:  2.5e-07
+warmup_initial_lr:  6.25e-08
 lr_warmup_steps: 1000
 lr_warmup_epochs: 0
 
-initial_lr:  0.0005
+initial_lr:  0.000125
 lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0.1
 
