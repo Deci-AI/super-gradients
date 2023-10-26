@@ -52,13 +52,14 @@ class YoloNASDecodingModule(AbstractObjectDetectionDecodingModule):
             pred_bboxes, pred_scores = inputs[0]
 
         nms_top_k = self.num_pre_nms_predictions
+        batch_size, num_anchors, _ = pred_scores.size()
 
-        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
+        pred_cls_conf, _ = torch.max(pred_scores, dim=2)  # [B, Anchors]
         topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
 
-        offsets = nms_top_k * torch.arange(pred_cls_conf.size(0), device=pred_cls_conf.device)
-        flat_indices = topk_candidates.indices + offsets.reshape(pred_cls_conf.size(0), 1)
-        flat_indices = torch.flatten(flat_indices)
+        offsets = num_anchors * torch.arange(batch_size, device=pred_cls_conf.device)
+        indices_with_offset = topk_candidates.indices + offsets.reshape(batch_size, 1)
+        flat_indices = torch.flatten(indices_with_offset)
 
         output_pred_bboxes = pred_bboxes.reshape(-1, pred_bboxes.size(2))[flat_indices, :].reshape(pred_bboxes.size(0), nms_top_k, pred_bboxes.size(2))
         output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
@@ -67,6 +68,24 @@ class YoloNASDecodingModule(AbstractObjectDetectionDecodingModule):
 
 
 class YoloNAS(ExportableObjectDetectionModel, CustomizableDetector):
+    """
+
+    Export to ONNX/TRT Support matrix
+    ONNX files generated with PyTorch 2.0.1 for ONNX opset_version=14
+
+    | Batch Size | Export Engine | Format | OnnxRuntime 1.13.1 | TensorRT 8.4.2 | TensorRT 8.5.3 | TensorRT 8.6.1 |
+    |------------|---------------|--------|--------------------|----------------|----------------|----------------|
+    | 1          | ONNX          | Flat   | Yes                | Yes            | Yes            | Yes            |
+    | >1         | ONNX          | Flat   | Yes                | No             | No             | No             |
+    | 1          | ONNX          | Batch  | Yes                | No             | Yes            | Yes            |
+    | >1         | ONNX          | Batch  | Yes                | No             | No             | Yes            |
+    | 1          | TensorRT      | Flat   | No                 | No             | Yes            | Yes            |
+    | >1         | TensorRT      | Flat   | No                 | No             | Yes            | Yes            |
+    | 1          | TensorRT      | Batch  | No                 | Yes            | Yes            | Yes            |
+    | >1         | TensorRT      | Batch  | No                 | Yes            | Yes            | Yes            |
+
+    """
+
     def __init__(
         self,
         backbone: Union[str, dict, HpmStruct, DictConfig],
