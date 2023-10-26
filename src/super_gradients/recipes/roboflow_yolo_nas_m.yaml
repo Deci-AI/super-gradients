@@ -60,12 +60,13 @@ training_hyperparams:
 
   max_epochs: 100
   mixed_precision: True
+  criterion_params:
+    num_classes: ${num_classes}
+    reg_max: 16
+
 
   phase_callbacks: []
-  loss:
-    PPYoloELoss:
-      num_classes: ${num_classes}
-      reg_max: 16
+  loss: PPYoloELoss
 
   valid_metrics_list:
     - DetectionMetrics_050:

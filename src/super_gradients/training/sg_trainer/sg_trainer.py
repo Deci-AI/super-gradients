@@ -637,11 +637,6 @@ class Trainer:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_train_batch_gradient_step_end(context)
 
-    def __maybe_get_item_from_tensor(self, value: Union[float, torch.Tensor]) -> float:
-        if isinstance(value, torch.Tensor):
-            return value.item()
-        return value
-
     def _save_checkpoint(
         self,
         optimizer: torch.optim.Optimizer = None,
@@ -668,20 +663,22 @@ class Trainer:
 
         all_metrics = {
             "tracked_metric_name": self.metric_to_watch,
-            "metrics": {
-                "valid": {metric_name: self.__maybe_get_item_from_tensor(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles}
-            },
+            "metrics": {"valid": {metric_name: float(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles}},
         }
 
         train_metrics_titles = get_metrics_titles(self.train_metrics)
 
         if train_metrics_dict is not None:
-            all_metrics["metrics"]["train"] = {
-                metric_name: self.__maybe_get_item_from_tensor(train_metrics_dict[metric_name]) for metric_name in train_metrics_titles
-            }
+            all_metrics["metrics"]["train"] = {metric_name: float(train_metrics_dict[metric_name]) for metric_name in train_metrics_titles}
 
         # BUILD THE state_dict
-        state = {"net": unwrap_model(self.net).state_dict(), "acc": curr_tracked_metric, "epoch": epoch, "all_metrics": all_metrics}
+        state = {
+            "net": unwrap_model(self.net).state_dict(),
+            "acc": curr_tracked_metric,
+            "epoch": epoch,
+            "all_metrics": all_metrics,
+            "packages": get_installed_packages(),
+        }
 
         if optimizer is not None:
             state["optimizer_state_dict"] = optimizer.state_dict()
@@ -701,12 +698,10 @@ class Trainer:
 
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
-        self.sg_logger.add_yaml_summary(tag="metrics_latest", summary_dict=all_metrics)
 
         # SAVE MODEL AT SPECIFIC EPOCHS DETERMINED BY save_ckpt_epoch_list
         if epoch in self.training_params.save_ckpt_epoch_list:
             self.sg_logger.add_checkpoint(tag=f"ckpt_epoch_{epoch}.pth", state_dict=state, global_step=epoch)
-            self.sg_logger.add_yaml_summary(tag="metrics_epoch", summary_dict=all_metrics, global_step=epoch)
 
         # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
         if (curr_tracked_metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
@@ -715,12 +710,11 @@ class Trainer:
             # STORE THE CURRENT metric AS BEST
             self.best_metric = curr_tracked_metric
             self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
-            self.sg_logger.add_yaml_summary(tag="metrics_best", summary_dict=all_metrics)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_validation_end_best_epoch(context)
 
-            curr_tracked_metric = self.__maybe_get_item_from_tensor(curr_tracked_metric)
+            curr_tracked_metric = float(curr_tracked_metric)
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(curr_tracked_metric))
 
         if self.training_params.average_best_models:
@@ -1222,7 +1216,11 @@ class Trainer:
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
 
-        if isinstance(self.training_params.loss, Mapping) or isinstance(self.training_params.loss, str):
+        # Allowing loading instantiated loss or string
+        if isinstance(self.training_params.loss, str):
+            self.criterion = LossesFactory().get({self.training_params.loss: self.training_params.criterion_params})
+
+        elif isinstance(self.training_params.loss, Mapping):
             self.criterion = LossesFactory().get(self.training_params.loss)
 
         elif isinstance(self.training_params.loss, nn.Module):
@@ -1908,10 +1906,6 @@ class Trainer:
         if additional_configs_to_log is not None:
             hyper_param_config["additional_configs_to_log"] = additional_configs_to_log
         self.sg_logger.add_config("hyper_params", hyper_param_config)
-
-        # add environment to logger, if needed
-        self.sg_logger.add_environment("environment", hyper_param_config["additional_log_items"].get("installed_packages", None))
-
         self.sg_logger.flush()
 
     def _get_hyper_param_config(self):

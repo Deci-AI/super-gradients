@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import Union, Any, Optional
+from typing import Union, Any
 
 import numpy as np
 from PIL import Image
@@ -134,27 +134,6 @@ class AbstractSGLogger(ABC):
                 optimizer_state_dict: optimizer state
                 scaler_state_dict: torch.amp.scaler sate
         :param global_step: Global step value to record
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def add_yaml_summary(self, tag: str, summary_dict: dict, global_step: Optional[int] = None):
-        """
-        Add any dict as yaml to SGLogger.
-
-        :param tag:           Identifier of the summary.
-        :param summary_dict:  Checkpoint summary_dict.
-        :param global_step:   Epoch number.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def add_environment(self, tag: str, env_dict: Optional[dict]):
-        """
-        Method for storing environment lib versions somewhere in checkpoint
-
-        :param tag:      file identifier.
-        :param env_dict: dictionary of environment lib versions.
         """
         raise NotImplementedError
 

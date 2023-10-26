@@ -13,6 +13,8 @@ cosine_final_lr_ratio: 0.1
 batch_accumulate: 1
 initial_lr: 0.001
 loss: RescoringLoss
+criterion_params: {}
+
 mixed_precision: False
 
 optimizer: AdamW
