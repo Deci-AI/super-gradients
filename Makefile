@@ -41,3 +41,8 @@ run_and_convert_notebooks_to_docs: $(NOTEBOOKS)
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
 check_notebooks_version_match: $(NOTEBOOKS)
 	python tests/verify_notebook_version.py $^
+
+WANDB_PARAMS = training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai +training_hyperparams.sg_logger_params.entity=super-gradients training_hyperparams.sg_logger_params.launch_tensorboard=false training_hyperparams.sg_logger_params.monitor_system=true +training_hyperparams.sg_logger_params.project_name=PoseEstimation training_hyperparams.sg_logger_params.save_checkpoints_remote=true training_hyperparams.sg_logger_params.save_logs_remote=true training_hyperparams.sg_logger_params.save_tensorboard_remote=false training_hyperparams.sg_logger_params.tb_files_user_prompt=false
+
+coco2017_yolo_nas_pose_m_multiscale:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_m_multiscale $(WANDB_PARAMS)
