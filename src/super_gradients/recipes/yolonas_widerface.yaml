@@ -30,18 +30,6 @@ checkpoint_params:
 result_path: # By defaults saves results in checkpoints directory
 resume: False
 training_hyperparams:
-  sg_logger: wandb_sg_logger
-  sg_logger_params:
-    project_name: WiderFAce
-    entity: super-gradients
-    api_server: "https://wandb.research.deci.ai"
-    tb_files_user_prompt: false
-    launch_tensorboard: false
-    tensorboard_port: null
-    save_checkpoints_remote: false
-    save_tensorboard_remote: false
-    save_logs_remote: false
-    monitor_system: false
 
   resume: ${resume}
   zero_weight_decay_on_bias_and_bn: True
