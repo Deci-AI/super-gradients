@@ -1643,5 +1643,7 @@ def get_scheduler_state(scheduler) -> Dict[str, Tensor]:
 
     state = scheduler.state_dict()
     if isinstance(scheduler, CyclicLR) and not torch_version_is_greater_or_equal(2, 0):
-        del state["_scale_fn_ref"]
+        # A check is needed since torch 1.12 does not have the _scale_fn_ref attribute, while other versions do
+        if "_scale_fn_ref" in state:
+            del state["_scale_fn_ref"]
     return state
