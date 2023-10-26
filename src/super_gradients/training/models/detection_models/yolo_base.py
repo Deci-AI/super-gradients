@@ -267,7 +267,7 @@ class DetectX(nn.Module):
             if not self.training:
                 outputs_logits.append(output.clone())
                 if self.grid[i].shape[2:4] != output.shape[2:4]:
-                    self.grid[i] = self._make_grid(nx, ny, dtype=reg_output.dtype).to(output.device)
+                    self.grid[i] = self._make_grid(nx, ny, dtype=reg_output.dtype, device=output.device)
 
                 xy = (output[..., :2] + self.grid[i].to(output.device)) * self.stride[i]
                 wh = torch.exp(output[..., 2:4]) * self.stride[i]
@@ -279,12 +279,14 @@ class DetectX(nn.Module):
         return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
 
     @staticmethod
-    def _make_grid(nx: int, ny: int, dtype: torch.dtype):
+    def _make_grid(nx: int, ny: int, dtype: torch.dtype, device: torch.device):
+        y, x = torch.arange(ny, dtype=torch.float32, device=device), torch.arange(nx, dtype=torch.float32, device=device)
+
         if torch_version_is_greater_or_equal(1, 10):
             # https://github.com/pytorch/pytorch/issues/50276
-            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)], indexing="ij")
+            yv, xv = torch.meshgrid([y, x], indexing="ij")
         else:
-            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)])
+            yv, xv = torch.meshgrid([y, x])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).to(dtype)
 
 

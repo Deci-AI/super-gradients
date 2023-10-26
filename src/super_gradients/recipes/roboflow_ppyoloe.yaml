@@ -42,14 +42,12 @@ training_hyperparams:
   mixed_precision: True
   criterion_params:
     num_classes: ${num_classes}
+    reg_max: ${arch_params.head.reg_max}
   phase_callbacks:
     - RoboflowResultCallback:
         dataset_name: ${dataset_name}
         output_path: ${result_path}
-  loss:
-    PPYoloELoss:
-      num_classes: ${num_classes}
-      reg_max: ${arch_params.head.reg_max}
+  loss: PPYoloELoss
 
   valid_metrics_list:
     - DetectionMetrics:
