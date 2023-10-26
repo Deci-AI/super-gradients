@@ -267,7 +267,7 @@ class DetectX(nn.Module):
             if not self.training:
                 outputs_logits.append(output.clone())
                 if self.grid[i].shape[2:4] != output.shape[2:4]:
-                    self.grid[i] = self._make_grid(nx, ny, dtype=reg_output.dtype).to(output.device)
+                    self.grid[i] = self._make_grid(nx, ny, dtype=reg_output.dtype, device=output.device)
 
                 xy = (output[..., :2] + self.grid[i].to(output.device)) * self.stride[i]
                 wh = torch.exp(output[..., 2:4]) * self.stride[i]
@@ -279,12 +279,14 @@ class DetectX(nn.Module):
         return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
 
     @staticmethod
-    def _make_grid(nx: int, ny: int, dtype: torch.dtype):
+    def _make_grid(nx: int, ny: int, dtype: torch.dtype, device: torch.device):
+        y, x = torch.arange(ny, dtype=torch.float32, device=device), torch.arange(nx, dtype=torch.float32, device=device)
+
         if torch_version_is_greater_or_equal(1, 10):
             # https://github.com/pytorch/pytorch/issues/50276
-            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)], indexing="ij")
+            yv, xv = torch.meshgrid([y, x], indexing="ij")
         else:
-            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)])
+            yv, xv = torch.meshgrid([y, x])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).to(dtype)
 
 
@@ -736,13 +738,15 @@ class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):
         if self.with_confidence:
             pred_scores = pred_scores * conf
 
-        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
         nms_top_k = self.num_pre_nms_predictions
+        batch_size, num_anchors, _ = pred_scores.size()
+
+        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
         topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
 
-        offsets = nms_top_k * torch.arange(pred_cls_conf.size(0), device=pred_cls_conf.device)
-        flat_indices = topk_candidates.indices + offsets.reshape(pred_cls_conf.size(0), 1)
-        flat_indices = torch.flatten(flat_indices)
+        offsets = num_anchors * torch.arange(batch_size, device=pred_cls_conf.device)
+        indices_with_offset = topk_candidates.indices + offsets.reshape(batch_size, 1)
+        flat_indices = torch.flatten(indices_with_offset)
 
         output_pred_bboxes = pred_bboxes.reshape(-1, pred_bboxes.size(2))[flat_indices, :].reshape(pred_bboxes.size(0), nms_top_k, pred_bboxes.size(2))
         output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
