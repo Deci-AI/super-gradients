@@ -2,7 +2,7 @@ import json
 import os
 import signal
 import time
-from typing import Union, Any, Optional
+from typing import Union, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +10,6 @@ import psutil
 import torch
 from PIL import Image
 import shutil
-import yaml
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
@@ -329,21 +328,6 @@ class BaseSGLogger(AbstractSGLogger):
             logger.info("Checkpoint saved in " + path)
         if self.save_checkpoints_remote:
             self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
-
-    @multi_process_safe
-    def add_yaml_summary(self, tag: str, summary_dict: dict, global_step: Optional[int] = None) -> None:
-        """Saves any dict to <experiment_folder>/<tag>.yaml
-        Initially added for saving metrics to yaml to store it in something easily parsable (easier than .pth checkpoints),
-        but who knows what it will be suited for later.
-
-        :param tag:           Identifier of the summary.
-        :param summary_dict:  Checkpoint summary_dict.
-        :param global_step:   Epoch number.
-        """
-
-        name = tag + (f"_{global_step}" if global_step is not None else "") + ".yml"
-        with open(os.path.join(self._local_dir, name), "w", encoding="utf-8") as outfile:
-            yaml.safe_dump(summary_dict, outfile, default_flow_style=False)
 
     def add(self, tag: str, obj: Any, global_step: int = None):
         pass

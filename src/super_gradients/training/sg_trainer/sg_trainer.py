@@ -692,12 +692,10 @@ class Trainer:
 
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
-        self.sg_logger.add_yaml_summary(tag="metrics_latest", summary_dict=all_metrics)
 
         # SAVE MODEL AT SPECIFIC EPOCHS DETERMINED BY save_ckpt_epoch_list
         if epoch in self.training_params.save_ckpt_epoch_list:
             self.sg_logger.add_checkpoint(tag=f"ckpt_epoch_{epoch}.pth", state_dict=state, global_step=epoch)
-            self.sg_logger.add_yaml_summary(tag="metrics_epoch", summary_dict=all_metrics, global_step=epoch)
 
         # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
         if (curr_tracked_metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
@@ -706,7 +704,6 @@ class Trainer:
             # STORE THE CURRENT metric AS BEST
             self.best_metric = curr_tracked_metric
             self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
-            self.sg_logger.add_yaml_summary(tag="metrics_best", summary_dict=all_metrics)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_validation_end_best_epoch(context)
