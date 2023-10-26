@@ -658,7 +658,7 @@ class Trainer:
         metric = validation_results_dict[self.metric_to_watch]
 
         # BUILD THE state_dict
-        state = {"net": unwrap_model(self.net).state_dict(), "acc": metric, "epoch": epoch}
+        state = {"net": unwrap_model(self.net).state_dict(), "acc": metric, "epoch": epoch, "packages": get_installed_packages()}
 
         if optimizer is not None:
             state["optimizer_state_dict"] = optimizer.state_dict()
