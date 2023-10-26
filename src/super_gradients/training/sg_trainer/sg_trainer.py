@@ -656,23 +656,22 @@ class Trainer:
 
         # COMPUTE THE CURRENT metric
         # IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES
-        curr_tracked_metric = validation_results_dict[self.metric_to_watch]
+        curr_tracked_metric = float(validation_results_dict[self.metric_to_watch])
 
         # create metrics dict to save
         valid_metrics_titles = get_metrics_titles(self.valid_metrics)
 
         all_metrics = {
             "tracked_metric_name": self.metric_to_watch,
-            "metrics": {"valid": {metric_name: float(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles}},
+            "valid": {metric_name: float(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles},
         }
 
-        train_metrics_titles = get_metrics_titles(self.train_metrics)
-
         if train_metrics_dict is not None:
-            all_metrics["metrics"]["train"] = {metric_name: float(train_metrics_dict[metric_name]) for metric_name in train_metrics_titles}
+            train_metrics_titles = get_metrics_titles(self.train_metrics)
+            all_metrics["train"] = {metric_name: float(train_metrics_dict[metric_name]) for metric_name in train_metrics_titles}
 
         # BUILD THE state_dict
-        state = {"net": unwrap_model(self.net).state_dict(), "acc": curr_tracked_metric, "epoch": epoch, "all_metrics": all_metrics}
+        state = {"net": unwrap_model(self.net).state_dict(), "acc": curr_tracked_metric, "epoch": epoch, "metrics": all_metrics}
 
         if optimizer is not None:
             state["optimizer_state_dict"] = optimizer.state_dict()
@@ -707,8 +706,6 @@ class Trainer:
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler.on_validation_end_best_epoch(context)
-
-            curr_tracked_metric = float(curr_tracked_metric)
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(curr_tracked_metric))
 
         if self.training_params.average_best_models:
