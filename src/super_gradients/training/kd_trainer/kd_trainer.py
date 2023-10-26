@@ -77,6 +77,7 @@ class KDTrainer(Trainer):
             checkpoint_path=cfg.student_checkpoint_params.checkpoint_path,
             load_backbone=cfg.student_checkpoint_params.load_backbone,
             checkpoint_num_classes=get_param(cfg.student_checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.student_arch_params, "num_input_channels"),
         )
 
         teacher = models.get(
@@ -87,6 +88,7 @@ class KDTrainer(Trainer):
             checkpoint_path=cfg.teacher_checkpoint_params.checkpoint_path,
             load_backbone=cfg.teacher_checkpoint_params.load_backbone,
             checkpoint_num_classes=get_param(cfg.teacher_checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.teacher_arch_params, "num_input_channels"),
         )
 
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
