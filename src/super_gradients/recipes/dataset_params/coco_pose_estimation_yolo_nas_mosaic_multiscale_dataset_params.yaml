@@ -5,6 +5,8 @@ defaults:
 dataset_params_suffix: "mosaic_heavy_multiscale_augs_${dataset_params.mosaic_prob}_${dataset_params.image_size}"
 
 train_dataset_params:
+# Commented for debug
+  include_empty_samples: False
   transforms:
     - KeypointsRandomHorizontalFlip:
         flip_index: ${dataset_params.flip_indexes}
@@ -34,19 +36,20 @@ train_dataset_params:
         prob: 0.75
         interpolation_mode: [ 0, 1, 2, 3, 4 ]
 
-    - KeypointsMosaic:
-        prob: ${dataset_params.mosaic_prob}
+# Commented for debug
+#    - KeypointsMosaic:
+#        prob: ${dataset_params.mosaic_prob}
 
-    - KeypointsLongestMaxSize:
-        max_height: ${dataset_params.image_size}
-        max_width: ${dataset_params.image_size}
-
-    - KeypointsPadIfNeeded:
-        min_height: ${dataset_params.image_size}
-        min_width: ${dataset_params.image_size}
-        image_pad_value: [ 127, 127, 127 ]
-        mask_pad_value: 1
-        padding_mode: center
+#    - KeypointsLongestMaxSize:
+#        max_height: ${dataset_params.image_size}
+#        max_width: ${dataset_params.image_size}
+#
+#    - KeypointsPadIfNeeded:
+#        min_height: ${dataset_params.image_size}
+#        min_width: ${dataset_params.image_size}
+#        image_pad_value: [ 127, 127, 127 ]
+#        mask_pad_value: 1
+#        padding_mode: center
 
     - KeypointsImageStandardize:
         max_value: 255
