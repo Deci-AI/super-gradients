@@ -176,9 +176,11 @@ class MultiscaleYoloNASPoseCollateFN:
 
         return torch.from_numpy(boxes_xyxy), torch.from_numpy(sample.joints), torch.from_numpy(is_crowd.astype(int).reshape((-1, 1)))
 
-    def _resize_sample_to_size(self, sample: PoseEstimationSample, target_size, interpolation):
+    def _resize_sample_to_size(self, sample: PoseEstimationSample, target_size: Tuple[int, int], interpolation: int) -> PoseEstimationSample:
+        image_height, image_width = sample.image.shape[:2]
         target_width, target_height = target_size
-        scale_factors = target_height / sample.image.shape[0], target_width / sample.image.shape[1]
+        sx = target_width / image_width
+        sy = target_height / image_height
 
         image = cv2.resize(
             sample.image,
@@ -192,16 +194,14 @@ class MultiscaleYoloNASPoseCollateFN:
             interpolation=cv2.INTER_NEAREST,
         )
 
-        sy, sx = scale_factors
-
         return PoseEstimationSample(
             image=image,
             mask=mask,
-            bboxes_xywh=sample.bboxes_xywh * np.array([[sx, sy, sx, sy]], dtype=sample.bboxes_xywh.dtype),
+            bboxes_xywh=sample.bboxes_xywh * np.array([[sx, sy, sx, sy]], dtype=sample.bboxes_xywh.dtype) if sample.bboxes_xywh is not None else None,
             joints=sample.joints * np.array([[sx, sy, 1]], dtype=sample.joints.dtype),
             areas=sample.areas * np.array([[sx * sy]], dtype=sample.areas.dtype) if sample.areas is not None else None,
             is_crowd=sample.is_crowd,
-            additional_samples=sample.additional_samples,
+            additional_samples=None,
         )
 
 
