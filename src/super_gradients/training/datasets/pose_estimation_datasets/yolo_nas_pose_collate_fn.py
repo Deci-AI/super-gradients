@@ -127,9 +127,9 @@ class MultiscaleYoloNASPoseCollateFN:
         target_size = random.choices(self.random_resize_sizes, k=2)
         interpolation = random.choice(self.random_resize_modes)
 
-        for sample in batch:
-            sample = self._resize_sample_to_size(sample, target_size, interpolation)
+        batch = [self._resize_sample_to_size(sample, target_size, interpolation) for sample in batch]
 
+        for sample in batch:
             # Generate targets
             boxes, joints, is_crowd = self._get_targets(sample)
             all_boxes.append(boxes)

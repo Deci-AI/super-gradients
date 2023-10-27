@@ -36,9 +36,8 @@ train_dataset_params:
         prob: 0.75
         interpolation_mode: [ 0, 1, 2, 3, 4 ]
 
-# Commented for debug
-#    - KeypointsMosaic:
-#        prob: ${dataset_params.mosaic_prob}
+    - KeypointsMosaic:
+        prob: ${dataset_params.mosaic_prob}
 
 #    - KeypointsLongestMaxSize:
 #        max_height: ${dataset_params.image_size}
