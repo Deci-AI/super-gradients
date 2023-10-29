@@ -50,6 +50,7 @@ training_hyperparams:
   mixed_precision: True
 
   phase_callbacks:
+# COMMENTED OUT - UNCOMMENT TO VISUZLISE WORST BATCHES IN VALIDATION
 #    - ExtremeBatchDetectionVisualizationCallback:
 #        metric: # Defines which metric to observe
 #          DetectionMetrics:
@@ -80,7 +81,7 @@ training_hyperparams:
       reg_max: 16
 
   valid_metrics_list:
-    - DetectionMetrics_050:
+    - DetectionMetrics_050_095:
         score_thres: 0.1
         top_k_predictions: 300
         num_cls: ${arch_params.num_classes}
@@ -94,7 +95,7 @@ training_hyperparams:
 
 pre_prediction_callback:
 
-metric_to_watch: 'mAP@0.50'
+metric_to_watch: 'mAP@0.50:0.95'
 
 multi_gpu: Off
 num_gpus: 1
