@@ -267,6 +267,7 @@ class Trainer:
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
             checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
         )
 
         # INSTANTIATE DATA LOADERS
@@ -383,6 +384,7 @@ class Trainer:
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
             checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
         )
 
         # TEST
@@ -2370,6 +2372,7 @@ class Trainer:
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=False,
             checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
         )
 
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}

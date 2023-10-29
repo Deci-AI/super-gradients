@@ -8,6 +8,7 @@ License: Apache Version 2.0, January 2004 http://www.apache.org/licenses/
 
 Pre-trained ImageNet model: 'deci-model-repository/mobilenet_v2/ckpt_best.pth'
 """
+from typing import Optional, Callable
 import numpy as np
 import torch
 import torch.nn as nn
@@ -187,6 +188,15 @@ class MobileNetV2(MobileNetBase):
                 n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self.features[0][0] = replace_conv2d_input_channels(conv=self.features[0][0], in_channels=in_channels, fn=compute_new_weights_fn)
+        self.in_channels = self.get_input_channels()
+
+    def get_input_channels(self) -> int:
+        return self.features[0][0].in_channels
 
 
 @register_model(Models.MOBILENET_V2)

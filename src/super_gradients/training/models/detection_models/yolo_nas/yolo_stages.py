@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Type, List, Iterable, Union
+from typing import Type, List, Iterable, Union, Optional, Callable
 
 import torch
 from super_gradients.training.utils.regularization_utils import DropPath
@@ -11,6 +11,8 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.modules import QARepVGGBlock, Conv
 from super_gradients.modules.utils import width_multiplier
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
+
 
 __all__ = ["YoloNASStage", "YoloNASUpStage", "YoloNASStem", "YoloNASDownStage", "YoloNASBottleneck"]
 
@@ -146,7 +148,7 @@ class YoloNASCSPLayer(nn.Module):
 
 
 @register_detection_module()
-class YoloNASStem(BaseDetectionModule):
+class YoloNASStem(BaseDetectionModule, SupportsReplaceInputChannels):
     """
     Stem module for YoloNAS. Consists of a single QARepVGGBlock with stride of two.
     """
@@ -167,6 +169,12 @@ class YoloNASStem(BaseDetectionModule):
 
     def forward(self, x: Tensor) -> Tensor:
         return self.conv(x)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.conv = QARepVGGBlock(in_channels, self._out_channels, stride=2, use_residual_connection=False)
+
+    def get_input_channels(self) -> int:
+        return self.conv.in_channels
 
 
 @register_detection_module()

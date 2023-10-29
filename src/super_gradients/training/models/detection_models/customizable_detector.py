@@ -5,7 +5,7 @@ A base for a detection network built according to the following scheme:
  * each module accepts in_channels and other parameters
  * each module defines out_channels property on construction
 """
-from typing import Union, Optional, List
+from typing import Union, Optional, List, Callable
 from functools import lru_cache
 
 import torch
@@ -14,7 +14,7 @@ from omegaconf import DictConfig
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.processing_factory import ProcessingFactory
-from super_gradients.module_interfaces import SupportsReplaceNumClasses, HasPredict
+from super_gradients.module_interfaces import SupportsReplaceNumClasses, SupportsReplaceInputChannels, HasPredict
 from super_gradients.modules.head_replacement_utils import replace_num_classes_with_random_weights
 from super_gradients.training.utils.utils import HpmStruct, arch_params_deprecated
 from super_gradients.training.models.sg_module import SgModule
@@ -116,6 +116,19 @@ class CustomizableDetector(HasPredict, SgModule):
             self.heads = factory.get(factory.insert_module_param(self.heads_params, "in_channels", self.neck.out_channels))
             self._initialize_weights(self.bn_eps, self.bn_momentum, self.inplace_act)
 
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        if isinstance(self.backbone, SupportsReplaceInputChannels):
+            self.backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+            self.in_channels = self.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `replace_input_channels`")
+
+    def get_input_channels(self) -> int:
+        if isinstance(self.backbone, SupportsReplaceInputChannels):
+            return self.backbone.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self.backbone.__class__.__name__}` does not support `replace_input_channels`")
+
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         raise NotImplementedError
@@ -139,13 +152,6 @@ class CustomizableDetector(HasPredict, SgModule):
         self._image_processor = image_processor or self._image_processor
         self._default_nms_iou = iou or self._default_nms_iou
         self._default_nms_conf = conf or self._default_nms_conf
-
-    def get_input_channels(self) -> int:
-        """
-        Get the number of input channels for the model.
-        :return: (int) Number of input channels.
-        """
-        return self.in_channels
 
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
