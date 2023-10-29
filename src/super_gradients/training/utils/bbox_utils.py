@@ -16,7 +16,7 @@ def batch_distance2bbox(points: Tensor, distance: Tensor, max_shapes: Optional[T
     """
     lt, rb = torch.split(distance, 2, dim=-1)
     # while tensor add parameters, parameters should be better placed on the second place
-    x1y1 = -lt + points
+    x1y1 = points - lt
     x2y2 = rb + points
     out_bbox = torch.cat([x1y1, x2y2], dim=-1)
     if max_shapes is not None:
