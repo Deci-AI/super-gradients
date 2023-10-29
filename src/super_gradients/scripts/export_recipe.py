@@ -23,6 +23,8 @@ Usage:
 """
 
 import argparse
+import os
+
 from super_gradients.common.environment.cfg_utils import export_recipe
 
 if __name__ == "__main__":
@@ -31,4 +33,6 @@ if __name__ == "__main__":
     parser.add_argument("--config_name", type=str, help=".yaml filename")
     parser.add_argument("--save_path", type=str, default=None, help="Destination path to the output .yaml file")
     args = parser.parse_args()
+    if args.save_path is None:
+        args.save_path = os.path.join(os.getcwd(), args.config_name).replace(".yaml", "") + "_complete.yaml"
     export_recipe(config_dir=args.config_dir, config_name=args.config_name, save_path=args.save_path)

@@ -170,7 +170,7 @@ def override_cfg(cfg: DictConfig, overrides: Union[DictConfig, Dict[str, Any]]) 
         cfg.merge_with(overrides)
 
 
-def export_recipe(config_name: str, save_path: str = None, config_dir: str = pkg_resources.resource_filename("super_gradients.recipes", "")):
+def export_recipe(config_name: str, save_path: str, config_dir: str = pkg_resources.resource_filename("super_gradients.recipes", "")):
     """
     saves a complete (i.e no inheritance from other yaml configuration files),
      .yaml file that can be ran on its own without the need to keep other configurations which the original
@@ -185,8 +185,6 @@ def export_recipe(config_name: str, save_path: str = None, config_dir: str = pkg
         When None, will use SG's recipe directory (i.e path/to/super_gradients/recipes)
 
     """
-    if save_path is None:
-        save_path = os.path.join(os.getcwd(), config_name).replace(".yaml", "") + "_complete.yaml"
     # NEED TO REGISTER RESOLVERS FIRST
     register_hydra_resolvers()
     GlobalHydra.instance().clear()
