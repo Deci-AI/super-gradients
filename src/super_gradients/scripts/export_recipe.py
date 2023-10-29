@@ -4,7 +4,7 @@ Script that saves a complete (i.e no inheritance from other yaml configuration f
   file inherits from.
 
 Usage:
-    python export_recipe --config_name=cifar10_resnet save_path=/other/recipes/dir/my_complete_recipe.yaml -> saves cifar10_resnet_complete.yaml
+    python export_recipe config_name=cifar10_resnet save_path=/other/recipes/dir/my_complete_recipe.yaml -> saves cifar10_resnet_complete.yaml
      in current working directory
 
     python export_recipe --config_dir=/path/to/recipes/ config_name=my_recipe.yaml -> saves config_name_complete.yaml in current working directory
@@ -30,8 +30,8 @@ from super_gradients.common.environment.cfg_utils import export_recipe
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_dir", type=str, default=None, help="The config directory path")
-    parser.add_argument("--config_name", type=str, help=".yaml filename")
-    parser.add_argument("--save_path", type=str, default=None, help="Destination path to the output .yaml file")
+    parser.add_argument("config_name", type=str, help=".yaml filename")
+    parser.add_argument("save_path", type=str, default=None, help="Destination path to the output .yaml file")
     args = parser.parse_args()
     if args.save_path is None:
         args.save_path = os.path.join(os.getcwd(), args.config_name).replace(".yaml", "") + "_complete.yaml"
