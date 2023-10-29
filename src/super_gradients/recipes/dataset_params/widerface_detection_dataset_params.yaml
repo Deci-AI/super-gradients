@@ -2,7 +2,7 @@ train_dataset_params:
   data_dir: /home/shay.aharon/widerface_yolo/ # TO FILL: Where the data is stored.
   images_dir: train # TO FILL: Local path to directory that includes all the images. Path relative to `data_dir`. Can be the same as `labels_dir`.
   labels_dir: train # TO FILL: Local path to directory that includes all the labels. Path relative to `data_dir`. Can be the same as `images_dir`.
-  classes: [face] # TO FILL: List of classes used in your dataset.
+  classes: [head] # TO FILL: List of classes used in your dataset.
   input_dim: [640, 640]
   cache_dir:
   cache: False
@@ -83,7 +83,7 @@ val_dataset_params:
   data_dir: /home/shay.aharon/widerface_yolo/ # TO FILL: Where the data is stored.
   images_dir: val # TO FILL: Local path to directory that includes all the images. Path relative to `data_dir`. Can be the same as `labels_dir`.
   labels_dir: val # TO FILL: Local path to directory that includes all the labels. Path relative to `data_dir`. Can be the same as `images_dir`.
-  classes: [face] # TO FILL: List of classes used in your dataset.
+  classes: [head] # TO FILL: List of classes used in your dataset.
   input_dim: [640, 640]
   cache_dir:
   cache: False
