@@ -12,6 +12,9 @@ from omegaconf import OmegaConf, open_dict, DictConfig
 from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 from super_gradients.common.environment.path_utils import normalize_path
 from super_gradients.common.environment.checkpoints_dir_utils import get_checkpoints_dir_path
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class RecipeNotFoundError(Exception):
@@ -191,4 +194,4 @@ def export_recipe(config_name: str, save_path: str, config_dir: str = pkg_resour
     with initialize_config_dir(config_dir=normalize_path(config_dir), version_base="1.2"):
         cfg = compose(config_name=config_name)
         OmegaConf.save(config=cfg, f=save_path)
-        print(f"Successfully saved recipe at {save_path}. \n" f"Recipe content:\n {cfg}")
+        logger.info(f"Successfully saved recipe at {save_path}. \n" f"Recipe content:\n {cfg}")
