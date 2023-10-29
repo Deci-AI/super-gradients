@@ -77,7 +77,7 @@ class ConvBNAct(nn.Module, SupportsReplaceInputChannels):
         return self.seq[0].in_channels
 
 
-class Conv(nn.Module):
+class Conv(nn.Module, SupportsReplaceInputChannels):
     # STANDARD CONVOLUTION
     # TODO: This class is illegaly similar to ConvBNAct, and the only reason it exists is due to fact that some models were using it
     # previosly and one have to find a bulletproof way drop this class but still be able to load models that were using it. Perhaps
