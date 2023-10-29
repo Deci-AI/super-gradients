@@ -49,13 +49,13 @@ def append_graphs(graph1: gs.Graph, graph2: gs.Graph, prefix: str = "graph2_") -
     merged_graph.outputs.clear()
     merged_graph.outputs = graph2.outputs
 
-    merged_graph.toposort()
-    # iteratively_infer_shapes(merged_graph)
+    merged_graph = merged_graph.fold_constants().toposort().cleanup()
+    merged_graph = iteratively_infer_shapes(merged_graph)
 
     return merged_graph
 
 
-def iteratively_infer_shapes(graph: gs.Graph) -> None:
+def iteratively_infer_shapes(graph: gs.Graph) -> gs.Graph:
     """
     Sanitize the graph by cleaning any unconnected nodes, do a topological resort,
     and fold constant inputs values. When possible, run shape inference on the
@@ -65,7 +65,7 @@ def iteratively_infer_shapes(graph: gs.Graph) -> None:
     for _ in range(3):
         count_before = len(graph.nodes)
 
-        graph.cleanup().toposort()
+        graph = graph.cleanup().toposort()
         try:
             # for node in graph.nodes:
             #     for o in node.outputs:
@@ -76,7 +76,7 @@ def iteratively_infer_shapes(graph: gs.Graph) -> None:
         except Exception as e:
             logger.debug(f"Shape inference could not be performed at this time:\n{e}")
         try:
-            graph.fold_constants(fold_shapes=True)
+            graph = graph.fold_constants(fold_shapes=True)
         except TypeError as e:
             logger.error("This version of ONNX GraphSurgeon does not support folding shapes, " f"please upgrade your onnx_graphsurgeon module. Error:\n{e}")
             raise
@@ -86,3 +86,5 @@ def iteratively_infer_shapes(graph: gs.Graph) -> None:
             # No new folding occurred in this iteration, so we can stop for now.
             break
         logger.debug(f"Folded {count_before - count_after} constants.")
+
+    return graph
