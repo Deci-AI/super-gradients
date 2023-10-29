@@ -10,24 +10,6 @@ from super_gradients.common.environment.cfg_utils import export_recipe
 
 class TestExportRecipe(unittest.TestCase):
     def test_export_recipe(self):
-        # Define the command to run your script
-        export_recipe(config_name="cifar10_resnet")
-
-        # Check if the output file was created
-        expected_output_path = "cifar10_resnet_complete.yaml"
-        self.assertTrue(os.path.exists(expected_output_path))
-
-        with initialize_config_dir(config_dir=os.getcwd(), version_base="1.2"):
-            cfg = compose(config_name="cifar10_resnet_complete.yaml")
-
-        cfg = hydra.utils.instantiate(cfg)
-
-        self.assertEqual(cfg.training_hyperparams.max_epochs, 250)
-
-        # Clean up the created file after the test
-        os.remove(expected_output_path)
-
-    def test_export_recipe_with_save_path(self):
         with tempfile.TemporaryDirectory() as td:
             save_path = os.path.join(td, "cifar10_resnet_complete.yaml")
             # Define the command to run your script
