@@ -4,6 +4,7 @@ Implementation of paradigm described in paper published by Facebook AI Research 
 @author: Signatrix GmbH
 Code taken from: https://github.com/signatrix/regnet - MIT Licence
 """
+from typing import Optional, Callable
 import numpy as np
 import torch
 import torch.nn as nn
@@ -44,6 +45,14 @@ class Stem(nn.Module):  # From figure 3
         x = self.bn(x)
         x = self.rl(x)
         return x
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self.conv = replace_conv2d_input_channels(conv=self.conv, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.conv.in_channels
 
 
 class XBlock(nn.Module):  # From figure 4
@@ -168,6 +177,14 @@ class AnyNetX(BaseClassifier):
             self.net.head = new_head
         else:
             self.net.head = Head(self.ls_block_width[-1], new_num_classes, self.dropout_prob)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        stem: Stem = self.net[0]
+        stem.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        stem: Stem = self.net[0]
+        return stem.get_input_channels()
 
 
 def regnet_params_to_blocks(initial_width, slope, quantized_param, network_depth, bottleneck_ratio, group_width):

@@ -2,7 +2,7 @@
 Implementation of paper: "Rethink Dilated Convolution for Real-time Semantic Segmentation", https://arxiv.org/pdf/2111.09957.pdf
 Based on original implementation: https://github.com/RolandGao/RegSeg, cloned 23/12/2021, commit c07a833
 """
-from typing import List
+from typing import List, Union, Callable, Optional
 
 import torch
 import torch.nn as nn
@@ -12,6 +12,7 @@ from super_gradients.common.object_names import Models
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.modules import ConvBNReLU
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 DEFAULT_REGSEG48_BACKBONE_PARAMS = {
     "stages": [
@@ -251,7 +252,7 @@ class RegSegBackbone(nn.Module):
 
 
 class RegSeg(SgModule):
-    def __init__(self, stem, backbone, decoder, head):
+    def __init__(self, stem: Union[ConvBNReLU, nn.Module], backbone: RegSegBackbone, decoder: RegSegDecoder, head: RegSegHead):
         super().__init__()
         self.stem = stem
         self.backbone = backbone
@@ -292,6 +293,18 @@ class RegSeg(SgModule):
 
     def replace_head(self, new_num_classes: int, head_config: dict):
         self.head = RegSegHead(self.decoder.out_channels, new_num_classes, head_config)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        if isinstance(self.stem, SupportsReplaceInputChannels):
+            self.stem.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        else:
+            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_input_channels`")
+
+    def get_input_channels(self) -> int:
+        if isinstance(self.stem, SupportsReplaceInputChannels):
+            return self.stem.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self.stem.__class__.__name__}` does not support `get_input_channels`")
 
 
 @register_model(Models.REGSEG48)

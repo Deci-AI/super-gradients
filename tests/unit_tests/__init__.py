@@ -26,6 +26,7 @@ from tests.unit_tests.transforms_test import TestTransforms
 from tests.unit_tests.post_prediction_callback_test import TestPostPredictionCallback
 from tests.unit_tests.test_predict import TestModelPredict
 from tests.unit_tests.test_deprecate import TestDeprecationDecorator
+from tests.unit_tests.test_models_factory import DynamicModelTests
 from tests.unit_tests.test_mixed_precision_cpu import TestMixedPrecisionDisabled
 
 __all__ = [
@@ -57,4 +58,5 @@ __all__ = [
     "TestModelPredict",
     "TestDeprecationDecorator",
     "TestMixedPrecisionDisabled",
+    "DynamicModelTests",
 ]
