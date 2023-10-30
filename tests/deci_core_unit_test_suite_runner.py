@@ -49,6 +49,7 @@ from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.test_deprecations import DeprecationsUnitTest
 from tests.unit_tests.test_min_samples_single_node import TestMinSamplesSingleNode
 from tests.unit_tests.test_train_with_torch_scheduler import TrainWithTorchSchedulerTest
+from tests.unit_tests.test_version_check import TestVersionCheck
 from tests.unit_tests.test_yolo_nas_pose import YoloNASPoseTests
 from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
@@ -168,6 +169,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestMixedPrecisionDisabled))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DynamicModelTests))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestConvertRecipeToCode))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestVersionCheck))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
