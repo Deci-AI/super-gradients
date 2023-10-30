@@ -8,7 +8,7 @@ from super_gradients.convert_recipe_to_code import convert_recipe_to_code
 from pathlib import Path
 
 
-class TestConvertFromRecipe(unittest.TestCase):
+class TestConvertRecipeToCode(unittest.TestCase):
     def setUp(self) -> None:
         self.recipes_dir: Path = Path(pkg_resources.resource_filename("super_gradients.recipes", ""))
         self.recipes_that_should_work = [
