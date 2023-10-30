@@ -95,7 +95,7 @@ def recursively_walk_and_extract_hydra_targets(
     return cfg, objects
 
 
-def convert_from_recipe(config_name: Union[str, pathlib.Path], config_dir: Union[str, pathlib.Path], output_script_path: Union[str, pathlib.Path]) -> None:
+def convert_recipe_to_code(config_name: Union[str, pathlib.Path], config_dir: Union[str, pathlib.Path], output_script_path: Union[str, pathlib.Path]) -> None:
     """
     Convert a recipe YAML file to a self-contained <train.py> file that can be run with python <train.py>.
     Generated file will contain all training hyperparameters from input recipe file but will be self-contained (no dependencies on original recipe).
@@ -232,7 +232,7 @@ def main() -> None:
     save_path = args.save_path or os.path.splitext(os.path.basename(args.config_name))[0] + ".py"
     logger.info(f"Saving recipe script to {save_path}")
 
-    convert_from_recipe(args.config_name, args.config_dir, save_path)
+    convert_recipe_to_code(args.config_name, args.config_dir, save_path)
 
 
 if __name__ == "__main__":

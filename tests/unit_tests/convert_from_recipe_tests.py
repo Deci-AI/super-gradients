@@ -4,7 +4,7 @@ import tempfile
 import pkg_resources
 import unittest
 
-from super_gradients.convert_from_recipe import convert_from_recipe
+from super_gradients.convert_recipe_to_code import convert_recipe_to_code
 from pathlib import Path
 
 
@@ -80,7 +80,7 @@ class TestConvertFromRecipe(unittest.TestCase):
             for recipe in self.recipes_that_should_work:
                 with self.subTest(recipe=recipe):
                     output_script_path = Path(temp_dir) / Path(recipe).name
-                    convert_from_recipe(recipe, self.recipes_dir, output_script_path)
+                    convert_recipe_to_code(recipe, self.recipes_dir, output_script_path)
                     src = output_script_path.read_text()
                     try:
                         ast.parse(src, feature_version=(3, 9))
@@ -93,7 +93,7 @@ class TestConvertFromRecipe(unittest.TestCase):
                 with self.subTest(recipe=recipe):
                     output_script_path = Path(temp_dir) / Path(recipe).name
                     with self.assertRaises(Exception):
-                        convert_from_recipe(recipe, self.recipes_dir, output_script_path)
+                        convert_recipe_to_code(recipe, self.recipes_dir, output_script_path)
 
 
 if __name__ == "__main__":
