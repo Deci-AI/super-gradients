@@ -25,9 +25,6 @@ class TestExportRecipe(unittest.TestCase):
 
             self.assertEqual(cfg.training_hyperparams.max_epochs, 250)
 
-            # Clean up the created file after the test
-            os.remove(save_path)
-
 
 if __name__ == "__main__":
     unittest.main()
