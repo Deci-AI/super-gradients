@@ -4,6 +4,7 @@ See the paper "Aggregated Residual Transformations for Deep Neural Networks" for
 
 Code adapted from https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 """
+from typing import Optional, Callable
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -69,7 +70,7 @@ class GroupedConvBlock(nn.Module):
 
 
 class ResNeXt(BaseClassifier):
-    def __init__(self, layers, cardinality, bottleneck_width, num_classes=10, replace_stride_with_dilation=None):
+    def __init__(self, layers, cardinality, bottleneck_width, num_classes=10, replace_stride_with_dilation=None, in_channels: int = 3):
         super(ResNeXt, self).__init__()
 
         if replace_stride_with_dilation is None:
@@ -83,7 +84,8 @@ class ResNeXt(BaseClassifier):
         self.dilation = 1
         self.inplanes = 64
         self.base_width = bottleneck_width
-        self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
+
+        self.conv1 = nn.Conv2d(in_channels, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(self.inplanes)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(GroupedConvBlock, 64, layers[0])
@@ -132,6 +134,14 @@ class ResNeXt(BaseClassifier):
         out = out.view(out.size(0), -1)
         out = self.fc(out)
         return out
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self.conv1 = replace_conv2d_input_channels(conv=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.conv1.in_channels
 
 
 class CustomizedResNeXt(ResNeXt):

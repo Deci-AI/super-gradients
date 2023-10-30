@@ -79,7 +79,7 @@ class TestTrainer(unittest.TestCase):
         ckpt_paths = [os.path.join(trainer.checkpoints_dir_path, suf) for suf in ckpt_filename]
         for ckpt_path in ckpt_paths:
             ckpt = torch.load(ckpt_path)
-            self.assertListEqual(["net", "acc", "epoch", "optimizer_state_dict", "scaler_state_dict"], list(ckpt.keys()))
+            self.assertListEqual(sorted(["net", "acc", "epoch", "optimizer_state_dict", "scaler_state_dict", "packages"]), sorted(list(ckpt.keys())))
         trainer._save_checkpoint()
         weights_only = torch.load(os.path.join(trainer.checkpoints_dir_path, "ckpt_latest_weights_only.pth"))
         self.assertListEqual(["net"], list(weights_only.keys()))
