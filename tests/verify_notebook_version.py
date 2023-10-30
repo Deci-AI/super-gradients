@@ -3,10 +3,11 @@ import sys
 from typing import Optional
 
 import super_gradients
-import nbformat
 
 
 def get_first_cell_content(notebook_path):
+    import nbformat
+
     # Load the notebook
     with open(notebook_path, "r", encoding="utf-8") as notebook_file:
         notebook_content = nbformat.read(notebook_file, as_version=4)
