@@ -2,7 +2,7 @@ import json
 import os
 import signal
 import time
-from typing import Union, Any
+from typing import Union, Any, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -299,6 +299,20 @@ class BaseSGLogger(AbstractSGLogger):
             except Exception as ex:
                 logger.info("[CLEANUP] - Could not stop tensorboard process properly: " + str(ex))
 
+
+    @multi_process_safe
+    def _get_artifact_path(self, tag: Optional[str]=None, global_step: Optional[int]=None):
+        name = f"ckpt_{global_step}.pth" if tag is None else tag
+        if not name.endswith(".pth"):
+            name += ".pth"
+        path = os.path.join(self._local_dir, name)
+
+        return path
+
+    @multi_process_safe
+    def _save_pth_file(self, path: str, state_dict: dict):
+        torch.save(state_dict, path)
+
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = None) -> None:
         """Add checkpoint to experiment folder.
@@ -307,10 +321,9 @@ class BaseSGLogger(AbstractSGLogger):
         :param state_dict:  Checkpoint state_dict.
         :param global_step: Epoch number.
         """
-        name = f"ckpt_{global_step}.pth" if tag is None else tag
-        if not name.endswith(".pth"):
-            name += ".pth"
-        path = os.path.join(self._local_dir, name)
+        path = self._get_artifact_path(tag, global_step)
+
+        self._save_pth_file(path=path, state_dict=state_dict)
 
         self._save_checkpoint(path=path, state_dict=state_dict)
 
@@ -323,7 +336,6 @@ class BaseSGLogger(AbstractSGLogger):
         """
 
         name = os.path.basename(path)
-        torch.save(state_dict, path)
         if "best" in name:
             logger.info("Checkpoint saved in " + path)
         if self.save_checkpoints_remote:
