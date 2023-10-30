@@ -674,11 +674,11 @@ class Trainer:
 
         # BUILD THE state_dict
         state = {
-          "net": unwrap_model(self.net).state_dict(), 
-          "acc": curr_tracked_metric, 
-          "epoch": epoch, 
-          "metrics": all_metrics,
-          "packages": get_installed_packages()
+            "net": unwrap_model(self.net).state_dict(),
+            "acc": curr_tracked_metric,
+            "epoch": epoch,
+            "metrics": all_metrics,
+            "packages": get_installed_packages(),
         }
 
         if optimizer is not None:
