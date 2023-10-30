@@ -6,8 +6,8 @@ Generated file will contain all training hyperparameters from input recipe file 
 
 Limitations: Converting a recipe with command-line overrides of some parameters in this recipe is not supported.
 
-General use: python -m super_gradients.convert_from_recipe DESIRED_RECIPE OUTPUT_SCRIPT
-Example:     python -m super_gradients.convert_from_recipe coco2017_yolo_nas_s train_coco2017_yolo_nas_s.py
+General use: python -m super_gradients.convert_recipe_to_code DESIRED_RECIPE OUTPUT_SCRIPT
+Example:     python -m super_gradients.convert_recipe_to_code coco2017_yolo_nas_s train_coco2017_yolo_nas_s.py
 
 For recipe's specific instructions and details refer to the recipe's configuration file in the recipes' directory.
 """
