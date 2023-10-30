@@ -641,6 +641,7 @@ jobs:
             python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_resnet50 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
             python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_vit_base batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
             python3.8 src/super_gradients/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd batch_size=8 val_batch_size=8 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/convert_recipe_to_code.py cifar10_resnet.yaml train_cifar10_resnet.py && python3.8 train_cifar10_resnet.py 
 
       - run:
           name: Remove new environment when failed
