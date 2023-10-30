@@ -237,7 +237,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 ####  How to Connect Custom Dataset 
   <table class="tfo-notebook-buttons" align="left">
  <td width="500"> 
-<a target="_blank" href="https://bit.ly/3QQBVJp"><img src="./documentation/assets/SG_img/colab_logo.png" /> Segmentation How to Connect Custom Dataset</a>
+<a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/object_detection_how_to_connect_custom_dataset.ipynb"><img src="./documentation/assets/SG_img/colab_logo.png" /> Segmentation How to Connect Custom Dataset</a>
    </td>
 </table>
  </br></br>
