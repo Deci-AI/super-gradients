@@ -137,43 +137,34 @@ def deprecated_training_param(deprecated_tparam_name: str, deprecated_since: str
     return decorator
 
 
-def get_deprecated_nested_params_to_factory_format_assigner(param_name: str, nested_params_name: str) -> Callable:
+def deprecate_param(
+    deprecated_param_name: str,
+    new_param_name: str = "",
+    deprecated_since: str = "",
+    removed_from: str = "",
+    reason: str = "",
+):
     """
-    Returns an assigner to be used by deprecated_training_param decorator.
+    Utility function to warn about a deprecated parameter (or dictionary key).
 
-    The assigner takes a deprecated parameter name, and its __init___ arguments that previously were passed
-     through nested_params_name entry in training_params and manipulates the training_params so they are in 'Factory' format.
-     For example:
-
-    class TrainingParams(HpmStruct):
-        def __init__(self, **entries):
-            # WE initialize by the default training params, overridden by the provided params
-            default_training_params = deepcopy(DEFAULT_TRAINING_PARAMS)
-            super().__init__(**default_training_params)
-        self.set_schema(TRAINING_PARAM_SCHEMA)
-            if len(entries) > 0:
-                self.override(**entries)
-
-    @deprecated_training_param(
-        "criterion_params", "3.2.1", "3.3.0", new_arg_assigner=get_deprecated_nested_params_to_factory_format_assigner("loss", "criterion_params")
-    )
-    def override(self, **entries):
-        super().override(**entries)
-        self.validate()
-
-
-    then under the hood, training_params.loss will be set to
-     {training_params.loss: training_params.criterion_params}
-
-    :param param_name: str, parameter name (for example, 'loss').
-    :param nested_params_name: str, nested_params_name (for example, 'criterion_params')
-    :return: Callable as described above.
+    :param deprecated_param_name:   Name of the deprecated parameter.
+    :param new_param_name:          Name of the new parameter/key that should replace the deprecated one.
+    :param deprecated_since:        Version number when the parameter was deprecated.
+    :param removed_from:            Version number when the parameter will be removed.
+    :param reason:                  Additional information or reason for the deprecation.
     """
+    is_still_supported = deprecated_since < removed_from
+    status_msg = "is deprecated" if is_still_supported else "was deprecated and has been removed"
+    message = f"Parameter `{deprecated_param_name}` {status_msg} " f"since version `{deprecated_since}` and will be removed in version `{removed_from}`.\n"
 
-    def deprecated_nested_params_to_factory_format_assigner(**params):
-        nested_params = params.get(nested_params_name)
-        param_val = params.get(param_name)
-        params[param_name] = {param_val: nested_params}
-        return params
+    if reason:
+        message += f"Reason: {reason}.\n"
 
-    return deprecated_nested_params_to_factory_format_assigner
+    if new_param_name:
+        message += f"Please update your code to use the `{new_param_name}` instead of `{deprecated_param_name}`."
+
+    if is_still_supported:
+        warnings.simplefilter("once", DeprecationWarning)  # Required, otherwise the warning may never be displayed.
+        warnings.warn(message, DeprecationWarning)
+    else:
+        raise ValueError(message)

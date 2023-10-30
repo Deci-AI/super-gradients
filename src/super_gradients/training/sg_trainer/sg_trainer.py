@@ -267,6 +267,7 @@ class Trainer:
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
             checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
         )
 
         # INSTANTIATE DATA LOADERS
@@ -383,6 +384,7 @@ class Trainer:
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
             checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
         )
 
         # TEST
@@ -658,7 +660,7 @@ class Trainer:
         metric = validation_results_dict[self.metric_to_watch]
 
         # BUILD THE state_dict
-        state = {"net": unwrap_model(self.net).state_dict(), "acc": metric, "epoch": epoch}
+        state = {"net": unwrap_model(self.net).state_dict(), "acc": metric, "epoch": epoch, "packages": get_installed_packages()}
 
         if optimizer is not None:
             state["optimizer_state_dict"] = optimizer.state_dict()
@@ -1194,7 +1196,11 @@ class Trainer:
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
 
-        if isinstance(self.training_params.loss, Mapping) or isinstance(self.training_params.loss, str):
+        # Allowing loading instantiated loss or string
+        if isinstance(self.training_params.loss, str):
+            self.criterion = LossesFactory().get({self.training_params.loss: self.training_params.criterion_params})
+
+        elif isinstance(self.training_params.loss, Mapping):
             self.criterion = LossesFactory().get(self.training_params.loss)
 
         elif isinstance(self.training_params.loss, nn.Module):
@@ -2366,6 +2372,7 @@ class Trainer:
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=False,
             checkpoint_num_classes=get_param(cfg.checkpoint_params, "checkpoint_num_classes"),
+            num_input_channels=get_param(cfg.arch_params, "num_input_channels"),
         )
 
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}

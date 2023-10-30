@@ -5,7 +5,7 @@ Ruoming Pang, Vijay Vasudevan, Quoc V. Le, Hartwig Adam. (2019).
 Searching for MobileNetV3
 arXiv preprint arXiv:1905.02244.
 """
-
+from typing import Optional, Callable
 import torch.nn as nn
 import math
 
@@ -119,7 +119,7 @@ class InvertedResidual(nn.Module):
 
 
 class MobileNetV3(MobileNetBase):
-    def __init__(self, cfgs, mode, num_classes=1000, width_mult=1.0, in_channels=3):
+    def __init__(self, cfgs, mode, num_classes=1000, width_mult=1.0, in_channels: int = 3):
         super(MobileNetV3, self).__init__()
         # setting of inverted residual blocks
         self.cfgs = cfgs
@@ -172,6 +172,14 @@ class MobileNetV3(MobileNetBase):
                 n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self.features[0][0] = replace_conv2d_input_channels(conv=self.features[0][0], in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.features[0][0].in_channels
 
 
 @register_model(Models.MOBILENET_V3_LARGE)

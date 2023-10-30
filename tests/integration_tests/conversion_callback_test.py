@@ -59,6 +59,7 @@ class ConversionCallbackTest(unittest.TestCase):
                 "initial_lr": 0.1,
                 "loss": "CrossEntropyLoss",
                 "optimizer": "SGD",
+                "criterion_params": {},
                 "train_metrics_list": [Accuracy(), Top5()],
                 "valid_metrics_list": [Accuracy(), Top5()],
                 "metric_to_watch": "Accuracy",

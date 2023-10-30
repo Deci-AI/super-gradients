@@ -91,8 +91,8 @@ class MyCustomPPYoloELoss(nn.Module):
 
 ```yaml
 training_hyperparams:
-    loss:
-      MyCustomPPYoloELoss:
+    loss: MyCustomPPYoloELoss 
+    criterion_params:
         num_classes: ${arch_params.num_classes}
         classification_loss_weight: 10
         iou_loss_weight: 1.0

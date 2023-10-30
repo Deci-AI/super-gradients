@@ -1,9 +1,12 @@
-from super_gradients.training.models.sg_module import SgModule
+from typing import Optional, Callable
 from collections import namedtuple
 import torch
+from torch import nn
+
 
 from super_gradients.common.registry.registry import register_kd_model, register_model
 from super_gradients.common.object_names import Models
+from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils import get_param
 
@@ -84,3 +87,9 @@ class KDModule(SgModule):
 
     def replace_head(self, **kwargs):
         self.student.replace_head(**kwargs)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.student.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.student.get_input_channels()

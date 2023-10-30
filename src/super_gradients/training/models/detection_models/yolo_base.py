@@ -1,7 +1,7 @@
 import collections
 import math
 import warnings
-from typing import Union, Type, List, Tuple, Optional, Any
+from typing import Union, Type, List, Tuple, Optional, Any, Callable
 from functools import lru_cache
 
 import numpy as np
@@ -30,6 +30,7 @@ from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
 from super_gradients.training.processing.processing import Processing
 from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
@@ -267,7 +268,7 @@ class DetectX(nn.Module):
             if not self.training:
                 outputs_logits.append(output.clone())
                 if self.grid[i].shape[2:4] != output.shape[2:4]:
-                    self.grid[i] = self._make_grid(nx, ny, dtype=reg_output.dtype).to(output.device)
+                    self.grid[i] = self._make_grid(nx, ny, dtype=reg_output.dtype, device=output.device)
 
                 xy = (output[..., :2] + self.grid[i].to(output.device)) * self.stride[i]
                 wh = torch.exp(output[..., 2:4]) * self.stride[i]
@@ -279,16 +280,18 @@ class DetectX(nn.Module):
         return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
 
     @staticmethod
-    def _make_grid(nx: int, ny: int, dtype: torch.dtype):
+    def _make_grid(nx: int, ny: int, dtype: torch.dtype, device: torch.device):
+        y, x = torch.arange(ny, dtype=torch.float32, device=device), torch.arange(nx, dtype=torch.float32, device=device)
+
         if torch_version_is_greater_or_equal(1, 10):
             # https://github.com/pytorch/pytorch/issues/50276
-            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)], indexing="ij")
+            yv, xv = torch.meshgrid([y, x], indexing="ij")
         else:
-            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)])
+            yv, xv = torch.meshgrid([y, x])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).to(dtype)
 
 
-class AbstractYoloBackbone:
+class AbstractYoloBackbone(SupportsReplaceInputChannels):
     def __init__(self, arch_params):
         # CREATE A LIST CONTAINING THE LAYERS TO EXTRACT FROM THE BACKBONE AND ADD THE FINAL LAYER
         self._layer_idx_to_extract = [idx for sub_l in arch_params.skip_connections_dict.values() for idx in sub_l]
@@ -320,6 +323,12 @@ class YoloDarknetBackbone(AbstractYoloBackbone, CSPDarknet53):
 
     def forward(self, x):
         return AbstractYoloBackbone.forward(self, x)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        CSPDarknet53.replace_input_channels(self, in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return CSPDarknet53.get_input_channels(self)
 
 
 class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
@@ -470,6 +479,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         self.in_channels = 3
 
         self.num_classes = self.arch_params.num_classes
+
         # THE MODEL'S MODULES
         self._backbone = backbone(arch_params=self.arch_params)
         if hasattr(self._backbone, "backbone_connection_channels"):
@@ -494,9 +504,6 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return YoloXPostPredictionCallback(conf=conf, iou=iou)
-
-    def get_input_channels(self) -> int:
-        return self.in_channels
 
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
@@ -714,6 +721,19 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return YoloXDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions, **kwargs)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        if isinstance(self._backbone, SupportsReplaceInputChannels):
+            self._backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+            self.in_channels = self.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_input_channels`")
+
+    def get_input_channels(self) -> int:
+        if isinstance(self._backbone, SupportsReplaceInputChannels):
+            return self._backbone.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `get_input_channels`")
 
 
 class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):

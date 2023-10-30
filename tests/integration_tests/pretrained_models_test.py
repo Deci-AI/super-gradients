@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import unittest
 
+import torch
+
 from super_gradients.common.object_names import Models
 from super_gradients.training import Trainer
 from super_gradients.training.dataloaders import imagenet_val, imagenet_vit_base_val
@@ -133,7 +135,8 @@ class PretrainedModelsTest(unittest.TestCase):
             "cosine_final_lr_ratio": 0.01,
             "lr_warmup_epochs": 3,
             "batch_accumulate": 1,
-            "loss": {"SSDLoss": {"dboxes": ssd_dboxes}},
+            "loss": "SSDLoss",
+            "criterion_params": {"dboxes": ssd_dboxes},
             "optimizer": "SGD",
             "warmup_momentum": 0.8,
             "optimizer_params": {"momentum": 0.937, "weight_decay": 0.0005, "nesterov": True},
@@ -149,7 +152,8 @@ class PretrainedModelsTest(unittest.TestCase):
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": {"YoloXDetectionLoss": {"strides": [8, 16, 32], "num_classes": 5}},
+            "loss": "YoloXDetectionLoss",
+            "criterion_params": {"strides": [8, 16, 32], "num_classes": 5},  # output strides of all yolo outputs
             "train_metrics_list": [],
             "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=5)],
             "metric_to_watch": "mAP@0.50:0.95",
@@ -995,6 +999,55 @@ class PretrainedModelsTest(unittest.TestCase):
             metrics_progress_verbose=True,
         )
         self.assertAlmostEqual(res["IoU"].cpu().item(), self.cityscapes_pretrained_mious[Models.PP_LITE_B_SEG75], delta=0.001)
+
+    def test_pretrained_models(self):
+        from super_gradients.training.pretrained_models import MODEL_URLS
+
+        def get_model_and_dataset_names(pretrained_model_key: str):
+            """Extract model and dataset names from the pretrained model key.
+            E.g. "shelfnet34_lw_coco_segmentation_subclass" -> ("shelfnet34_lw", "coco_segmentation_subclass")
+            """
+            from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
+            from super_gradients.common.registry.registry import ARCHITECTURES
+
+            for dataset_name in PRETRAINED_NUM_CLASSES.keys():
+                if pretrained_model_key.endswith(f"_{dataset_name}"):
+                    model_name = pretrained_model_key.replace(f"_{dataset_name}", "")
+                    if model_name in ARCHITECTURES:
+                        return model_name, dataset_name
+
+            raise ValueError(f"Model {pretrained_model_key} cannot be instantiated without explicit")
+
+        def can_model_forward(model, input_channels: int) -> bool:
+            """Checks if the given model can perform a forward pass on inputs of certain sizes."""
+            input_sizes = [(224, 224), (512, 512)]  # We check different sizes because some model only support one or the other
+
+            for h, w in input_sizes:
+                try:
+                    model(torch.rand(2, input_channels, h, w))
+                    return True
+                except Exception:
+                    continue
+
+            return False
+
+        for model_with_dataset_name in MODEL_URLS.keys():
+
+            with self.subTest(model_with_dataset_name=model_with_dataset_name):
+                model_name, dataset_name = get_model_and_dataset_names(model_with_dataset_name)
+
+                # skip models that cannot be instantiated with models.get() without explicit arch_params for now..
+                try:
+                    model = models.get(model_name, pretrained_weights=dataset_name, num_input_channels=4)
+                except Exception:
+                    continue  # We skip models that cannot be instantiated with models.get() without explicit arch_params for now
+
+                self.assertEqual(model.get_input_channels(), 4)
+                self.assertTrue(can_model_forward(model=model, input_channels=4))
+
+                model.replace_input_channels(51)
+                self.assertEqual(model.get_input_channels(), 51)
+                self.assertTrue(can_model_forward(model=model, input_channels=51))
 
     def tearDown(self) -> None:
         if os.path.exists("~/.cache/torch/hub/"):
