@@ -1,8 +1,9 @@
 from functools import lru_cache
-from typing import Union, Optional, List, Tuple, Any
+from typing import Union, Optional, List, Tuple, Any, Callable
 
 import torch
 from torch import Tensor
+from torch import nn
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -125,9 +126,6 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
 
-    def get_input_channels(self) -> int:
-        return self.in_channels
-
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
 
@@ -247,6 +245,13 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return PPYoloEDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        self.in_channels = self.get_input_channels()
+
+    def get_input_channels(self) -> int:
+        return self.backbone.get_input_channels()
 
 
 @register_model(Models.PP_YOLOE_S)

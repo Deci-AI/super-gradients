@@ -135,3 +135,36 @@ def deprecated_training_param(deprecated_tparam_name: str, deprecated_since: str
         return wrapper
 
     return decorator
+
+
+def deprecate_param(
+    deprecated_param_name: str,
+    new_param_name: str = "",
+    deprecated_since: str = "",
+    removed_from: str = "",
+    reason: str = "",
+):
+    """
+    Utility function to warn about a deprecated parameter (or dictionary key).
+
+    :param deprecated_param_name:   Name of the deprecated parameter.
+    :param new_param_name:          Name of the new parameter/key that should replace the deprecated one.
+    :param deprecated_since:        Version number when the parameter was deprecated.
+    :param removed_from:            Version number when the parameter will be removed.
+    :param reason:                  Additional information or reason for the deprecation.
+    """
+    is_still_supported = deprecated_since < removed_from
+    status_msg = "is deprecated" if is_still_supported else "was deprecated and has been removed"
+    message = f"Parameter `{deprecated_param_name}` {status_msg} " f"since version `{deprecated_since}` and will be removed in version `{removed_from}`.\n"
+
+    if reason:
+        message += f"Reason: {reason}.\n"
+
+    if new_param_name:
+        message += f"Please update your code to use the `{new_param_name}` instead of `{deprecated_param_name}`."
+
+    if is_still_supported:
+        warnings.simplefilter("once", DeprecationWarning)  # Required, otherwise the warning may never be displayed.
+        warnings.warn(message, DeprecationWarning)
+    else:
+        raise ValueError(message)

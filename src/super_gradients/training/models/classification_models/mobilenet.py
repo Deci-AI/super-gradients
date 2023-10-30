@@ -3,9 +3,11 @@
 See the paper "MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications"
 for more details.
 """
+from typing import Optional, Callable
 import torch.nn as nn
 import torch.nn.functional as F
 from super_gradients.training.models import BaseClassifier
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 class Block(nn.Module):
@@ -24,7 +26,7 @@ class Block(nn.Module):
         return out
 
 
-class MobileNet(BaseClassifier):
+class MobileNet(BaseClassifier, SupportsReplaceInputChannels):
     # (128,2) means conv planes=128, conv stride=2, by default conv stride=1
     cfg = [64, 128, (128, 2), 256, (256, 2), 512, 512, 512, 512, 512, (512, 2), 1024, (1024, 2)]
 
@@ -60,3 +62,11 @@ class MobileNet(BaseClassifier):
             out = self.linear(out)
 
         return out
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self.conv1 = replace_conv2d_input_channels(conv=self.conv1, in_channels=in_channels)
+
+    def get_input_channels(self) -> int:
+        return self.conv1.in_channels

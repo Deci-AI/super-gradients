@@ -18,7 +18,7 @@ import re
 import math
 import collections
 from functools import partial
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union, Optional, Callable
 
 import torch
 from torch import nn
@@ -538,6 +538,14 @@ class EfficientNet(BaseClassifier):
             self._fc = new_head
         else:
             self._fc = nn.Linear(self._fc.in_features, new_num_classes)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self._conv_stem = replace_conv2d_input_channels(conv=self._conv_stem, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self._conv_stem.in_channels
 
     def load_state_dict(self, state_dict: dict, strict: bool = True):
         """
