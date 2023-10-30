@@ -173,13 +173,13 @@ def main():
     )
 
     train_dataloader = dataloaders.get(
-        name="{train_dataloader}",
+        name={train_dataloader},
         dataset_params={train_dataset_params},
         dataloader_params={train_dataloader_params},
     )
 
     val_dataloader = dataloaders.get(
-        name="{val_dataloader}",
+        name={val_dataloader},
         dataset_params={val_dataset_params},
         dataloader_params={val_dataloader_params},
     )
