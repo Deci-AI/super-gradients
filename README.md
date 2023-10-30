@@ -325,7 +325,9 @@ Recipes support out of the box every model, metric or loss that is implemented i
 
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">   
-   <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/notebooks/what_are_recipes_and_how_to_use.ipynb"><img src="./documentation/assets/SG_img/colab_logo.png" /> How to Use Recipes</a>
+   <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/what_are_recipes_and_how_to_use.ipynb">
+     <img src="./documentation/assets/SG_img/colab_logo.png" /> How to Use Recipes
+   </a>
   </td>
 </table>
  </br></br>
