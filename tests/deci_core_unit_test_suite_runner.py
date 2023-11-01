@@ -25,6 +25,7 @@ from tests.unit_tests import (
     TestModelPredict,
     TestDeprecationDecorator,
     DynamicModelTests,
+    TestExportRecipe,
     TestMixedPrecisionDisabled,
 )
 from tests.end_to_end_tests import TestTrainer
@@ -166,6 +167,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestPoseEstimationModelExport))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(YoloNASPoseTests))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PoseEstimationSampleTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestExportRecipe))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestMixedPrecisionDisabled))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DynamicModelTests))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestConvertRecipeToCode))
