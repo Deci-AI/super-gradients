@@ -656,17 +656,11 @@ class Trainer:
             self.sg_logger.add_checkpoint(tag="ckpt_latest_weights_only.pth", state_dict={"net": self.net.state_dict()}, global_step=epoch)
             return
 
-        # COMPUTE THE CURRENT metric
-        # IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES
-        curr_tracked_metric = float(validation_results_dict[self.metric_to_watch])
+        # Check whether we have to attempt the validation results in case if (1+epoch) % val_freq != 0
+        is_validation_calculated = not bool(epoch % self.run_validation_freq)
 
-        # create metrics dict to save
-        valid_metrics_titles = get_metrics_titles(self.valid_metrics)
-
-        all_metrics = {
-            "tracked_metric_name": self.metric_to_watch,
-            "valid": {metric_name: float(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles},
-        }
+        # Create metrics dict to save
+        all_metrics = {"tracked_metric_name": self.metric_to_watch}
 
         if train_metrics_dict is not None:
             train_metrics_titles = get_metrics_titles(self.train_metrics)
@@ -675,7 +669,6 @@ class Trainer:
         # BUILD THE state_dict
         state = {
             "net": unwrap_model(self.net).state_dict(),
-            "acc": curr_tracked_metric,
             "epoch": epoch,
             "metrics": all_metrics,
             "packages": get_installed_packages(),
@@ -697,30 +690,40 @@ class Trainer:
         if self._torch_lr_scheduler is not None:
             state["torch_scheduler_state_dict"] = get_scheduler_state(self._torch_lr_scheduler)
 
+        if is_validation_calculated:
+            valid_metrics_titles = get_metrics_titles(self.valid_metrics)
+
+            all_metrics["valid"] = {metric_name: float(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles}
+
+            # COMPUTE THE CURRENT metric
+            # IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES
+            curr_tracked_metric = float(validation_results_dict[self.metric_to_watch])
+            state["acc"] = curr_tracked_metric
+
+            # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
+            if (curr_tracked_metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
+                curr_tracked_metric < self.best_metric and not self.greater_metric_to_watch_is_better
+            ):
+                # STORE THE CURRENT metric AS BEST
+                self.best_metric = curr_tracked_metric
+                self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
+
+                # RUN PHASE CALLBACKS
+                self.phase_callback_handler.on_validation_end_best_epoch(context)
+                logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(curr_tracked_metric))
+
+            if self.training_params.average_best_models:
+                net_for_averaging = unwrap_model(self.ema_model.ema if self.ema else self.net)
+
+                state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_dict=validation_results_dict)
+                self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
+
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
 
         # SAVE MODEL AT SPECIFIC EPOCHS DETERMINED BY save_ckpt_epoch_list
         if epoch in self.training_params.save_ckpt_epoch_list:
             self.sg_logger.add_checkpoint(tag=f"ckpt_epoch_{epoch}.pth", state_dict=state, global_step=epoch)
-
-        # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
-        if (curr_tracked_metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
-            curr_tracked_metric < self.best_metric and not self.greater_metric_to_watch_is_better
-        ):
-            # STORE THE CURRENT metric AS BEST
-            self.best_metric = curr_tracked_metric
-            self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
-
-            # RUN PHASE CALLBACKS
-            self.phase_callback_handler.on_validation_end_best_epoch(context)
-            logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(curr_tracked_metric))
-
-        if self.training_params.average_best_models:
-            net_for_averaging = unwrap_model(self.ema_model.ema if self.ema else self.net)
-
-            state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_dict=validation_results_dict)
-            self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
     def _prep_net_for_train(self) -> None:
         if self.arch_params is None:
@@ -1262,6 +1265,9 @@ class Trainer:
                     logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
 
         self.run_validation_freq = self.training_params.run_validation_freq
+
+        if self.max_epochs % self.run_validation_freq != 0:
+            logger.warning("max_epochs is not divisible by run_validation_freq. " "The model on the last epoch wouldn't be checked whether it is the best.")
         self.run_test_freq = self.training_params.run_test_freq
 
         inf_time = 0

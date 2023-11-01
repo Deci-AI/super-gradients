@@ -93,6 +93,22 @@ class TestTrainer(unittest.TestCase):
         weights_only = torch.load(os.path.join(trainer.checkpoints_dir_path, "ckpt_latest_weights_only.pth"))
         self.assertListEqual(["net"], list(weights_only.keys()))
 
+    def test_validation_frequency_divisible(self):
+        trainer, model = self.get_classification_trainer(self.experiment_names[0])
+        training_params = self.training_params.copy()
+        training_params["max_epochs"] = 4
+        training_params["run_validation_freq"] = 2
+        trainer.train(
+            model=model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
+        ckpt_filename = ["ckpt_best.pth", "ckpt_latest.pth"]
+        ckpt_paths = [os.path.join(trainer.checkpoints_dir_path, suf) for suf in ckpt_filename]
+        metrics = {}
+        for ckpt_path in ckpt_paths:
+            ckpt = torch.load(ckpt_path)
+            metrics[ckpt_path] = ckpt["metrics"]
+        assert metrics[ckpt_paths[0]] == metrics[ckpt_paths[1]]
+
 
 if __name__ == "__main__":
     unittest.main()
