@@ -3,6 +3,7 @@ import unittest
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from omegaconf import ListConfig
 
 from super_gradients.training.transforms import KeypointsMixup, KeypointsCompose
 from super_gradients.training.transforms.keypoint_transforms import (
@@ -244,10 +245,38 @@ class TestTransforms(unittest.TestCase):
         rescaled_bboxes = _rescale_bboxes(targets=bboxes, scale_factors=(sy, sx))
         np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
 
-    def test_pad_image(self):
+    def test_pad_image_with_constant(self):
         image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
         padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
         pad_value = 0
+        shifted_image = _pad_image(image, padding_coordinates, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600, 3))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: padding_coordinates.top, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[-padding_coordinates.bottom :, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : padding_coordinates.left, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, -padding_coordinates.right :, :] == pad_value).all())
+
+    def test_pad_image_with_tuple(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
+        pad_value = (1, 2, 3)
+        shifted_image = _pad_image(image, padding_coordinates, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600, 3))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: padding_coordinates.top, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[-padding_coordinates.bottom :, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : padding_coordinates.left, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, -padding_coordinates.right :, :] == pad_value).all())
+
+    def test_pad_image_with_listconfig(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
+        pad_value = ListConfig([1, 2, 3])
         shifted_image = _pad_image(image, padding_coordinates, pad_value)
 
         # Check if the shifted image has the correct shape
