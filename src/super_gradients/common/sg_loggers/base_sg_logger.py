@@ -299,19 +299,14 @@ class BaseSGLogger(AbstractSGLogger):
             except Exception as ex:
                 logger.info("[CLEANUP] - Could not stop tensorboard process properly: " + str(ex))
 
-
     @multi_process_safe
-    def _get_artifact_path(self, tag: Optional[str]=None, global_step: Optional[int]=None):
+    def _get_checkpoint_path(self, tag: Optional[str] = None, global_step: Optional[int] = None):
         name = f"ckpt_{global_step}.pth" if tag is None else tag
         if not name.endswith(".pth"):
             name += ".pth"
         path = os.path.join(self._local_dir, name)
 
         return path
-
-    @multi_process_safe
-    def _save_pth_file(self, path: str, state_dict: dict):
-        torch.save(state_dict, path)
 
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = None) -> None:
@@ -321,14 +316,14 @@ class BaseSGLogger(AbstractSGLogger):
         :param state_dict:  Checkpoint state_dict.
         :param global_step: Epoch number.
         """
-        path = self._get_artifact_path(tag, global_step)
+        path = self._get_checkpoint_path(tag, global_step)
 
-        self._save_pth_file(path=path, state_dict=state_dict)
+        torch.save(state_dict, path)
 
-        self._save_checkpoint(path=path, state_dict=state_dict)
+        self.save_checkpoint(path=path, state_dict=state_dict, global_step=global_step)
 
     @multi_process_safe
-    def _save_checkpoint(self, path: str, state_dict: dict) -> None:
+    def save_checkpoint(self, path: str, state_dict: dict, global_step: Optional[int] = None) -> None:
         """Save the Checkpoint locally.
 
         :param path:        Full path of the checkpoint

@@ -9,6 +9,8 @@ from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.plugins.deci_client import DeciClient
 from contextlib import redirect_stdout
 
+from typing import Optional
+
 logger = get_logger(__name__)
 
 
@@ -93,13 +95,13 @@ class DeciPlatformSGLogger(BaseSGLogger):
         self._upload_folder_files(folder_name=".hydra")
 
     @multi_process_safe
-    def _save_checkpoint(self, path: str, state_dict: dict) -> None:
+    def save_checkpoint(self, path: str, state_dict: dict, global_step: Optional[int] = None) -> None:
         """Save the Checkpoint locally, and then upload it to Deci platform if required.
 
         :param path:        Full path of the checkpoint
         :param state_dict:  State dict of the checkpoint
         """
-        super(DeciPlatformSGLogger, self)._save_checkpoint(path=path, state_dict=state_dict)
+        super(DeciPlatformSGLogger, self).save_checkpoint(path=path, state_dict=state_dict)
         if self.upload_model:
             self._save_experiment_file(file_path=path)
 

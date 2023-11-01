@@ -255,12 +255,8 @@ class DagsHubSGLogger(BaseSGLogger):
                 self._dvc_add(local_path=self.experiment_log_path, remote_path=os.path.join(self.paths["artifacts"], self.experiment_log_path))
 
     @multi_process_safe
-    def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = 0):
-        name = f"ckpt_{global_step}.pth" if tag is None else tag
-        if not name.endswith(".pth"):
-            name += ".pth"
-        path = os.path.join(self._local_dir, name)
-        torch.save(state_dict, path)
+    def save_checkpoint(self, path: str, state_dict: dict, global_step: int):
+        name = os.path.basename(path)
         if self.save_checkpoints_dagshub:
             mlflow.log_artifact(path)
             if (global_step >= (self.max_global_steps - 1)) and not self.log_mlflow_only:
