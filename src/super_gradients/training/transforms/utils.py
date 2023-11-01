@@ -1,4 +1,6 @@
-from typing import Tuple
+import numbers
+import typing
+from typing import Tuple, Union
 from dataclasses import dataclass
 import cv2
 
@@ -89,20 +91,34 @@ def _get_bottom_right_padding_coordinates(input_shape: Tuple[int, int], output_s
     return PaddingCoordinates(top=0, bottom=pad_height, left=0, right=pad_width)
 
 
-def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_value: int) -> np.ndarray:
+def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_value: Union[int, Tuple[int, ...]]) -> np.ndarray:
     """Pad an image.
 
     :param image:       Image to shift. (H, W, C) or (H, W).
     :param pad_h:       Tuple of (padding_top, padding_bottom).
     :param pad_w:       Tuple of (padding_left, padding_right).
-    :param pad_value:   Padding value
+    :param pad_value:   Padding value. Can be a single scalar (Same value for all channels) or a tuple of values.
+                        In the latter case, the tuple length must be equal to the number of channels.
     :return:            Image shifted according to padding coordinates.
     """
     pad_h = (padding_coordinates.top, padding_coordinates.bottom)
     pad_w = (padding_coordinates.left, padding_coordinates.right)
 
     if len(image.shape) == 3:
-        return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+        _, _, num_channels = image.shape
+
+        if isinstance(pad_value, numbers.Number):
+            pad_value = tuple([pad_value] * num_channels)
+        else:
+            if isinstance(pad_value, typing.Sized) and len(pad_value) != num_channels:
+                raise ValueError(f"A pad_value tuple ({pad_value} length should be {num_channels} for an image with {num_channels} channels")
+
+            pad_value = tuple(pad_value)
+
+        padded_channels = []
+        for channel_index, pad_value_channel in enumerate(pad_value):
+            padded_channels.append(np.pad(image[..., channel_index], (pad_h, pad_w), "constant", constant_values=pad_value_channel))
+        return np.stack(padded_channels, axis=-1)
     else:
         return np.pad(image, (pad_h, pad_w), "constant", constant_values=pad_value)
 
