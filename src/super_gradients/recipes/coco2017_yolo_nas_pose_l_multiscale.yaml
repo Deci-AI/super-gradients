@@ -51,7 +51,7 @@ arch_params:
   num_classes: ${dataset_params.num_joints}
 
 training_hyperparams:
-  initial_lr:  8e-5
+  initial_lr:  5e-5
 
   phase_callbacks:
     # Only EarlyStop no batch visualization
