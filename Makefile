@@ -46,3 +46,6 @@ WANDB_PARAMS = training_hyperparams.sg_logger=wandb_sg_logger +training_hyperpar
 
 coco2017_yolo_nas_pose_m_multiscale:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_m_multiscale $(WANDB_PARAMS)
+
+coco2017_yolo_nas_pose_m_multiscale:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_l_multiscale $(WANDB_PARAMS)
