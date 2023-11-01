@@ -658,6 +658,7 @@ class Trainer:
 
         # Check whether we have to attempt the validation results in case if (1+epoch) % val_freq != 0
         is_validation_calculated = not bool(epoch % self.run_validation_freq)
+        curr_tracked_metric = None
 
         # Create metrics dict to save
         all_metrics = {"tracked_metric_name": self.metric_to_watch}
@@ -693,13 +694,21 @@ class Trainer:
         if is_validation_calculated:
             valid_metrics_titles = get_metrics_titles(self.valid_metrics)
 
-            all_metrics["valid"] = {metric_name: float(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles}
+            state["metrics"]["valid"] = {metric_name: float(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles}
 
             # COMPUTE THE CURRENT metric
             # IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES
             curr_tracked_metric = float(validation_results_dict[self.metric_to_watch])
             state["acc"] = curr_tracked_metric
 
+        # SAVES CURRENT MODEL AS ckpt_latest
+        self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
+
+        # SAVE MODEL AT SPECIFIC EPOCHS DETERMINED BY save_ckpt_epoch_list
+        if epoch in self.training_params.save_ckpt_epoch_list:
+            self.sg_logger.add_checkpoint(tag=f"ckpt_epoch_{epoch}.pth", state_dict=state, global_step=epoch)
+
+        if is_validation_calculated:
             # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
             if (curr_tracked_metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
                 curr_tracked_metric < self.best_metric and not self.greater_metric_to_watch_is_better
@@ -717,13 +726,6 @@ class Trainer:
 
                 state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_dict=validation_results_dict)
                 self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
-
-        # SAVES CURRENT MODEL AS ckpt_latest
-        self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
-
-        # SAVE MODEL AT SPECIFIC EPOCHS DETERMINED BY save_ckpt_epoch_list
-        if epoch in self.training_params.save_ckpt_epoch_list:
-            self.sg_logger.add_checkpoint(tag=f"ckpt_epoch_{epoch}.pth", state_dict=state, global_step=epoch)
 
     def _prep_net_for_train(self) -> None:
         if self.arch_params is None:
