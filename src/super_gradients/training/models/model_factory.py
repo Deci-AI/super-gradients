@@ -189,32 +189,35 @@ def get_model_name(model: torch.nn.Module) -> Optional[str]:
 def get(
     model_name: str,
     arch_params: Optional[dict] = None,
-    num_classes: int = None,
+    num_classes: Optional[int] = None,
     strict_load: StrictLoad = StrictLoad.NO_KEY_MATCHING,
-    checkpoint_path: str = None,
-    pretrained_weights: str = None,
+    checkpoint_path: Optional[str] = None,
+    pretrained_weights: Optional[str] = None,
     load_backbone: bool = False,
     download_required_code: bool = True,
-    checkpoint_num_classes: int = None,
+    checkpoint_num_classes: Optional[int] = None,
+    num_input_channels: Optional[int] = None,
 ) -> Union[SgModule, torch.nn.Module]:
     """
-    :param model_name:          Defines the model's architecture from models/ALL_ARCHITECTURES
-    :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
-    :param num_classes:         Number of classes (defines the net's structure).
-                                    If None is given, will try to derive from pretrained_weight's corresponding dataset.
-    :param strict_load:         See super_gradients.common.data_types.enum.strict_load.StrictLoad class documentation for details
-                                    (default=NO_KEY_MATCHING to suport SG trained checkpoints)
-    :param checkpoint_path:     The path to the external checkpoint to be loaded. Can be absolute or relative (ie: path/to/checkpoint.pth) path or URL.
-                                    If provided, will automatically attempt to load the checkpoint.
-    :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent").
-    :param load_backbone:       Load the provided checkpoint to model.backbone instead of model.
-    :param download_required_code: if model is not found in SG and is downloaded from a remote client, overriding this parameter with False
-                                    will prevent additional code from being downloaded. This affects only models from remote client.
+    :param model_name:              Defines the model's architecture from models/ALL_ARCHITECTURES
+    :param arch_params:             Architecture hyper parameters. e.g.: block, num_blocks, etc.
+    :param num_classes:             Number of classes (defines the net's structure).
+                                        If None is given, will try to derive from pretrained_weight's corresponding dataset.
+    :param strict_load:             See super_gradients.common.data_types.enum.strict_load.StrictLoad class documentation for details
+                                        (default=NO_KEY_MATCHING to suport SG trained checkpoints)
+    :param checkpoint_path:         The path to the external checkpoint to be loaded. Can be absolute or relative (ie: path/to/checkpoint.pth) path or URL.
+                                        If provided, will automatically attempt to load the checkpoint.
+    :param pretrained_weights:      Describe the dataset of the pretrained weights (for example "imagenent").
+    :param load_backbone:           Load the provided checkpoint to model.backbone instead of model.
+    :param download_required_code:  If model is not found in SG and is downloaded from a remote client, overriding this parameter with False
+                                        will prevent additional code from being downloaded. This affects only models from remote client.
     :param checkpoint_num_classes:  num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
-     Used when num_classes != checkpoint_num_class. In this case, the module will be initialized with checkpoint_num_class, then weights will be loaded. Finaly
-        replace_head(new_num_classes=num_classes) is called (useful when wanting to perform transfer learning, from a checkpoint outside of
-         then ones offered in SG model zoo).
-
+                                        Used when num_classes != checkpoint_num_class. In this case, the module will be initialized with checkpoint_num_class,
+                                        then weights will be loaded.
+                                        Finaly replace_head(new_num_classes=num_classes) is called (useful when wanting to perform transfer learning,
+                                        from a checkpoint outside of then ones offered in SG model zoo).
+    :param num_input_channels:      Number of input channels.
+                                        If None, use the default model's input channels (most likely 3).
 
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
     """
@@ -243,5 +246,8 @@ def get(
         )
     if checkpoint_num_classes != num_classes:
         net.replace_head(new_num_classes=num_classes)
+
+    if num_input_channels is not None and num_input_channels != net.get_input_channels():
+        net.replace_input_channels(in_channels=num_input_channels)
 
     return net
