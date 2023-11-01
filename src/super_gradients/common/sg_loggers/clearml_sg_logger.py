@@ -220,20 +220,6 @@ class ClearMLSGLogger(BaseSGLogger):
             name = self.experiment_log_path.split("/")[-1]
             self.task.upload_artifact(name=name, artifact_object=self.experiment_log_path)
 
-    # @multi_process_safe
-    # def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = 0):
-    #     name = f"ckpt_{global_step}.pth" if tag is None else tag
-    #     if not name.endswith(".pth"):
-    #         name += ".pth"
-
-    #     path = os.path.join(self._local_dir, name)
-    #     torch.save(state_dict, path)
-
-    #     if self.save_checkpoints:
-    #         if self.s3_location_available:
-    #             self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
-    #         self.task.upload_artifact(name=name, artifact_object=path)
-
     @multi_process_safe
     def _save_checkpoint(self, path: str, state_dict: dict, global_step: Optional[int] = None):
         name = os.path.basename(path)
