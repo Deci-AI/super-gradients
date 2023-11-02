@@ -265,8 +265,7 @@ class WandBSGLogger(BaseSGLogger):
 
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = 0):
-        self._validate_checkpoint(state_dict)
-
+        state_dict = self._sanitize_checkpoint(state_dict)
         name = f"ckpt_{global_step}.pth" if tag is None else tag
         if not name.endswith(".pth"):
             name += ".pth"
