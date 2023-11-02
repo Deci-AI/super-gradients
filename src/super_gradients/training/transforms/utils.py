@@ -121,6 +121,20 @@ def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array
     return np.concatenate((boxes, labels), 1)
 
 
+def _shift_bboxes_xywh(targets: np.array, shift_w: float, shift_h: float) -> np.array:
+    """Shift bboxes with respect to padding values.
+
+    :param targets:  Bboxes to transform of shape (N, 4+), in format [x, y, w, h, ...]
+    :param shift_w:  shift width.
+    :param shift_h:  shift height.
+    :return:         Bboxes transformed of shape (N, 4+), in format [x, y, w, h, ...]
+    """
+    boxes, labels = targets[:, :4], targets[:, 4:]
+    boxes[:, 0] += shift_w
+    boxes[:, 1] += shift_h
+    return np.concatenate((boxes, labels), 1)
+
+
 def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.array:
     """Shift keypoints with respect to padding values.
 

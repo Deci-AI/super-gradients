@@ -12,24 +12,24 @@ from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.object_names import Transforms, Processings
-from super_gradients.common.registry.registry import register_transform
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
-from super_gradients.training.samples import DetectionSample
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
+from super_gradients.common.object_names import Transforms, Processings
+from super_gradients.common.registry.registry import register_transform
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
-from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
+from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
+from super_gradients.training.samples import DetectionSample
 from super_gradients.training.transforms.utils import (
     _rescale_and_pad_to_size,
     _rescale_image,
     _rescale_bboxes,
     _get_center_padding_coordinates,
     _pad_image,
-    _shift_bboxes,
     _rescale_xyxy_bboxes,
+    _shift_bboxes_xywh,
 )
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
@@ -760,15 +760,17 @@ class DetectionPadToSize(DetectionTransform):
         self.output_size = ensure_is_tuple_of_two(output_size)
         self.pad_value = pad_value
 
-    def __call__(self, sample: dict) -> dict:
-        image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        padding_coordinates = _get_center_padding_coordinates(input_shape=image.shape, output_shape=self.output_size)
-
-        sample["image"] = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
-        sample["target"] = _shift_bboxes(targets=targets, shift_w=padding_coordinates.left, shift_h=padding_coordinates.top)
-        if crowd_targets is not None:
-            sample["crowd_target"] = _shift_bboxes(targets=crowd_targets, shift_w=padding_coordinates.left, shift_h=padding_coordinates.top)
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        padding_coordinates = _get_center_padding_coordinates(input_shape=sample.image.shape[:2], output_shape=self.output_size)
+        sample.image = self.apply_to_image(sample.image, padding_coordinates)
+        sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, padding_coordinates)
         return sample
+
+    def apply_to_image(self, image, padding_coordinates):
+        return _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
+
+    def apply_to_bboxes(self, bboxes, padding_coordinates):
+        return _shift_bboxes_xywh(targets=bboxes, shift_w=padding_coordinates.left, shift_h=padding_coordinates.top)
 
     def get_equivalent_preprocessing(self) -> List:
         return [{Processings.DetectionCenterPadding: {"output_shape": self.output_size, "pad_value": self.pad_value}}]
@@ -827,20 +829,16 @@ class DetectionHorizontalFlip(DetectionTransform):
         _max_targets_deprication(max_targets)
         self.prob = prob
 
-    def __call__(self, sample):
-        image, targets = sample["image"], sample["target"]
-        crowd_targets = sample.get("crowd_targets")
-        if len(targets) == 0:
-            targets = np.zeros((0, 5), dtype=np.float32)
+    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
+        return _flip_vertical_image(image)
+
+    def apply_to_bboxes(self, bboxes: np.ndarray, image_width) -> np.ndarray:
+        return _flip_horizontal_boxes(bboxes, image_width)
+
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if random.random() < self.prob:
-            image = _flip_horizontal_image(image)
-            _, width, _ = image.shape
-            targets[:, :4] = _flip_horizontal_boxes(targets[:, :4], width)
-            if crowd_targets is not None:
-                crowd_targets = _flip_horizontal_boxes(crowd_targets, width)
-        sample["image"] = image
-        sample["target"] = targets
-        sample["crowd_targets"] = crowd_targets
+            sample.image = self.apply_to_image(sample.image)
+            sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, sample.image.shape[0])
         return sample
 
 
@@ -857,22 +855,6 @@ class DetectionVerticalFlip(DetectionTransform):
         _max_targets_deprication(max_targets)
         self.prob = prob
 
-    def __call__(self, sample):
-        image, targets = sample["image"], sample["target"]
-        crowd_targets = sample.get("crowd_targets")
-        if len(targets) == 0:
-            targets = np.zeros((0, 5), dtype=np.float32)
-        if random.random() < self.prob:
-            image = _flip_vertical_image(image)
-            height, _, _ = image.shape
-            targets[:, :4] = _flip_vertical_boxes(targets[:, :4], height)
-            if crowd_targets is not None:
-                crowd_targets[:, :4] = _flip_vertical_boxes(crowd_targets[:, :4], height)
-        sample["image"] = image
-        sample["target"] = targets
-        sample["crowd_targets"] = crowd_targets
-        return sample
-
     def apply_to_image(self, image: np.ndarray) -> np.ndarray:
         return _flip_vertical_image(image)
 
@@ -881,8 +863,8 @@ class DetectionVerticalFlip(DetectionTransform):
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if random.random() < self.prob:
-            sample.image = _flip_vertical_image(sample.image)
-            sample.bboxes_xywh = _flip_vertical_boxes(sample.bboxes_xywh, sample.image.shape[0])
+            sample.image = self.apply_to_image(sample.image)
+            sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, sample.image.shape[0])
         return sample
 
 
@@ -898,15 +880,17 @@ class DetectionRescale(DetectionTransform):
         super().__init__()
         self.output_shape = ensure_is_tuple_of_two(output_shape)
 
-    def __call__(self, sample: dict) -> dict:
-        image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
+        return _rescale_image(image=image, target_shape=self.output_shape)
 
-        sy, sx = float(self.output_shape[0]) / float(image.shape[0]), float(self.output_shape[1]) / float(image.shape[1])
+    def apply_to_bboxes(self, bboxes: np.ndarray, sx, sy) -> np.ndarray:
+        return _rescale_bboxes(bboxes, scale_factors=(sy, sx))
 
-        sample["image"] = _rescale_image(image=image, target_shape=self.output_shape)
-        sample["target"] = _rescale_bboxes(targets, scale_factors=(sy, sx))
-        if crowd_targets is not None:
-            sample["crowd_target"] = _rescale_bboxes(crowd_targets, scale_factors=(sy, sx))
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        sample.image = self.apply_to_image(sample.image)
+        sample.bboxes_xywh = self.apply_to_bboxes(
+            sample.bboxes_xywh, sample.image.shape[1] / sample.image.shape[0], sample.image.shape[0] / sample.image.shape[1]
+        )
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -919,27 +903,20 @@ class DetectionRandomRotate90(DetectionTransform):
         super().__init__()
         self.prob = prob
 
-    def __call__(self, sample: dict) -> dict:
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if random.random() < self.prob:
             k = random.randrange(0, 4)
-
-            img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-
-            sample["image"] = np.ascontiguousarray(np.rot90(img, k))
-            sample["target"] = self.rotate_bboxes(targets, k, img.shape[:2])
-            if crowd_targets is not None:
-                sample["crowd_target"] = self.rotate_bboxes(crowd_targets, k, img.shape[:2])
-
+            image_shape = sample.image.shape[:2]
+            sample.image = self.apply_to_image(sample.image, k)
+            sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, k, image_shape)
         return sample
 
-    @classmethod
-    def rotate_bboxes(cls, targets, k: int, image_shape):
-        if k == 0:
-            return targets
+    def apply_to_image(self, image: np.ndarray, factor: int) -> np.ndarray:
+        return np.ascontiguousarray(np.rot90(image, factor))
+
+    def apply_to_bboxes(self, bboxes: np.ndarray, factor: int, image_shape: Tuple[int, int]):
         rows, cols = image_shape
-        targets = targets.copy()
-        targets[:, 0:4] = cls.xyxy_bbox_rot90(targets[:, 0:4], k, rows, cols)
-        return targets
+        return self.xyxy_bbox_rot90(bboxes, factor, rows, cols)
 
     @classmethod
     def xyxy_bbox_rot90(cls, bboxes: np.ndarray, factor: int, rows: int, cols: int):
@@ -948,8 +925,8 @@ class DetectionRandomRotate90(DetectionTransform):
 
         :param bboxes:  Tensor made of bounding box tuples (x_min, y_min, x_max, y_max).
         :param factor:  Number of CCW rotations. Must be in set {0, 1, 2, 3} See np.rot90.
-        :param rows:    Image rows.
-        :param cols:    Image cols.
+        :param rows:    Image rows of the original image.
+        :param cols:    Image cols of the original image.
 
         :return: A bounding box tuple (x_min, y_min, x_max, y_max).
 
@@ -981,13 +958,15 @@ class DetectionRGB2BGR(DetectionTransform):
         super().__init__()
         self.prob = prob
 
-    def __call__(self, sample: dict) -> dict:
-        if sample["image"].shape[2] < 3:
-            raise ValueError("DetectionRGB2BGR transform expects at least 3 channels, got: " + str(sample["image"].shape[2]))
-
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        if sample.image.shape[2] < 3:
+            raise ValueError("DetectionRGB2BGR transform expects at least 3 channels, got: " + str(sample.image.shape[2]))
         if random.random() < self.prob:
-            sample["image"] = sample["image"][..., ::-1]
+            sample.image = self.apply_to_image(sample.image)
         return sample
+
+    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
+        return image[..., ::-1]
 
     def get_equivalent_preprocessing(self) -> List:
         if self.prob < 1:
@@ -1016,21 +995,25 @@ class DetectionHSV(DetectionTransform):
         self.bgr_channels = bgr_channels
         self._additional_channels_warned = False
 
-    def __call__(self, sample: dict) -> dict:
-        if sample["image"].shape[2] < 3:
-            raise ValueError("HSV transform expects at least 3 channels, got: " + str(sample["image"].shape[2]))
-        if sample["image"].shape[2] > 3 and not self._additional_channels_warned:
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        if sample.image.shape[2] < 3:
+            raise ValueError("HSV transform expects at least 3 channels, got: " + str(sample.image.shape[2]))
+        if sample.image.shape[2] > 3 and not self._additional_channels_warned:
             logger.warning(
                 "HSV transform received image with "
-                + str(sample["image"].shape[2])
+                + str(sample.image.shape[2])
                 + " channels. HSV transform will only be applied on channels: "
                 + str(self.bgr_channels)
                 + "."
             )
             self._additional_channels_warned = True
+
         if random.random() < self.prob:
-            augment_hsv(sample["image"], self.hgain, self.sgain, self.vgain, self.bgr_channels)
+            sample.image = self.apply_to_image(sample.image)
         return sample
+
+    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
+        return augment_hsv(image, self.hgain, self.sgain, self.vgain, self.bgr_channels)
 
 
 @register_transform(Transforms.DetectionNormalize)
@@ -1044,9 +1027,12 @@ class DetectionNormalize(DetectionTransform):
         self.mean = np.array(list(mean)).reshape((1, 1, -1)).astype(np.float32)
         self.std = np.array(list(std)).reshape((1, 1, -1)).astype(np.float32)
 
-    def __call__(self, sample: dict) -> dict:
-        sample["image"] = (sample["image"] - self.mean) / self.std
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        sample.image = self.apply_to_image(sample.image)
         return sample
+
+    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
+        return (image - self.mean) / self.std
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
         return [{Processings.NormalizeImage: {"mean": self.mean, "std": self.std}}]
@@ -1062,7 +1048,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     :param input_dim:          Shape of the images to transform.
     :param input_format:       Format of the input targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL.
     :param output_format:      Format of the output targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL
-    :param min_bbox_edge_size: bboxes with edge size lower then this values will be removed.
+    :param min_bbox_edge_size: bboxes with edge size lower than this values will be removed.
     """
 
     @resolve_param("input_format", ConcatenatedTensorFormatFactory())
@@ -1375,6 +1361,7 @@ def augment_hsv(img: np.ndarray, hgain: float, sgain: float, vgain: float, bgr_c
     img_hsv[..., 2] = np.clip(img_hsv[..., 2] + hsv_augs[2], 0, 255)
 
     img[..., bgr_channels] = cv2.cvtColor(img_hsv.astype(img.dtype), cv2.COLOR_HSV2BGR)  # no return needed
+    return img
 
 
 @register_transform(Transforms.Standardize)
