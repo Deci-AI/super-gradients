@@ -16,6 +16,7 @@ from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
+from super_gradients.training.samples import DetectionSample
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
@@ -872,6 +873,18 @@ class DetectionVerticalFlip(DetectionTransform):
         sample["crowd_targets"] = crowd_targets
         return sample
 
+    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
+        return _flip_vertical_image(image)
+
+    def apply_to_bboxes(self, bboxes: np.ndarray, image_height) -> np.ndarray:
+        return _flip_vertical_boxes(bboxes, image_height)
+
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        if random.random() < self.prob:
+            sample.image = _flip_vertical_image(sample.image)
+            sample.bboxes_xywh = _flip_vertical_boxes(sample.bboxes_xywh, sample.image.shape[0])
+        return sample
+
 
 @register_transform(Transforms.DetectionRescale)
 class DetectionRescale(DetectionTransform):
@@ -1089,7 +1102,6 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         )
 
     def __call__(self, sample: dict) -> dict:
-
         # if self.input_dim not set yet, it will be set with first batch
         if self.input_dim is None:
             self._setup_input_dim_related_params(input_dim=sample["image"].shape[1:])
