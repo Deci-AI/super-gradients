@@ -157,13 +157,16 @@ class CustomizableDetector(HasPredict, SgModule):
         return self._image_processor
 
     @lru_cache(maxsize=1)
-    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> DetectionPipeline:
+    def _get_pipeline(
+        self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False
+    ) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
@@ -178,6 +181,7 @@ class CustomizableDetector(HasPredict, SgModule):
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
             fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
         )
         return pipeline
 
@@ -188,6 +192,7 @@ class CustomizableDetector(HasPredict, SgModule):
         conf: Optional[float] = None,
         batch_size: int = 32,
         fuse_model: bool = True,
+        skip_image_resizing: bool = False,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
@@ -197,19 +202,21 @@ class CustomizableDetector(HasPredict, SgModule):
                             If None, the default value associated to the training is used.
         :param batch_size:  Maximum number of images to process at the same time.
         :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
-    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
+    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False):
         """Predict using webcam.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
         pipeline.predict_webcam()
 
     def train(self, mode: bool = True):

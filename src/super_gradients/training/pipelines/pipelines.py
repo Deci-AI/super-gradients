@@ -30,7 +30,7 @@ from super_gradients.training.utils.media.image import ImageSource, check_image_
 from super_gradients.training.utils.media.stream import WebcamStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.processing.processing import Processing, ComposeProcessing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding, KeypointsAutoPadding
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
@@ -52,11 +52,12 @@ class Pipeline(ABC):
     """An abstract base class representing a processing pipeline for a specific task.
     The pipeline includes loading images, preprocessing, prediction, and postprocessing.
 
-    :param model:           The model used for making predictions.
-    :param image_processor: A single image processor or a list of image processors for preprocessing and postprocessing the images.
-    :param device:          The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
-    :param dtype:           Specify the dtype of the inputs. If None, will use the dtype of the model's parameters.
-    :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    :param model:               The model used for making predictions.
+    :param image_processor:     A single image processor or a list of image processors for preprocessing and postprocessing the images.
+    :param device:              The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
+    :param dtype:               Specify the dtype of the inputs. If None, will use the dtype of the model's parameters.
+    :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    :param skip_image_resizing: If True, the image processor will not resize the images.
     """
 
     def __init__(
@@ -67,6 +68,7 @@ class Pipeline(ABC):
         device: Optional[str] = None,
         fuse_model: bool = True,
         dtype: Optional[torch.dtype] = None,
+        skip_image_resizing: bool = False,
     ):
         model_device: torch.device = infer_model_device(model=model)
         if device:
@@ -79,6 +81,14 @@ class Pipeline(ABC):
 
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
+
+        self.skip_image_resizing = skip_image_resizing
+        if skip_image_resizing:
+            if isinstance(image_processor, ComposeProcessing):
+                image_processor.disable_image_resizing()
+            else:
+                logger.warning("`skip_image_resizing` only works when working with multiple image processing steps")
+
         self.image_processor = image_processor
 
         self.fuse_model = fuse_model  # If True, the model will be fused in the first forward pass, to make sure it gets the right input_size
@@ -181,6 +191,15 @@ class Pipeline(ABC):
 
         images = list(images)  # We need to load all the images into memory, and to reuse it afterwards.
 
+        if self.skip_image_resizing:
+            reference_shape = images[0].shape
+            for img in images:
+                if img.shape != reference_shape:
+                    raise ValueError(
+                        f"Images have different shapes ({img.shape} != {reference_shape})!\n"
+                        f"Either resize the images to the same size, set `skip_image_resizing=False` or pass one image at a time."
+                    )
+
         # Preprocess
         preprocessed_images, processing_metadatas = [], []
         for image in images:
@@ -261,6 +280,7 @@ class DetectionPipeline(Pipeline):
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    :param skip_image_resizing:         If True, the image processor will not resize the images.
     """
 
     def __init__(
@@ -269,10 +289,25 @@ class DetectionPipeline(Pipeline):
         class_names: List[str],
         post_prediction_callback: DetectionPostPredictionCallback,
         device: Optional[str] = None,
-        image_processor: Optional[Processing] = None,
+        image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
+        skip_image_resizing: bool = False,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
+        if isinstance(image_processor, list):
+            image_processor = ComposeProcessing(image_processor)
+
+        # Ensure that the image size is divisible by 32.
+        if isinstance(image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor.processings.append(DetectionAutoPadding(shape_multiple=(32, 32), pad_value=0))
+
+        super().__init__(
+            model=model,
+            device=device,
+            image_processor=image_processor,
+            class_names=class_names,
+            fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
+        )
         self.post_prediction_callback = post_prediction_callback
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[DetectionPrediction]:
@@ -330,6 +365,7 @@ class PoseEstimationPipeline(Pipeline):
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    :param skip_image_resizing:         If True, the image processor will not resize the images.
     """
 
     def __init__(
@@ -340,10 +376,25 @@ class PoseEstimationPipeline(Pipeline):
         keypoint_colors: Union[np.ndarray, List[Tuple[int, int, int]]],
         post_prediction_callback,
         device: Optional[str] = None,
-        image_processor: Optional[Processing] = None,
+        image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
+        skip_image_resizing: bool = False,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=None, fuse_model=fuse_model)
+        if isinstance(image_processor, list):
+            image_processor = ComposeProcessing(image_processor)
+
+        # Ensure that the image size is divisible by 32.
+        if isinstance(image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor.processings.append(KeypointsAutoPadding(shape_multiple=(32, 32), pad_value=0))
+
+        super().__init__(
+            model=model,
+            device=device,
+            image_processor=image_processor,
+            class_names=None,
+            fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
+        )
         self.post_prediction_callback = post_prediction_callback
         self.edge_links = np.asarray(edge_links, dtype=int)
         self.edge_colors = np.asarray(edge_colors, dtype=int)
@@ -405,6 +456,7 @@ class ClassificationPipeline(Pipeline):
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+    :param skip_image_resizing:         If True, the image processor will not resize the images.
     """
 
     def __init__(
@@ -412,10 +464,18 @@ class ClassificationPipeline(Pipeline):
         model: SgModule,
         class_names: List[str],
         device: Optional[str] = None,
-        image_processor: Optional[Processing] = None,
+        image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
+        skip_image_resizing: bool = False,
     ):
-        super().__init__(model=model, device=device, image_processor=image_processor, class_names=class_names, fuse_model=fuse_model)
+        super().__init__(
+            model=model,
+            device=device,
+            image_processor=image_processor,
+            class_names=class_names,
+            fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
+        )
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[ClassificationPrediction]:
         """Decode the model output

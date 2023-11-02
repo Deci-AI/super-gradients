@@ -148,15 +148,17 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
         post_nms_max_predictions: Optional[int] = None,
         batch_size: int = 32,
         fuse_model: bool = True,
+        skip_image_resizing: bool = False,
     ) -> PoseEstimationPrediction:
         """Predict an image or a list of images.
 
-        :param images:      Images to predict.
-        :param iou:         (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:        (Optional) Below the confidence threshold, prediction are discarded.
-                            If None, the default value associated to the training is used.
-        :param batch_size:  Maximum number of images to process at the same time.
-        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param images:              Images to predict.
+        :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
+                                    If None, the default value associated to the training is used.
+        :param batch_size:          Maximum number of images to process at the same time.
+        :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
         pipeline = self._get_pipeline(
             iou=iou,
@@ -164,6 +166,7 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
             pre_nms_max_predictions=pre_nms_max_predictions,
             post_nms_max_predictions=post_nms_max_predictions,
             fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
         )
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
@@ -175,13 +178,15 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
         pre_nms_max_predictions: Optional[int] = None,
         post_nms_max_predictions: Optional[int] = None,
         fuse_model: bool = True,
+        skip_image_resizing: bool = False,
     ) -> PoseEstimationPipeline:
         """Instantiate the prediction pipeline of this model.
 
-        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
-                        If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
+                                    If None, the default value associated to the training is used.
+        :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
         if None in (self._image_processor, self._default_nms_iou, self._default_nms_conf, self._edge_links):
             raise RuntimeError(
@@ -206,6 +211,7 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
             edge_links=self._edge_links,
             edge_colors=self._edge_colors,
             keypoint_colors=self._keypoint_colors,
+            skip_image_resizing=skip_image_resizing,
         )
         return pipeline
 

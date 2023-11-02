@@ -583,12 +583,13 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
         self._default_nms_conf = conf or self._default_nms_conf
 
     @lru_cache(maxsize=1)
-    def _get_pipeline(self, conf: Optional[float] = None, fuse_model: bool = True) -> PoseEstimationPipeline:
+    def _get_pipeline(self, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False) -> PoseEstimationPipeline:
         """Instantiate the prediction pipeline of this model.
 
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
         if None in (self._edge_links, self._image_processor, self._default_nms_conf):
             raise RuntimeError(
@@ -614,29 +615,34 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
             keypoint_colors=self._keypoint_colors,
             post_prediction_callback=self.get_post_prediction_callback(conf=conf),
             fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
         )
         return pipeline
 
-    def predict(self, images: ImageSource, conf: Optional[float] = None, batch_size: int = 32, fuse_model: bool = True) -> ImagesPoseEstimationPrediction:
+    def predict(
+        self, images: ImageSource, conf: Optional[float] = None, batch_size: int = 32, fuse_model: bool = True, skip_image_resizing: bool = False
+    ) -> ImagesPoseEstimationPrediction:
         """Predict an image or a list of images.
 
         :param images:  Images to predict.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
         :param batch_size:  Maximum number of images to process at the same time.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
-    def predict_webcam(self, conf: Optional[float] = None, fuse_model: bool = True):
+    def predict_webcam(self, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False):
         """Predict using webcam.
 
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
         pipeline.predict_webcam()
 
     def train(self, mode: bool = True):
