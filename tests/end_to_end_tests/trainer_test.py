@@ -112,16 +112,17 @@ class TestTrainer(unittest.TestCase):
     def test_validation_frequency_and_save_ckpt_list(self):
         trainer, model = self.get_classification_trainer(self.experiment_names[0])
         training_params = self.training_params.copy()
-        training_params["max_epochs"] = 4
+        training_params["max_epochs"] = 5
         training_params["run_validation_freq"] = 3
         training_params["save_ckpt_epoch_list"] = [1]
         trainer.train(
             model=model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
         )
-        ckpt_filename = "ckpt_epoch_1.pth"
-        ckpt_path = os.path.join(trainer.checkpoints_dir_path, ckpt_filename)
-        ckpt = torch.load(ckpt_path)
-        self.assertTrue("valid" in ckpt["metrics"].keys())
+        ckpt_filename = ["ckpt_epoch_1.pth", "ckpt_latest.pth"]
+        ckpt_paths = [os.path.join(trainer.checkpoints_dir_path, suf) for suf in ckpt_filename]
+        for ckpt_path in ckpt_paths:
+            ckpt = torch.load(ckpt_path)
+            self.assertTrue("valid" in ckpt["metrics"].keys())
 
 
 if __name__ == "__main__":
