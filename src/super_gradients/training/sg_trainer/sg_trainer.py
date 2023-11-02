@@ -656,8 +656,9 @@ class Trainer:
             self.sg_logger.add_checkpoint(tag="ckpt_latest_weights_only.pth", state_dict={"net": self.net.state_dict()}, global_step=epoch)
             return
 
-        # Check whether we have to attempt the validation results in case if (1+epoch) % val_freq != 0
-        is_validation_calculated = not bool(epoch % self.run_validation_freq)
+        # Check whether we have to attempt the validation results
+        # and subtract 1 from epoch because epoch+1 is passed to this function
+        is_validation_calculated = self._if_need_to_calc_validation(epoch - 1)
         curr_tracked_metric = None
 
         # Create metrics dict to save
@@ -760,6 +761,13 @@ class Trainer:
         self.arch_params = default_arch_params
         if arch_params is not None:
             self.arch_params.override(**arch_params.to_dict())
+
+    def _if_need_to_calc_validation(self, epoch: int) -> bool:
+        is_run_val_freq_divisible = not bool((epoch + 1) % self.run_validation_freq)
+        is_last_epoch = (epoch + 1) == self.max_epochs
+        is_in_checkpoint_list = (epoch + 1) in self.training_params.save_ckpt_epoch_list
+
+        return is_run_val_freq_divisible or is_last_epoch or is_in_checkpoint_list
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def train(
@@ -1269,7 +1277,10 @@ class Trainer:
         self.run_validation_freq = self.training_params.run_validation_freq
 
         if self.max_epochs % self.run_validation_freq != 0:
-            logger.warning("max_epochs is not divisible by run_validation_freq. " "The model on the last epoch wouldn't be checked whether it is the best.")
+            logger.warning(
+                "max_epochs is not divisible by run_validation_freq. "
+                "Please check the training parameters and ensure that run_validation_freq has been set correctly."
+            )
         self.run_test_freq = self.training_params.run_test_freq
 
         inf_time = 0
@@ -1497,7 +1508,14 @@ class Trainer:
 
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
                 valid_metrics_dict = {}
-                if (epoch + 1) % self.run_validation_freq == 0:
+                # We need to calculate validation if
+                # 1) the epoch is divisible by #run_validation_freq
+                # 2) if epoch is last
+                # 3) if epoch is in self.save_ckpt_epoch_list
+
+                is_validation_calculated = self._if_need_to_calc_validation(epoch)
+
+                if is_validation_calculated:
                     self.phase_callback_handler.on_validation_loader_start(context)
                     timer.start()
                     valid_metrics_dict = self._validate_epoch(context=context, silent_mode=silent_mode)
