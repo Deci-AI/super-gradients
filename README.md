@@ -203,11 +203,8 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 #### Transfer Learning 
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">  
-  <a target="_blank" href="https://bit.ly/3xzIutb"><img src="./documentation/assets/SG_img/colab_logo.png" /> Classification Transfer Learning</a>
+  <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_classification.ipynb"><img src="./documentation/assets/SG_img/colab_logo.png" /> Classification Transfer Learning</a>
   </td>
- <td width="200">    
- <a target="_blank" href="https://bit.ly/3xwYEn1"><img src="./documentation/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
- </td>
 </table>
  </br></br>
 
