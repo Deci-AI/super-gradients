@@ -120,6 +120,16 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
             padded_channels.append(np.pad(image[..., channel_index], (pad_h, pad_w), "constant", constant_values=pad_value_channel))
         return np.stack(padded_channels, axis=-1)
     else:
+        if isinstance(pad_value, numbers.Number):
+            pass
+        elif isinstance(pad_value, typing.Sized):
+            if len(pad_value) != 1:
+                raise ValueError(f"A pad_value tuple ({pad_value} length should be 1 for a grayscale image")
+            else:
+                (pad_value,) = pad_value  # Unpack to a single scalar
+        else:
+            raise ValueError(f"Unsupported pad_value type {type(pad_value)}")
+
         return np.pad(image, (pad_h, pad_w), "constant", constant_values=pad_value)
 
 
