@@ -32,7 +32,7 @@ sweeper_test:
 
 # Here you define a list of notebooks we want to execute and convert to markdown files
 # NOTEBOOKS = hellomake.ipynb hellofunc.ipynb helloclass.ipynb
-NOTEBOOKS = src/super_gradients/examples/model_export/models_export.ipynb src/super_gradients/examples/model_export/models_export_pose.ipynb
+NOTEBOOKS = src/super_gradients/examples/model_export/models_export.ipynb notebooks/what_are_recipes_and_how_to_use.ipynb src/super_gradients/examples/model_export/models_export_pose.ipynb
 
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
 run_and_convert_notebooks_to_docs: $(NOTEBOOKS)

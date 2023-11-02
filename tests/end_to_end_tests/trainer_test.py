@@ -18,7 +18,16 @@ class TestTrainer(unittest.TestCase):
     def setUp(cls):
         super_gradients.init_trainer()
         # NAMES FOR THE EXPERIMENTS TO LATER DELETE
-        cls.experiment_names = ["test_train", "test_save_load", "test_load_w", "test_load_w2", "test_load_w3", "test_checkpoint_content", "analyze"]
+        cls.experiment_names = [
+            "test_train",
+            "test_save_load",
+            "test_load_w",
+            "test_load_w2",
+            "test_load_w3",
+            "test_checkpoint_content",
+            "analyze",
+            "test_yaml_metrics_present",
+        ]
         cls.training_params = {
             "max_epochs": 1,
             "silent_mode": True,
@@ -79,7 +88,7 @@ class TestTrainer(unittest.TestCase):
         ckpt_paths = [os.path.join(trainer.checkpoints_dir_path, suf) for suf in ckpt_filename]
         for ckpt_path in ckpt_paths:
             ckpt = torch.load(ckpt_path)
-            self.assertListEqual(["net", "acc", "epoch", "optimizer_state_dict", "scaler_state_dict"], list(ckpt.keys()))
+            self.assertListEqual(sorted(["net", "acc", "epoch", "optimizer_state_dict", "scaler_state_dict", "metrics", "packages"]), sorted(list(ckpt.keys())))
         trainer._save_checkpoint()
         weights_only = torch.load(os.path.join(trainer.checkpoints_dir_path, "ckpt_latest_weights_only.pth"))
         self.assertListEqual(["net"], list(weights_only.keys()))
