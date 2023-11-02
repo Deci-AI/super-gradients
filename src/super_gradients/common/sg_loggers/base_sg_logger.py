@@ -372,7 +372,7 @@ class BaseSGLogger(AbstractSGLogger):
             for k, v in state_dict.items():
                 self._validate_checkpoint(v, path=f"{path}.{k}" if path is not None else str(k))
         elif isinstance(state_dict, typing.Iterable):
-            for k in state_dict:
-                self._validate_checkpoint(state_dict[k], path=f"{path}[{k}]" if path is not None else str(k))
+            for index, value in enumerate(state_dict):
+                self._validate_checkpoint(value, path=f"{path}[{index}]" if path is not None else str(k))
         elif isinstance(state_dict, torch.Tensor):
             pass
