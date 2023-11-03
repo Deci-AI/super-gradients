@@ -656,13 +656,17 @@ class Trainer:
             self.sg_logger.add_checkpoint(tag="ckpt_latest_weights_only.pth", state_dict={"net": self.net.state_dict()}, global_step=epoch)
             return
 
-        # Check whether we have to attempt the validation results
-        # and subtract 1 from epoch because epoch+1 is passed to this function
-        is_validation_calculated = self._if_need_to_calc_validation(epoch - 1)
-        curr_tracked_metric = None
+        # COMPUTE THE CURRENT metric
+        # IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES
+        curr_tracked_metric = float(validation_results_dict[self.metric_to_watch])
 
-        # Create metrics dict to save
-        all_metrics = {"tracked_metric_name": self.metric_to_watch}
+        # create metrics dict to save
+        valid_metrics_titles = get_metrics_titles(self.valid_metrics)
+
+        all_metrics = {
+            "tracked_metric_name": self.metric_to_watch,
+            "valid": {metric_name: float(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles},
+        }
 
         if train_metrics_dict is not None:
             train_metrics_titles = get_metrics_titles(self.train_metrics)
@@ -671,6 +675,7 @@ class Trainer:
         # BUILD THE state_dict
         state = {
             "net": unwrap_model(self.net).state_dict(),
+            "acc": curr_tracked_metric,
             "epoch": epoch,
             "metrics": all_metrics,
             "packages": get_installed_packages(),
@@ -692,16 +697,6 @@ class Trainer:
         if self._torch_lr_scheduler is not None:
             state["torch_scheduler_state_dict"] = get_scheduler_state(self._torch_lr_scheduler)
 
-        if is_validation_calculated:
-            valid_metrics_titles = get_metrics_titles(self.valid_metrics)
-
-            state["metrics"]["valid"] = {metric_name: float(validation_results_dict[metric_name]) for metric_name in valid_metrics_titles}
-
-            # COMPUTE THE CURRENT metric
-            # IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES
-            curr_tracked_metric = float(validation_results_dict[self.metric_to_watch])
-            state["acc"] = curr_tracked_metric
-
         # SAVES CURRENT MODEL AS ckpt_latest
         self.sg_logger.add_checkpoint(tag="ckpt_latest.pth", state_dict=state, global_step=epoch)
 
@@ -709,24 +704,23 @@ class Trainer:
         if epoch in self.training_params.save_ckpt_epoch_list:
             self.sg_logger.add_checkpoint(tag=f"ckpt_epoch_{epoch}.pth", state_dict=state, global_step=epoch)
 
-        if is_validation_calculated:
-            # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
-            if (curr_tracked_metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
-                curr_tracked_metric < self.best_metric and not self.greater_metric_to_watch_is_better
-            ):
-                # STORE THE CURRENT metric AS BEST
-                self.best_metric = curr_tracked_metric
-                self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
+        # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
+        if (curr_tracked_metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
+            curr_tracked_metric < self.best_metric and not self.greater_metric_to_watch_is_better
+        ):
+            # STORE THE CURRENT metric AS BEST
+            self.best_metric = curr_tracked_metric
+            self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
-                # RUN PHASE CALLBACKS
-                self.phase_callback_handler.on_validation_end_best_epoch(context)
-                logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(curr_tracked_metric))
+            # RUN PHASE CALLBACKS
+            self.phase_callback_handler.on_validation_end_best_epoch(context)
+            logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(curr_tracked_metric))
 
-            if self.training_params.average_best_models:
-                net_for_averaging = unwrap_model(self.ema_model.ema if self.ema else self.net)
+        if self.training_params.average_best_models:
+            net_for_averaging = unwrap_model(self.ema_model.ema if self.ema else self.net)
 
-                state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_dict=validation_results_dict)
-                self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
+            state["net"] = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_dict=validation_results_dict)
+            self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict=state, global_step=epoch)
 
     def _prep_net_for_train(self) -> None:
         if self.arch_params is None:
@@ -762,8 +756,17 @@ class Trainer:
         if arch_params is not None:
             self.arch_params.override(**arch_params.to_dict())
 
-    def _if_need_to_calc_validation(self, epoch: int) -> bool:
-        is_run_val_freq_divisible = not bool((epoch + 1) % self.run_validation_freq)
+    def _should_run_validation_for_epoch(self, epoch: int) -> bool:
+        """
+        Method returns true if the validation should to be calculated on this epoch (starting from 0).
+
+        We need to calculate validation if
+        1) the epoch is divisible by #run_validation_freq
+        2) if epoch is last
+        3) if epoch is in self.save_ckpt_epoch_list
+        """
+
+        is_run_val_freq_divisible = (epoch + 1 % self.run_validation_freq) == 0
         is_last_epoch = (epoch + 1) == self.max_epochs
         is_in_checkpoint_list = (epoch + 1) in self.training_params.save_ckpt_epoch_list
 
@@ -1283,7 +1286,6 @@ class Trainer:
             )
         self.run_test_freq = self.training_params.run_test_freq
 
-        inf_time = 0
         timer = core_utils.Timer(device_config.device)
 
         # IF THE LR MODE IS NOT DEFAULT TAKE IT FROM THE TRAINING PARAMS
@@ -1459,6 +1461,7 @@ class Trainer:
             for epoch in range(self.start_epoch, self.max_epochs):
                 # broadcast_from_master is necessary here, since in DDP mode, only the master node will
                 # receive the Ctrl-C signal, and we want all nodes to stop training.
+                timer.start()
                 if broadcast_from_master(context.stop_training):
                     logger.info("Request to stop training has been received, stopping training")
                     break
@@ -1506,20 +1509,20 @@ class Trainer:
                     keep_model = self.net
                     self.net = self.ema_model.ema
 
+                train_inf_time = timer.stop()
+                self._write_scalars_to_logger(
+                    metrics=train_metrics_dict, lrs=self._epoch_start_logging_values, epoch=1 + epoch, inference_time=train_inf_time, tag="Train"
+                )
+
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
                 valid_metrics_dict = {}
-                # We need to calculate validation if
-                # 1) the epoch is divisible by #run_validation_freq
-                # 2) if epoch is last
-                # 3) if epoch is in self.save_ckpt_epoch_list
-
-                is_validation_calculated = self._if_need_to_calc_validation(epoch)
+                is_validation_calculated = self._should_run_validation_for_epoch(epoch)
 
                 if is_validation_calculated:
                     self.phase_callback_handler.on_validation_loader_start(context)
                     timer.start()
                     valid_metrics_dict = self._validate_epoch(context=context, silent_mode=silent_mode)
-                    inf_time = timer.stop()
+                    val_inf_time = timer.stop()
 
                     self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
                         monitored_values_dict=self.valid_monitored_values,
@@ -1530,11 +1533,16 @@ class Trainer:
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
+                    self._write_scalars_to_logger(metrics=valid_metrics_dict, lrs=None, epoch=1 + epoch, inference_time=val_inf_time, tag="Valid")
+
                 test_metrics_dict = {}
                 if (epoch + 1) % self.run_test_freq == 0:
                     self.phase_callback_handler.on_test_loader_start(context)
+                    test_inf_time = 0.0
                     for dataset_name, dataloader in self.test_loaders.items():
+                        timer.start()
                         dataset_metrics_dict = self._test_epoch(data_loader=dataloader, context=context, silent_mode=silent_mode, dataset_name=dataset_name)
+                        test_inf_time += timer.stop()
                         dataset_metrics_dict_with_name = {
                             f"{dataset_name}:{metric_name}": metric_value for metric_name, metric_value in dataset_metrics_dict.items()
                         }
@@ -1547,20 +1555,21 @@ class Trainer:
                     context.update_context(metrics_dict=test_metrics_dict)
                     self.phase_callback_handler.on_test_loader_end(context)
 
+                    self._write_scalars_to_logger(metrics=test_metrics_dict, lrs=None, epoch=1 + epoch, inference_time=test_inf_time, tag="Test")
+
                 if self.ema:
                     self.net = keep_model
 
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    self._write_to_disk_operations(
-                        train_metrics_dict=train_metrics_dict,
-                        validation_results_dict=valid_metrics_dict,
-                        test_metrics_dict=test_metrics_dict,
-                        lr_dict=self._epoch_start_logging_values,
-                        inf_time=inf_time,
-                        epoch=epoch,
-                        context=context,
-                    )
+                    if is_validation_calculated and self.training_params.save_model:
+                        self._save_checkpoint(
+                            optimizer=self.optimizer,
+                            epoch=epoch + 1,
+                            train_metrics_dict=train_metrics_dict,
+                            validation_results_dict=valid_metrics_dict,
+                            context=context,
+                        )
                     self.sg_logger.upload()
 
                 if not silent_mode:
@@ -1961,35 +1970,22 @@ class Trainer:
         }
         return hyper_param_config
 
-    def _write_to_disk_operations(
-        self,
-        train_metrics_dict: dict,
-        validation_results_dict: dict,
-        test_metrics_dict: dict,
-        lr_dict: dict,
-        inf_time: float,
-        epoch: int,
-        context: PhaseContext,
-    ):
-        """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
-        result_dict = {
-            "Inference Time": inf_time,
-            **{f"Train_{k}": v for k, v in train_metrics_dict.items()},
-            **{f"Valid_{k}": v for k, v in validation_results_dict.items()},
-            **{f"Test_{k}": v for k, v in test_metrics_dict.items()},
-        }
-        self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
-        self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
+    def _write_scalars_to_logger(self, metrics: dict, epoch: int, inference_time: float, tag: str, epoch_values: Optional[dict] = None) -> None:
+        """
+        Method for writing metrics and LR info to logger.
 
-        # SAVE THE CHECKPOINT
-        if self.training_params.save_model:
-            self._save_checkpoint(
-                optimizer=self.optimizer,
-                epoch=epoch + 1,
-                train_metrics_dict=train_metrics_dict,
-                validation_results_dict=validation_results_dict,
-                context=context,
-            )
+        :param metrics:         (dict) dict of metrics.
+        :param epoch_values:    (dict) dict of epoch important values (self._epoch_start_logging_values).
+        :param epoch:           (inf) 1-based number of epoch.
+        :param inference_time:  (float) time of inference.
+        :param tag:             (str) tag for writing to logger (rule of thumb: Train/Test/Valid)
+        """
+        info_dict = {"Inference Time": inference_time, **{f"{tag}_{k}": v for k, v in metrics.items()}}
+
+        self.sg_logger.add_scalars(tag_scalar_dict=info_dict, global_step=epoch)
+
+        if epoch_values:
+            self.sg_logger.add_scalars(tag_scalar_dict=epoch_values, global_step=epoch)
 
     def _get_epoch_start_logging_values(self) -> dict:
         """Get all the values that should be logged at the start of each epoch.
