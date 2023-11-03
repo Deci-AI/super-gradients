@@ -38,3 +38,8 @@ yolo_nas_pose.export("yolo_nas_pose.onnx")
 ```
 
 Please follow our [Pose Estimation Models Export](models_export_pose.md) tutorial for more details.
+
+## Evaluation using pycocotools
+
+We provide example notebook to evaluate YOLO-NAS POSE using COCO protocol.
+Please check [Pose Estimation Models Export](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/yolo_nas_pose_eval_with_pycocotools.ipynb) tutorial for more details.
