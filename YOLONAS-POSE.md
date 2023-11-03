@@ -62,7 +62,6 @@ We provide training recipies for training YOLO-NAS-POSE on COCO, CrowdPose and A
 
 
 ## Additional resources
-https://colab.research.google.com/drive/1O4N5Vbzv0rfkT81LQidPktX8RtoS5A40
 
 <table>
 <tr>
