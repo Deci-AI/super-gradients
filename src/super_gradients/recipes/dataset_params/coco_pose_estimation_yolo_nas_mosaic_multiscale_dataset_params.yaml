@@ -73,3 +73,23 @@ train_dataloader_params:
         - 2 # cv::INTER_CUBIC
         - 3 # cv::INTER_AREA
         - 4 # cv::INTER_LANCZOS4
+
+val_dataset_params:
+  transforms:
+# Intentinally commented resizes for this experiment which
+# There are no images larger than 640x640 in COCO dataset
+# So we do only padding to 640x640 => This should give us metrics closer to COCOEval protocol,
+# where images are not resized
+#    - KeypointsLongestMaxSize:
+#        max_height: ${dataset_params.image_size}
+#        max_width: ${dataset_params.image_size}
+
+    - KeypointsPadIfNeeded:
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
+        image_pad_value: 127
+        mask_pad_value: 1
+        padding_mode: bottom_right
+
+    - KeypointsImageStandardize:
+        max_value: 255
