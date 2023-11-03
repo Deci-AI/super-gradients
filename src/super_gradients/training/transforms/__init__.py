@@ -34,6 +34,7 @@ from super_gradients.training.transforms.keypoints import (
 from super_gradients.common.object_names import Transforms
 from super_gradients.common.registry.registry import TRANSFORMS
 from super_gradients.common.registry.albumentation import ALBUMENTATIONS_TRANSFORMS, ALBUMENTATIONS_COMP_TRANSFORMS, imported_albumentations_failure
+from super_gradients.training.transforms.detection import AbstractDetectionTransform, DetectionPadIfNeeded, DetectionLongestMaxSize
 
 __all__ = [
     "TRANSFORMS",
@@ -67,6 +68,9 @@ __all__ = [
     "KeypointsRescale",
     "KeypointsRandomRotate90",
     "KeypointsImageToTensor",
+    "DetectionPadIfNeeded",
+    "DetectionLongestMaxSize",
+    "AbstractDetectionTransform",
 ]
 
 cv2.setNumThreads(0)

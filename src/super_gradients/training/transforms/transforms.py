@@ -1,9 +1,10 @@
+import abc
 import collections
 import math
 import random
 import warnings
 from numbers import Number
-from typing import Optional, Union, Tuple, List, Sequence, Dict
+from typing import Optional, Union, Tuple, List, Sequence, Dict, Any
 
 import cv2
 import numpy as np
@@ -17,17 +18,17 @@ from super_gradients.common.factories.data_formats_factory import ConcatenatedTe
 from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.samples import DetectionSample
+from super_gradients.training.transforms import DetectionPadIfNeeded, AbstractDetectionTransform
+from super_gradients.training.transforms.detection import LegacyDetectionTransformMixin
 from super_gradients.training.transforms.utils import (
     _rescale_and_pad_to_size,
     _rescale_image,
     _rescale_bboxes,
-    _get_center_padding_coordinates,
-    _pad_image,
     _rescale_xyxy_bboxes,
-    _shift_bboxes_xywh,
 )
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
@@ -399,7 +400,7 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
     return fill_mask, fill_image
 
 
-class DetectionTransform:
+class DetectionTransform(abc.ABC):
     """
     Detection transform base class.
 
@@ -418,21 +419,28 @@ class DetectionTransform:
     """
 
     def __init__(self, additional_samples_count: int = 0, non_empty_targets: bool = False):
-        self.additional_samples_count = additional_samples_count
+        super().__init__(additional_samples_count=additional_samples_count)
         self.non_empty_targets = non_empty_targets
 
-    def __call__(self, sample: Union[dict, list]):
-        raise NotImplementedError
+    @abc.abstractmethod
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        :param sample: Dict with following keys:
+                        - image: numpy array of [H,W,C] or [C,H,W] format
+                        - target: numpy array of [N,5] shape with bounding box of each instance (XYWH)
+                        - crowd_targets: numpy array of [N,5] shape with bounding box of each instance (XYWH)
+        """
+        raise NotImplementedError()
 
     def __repr__(self):
         return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
     def get_equivalent_preprocessing(self) -> List:
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 @register_transform(Transforms.DetectionStandardize)
-class DetectionStandardize(DetectionTransform):
+class DetectionStandardize(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Standardize image pixel values with img/max_val
 
@@ -441,10 +449,14 @@ class DetectionStandardize(DetectionTransform):
 
     def __init__(self, max_value: float = 255.0):
         super().__init__()
-        self.max_value = max_value
+        self.max_value = float(max_value)
 
-    def __call__(self, sample: dict) -> dict:
-        sample["image"] = (sample["image"] / self.max_value).astype(np.float32)
+    @classmethod
+    def apply_to_image(self, image: np.ndarray, max_value: float) -> np.ndarray:
+        return (image / max_value).astype(np.float32)
+
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        sample.image = self.apply_to_image(sample.image, max_value=self.max_value)
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -719,7 +731,7 @@ class DetectionMixup(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionImagePermute)
-class DetectionImagePermute(DetectionTransform):
+class DetectionImagePermute(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Permute image dims. Useful for converting image from HWC to CHW format.
     """
@@ -732,8 +744,8 @@ class DetectionImagePermute(DetectionTransform):
         super().__init__()
         self.dims = tuple(dims)
 
-    def __call__(self, sample: Dict[str, np.array]) -> dict:
-        sample["image"] = np.ascontiguousarray(sample["image"].transpose(*self.dims))
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        sample.image = np.ascontiguousarray(sample.image.transpose(*self.dims))
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -741,39 +753,28 @@ class DetectionImagePermute(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionPadToSize)
-class DetectionPadToSize(DetectionTransform):
+class DetectionPadToSize(DetectionPadIfNeeded, LegacyDetectionTransformMixin):
     """
     Preprocessing transform to pad image and bboxes to `input_dim` shape (rows, cols).
     Transform does center padding, so that input image with bboxes located in the center of the produced image.
 
     Note: This transformation assume that dimensions of input image is equal or less than `output_size`.
+    This class exists for backward compatibility with previous versions of the library.
+    Use `DetectionPadIfNeeded` instead.
     """
 
-    def __init__(self, output_size: Union[int, Tuple[int, int], None], pad_value: int):
+    def __init__(self, output_size: Union[int, Tuple[int, int], None], pad_value: Union[int, Tuple[int, ...]]):
         """
         Constructor for DetectionPadToSize transform.
 
         :param output_size: Output image size (rows, cols)
         :param pad_value: Padding value for image
         """
-        super().__init__()
+        min_height, min_width = ensure_is_tuple_of_two(output_size)
+
+        super().__init__(min_height=min_height, min_width=min_width, pad_value=pad_value, padding_mode="center")
         self.output_size = ensure_is_tuple_of_two(output_size)
         self.pad_value = pad_value
-
-    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        padding_coordinates = _get_center_padding_coordinates(input_shape=sample.image.shape[:2], output_shape=self.output_size)
-        sample.image = self.apply_to_image(sample.image, padding_coordinates)
-        sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, padding_coordinates)
-        return sample
-
-    def apply_to_image(self, image, padding_coordinates):
-        return _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
-
-    def apply_to_bboxes(self, bboxes, padding_coordinates):
-        return _shift_bboxes_xywh(targets=bboxes, shift_w=padding_coordinates.left, shift_h=padding_coordinates.top)
-
-    def get_equivalent_preprocessing(self) -> List:
-        return [{Processings.DetectionCenterPadding: {"output_shape": self.output_size, "pad_value": self.pad_value}}]
 
 
 @register_transform(Transforms.DetectionPaddedRescale)
@@ -817,17 +818,16 @@ class DetectionPaddedRescale(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionHorizontalFlip)
-class DetectionHorizontalFlip(DetectionTransform):
+class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Horizontal Flip for Detection
 
     :param prob:        Probability of applying horizontal flip
     """
 
-    def __init__(self, prob: float, max_targets: Optional[int] = None):
+    def __init__(self, prob: float):
         super(DetectionHorizontalFlip, self).__init__()
-        _max_targets_deprication(max_targets)
-        self.prob = prob
+        self.prob = float(prob)
 
     def apply_to_image(self, image: np.ndarray) -> np.ndarray:
         return _flip_vertical_image(image)
@@ -843,22 +843,24 @@ class DetectionHorizontalFlip(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionVerticalFlip)
-class DetectionVerticalFlip(DetectionTransform):
+class DetectionVerticalFlip(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Vertical Flip for Detection
 
     :param prob:        Probability of applying vertical flip
     """
 
-    def __init__(self, prob: float, max_targets: Optional[int] = None):
+    def __init__(self, prob: float):
         super(DetectionVerticalFlip, self).__init__()
-        _max_targets_deprication(max_targets)
-        self.prob = prob
+        self.prob = float(prob)
 
+    @classmethod
     def apply_to_image(self, image: np.ndarray) -> np.ndarray:
         return _flip_vertical_image(image)
 
-    def apply_to_bboxes(self, bboxes: np.ndarray, image_height) -> np.ndarray:
+    @classmethod
+    def apply_to_bboxes(self, bboxes: np.ndarray, image_height: int) -> np.ndarray:
+
         return _flip_vertical_boxes(bboxes, image_height)
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
@@ -869,7 +871,7 @@ class DetectionVerticalFlip(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionRescale)
-class DetectionRescale(DetectionTransform):
+class DetectionRescale(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Resize image and bounding boxes to given image dimensions without preserving aspect ratio
 
@@ -880,17 +882,22 @@ class DetectionRescale(DetectionTransform):
         super().__init__()
         self.output_shape = ensure_is_tuple_of_two(output_shape)
 
-    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
-        return _rescale_image(image=image, target_shape=self.output_shape)
+    @classmethod
+    def apply_to_image(self, image: np.ndarray, output_width: int, output_height: int) -> np.ndarray:
+        return _rescale_image(image=image, target_shape=(output_height, output_width))
 
-    def apply_to_bboxes(self, bboxes: np.ndarray, sx, sy) -> np.ndarray:
+    @classmethod
+    def apply_to_bboxes(self, bboxes: np.ndarray, sx: float, sy: float) -> np.ndarray:
         return _rescale_bboxes(bboxes, scale_factors=(sy, sx))
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        sample.image = self.apply_to_image(sample.image)
-        sample.bboxes_xywh = self.apply_to_bboxes(
-            sample.bboxes_xywh, sample.image.shape[1] / sample.image.shape[0], sample.image.shape[0] / sample.image.shape[1]
-        )
+        image_height, image_width = sample.image.shape[:2]
+        output_height, output_width = self.output_shape
+        sx = output_width / image_width
+        sy = output_height / image_height
+
+        sample.image = self.apply_to_image(sample.image, output_width=output_width, output_height=output_height)
+        sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, sx=sx, sy=sy)
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -898,7 +905,7 @@ class DetectionRescale(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionRandomRotate90)
-class DetectionRandomRotate90(DetectionTransform):
+class DetectionRandomRotate90(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     def __init__(self, prob: float = 0.5):
         super().__init__()
         self.prob = prob
@@ -912,11 +919,29 @@ class DetectionRandomRotate90(DetectionTransform):
         return sample
 
     def apply_to_image(self, image: np.ndarray, factor: int) -> np.ndarray:
+        """
+        Apply a `factor` number of 90-degree rotation to image.
+
+        :param image:  Input image (HWC).
+        :param factor: Number of CCW rotations. Must be in set {0, 1, 2, 3} See np.rot90.
+        :return:       Rotated image (HWC).
+        """
         return np.ascontiguousarray(np.rot90(image, factor))
 
     def apply_to_bboxes(self, bboxes: np.ndarray, factor: int, image_shape: Tuple[int, int]):
+        """
+        Apply a `factor` number of 90-degree rotation to bounding boxes.
+
+        :param bboxes:       Input bounding boxes in XYWH format.
+        :param factor:       Number of CCW rotations. Must be in set {0, 1, 2, 3} See np.rot90.
+        :param image_shape:  Original image shape
+        :return:             Rotated bounding boxes in XYWH format.
+        """
         rows, cols = image_shape
-        return self.xyxy_bbox_rot90(bboxes, factor, rows, cols)
+        bboxes_xyxy = xywh_to_xyxy(bboxes, image_shape=None)
+        bboxes_xyxy = self.xyxy_bbox_rot90(bboxes_xyxy, factor, rows, cols)
+        bboxes_xywh = xyxy_to_xywh(bboxes_xyxy, image_shape=image_shape)
+        return bboxes_xywh
 
     @classmethod
     def xyxy_bbox_rot90(cls, bboxes: np.ndarray, factor: int, rows: int, cols: int):
@@ -947,7 +972,7 @@ class DetectionRandomRotate90(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionRGB2BGR)
-class DetectionRGB2BGR(DetectionTransform):
+class DetectionRGB2BGR(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Detection change Red & Blue channel of the image
 
@@ -956,7 +981,7 @@ class DetectionRGB2BGR(DetectionTransform):
 
     def __init__(self, prob: float = 0.5):
         super().__init__()
-        self.prob = prob
+        self.prob = float(prob)
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if sample.image.shape[2] < 3:
@@ -965,6 +990,7 @@ class DetectionRGB2BGR(DetectionTransform):
             sample.image = self.apply_to_image(sample.image)
         return sample
 
+    @classmethod
     def apply_to_image(self, image: np.ndarray) -> np.ndarray:
         return image[..., ::-1]
 
@@ -975,7 +1001,7 @@ class DetectionRGB2BGR(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionHSV)
-class DetectionHSV(DetectionTransform):
+class DetectionHSV(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Detection HSV transform.
 
@@ -1017,7 +1043,7 @@ class DetectionHSV(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionNormalize)
-class DetectionNormalize(DetectionTransform):
+class DetectionNormalize(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Normalize image by subtracting mean and dividing by std.
     """
