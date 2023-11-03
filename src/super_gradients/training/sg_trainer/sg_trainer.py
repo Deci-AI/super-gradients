@@ -1511,7 +1511,7 @@ class Trainer:
 
                 train_inf_time = timer.stop()
                 self._write_scalars_to_logger(
-                    metrics=train_metrics_dict, lrs=self._epoch_start_logging_values, epoch=1 + epoch, inference_time=train_inf_time, tag="Train"
+                    metrics=train_metrics_dict, epoch_values=self._epoch_start_logging_values, epoch=1 + epoch, inference_time=train_inf_time, tag="Train"
                 )
 
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
@@ -1533,7 +1533,7 @@ class Trainer:
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
-                    self._write_scalars_to_logger(metrics=valid_metrics_dict, lrs=None, epoch=1 + epoch, inference_time=val_inf_time, tag="Valid")
+                    self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch_values=None, epoch=1 + epoch, inference_time=val_inf_time, tag="Valid")
 
                 test_metrics_dict = {}
                 if (epoch + 1) % self.run_test_freq == 0:
@@ -1555,7 +1555,7 @@ class Trainer:
                     context.update_context(metrics_dict=test_metrics_dict)
                     self.phase_callback_handler.on_test_loader_end(context)
 
-                    self._write_scalars_to_logger(metrics=test_metrics_dict, lrs=None, epoch=1 + epoch, inference_time=test_inf_time, tag="Test")
+                    self._write_scalars_to_logger(metrics=test_metrics_dict, epoch_values=None, epoch=1 + epoch, inference_time=test_inf_time, tag="Test")
 
                 if self.ema:
                     self.net = keep_model
