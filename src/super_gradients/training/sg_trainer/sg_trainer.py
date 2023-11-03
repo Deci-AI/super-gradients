@@ -1980,7 +1980,7 @@ class Trainer:
         :param inference_time:  (float) time of inference.
         :param tag:             (str) tag for writing to logger (rule of thumb: Train/Test/Valid)
         """
-        info_dict = {"Inference Time": inference_time, **{f"{tag}_{k}": v for k, v in metrics.items()}}
+        info_dict = {f"{tag} Inference Time": inference_time, **{f"{tag}_{k}": v for k, v in metrics.items()}}
 
         self.sg_logger.add_scalars(tag_scalar_dict=info_dict, global_step=epoch)
 
