@@ -766,7 +766,7 @@ class Trainer:
         3) if epoch is in self.save_ckpt_epoch_list
         """
 
-        is_run_val_freq_divisible = (epoch + 1 % self.run_validation_freq) == 0
+        is_run_val_freq_divisible = ((epoch + 1) % self.run_validation_freq) == 0
         is_last_epoch = (epoch + 1) == self.max_epochs
         is_in_checkpoint_list = (epoch + 1) in self.training_params.save_ckpt_epoch_list
 
