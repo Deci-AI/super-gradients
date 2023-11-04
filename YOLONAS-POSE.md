@@ -5,7 +5,7 @@ Deci is thrilled to announce the release of a new object detection model, YOLO-N
 pose estimation architecture, providing superior real-time object detection capabilities and production-ready performance. 
 Deci's mission is to provide AI teams with tools to remove development barriers and attain efficient inference performance more quickly.
 
-![YOLO-NAS-POSE](documentation/source/images/yolo_nas_pose_frontier.png)
+![YOLO-NAS-POSE](documentation/source/images/yolo_nas_pose_frontier_t4.png)
 
 The new YOLO-NAS-POSE delivers state-of-the-art (SOTA) performance with the unparalleled accuracy-speed performance, outperforming other models such as YOLOv8-Pose, DEKR and others.
 
@@ -38,16 +38,16 @@ That enables us to use transfer learning and fine-tune YOLO-NAS-POSE starting fr
 import super_gradients
 
 yolo_nas = super_gradients.training.models.get("yolo_nas_pose_l", pretrained_weights="coco_pose").cuda()
-model_predictions  = yolo_nas.predict("https://deci-pretrained-models.s3.amazonaws.com/sample_images/beatles-abbeyroad.jpg").show()
+model_predictions  = yolo_nas.predict("https://deci-pretrained-models.s3.amazonaws.com/sample_images/beatles-abbeyroad.jpg", conf=0.5).show()
 
-prediction = model_predictions[0].prediction # One prediction per image - Here we work with 1 image so we get the first.
+prediction = model_predictions[0].prediction # One prediction per image - Here we work with 1 image, so we get the first.
 
 bboxes = prediction.bboxes_xyxy # [Num Instances, 4] List of predicted bounding boxes for each object 
 poses  = prediction.poses       # [Num Instances, Num Joints, 3] list of predicted joints for each detected object (x,y, confidence)
 scores = prediction.scores      # [Num Instances] - Confidence value for each predicted instance
 ```
 
-![YOLO-NAS-POSE Predict Demo](documentation/source/images/TODO_yolo_nas_pose_predict_demo.png)
+![YOLO-NAS-POSE Predict Demo](documentation/source/images/yolo_nas_pose_predict_demo.jpg)
 
 ### Recipes
 
@@ -62,17 +62,19 @@ We provide training recipies for training YOLO-NAS-POSE on COCO, CrowdPose and A
 
 
 ## Additional resources
+
 <table>
 <tr>
     <td>   
-        <a target="_blank" href="https://bit.ly/yolo-nas-starter-notebook">
-            <img src="./documentation/assets/SG_img/colab_logo.png" /> Fine-Tuning YoloNAS Pose on AnimalPose dataset Notebook (TODO)
+        <a target="_blank" href="https://colab.research.google.com/drive/1O4N5Vbzv0rfkT81LQidPktX8RtoS5A40">
+            <img src="./documentation/assets/SG_img/colab_logo.png" /> Predict poses with YoloNAS Pose Model
         </a>
     </td>
-</tr><tr>
+</tr>
+<tr>
     <td>   
-        <a target="_blank" href="https://bit.ly/3MIKdTy">
-            <img src="./documentation/assets/SG_img/colab_logo.png" /> Quantization Aware Training YoloNAS on Custom Dataset Notebook (TODO)
+        <a target="_blank" href="https://colab.research.google.com/drive/1agLj0aGx48C_rZPrTkeA18kuncack6lF">
+            <img src="./documentation/assets/SG_img/colab_logo.png" /> Fine-Tune YoloNAS Pose on AnimalPose dataset Notebook
         </a>
     </td>
 </tr>
@@ -80,6 +82,13 @@ We provide training recipies for training YOLO-NAS-POSE on COCO, CrowdPose and A
     <td>   
         <a target="_blank" href="documentation/source/YoloNASPoseQuickstart.md"> 
             Documentation: YOLO-NAS-POSE Quickstart 
+        </a>
+    </td>
+</tr>
+<tr>
+    <td>   
+        <a target="_blank" href="documentation/source/models_export_pose.md"> 
+            Documentation: YOLO-NAS-POSE Export 
         </a>
     </td>
 </tr>
