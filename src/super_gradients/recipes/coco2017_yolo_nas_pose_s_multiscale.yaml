@@ -50,6 +50,19 @@ ckpt_root_dir:
 arch_params:
   num_classes: ${dataset_params.num_joints}
 
+training_hyperparams:
+  phase_callbacks:
+    # Only EarlyStop no batch visualization
+    - EarlyStop:
+        phase:
+          _target_: super_gradients.training.utils.callbacks.base_callbacks.Phase
+          value: VALIDATION_EPOCH_END
+        monitor: AP
+        mode: max
+        min_delta: 0.0001
+        patience: 100
+        verbose: True
+
 checkpoint_params:
   # For training Yolo-NAS-S pose estimation model we use pretrained weights for Yolo-NAS-S object detection model.
   # By setting strict_load: key_matching we load only those weights that match the keys of the model.
