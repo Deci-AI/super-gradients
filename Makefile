@@ -44,6 +44,12 @@ check_notebooks_version_match: $(NOTEBOOKS)
 
 WANDB_PARAMS = training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai +training_hyperparams.sg_logger_params.entity=super-gradients training_hyperparams.sg_logger_params.launch_tensorboard=false training_hyperparams.sg_logger_params.monitor_system=true +training_hyperparams.sg_logger_params.project_name=PoseEstimation training_hyperparams.sg_logger_params.save_checkpoints_remote=true training_hyperparams.sg_logger_params.save_logs_remote=true training_hyperparams.sg_logger_params.save_tensorboard_remote=false training_hyperparams.sg_logger_params.tb_files_user_prompt=false
 
+coco2017_yolo_nas_pose_n_multiscale:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_n_multiscale $(WANDB_PARAMS)
+
+coco2017_yolo_nas_pose_s_multiscale:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_multiscale $(WANDB_PARAMS)
+
 coco2017_yolo_nas_pose_m_multiscale:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_m_multiscale $(WANDB_PARAMS)
 
