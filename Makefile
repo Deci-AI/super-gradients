@@ -50,6 +50,9 @@ coco2017_yolo_nas_pose_n_multiscale:
 coco2017_yolo_nas_pose_s_multiscale:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_multiscale $(WANDB_PARAMS)
 
+coco2017_yolo_nas_pose_s_multiscale_resume:
+	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_s_multiscale $(WANDB_PARAMS) resume=True
+
 coco2017_yolo_nas_pose_m_multiscale:
 	python src/super_gradients/train_from_recipe.py --config-name=coco2017_yolo_nas_pose_m_multiscale $(WANDB_PARAMS)
 
