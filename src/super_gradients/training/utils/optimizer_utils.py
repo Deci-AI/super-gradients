@@ -1,3 +1,5 @@
+import warnings
+
 import torch.nn as nn
 import torch.optim as optim
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -100,6 +102,15 @@ def build_optimizer(net: nn.Module, lr: float, training_params) -> optim.Optimiz
 
     weight_decay = get_param(training_params.optimizer_params, "weight_decay", 0.0)
     # OPTIMIZER PARAM GROUPS ARE SET USING DEFAULT OR MODEL SPECIFIC INIT
+    if hasattr(net, "initialize_param_groups") or hasattr(net, "update_param_groups"):
+        warnings.warn(
+            "initialize_param_groups and update_param_groups usages are deprecated since 3.3.2, will be removed in "
+            "3.4 and have no effect. \n "
+            "Assign different learning rates by passing a mapping of layer name prefixes to lr values through "
+            "initial_lr training hyperparameter (i.e initial_lr={'backbone': 0.01, 'default':0.1})",
+            DeprecationWarning,
+        )
+
     net_named_params = initialize_param_groups(net, lr)
 
     if training_params.zero_weight_decay_on_bias_and_bn:
