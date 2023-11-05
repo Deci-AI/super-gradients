@@ -16,7 +16,7 @@ train_dataset_params:
         prob: 0.75
 
     - KeypointsReverseImageChannels:
-        prob: 0.1
+        prob: 0.25
 
     - KeypointsHSV:
         hgain: 25
