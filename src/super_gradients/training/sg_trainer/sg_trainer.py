@@ -1944,7 +1944,11 @@ class Trainer:
         """Get all the values that should be logged at the start of each epoch.
         This is useful for values like Learning Rate that can change over an epoch."""
         lrs = [self.optimizer.param_groups[i]["lr"] for i in range(len(self.optimizer.param_groups))]
-        lr_titles = ["LR/Param_group_" + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ["LR"]
+        lr_titles = (
+            ["LR/" + self.optimizer.param_groups[i].get("name", str(i)) for i in range(len(self.optimizer.param_groups))]
+            if len(self.optimizer.param_groups) > 1
+            else ["LR"]
+        )
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
         return lr_dict
 
