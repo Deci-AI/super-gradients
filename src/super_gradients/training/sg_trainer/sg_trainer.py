@@ -1429,9 +1429,7 @@ class Trainer:
             max_train_batches=self.max_train_batches,
         )
 
-        processing_params = self._get_preprocessing_from_valid_loader()
-        if processing_params is not None:
-            unwrap_model(self.net).set_dataset_processing_params(**processing_params)
+        self._maybe_set_preprocessing_params_for_model_from_dataset()
 
         try:
             # HEADERS OF THE TRAINING PROGRESS
@@ -1577,6 +1575,11 @@ class Trainer:
 
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
+
+    def _maybe_set_preprocessing_params_for_model_from_dataset(self):
+        processing_params = self._get_preprocessing_from_valid_loader()
+        if processing_params is not None:
+            unwrap_model(self.net).set_dataset_processing_params(**processing_params)
 
     def _get_preprocessing_from_valid_loader(self) -> Optional[dict]:
         valid_loader = self.valid_loader
