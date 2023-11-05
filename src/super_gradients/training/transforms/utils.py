@@ -26,6 +26,23 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarr
     return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_LINEAR)
 
 
+def _rescale_image_with_pil(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarray:
+    """Rescale image to target_shape, without preserving aspect ratio using PIL.
+    OpenCV and PIL has slightly different implementations of interpolation methods.
+    OpenCV has faster resizing, however PIL is more accurate (not introducing aliasing artifacts).
+    We use this method in some preprocessing transforms where we want to keep the compatibility with
+    torchvision transforms.
+
+    :param image:           Image to rescale. (H, W, C) or (H, W).
+    :param target_shape:    Target shape to rescale to (H, W).
+    :return:                Rescaled image.
+    """
+    height, width = target_shape[:2]
+    from PIL import Image
+
+    return np.array(Image.fromarray(image).resize((width, height), Image.BILINEAR))
+
+
 def _rescale_bboxes(targets: np.ndarray, scale_factors: Tuple[float, float]) -> np.ndarray:
     """Rescale bboxes to given scale factors, without preserving aspect ratio.
 
