@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Tuple, List, Union, Optional
 
 import numpy as np
-from PIL import Image
 from torch import nn
 
 from super_gradients.common.object_names import Processings
@@ -19,6 +18,7 @@ from super_gradients.training.transforms.utils import (
     PaddingCoordinates,
     _rescale_keypoints,
     _shift_keypoints,
+    _rescale_image_with_pil,
 )
 from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
 
@@ -451,22 +451,21 @@ class Resize(ClassificationProcess):
         :param image: Image, in (H, W, C) format.
         :return:      The resized image.
         """
-        image = Image.fromarray(image)
-        resized_image = image.resize((self.size, self.size))
-        resized_image = np.array(resized_image)
+        height, width = image.shape[:2]
+        output_shape = self.size, self.size
+        scale_factor = max(output_shape[0] / height, output_shape[1] / width)
 
-        return resized_image, None
+        if scale_factor != 1.0:
+            new_height, new_width = int(height * scale_factor), int(width * scale_factor)
+            image = _rescale_image_with_pil(image, target_shape=(new_height, new_width))
 
-    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return image, RescaleMetadata(original_shape=(height, width), scale_factor_h=scale_factor, scale_factor_w=scale_factor)
+
+    def get_equivalent_photometric_module(self) -> None:
         return None
 
-    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
-        """
-        Infer the output image shape from the processing.
-
-        :return: (rows, cols) Returns the last known output shape for all the processings.
-        """
-        return (self.size, self.size)
+    def infer_image_input_shape(self) -> None:
+        return None
 
 
 @register_processing(Processings.CenterCrop)

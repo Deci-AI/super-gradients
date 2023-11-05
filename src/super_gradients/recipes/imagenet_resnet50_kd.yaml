@@ -29,7 +29,7 @@ training_hyperparams:
   criterion_params:
     distillation_loss_coeff: 0.8
     task_loss_fn:
-      _target_: super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss
+      _target_: super_gradients.training.losses.label_smoothing_cross_entropy_loss.CrossEntropyLoss
 
 arch_params:
   teacher_input_adapter:
