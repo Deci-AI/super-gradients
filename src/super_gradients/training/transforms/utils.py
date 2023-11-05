@@ -115,10 +115,8 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
 
             pad_value = tuple(pad_value)
 
-        padded_channels = []
-        for channel_index, pad_value_channel in enumerate(pad_value):
-            padded_channels.append(np.pad(image[..., channel_index], (pad_h, pad_w), "constant", constant_values=pad_value_channel))
-        return np.stack(padded_channels, axis=-1)
+        constant_values = ((pad_value, pad_value), (pad_value, pad_value), (0, 0))
+        padding_values = (pad_h, pad_w, (0, 0))
     else:
         if isinstance(pad_value, numbers.Number):
             pass
@@ -130,7 +128,10 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
         else:
             raise ValueError(f"Unsupported pad_value type {type(pad_value)}")
 
-        return np.pad(image, (pad_h, pad_w), "constant", constant_values=pad_value)
+        constant_values = pad_value
+        padding_values = (pad_h, pad_w)
+
+    return np.pad(image, pad_width=padding_values, mode="constant", constant_values=constant_values)
 
 
 def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
