@@ -40,7 +40,7 @@ We recommend to use the latest version of TensorRT available.
 
 
 ```python
-!pip install -qq super-gradients==3.3.1
+!pip install -qq super-gradients==3.4.0
 ```
 
 ### Minimalistic export example
@@ -630,7 +630,7 @@ result = session.run(outputs, {inputs[0]: image_bchw})
 show_predictions_from_flat_format(image, result)
 ```
 
-     25%|█████████████████████████████████                                                                                                   | 4/16 [00:12<00:37,  3.15s/it]
+     25%|█████████████████████████████████                                                                                                   | 4/16 [00:12<00:37,  3.10s/it]
     
 
 
