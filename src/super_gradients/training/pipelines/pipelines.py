@@ -68,7 +68,6 @@ class Pipeline(ABC):
         device: Optional[str] = None,
         fuse_model: bool = True,
         dtype: Optional[torch.dtype] = None,
-        skip_image_resizing: bool = False,
     ):
         model_device: torch.device = infer_model_device(model=model)
         if device:
@@ -81,13 +80,6 @@ class Pipeline(ABC):
 
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
-
-        self.skip_image_resizing = skip_image_resizing
-        if skip_image_resizing:
-            if isinstance(image_processor, ComposeProcessing):
-                image_processor.disable_image_resizing()
-            else:
-                logger.warning("`skip_image_resizing` only works when working with multiple image processing steps")
 
         self.image_processor = image_processor
 
@@ -191,14 +183,13 @@ class Pipeline(ABC):
 
         images = list(images)  # We need to load all the images into memory, and to reuse it afterwards.
 
-        if self.skip_image_resizing:
-            reference_shape = images[0].shape
-            for img in images:
-                if img.shape != reference_shape:
-                    raise ValueError(
-                        f"Images have different shapes ({img.shape} != {reference_shape})!\n"
-                        f"Either resize the images to the same size, set `skip_image_resizing=False` or pass one image at a time."
-                    )
+        reference_shape = images[0].shape
+        for img in images:
+            if img.shape != reference_shape:
+                raise ValueError(
+                    f"Images have different shapes ({img.shape} != {reference_shape})!\n"
+                    f"Either resize the images to the same size, set `skip_image_resizing=False` or pass one image at a time."
+                )
 
         # Preprocess
         preprocessed_images, processing_metadatas = [], []
@@ -307,7 +298,6 @@ class DetectionPipeline(Pipeline):
             image_processor=image_processor,
             class_names=class_names,
             fuse_model=fuse_model,
-            skip_image_resizing=skip_image_resizing,
         )
         self.post_prediction_callback = post_prediction_callback
 
@@ -395,7 +385,6 @@ class PoseEstimationPipeline(Pipeline):
             image_processor=image_processor,
             class_names=None,
             fuse_model=fuse_model,
-            skip_image_resizing=skip_image_resizing,
         )
         self.post_prediction_callback = post_prediction_callback
         self.edge_links = np.asarray(edge_links, dtype=int)
@@ -458,7 +447,6 @@ class ClassificationPipeline(Pipeline):
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
-    :param skip_image_resizing:         If True, the image processor will not resize the images.
     """
 
     def __init__(
@@ -468,7 +456,6 @@ class ClassificationPipeline(Pipeline):
         device: Optional[str] = None,
         image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
-        skip_image_resizing: bool = False,
     ):
         super().__init__(
             model=model,
@@ -476,7 +463,6 @@ class ClassificationPipeline(Pipeline):
             image_processor=image_processor,
             class_names=class_names,
             fuse_model=fuse_model,
-            skip_image_resizing=skip_image_resizing,
         )
 
     def _decode_model_output(self, model_output: Union[List, Tuple, torch.Tensor], model_input: np.ndarray) -> List[ClassificationPrediction]:

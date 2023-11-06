@@ -174,6 +174,8 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
             image_processor=self._image_processor,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
+            fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
         )
         return pipeline
 

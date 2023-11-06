@@ -148,6 +148,9 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
         constant_values = pad_value
         padding_values = (pad_h, pad_w)
 
+    print(image.shape)
+    print(padding_values)
+    print(constant_values)
     return np.pad(image, pad_width=padding_values, mode="constant", constant_values=constant_values)
 
 

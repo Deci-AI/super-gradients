@@ -40,12 +40,14 @@ class BaseClassifier(SgModule, HasPredict):
                 "You must set the dataset processing parameters before calling predict.\n" "Please call `model.set_dataset_processing_params(...)` first."
             )
 
+        if skip_image_resizing:
+            raise ValueError("`skip_image_resizing` is not supported for classification models.")
+
         pipeline = ClassificationPipeline(
             model=self,
             image_processor=self._image_processor,
             class_names=self._class_names,
             fuse_model=fuse_model,
-            skip_image_resizing=skip_image_resizing,
         )
         return pipeline
 
