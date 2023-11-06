@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from super_gradients import setup_device
+from super_gradients.common import MultiGPUMode
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.cfg_utils import load_dataset_params
 from super_gradients.common.object_names import Models
@@ -65,7 +66,7 @@ class YoloNASPoseIntegrationTest(unittest.TestCase):
 
     def _predict_and_evaluate(self, model, experiment_name):
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        setup_device(device=device)
+        setup_device(device=device, multi_gpu=MultiGPUMode.OFF)
         trainer = Trainer(experiment_name)
         metric = PoseEstimationMetrics(
             post_prediction_callback=model.get_post_prediction_callback(conf=0.01, iou=0.7, post_nms_max_predictions=30),
