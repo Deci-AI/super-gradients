@@ -15,7 +15,7 @@ import argparse
 import collections
 import os.path
 import pathlib
-from typing import Tuple, Mapping, Dict, Union, Optional
+from typing import Tuple, Mapping, Dict, Union, Optional, Any
 
 import hydra
 import pkg_resources
@@ -95,6 +95,12 @@ def recursively_walk_and_extract_hydra_targets(
     return cfg, objects
 
 
+def wrap_in_quotes_if_string(input: Any) -> Any:
+    if input is not None and isinstance(input, str):
+        return f'"{input}"'
+    return input
+
+
 def convert_recipe_to_code(config_name: Union[str, pathlib.Path], config_dir: Union[str, pathlib.Path], output_script_path: Union[str, pathlib.Path]) -> None:
     """
     Convert a recipe YAML file to a self-contained <train.py> file that can be run with python <train.py>.
@@ -166,8 +172,8 @@ def main():
         num_classes=num_classes,
         arch_params=arch_params,
         strict_load={strict_load},
-        pretrained_weights={cfg.checkpoint_params.pretrained_weights},
-        checkpoint_path={cfg.checkpoint_params.checkpoint_path},
+        pretrained_weights={wrap_in_quotes_if_string(cfg.checkpoint_params.pretrained_weights)},
+        checkpoint_path={wrap_in_quotes_if_string(cfg.checkpoint_params.checkpoint_path)},
         load_backbone={cfg.checkpoint_params.load_backbone},
         checkpoint_num_classes={checkpoint_num_classes},
     )
