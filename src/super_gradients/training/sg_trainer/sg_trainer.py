@@ -1508,15 +1508,14 @@ class Trainer:
                     self.net = self.ema_model.ema
 
                 train_inf_time = timer.stop()
-                self._write_scalars_to_logger(
-                    metrics=train_metrics_dict, epoch_values=self._epoch_start_logging_values, epoch=1 + epoch, inference_time=train_inf_time, tag="Train"
-                )
+                self._write_scalars_to_logger(metrics=train_metrics_dict, epoch=1 + epoch, inference_time=train_inf_time, tag="Train")
+                self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=1 + epoch)
 
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
                 valid_metrics_dict = {}
-                is_validation_calculated = self._should_run_validation_for_epoch(epoch)
+                should_run_validation = self._should_run_validation_for_epoch(epoch)
 
-                if is_validation_calculated:
+                if should_run_validation:
                     self.phase_callback_handler.on_validation_loader_start(context)
                     timer.start()
                     valid_metrics_dict = self._validate_epoch(context=context, silent_mode=silent_mode)
@@ -1531,7 +1530,7 @@ class Trainer:
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
-                    self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch_values=None, epoch=1 + epoch, inference_time=val_inf_time, tag="Valid")
+                    self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch=1 + epoch, inference_time=val_inf_time, tag="Valid")
 
                 test_metrics_dict = {}
                 if (epoch + 1) % self.run_test_freq == 0:
@@ -1553,14 +1552,14 @@ class Trainer:
                     context.update_context(metrics_dict=test_metrics_dict)
                     self.phase_callback_handler.on_test_loader_end(context)
 
-                    self._write_scalars_to_logger(metrics=test_metrics_dict, epoch_values=None, epoch=1 + epoch, inference_time=test_inf_time, tag="Test")
+                    self._write_scalars_to_logger(metrics=test_metrics_dict, epoch=1 + epoch, inference_time=test_inf_time, tag="Test")
 
                 if self.ema:
                     self.net = keep_model
 
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    if is_validation_calculated and self.training_params.save_model:
+                    if should_run_validation and self.training_params.save_model:
                         self._save_checkpoint(
                             optimizer=self.optimizer,
                             epoch=epoch + 1,
@@ -1973,7 +1972,7 @@ class Trainer:
         }
         return hyper_param_config
 
-    def _write_scalars_to_logger(self, metrics: dict, epoch: int, inference_time: float, tag: str, epoch_values: Optional[dict] = None) -> None:
+    def _write_scalars_to_logger(self, metrics: dict, epoch: int, inference_time: float, tag: str) -> None:
         """
         Method for writing metrics and LR info to logger.
 
@@ -1986,9 +1985,6 @@ class Trainer:
         info_dict = {f"{tag} Inference Time": inference_time, **{f"{tag}_{k}": v for k, v in metrics.items()}}
 
         self.sg_logger.add_scalars(tag_scalar_dict=info_dict, global_step=epoch)
-
-        if epoch_values:
-            self.sg_logger.add_scalars(tag_scalar_dict=epoch_values, global_step=epoch)
 
     def _get_epoch_start_logging_values(self) -> dict:
         """Get all the values that should be logged at the start of each epoch.
