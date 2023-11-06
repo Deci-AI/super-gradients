@@ -309,7 +309,9 @@ Knowledge Distillation is a training technique that uses a large model, teacher 
 Learn more about SuperGradients knowledge distillation training with our pre-trained BEiT base teacher model and Resnet18 student model on CIFAR10 example notebook on Google Colab for an easy to use tutorial using free GPU hardware
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">   
-   <a target="_blank" href="https://bit.ly/3BLA5oR"><img src="./documentation/assets/SG_img/colab_logo.png" /> Knowledge Distillation Training</a>
+   <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/how_to_use_knowledge_distillation_for_classification.ipynb">
+    <img src="./documentation/assets/SG_img/colab_logo.png" /> Knowledge Distillation Training
+   </a>
   </td>
 </table>
  </br></br>

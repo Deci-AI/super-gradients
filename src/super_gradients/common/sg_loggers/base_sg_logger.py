@@ -1,5 +1,7 @@
+import collections
 import json
 import os
+import shutil
 import signal
 import time
 from typing import Union, Any
@@ -9,13 +11,14 @@ import numpy as np
 import psutil
 import torch
 from PIL import Image
-import shutil
+from omegaconf import ListConfig, DictConfig, OmegaConf
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
 from super_gradients.common.data_interface.adnn_model_repository_data_interface import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.decorators.code_save_decorator import saved_codes
+from super_gradients.common.environment.checkpoints_dir_utils import is_run_dir
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.monitoring import SystemMonitor
 from super_gradients.common.registry.registry import register_sg_logger
@@ -23,7 +26,6 @@ from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogge
 from super_gradients.common.sg_loggers.time_units import TimeUnit
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils import sg_trainer_utils, get_param
-from super_gradients.common.environment.checkpoints_dir_utils import is_run_dir
 
 logger = get_logger(__name__)
 
@@ -312,6 +314,7 @@ class BaseSGLogger(AbstractSGLogger):
             name += ".pth"
         path = os.path.join(self._local_dir, name)
 
+        state_dict = self._sanitize_checkpoint(state_dict)
         self._save_checkpoint(path=path, state_dict=state_dict)
 
     @multi_process_safe
@@ -348,3 +351,29 @@ class BaseSGLogger(AbstractSGLogger):
             self.add_file(name)
             code = "\t" + code
             self.add_text(name, code.replace("\n", "  \n  \t"))  # this replacement makes tb format the code as code
+
+    def _sanitize_checkpoint(self, state_dict: dict) -> dict:
+        """
+        Sanitize state dictionary to be saved in a checkpoint. Iterates recursively over the state_dict and converts
+        all instances of ListConfig and DictConfig to their native python counterparts.
+
+        :param state_dict:  Checkpoint state_dict.
+        :return:            Sanitized checkpoint state_dict.
+        """
+        if isinstance(state_dict, (ListConfig, DictConfig)):
+            state_dict = OmegaConf.to_container(state_dict, resolve=True)
+
+        if isinstance(state_dict, torch.Tensor):
+            pass
+        elif isinstance(state_dict, collections.OrderedDict):
+            state_dict = collections.OrderedDict((k, self._sanitize_checkpoint(v)) for k, v in state_dict.items())
+        elif isinstance(state_dict, dict):
+            state_dict = dict((k, self._sanitize_checkpoint(v)) for k, v in state_dict.items())
+        elif isinstance(state_dict, list):
+            state_dict = [self._sanitize_checkpoint(v) for v in state_dict]
+        elif isinstance(state_dict, tuple):
+            state_dict = tuple(self._sanitize_checkpoint(v) for v in state_dict)
+        else:
+            pass
+
+        return state_dict

@@ -287,6 +287,20 @@ class TestTransforms(unittest.TestCase):
         self.assertTrue((shifted_image[:, : padding_coordinates.left, :] == pad_value).all())
         self.assertTrue((shifted_image[:, -padding_coordinates.right :, :] == pad_value).all())
 
+    def test_pad_grayscale_image(self):
+        image = np.random.randint(0, 256, size=(640, 480), dtype=np.uint8)
+        padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
+        pad_value = 1
+        shifted_image = _pad_image(image, padding_coordinates, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: padding_coordinates.top, :] == pad_value).all())
+        self.assertTrue((shifted_image[-padding_coordinates.bottom :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : padding_coordinates.left] == pad_value).all())
+        self.assertTrue((shifted_image[:, -padding_coordinates.right :] == pad_value).all())
+
     def test_shift_bboxes(self):
         bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
         shift_w, shift_h = 60, 80
