@@ -872,9 +872,16 @@ class Trainer:
                     Final learning rate ratio (only relevant when `lr_mode`='CosineLRScheduler'). The cosine starts from initial_lr and reaches
                      initial_lr * cosine_final_lr_ratio in last epoch
 
-                - `inital_lr` : float
+                - `inital_lr` : Union[float, Dict[str, float]
 
-                    Initial learning rate.
+                    Initial learning rate as:
+                    float - learning rate value when passed as a scalar
+                    Dictionary where keys are group names and values are the learning rates.
+                    For example {"default": 0.01, "head": 0.1}
+
+                    - Keys in such mapping are prefixes of named parameters of the model.
+                    - The "default" key is mandatory, and it's lr value is set for any group not specified in the other keys
+                    - It is also possible to freeze some parts of the model by assigning 0 as a lr value.
 
                 - `loss` : Union[nn.module, str]
 
