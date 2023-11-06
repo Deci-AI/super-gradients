@@ -32,7 +32,7 @@ Check out our [Quickstart tutorial](QuickstartBasicToolkit.md) to get learn the 
 
 You can also start from our tutorial on [Detection](ObjectDetection.md), [Segmentation](Segmentation.md) or [Pose Estimation](PoseEstimation.md).
  
-## What's New (v3.1.0)
+## What's New
 
 __________________________________________________________________________________________________________
 Version 3.4.0 (November 6, 2023)

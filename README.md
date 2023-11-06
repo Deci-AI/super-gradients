@@ -80,6 +80,7 @@ model = models.get(Models.YOLO_NAS_M, pretrained_weights="coco")
 <div align="center">
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Object Detection@2xDark.png" width="800px">
 </div>
+
 #### Pose Estimation
 <div align="center">
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_pose_frontier_t4.png" width="400px">
