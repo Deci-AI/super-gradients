@@ -21,7 +21,7 @@ from super_gradients.training.models.sg_module import SgModule
 import super_gradients.common.factories.detection_modules_factory as det_factory
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
-from super_gradients.training.processing.processing import Processing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.media.image import ImageSource
 
@@ -175,13 +175,20 @@ class CustomizableDetector(HasPredict, SgModule):
 
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
+
+        # Ensure that the image size is divisible by 32.
+        if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = self._image_processor.get_equivalent_compose_without_resizing()
+            image_processor.processings.append(DetectionAutoPadding(shape_multiple=(32, 32), pad_value=0))
+        else:
+            image_processor = self._image_processor
+
         pipeline = DetectionPipeline(
             model=self,
-            image_processor=self._image_processor,
+            image_processor=image_processor,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
             fuse_model=fuse_model,
-            skip_image_resizing=skip_image_resizing,
         )
         return pipeline
 

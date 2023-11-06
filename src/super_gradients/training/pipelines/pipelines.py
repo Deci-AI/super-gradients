@@ -30,7 +30,7 @@ from super_gradients.training.utils.media.image import ImageSource, check_image_
 from super_gradients.training.utils.media.stream import WebcamStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding, KeypointsAutoPadding
+from super_gradients.training.processing.processing import Processing, ComposeProcessing
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
@@ -57,7 +57,6 @@ class Pipeline(ABC):
     :param device:              The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param dtype:               Specify the dtype of the inputs. If None, will use the dtype of the model's parameters.
     :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
-    :param skip_image_resizing: If True, the image processor will not resize the images.
     """
 
     def __init__(
@@ -271,7 +270,6 @@ class DetectionPipeline(Pipeline):
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
-    :param skip_image_resizing:         If True, the image processor will not resize the images.
     """
 
     def __init__(
@@ -282,15 +280,9 @@ class DetectionPipeline(Pipeline):
         device: Optional[str] = None,
         image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
-        skip_image_resizing: bool = False,
     ):
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
-
-        # Ensure that the image size is divisible by 32.
-        if isinstance(image_processor, ComposeProcessing) and skip_image_resizing:
-            image_processor = image_processor.get_equivalent_compose_without_resizing()
-            image_processor.processings.append(DetectionAutoPadding(shape_multiple=(32, 32), pad_value=0))
 
         super().__init__(
             model=model,
@@ -356,7 +348,6 @@ class PoseEstimationPipeline(Pipeline):
     :param image_processor:             Single image processor or a list of image processors for preprocessing and postprocessing the images.
     :param device:                      The device on which the model will be run. If None, will run on current model device. Use "cuda" for GPU support.
     :param fuse_model:                  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
-    :param skip_image_resizing:         If True, the image processor will not resize the images.
     """
 
     def __init__(
@@ -369,15 +360,9 @@ class PoseEstimationPipeline(Pipeline):
         device: Optional[str] = None,
         image_processor: Union[Processing, List[Processing]] = None,
         fuse_model: bool = True,
-        skip_image_resizing: bool = False,
     ):
         if isinstance(image_processor, list):
             image_processor = ComposeProcessing(image_processor)
-
-        # Ensure that the image size is divisible by 32.
-        if isinstance(image_processor, ComposeProcessing) and skip_image_resizing:
-            image_processor = image_processor.get_equivalent_compose_without_resizing()
-            image_processor.processings.append(KeypointsAutoPadding(shape_multiple=(32, 32), pad_value=0))
 
         super().__init__(
             model=model,

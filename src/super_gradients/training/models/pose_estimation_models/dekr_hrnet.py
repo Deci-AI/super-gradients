@@ -34,7 +34,7 @@ __all__ = ["DEKRPoseEstimationModel", "DEKRW32NODC"]
 
 from super_gradients.training.pipelines.pipelines import PoseEstimationPipeline
 
-from super_gradients.training.processing.processing import Processing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, KeypointsAutoPadding
 
 from super_gradients.training.utils import HpmStruct, DEKRPoseEstimationDecodeCallback, get_param
 from super_gradients.training.utils.media.image import ImageSource
@@ -607,9 +607,16 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
                 "The number of colors for the joints ({}) does not match the number of joint links ({})".format(len(self._edge_colors), len(self._edge_links))
             )
 
+        # Ensure that the image size is divisible by 32.
+        if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = self._image_processor.get_equivalent_compose_without_resizing()
+            image_processor.processings.append(KeypointsAutoPadding(shape_multiple=(32, 32), pad_value=0))
+        else:
+            image_processor = self._image_processor
+
         pipeline = PoseEstimationPipeline(
             model=self,
-            image_processor=self._image_processor,
+            image_processor=image_processor,
             edge_links=self._edge_links,
             edge_colors=self._edge_colors,
             keypoint_colors=self._keypoint_colors,

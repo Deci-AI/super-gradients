@@ -13,7 +13,7 @@ from super_gradients.common.registry import register_model
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 from super_gradients.training.pipelines.pipelines import PoseEstimationPipeline
-from super_gradients.training.processing.processing import Processing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, KeypointsAutoPadding
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.predict import PoseEstimationPrediction
@@ -198,9 +198,16 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
         pre_nms_max_predictions = pre_nms_max_predictions or self._default_pre_nms_max_predictions
         post_nms_max_predictions = post_nms_max_predictions or self._default_post_nms_max_predictions
 
+        # Ensure that the image size is divisible by 32.
+        if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = self._image_processor.get_equivalent_compose_without_resizing()
+            image_processor.processings.append(KeypointsAutoPadding(shape_multiple=(32, 32), pad_value=0))
+        else:
+            image_processor = self._image_processor
+
         pipeline = PoseEstimationPipeline(
             model=self,
-            image_processor=self._image_processor,
+            image_processor=image_processor,
             post_prediction_callback=self.get_post_prediction_callback(
                 iou=iou,
                 conf=conf,

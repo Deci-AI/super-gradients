@@ -28,7 +28,7 @@ from super_gradients.training.utils.detection_utils import (
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param, infer_model_dtype, infer_model_device
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
-from super_gradients.training.processing.processing import Processing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
 from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
@@ -555,13 +555,19 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
 
+        # Ensure that the image size is divisible by 32.
+        if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = self._image_processor.get_equivalent_compose_without_resizing()
+            image_processor.processings.append(DetectionAutoPadding(shape_multiple=(32, 32), pad_value=0))
+        else:
+            image_processor = self._image_processor
+
         pipeline = DetectionPipeline(
             model=self,
-            image_processor=self._image_processor,
+            image_processor=image_processor,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
             fuse_model=fuse_model,
-            skip_image_resizing=skip_image_resizing,
         )
         return pipeline
 
