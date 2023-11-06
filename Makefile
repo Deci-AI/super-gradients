@@ -32,6 +32,7 @@ sweeper_test:
 
 # Here you define a list of notebooks we want to execute and convert to markdown files
 NOTEBOOKS_TO_RUN := src/super_gradients/examples/model_export/models_export.ipynb
+NOTEBOOKS_TO_RUN += src/super_gradients/examples/model_export/models_export_pose.ipynb
 NOTEBOOKS_TO_RUN += notebooks/what_are_recipes_and_how_to_use.ipynb
 NOTEBOOKS_TO_RUN += notebooks/transfer_learning_classification.ipynb
 NOTEBOOKS_TO_RUN += notebooks/how_to_use_knowledge_distillation_for_classification.ipynb

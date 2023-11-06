@@ -1,0 +1,95 @@
+defaults:
+  - default_train_params
+
+
+warmup_mode: "LinearBatchLRWarmup"
+warmup_initial_lr:  1e-6
+lr_warmup_steps: 128
+lr_warmup_epochs: 10
+
+initial_lr:  2e-3
+lr_mode: cosine
+cosine_final_lr_ratio: 0.05
+max_epochs: 1000
+
+zero_weight_decay_on_bias_and_bn: True
+batch_accumulate: 1
+
+average_best_models: True
+save_ckpt_epoch_list: [300, 500]
+
+loss: yolo_nas_pose_loss
+
+criterion_params:
+    oks_sigmas: ${dataset_params.oks_sigmas}
+    classification_loss_weight: 1.0
+    classification_loss_type: focal
+    regression_iou_loss_type: ciou
+    iou_loss_weight: 2.5
+    dfl_loss_weight: 0.01
+    pose_cls_loss_weight: 1.0
+    pose_reg_loss_weight: 34.0
+    pose_classification_loss_type: focal
+    rescale_pose_loss_with_assigned_score: True
+    assigner_multiply_by_pose_oks: True
+
+optimizer: AdamW
+optimizer_params:
+  weight_decay: 0.000001
+
+ema: True
+ema_params:
+  decay: 0.997
+  decay_type: threshold
+
+mixed_precision: True
+sync_bn: False
+
+valid_metrics_list:
+  - PoseEstimationMetrics:
+      num_joints: ${dataset_params.num_joints}
+      oks_sigmas: ${dataset_params.oks_sigmas}
+      max_objects_per_image: 30
+      post_prediction_callback:
+        _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
+        pose_confidence_threshold: 0.01
+        nms_iou_threshold: 0.7
+        pre_nms_max_predictions: 300
+        post_nms_max_predictions: 30
+
+
+phase_callbacks:
+  # You can uncomment this callback to visualize predictions during training
+  #  - ExtremeBatchPoseEstimationVisualizationCallback:
+  #      keypoint_colors: ${dataset_params.keypoint_colors}
+  #      edge_colors: ${dataset_params.edge_colors}
+  #      edge_links: ${dataset_params.edge_links}
+  #      loss_to_monitor: YoloNASPoseLoss/loss
+  #      max: True
+  #      freq: 1
+  #      max_images: 16
+  #      enable_on_train_loader: True
+  #      enable_on_valid_loader: True
+  #      post_prediction_callback:
+  #        _target_: super_gradients.training.models.pose_estimation_models.yolo_nas_pose.YoloNASPosePostPredictionCallback
+  #        pose_confidence_threshold: 0.1
+  #        nms_iou_threshold: 0.7
+  #        pre_nms_max_predictions: 300
+  #        post_nms_max_predictions: 30
+
+  - EarlyStop:
+      phase:
+        _target_: super_gradients.training.utils.callbacks.base_callbacks.Phase
+        value: VALIDATION_EPOCH_END
+      monitor: AP
+      mode: max
+      min_delta: 0.0001
+      patience: 100
+      verbose: True
+
+pre_prediction_callback:
+
+metric_to_watch: 'AP'
+greater_metric_to_watch_is_better: True
+
+_convert_: all
