@@ -16,6 +16,9 @@ class TestVersionCheck(unittest.TestCase):
     def test_pip_install_major_patch(self):
         self.assertEquals(try_extract_super_gradients_version_from_pip_install_command("!pip install super-gradients==3.3.1"), "3.3.1")
 
+    def test_pip_install_with_underscore(self):
+        self.assertEquals(try_extract_super_gradients_version_from_pip_install_command("!pip install super_gradients==3.3.1"), "3.3.1")
+
     def test_pip_install_with_extra_args(self):
         self.assertEquals(try_extract_super_gradients_version_from_pip_install_command("!pip install -q super-gradients==3.3.1"), "3.3.1")
         self.assertEquals(try_extract_super_gradients_version_from_pip_install_command("!pip install super-gradients==3.3.1 --extra-index-url=foobar"), "3.3.1")
