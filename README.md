@@ -203,11 +203,8 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 #### Transfer Learning 
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">  
-  <a target="_blank" href="https://bit.ly/3xzIutb"><img src="./documentation/assets/SG_img/colab_logo.png" /> Classification Transfer Learning</a>
+  <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_classification.ipynb"><img src="./documentation/assets/SG_img/colab_logo.png" /> Classification Transfer Learning</a>
   </td>
- <td width="200">    
- <a target="_blank" href="https://bit.ly/3xwYEn1"><img src="./documentation/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
- </td>
 </table>
  </br></br>
 
@@ -312,7 +309,9 @@ Knowledge Distillation is a training technique that uses a large model, teacher 
 Learn more about SuperGradients knowledge distillation training with our pre-trained BEiT base teacher model and Resnet18 student model on CIFAR10 example notebook on Google Colab for an easy to use tutorial using free GPU hardware
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">   
-   <a target="_blank" href="https://bit.ly/3BLA5oR"><img src="./documentation/assets/SG_img/colab_logo.png" /> Knowledge Distillation Training</a>
+   <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/how_to_use_knowledge_distillation_for_classification.ipynb">
+    <img src="./documentation/assets/SG_img/colab_logo.png" /> Knowledge Distillation Training
+   </a>
   </td>
 </table>
  </br></br>
@@ -325,7 +324,9 @@ Recipes support out of the box every model, metric or loss that is implemented i
 
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">   
-   <a target="_blank" href="https://bit.ly/3UiY5ab"><img src="./documentation/assets/SG_img/colab_logo.png" /> How to Use Recipes</a>
+   <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/what_are_recipes_and_how_to_use.ipynb">
+     <img src="./documentation/assets/SG_img/colab_logo.png" /> How to Use Recipes
+   </a>
   </td>
 </table>
  </br></br>
