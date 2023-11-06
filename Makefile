@@ -34,6 +34,7 @@ sweeper_test:
 NOTEBOOKS_TO_RUN := src/super_gradients/examples/model_export/models_export.ipynb
 NOTEBOOKS_TO_RUN += notebooks/what_are_recipes_and_how_to_use.ipynb
 NOTEBOOKS_TO_RUN += notebooks/transfer_learning_classification.ipynb
+NOTEBOOKS_TO_RUN += notebooks/how_to_use_knowledge_distillation_for_classification.ipynb
 
 # If there are additional notebooks that must not be executed, but still should be checked for version match, add them here
 NOTEBOOKS_TO_CHECK := $(NOTEBOOKS_TO_RUN)
