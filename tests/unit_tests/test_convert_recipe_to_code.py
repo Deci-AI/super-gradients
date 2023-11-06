@@ -49,6 +49,10 @@ class TestConvertRecipeToCode(unittest.TestCase):
             "supervisely_unet.yaml",
             "user_recipe_mnist_as_external_dataset_example.yaml",
             "user_recipe_mnist_example.yaml",
+            "coco2017_yolo_nas_pose_m.yaml",
+            "coco2017_yolo_nas_pose_l.yaml",
+            "coco2017_yolo_nas_pose_n.yaml",
+            "coco2017_yolo_nas_pose_s.yaml",
         ]
 
         self.recipes_that_does_not_work = [

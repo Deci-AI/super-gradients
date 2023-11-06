@@ -3,7 +3,7 @@ from typing import Optional, Tuple, Callable, List, Union
 
 import numpy as np
 import torch
-from omegaconf import OmegaConf
+from omegaconf import ListConfig
 from torch import Tensor
 from torchmetrics import Metric
 
@@ -30,7 +30,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
     It requires a key 'gt_samples' (List[PoseEstimationSample]) to be present in additional_batch_items dictionary.
 
     Supported models: YoloNASPose
-    Supported datasets: COCOPoseEstimationDataset, CrowdPoseEstimationDataset, AnimalPoseEstimationDataset
+    Supported datasets: COCOPoseEstimationDataset
 
     Example usage in Yaml config:
 
@@ -87,9 +87,9 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
     def __init__(
         self,
         post_prediction_callback: Callable,
-        keypoint_colors: List[Tuple[int, int, int]],
-        edge_colors: List[Tuple[int, int, int]],
-        edge_links: List[Tuple[int, int]],
+        keypoint_colors: Union[ListConfig, List[Tuple[int, int, int]]],
+        edge_colors: Union[ListConfig, List[Tuple[int, int, int]]],
+        edge_links: Union[ListConfig, List[Tuple[int, int]]],
         metric: Optional[Metric] = None,
         metric_component_name: Optional[str] = None,
         loss_to_monitor: Optional[str] = None,
@@ -109,9 +109,9 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
             enable_on_valid_loader=enable_on_valid_loader,
         )
         self.post_prediction_callback = post_prediction_callback
-        self.keypoint_colors = OmegaConf.to_container(keypoint_colors)
-        self.edge_colors = OmegaConf.to_container(edge_colors)
-        self.edge_links = OmegaConf.to_container(edge_links)
+        self.keypoint_colors = list(tuple(map(int, color)) for color in keypoint_colors)
+        self.edge_colors = list(tuple(map(int, color)) for color in edge_colors)
+        self.edge_links = list(tuple(map(int, link)) for link in edge_links)
         self.max_images = max_images
 
     @classmethod

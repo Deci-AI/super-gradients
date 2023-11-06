@@ -1,0 +1,66 @@
+# YoloNASPose training on COCO2017 Dataset
+# All YoloNASPose models trained in 640x640 resolution
+#
+# Instructions:
+#   0. Have super-gradients installed (pip install super-gradients==3.3 or clone the repo and `pip install -e .`)
+#   1. Make sure that the data is stored folder specified at `dataset_params.dataset_dir` (Default is /data/coco) or
+#      add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below
+#   2. Run the command to start the training:
+#         yolo_nas_pose_n: python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_pose_n
+#         yolo_nas_pose_s: python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_pose_s
+#         yolo_nas_pose_m: python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_pose_m
+#         yolo_nas_pose_l: python -m super_gradients.train_from_recipe --config-name=coco2017_yolo_nas_pose_l
+#
+# Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.01, IoU threshold 0.7, test on original resolution):
+#         yolo_nas_pose_n: 93h on 8 NVIDIA GeForce RTX 3090, AP: 59.68 (val)
+#         yolo_nas_pose_s: 52h on 8 NVIDIA GeForce RTX 3090, AP: 64.15 (val)
+#         yolo_nas_pose_m: 57h on 8 NVIDIA GeForce RTX 3090, AP: 67.87 (val)
+#         yolo_nas_pose_l: 80h on 8 NVIDIA GeForce RTX 3090, AP: 68.24 (val)
+#
+# Offline evaluation using COCOEval for S variant:
+#         Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.642
+#         Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.856
+#         Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.703
+#         Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.594
+#         Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.723
+#         Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 20 ] = 0.702
+#         Average Recall     (AR) @[ IoU=0.50      | area=   all | maxDets= 20 ] = 0.901
+#         Average Recall     (AR) @[ IoU=0.75      | area=   all | maxDets= 20 ] = 0.759
+#         Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets= 20 ] = 0.650
+#         Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets= 20 ] = 0.775
+
+defaults:
+  - training_hyperparams: coco2017_yolo_nas_pose_train_params
+  - dataset_params: coco_pose_estimation_yolo_nas_mosaic_dataset_params
+  - arch_params: yolo_nas_pose_s_arch_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+  - variable_setup
+
+architecture: yolo_nas_pose_s
+
+multi_gpu: DDP
+num_gpus: 8
+
+experiment_suffix: ""
+experiment_name: coco2017_${architecture}_${experiment_suffix}_${dataset_params.dataset_params_suffix}
+
+arch_params:
+  num_classes: ${dataset_params.num_joints}
+
+checkpoint_params:
+  # For training Yolo-NAS-S pose estimation model we use pretrained weights for Yolo-NAS-S object detection model.
+  # By setting strict_load: key_matching we load only those weights that match the keys of the model.
+  checkpoint_path: https://sghub.deci.ai/models/yolo_nas_s_coco.pth
+  strict_load:
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: key_matching
+
+dataset_params:
+  mosaic_prob: 0.5
+
+  train_dataloader_params:
+    batch_size: 48
+
+  val_dataloader_params:
+    batch_size: 48
