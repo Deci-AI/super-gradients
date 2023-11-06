@@ -98,33 +98,18 @@ class Processing(ABC):
 class ComposeProcessing(Processing):
     """Compose a list of Processing objects into a single Processing object."""
 
-    def __init__(self, processings: List[Processing], skip_image_resizing: bool = False):
+    def __init__(self, processings: List[Processing]):
         """
         :param processings:     List of Processing objects to compose.
-        :param skip_image_resizing: If True, skip the image resizing processings.
         """
         self.processings = processings
-        self.include_image_resizing = not skip_image_resizing
-
-    def disable_image_resizing(self):
-        """Disable the image resizing for all the processings."""
-        if self.include_image_resizing:
-            self.include_image_resizing = False
-            for processing in self.processings:
-                if processing.resizes_image:
-                    logger.info(f"Skipping processing `{processing.__class__.__name__}` because it resizes the image.")
-
-    def enable_image_resizing(self):
-        """Enable image resizing for all the processings."""
-        self.include_image_resizing = True
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, ComposeProcessingMetadata]:
         """Processing an image, before feeding it to the network."""
         processed_image, metadata_lst = image.copy(), []
         for processing in self.processings:
-            if self.include_image_resizing or not processing.resizes_image:
-                processed_image, metadata = processing.preprocess_image(image=processed_image)
-                metadata_lst.append(metadata)
+            processed_image, metadata = processing.preprocess_image(image=processed_image)
+            metadata_lst.append(metadata)
         return processed_image, ComposeProcessingMetadata(metadata_lst=metadata_lst)
 
     def postprocess_predictions(self, predictions: Prediction, metadata: ComposeProcessingMetadata) -> Prediction:
@@ -160,6 +145,17 @@ class ComposeProcessing(Processing):
     @property
     def resizes_image(self) -> bool:
         return any(processing.resizes_image for processing in self.processings)
+
+    def get_equivalent_compose_without_resizing(self) -> "ComposeProcessing":
+        processings = []
+        for processing in self.processings:
+            if isinstance(processing, ComposeProcessing):
+                processings.append(processing.get_equivalent_compose_without_resizing())
+            elif not processing.resizes_image:
+                processings.append(processing)
+            else:
+                logger.info(f"Skipping processing `{processing.__class__.__name__}` because it resizes the image.")
+        return ComposeProcessing(processings)
 
 
 @register_processing(Processings.ImagePermute)

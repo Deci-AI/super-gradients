@@ -298,6 +298,7 @@ class DetectionPipeline(Pipeline):
 
         # Ensure that the image size is divisible by 32.
         if isinstance(image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = image_processor.get_equivalent_compose_without_resizing()
             image_processor.processings.append(DetectionAutoPadding(shape_multiple=(32, 32), pad_value=0))
 
         super().__init__(
@@ -385,6 +386,7 @@ class PoseEstimationPipeline(Pipeline):
 
         # Ensure that the image size is divisible by 32.
         if isinstance(image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = image_processor.get_equivalent_compose_without_resizing()
             image_processor.processings.append(KeypointsAutoPadding(shape_multiple=(32, 32), pad_value=0))
 
         super().__init__(
