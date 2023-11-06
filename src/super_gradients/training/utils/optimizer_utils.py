@@ -15,7 +15,7 @@ from super_gradients.training.utils.optimizers.rmsprop_tf import RMSpropTF
 from super_gradients.training.utils.utils import is_model_wrapped
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.modules.conv import _ConvNd
-from typing import List, Dict
+from typing import List, Dict, Union
 
 logger = get_logger(__name__)
 
@@ -161,11 +161,12 @@ def separate_lr_groups(model: nn.Module, lr_dict: Dict[str, float]) -> List[Dict
     return param_groups
 
 
-def initialize_param_groups(model: nn.Module, lr: Dict[str, float]) -> List[Dict]:
+def initialize_param_groups(model: nn.Module, lr: Union[float, Dict[str, float]]) -> List[Dict]:
     """
     Custom param groups for training with specified learning rates for each group in the model.
     :param model: nn.Module model.
-    :param lr: Dictionary where keys are group names and values are the learning rates.
+    :param lr: Dictionary where keys are group names and values are the learning rates,
+     or a learning rate value when passed as a scalar.
     :return: List of param groups.
     """
     if isinstance(lr, float) or isinstance(lr, int):
