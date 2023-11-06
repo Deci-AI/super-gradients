@@ -87,11 +87,20 @@ We provide training recipies for training YOLO-NAS-POSE on COCO, CrowdPose and A
 </tr>
 <tr>
     <td>   
+        <a target="_blank" href="documentation/source/Recipes_Training.md"> 
+            Documentation: Recipies
+        </a>
+    </td>
+</tr>
+<tr>
+    <td>   
         <a target="_blank" href="documentation/source/models_export_pose.md"> 
             Documentation: YOLO-NAS-POSE Export 
         </a>
     </td>
 </tr>
+
+
 <tr>
     <td>   
         Join our <a target="_blank" href="https://discord.gg/2v6cEGMREN">
