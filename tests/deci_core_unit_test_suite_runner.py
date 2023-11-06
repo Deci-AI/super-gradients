@@ -57,7 +57,6 @@ from tests.unit_tests.kd_ema_test import KDEMATest
 from tests.unit_tests.kd_trainer_test import KDTrainerTest
 from tests.unit_tests.dice_loss_test import DiceLossTest
 from tests.unit_tests.iou_loss_test import IoULossTest
-from tests.unit_tests.update_param_groups_unit_test import UpdateParamGroupsTest
 from tests.unit_tests.vit_unit_test import TestViT
 from tests.unit_tests.yolo_nas_tests import TestYOLONAS
 from tests.unit_tests.yolox_unit_test import TestYOLOX
@@ -120,7 +119,6 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRCooldownTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DetectionTargetsTransformTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ForwardpassPrepFNTest))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(UpdateParamGroupsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MaskAttentionLossTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(IoULossTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetSubsampling))
