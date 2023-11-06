@@ -30,7 +30,7 @@ class ExtremeBatchPoseEstimationVisualizationCallback(ExtremeBatchCaseVisualizat
     It requires a key 'gt_samples' (List[PoseEstimationSample]) to be present in additional_batch_items dictionary.
 
     Supported models: YoloNASPose
-    Supported datasets: COCOPoseEstimationDataset, CrowdPoseEstimationDataset, AnimalPoseEstimationDataset
+    Supported datasets: COCOPoseEstimationDataset
 
     Example usage in Yaml config:
 
