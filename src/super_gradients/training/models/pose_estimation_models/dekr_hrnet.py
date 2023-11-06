@@ -622,7 +622,6 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
             keypoint_colors=self._keypoint_colors,
             post_prediction_callback=self.get_post_prediction_callback(conf=conf),
             fuse_model=fuse_model,
-            skip_image_resizing=skip_image_resizing,
         )
         return pipeline
 

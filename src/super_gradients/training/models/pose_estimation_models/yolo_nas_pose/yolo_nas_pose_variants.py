@@ -218,7 +218,6 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
             edge_links=self._edge_links,
             edge_colors=self._edge_colors,
             keypoint_colors=self._keypoint_colors,
-            skip_image_resizing=skip_image_resizing,
         )
         return pipeline
 
