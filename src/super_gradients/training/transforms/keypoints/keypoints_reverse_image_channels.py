@@ -11,7 +11,12 @@ from .abstract_keypoints_transform import AbstractKeypointTransform
 
 @register_transform()
 class KeypointsReverseImageChannels(AbstractKeypointTransform):
-    """ """
+    """
+    Randomly reverse channel order with given probability.
+    Given an image with RGB channels, when applied with probability 1, it returns an image with BGR channels.
+    With probability 0.5 there is 50/50 chance to return BGR or RGB image.
+    It usually helps to improve model's ability to generalize under different color channels order.
+    """
 
     def __init__(self, prob: float):
         """
