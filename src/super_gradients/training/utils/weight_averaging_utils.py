@@ -1,6 +1,10 @@
 import os
+from typing import Mapping, Tuple, Optional, Union, Any
+
 import torch
 import numpy as np
+from torch import nn
+
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict
 from super_gradients.training.utils.utils import move_state_dict_to_device, unwrap_model
 
@@ -15,18 +19,18 @@ class ModelWeightAveraging:
 
     def __init__(
         self,
-        ckpt_dir,
-        greater_is_better,
-        metric_to_watch="acc",
-        load_checkpoint=False,
-        number_of_models_to_average=10,
+        ckpt_dir: str,
+        greater_is_better: bool,
+        metric_to_watch: str,
+        load_checkpoint: bool = False,
+        number_of_models_to_average: int = 10,
     ):
         """
         Init the ModelWeightAveraging
-        :param ckpt_dir: the directory where the checkpoints are saved
-        :param metric_to_watch: monitoring loss or acc, will be identical to that which determines best_model
-        :param load_checkpoint: whether to load pre-existing snapshot dict.
-        :param number_of_models_to_average: number of models to average
+        :param ckpt_dir:                    The directory where the checkpoints are saved
+        :param metric_to_watch:             Monitoring loss or acc, will be identical to that which determines best_model
+        :param load_checkpoint:             Whether to load pre-existing snapshot dict.
+        :param number_of_models_to_average: Number of models to average
         """
 
         self.averaging_snapshots_file = os.path.join(ckpt_dir, "averaging_snapshots.pkl")
@@ -37,7 +41,6 @@ class ModelWeightAveraging:
         # if continuing training, copy previous snapshot dict if exist
         if load_checkpoint and ckpt_dir is not None and os.path.isfile(self.averaging_snapshots_file):
             averaging_snapshots_dict = read_ckpt_state_dict(self.averaging_snapshots_file)
-
         else:
             averaging_snapshots_dict = {"snapshot" + str(i): None for i in range(self.number_of_models_to_average)}
             # if metric to watch is acc, hold a zero array, if loss hold inf array
@@ -48,7 +51,7 @@ class ModelWeightAveraging:
 
             torch.save(averaging_snapshots_dict, self.averaging_snapshots_file)
 
-    def update_snapshots_dict(self, model, validation_results_dict):
+    def update_snapshots_dict(self, model: nn.Module, validation_results_dict: Mapping[str, float]):
         """
         Update the snapshot dict and returns the updated average model for saving
         :param model: the latest model
@@ -64,11 +67,11 @@ class ModelWeightAveraging:
             new_sd = move_state_dict_to_device(new_sd, "cpu")
 
             averaging_snapshots_dict["snapshot" + str(update_ind)] = new_sd
-            averaging_snapshots_dict["snapshots_metric"][update_ind] = validation_results_dict[self.metric_to_watch]
+            averaging_snapshots_dict["snapshots_metric"][update_ind] = float(validation_results_dict[self.metric_to_watch])
 
         return averaging_snapshots_dict
 
-    def get_average_model(self, model, validation_results_dict=None):
+    def get_average_model(self, model, validation_results_dict=None) -> Mapping[str, torch.Tensor]:
         """
         Returns the averaged model
         :param model: will be used to determine arch
@@ -99,14 +102,21 @@ class ModelWeightAveraging:
         """
         os.remove(self.averaging_snapshots_file)
 
-    def _is_better(self, averaging_snapshots_dict, validation_results_dict):
+    def _is_better(
+        self, averaging_snapshots_dict: Mapping[str, Any], validation_results_dict: Mapping[str, Union[float, torch.Tensor]]
+    ) -> Tuple[bool, Optional[int]]:
         """
         Determines if the new model is better according to the specified metrics
         :param averaging_snapshots_dict: snapshot dict
-        :param validation_results_dict: latest model performance
+        :param validation_results_dict:  latest model performance
+        :return: Tuple (bool, index) whether first item is True if the new model is better and False otherwise;
+                 Second item is the index in the averaging_snapshots_dict to which the new model should be saved
         """
         snapshot_metric_array = averaging_snapshots_dict["snapshots_metric"]
-        val = validation_results_dict[self.metric_to_watch]
+        val = float(validation_results_dict[self.metric_to_watch])
+
+        if not np.isfinite(val):
+            return False, None
 
         if self.greater_is_better:
             update_ind = np.argmin(snapshot_metric_array)
@@ -119,4 +129,4 @@ class ModelWeightAveraging:
         return False, None
 
     def _get_averaging_snapshots_dict(self):
-        return torch.load(self.averaging_snapshots_file)
+        return torch.load(self.averaging_snapshots_file, map_location="cpu")
