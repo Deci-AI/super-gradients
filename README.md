@@ -50,7 +50,7 @@ YOLO-NAS architecture is out! The new YOLO-NAS delivers state-of-the-art perform
 Check it out here: [YOLO-NAS](YOLONAS.md).
 
 <div align="center">
-<img src="./documentation/source/images/yolo_nas_frontier.png" width="800px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_frontier.png" width="800px">
 </div>
 
 ```python
@@ -64,17 +64,17 @@ model = models.get(Models.YOLO_NAS_M, pretrained_weights="coco")
 
 #### Classification
 <div align="center">
-<img src="./documentation/assets/SG_img/Classification@2xDark.png" width="800px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Classification@2xDark.png" width="800px">
 </div>
 
 #### Semantic Segmentation
 <div align="center">
-<img src="./documentation/assets/SG_img/Semantic Segmentation@2xDark.png" width="800px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Semantic Segmentation@2xDark.png" width="800px">
 </div>
 
 #### Object Detection 
 <div align="center">
-<img src="./documentation/assets/SG_img/Object Detection@2xDark.png" width="800px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Object Detection@2xDark.png" width="800px">
 </div>
 
 
@@ -203,7 +203,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 #### Transfer Learning 
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">  
-  <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_classification.ipynb"><img src="./documentation/assets/SG_img/colab_logo.png" /> Classification Transfer Learning</a>
+  <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_classification.ipynb"><img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> Classification Transfer Learning</a>
   </td>
 </table>
  </br></br>
@@ -214,7 +214,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 ####  Quick Start 
 <table class="tfo-notebook-buttons" align="left">
  <td width="500">
-<a target="_blank" href="https://bit.ly/3qKx9m8"><img src="./documentation/assets/SG_img/colab_logo.png" /> Segmentation Quick Start</a>
+<a target="_blank" href="https://bit.ly/3qKx9m8"><img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> Segmentation Quick Start</a>
  </td>
 </table>
  </br></br>
@@ -224,7 +224,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
  ####  Transfer Learning 
 <table class="tfo-notebook-buttons" align="left">
  <td width="500">
-<a target="_blank" href="https://bit.ly/3qKwMbe"><img src="./documentation/assets/SG_img/colab_logo.png" /> Segmentation Transfer Learning</a>
+<a target="_blank" href="https://bit.ly/3qKwMbe"><img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> Segmentation Transfer Learning</a>
  </td>
 </table>
  </br></br>
@@ -234,7 +234,9 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 ####  How to Connect Custom Dataset 
   <table class="tfo-notebook-buttons" align="left">
  <td width="500"> 
-<a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/object_detection_how_to_connect_custom_dataset.ipynb"><img src="./documentation/assets/SG_img/colab_logo.png" /> Segmentation How to Connect Custom Dataset</a>
+    <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/object_detection_how_to_connect_custom_dataset.ipynb">
+        <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> Segmentation How to Connect Custom Dataset
+    </a>
    </td>
 </table>
  </br></br>
@@ -247,7 +249,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 <table class="tfo-notebook-buttons" align="left">
     <td width="500">   
         <a target="_blank" href="https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On">
-            <img src="./documentation/assets/SG_img/colab_logo.png" /> Pose Estimation Transfer Learning
+            <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> Pose Estimation Transfer Learning
         </a>
     </td>
 </table>
@@ -260,7 +262,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 #### Transfer Learning
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">   
-<a target="_blank" href="https://bit.ly/3SkMohx"><img src="./documentation/assets/SG_img/colab_logo.png" /> Detection Transfer Learning</a>
+<a target="_blank" href="https://bit.ly/3SkMohx"><img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> Detection Transfer Learning</a>
    </td>
 </table>
  </br></br>
@@ -268,7 +270,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 #### How to Connect Custom Dataset 
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">  
-  <a target="_blank" href="https://bit.ly/3dqDlg3"><img src="./documentation/assets/SG_img/colab_logo.png" /> Detection How to Connect Custom Dataset</a>
+  <a target="_blank" href="https://bit.ly/3dqDlg3"><img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> Detection How to Connect Custom Dataset</a>
   </td>
 </table>
  </br></br>
@@ -280,7 +282,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 #### Segmentation, Detection and Classification Prediction 
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">    
-<a target="_blank" href="https://bit.ly/3f4mssd"><img src="./documentation/assets/SG_img/colab_logo.png" /> How to Predict Using Pre-trained Model</a>
+<a target="_blank" href="https://bit.ly/3f4mssd"><img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> How to Predict Using Pre-trained Model</a>
   </td>
 </table>
  </br></br>
@@ -292,7 +294,7 @@ ________________________________________________________________________________
 Quantization involves representing weights and biases in lower precision, resulting in reduced memory and computational requirements, making it useful for deploying models on devices with limited resources. The process can be done during training, called Quantization aware training, or after training, called post-training quantization. A full tutorial can be found [here](http://bit.ly/41hC8uI).
   <table class=“tfo-notebook-buttons” align=“left”>
  <td width=“500”>
-   <a target="_blank" href="http://bit.ly/3KrN6an"><img src="./documentation/assets/SG_img/colab_logo.png" /> Post Training Quantization and Quantization Aware Training</a>
+   <a target="_blank" href="http://bit.ly/3KrN6an"><img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> Post Training Quantization and Quantization Aware Training</a>
   </td>
 </table>
 
@@ -300,7 +302,7 @@ Quantization involves representing weights and biases in lower precision, result
 This tutorial provides a comprehensive guide on how to fine-tune a YoloNAS model using a custom dataset. It also demonstrates how to utilize SG's QAT (Quantization-Aware Training) support. Additionally, it offers step-by-step instructions on deploying the model and performing benchmarking.
   <table class=“tfo-notebook-buttons” align=“left”>
  <td width=“500”>
-   <a target="_blank" href="https://bit.ly/3MIKdTy"><img src="./documentation/assets/SG_img/colab_logo.png" /> Quantization Aware Training YoloNAS on Custom Dataset</a>
+   <a target="_blank" href="https://bit.ly/3MIKdTy"><img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> Quantization Aware Training YoloNAS on Custom Dataset</a>
   </td>
 </table>
 
@@ -310,7 +312,7 @@ Learn more about SuperGradients knowledge distillation training with our pre-tra
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">   
    <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/how_to_use_knowledge_distillation_for_classification.ipynb">
-    <img src="./documentation/assets/SG_img/colab_logo.png" /> Knowledge Distillation Training
+    <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> Knowledge Distillation Training
    </a>
   </td>
 </table>
@@ -325,7 +327,7 @@ Recipes support out of the box every model, metric or loss that is implemented i
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">   
    <a target="_blank" href="https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/what_are_recipes_and_how_to_use.ipynb">
-     <img src="./documentation/assets/SG_img/colab_logo.png" /> How to Use Recipes
+     <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/colab_logo.png" /> How to Use Recipes
    </a>
   </td>
 </table>
