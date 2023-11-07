@@ -31,15 +31,23 @@ sweeper_test:
 	fi
 
 # Here you define a list of notebooks we want to execute and convert to markdown files
-# NOTEBOOKS = hellomake.ipynb hellofunc.ipynb helloclass.ipynb
-NOTEBOOKS = src/super_gradients/examples/model_export/models_export.ipynb notebooks/what_are_recipes_and_how_to_use.ipynb notebooks/transfer_learning_classification.ipynb src/super_gradients/examples/model_export/models_export_pose.ipynb
+NOTEBOOKS_TO_RUN := src/super_gradients/examples/model_export/models_export.ipynb
+NOTEBOOKS_TO_RUN += src/super_gradients/examples/model_export/models_export_pose.ipynb
+NOTEBOOKS_TO_RUN += notebooks/what_are_recipes_and_how_to_use.ipynb
+NOTEBOOKS_TO_RUN += notebooks/transfer_learning_classification.ipynb
+NOTEBOOKS_TO_RUN += notebooks/how_to_use_knowledge_distillation_for_classification.ipynb
+NOTEBOOKS_TO_RUN += notebooks/PTQ_and_QAT_for_classification.ipynb
+
+# If there are additional notebooks that must not be executed, but still should be checked for version match, add them here
+NOTEBOOKS_TO_CHECK := $(NOTEBOOKS_TO_RUN)
+NOTEBOOKS_TO_CHECK += notebooks/yolo_nas_pose_eval_with_pycocotools.ipynb
 
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
-run_and_convert_notebooks_to_docs: $(NOTEBOOKS)
+run_and_convert_notebooks_to_docs: $(NOTEBOOKS_TO_RUN)
 	jupyter nbconvert --to markdown --output-dir="documentation/source/" --execute $^
 
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
-check_notebooks_version_match: $(NOTEBOOKS)
+check_notebooks_version_match: $(NOTEBOOKS_TO_CHECK)
 	python tests/verify_notebook_version.py $^
 
 WANDB_PARAMS = training_hyperparams.sg_logger=wandb_sg_logger +training_hyperparams.sg_logger_params.api_server=https://wandb.research.deci.ai +training_hyperparams.sg_logger_params.entity=super-gradients training_hyperparams.sg_logger_params.launch_tensorboard=false training_hyperparams.sg_logger_params.monitor_system=true +training_hyperparams.sg_logger_params.project_name=PoseEstimation training_hyperparams.sg_logger_params.save_checkpoints_remote=true training_hyperparams.sg_logger_params.save_logs_remote=true training_hyperparams.sg_logger_params.save_tensorboard_remote=false training_hyperparams.sg_logger_params.tb_files_user_prompt=false

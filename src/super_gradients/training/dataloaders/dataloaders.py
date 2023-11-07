@@ -31,8 +31,8 @@ from super_gradients.training.datasets.segmentation_datasets import (
     CoCoSegmentationDataSet,
     PascalVOC2012SegmentationDataSet,
     PascalVOCAndAUGUnifiedDataset,
-    SuperviselyPersonsDataset,
     MapillaryDataset,
+    SuperviselyPersonsDataset,
 )
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import (

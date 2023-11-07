@@ -28,6 +28,23 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarr
     return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_LINEAR)
 
 
+def _rescale_image_with_pil(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarray:
+    """Rescale image to target_shape, without preserving aspect ratio using PIL.
+    OpenCV and PIL has slightly different implementations of interpolation methods.
+    OpenCV has faster resizing, however PIL is more accurate (not introducing aliasing artifacts).
+    We use this method in some preprocessing transforms where we want to keep the compatibility with
+    torchvision transforms.
+
+    :param image:           Image to rescale. (H, W, C) or (H, W).
+    :param target_shape:    Target shape to rescale to (H, W).
+    :return:                Rescaled image.
+    """
+    height, width = target_shape[:2]
+    from PIL import Image
+
+    return np.array(Image.fromarray(image).resize((width, height), Image.BILINEAR))
+
+
 def _rescale_bboxes(targets: np.ndarray, scale_factors: Tuple[float, float]) -> np.ndarray:
     """Rescale bboxes to given scale factors, without preserving aspect ratio.
 
@@ -115,10 +132,8 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
 
             pad_value = tuple(pad_value)
 
-        padded_channels = []
-        for channel_index, pad_value_channel in enumerate(pad_value):
-            padded_channels.append(np.pad(image[..., channel_index], (pad_h, pad_w), "constant", constant_values=pad_value_channel))
-        return np.stack(padded_channels, axis=-1)
+        constant_values = ((pad_value, pad_value), (pad_value, pad_value), (0, 0))
+        padding_values = (pad_h, pad_w, (0, 0))
     else:
         if isinstance(pad_value, numbers.Number):
             pass
@@ -130,7 +145,10 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
         else:
             raise ValueError(f"Unsupported pad_value type {type(pad_value)}")
 
-        return np.pad(image, (pad_h, pad_w), "constant", constant_values=pad_value)
+        constant_values = pad_value
+        padding_values = (pad_h, pad_w)
+
+    return np.pad(image, pad_width=padding_values, mode="constant", constant_values=constant_values)
 
 
 def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
