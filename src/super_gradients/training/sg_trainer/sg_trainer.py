@@ -76,7 +76,7 @@ from super_gradients.common.environment.ddp_utils import (
     broadcast_from_master,
 )
 from super_gradients.training.utils.ema import ModelEMA
-from super_gradients.training.utils.optimizer_utils import build_optimizer
+from super_gradients.training.utils.optimizer_utils import build_optimizer, get_initial_lr_from_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
 from super_gradients.training.utils.utils import fuzzy_idx_in_list, unwrap_model
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
@@ -1296,6 +1296,20 @@ class Trainer:
         else:
             raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
 
+        if isinstance(self.training_params.optimizer, str) or (
+            inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
+        ):
+            self.optimizer = build_optimizer(net=unwrap_model(self.net), lr=self.training_params.initial_lr, training_params=self.training_params)
+        elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
+            if self.training_params.initial_lr is not None:
+                raise RuntimeError("An instantiated optimizer cannot be passed along initial_lr != None")
+            self.optimizer = self.training_params.optimizer
+
+            # NEED TO EXTRACT INITAL_LR FROM THE OPTIMIZER PARAM GROUPS
+            self.training_params.initial_lr = get_initial_lr_from_optimizer(self.optimizer)
+        else:
+            raise UnsupportedOptimizerFormat()
+
         if warmup_callback_cls is not None:
             self.phase_callbacks.append(
                 warmup_callback_cls(
@@ -1328,15 +1342,6 @@ class Trainer:
             self.start_epoch = 0
             self._reset_best_metric()
             load_opt_params = False
-
-        if isinstance(self.training_params.optimizer, str) or (
-            inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
-        ):
-            self.optimizer = build_optimizer(net=unwrap_model(self.net), lr=self.training_params.initial_lr, training_params=self.training_params)
-        elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
-            self.optimizer = self.training_params.optimizer
-        else:
-            raise UnsupportedOptimizerFormat()
 
         if self.lr_mode is not None:
             lr_scheduler_callback = create_lr_scheduler_callback(

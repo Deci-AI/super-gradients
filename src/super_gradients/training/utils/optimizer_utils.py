@@ -16,6 +16,7 @@ from super_gradients.training.utils.utils import is_model_wrapped
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.modules.conv import _ConvNd
 from typing import List, Dict, Union
+import torch
 
 logger = get_logger(__name__)
 
@@ -174,3 +175,48 @@ def initialize_param_groups(model: nn.Module, lr: Union[float, Dict[str, float]]
     else:
         model_named_params = separate_lr_groups(model, lr)
     return model_named_params
+
+
+def name_optimizer_param_groups_inplace(optimizer: torch.optim.Optimizer) -> torch.optim.Optimizer:
+    """
+    Convert an optimizer's param_groups to use named parameters, modifying it in place.
+
+    :param optimizer: torch.optim.Optimizer, The optimizer to be converted.
+
+    Returns:
+        torch.optim.Optimizer: The same optimizer with modified param_groups.
+    """
+
+    named_parameters = list(optimizer.param_groups[0]["params"])
+    num_param_groups = len(optimizer.param_groups)
+    group_name = [f"group_{i}" for i in range(num_param_groups)] if num_param_groups > 1 else "default"
+
+    for i, param_group in enumerate(optimizer.param_groups):
+        param_group["params"] = named_parameters
+        param_group["name"] = group_name if num_param_groups == 1 else group_name[i]
+
+    return optimizer
+
+
+def get_initial_lr_from_optimizer(optimizer: torch.optim.Optimizer) -> Union[Dict[str, float], float]:
+    """
+    Returns Initial learning rate as:
+
+    float - learning rate value when passed as a scalar
+    Dictionary where keys are group names and values are the learning rates.
+    For example {"default": 0.01, "head": 0.1}
+
+    Does so by iterating over the optmizer.param_groups and extracting the "lr" vaules.
+    If the optimizer was intiialized with .parameters() and not named_paramters(), names will be assigned to the
+     optimizer parameter groups by index.
+
+    :param optimizer: torch.optim.Optimizer, The optimizer to extract the lrs from.
+    :return: initial_lr as described above.
+    """
+    if "name" not in optimizer.param_groups[0].keys():
+        optimizer = name_optimizer_param_groups_inplace(optimizer)
+    if len(optimizer.param_groups) == 1:
+        initial_lr = optimizer.param_groups[0]["lr"]
+    else:
+        initial_lr = {group["name"]: group["lr"] for group in optimizer.param_groups}
+    return initial_lr

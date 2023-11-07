@@ -51,6 +51,7 @@ DEFAULT_TRAINING_PARAMS = {
     "warmup_mode": "LinearEpochLRWarmup",
     "step_lr_update_freq": None,
     "lr_updates": [],
+    "initial_lr": None,
     "clip_grad_norm": None,
     "pre_prediction_callback": None,
     "ckpt_best_name": "ckpt_best.pth",

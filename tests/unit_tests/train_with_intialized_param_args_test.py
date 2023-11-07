@@ -54,7 +54,6 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
             "lr_decay_factor": 0.1,
             "lr_mode": "StepLRScheduler",
             "lr_warmup_epochs": 0,
-            "initial_lr": 0.1,
             "loss": "CrossEntropyLoss",
             "optimizer": optimizer,
             "criterion_params": {},
