@@ -63,7 +63,7 @@ training_hyperparams:
         patience: 100
         verbose: True
 
-  initial_lr: 1.5e-4 # Scale factor to account reduced batch size
+  initial_lr: 3e-4 # Scale factor to account reduced batch size
 
   criterion_params:
     dfl_loss_weight: 0.5
