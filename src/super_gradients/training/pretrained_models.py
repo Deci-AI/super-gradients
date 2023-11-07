@@ -55,6 +55,10 @@ MODEL_URLS = {
     "segformer_b3_cityscapes": "https://sghub.deci.ai/models/segformer_b3_cityscapes.pth",
     "segformer_b4_cityscapes": "https://sghub.deci.ai/models/segformer_b4_cityscapes.pth",
     "segformer_b5_cityscapes": "https://sghub.deci.ai/models/segformer_b5_cityscapes.pth",
+    "yolo_nas_pose_n_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_n_coco_pose.pth",
+    "yolo_nas_pose_s_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_s_coco_pose.pth",
+    "yolo_nas_pose_m_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_m_coco_pose.pth",
+    "yolo_nas_pose_l_coco_pose": "https://sghub.deci.ai/models/yolo_nas_pose_l_coco_pose.pth",
 }
 
 
