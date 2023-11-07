@@ -1509,7 +1509,6 @@ class Trainer:
 
                 train_inf_time = timer.stop()
                 self._write_scalars_to_logger(metrics=train_metrics_dict, epoch=1 + epoch, inference_time=train_inf_time, tag="Train")
-                self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=1 + epoch)
 
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
                 valid_metrics_dict = {}
@@ -1558,6 +1557,8 @@ class Trainer:
                     self.net = keep_model
 
                 if not self.ddp_silent_mode:
+                    self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=1 + epoch)
+
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
                     if should_run_validation and self.training_params.save_model:
                         self._save_checkpoint(
@@ -1976,15 +1977,16 @@ class Trainer:
         """
         Method for writing metrics and LR info to logger.
 
-        :param metrics:         (dict) dict of metrics.
-        :param epoch_values:    (dict) dict of epoch important values (self._epoch_start_logging_values).
+        :param metrics:         (dict) dict of metrics..
         :param epoch:           (inf) 1-based number of epoch.
         :param inference_time:  (float) time of inference.
         :param tag:             (str) tag for writing to logger (rule of thumb: Train/Test/Valid)
         """
-        info_dict = {f"{tag} Inference Time": inference_time, **{f"{tag}_{k}": v for k, v in metrics.items()}}
 
-        self.sg_logger.add_scalars(tag_scalar_dict=info_dict, global_step=epoch)
+        if not self.ddp_silent_mode:
+            info_dict = {f"{tag} Inference Time": inference_time, **{f"{tag}_{k}": v for k, v in metrics.items()}}
+
+            self.sg_logger.add_scalars(tag_scalar_dict=info_dict, global_step=epoch)
 
     def _get_epoch_start_logging_values(self) -> dict:
         """Get all the values that should be logged at the start of each epoch.
