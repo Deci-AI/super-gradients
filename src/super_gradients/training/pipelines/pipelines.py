@@ -182,20 +182,20 @@ class Pipeline(ABC):
 
         images = list(images)  # We need to load all the images into memory, and to reuse it afterwards.
 
-        reference_shape = images[0].shape
-        for img in images:
-            if img.shape != reference_shape:
-                raise ValueError(
-                    f"Images have different shapes ({img.shape} != {reference_shape})!\n"
-                    f"Either resize the images to the same size, set `skip_image_resizing=False` or pass one image at a time."
-                )
-
         # Preprocess
         preprocessed_images, processing_metadatas = [], []
         for image in images:
             preprocessed_image, processing_metadata = self.image_processor.preprocess_image(image=image.copy())
             preprocessed_images.append(preprocessed_image)
             processing_metadatas.append(processing_metadata)
+
+        reference_shape = preprocessed_images[0].shape
+        for img in preprocessed_images:
+            if img.shape != reference_shape:
+                raise ValueError(
+                    f"Images have different shapes ({img.shape} != {reference_shape})!\n"
+                    f"Either resize the images to the same size, set `skip_image_resizing=False` or pass one image at a time."
+                )
 
         # Predict
         with eval_mode(self.model), torch.no_grad(), torch.cuda.amp.autocast():
