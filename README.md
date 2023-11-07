@@ -46,11 +46,15 @@ ________________________________________________________________________________
 
 ### Ready to deploy pre-trained SOTA models
 
-YOLO-NAS architecture is out! The new YOLO-NAS delivers state-of-the-art performance with the unparalleled accuracy-speed performance, outperforming other models such as YOLOv5, YOLOv6, YOLOv7 and YOLOv8.
-Check it out here: [YOLO-NAS](YOLONAS.md).
+YOLO-NAS and YOLO-NAS-POSE architectures are out! 
+The new YOLO-NAS delivers state-of-the-art performance with the unparalleled accuracy-speed performance, outperforming other models such as YOLOv5, YOLOv6, YOLOv7 and YOLOv8.
+A YOLO-NAS-POSE model for pose estimation is also available, delivering state-of-the-art accuracy/performance tradeoff.
+
+Check these out here: [YOLO-NAS](YOLONAS.md) & [YOLO-NAS-POSE](YOLONAS-POSE.md).
 
 <div align="center">
-<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_frontier.png" width="800px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_frontier.png" height="600px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_pose_frontier_t4.png" height="600px">
 </div>
 
 ```python
@@ -77,6 +81,11 @@ model = models.get(Models.YOLO_NAS_M, pretrained_weights="coco")
 <img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Object Detection@2xDark.png" width="800px">
 </div>
 
+#### Pose Estimation
+<div align="center">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_pose_frontier_t4.png" width="400px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_pose_frontier_xavier_nx.png" width="400px">
+</div>
 
 ### Easy to train SOTA Models
 
@@ -124,6 +133,13 @@ pip install super-gradients
 ## What's New
 
 __________________________________________________________________________________________________________
+Version 3.4.0 (November 6, 2023)
+
+* [YoloNAS-Pose](YOLONAS-POSE.md) model released - a new frontier in pose estimation
+* Added option to export a recipe to a single YAML file or to a standalone train.py file 
+* Other bugfixes & minor improvements. Full release notes available [here](https://github.com/Deci-AI/super-gradients/releases/tag/3.4.0)
+
+__________________________________________________________________________________________________________
 Version 3.1.3 (July 19, 2023)
 
 * [Pose Estimation Task Support](https://docs.deci.ai/super-gradients/documentation/source/PoseEstimation.html) - Check out fine-tuning [notebook example](https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On) 
@@ -147,16 +163,6 @@ Version 3.1.1 (May 3rd)
 * Post Training Quantization and Quantization Aware Training - [notebooks](http://bit.ly/3KrN6an)
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
-
-## Coming soon
-__________________________________________________________________________________________________________
-- [ ] Pre-trained pose estimation model
-- [ ] Test Time Augmentations (TTA)
-- [ ] Recipe to train DEKR model(convertable to TRT) 
-- [ ] Key-points Rescoring for Pose estimation 
-- [ ] LR finder
-- [ ] Data analysis tools
-
 
 ## Table of Content
 __________________________________________________________________________________________________________
