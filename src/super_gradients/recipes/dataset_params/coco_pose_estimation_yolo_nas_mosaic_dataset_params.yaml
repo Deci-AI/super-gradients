@@ -1,0 +1,54 @@
+defaults:
+  - coco_pose_estimation_yolo_nas_dataset_params
+  - _self_
+
+mosaic_prob: 0.5
+dataset_params_suffix: "mosaic_${dataset_params.mosaic_prob}_${dataset_params.image_size}"
+
+train_dataset_params:
+  transforms:
+    - KeypointsRandomHorizontalFlip:
+        flip_index: ${dataset_params.flip_indexes}
+        prob: 0.5
+
+    - KeypointsBrightnessContrast:
+        brightness_range: [ 0.8, 1.2 ]
+        contrast_range: [ 0.8, 1.2 ]
+        prob: 0.5
+
+    - KeypointsHSV:
+        hgain: 20
+        sgain: 20
+        vgain: 20
+        prob: 0.5
+
+    - KeypointsRandomAffineTransform:
+        max_rotation: 5
+        min_scale: 0.75
+        max_scale: 1.5
+        max_translate: 0.1
+        image_pad_value: 127
+        mask_pad_value: 1
+        prob: 0.75
+        interpolation_mode: [ 0, 1, 2, 3, 4 ]
+
+    - KeypointsMosaic:
+        prob: ${dataset_params.mosaic_prob}
+
+    - KeypointsLongestMaxSize:
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
+
+    - KeypointsPadIfNeeded:
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
+        image_pad_value: [ 127, 127, 127 ]
+        mask_pad_value: 1
+        padding_mode: center
+
+    - KeypointsImageStandardize:
+        max_value: 255
+
+    - KeypointsRemoveSmallObjects:
+        min_instance_area: 1
+        min_visible_keypoints: 1
