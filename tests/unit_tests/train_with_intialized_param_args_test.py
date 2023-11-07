@@ -79,7 +79,6 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
             "max_epochs": 2,
             "phase_callbacks": phase_callbacks,
             "lr_warmup_epochs": 0,
-            "initial_lr": lr,
             "loss": "CrossEntropyLoss",
             "optimizer": optimizer,
             "criterion_params": {},
@@ -101,7 +100,6 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         train_params = {
             "max_epochs": 2,
             "lr_warmup_epochs": 0,
-            "initial_lr": 0.3,
             "loss": "CrossEntropyLoss",
             "optimizer": optimizer,
             "criterion_params": {},
@@ -126,7 +124,6 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
             "max_epochs": 2,
             "phase_callbacks": phase_callbacks,
             "lr_warmup_epochs": 0,
-            "initial_lr": lr,
             "loss": "CrossEntropyLoss",
             "optimizer": optimizer,
             "criterion_params": {},
