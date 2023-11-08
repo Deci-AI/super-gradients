@@ -32,6 +32,7 @@ from super_gradients.training.datasets.segmentation_datasets import (
     PascalVOC2012SegmentationDataSet,
     PascalVOCAndAUGUnifiedDataset,
     MapillaryDataset,
+    SuperviselyPersonsDataset,
 )
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import (
@@ -758,6 +759,7 @@ def pascal_voc_segmentation_val(dataset_params: Dict = None, dataloader_params: 
 def supervisely_persons_train(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return get_data_loader(
         config_name="supervisely_persons_dataset_params",
+        dataset_cls=SuperviselyPersonsDataset,
         train=True,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
@@ -768,6 +770,7 @@ def supervisely_persons_train(dataset_params: Dict = None, dataloader_params: Di
 def supervisely_persons_val(dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     return get_data_loader(
         config_name="supervisely_persons_dataset_params",
+        dataset_cls=SuperviselyPersonsDataset,
         train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,

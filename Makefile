@@ -37,6 +37,7 @@ NOTEBOOKS_TO_RUN += notebooks/what_are_recipes_and_how_to_use.ipynb
 NOTEBOOKS_TO_RUN += notebooks/transfer_learning_classification.ipynb
 NOTEBOOKS_TO_RUN += notebooks/how_to_use_knowledge_distillation_for_classification.ipynb
 NOTEBOOKS_TO_RUN += notebooks/object_detection_how_to_connect_custom_dataset.ipynb
+NOTEBOOKS_TO_RUN += notebooks/PTQ_and_QAT_for_classification.ipynb
 
 # If there are additional notebooks that must not be executed, but still should be checked for version match, add them here
 NOTEBOOKS_TO_CHECK := $(NOTEBOOKS_TO_RUN)
