@@ -392,8 +392,7 @@ class PoseEstimationPipeline(Pipeline):
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoPoseEstimationPrediction:
-        images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
-        return VideoPoseEstimationPrediction(_images_prediction_lst=images_predictions, fps=fps)
+        return VideoPoseEstimationPrediction(_images_prediction_gen=images_predictions, fps=fps, n_frames=n_images)
 
 
 class ClassificationPipeline(Pipeline):
