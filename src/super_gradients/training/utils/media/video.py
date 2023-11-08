@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Generator
+from typing import List, Optional, Tuple, Iterable
 import cv2
 import PIL
 
@@ -30,12 +30,20 @@ def load_video(file_path: str, max_frames: Optional[int] = None) -> Tuple[List[n
     return frames, fps
 
 
-def lazy_load_video(file_path: str, max_frames: Optional[int] = None) -> Tuple[Generator, int]:
+def lazy_load_video(file_path: str, max_frames: Optional[int] = None) -> Tuple[Iterable[np.ndarray], int, int]:
+    """Open a video file and returns a generator which yields frames.
+
+    :param file_path:   Path to the video file.
+    :param max_frames:  Optional, maximum number of frames to extract.
+    :return:
+                - Generator yielding frames representing the video, each in (H, W, C), RGB.
+                - Frames per Second (FPS).
+                - Amount of frames in video.
+    """
     cap = _open_video(file_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
     frames = _lazy_extract_frames(cap, max_frames)
     num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    # cap.release()
     return frames, fps, num_frames
 
 
@@ -70,7 +78,14 @@ def _extract_frames(cap: cv2.VideoCapture, max_frames: Optional[int] = None) -> 
     return frames
 
 
-def _lazy_extract_frames(cap: cv2.VideoCapture, max_frames: Optional[int] = None) -> Generator:
+def _lazy_extract_frames(cap: cv2.VideoCapture, max_frames: Optional[int] = None) -> Iterable[np.ndarray]:
+    """Lazy implementation of frames extraction from an opened video capture object.
+    NOTE: Releases the capture object.
+
+    :param cap:         Opened video capture object.
+    :param max_frames:  Optional maximum number of frames to extract.
+    :return:            Generator yielding frames representing the video, each in (H, W, C), RGB.
+    """
     frames_counter = 0
 
     while frames_counter != max_frames:
@@ -98,45 +113,31 @@ def save_video(output_path: str, frames: List[np.ndarray], fps: int) -> None:
     if check_is_gif(output_path):
         save_gif(output_path, frames, fps)
     else:
-        lazy_save_mp4(output_path, frames, fps)
+        save_mp4(output_path, frames, fps)
 
 
-def save_gif(output_path: str, frames: List[np.ndarray], fps: int) -> None:
-    """Save a video locally in .gif format.
-
-    :param output_path: Where the video will be saved
-    :param frames:      Frames representing the video, each in (H, W, C), RGB. Note that all the frames are expected to have the same shape.
-    :param fps:         Frames per second
-    """
-
-    frames_pil = [PIL.Image.fromarray(frame) for frame in frames]
-
-    frames_pil[0].save(output_path, save_all=True, append_images=frames_pil[1:], duration=int(1000 / fps), loop=0)
-
-
-def save_mp4(output_path: str, frames: List[np.ndarray], fps: int) -> None:
-    """Save a video locally in .mp4 format.
+def save_gif(output_path: str, frames: Iterable[np.ndarray], fps: int) -> None:
+    """Save a video locally in .gif format. Safe for generator of frames object.
 
     :param output_path: Where the video will be saved
     :param frames:      Frames representing the video, each in (H, W, C), RGB. Note that all the frames are expected to have the same shape.
     :param fps:         Frames per second
     """
-    video_height, video_width = _validate_frames(frames)
+    frame_iter_obj = iter(frames)
+    pil_frames_iter_obj = map(PIL.Image.fromarray, frame_iter_obj)
 
-    video_writer = cv2.VideoWriter(
-        output_path,
-        cv2.VideoWriter_fourcc(*"mp4v"),
-        fps,
-        (video_width, video_height),
-    )
+    first_frame = next(pil_frames_iter_obj)
 
-    for frame in frames:
-        video_writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-
-    video_writer.release()
+    first_frame.save(output_path, save_all=True, append_images=pil_frames_iter_obj, duration=int(1000 / fps), loop=0)
 
 
-def lazy_save_mp4(output_path, frames, fps) -> None:
+def save_mp4(output_path: str, frames: Iterable[np.ndarray], fps: int) -> None:
+    """Save a video locally in .mp4 format. Safe for generator of frames object.
+
+    :param output_path: Where the video will be saved
+    :param frames:      Frames representing the video, each in (H, W, C), RGB. Note that all the frames are expected to have the same shape.
+    :param fps:         Frames per second
+    """
     video_height, video_width, video_writer = None, None, None
 
     for frame in frames:
@@ -154,35 +155,10 @@ def lazy_save_mp4(output_path, frames, fps) -> None:
     video_writer.release()
 
 
-def _validate_frames(frames: List[np.ndarray]) -> Tuple[float, float]:
-    """Validate the frames to make sure that every frame has the same size and includes the channel dimension. (i.e. (H, W, C))
-
-    :param frames:  Frames representing the video, each in (H, W, C), RGB. Note that all the frames are expected to have the same shape.
-    :return:        (Height, Weight) of the video.
-    """
-    min_height = min(frame.shape[0] for frame in frames)
-    max_height = max(frame.shape[0] for frame in frames)
-
-    min_width = min(frame.shape[1] for frame in frames)
-    max_width = max(frame.shape[1] for frame in frames)
-
-    if (min_height, min_width) != (max_height, max_width):
-        raise RuntimeError(
-            f"Your video is made of frames that have (height, width) going from ({min_height}, {min_width}) to ({max_height}, {max_width}).\n"
-            f"Please make sure that all the frames have the same shape."
-        )
-
-    if set(frame.ndim for frame in frames) != {3} or set(frame.shape[-1] for frame in frames) != {3}:
-        raise RuntimeError("Your frames must include 3 channels.")
-
-    return max_height, max_width
-
-
 def _validate_frame(frame, control_height, control_width) -> None:
-    """Validate the frames to make sure that every frame has the same size and includes the channel dimension. (i.e. (H, W, C))
+    """Validate the frame to make sure it has the correct size and includes the channel dimension. (i.e. (H, W, C))
 
-    :param frames:  Frames representing the video, each in (H, W, C), RGB. Note that all the frames are expected to have the same shape.
-    :return:        (Height, Weight) of the video.
+    :param frame:  Single frame from the video, in (H, W, C), RGB.
     """
     height, width = frame.shape[:2]
 

@@ -25,7 +25,7 @@ from super_gradients.training.utils.predict import (
     ClassificationPrediction,
 )
 from super_gradients.training.utils.utils import generate_batch, infer_model_device, resolve_torch_device
-from super_gradients.training.utils.media.video import load_video, includes_video_extension, lazy_load_video
+from super_gradients.training.utils.media.video import includes_video_extension, lazy_load_video
 from super_gradients.training.utils.media.image import ImageSource, check_image_typing
 from super_gradients.training.utils.media.stream import WebcamStreaming
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
@@ -318,7 +318,6 @@ class DetectionPipeline(Pipeline):
     def _combine_image_prediction_to_video(
         self, images_predictions: Iterable[ImageDetectionPrediction], fps: float, n_images: Optional[int] = None
     ) -> VideoDetectionPrediction:
-        # images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Video")]
         return VideoDetectionPrediction(_images_prediction_gen=images_predictions, fps=fps, n_frames=n_images)
 
 

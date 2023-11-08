@@ -2,6 +2,11 @@ import requests
 import torch
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
+import numpy as np
+
+import warnings
+
+warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
 
 # Note that currently only YoloX, PPYoloE and YOLO-NAS are supported.
 model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
@@ -17,6 +22,10 @@ with open(video_path, mode="wb") as f:
     f.write(response.content)
 
 predictions = model.predict(video_path)
-predictions.show()
 predictions.save("pose_elephant_flip_prediction.mp4")
+
+predictions = model.predict(video_path)
 predictions.save("pose_elephant_flip_prediction.gif")  # Can also be saved as a gif.
+
+# predictions = model.predict(video_path)
+# predictions.show()

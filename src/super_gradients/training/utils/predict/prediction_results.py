@@ -1,7 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Iterator, Union, Generator
+from typing import List, Optional, Tuple, Iterator, Union
 
 import cv2
 import numpy as np
@@ -334,7 +334,7 @@ class VideoPredictions(ABC):
     :att fps:                       Frames per second of the video
     """
 
-    _images_prediction_gen: Generator
+    _images_prediction_gen: Iterator[np.ndarray]
     fps: float
     n_frames: int
 
@@ -507,11 +507,11 @@ class ImagesDetectionPrediction(ImagesPredictions):
 class VideoDetectionPrediction(VideoPredictions):
     """Object wrapping the list of image detection predictions as a Video.
 
-    :attr _images_prediction_gen:   List of the predictions results
+    :attr _images_prediction_gen:   Iterable object of the predictions results
     :att fps:                       Frames per second of the video
     """
 
-    _images_prediction_gen: Generator
+    _images_prediction_gen: Iterator[np.ndarray]
     fps: int
     n_frames: int
 
@@ -521,7 +521,7 @@ class VideoDetectionPrediction(VideoPredictions):
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
         class_names: Optional[List[str]] = None,
-    ) -> Generator:
+    ) -> Iterator[np.ndarray]:
         """Draw the predicted bboxes on the images.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -529,7 +529,7 @@ class VideoDetectionPrediction(VideoPredictions):
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         :param class_names:     List of class names to show. By default, is None which shows all classes using during training.
-        :return:                List of images with predicted bboxes. Note that this does not modify the original image.
+        :return:                Iterable object of images with predicted bboxes. Note that this does not modify the original image.
         """
 
         for result in tqdm(self._images_prediction_gen, total=self.n_frames, desc="Processing Video"):
