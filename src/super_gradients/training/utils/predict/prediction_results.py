@@ -334,7 +334,7 @@ class VideoPredictions(ABC):
     :att fps:                       Frames per second of the video
     """
 
-    _images_prediction_gen: Iterator[np.ndarray]
+    _images_prediction_gen: Iterator[ImagePrediction]
     fps: float
     n_frames: int
 
@@ -511,7 +511,7 @@ class VideoDetectionPrediction(VideoPredictions):
     :att fps:                       Frames per second of the video
     """
 
-    _images_prediction_gen: Iterator[np.ndarray]
+    _images_prediction_gen: Iterator[ImagePrediction]
     fps: int
     n_frames: int
 
