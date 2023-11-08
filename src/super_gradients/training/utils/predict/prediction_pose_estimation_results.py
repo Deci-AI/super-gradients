@@ -117,7 +117,14 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   Thickness of bounding boxes.
         """
-        image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence)
+        image = self.draw(
+            edge_colors=edge_colors,
+            joint_thickness=joint_thickness,
+            keypoint_colors=keypoint_colors,
+            keypoint_radius=keypoint_radius,
+            box_thickness=box_thickness,
+            show_confidence=show_confidence,
+        )
         save_image(image=image, path=output_path)
 
 
