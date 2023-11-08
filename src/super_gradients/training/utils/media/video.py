@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Iterable
+from typing import List, Optional, Tuple, Iterable, Iterator
 import cv2
 import PIL
 
@@ -30,7 +30,7 @@ def load_video(file_path: str, max_frames: Optional[int] = None) -> Tuple[List[n
     return frames, fps
 
 
-def lazy_load_video(file_path: str, max_frames: Optional[int] = None) -> Tuple[Iterable[np.ndarray], int, int]:
+def lazy_load_video(file_path: str, max_frames: Optional[int] = None) -> Tuple[Iterator[np.ndarray], int, int]:
     """Open a video file and returns a generator which yields frames.
 
     :param file_path:   Path to the video file.
@@ -78,7 +78,7 @@ def _extract_frames(cap: cv2.VideoCapture, max_frames: Optional[int] = None) -> 
     return frames
 
 
-def _lazy_extract_frames(cap: cv2.VideoCapture, max_frames: Optional[int] = None) -> Iterable[np.ndarray]:
+def _lazy_extract_frames(cap: cv2.VideoCapture, max_frames: Optional[int] = None) -> Iterator[np.ndarray]:
     """Lazy implementation of frames extraction from an opened video capture object.
     NOTE: Releases the capture object.
 
