@@ -166,6 +166,12 @@ class ComposeProcessing(Processing):
         return any(processing.resizes_image for processing in self.processings)
 
     def get_equivalent_compose_without_resizing(self, auto_padding: AutoPadding) -> "ComposeProcessing":
+        """Get a composed processing equivalent to this one, but without resizing the image.
+        :param auto_padding:    AutoPadding object to use for padding the image.
+                                This is required since models often expect input image to be a multiple of a specific shape (usually 32x32).
+                                This padding operation will be applied on the input image before any other processing.
+        :return:                A composed processing equivalent to this one, but without resizing the image.
+        """
         processings = [auto_padding]
 
         for processing in self.processings:
