@@ -25,11 +25,13 @@ Usage:
 import argparse
 import os
 
+import pkg_resources
+
 from super_gradients.common.environment.cfg_utils import export_recipe
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config_dir", type=str, default=None, help="The config directory path")
+    parser.add_argument("--config_dir", type=str, default=pkg_resources.resource_filename("super_gradients.recipes", ""), help="The config directory path")
     parser.add_argument("config_name", type=str, help=".yaml filename")
     parser.add_argument("save_path", type=str, default=None, help="Destination path to the output .yaml file")
     args = parser.parse_args()
