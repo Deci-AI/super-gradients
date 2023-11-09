@@ -94,6 +94,25 @@ class Processing(ABC):
         pass
 
 
+class AutoPadding(Processing, ABC):
+    def __init__(self, shape_multiple: Tuple[int, int], pad_value: int):
+        """
+        :param shape_multiple:  Tuple of (H, W) indicating the height and width multiples to which the input image dimensions will be padded.
+                                For instance, with a value of (32, 40), an input image of size (45, 67) will be padded to (64, 80).
+        :param pad_value:       Value to pad the image with.
+        """
+        self.shape_multiple = shape_multiple
+        self.pad_value = pad_value
+
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
+    @property
+    def resizes_image(self) -> bool:
+        # This implementation only pads the image, doesn't resize it.
+        return False
+
+
 @register_processing(Processings.ComposeProcessing)
 class ComposeProcessing(Processing):
     """Compose a list of Processing objects into a single Processing object."""
@@ -146,11 +165,12 @@ class ComposeProcessing(Processing):
     def resizes_image(self) -> bool:
         return any(processing.resizes_image for processing in self.processings)
 
-    def get_equivalent_compose_without_resizing(self) -> "ComposeProcessing":
-        processings = []
+    def get_equivalent_compose_without_resizing(self, auto_padding: AutoPadding) -> "ComposeProcessing":
+        processings = [auto_padding]
+
         for processing in self.processings:
             if isinstance(processing, ComposeProcessing):
-                processings.append(processing.get_equivalent_compose_without_resizing())
+                processings.append(processing.get_equivalent_compose_without_resizing(auto_padding=auto_padding))
             elif not processing.resizes_image:
                 processings.append(processing)
             else:
@@ -396,25 +416,10 @@ class KeypointsBottomRightPadding(_KeypointsPadding):
 
 
 @register_processing()
-class DetectionAutoPadding(Processing):
-    def __init__(self, shape_multiple: Tuple[int, int], pad_value: int):
-        """
-        :param shape_multiple:  Tuple of (H, W) indicating the height and width multiples to which the input image dimensions will be padded.
-                                For instance, with a value of (32, 40), an input image of size (45, 67) will be padded to (64, 80).
-        :param pad_value:       Value to pad the image with.
-        """
-        self.shape_multiple = shape_multiple
-        self.pad_value = pad_value
-
+class DetectionAutoPadding(AutoPadding):
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        is_input_channel_first = image.ndim == 3 and image.shape[0] < image.shape[2]
-        if is_input_channel_first:  # Channel first
-            image = image.transpose((1, 2, 0))  # CHW -> HWC
         padding_coordinates = self._get_padding_params(input_shape=image.shape[:2])  # HWC -> (H, W)
         processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
-
-        if is_input_channel_first:
-            processed_image = processed_image.transpose((2, 0, 1))  # HWC -> CHW
         return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
 
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
@@ -440,35 +445,12 @@ class DetectionAutoPadding(Processing):
         )
         return predictions
 
-    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
-        return None
-
-    @property
-    def resizes_image(self) -> bool:
-        # This implementation only pads the image, doesn't resize it.
-        return False
-
 
 @register_processing()
-class KeypointsAutoPadding(Processing):
-    def __init__(self, shape_multiple: Tuple[int, int], pad_value: int):
-        """
-        :param shape_multiple:  Tuple of (H, W) indicating the height and width multiples to which the input image dimensions will be padded.
-                                For instance, with a value of (32, 40), an input image of size (45, 67) will be padded to (64, 80).
-        :param pad_value:       Value to pad the image with.
-        """
-        self.shape_multiple = shape_multiple
-        self.pad_value = pad_value
-
+class KeypointsAutoPadding(AutoPadding):
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        is_input_channel_first = image.ndim == 3 and image.shape[0] < image.shape[2]
-        if is_input_channel_first:  # Channel first
-            image = image.transpose((1, 2, 0))  # CHW -> HWC
         padding_coordinates = self._get_padding_params(input_shape=image.shape[:2])  # HWC -> (H, W)
         processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
-
-        if is_input_channel_first:
-            processed_image = processed_image.transpose((2, 0, 1))  # HWC -> CHW
         return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
 
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
@@ -499,14 +481,6 @@ class KeypointsAutoPadding(Processing):
                 shift_w=-metadata.padding_coordinates.left,
             )
         return predictions
-
-    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
-        return None
-
-    @property
-    def resizes_image(self) -> bool:
-        # This implementation only pads the image, doesn't resize it.
-        return False
 
 
 class _Rescale(Processing, ABC):
