@@ -24,7 +24,7 @@ class TestSeparateLRGroups(unittest.TestCase):
 
     def test_no_parameter_intersection(self):
         model = LeNet()  # Create your model
-        lr_dict = {"head": 0.01, "backbone": 0.001, "compression3": 0.005, "default": 0.1}
+        lr_dict = {"fc3": 0.01, "fc2": 0.001, "fc1": 0.005, "default": 0.1}
 
         param_groups = separate_lr_groups(model, lr_dict)
 
@@ -89,6 +89,40 @@ class TestSeparateLRGroups(unittest.TestCase):
         param_groups_old = model.initialize_param_groups(0.005, training_params=HpmStruct(multiply_head_lr=10, loss=None))
 
         self._check_param_groups_assign_same_lrs(param_groups, param_groups_old)
+
+    def test_requires_grad_false(self):
+        # Test when some layers have requires_grad==False
+        model = LeNet()
+        lr_dict = {"fc2": 0.001, "fc1": 0.005, "default": 0.1}
+        for param in model.fc3.parameters():
+            param.requires_grad = False
+
+        param_groups = separate_lr_groups(model, lr_dict)
+        total_optimizable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+        # Extract tensors from the "named_params" entry in each dictionary
+        tensors_in_param_groups = [entry[1] for group in param_groups for entry in group["named_params"]]
+        total_params_in_param_groups = sum(t.numel() for t in tensors_in_param_groups)
+
+        self.assertEqual(total_params_in_param_groups, total_optimizable_params)
+
+    def test_initial_lr_zero(self):
+        # Test case when initial_lr = {"default": 1, "some_layer": 0}
+        model = LeNet()
+        lr_dict = {
+            "default": 1,
+            "fc1": 0,
+        }
+
+        param_groups = separate_lr_groups(model, lr_dict)
+        total_non_optimizable_params = sum(p.numel() for p in model.parameters() if not p.requires_grad)
+        total_model_params = sum(p.numel() for p in model.parameters())
+
+        # Extract tensors from the "named_params" entry in each dictionary
+        tensors_in_param_groups = [entry[1] for group in param_groups for entry in group["named_params"]]
+        total_params_in_param_groups = sum(t.numel() for t in tensors_in_param_groups)
+
+        self.assertEqual(total_params_in_param_groups, total_model_params - total_non_optimizable_params)
 
     def _check_param_groups_assign_same_lrs(self, param_groups, param_groups_old):
         names_lr_pairs = set([(sub_group[0], group["lr"]) for group in param_groups for sub_group in group["named_params"]])

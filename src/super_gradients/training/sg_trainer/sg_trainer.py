@@ -1439,6 +1439,8 @@ class Trainer:
             train_dataset_length=len(self.train_loader.dataset),
             train_dataloader_len=len(self.train_loader),
             max_train_batches=self.max_train_batches,
+            model=unwrap_model(self.net),
+            param_groups=self.optimizer.param_groups,
         )
 
         self._maybe_set_preprocessing_params_for_model_from_dataset()

@@ -105,8 +105,8 @@ def build_optimizer(net: nn.Module, lr: float, training_params) -> optim.Optimiz
     # OPTIMIZER PARAM GROUPS ARE SET USING DEFAULT OR MODEL SPECIFIC INIT
     if hasattr(net, "initialize_param_groups") or hasattr(net, "update_param_groups"):
         warnings.warn(
-            "initialize_param_groups and update_param_groups usages are deprecated since 3.3.2, will be removed in "
-            "3.4 and have no effect. \n "
+            "initialize_param_groups and update_param_groups usages are deprecated since 3.4.0, will be removed in "
+            "3.5.0 and have no effect. \n "
             "Assign different learning rates by passing a mapping of layer name prefixes to lr values through "
             "initial_lr training hyperparameter (i.e initial_lr={'backbone': 0.01, 'default':0.1})",
             DeprecationWarning,
@@ -155,7 +155,9 @@ def separate_lr_groups(model: nn.Module, lr_dict: Dict[str, float]) -> List[Dict
             param_groups.append({"named_params": named_params, "lr": lr, "name": group_name})
 
     if default_lr != 0:
-        default_named_params = [(name, param) for name, param in model.named_parameters() if all(name.startswith(group) is False for group in group_names)]
+        default_named_params = [
+            (name, param) for name, param in model.named_parameters() if all(name.startswith(group) is False for group in group_names) and param.requires_grad
+        ]
         if default_named_params:
             param_groups.append({"named_params": default_named_params, "lr": default_lr, "name": "default"})
 

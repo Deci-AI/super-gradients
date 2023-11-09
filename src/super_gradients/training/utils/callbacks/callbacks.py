@@ -1,6 +1,7 @@
 import copy
 import csv
 import math
+import numbers
 import os
 import signal
 import time
@@ -363,12 +364,12 @@ class LinearBatchLRWarmup(Callback):
                 f"Warmup steps will be capped to number of steps in epoch to avoid interfering with any pre-epoch LR schedulers."
             )
 
-        if isinstance(initial_lr, float) or isinstance(initial_lr, int):
+        if isinstance(initial_lr, numbers.Number):
             initial_lr = {"default": initial_lr}
         self.initial_lr = initial_lr
         self.lr = initial_lr.copy()
 
-        if isinstance(warmup_initial_lr, float):
+        if isinstance(warmup_initial_lr, numbers.Number):
             warmup_initial_lr = {group_name: warmup_initial_lr for group_name in self.lr.keys()}
         elif isinstance(warmup_initial_lr, Mapping):
             warmup_initial_lr = warmup_initial_lr
