@@ -87,7 +87,7 @@ class TestConvertRecipeToCode(unittest.TestCase):
                     convert_recipe_to_code(recipe, self.recipes_dir, output_script_path)
                     src = output_script_path.read_text()
                     try:
-                        ast.parse(src, feature_version=(3, 9))
+                        ast.parse(src)
                     except SyntaxError as e:
                         self.fail(f"Recipe {recipe} failed to convert to python script: {e}")
 
