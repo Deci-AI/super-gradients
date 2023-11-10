@@ -82,7 +82,7 @@ class YoloNASPoseCollateFN:
                        - joints - [NumInstances, NumJoints, 3] - torch tensor of pose joints for each pose instance in a sample
                        - is_crowd - [NumInstances, 1] - torch tensor of boolean flags indicating if a pose instance is crowd
         """
-        if sample.image.shape[:2] != sample.mask.shape[:2]:
+        if sample.mask is not None and sample.image.shape[:2] != sample.mask.shape[:2]:
             raise ValueError(f"Image and mask should have the same shape {sample.image.shape[:2]} != {sample.mask.shape[:2]}")
 
         boxes_xyxy = xywh_to_xyxy(sample.bboxes_xywh, image_shape=None)
@@ -169,7 +169,7 @@ class MultiscaleYoloNASPoseCollateFN:
                        - joints - [NumInstances, NumJoints, 3] - torch tensor of pose joints for each pose instance in a sample
                        - is_crowd - [NumInstances, 1] - torch tensor of boolean flags indicating if a pose instance is crowd
         """
-        if sample.image.shape[:2] != sample.mask.shape[:2]:
+        if sample.mask is not None and sample.image.shape[:2] != sample.mask.shape[:2]:
             raise ValueError(f"Image and mask should have the same shape {sample.image.shape[:2]} != {sample.mask.shape[:2]}")
 
         boxes_xyxy = xywh_to_xyxy(sample.bboxes_xywh, image_shape=None)
