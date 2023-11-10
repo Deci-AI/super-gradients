@@ -3,6 +3,7 @@ import os
 import platform
 
 import psutil
+import torch
 
 from super_gradients.common.environment.env_variables import env_variables
 
@@ -14,7 +15,8 @@ def mute_subprocesses():
     if int(env_variables.LOCAL_RANK) > 0:
         mute_current_process()
 
-    mute_non_linux_dataloader_worker_process()
+    if torch.utils.data.get_worker_info() is not None:
+        mute_current_process()
 
 
 def mute_current_process():
