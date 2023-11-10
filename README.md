@@ -224,6 +224,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3SkMohx) [Object Detection Transfer Learning](https://bit.ly/3SkMohx)
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3dqDlg3) [How to Connect Custom Dataset](https://bit.ly/3SkMohx)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/yolo_nas_custom_dataset_fine_tuning_with_qat.ipynb) [Quantization Aware Training YoloNAS on Custom Dataset](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/yolo_nas_custom_dataset_fine_tuning_with_qat.ipynb)
 
 ### How to Predict Using Pre-trained Model
 
