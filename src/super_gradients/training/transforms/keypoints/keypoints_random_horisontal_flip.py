@@ -33,7 +33,7 @@ class KeypointsRandomHorizontalFlip(AbstractKeypointTransform):
         :param sample: Input pose estimation sample.
         :return:       A new pose estimation sample.
         """
-        if sample.image.shape[:2] != sample.mask.shape[:2]:
+        if sample.mask is not None and sample.image.shape[:2] != sample.mask.shape[:2]:
             raise RuntimeError(f"Image shape ({sample.image.shape[:2]}) does not match mask shape ({sample.mask.shape[:2]}).")
 
         if random.random() < self.prob:
