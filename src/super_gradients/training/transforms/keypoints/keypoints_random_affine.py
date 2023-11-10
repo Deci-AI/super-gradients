@@ -115,9 +115,10 @@ class KeypointsRandomAffineTransform(AbstractKeypointTransform):
             sample.image = self.apply_to_image(
                 sample.image, mat_output, interpolation=interpolation, padding_value=image_pad_value, padding_mode=cv2.BORDER_CONSTANT
             )
-            sample.mask = self.apply_to_image(
-                sample.mask, mat_output, interpolation=cv2.INTER_NEAREST, padding_value=self.mask_pad_value, padding_mode=cv2.BORDER_CONSTANT
-            )
+            if sample.mask is not None:
+                sample.mask = self.apply_to_image(
+                    sample.mask, mat_output, interpolation=cv2.INTER_NEAREST, padding_value=self.mask_pad_value, padding_mode=cv2.BORDER_CONSTANT
+                )
 
             sample.joints = self.apply_to_keypoints(sample.joints, mat_output, sample.image.shape[:2])
 

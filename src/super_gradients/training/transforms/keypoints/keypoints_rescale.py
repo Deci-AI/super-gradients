@@ -40,7 +40,8 @@ class KeypointsRescale(AbstractKeypointTransform):
             sx = self.width / width
 
             sample.image = self.apply_to_image(sample.image, dsize=(self.width, self.height), interpolation=self.interpolation)
-            sample.mask = self.apply_to_image(sample.mask, dsize=(self.width, self.height), interpolation=cv2.INTER_NEAREST)
+            if self.mask is not None:
+                sample.mask = self.apply_to_image(sample.mask, dsize=(self.width, self.height), interpolation=cv2.INTER_NEAREST)
 
             sample.joints = self.apply_to_keypoints(sample.joints, sx, sy)
             if sample.bboxes_xywh is not None:

@@ -38,7 +38,8 @@ class KeypointsRandomHorizontalFlip(AbstractKeypointTransform):
 
         if random.random() < self.prob:
             sample.image = self.apply_to_image(sample.image)
-            sample.mask = self.apply_to_image(sample.mask)
+            if sample.mask is not None:
+                sample.mask = self.apply_to_image(sample.mask)
             rows, cols = sample.image.shape[:2]
             sample.joints = self.apply_to_keypoints(sample.joints, cols)
 

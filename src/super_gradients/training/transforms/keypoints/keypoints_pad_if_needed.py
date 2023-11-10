@@ -54,15 +54,16 @@ class KeypointsPadIfNeeded(AbstractKeypointTransform):
             sample.image, top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right, value=image_pad_value, borderType=cv2.BORDER_CONSTANT
         )
 
-        sample.mask = cv2.copyMakeBorder(
-            sample.mask.astype(np.uint8),
-            top=pad_top,
-            bottom=pad_bottom,
-            left=pad_left,
-            right=pad_right,
-            value=self.mask_pad_value,
-            borderType=cv2.BORDER_CONSTANT,
-        ).astype(original_dtype)
+        if sample.mask is not None:
+            sample.mask = cv2.copyMakeBorder(
+                sample.mask.astype(np.uint8),
+                top=pad_top,
+                bottom=pad_bottom,
+                left=pad_left,
+                right=pad_right,
+                value=self.mask_pad_value,
+                borderType=cv2.BORDER_CONSTANT,
+            ).astype(original_dtype)
 
         sample.joints = self.apply_to_keypoints(sample.joints, pad_left, pad_top)
         if sample.bboxes_xywh is not None:

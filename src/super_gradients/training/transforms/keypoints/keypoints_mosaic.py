@@ -122,7 +122,10 @@ class KeypointsMosaic(AbstractKeypointTransform):
         sample.image = cv2.copyMakeBorder(
             sample.image, top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right, borderType=cv2.BORDER_CONSTANT, value=self.pad_value
         )
-        sample.mask = cv2.copyMakeBorder(sample.mask, top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right, borderType=cv2.BORDER_CONSTANT, value=1)
+        if sample.mask is not None:
+            sample.mask = cv2.copyMakeBorder(
+                sample.mask, top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right, borderType=cv2.BORDER_CONSTANT, value=1
+            )
 
         sample.joints[:, :, 0] += pad_left
         sample.joints[:, :, 1] += pad_top
@@ -152,7 +155,10 @@ class KeypointsMosaic(AbstractKeypointTransform):
             right = self._pad_sample(right, pad_bottom=max_height - right.image.shape[0])
 
         image = np.concatenate([left.image, right.image], axis=1)
-        mask = np.concatenate([left.mask, right.mask], axis=1)
+        if left.mask is not None:
+            mask = np.concatenate([left.mask, right.mask], axis=1)
+        else:
+            mask = None
 
         left_sample_width = left.image.shape[1]
 
@@ -191,7 +197,10 @@ class KeypointsMosaic(AbstractKeypointTransform):
         bottom = self._pad_sample(bottom, pad_left=pad_left, pad_right=pad_right)
 
         image = np.concatenate([top.image, bottom.image], axis=0)
-        mask = np.concatenate([top.mask, bottom.mask], axis=0)
+        if top.mask is not None:
+            mask = np.concatenate([top.mask, bottom.mask], axis=0)
+        else:
+            mask = None
 
         top_sample_height = top.image.shape[0]
 

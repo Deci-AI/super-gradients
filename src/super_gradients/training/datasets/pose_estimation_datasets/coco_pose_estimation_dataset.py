@@ -170,10 +170,10 @@ class COCOPoseEstimationDataset(AbstractPoseEstimationDataset):
         xyxy_bboxes[:, 3] = np.clip(xyxy_bboxes[:, 3], 0, image_height)
         gt_bboxes = xyxy_to_xywh(xyxy_bboxes, image_shape=(image_height, image_width))
 
-        mask: np.ndarray = self._get_crowd_mask(anno, image_info)
+        # mask: np.ndarray = self._get_crowd_mask(anno, image_info)
 
         return PoseEstimationSample(
-            image=orig_image, mask=mask, joints=gt_joints, areas=gt_areas, bboxes_xywh=gt_bboxes, is_crowd=gt_iscrowd, additional_samples=None
+            image=orig_image, mask=None, joints=gt_joints, areas=gt_areas, bboxes_xywh=gt_bboxes, is_crowd=gt_iscrowd, additional_samples=None
         )
 
     def _get_crowd_mask(self, anno, img_info) -> np.ndarray:

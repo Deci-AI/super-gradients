@@ -54,7 +54,8 @@ class YoloNASPoseCollateFN:
             # Convert image & mask to tensors
             # Change image layout from HWC to CHW
             sample.image = torch.from_numpy(np.transpose(sample.image, [2, 0, 1]))
-            sample.mask = torch.from_numpy(sample.mask)
+            if sample.mask is not None:
+                sample.mask = torch.from_numpy(sample.mask)
             all_images.append(sample.image)
 
             # Remove image and mask from sample because at this point we don't need them anymore
@@ -139,7 +140,9 @@ class MultiscaleYoloNASPoseCollateFN:
             # Convert image & mask to tensors
             # Change image layout from HWC to CHW
             sample.image = torch.from_numpy(np.transpose(sample.image, [2, 0, 1]))
-            sample.mask = torch.from_numpy(sample.mask)
+            if sample.mask is not None:
+                sample.mask = torch.from_numpy(sample.mask)
+
             all_images.append(sample.image)
 
             # Remove image and mask from sample because at this point we don't need them anymore
@@ -188,11 +191,14 @@ class MultiscaleYoloNASPoseCollateFN:
             interpolation=interpolation,
         )
 
-        mask = cv2.resize(
-            sample.mask,
-            dsize=(target_width, target_height),
-            interpolation=cv2.INTER_NEAREST,
-        )
+        if sample.mask is not None:
+            mask = cv2.resize(
+                sample.mask,
+                dsize=(target_width, target_height),
+                interpolation=cv2.INTER_NEAREST,
+            )
+        else:
+            mask = None
 
         return PoseEstimationSample(
             image=image,

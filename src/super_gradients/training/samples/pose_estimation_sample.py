@@ -31,7 +31,7 @@ class PoseEstimationSample:
     __slots__ = ["image", "mask", "joints", "areas", "bboxes_xywh", "is_crowd", "additional_samples"]
 
     image: Union[np.ndarray, torch.Tensor]
-    mask: Union[np.ndarray, torch.Tensor]
+    mask: Union[np.ndarray, torch.Tensor, None]
     joints: np.ndarray
     areas: Optional[np.ndarray]
     bboxes_xywh: Optional[np.ndarray]
