@@ -3,7 +3,9 @@ import os
 import platform
 
 import psutil
+import torch
 
+from super_gradients.common.deprecate import deprecated
 from super_gradients.common.environment.env_variables import env_variables
 
 
@@ -54,11 +56,15 @@ def mute_non_linux_dataloader_worker_process() -> None:
         Knowing that depending on how the script is launched, main_process might be child of other non "python" processes such as:
                 ssh(non-python) -> pycharm(non-python) -> main_process(python) -> ...
     """
-
-    if is_non_linux_dataloader_worker_process():
+    if torch.utils.data.get_worker_info() is not None:
         mute_current_process()
 
 
+@deprecated(
+    deprecated_since="3.4.1",
+    removed_from="3.6.0",
+    reason="This function is not used anymore and we migrated to using torch.utils.data.get_worker_info() instead.",
+)
 def is_non_linux_dataloader_worker_process() -> bool:
     """Check if current process is a dataloader worker process on a non linux device."""
     if any(os_name in platform.platform() for os_name in ["macOS", "Windows"]):
