@@ -89,6 +89,10 @@ dataset_params:
 
   train_dataloader_params:
     batch_size: 32
+    num_workers: 16
+    persistent_workers: True
 
   val_dataloader_params:
     batch_size: 32
+    num_workers: 8
+    persistent_workers: True
