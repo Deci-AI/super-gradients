@@ -47,6 +47,12 @@ class KeypointsMixup(AbstractKeypointTransform):
         super().__init__(additional_samples_count=1)
         self.prob = prob
 
+    def get_additional_samples_count(self):
+        if random.random() < self.prob:
+            return self.additional_samples_count
+        else:
+            return 0
+
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         """
         Apply the transform to a single sample.
@@ -54,7 +60,7 @@ class KeypointsMixup(AbstractKeypointTransform):
         :param sample: An input sample. It should have one additional sample in `additional_samples` field.
         :return:       A new pose estimation sample that represents the mixup sample.
         """
-        if random.random() < self.prob:
+        if sample.additional_samples is not None and len(sample.additional_samples) == self.additional_samples_count:
             other = sample.additional_samples[0]
             if sample.image.shape != other.image.shape:
                 raise RuntimeError(
@@ -73,7 +79,10 @@ class KeypointsMixup(AbstractKeypointTransform):
         :return:       Mixup sample.
         """
         image = (sample.image * 0.5 + other.image * 0.5).astype(sample.image.dtype)
-        mask = np.logical_or(sample.mask, other.mask).astype(sample.mask.dtype)
+        if sample.mask is not None:
+            mask = np.logical_or(sample.mask, other.mask).astype(sample.mask.dtype)
+        else:
+            mask = None
         joints = np.concatenate([sample.joints, other.joints], axis=0)
         is_crowd = np.concatenate([sample.is_crowd, other.is_crowd], axis=0)
 

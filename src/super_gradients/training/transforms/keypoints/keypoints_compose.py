@@ -95,7 +95,8 @@ class KeypointsCompose(AbstractKeypointTransform):
                 sample = t.apply_to_sample(sample)
                 applied_transforms_so_far.append(t)
             else:
-                additional_samples = [load_sample_fn() for _ in range(t.additional_samples_count)]
+                num_samples = t.get_additional_samples_count()
+                additional_samples = [load_sample_fn() for _ in range(num_samples)]
                 additional_samples = [
                     cls._apply_transforms(
                         sample,
