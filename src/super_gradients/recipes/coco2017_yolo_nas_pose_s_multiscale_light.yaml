@@ -90,9 +90,9 @@ dataset_params:
   train_dataloader_params:
     batch_size: 24
     num_workers: 8
-    persistent_workers: False
+    persistent_workers: True
 
   val_dataloader_params:
     batch_size: 24
     num_workers: 8
-    persistent_workers: False
+    persistent_workers: True
