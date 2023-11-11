@@ -64,7 +64,7 @@ training_hyperparams:
         verbose: True
 
   sync_bn: False
-  initial_lr: 1e-4 # Scale factor to account reduced batch size
+  initial_lr: 5e-4 # Scale factor to account reduced batch size
   optimizer_params:
     weight_decay: 0
 
