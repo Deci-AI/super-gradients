@@ -34,7 +34,6 @@ class KeypointsPadIfNeeded(AbstractKeypointTransform):
 
     def apply_to_sample(self, sample: PoseEstimationSample) -> PoseEstimationSample:
         height, width = sample.image.shape[:2]
-        original_dtype = sample.mask.dtype
 
         if self.padding_mode == "bottom_right":
             pad_left = 0
@@ -55,6 +54,7 @@ class KeypointsPadIfNeeded(AbstractKeypointTransform):
         )
 
         if sample.mask is not None:
+            original_dtype = sample.mask.dtype
             sample.mask = cv2.copyMakeBorder(
                 sample.mask.astype(np.uint8),
                 top=pad_top,
