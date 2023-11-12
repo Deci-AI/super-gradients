@@ -1,10 +1,15 @@
 import unittest
+from copy import deepcopy
 
+from super_gradients import Trainer
 from super_gradients.common.object_names import Models
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
+from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models import LeNet
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.optimizer_utils import separate_lr_groups
 from super_gradients.training import models
+from super_gradients.training.utils.utils import check_models_have_same_weights
 
 
 class TestSeparateLRGroups(unittest.TestCase):
@@ -123,6 +128,47 @@ class TestSeparateLRGroups(unittest.TestCase):
         total_params_in_param_groups = sum(t.numel() for t in tensors_in_param_groups)
 
         self.assertEqual(total_params_in_param_groups, total_model_params - total_non_optimizable_params)
+
+    def test_train_with_lr_assignment(self):
+        # Define Model
+        net = LeNet()
+        net_before_train = deepcopy(net)
+
+        trainer = Trainer("test_train_with_lr_assignment")
+
+        train_params = {
+            "max_epochs": 3,
+            "lr_updates": [],
+            "lr_decay_factor": 0.1,
+            "lr_mode": "StepLRScheduler",
+            "initial_lr": {
+                "default": 0,
+                "fc3": 0.1,
+            },
+            "loss": "CrossEntropyLoss",
+            "optimizer": "SGD",
+            "criterion_params": {},
+            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+            "train_metrics_list": [Accuracy()],
+            "valid_metrics_list": [Accuracy()],
+            "metric_to_watch": "Accuracy",
+            "greater_metric_to_watch_is_better": True,
+            "ema": False,
+            "phase_callbacks": [],
+        }
+
+        trainer.train(
+            model=net,
+            training_params=train_params,
+            train_loader=classification_test_dataloader(batch_size=4),
+            valid_loader=classification_test_dataloader(batch_size=4),
+        )
+
+        self.assertTrue(check_models_have_same_weights(net_before_train.conv1, net.conv1))
+        self.assertTrue(check_models_have_same_weights(net_before_train.conv2, net.conv2))
+        self.assertTrue(check_models_have_same_weights(net_before_train.fc1, net.fc1))
+        self.assertTrue(check_models_have_same_weights(net_before_train.fc2, net.fc2))
+        self.assertFalse(check_models_have_same_weights(net_before_train.fc3, net.fc3))
 
     def _check_param_groups_assign_same_lrs(self, param_groups, param_groups_old):
         names_lr_pairs = set([(sub_group[0], group["lr"]) for group in param_groups for sub_group in group["named_params"]])
