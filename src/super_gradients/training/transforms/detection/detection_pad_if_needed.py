@@ -1,7 +1,5 @@
 from typing import List
 
-import numpy as np
-
 from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.training.samples import DetectionSample
@@ -17,10 +15,10 @@ class DetectionPadIfNeeded(AbstractDetectionTransform):
 
     def __init__(self, min_height: int, min_width: int, pad_value: int, padding_mode: str = "bottom_right"):
         """
-
-        :param output_size:     Desired image size (rows, cols)
-        :param pad_value: Padding value of image
-        :param mask_pad_value:  Padding value for mask
+        :param min_height:     Minimal height of the image.
+        :param min_width:      Minimal width of the image.
+        :param pad_value:      Padding value of image
+        :param padding_mode:   Padding mode. Supported modes: 'bottom_right', 'center'.
         """
         if padding_mode not in ("bottom_right", "center"):
             raise ValueError(f"Unknown padding mode: {padding_mode}. Supported modes: 'bottom_right', 'center'")
@@ -31,6 +29,11 @@ class DetectionPadIfNeeded(AbstractDetectionTransform):
         self.padding_mode = padding_mode
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        """
+        Apply transform to a single sample.
+        :param sample: Input detection sample.
+        :return:       Transformed detection sample.
+        """
         height, width = sample.image.shape[:2]
 
         if self.padding_mode == "bottom_right":
@@ -49,12 +52,8 @@ class DetectionPadIfNeeded(AbstractDetectionTransform):
         padding_coordinates = PaddingCoordinates(top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right)
 
         sample.image = _pad_image(sample.image, padding_coordinates, self.image_pad_value)
-        sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, pad_left, pad_top)
+        sample.bboxes_xywh = _shift_bboxes_xywh(sample.bboxes_xywh, pad_left, pad_top)
         return sample
-
-    def apply_to_bboxes(self, bboxes: np.ndarray, pad_left, pad_top):
-        bboxes = _shift_bboxes_xywh(bboxes, shift_w=pad_left, shift_h=pad_top)
-        return bboxes
 
     def get_equivalent_preprocessing(self) -> List:
         if self.padding_mode == "bottom_right":

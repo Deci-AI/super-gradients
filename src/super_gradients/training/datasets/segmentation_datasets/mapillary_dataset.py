@@ -104,7 +104,7 @@ class MapillaryDataset(SegmentationDataSet):
             else:
                 raise AssertionError(f"Sample and/or target file(s) not found or in illegal format " f"(sample path: {sample_path}, target path: {label_path})")
 
-    def apply_color_map(self, target: Image) -> np.array:
+    def apply_color_map(self, target: Image) -> np.ndarray:
         """
         Convert a greyscale target PIL image to an RGB numpy array according to the official Mapillary color map.
         """

@@ -6,8 +6,6 @@ import cv2
 
 import numpy as np
 
-from super_gradients.training.utils.detection_utils import xyxy2cxcywh, cxcywh2xyxy
-
 
 @dataclass
 class PaddingCoordinates:
@@ -154,7 +152,7 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
     return np.pad(image, pad_width=padding_values, mode="constant", constant_values=constant_values)
 
 
-def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:
+def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.ndarray:
     """Shift bboxes with respect to padding values.
 
     :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
@@ -168,7 +166,7 @@ def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array
     return np.concatenate((boxes, labels), 1)
 
 
-def _shift_bboxes_xywh(targets: np.array, shift_w: float, shift_h: float) -> np.array:
+def _shift_bboxes_xywh(targets: np.array, shift_w: float, shift_h: float) -> np.ndarray:
     """Shift bboxes with respect to padding values.
 
     :param targets:  Bboxes to transform of shape (N, 4+), in format [x, y, w, h, ...]
@@ -182,7 +180,7 @@ def _shift_bboxes_xywh(targets: np.array, shift_w: float, shift_h: float) -> np.
     return np.concatenate((boxes, labels), 1)
 
 
-def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.array:
+def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.ndarray:
     """Shift keypoints with respect to padding values.
 
     :param targets:  Keypoints to transform of shape (N, 2+), or (N, K, 2+), in format [x1, y1, ...]
@@ -196,19 +194,14 @@ def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.ar
     return targets
 
 
-def _rescale_xyxy_bboxes(targets: np.array, r: float) -> np.array:
+def _rescale_xyxy_bboxes(targets: np.array, r: float) -> np.ndarray:
     """Scale targets to given scale factors.
 
     :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
     :param r:        DetectionRescale coefficient that was applied to the image
     :return:         Rescaled Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
     """
-    targets = targets.copy()
-    boxes, targets = targets[:, :4], targets[:, 4:]
-    boxes = xyxy2cxcywh(boxes)
-    boxes *= r
-    boxes = cxcywh2xyxy(boxes)
-    return np.concatenate((boxes, targets), 1)
+    return _rescale_bboxes(targets, (r, r))
 
 
 def _rescale_and_pad_to_size(image: np.ndarray, output_shape: Tuple[int, int], swap: Tuple[int] = (2, 0, 1), pad_val: int = 114) -> Tuple[np.ndarray, float]:

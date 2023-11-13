@@ -1,10 +1,9 @@
 import abc
-import collections
 import math
 import random
 import warnings
 from numbers import Number
-from typing import Optional, Union, Tuple, List, Sequence, Dict, Any
+from typing import Optional, Union, Tuple, List, Sequence, Dict, Any, Iterable
 
 import cv2
 import numpy as np
@@ -174,7 +173,7 @@ class SegRandomRescale:
         """
         Check the scale values are valid. if order is wrong, flip the order and return the right scale values.
         """
-        if not isinstance(self.scales, collections.abc.Iterable):
+        if not isinstance(self.scales, Iterable):
             if self.scales <= 1:
                 self.scales = (self.scales, 1)
             else:
@@ -265,7 +264,7 @@ class SegCropImageAndMask(SegmentationTransform):
         if self.mode not in ["center", "random"]:
             raise ValueError(f"Unsupported mode: found: {self.mode}, expected: 'center' or 'random'")
 
-        if not isinstance(self.crop_size, collections.abc.Iterable):
+        if not isinstance(self.crop_size, Iterable):
             self.crop_size = (self.crop_size, self.crop_size)
         if self.crop_size[0] <= 0 or self.crop_size[1] <= 0:
             raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
@@ -335,7 +334,7 @@ class SegPadShortToCropSize(SegmentationTransform):
         return sample
 
     def check_valid_arguments(self):
-        if not isinstance(self.crop_size, collections.abc.Iterable):
+        if not isinstance(self.crop_size, Iterable):
             self.crop_size = (self.crop_size, self.crop_size)
         if self.crop_size[0] <= 0 or self.crop_size[1] <= 0:
             raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
@@ -386,7 +385,7 @@ class SegColorJitter(transforms.ColorJitter):
 
 
 def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple, List]):
-    if not isinstance(fill_image, collections.abc.Iterable):
+    if not isinstance(fill_image, Iterable):
         # If fill_image is single value, turn to grey color in RGB mode.
         fill_image = (fill_image, fill_image, fill_image)
     elif len(fill_image) != 3:
@@ -671,7 +670,7 @@ class DetectionMixup(DetectionTransform):
             if random.random() < self.prob:
                 _, width, _ = img.shape
                 img = _flip_horizontal_image(img)
-                cp_boxes = _flip_horizontal_boxes(cp_boxes, width)
+                cp_boxes = _flip_horizontal_boxes_xyxy(cp_boxes, width)
             # PLUG IN TARGET THE FLIPPED BOXES
             cp_labels[:, :4] = cp_boxes
 
@@ -778,7 +777,7 @@ class DetectionPadToSize(DetectionPadIfNeeded, LegacyDetectionTransformMixin):
 
 
 @register_transform(Transforms.DetectionPaddedRescale)
-class DetectionPaddedRescale(DetectionTransform):
+class DetectionPaddedRescale(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Preprocessing transform to be applied last of all transforms for validation.
 
@@ -809,6 +808,13 @@ class DetectionPaddedRescale(DetectionTransform):
             sample["crowd_target"] = _rescale_xyxy_bboxes(crowd_targets, r)
         return sample
 
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        raise RuntimeError(
+            "Apply to sample is not supported in DetectionPaddedRescale."
+            "This is done intentionally to discourage usage of the deprecated transform in new detection datasets."
+            "Please use DetectionLongestMaxSize + DetectionPadIfNeeded instead"
+        )
+
     def get_equivalent_preprocessing(self) -> List[Dict]:
         return [
             {Processings.DetectionLongestMaxSizeRescale: {"output_shape": self.input_dim}},
@@ -829,16 +835,15 @@ class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransfo
         super(DetectionHorizontalFlip, self).__init__()
         self.prob = float(prob)
 
-    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
-        return _flip_vertical_image(image)
-
-    def apply_to_bboxes(self, bboxes: np.ndarray, image_width) -> np.ndarray:
-        return _flip_horizontal_boxes(bboxes, image_width)
-
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        """
+        Apply horizontal flip to sample
+        :param sample: Input detection sample
+        :return:       Transformed detection sample
+        """
         if random.random() < self.prob:
-            sample.image = self.apply_to_image(sample.image)
-            sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, sample.image.shape[0])
+            sample.image = _flip_vertical_image(sample.image)
+            sample.bboxes_xywh = _flip_horizontal_boxes_xyxy(sample.bboxes_xywh, sample.image.shape[0])
         return sample
 
 
@@ -984,15 +989,12 @@ class DetectionRGB2BGR(AbstractDetectionTransform, LegacyDetectionTransformMixin
         self.prob = float(prob)
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        if sample.image.shape[2] < 3:
-            raise ValueError("DetectionRGB2BGR transform expects at least 3 channels, got: " + str(sample.image.shape[2]))
+        if len(sample.image.shape) != 3 or sample.image.shape[2] < 3:
+            raise ValueError("DetectionRGB2BGR transform expects image to have 3 channels, got input image shape: " + str(sample.image.shape))
         if random.random() < self.prob:
-            sample.image = self.apply_to_image(sample.image)
-        return sample
+            sample.image = np.ascontiguousarray(sample.image[..., ::-1])
 
-    @classmethod
-    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
-        return image[..., ::-1]
+        return sample
 
     def get_equivalent_preprocessing(self) -> List:
         if self.prob < 1:
@@ -1347,13 +1349,29 @@ def _flip_horizontal_image(image: np.ndarray) -> np.ndarray:
     return image[:, ::-1]
 
 
-def _flip_horizontal_boxes(boxes: np.ndarray, img_width: int) -> np.ndarray:
+def _flip_horizontal_boxes_xywh(boxes: np.ndarray, img_width: int) -> np.ndarray:
     """
-    Horizontally flips bboxes
-    :param boxes: bboxes to be flipped. (xyxy format)
-    :return: flipped_boxes
+    Horizontally flips bboxes in XYWH format
+    The function modifies the input array in place, and returns it.
+
+    :param boxes:     Input bboxes in XYWH format of [..., 4] shape.
+    :param img_width: Image width
+    :return:          Output bboxes in XYWH format of [..., 4] shape.
     """
-    boxes[:, [0, 2]] = img_width - boxes[:, [2, 0]]
+    boxes[..., 0] = img_width - boxes[..., 0]
+    return boxes
+
+
+def _flip_horizontal_boxes_xyxy(boxes: np.ndarray, img_width: int) -> np.ndarray:
+    """
+    Horizontally flips bboxes in XYXY format.
+    The function modifies the input array in place, and returns it.
+
+    :param boxes: Input boxes in XYXY format of [..., 4] shape.
+    :param img_width: Image width
+    :return:          Output bboxes in XYXY format of [..., 4] shape.
+    """
+    boxes[..., [0, 2]] = img_width - boxes[..., [2, 0]]
     return boxes
 
 
