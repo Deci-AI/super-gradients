@@ -27,5 +27,5 @@ predictions.save("pose_elephant_flip_prediction.mp4")
 predictions = model.predict(video_path)
 predictions.save("pose_elephant_flip_prediction.gif")  # Can also be saved as a gif.
 
-# predictions = model.predict(video_path)
-# predictions.show()
+predictions = model.predict(video_path)
+predictions.show()
