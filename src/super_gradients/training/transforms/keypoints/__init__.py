@@ -15,6 +15,7 @@ from .keypoints_rescale import KeypointsRescale
 from .keypoints_random_rotate90 import KeypointsRandomRotate90
 from .keypoints_image_to_tensor import KeypointsImageToTensor
 from .keypoints_remove_small_objects import KeypointsRemoveSmallObjects
+from .keypoints_reverse_image_channels import KeypointsReverseImageChannels
 
 __all__ = [
     "AbstractKeypointTransform",
@@ -35,4 +36,5 @@ __all__ = [
     "KeypointsRandomRotate90",
     "KeypointsImageToTensor",
     "KeypointsRemoveSmallObjects",
+    "KeypointsReverseImageChannels",
 ]

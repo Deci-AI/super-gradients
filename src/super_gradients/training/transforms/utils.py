@@ -1,4 +1,6 @@
-from typing import Tuple
+import numbers
+import typing
+from typing import Tuple, Union
 from dataclasses import dataclass
 import cv2
 
@@ -24,6 +26,23 @@ def _rescale_image(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarr
     """
     height, width = target_shape[:2]
     return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_LINEAR)
+
+
+def _rescale_image_with_pil(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarray:
+    """Rescale image to target_shape, without preserving aspect ratio using PIL.
+    OpenCV and PIL has slightly different implementations of interpolation methods.
+    OpenCV has faster resizing, however PIL is more accurate (not introducing aliasing artifacts).
+    We use this method in some preprocessing transforms where we want to keep the compatibility with
+    torchvision transforms.
+
+    :param image:           Image to rescale. (H, W, C) or (H, W).
+    :param target_shape:    Target shape to rescale to (H, W).
+    :return:                Rescaled image.
+    """
+    height, width = target_shape[:2]
+    from PIL import Image
+
+    return np.array(Image.fromarray(image).resize((width, height), Image.BILINEAR))
 
 
 def _rescale_bboxes(targets: np.ndarray, scale_factors: Tuple[float, float]) -> np.ndarray:
@@ -89,22 +108,50 @@ def _get_bottom_right_padding_coordinates(input_shape: Tuple[int, int], output_s
     return PaddingCoordinates(top=0, bottom=pad_height, left=0, right=pad_width)
 
 
-def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_value: int) -> np.ndarray:
+def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_value: Union[int, Tuple[int, ...]]) -> np.ndarray:
     """Pad an image.
 
     :param image:       Image to shift. (H, W, C) or (H, W).
     :param pad_h:       Tuple of (padding_top, padding_bottom).
     :param pad_w:       Tuple of (padding_left, padding_right).
-    :param pad_value:   Padding value
+    :param pad_value:   Padding value. Can be a single scalar (Same value for all channels) or a tuple of values.
+                        In the latter case, the tuple length must be equal to the number of channels.
     :return:            Image shifted according to padding coordinates.
     """
     pad_h = (padding_coordinates.top, padding_coordinates.bottom)
     pad_w = (padding_coordinates.left, padding_coordinates.right)
 
     if len(image.shape) == 3:
-        return np.pad(image, (pad_h, pad_w, (0, 0)), "constant", constant_values=pad_value)
+        _, _, num_channels = image.shape
+
+        if isinstance(pad_value, numbers.Number):
+            pad_value = tuple([pad_value] * num_channels)
+        else:
+            if isinstance(pad_value, typing.Sized) and len(pad_value) != num_channels:
+                raise ValueError(f"A pad_value tuple ({pad_value} length should be {num_channels} for an image with {num_channels} channels")
+
+            pad_value = tuple(pad_value)
+
+        constant_values = ((pad_value, pad_value), (pad_value, pad_value), (0, 0))
+        # Fixes issue with numpy deprecation warning since constant_values is ragged array (Have to explicitly specify object dtype)
+        constant_values = np.array(constant_values, dtype=np.object_)
+
+        padding_values = (pad_h, pad_w, (0, 0))
     else:
-        return np.pad(image, (pad_h, pad_w), "constant", constant_values=pad_value)
+        if isinstance(pad_value, numbers.Number):
+            pass
+        elif isinstance(pad_value, typing.Sized):
+            if len(pad_value) != 1:
+                raise ValueError(f"A pad_value tuple ({pad_value} length should be 1 for a grayscale image")
+            else:
+                (pad_value,) = pad_value  # Unpack to a single scalar
+        else:
+            raise ValueError(f"Unsupported pad_value type {type(pad_value)}")
+
+        constant_values = pad_value
+        padding_values = (pad_h, pad_w)
+
+    return np.pad(image, pad_width=padding_values, mode="constant", constant_values=constant_values)
 
 
 def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.array:

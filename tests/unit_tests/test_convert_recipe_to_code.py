@@ -49,6 +49,10 @@ class TestConvertRecipeToCode(unittest.TestCase):
             "supervisely_unet.yaml",
             "user_recipe_mnist_as_external_dataset_example.yaml",
             "user_recipe_mnist_example.yaml",
+            "coco2017_yolo_nas_pose_m.yaml",
+            "coco2017_yolo_nas_pose_l.yaml",
+            "coco2017_yolo_nas_pose_n.yaml",
+            "coco2017_yolo_nas_pose_s.yaml",
         ]
 
         self.recipes_that_does_not_work = [
@@ -83,7 +87,7 @@ class TestConvertRecipeToCode(unittest.TestCase):
                     convert_recipe_to_code(recipe, self.recipes_dir, output_script_path)
                     src = output_script_path.read_text()
                     try:
-                        ast.parse(src, feature_version=(3, 9))
+                        ast.parse(src)
                     except SyntaxError as e:
                         self.fail(f"Recipe {recipe} failed to convert to python script: {e}")
 

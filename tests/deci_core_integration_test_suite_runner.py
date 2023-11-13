@@ -1,7 +1,7 @@
 import sys
 import unittest
 
-from tests.integration_tests import EMAIntegrationTest, LRTest, PoseEstimationModelsIntegrationTest, YoloNASIntegrationTest
+from tests.integration_tests import EMAIntegrationTest, LRTest, PoseEstimationModelsIntegrationTest, YoloNASIntegrationTest, YoloNASPoseIntegrationTest
 
 
 class CoreIntegrationTestSuiteRunner:
@@ -20,6 +20,7 @@ class CoreIntegrationTestSuiteRunner:
         self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRTest))
         self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(PoseEstimationModelsIntegrationTest))
         self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(YoloNASIntegrationTest))
+        self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(YoloNASPoseIntegrationTest))
 
 
 if __name__ == "__main__":

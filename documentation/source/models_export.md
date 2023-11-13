@@ -30,12 +30,8 @@ A new export API is introduced in SG 3.2.0. It is aimed to simplify the export p
 
 
 ```python
-!pip install super_gradients==3.3.1
+!pip install -qq super_gradients==3.4.0
 ```
-
-    ERROR: Could not find a version that satisfies the requirement super_gradients==3.3.1 (from versions: 1.3.0, 1.3.1, 1.4.0, 1.5.0, 1.5.1, 1.5.2, 1.6.0, 1.7.1, 1.7.2, 1.7.3, 1.7.4, 1.7.5, 2.0.0, 2.0.1, 2.1.0, 2.2.0, 2.5.0, 2.6.0, 3.0.0, 3.0.1, 3.0.2, 3.0.3, 3.0.4, 3.0.5, 3.0.6, 3.0.7, 3.0.8, 3.0.9, 3.1.0, 3.1.1, 3.1.2, 3.1.3, 3.2.0, 3.2.1, 3.3.0)
-    ERROR: No matching distribution found for super_gradients==3.3.1
-    
 
 ### Minimalistic export example
 
@@ -531,7 +527,7 @@ result = session.run(outputs, {inputs[0]: image_bchw})
 show_predictions_from_flat_format(image, result)
 ```
 
-     25%|██████████████████████████████▊                                                                                            | 4/16 [00:11<00:33,  2.79s/it]
+     25%|█████████████████████████████████                                                                                                   | 4/16 [00:11<00:34,  2.91s/it]
     
 
 

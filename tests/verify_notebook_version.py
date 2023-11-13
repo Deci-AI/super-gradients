@@ -30,7 +30,7 @@ def try_extract_super_gradients_version_from_pip_install_command(input: str) -> 
     :param input: A string that contains a `!pip install super_gradients=={version}` command.
     :return: The version of super_gradients.
     """
-    pattern = re.compile(r"pip\s+install.*?super-gradients==([0-9]+(?:\.[0-9]+)*(?:\.[0-9]+)?)")
+    pattern = re.compile(r"pip\s+install.*?super[-_]gradients==([0-9]+(?:\.[0-9]+)*(?:\.[0-9]+)?)")
     match = re.search(pattern, input)
     if match:
         return match.group(1)
@@ -46,22 +46,24 @@ def main():
     """
     notebook_path = sys.argv[1]
     first_cell_content = get_first_cell_content(notebook_path)
-    print(first_cell_content)
 
+    expected_version = super_gradients.__version__
     for line in first_cell_content.splitlines():
         sg_version_in_notebook = try_extract_super_gradients_version_from_pip_install_command(line)
         if sg_version_in_notebook is not None:
-            if sg_version_in_notebook == super_gradients.__version__:
+            if sg_version_in_notebook == expected_version:
                 return 0
             else:
                 print(
-                    f"Version mismatch detected:\n"
-                    f"super_gradients.__version__ is {super_gradients.__version__}\n"
+                    f"Version mismatch detected in {notebook_path}:\n"
+                    f"super_gradients.__version__ is {expected_version}\n"
                     f"Notebook uses super_gradients  {sg_version_in_notebook} (notebook_path)"
                 )
                 return 1
 
-    print("First code cell of the notebook does not contain a `!pip install super_gradients=={version} command`")
+    print(f"First code cell of the notebook {notebook_path} does not contain a `!pip install super_gradients=={expected_version} command`")
+    print("First code cell content:")
+    print(first_cell_content)
     return 1
 
 

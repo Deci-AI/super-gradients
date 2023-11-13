@@ -76,7 +76,7 @@ from super_gradients.common.environment.ddp_utils import (
     broadcast_from_master,
 )
 from super_gradients.training.utils.ema import ModelEMA
-from super_gradients.training.utils.optimizer_utils import build_optimizer
+from super_gradients.training.utils.optimizer_utils import build_optimizer, get_initial_lr_from_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
 from super_gradients.training.utils.utils import fuzzy_idx_in_list, unwrap_model
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
@@ -756,6 +756,22 @@ class Trainer:
         if arch_params is not None:
             self.arch_params.override(**arch_params.to_dict())
 
+    def _should_run_validation_for_epoch(self, epoch: int) -> bool:
+        """
+        Method returns true if the validation should to be calculated on this epoch (starting from 0).
+
+        We need to calculate validation if
+        1) the epoch is divisible by #run_validation_freq
+        2) if epoch is last
+        3) if epoch is in self.save_ckpt_epoch_list
+        """
+
+        is_run_val_freq_divisible = ((epoch + 1) % self.run_validation_freq) == 0
+        is_last_epoch = (epoch + 1) == self.max_epochs
+        is_in_checkpoint_list = (epoch + 1) in self.training_params.save_ckpt_epoch_list
+
+        return is_run_val_freq_divisible or is_last_epoch or is_in_checkpoint_list
+
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def train(
         self,
@@ -890,9 +906,16 @@ class Trainer:
                     Final learning rate ratio (only relevant when `lr_mode`='CosineLRScheduler'). The cosine starts from initial_lr and reaches
                      initial_lr * cosine_final_lr_ratio in last epoch
 
-                - `inital_lr` : float
+                - `inital_lr` : Union[float, Dict[str, float]
 
-                    Initial learning rate.
+                    Initial learning rate as:
+                    float - learning rate value when passed as a scalar
+                    Dictionary where keys are group names and values are the learning rates.
+                    For example {"default": 0.01, "head": 0.1}
+
+                    - Keys in such mapping are prefixes of named parameters of the model.
+                    - The "default" key is mandatory, and it's lr value is set for any group not specified in the other keys
+                    - It is also possible to freeze some parts of the model by assigning 0 as a lr value.
 
                 - `loss` : Union[nn.module, str]
 
@@ -1262,9 +1285,14 @@ class Trainer:
                     logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
 
         self.run_validation_freq = self.training_params.run_validation_freq
+
+        if self.max_epochs % self.run_validation_freq != 0:
+            logger.warning(
+                "max_epochs is not divisible by run_validation_freq. "
+                "Please check the training parameters and ensure that run_validation_freq has been set correctly."
+            )
         self.run_test_freq = self.training_params.run_test_freq
 
-        inf_time = 0
         timer = core_utils.Timer(device_config.device)
 
         # IF THE LR MODE IS NOT DEFAULT TAKE IT FROM THE TRAINING PARAMS
@@ -1288,6 +1316,20 @@ class Trainer:
             pass
         else:
             raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
+
+        if isinstance(self.training_params.optimizer, str) or (
+            inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
+        ):
+            self.optimizer = build_optimizer(net=unwrap_model(self.net), lr=self.training_params.initial_lr, training_params=self.training_params)
+        elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
+            if self.training_params.initial_lr is not None:
+                raise RuntimeError("An instantiated optimizer cannot be passed along initial_lr != None")
+            self.optimizer = self.training_params.optimizer
+
+            # NEED TO EXTRACT INITAL_LR FROM THE OPTIMIZER PARAM GROUPS
+            self.training_params.initial_lr = get_initial_lr_from_optimizer(self.optimizer)
+        else:
+            raise UnsupportedOptimizerFormat()
 
         if warmup_callback_cls is not None:
             self.phase_callbacks.append(
@@ -1321,15 +1363,6 @@ class Trainer:
             self.start_epoch = 0
             self._reset_best_metric()
             load_opt_params = False
-
-        if isinstance(self.training_params.optimizer, str) or (
-            inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
-        ):
-            self.optimizer = build_optimizer(net=unwrap_model(self.net), lr=self.training_params.initial_lr, training_params=self.training_params)
-        elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
-            self.optimizer = self.training_params.optimizer
-        else:
-            raise UnsupportedOptimizerFormat()
 
         if self.lr_mode is not None:
             lr_scheduler_callback = create_lr_scheduler_callback(
@@ -1427,11 +1460,11 @@ class Trainer:
             train_dataset_length=len(self.train_loader.dataset),
             train_dataloader_len=len(self.train_loader),
             max_train_batches=self.max_train_batches,
+            model=unwrap_model(self.net),
+            param_groups=self.optimizer.param_groups,
         )
 
-        processing_params = self._get_preprocessing_from_valid_loader()
-        if processing_params is not None:
-            unwrap_model(self.net).set_dataset_processing_params(**processing_params)
+        self._maybe_set_preprocessing_params_for_model_from_dataset()
 
         try:
             # HEADERS OF THE TRAINING PROGRESS
@@ -1440,6 +1473,7 @@ class Trainer:
             for epoch in range(self.start_epoch, self.max_epochs):
                 # broadcast_from_master is necessary here, since in DDP mode, only the master node will
                 # receive the Ctrl-C signal, and we want all nodes to stop training.
+                timer.start()
                 if broadcast_from_master(context.stop_training):
                     logger.info("Request to stop training has been received, stopping training")
                     break
@@ -1487,13 +1521,18 @@ class Trainer:
                     keep_model = self.net
                     self.net = self.ema_model.ema
 
+                train_inf_time = timer.stop()
+                self._write_scalars_to_logger(metrics=train_metrics_dict, epoch=1 + epoch, inference_time=train_inf_time, tag="Train")
+
                 # RUN TEST ON VALIDATION SET EVERY self.run_validation_freq EPOCHS
                 valid_metrics_dict = {}
-                if (epoch + 1) % self.run_validation_freq == 0:
+                should_run_validation = self._should_run_validation_for_epoch(epoch)
+
+                if should_run_validation:
                     self.phase_callback_handler.on_validation_loader_start(context)
                     timer.start()
                     valid_metrics_dict = self._validate_epoch(context=context, silent_mode=silent_mode)
-                    inf_time = timer.stop()
+                    val_inf_time = timer.stop()
 
                     self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
                         monitored_values_dict=self.valid_monitored_values,
@@ -1504,11 +1543,16 @@ class Trainer:
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler.on_validation_loader_end(context)
 
+                    self._write_scalars_to_logger(metrics=valid_metrics_dict, epoch=1 + epoch, inference_time=val_inf_time, tag="Valid")
+
                 test_metrics_dict = {}
                 if (epoch + 1) % self.run_test_freq == 0:
                     self.phase_callback_handler.on_test_loader_start(context)
+                    test_inf_time = 0.0
                     for dataset_name, dataloader in self.test_loaders.items():
+                        timer.start()
                         dataset_metrics_dict = self._test_epoch(data_loader=dataloader, context=context, silent_mode=silent_mode, dataset_name=dataset_name)
+                        test_inf_time += timer.stop()
                         dataset_metrics_dict_with_name = {
                             f"{dataset_name}:{metric_name}": metric_value for metric_name, metric_value in dataset_metrics_dict.items()
                         }
@@ -1521,20 +1565,23 @@ class Trainer:
                     context.update_context(metrics_dict=test_metrics_dict)
                     self.phase_callback_handler.on_test_loader_end(context)
 
+                    self._write_scalars_to_logger(metrics=test_metrics_dict, epoch=1 + epoch, inference_time=test_inf_time, tag="Test")
+
                 if self.ema:
                     self.net = keep_model
 
                 if not self.ddp_silent_mode:
+                    self.sg_logger.add_scalars(tag_scalar_dict=self._epoch_start_logging_values, global_step=1 + epoch)
+
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    self._write_to_disk_operations(
-                        train_metrics_dict=train_metrics_dict,
-                        validation_results_dict=valid_metrics_dict,
-                        test_metrics_dict=test_metrics_dict,
-                        lr_dict=self._epoch_start_logging_values,
-                        inf_time=inf_time,
-                        epoch=epoch,
-                        context=context,
-                    )
+                    if should_run_validation and self.training_params.save_model:
+                        self._save_checkpoint(
+                            optimizer=self.optimizer,
+                            epoch=epoch + 1,
+                            train_metrics_dict=train_metrics_dict,
+                            validation_results_dict=valid_metrics_dict,
+                            context=context,
+                        )
                     self.sg_logger.upload()
 
                 if not silent_mode:
@@ -1577,6 +1624,11 @@ class Trainer:
 
             if not self.ddp_silent_mode:
                 self.sg_logger.close()
+
+    def _maybe_set_preprocessing_params_for_model_from_dataset(self):
+        processing_params = self._get_preprocessing_from_valid_loader()
+        if processing_params is not None:
+            unwrap_model(self.net).set_dataset_processing_params(**processing_params)
 
     def _get_preprocessing_from_valid_loader(self) -> Optional[dict]:
         valid_loader = self.valid_loader
@@ -1935,41 +1987,30 @@ class Trainer:
         }
         return hyper_param_config
 
-    def _write_to_disk_operations(
-        self,
-        train_metrics_dict: dict,
-        validation_results_dict: dict,
-        test_metrics_dict: dict,
-        lr_dict: dict,
-        inf_time: float,
-        epoch: int,
-        context: PhaseContext,
-    ):
-        """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
-        result_dict = {
-            "Inference Time": inf_time,
-            **{f"Train_{k}": v for k, v in train_metrics_dict.items()},
-            **{f"Valid_{k}": v for k, v in validation_results_dict.items()},
-            **{f"Test_{k}": v for k, v in test_metrics_dict.items()},
-        }
-        self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
-        self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
+    def _write_scalars_to_logger(self, metrics: dict, epoch: int, inference_time: float, tag: str) -> None:
+        """
+        Method for writing metrics and LR info to logger.
 
-        # SAVE THE CHECKPOINT
-        if self.training_params.save_model:
-            self._save_checkpoint(
-                optimizer=self.optimizer,
-                epoch=epoch + 1,
-                train_metrics_dict=train_metrics_dict,
-                validation_results_dict=validation_results_dict,
-                context=context,
-            )
+        :param metrics:         (dict) dict of metrics..
+        :param epoch:           (inf) 1-based number of epoch.
+        :param inference_time:  (float) time of inference.
+        :param tag:             (str) tag for writing to logger (rule of thumb: Train/Test/Valid)
+        """
+
+        if not self.ddp_silent_mode:
+            info_dict = {f"{tag} Inference Time": inference_time, **{f"{tag}_{k}": v for k, v in metrics.items()}}
+
+            self.sg_logger.add_scalars(tag_scalar_dict=info_dict, global_step=epoch)
 
     def _get_epoch_start_logging_values(self) -> dict:
         """Get all the values that should be logged at the start of each epoch.
         This is useful for values like Learning Rate that can change over an epoch."""
         lrs = [self.optimizer.param_groups[i]["lr"] for i in range(len(self.optimizer.param_groups))]
-        lr_titles = ["LR/Param_group_" + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ["LR"]
+        lr_titles = (
+            ["LR/" + self.optimizer.param_groups[i].get("name", str(i)) for i in range(len(self.optimizer.param_groups))]
+            if len(self.optimizer.param_groups) > 1
+            else ["LR"]
+        )
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
         return lr_dict
 

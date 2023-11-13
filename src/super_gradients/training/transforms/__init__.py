@@ -30,6 +30,8 @@ from super_gradients.training.transforms.keypoints import (
     KeypointsPadIfNeeded,
     KeypointsBrightnessContrast,
     KeypointsLongestMaxSize,
+    KeypointsReverseImageChannels,
+    KeypointsRemoveSmallObjects,
 )
 from super_gradients.common.object_names import Transforms
 from super_gradients.common.registry.registry import TRANSFORMS
@@ -68,6 +70,8 @@ __all__ = [
     "KeypointsRescale",
     "KeypointsRandomRotate90",
     "KeypointsImageToTensor",
+    "KeypointsRemoveSmallObjects",
+    "KeypointsReverseImageChannels",
     "DetectionPadIfNeeded",
     "DetectionLongestMaxSize",
     "AbstractDetectionTransform",

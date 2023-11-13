@@ -1,0 +1,59 @@
+defaults:
+  - coco_pose_estimation_yolo_nas_mosaic_dataset_params
+  - _self_
+
+dataset_params_suffix: "mosaic_heavy_augs_${dataset_params.mosaic_prob}_${dataset_params.image_size}"
+
+train_dataset_params:
+  transforms:
+    - KeypointsRandomHorizontalFlip:
+        flip_index: ${dataset_params.flip_indexes}
+        prob: 0.5
+
+    - KeypointsBrightnessContrast:
+        brightness_range: [ 0.7, 1.3 ]
+        contrast_range: [ 0.7, 1.3 ]
+        prob: 0.75
+
+    - KeypointsReverseImageChannels:
+        prob: 0.5
+
+    - KeypointsHSV:
+        hgain: 25
+        sgain: 25
+        vgain: 25
+        prob: 0.75
+
+    - KeypointsRandomRotate90:
+        prob: 0.5
+
+    - KeypointsRandomAffineTransform:
+        max_rotation: 7
+        min_scale: 0.6
+        max_scale: 1.75
+        max_translate: 0.1
+        image_pad_value: 127
+        mask_pad_value: 1
+        prob: 0.75
+        interpolation_mode: [ 0, 1, 2, 3, 4 ]
+
+    - KeypointsMosaic:
+        prob: ${dataset_params.mosaic_prob}
+
+    - KeypointsLongestMaxSize:
+        max_height: ${dataset_params.image_size}
+        max_width: ${dataset_params.image_size}
+
+    - KeypointsPadIfNeeded:
+        min_height: ${dataset_params.image_size}
+        min_width: ${dataset_params.image_size}
+        image_pad_value: [ 127, 127, 127 ]
+        mask_pad_value: 1
+        padding_mode: center
+
+    - KeypointsImageStandardize:
+        max_value: 255
+
+    - KeypointsRemoveSmallObjects:
+        min_instance_area: 1
+        min_visible_keypoints: 1
