@@ -211,9 +211,9 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ###  Semantic Segmentation
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb) [Segmentation Quick Start](https://bit.ly/3qKx9m8)
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_semantic_segmentation.ipynb) [Segmentation Transfer Learning](https://bit.ly/3qKx9m8)
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/segmentation_connect_custom_dataset.ipynb) [How to Connect Custom Dataset](https://bit.ly/3qKx9m8)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb) [Segmentation Quick Start](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb))
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_semantic_segmentation.ipynb) [Segmentation Transfer Learning](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_semantic_segmentation.ipynb)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/segmentation_connect_custom_dataset.ipynb) [How to Connect Custom Dataset](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/segmentation_connect_custom_dataset.ipynb)
 
 
 ### Pose Estimation
