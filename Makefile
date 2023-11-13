@@ -41,6 +41,7 @@ NOTEBOOKS_TO_RUN += notebooks/PTQ_and_QAT_for_classification.ipynb
 # If there are additional notebooks that must not be executed, but still should be checked for version match, add them here
 NOTEBOOKS_TO_CHECK := $(NOTEBOOKS_TO_RUN)
 NOTEBOOKS_TO_CHECK += notebooks/yolo_nas_pose_eval_with_pycocotools.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/dataloader_adapter.ipynb
 
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
 run_and_convert_notebooks_to_docs: $(NOTEBOOKS_TO_RUN)
