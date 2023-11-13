@@ -3,6 +3,8 @@ import unittest
 import tempfile
 from pathlib import Path
 
+import numpy as np
+
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.datasets import COCODetectionDataset
@@ -83,6 +85,20 @@ class TestModelPredict(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 _ = predictions.show(class_names=["human"])
+
+    def test_predict_detection_skip_resize(self):
+        for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.PP_YOLOE_S]:
+            model = models.get(model_name, pretrained_weights="coco")
+            pipeline = model._get_pipeline(skip_image_resizing=True)
+
+            dummy_images = [np.random.random((21, 21, 3)), np.random.random((21, 32, 3)), np.random.random((640, 640, 3))]
+            expected_preprocessing_shape = [(3, 32, 32), (3, 32, 32), (3, 640, 640)]
+            for image, expected_shape in zip(dummy_images, expected_preprocessing_shape):
+                pred = model.predict(image, skip_image_resizing=True)[0]
+                self.assertEqual(image.shape, pred.draw().shape)
+
+                preprocessed_shape = pipeline.image_processor.preprocess_image(image)[0].shape
+                self.assertEqual(preprocessed_shape, expected_shape)
 
 
 if __name__ == "__main__":
