@@ -4,9 +4,6 @@ from super_gradients.common.object_names import Models
 from super_gradients.training import models
 import numpy as np
 
-import warnings
-
-warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
 
 # Note that currently only YoloX, PPYoloE and YOLO-NAS are supported.
 model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
