@@ -51,6 +51,7 @@ DEFAULT_TRAINING_PARAMS = {
     "warmup_mode": "LinearEpochLRWarmup",
     "step_lr_update_freq": None,
     "lr_updates": [],
+    "initial_lr": None,
     "clip_grad_norm": None,
     "pre_prediction_callback": None,
     "ckpt_best_name": "ckpt_best.pth",
@@ -98,7 +99,12 @@ TRAINING_PARAM_SCHEMA = {
         # "lr_updates": {"type": "array", "minItems": 1},
         "lr_decay_factor": {"type": "number", "minimum": 0, "maximum": 1},
         "lr_warmup_epochs": {"type": "number", "minimum": 0, "maximum": 10},
-        "initial_lr": {"type": "number", "exclusiveMinimum": 0, "maximum": 10},
+        "initial_lr": {
+            "anyOf": [
+                {"type": ["number", "string", "boolean", "null"]},
+                {"type": "object", "patternProperties": {"^[a-zA-Z0-9_.]+$": {"type": "number"}}, "additionalProperties": False},
+            ]
+        },
     },
     "if": {"properties": {"lr_mode": {"const": "StepLRScheduler"}}},
     "then": {"required": ["lr_updates", "lr_decay_factor"]},

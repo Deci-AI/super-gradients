@@ -64,7 +64,10 @@ checkpoint_params:
   strict_load: no_key_matching
 
 training_hyperparams:
-  initial_lr: 0.005
+  initial_lr:
+    cp: 0.005
+    default: 0.05
+
   sync_bn: True
 
   loss:
