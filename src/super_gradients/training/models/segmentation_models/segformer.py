@@ -458,7 +458,7 @@ class SegFormer(SegmentationModule):
         backbone_names = [n for n, p in self.backbone.named_parameters()]
         multiply_lr_params, no_multiply_params = {}, {}
         for name, param in self.named_parameters():
-            if name in backbone_names:
+            if any([backbone_name in name for backbone_name in backbone_names]):
                 no_multiply_params[name] = param
             else:
                 multiply_lr_params[name] = param

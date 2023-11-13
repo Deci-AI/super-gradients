@@ -76,7 +76,7 @@ from super_gradients.common.environment.ddp_utils import (
     broadcast_from_master,
 )
 from super_gradients.training.utils.ema import ModelEMA
-from super_gradients.training.utils.optimizer_utils import build_optimizer
+from super_gradients.training.utils.optimizer_utils import build_optimizer, get_initial_lr_from_optimizer
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
 from super_gradients.training.utils.utils import fuzzy_idx_in_list, unwrap_model
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
@@ -906,9 +906,16 @@ class Trainer:
                     Final learning rate ratio (only relevant when `lr_mode`='CosineLRScheduler'). The cosine starts from initial_lr and reaches
                      initial_lr * cosine_final_lr_ratio in last epoch
 
-                - `inital_lr` : float
+                - `inital_lr` : Union[float, Dict[str, float]
 
-                    Initial learning rate.
+                    Initial learning rate as:
+                    float - learning rate value when passed as a scalar
+                    Dictionary where keys are group names and values are the learning rates.
+                    For example {"default": 0.01, "head": 0.1}
+
+                    - Keys in such mapping are prefixes of named parameters of the model.
+                    - The "default" key is mandatory, and it's lr value is set for any group not specified in the other keys
+                    - It is also possible to freeze some parts of the model by assigning 0 as a lr value.
 
                 - `loss` : Union[nn.module, str]
 
@@ -1310,6 +1317,20 @@ class Trainer:
         else:
             raise RuntimeError("warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback")
 
+        if isinstance(self.training_params.optimizer, str) or (
+            inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
+        ):
+            self.optimizer = build_optimizer(net=unwrap_model(self.net), lr=self.training_params.initial_lr, training_params=self.training_params)
+        elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
+            if self.training_params.initial_lr is not None:
+                raise RuntimeError("An instantiated optimizer cannot be passed along initial_lr != None")
+            self.optimizer = self.training_params.optimizer
+
+            # NEED TO EXTRACT INITAL_LR FROM THE OPTIMIZER PARAM GROUPS
+            self.training_params.initial_lr = get_initial_lr_from_optimizer(self.optimizer)
+        else:
+            raise UnsupportedOptimizerFormat()
+
         if warmup_callback_cls is not None:
             self.phase_callbacks.append(
                 warmup_callback_cls(
@@ -1342,15 +1363,6 @@ class Trainer:
             self.start_epoch = 0
             self._reset_best_metric()
             load_opt_params = False
-
-        if isinstance(self.training_params.optimizer, str) or (
-            inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
-        ):
-            self.optimizer = build_optimizer(net=unwrap_model(self.net), lr=self.training_params.initial_lr, training_params=self.training_params)
-        elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
-            self.optimizer = self.training_params.optimizer
-        else:
-            raise UnsupportedOptimizerFormat()
 
         if self.lr_mode is not None:
             lr_scheduler_callback = create_lr_scheduler_callback(
@@ -1448,6 +1460,8 @@ class Trainer:
             train_dataset_length=len(self.train_loader.dataset),
             train_dataloader_len=len(self.train_loader),
             max_train_batches=self.max_train_batches,
+            model=unwrap_model(self.net),
+            param_groups=self.optimizer.param_groups,
         )
 
         self._maybe_set_preprocessing_params_for_model_from_dataset()
@@ -1992,7 +2006,11 @@ class Trainer:
         """Get all the values that should be logged at the start of each epoch.
         This is useful for values like Learning Rate that can change over an epoch."""
         lrs = [self.optimizer.param_groups[i]["lr"] for i in range(len(self.optimizer.param_groups))]
-        lr_titles = ["LR/Param_group_" + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ["LR"]
+        lr_titles = (
+            ["LR/" + self.optimizer.param_groups[i].get("name", str(i)) for i in range(len(self.optimizer.param_groups))]
+            if len(self.optimizer.param_groups) > 1
+            else ["LR"]
+        )
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
         return lr_dict
 

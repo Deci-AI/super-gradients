@@ -5,11 +5,11 @@ import time
 from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union, Dict, Sequence, Callable, Optional
+from typing import Tuple, Union, Dict, Sequence, Callable, Optional, List
 import random
 
 import inspect
-
+from torch import nn
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from treelib import Tree
 from termcolor import colored
@@ -20,8 +20,6 @@ from torch.utils.tensorboard import SummaryWriter
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
 from super_gradients.common.data_types.enum import MultiGPUMode
-
-
 from enum import Enum
 
 
@@ -446,6 +444,46 @@ def get_callable_param_names(obj: callable) -> Tuple[str]:
     return tuple(inspect.signature(obj).parameters)
 
 
+def get_lr_info(model: nn.Module, param_groups: List[Dict[str, Union[str, float, List[tuple]]]]) -> str:
+    """
+    Generate a string with information about the model and learning rates for each parameter group.
+
+    Parameters:
+        model (nn.Module): The PyTorch model.
+        param_groups (List[Dict[str, Union[str, float, List[tuple]]]]): List of dictionaries containing information about
+            each parameter group, including the group name, learning rate, and named parameters.
+
+    Returns:
+        str: A formatted string with information about the model and learning rates.
+    """
+    total_params = sum(p.numel() for p in model.parameters())
+    optimized_params = sum(p.numel() for group in param_groups for p in group["params"])
+
+    info_str = f"    - Model: {type(model).__name__}  ({total_params / 1e6:.1f}M parameters"
+
+    if optimized_params >= 1e6:
+        precision_optimized = max(0, 4 - int(optimized_params / 1e6).bit_length())
+        info_str += f", {optimized_params / 1e6:.{precision_optimized}f}M optimized)\n"
+    else:
+        precision_optimized = max(0, 4 - int(optimized_params).bit_length())
+        info_str += f", {optimized_params:.{precision_optimized}f}M optimized)\n"
+
+    info_str += "    - Learning rates:\n"
+    for group in param_groups:
+        group_name = group["name"]
+        group_lr = group["lr"]
+        group_params = sum(p.numel() for p in group["params"])
+
+        if group_params >= 1e6:
+            precision_group = max(0, 4 - int(group_params / 1e6).bit_length())
+            info_str += f"      - {group_name}: {group_lr} ({group_params / 1e6:.{precision_group}f}M parameters)\n"
+        else:
+            precision_group = max(0, 4 - int(group_params).bit_length())
+            info_str += f"      - {group_name}: {group_lr} ({group_params:.{precision_group}f}M parameters)\n"
+
+    return info_str
+
+
 def log_main_training_params(
     multi_gpu: MultiGPUMode,
     num_gpus: int,
@@ -453,6 +491,8 @@ def log_main_training_params(
     batch_accumulate: int,
     train_dataset_length: int,
     train_dataloader_len: int,
+    model: nn.Module,
+    param_groups: List[Dict[str, Union[str, float, List[tuple]]]],
     max_train_batches: Optional[int] = None,
 ):
     """Log training parameters"""
@@ -464,7 +504,7 @@ def log_main_training_params(
     msg = (
         "TRAINING PARAMETERS:\n"
         f"    - Mode:                         {multi_gpu.name if multi_gpu else 'Single GPU'}\n"
-        f"    - Number of GPUs:               {num_gpus if 'cuda' in device_config.device  else 0:<10} ({torch.cuda.device_count()} available on the machine)\n"
+        f"    - Number of GPUs:               {num_gpus if 'cuda' in device_config.device else 0:<10} ({torch.cuda.device_count()} available on the machine)\n"
         f"    - Full dataset size:            {train_dataset_length:<10} (len(train_set))\n"
         f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n"
         f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n"
@@ -473,6 +513,7 @@ def log_main_training_params(
         f"    - Iterations per epoch:         {iterations_per_epoch:<10} ({what_used_str})\n"
         f"    - Gradient updates per epoch:   {gradients_updates_per_epoch:<10} ({what_used_str} / batch_accumulate)\n"
     )
+    msg += get_lr_info(model, param_groups)
 
     logger.info(msg)
 
