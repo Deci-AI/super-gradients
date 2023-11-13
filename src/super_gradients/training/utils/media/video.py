@@ -155,7 +155,7 @@ def save_mp4(output_path: str, frames: Iterable[np.ndarray], fps: int) -> None:
     video_writer.release()
 
 
-def _validate_frame(frame, control_height, control_width) -> None:
+def _validate_frame(frame: np.ndarray, control_height: int, control_width: int) -> None:
     """Validate the frame to make sure it has the correct size and includes the channel dimension. (i.e. (H, W, C))
 
     :param frame:  Single frame from the video, in (H, W, C), RGB.
