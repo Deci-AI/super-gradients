@@ -609,8 +609,7 @@ class DEKRPoseEstimationModel(SgModule, HasPredict):
 
         # Ensure that the image size is divisible by 32.
         if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
-            image_processor = self._image_processor.get_equivalent_compose_without_resizing()
-            image_processor.processings.append(KeypointsAutoPadding(shape_multiple=(32, 32), pad_value=0))
+            image_processor = self._image_processor.get_equivalent_compose_without_resizing(KeypointsAutoPadding(shape_multiple=(32, 32), pad_value=0))
         else:
             image_processor = self._image_processor
 
