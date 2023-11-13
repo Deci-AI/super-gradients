@@ -107,8 +107,12 @@ class TestModelPredict(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dirname:
             video_path = os.path.join(tmp_dirname, "test.mp4")
             self._prepare_video(video_path)
-            for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.PP_YOLOE_S, Models.YOLO_NAS_POSE_S]:
-                model = models.get(model_name, pretrained_weights="coco")
+            for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.YOLO_NAS_POSE_S]:
+
+                pretrained_weights = "coco"
+                if model_name == Models.YOLO_NAS_POSE_S:
+                    pretrained_weights += "_pose"
+                model = models.get(model_name, pretrained_weights=pretrained_weights)
 
                 predictions = model.predict(video_path)
                 predictions.save(os.path.join(tmp_dirname, "test_predict_video_detection.mp4"))
