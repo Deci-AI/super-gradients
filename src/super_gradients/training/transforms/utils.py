@@ -133,6 +133,9 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
             pad_value = tuple(pad_value)
 
         constant_values = ((pad_value, pad_value), (pad_value, pad_value), (0, 0))
+        # Fixes issue with numpy deprecation warning since constant_values is ragged array (Have to explicitly specify object dtype)
+        constant_values = np.array(constant_values, dtype=np.object_)
+
         padding_values = (pad_h, pad_w, (0, 0))
     else:
         if isinstance(pad_value, numbers.Number):
