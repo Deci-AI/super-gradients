@@ -21,8 +21,9 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyw
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.samples import DetectionSample
-from super_gradients.training.transforms import DetectionPadIfNeeded, AbstractDetectionTransform
-from super_gradients.training.transforms.detection import LegacyDetectionTransformMixin
+from .detection.detection_pad_if_needed import DetectionPadIfNeeded
+from .detection.abstract_detection_transform import AbstractDetectionTransform
+from .detection.legacy_detection_transform_mixin import LegacyDetectionTransformMixin
 from super_gradients.training.transforms.utils import (
     _rescale_and_pad_to_size,
     _rescale_image,
