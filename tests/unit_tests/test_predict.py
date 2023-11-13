@@ -116,9 +116,6 @@ class TestModelPredict(unittest.TestCase):
                 predictions = model.predict(video_path)
                 predictions.save(os.path.join(tmp_dirname, "test_predict_video_detection.gif"))
 
-                predictions = model.predict(video_path)
-                predictions.show()
-
     def test_predict_detection_skip_resize(self):
         for model_name in [Models.YOLO_NAS_S, Models.YOLOX_S, Models.PP_YOLOE_S]:
             model = models.get(model_name, pretrained_weights="coco")
