@@ -3,8 +3,6 @@ import unittest
 import tempfile
 from pathlib import Path
 
-import numpy as np
-
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.datasets import COCODetectionDataset
