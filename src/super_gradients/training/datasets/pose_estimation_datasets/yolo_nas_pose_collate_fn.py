@@ -3,7 +3,7 @@ from typing import Tuple, List, Dict
 import numpy as np
 import torch
 from torch import Tensor
-from torch.utils.data import default_collate
+from torch.utils.data.dataloader import default_collate
 
 from super_gradients.common.registry.registry import register_collate_function
 from super_gradients.training.samples import PoseEstimationSample

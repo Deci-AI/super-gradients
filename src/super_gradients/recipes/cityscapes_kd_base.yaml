@@ -50,7 +50,19 @@ resume: False
 training_hyperparams:
   sync_bn: True
   max_epochs: 500
-  initial_lr: 0.0075   # batch size 24
+
+  initial_lr: # batch size 24
+    default: 0.075
+    # backbone layers
+    _backbone: 0.0075
+    compression3: 0.0075
+    compression4: 0.0075
+    down3: 0.0075
+    down4: 0.0075
+    layer3_skip: 0.0075
+    layer4_skip: 0.0075
+    layer5_skip: 0.0075
+
   resume: ${resume}
   loss:
     _target_: super_gradients.training.losses.seg_kd_loss.SegKDLoss
