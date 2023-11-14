@@ -294,12 +294,14 @@ class Trainer:
                 if not isinstance(test_dataloaders, Mapping):
                     raise ValueError("`test_dataloaders` should be a mapping from test_loader_name to test_loader_params.")
 
-                if test_dataloader_params.keys() != test_dataset_params.keys():
+                if test_dataloader_params is not None and test_dataloader_params.keys() != test_dataset_params.keys():
                     raise ValueError("test_dataloader_params and test_dataset_params should have the same keys.")
 
             for dataset_name, dataset_params in test_dataset_params.items():
                 loader_name = test_dataloaders[dataset_name] if test_dataloaders is not None else None
-                loader = dataloaders.get(loader_name, dataset_params=test_dataset_params[dataset_name], dataloader_params=test_dataloader_params)
+                dataset_params = test_dataset_params[dataset_name]
+                dataloader_params = test_dataloader_params[dataset_name] if test_dataloader_params is not None else cfg.dataset_params.val_dataloader_params
+                loader = dataloaders.get(loader_name, dataset_params=dataset_params, dataloader_params=dataloader_params)
                 test_loaders[dataset_name] = loader
 
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
@@ -1697,7 +1699,6 @@ class Trainer:
         self.test_metrics = MetricCollection(test_metrics_list)
 
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
-
         if mixed_precision_enabled and not device_config.is_cuda:
             warnings.warn("Mixed precision training is not supported on CPU. Disabling mixed precision. (i.e. `mixed_precision=False`)")
             mixed_precision_enabled = False
@@ -1706,7 +1707,6 @@ class Trainer:
         self.scaler = GradScaler(enabled=mixed_precision_enabled)
 
         if mixed_precision_enabled:
-
             if device_config.multi_gpu == MultiGPUMode.DATA_PARALLEL:
                 # IN DATAPARALLEL MODE WE NEED TO WRAP THE FORWARD FUNCTION OF OUR MODEL SO IT WILL RUN WITH AUTOCAST.
                 # BUT SINCE THE MODULE IS CLONED TO THE DEVICES ON EACH FORWARD CALL OF A DATAPARALLEL MODEL,
@@ -1817,7 +1817,6 @@ class Trainer:
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def _load_checkpoint_to_model(self):
-
         self.checkpoint = {}
         strict_load = core_utils.get_param(self.training_params, "resume_strict_load", StrictLoad.ON)
         ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
@@ -1939,7 +1938,6 @@ class Trainer:
         if isinstance(sg_logger, AbstractSGLogger):
             self.sg_logger = sg_logger
         elif isinstance(sg_logger, str):
-
             sg_logger_cls = SG_LOGGERS.get(sg_logger)
             if sg_logger_cls is None:
                 raise RuntimeError(f"sg_logger={sg_logger} not registered in SuperGradients. Available {list(SG_LOGGERS.keys())}")
@@ -2196,7 +2194,6 @@ class Trainer:
         with tqdm(
             data_loader, total=expected_iterations, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode
         ) as progress_bar_data_loader:
-
             if not silent_mode:
                 # PRINT TITLES
                 pbar_start_msg = "Validating" if evaluation_type == EvaluationType.VALIDATION else "Testing"

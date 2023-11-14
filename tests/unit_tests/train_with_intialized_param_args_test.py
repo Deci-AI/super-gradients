@@ -1,12 +1,17 @@
+import os
 import unittest
 
+import hydra
 import numpy as np
 import torch
+from hydra.core.global_hydra import GlobalHydra
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
 from torchmetrics import F1Score
 
 from super_gradients import Trainer
+from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
+from super_gradients.common.environment.path_utils import normalize_path
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
@@ -188,6 +193,17 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
             "greater_metric_to_watch_is_better": True,
         }
         trainer.train(model=model, training_params=train_params, train_loader=train_loader, valid_loader=val_loader)
+
+    def test_train_with_multiple_test_loaders(self):
+        register_hydra_resolvers()
+        GlobalHydra.instance().clear()
+        configs_dir = os.path.join(os.path.dirname(__file__), "configs")
+        with hydra.initialize_config_dir(config_dir=normalize_path(configs_dir), version_base="1.2"):
+            cfg = hydra.compose(config_name="cifar10_multiple_test")
+
+        cfg.training_hyperparams.max_epochs = 5
+        trained_model, metrics = Trainer.train_from_config(cfg)
+        print(metrics)
 
 
 if __name__ == "__main__":
