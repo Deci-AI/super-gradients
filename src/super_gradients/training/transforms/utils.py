@@ -152,20 +152,6 @@ def _pad_image(image: np.ndarray, padding_coordinates: PaddingCoordinates, pad_v
     return np.pad(image, pad_width=padding_values, mode="constant", constant_values=constant_values)
 
 
-def _shift_bboxes(targets: np.array, shift_w: float, shift_h: float) -> np.ndarray:
-    """Shift bboxes with respect to padding values.
-
-    :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
-    :param shift_w:  shift width.
-    :param shift_h:  shift height.
-    :return:         Bboxes transformed of shape (N, 4+), in format [x1, y1, x2, y2, ...]
-    """
-    boxes, labels = targets[:, :4], targets[:, 4:]
-    boxes[:, [0, 2]] += shift_w
-    boxes[:, [1, 3]] += shift_h
-    return np.concatenate((boxes, labels), 1)
-
-
 def _shift_bboxes_xywh(targets: np.array, shift_w: float, shift_h: float) -> np.ndarray:
     """Shift bboxes with respect to padding values.
 
@@ -177,6 +163,20 @@ def _shift_bboxes_xywh(targets: np.array, shift_w: float, shift_h: float) -> np.
     boxes, labels = targets[:, :4], targets[:, 4:]
     boxes[:, 0] += shift_w
     boxes[:, 1] += shift_h
+    return np.concatenate((boxes, labels), 1)
+
+
+def _shift_bboxes_xyxy(targets: np.array, shift_w: float, shift_h: float) -> np.ndarray:
+    """Shift bboxes with respect to padding values.
+
+    :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
+    :param shift_w:  shift width.
+    :param shift_h:  shift height.
+    :return:         Bboxes transformed of shape (N, 4+), in format [x1, y1, x2, y2, ...]
+    """
+    boxes, labels = targets[:, :4], targets[:, 4:]
+    boxes[:, [0, 2]] += shift_w
+    boxes[:, [1, 3]] += shift_h
     return np.concatenate((boxes, labels), 1)
 
 

@@ -27,7 +27,7 @@ from super_gradients.training.transforms.utils import (
     _rescale_image,
     _rescale_bboxes,
     _pad_image,
-    _shift_bboxes,
+    _shift_bboxes_xyxy,
     _rescale_and_pad_to_size,
     _rescale_xyxy_bboxes,
     _get_center_padding_coordinates,
@@ -304,7 +304,7 @@ class TestTransforms(unittest.TestCase):
     def test_shift_bboxes(self):
         bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
         shift_w, shift_h = 60, 80
-        shifted_bboxes = _shift_bboxes(bboxes, shift_w, shift_h)
+        shifted_bboxes = _shift_bboxes_xyxy(bboxes, shift_w, shift_h)
 
         # Check if the shifted bboxes have the correct values
         expected_bboxes = np.array([[70, 100, 110, 140, 1], [90, 120, 140, 170, 2]], dtype=np.float32)
