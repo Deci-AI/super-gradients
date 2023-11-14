@@ -223,8 +223,9 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ###  Object Detection
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/detection_transfer_learning.ipynb) [Object Detection Transfer Learning](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/detection_transfer_learning.ipynb)
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3dqDlg3) [How to Connect Custom Dataset](https://bit.ly/3SkMohx)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/detection_transfer_learning.ipynb) [Object Detection Transfer Learning](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/detection_transfer_learning.ipynb)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/detection_how_to_connect_custom_dataset.ipynb) [How to Connect Custom Dataset](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/detection_how_to_connect_custom_dataset.ipynb)
+
 
 ### How to Predict Using Pre-trained Model
 
