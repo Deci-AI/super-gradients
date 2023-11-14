@@ -847,6 +847,9 @@ class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransfo
             sample.bboxes_xywh = _flip_horizontal_boxes_xyxy(sample.bboxes_xywh, sample.image.shape[0])
         return sample
 
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
+
 
 @register_transform(Transforms.DetectionVerticalFlip)
 class DetectionVerticalFlip(AbstractDetectionTransform, LegacyDetectionTransformMixin):
@@ -874,6 +877,9 @@ class DetectionVerticalFlip(AbstractDetectionTransform, LegacyDetectionTransform
             sample.image = self.apply_to_image(sample.image)
             sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, sample.image.shape[0])
         return sample
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
 @register_transform(Transforms.DetectionRescale)
@@ -976,6 +982,9 @@ class DetectionRandomRotate90(AbstractDetectionTransform, LegacyDetectionTransfo
             raise ValueError("Parameter n must be in set {0, 1, 2, 3}")
         return np.stack(bbox, axis=1)
 
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
+
 
 @register_transform(Transforms.DetectionRGB2BGR)
 class DetectionRGB2BGR(AbstractDetectionTransform, LegacyDetectionTransformMixin):
@@ -1043,6 +1052,9 @@ class DetectionHSV(AbstractDetectionTransform, LegacyDetectionTransformMixin):
 
     def apply_to_image(self, image: np.ndarray) -> np.ndarray:
         return augment_hsv(image, self.hgain, self.sgain, self.vgain, self.bgr_channels)
+
+    def get_equivalent_preprocessing(self) -> List[Dict]:
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
 @register_transform(Transforms.DetectionNormalize)
