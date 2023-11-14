@@ -223,12 +223,12 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ###  Object Detection
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3SkMohx) [Object Detection Transfer Learning](https://bit.ly/3SkMohx)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/detection_transfer_learning.ipynb) [Object Detection Transfer Learning](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/detection_transfer_learning.ipynb)
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3dqDlg3) [How to Connect Custom Dataset](https://bit.ly/3SkMohx)
 
 ### How to Predict Using Pre-trained Model
 
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3f4mssd) [How to Predict Using Pre-trained Model](https://bit.ly/3f4mssd)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/how_to_use_knowledge_distillation_for_classification.ipynb) [Knowledge Distillation Training](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/how_to_run_model_predict.ipynb) [How to Predict Using Pre-trained Model](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/how_to_run_model_predict.ipynb)
 
 
 
