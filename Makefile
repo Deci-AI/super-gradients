@@ -36,11 +36,16 @@ NOTEBOOKS_TO_RUN += src/super_gradients/examples/model_export/models_export_pose
 NOTEBOOKS_TO_RUN += notebooks/what_are_recipes_and_how_to_use.ipynb
 NOTEBOOKS_TO_RUN += notebooks/transfer_learning_classification.ipynb
 NOTEBOOKS_TO_RUN += notebooks/how_to_use_knowledge_distillation_for_classification.ipynb
+NOTEBOOKS_TO_RUN += notebooks/detection_how_to_connect_custom_dataset.ipynb
 NOTEBOOKS_TO_RUN += notebooks/PTQ_and_QAT_for_classification.ipynb
+NOTEBOOKS_TO_RUN += notebooks/quickstart_segmentation.ipynb
+NOTEBOOKS_TO_RUN += notebooks/segmentation_connect_custom_dataset.ipynb
+NOTEBOOKS_TO_RUN += notebooks/transfer_learning_semantic_segmentation.ipynb
 
 # If there are additional notebooks that must not be executed, but still should be checked for version match, add them here
 NOTEBOOKS_TO_CHECK := $(NOTEBOOKS_TO_RUN)
 NOTEBOOKS_TO_CHECK += notebooks/yolo_nas_pose_eval_with_pycocotools.ipynb
+NOTEBOOKS_TO_CHECK += notebooks/dataloader_adapter.ipynb
 
 # This Makefile target runs notebooks listed below and converts them to markdown files in documentation/source/
 run_and_convert_notebooks_to_docs: $(NOTEBOOKS_TO_RUN)

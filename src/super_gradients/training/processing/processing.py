@@ -21,6 +21,9 @@ from super_gradients.training.transforms.utils import (
     _rescale_image_with_pil,
 )
 from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -84,12 +87,40 @@ class Processing(ABC):
         """
         return None
 
+    @property
+    @abstractmethod
+    def resizes_image(self) -> bool:
+        """Return True if the processing resizes the image, False otherwise."""
+        pass
+
+
+class AutoPadding(Processing, ABC):
+    def __init__(self, shape_multiple: Tuple[int, int], pad_value: int):
+        """
+        :param shape_multiple:  Tuple of (H, W) indicating the height and width multiples to which the input image dimensions will be padded.
+                                For instance, with a value of (32, 40), an input image of size (45, 67) will be padded to (64, 80).
+        :param pad_value:       Value to pad the image with.
+        """
+        self.shape_multiple = shape_multiple
+        self.pad_value = pad_value
+
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
+    @property
+    def resizes_image(self) -> bool:
+        # This implementation only pads the image, doesn't resize it.
+        return False
+
 
 @register_processing(Processings.ComposeProcessing)
 class ComposeProcessing(Processing):
     """Compose a list of Processing objects into a single Processing object."""
 
     def __init__(self, processings: List[Processing]):
+        """
+        :param processings:     List of Processing objects to compose.
+        """
         self.processings = processings
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, ComposeProcessingMetadata]:
@@ -130,6 +161,28 @@ class ComposeProcessing(Processing):
 
         return output_shape
 
+    @property
+    def resizes_image(self) -> bool:
+        return any(processing.resizes_image for processing in self.processings)
+
+    def get_equivalent_compose_without_resizing(self, auto_padding: AutoPadding) -> "ComposeProcessing":
+        """Get a composed processing equivalent to this one, but without resizing the image.
+        :param auto_padding:    AutoPadding object to use for padding the image.
+                                This is required since models often expect input image to be a multiple of a specific shape (usually 32x32).
+                                This padding operation will be applied on the input image before any other processing.
+        :return:                A composed processing equivalent to this one, but without resizing the image.
+        """
+        processings = [auto_padding]
+
+        for processing in self.processings:
+            if isinstance(processing, ComposeProcessing):
+                processings.append(processing.get_equivalent_compose_without_resizing(auto_padding=auto_padding))
+            elif not processing.resizes_image:
+                processings.append(processing)
+            else:
+                logger.info(f"Skipping processing `{processing.__class__.__name__}` because it resizes the image.")
+        return ComposeProcessing(processings)
+
 
 @register_processing(Processings.ImagePermute)
 class ImagePermute(Processing):
@@ -150,6 +203,10 @@ class ImagePermute(Processing):
 
     def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
         return None
+
+    @property
+    def resizes_image(self) -> bool:
+        return False
 
 
 @register_processing(Processings.ReverseImageChannels)
@@ -176,6 +233,10 @@ class ReverseImageChannels(Processing):
         from super_gradients.conversion.preprocessing_modules import ChannelSelect
 
         return ChannelSelect(channels=np.array([2, 1, 0], dtype=int))
+
+    @property
+    def resizes_image(self) -> bool:
+        return False
 
 
 @register_processing(Processings.StandardizeImage)
@@ -211,6 +272,10 @@ class StandardizeImage(Processing):
 
         return ApplyMeanStd(mean=np.array([0], dtype=np.float32), std=np.array([self.max_value], dtype=np.float32))
 
+    @property
+    def resizes_image(self) -> bool:
+        return False
+
 
 @register_processing(Processings.NormalizeImage)
 class NormalizeImage(Processing):
@@ -234,6 +299,10 @@ class NormalizeImage(Processing):
         from super_gradients.conversion.preprocessing_modules import ApplyMeanStd
 
         return ApplyMeanStd(mean=self.mean, std=self.std)
+
+    @property
+    def resizes_image(self) -> bool:
+        return False
 
 
 class _DetectionPadding(Processing, ABC):
@@ -276,6 +345,10 @@ class _DetectionPadding(Processing, ABC):
         :return: (rows, cols) Returns the last known output shape for all the processings.
         """
         return self.output_shape
+
+    @property
+    def resizes_image(self) -> bool:
+        return True
 
 
 class _KeypointsPadding(Processing, ABC):
@@ -325,6 +398,10 @@ class _KeypointsPadding(Processing, ABC):
         """
         return self.output_shape
 
+    @property
+    def resizes_image(self) -> bool:
+        return True
+
 
 @register_processing(Processings.DetectionCenterPadding)
 class DetectionCenterPadding(_DetectionPadding):
@@ -342,6 +419,74 @@ class DetectionBottomRightPadding(_DetectionPadding):
 class KeypointsBottomRightPadding(_KeypointsPadding):
     def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
         return _get_bottom_right_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
+
+
+@register_processing()
+class DetectionAutoPadding(AutoPadding):
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
+        padding_coordinates = self._get_padding_params(input_shape=image.shape[:2])  # HWC -> (H, W)
+        processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
+        return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
+
+    def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
+        input_height, input_width = input_shape
+        height_modulo, width_modulo = self.shape_multiple
+
+        # Calculate necessary padding to reach the modulo
+        padded_height = ((input_height + height_modulo - 1) // height_modulo) * height_modulo
+        padded_width = ((input_width + width_modulo - 1) // width_modulo) * width_modulo
+
+        padding_top = 0  # No padding at the top
+        padding_left = 0  # No padding on the left
+        padding_bottom = padded_height - input_height
+        padding_right = padded_width - input_width
+
+        return PaddingCoordinates(top=padding_top, left=padding_left, bottom=padding_bottom, right=padding_right)
+
+    def postprocess_predictions(self, predictions: DetectionPrediction, metadata: DetectionPadToSizeMetadata) -> DetectionPrediction:
+        predictions.bboxes_xyxy = _shift_bboxes(
+            targets=predictions.bboxes_xyxy,
+            shift_h=-metadata.padding_coordinates.top,
+            shift_w=-metadata.padding_coordinates.left,
+        )
+        return predictions
+
+
+@register_processing()
+class KeypointsAutoPadding(AutoPadding):
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
+        padding_coordinates = self._get_padding_params(input_shape=image.shape[:2])  # HWC -> (H, W)
+        processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
+        return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
+
+    def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
+        input_height, input_width = input_shape
+        height_modulo, width_modulo = self.shape_multiple
+
+        # Calculate necessary padding to reach the modulo
+        padded_height = ((input_height + height_modulo - 1) // height_modulo) * height_modulo
+        padded_width = ((input_width + width_modulo - 1) // width_modulo) * width_modulo
+
+        padding_top = 0  # No padding at the top
+        padding_left = 0  # No padding on the left
+        padding_bottom = padded_height - input_height
+        padding_right = padded_width - input_width
+
+        return PaddingCoordinates(top=padding_top, left=padding_left, bottom=padding_bottom, right=padding_right)
+
+    def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: DetectionPadToSizeMetadata) -> PoseEstimationPrediction:
+        predictions.poses = _shift_keypoints(
+            targets=predictions.poses,
+            shift_h=-metadata.padding_coordinates.top,
+            shift_w=-metadata.padding_coordinates.left,
+        )
+        if predictions.bboxes_xyxy is not None:
+            predictions.bboxes_xyxy = _shift_bboxes(
+                targets=predictions.bboxes_xyxy,
+                shift_h=-metadata.padding_coordinates.top,
+                shift_w=-metadata.padding_coordinates.left,
+            )
+        return predictions
 
 
 class _Rescale(Processing, ABC):
@@ -369,6 +514,10 @@ class _Rescale(Processing, ABC):
         :return: (rows, cols) Returns the last known output shape for all the processings.
         """
         return self.output_shape
+
+    @property
+    def resizes_image(self) -> bool:
+        return True
 
 
 class _LongestMaxSizeRescale(Processing, ABC):
@@ -400,6 +549,10 @@ class _LongestMaxSizeRescale(Processing, ABC):
         :return: (rows, cols) Returns the last known output shape for all the processings.
         """
         return None
+
+    @property
+    def resizes_image(self) -> bool:
+        return True
 
 
 @register_processing(Processings.DetectionRescale)
@@ -467,6 +620,10 @@ class Resize(ClassificationProcess):
     def infer_image_input_shape(self) -> None:
         return None
 
+    @property
+    def resizes_image(self) -> bool:
+        return True
+
 
 @register_processing(Processings.CenterCrop)
 class CenterCrop(ClassificationProcess):
@@ -505,6 +662,10 @@ class CenterCrop(ClassificationProcess):
         :return: (rows, cols) Returns the last known output shape for all the processings.
         """
         return (self.size, self.size)
+
+    @property
+    def resizes_image(self) -> bool:
+        return True
 
 
 def default_yolox_coco_processing_params() -> dict:
