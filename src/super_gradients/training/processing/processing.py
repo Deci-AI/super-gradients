@@ -444,7 +444,7 @@ class DetectionAutoPadding(AutoPadding):
         return PaddingCoordinates(top=padding_top, left=padding_left, bottom=padding_bottom, right=padding_right)
 
     def postprocess_predictions(self, predictions: DetectionPrediction, metadata: DetectionPadToSizeMetadata) -> DetectionPrediction:
-        predictions.bboxes_xyxy = _shift_bboxes(
+        predictions.bboxes_xyxy = _shift_bboxes_xyxy(
             targets=predictions.bboxes_xyxy,
             shift_h=-metadata.padding_coordinates.top,
             shift_w=-metadata.padding_coordinates.left,
@@ -481,7 +481,7 @@ class KeypointsAutoPadding(AutoPadding):
             shift_w=-metadata.padding_coordinates.left,
         )
         if predictions.bboxes_xyxy is not None:
-            predictions.bboxes_xyxy = _shift_bboxes(
+            predictions.bboxes_xyxy = _shift_bboxes_xyxy(
                 targets=predictions.bboxes_xyxy,
                 shift_h=-metadata.padding_coordinates.top,
                 shift_w=-metadata.padding_coordinates.left,
