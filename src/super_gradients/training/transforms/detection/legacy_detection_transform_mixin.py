@@ -4,6 +4,7 @@ from typing import Dict, Any
 
 import numpy as np
 
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyxy_to_xywh, xywh_to_xyxy
 from super_gradients.training.samples import DetectionSample
 
 
@@ -16,8 +17,8 @@ class LegacyDetectionTransformMixin:
         """
         :param sample: Dict with following keys:
                         - image: numpy array of [H,W,C] or [C,H,W] format
-                        - target: numpy array of [N,5] shape with bounding box of each instance (XYWH)
-                        - crowd_targets: numpy array of [N,5] shape with bounding box of each instance (XYWH)
+                        - target: numpy array of [N,5] shape with bounding box of each instance (XYXY + LABEL)
+                        - crowd_targets: numpy array of [N,5] shape with bounding box of each instance (XYXY + LABEL)
         """
 
         image, targets = sample["image"], sample["target"]
@@ -35,7 +36,7 @@ class LegacyDetectionTransformMixin:
 
         sample = DetectionSample(
             image=image,
-            bboxes_xywh=targets[:, :4],
+            bboxes_xywh=xyxy_to_xywh(targets[:, :4], image_shape=None),
             labels=targets[:, 4:],
             is_crowd=is_crowd,
             additional_samples=None,
@@ -43,7 +44,7 @@ class LegacyDetectionTransformMixin:
 
         sample = self.apply_to_sample(sample)
 
-        all_targets = np.concatenate([sample.bboxes_xywh, sample.labels], axis=1)
+        all_targets = np.concatenate([xywh_to_xyxy(sample.bboxes_xywh, image_shape=None), sample.labels], axis=1)
         is_crowd = sample.is_crowd
 
         return {
