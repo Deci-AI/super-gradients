@@ -2641,12 +2641,11 @@ class Trainer:
             logger.info(f"Using default quantization params: {quantization_params}")
 
         model = unwrap_model(model)  # Unwrap model in case it is wrapped with DataParallel or DistributedDataParallel
+        model = model.to(device_config.device).eval()
 
         selective_quantizer_params = get_param(quantization_params, "selective_quantizer_params")
         calib_params = get_param(quantization_params, "calib_params")
-        model.to(device_config.device)
         # QUANTIZE MODEL
-        model.eval()
         fuse_repvgg_blocks_residual_branches(model)
         q_util = SelectiveQuantizer(
             default_quant_modules_calibrator_weights=get_param(selective_quantizer_params, "calibrator_w"),

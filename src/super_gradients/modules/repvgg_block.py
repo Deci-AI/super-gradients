@@ -213,7 +213,7 @@ def fuse_repvgg_blocks_residual_branches(model: nn.Module):
     :param model: torch.nn.Module with repvgg blocks. Doesn't have to be entirely consists of repvgg.
     :type model: torch.nn.Module
     """
-    if not model.training:
+    if model.training:
         raise RuntimeError("To fuse RepVGG block residual branches, model must be on eval mode")
     from super_gradients.training.utils.utils import infer_model_device
 
