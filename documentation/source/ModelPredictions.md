@@ -217,3 +217,33 @@ model.predict(...)
 ```
 
 This allows the model to run on the GPU, significantly speeding up the object detection process. Note that using a GPU requires having the necessary drivers and compatible hardware installed.
+
+## Skipping Image Resizing
+Skipping image resizing in object detection can have a significant impact on the results. Typically, models are trained on images of a certain size, with (640, 640) being a common dimension.
+
+By default, the `model.predict(...)` method resizes input images to the training size. However, there's an option to bypass this resizing step, which offers several benefits:
+
+- **Speed Improvement for Smaller Images**: If your original image is smaller than the typical training size, avoiding resizing can speed up the prediction process.
+- **Enhanced Detection of Small Objects in High-Resolution Images**: For high-resolution images containing numerous small objects, processing the images in their original size can improve the model's ability to recall these objects. This comes at the expense of speed but can be beneficial for detailed analysis.
+
+To apply this approach, simply use the `skip_image_resizing` parameter in the `model.predict(...)` method as shown below:
+
+```python
+predictions = model.predict(image, skip_image_resizing=True)
+```
+
+#### Example
+
+The following images illustrate the difference in detection results with and without resizing.
+
+#### Original Image
+![Original Image](images/detection_example_beach_raw_image.jpeg)  
+*This is the raw image before any processing.*
+
+#### Image Processed with Standard Resizing (640x640)
+![Resized Image](images/detection_example_beach_resized_predictions.jpg)  
+*This image shows the detection results after resizing the image to the model's trained size of 640x640.*
+
+#### Image Processed in Original Size
+![Original Size Image](images/detection_example_beach_raw_image_prediction.jpg)  
+*Here, the image is processed in its original size, demonstrating how the model performs without resizing. Notice the differences in object detection and details compared to the resized version.*
