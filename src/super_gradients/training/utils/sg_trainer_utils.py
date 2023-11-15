@@ -454,6 +454,16 @@ def _format_value(value: float) -> str:
 
 
 def get_lr_info(model: nn.Module, param_groups: List[Dict[str, Union[str, float, List[tuple]]]]) -> str:
+    """
+    Generate a string with information about the model and learning rates for each parameter group.
+
+    :param model: (nn.Module): The PyTorch model.
+    :param param_groups: (List[Dict[str, Union[str, float, List[tuple]]]]): List of dictionaries containing information about
+            each parameter group, including the group name, learning rate, and named parameters.
+
+    Returns:
+        str: A formatted string with information about the model and learning rates.
+    """
     total_params = sum(p.numel() for p in model.parameters())
     optimized_params = sum(p.numel() for group in param_groups for p in group["params"])
 
