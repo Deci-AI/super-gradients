@@ -1,3 +1,4 @@
+import numbers
 from typing import Union, List, Tuple, Optional
 
 import cv2
@@ -64,55 +65,58 @@ def draw_skeleton(
 
     keypoints_to_show_mask = keypoint_scores > keypoint_confidence_threshold
 
-    pose_center = keypoints[keypoints_to_show_mask].mean(axis=0)
-    direction_from_center = keypoints - pose_center
-    direction_from_center /= np.linalg.norm(direction_from_center, axis=1, ord=2, keepdims=True) + 1e-9
+    if keypoints_to_show_mask.any():
+        pose_center = keypoints[keypoints_to_show_mask].mean(axis=0)
+        direction_from_center = keypoints - pose_center
+        direction_from_center /= np.linalg.norm(direction_from_center, axis=1, ord=2, keepdims=True) + 1e-9
+        overlay = image.copy()
 
-    overlay = image.copy()
-
-    for keypoint, score, direction, show, color in zip(keypoints, keypoint_scores, direction_from_center, keypoints_to_show_mask, keypoint_colors):
-        if not show:
-            continue
-        x, y = keypoint
-        x = int(x)
-        y = int(y)
-        color = tuple(map(int, color))
-        cv2.circle(overlay, center=(x, y), radius=keypoint_radius, color=color, thickness=-1, lineType=cv2.LINE_AA)
-
-        # Draw confidence score for each keypoint individually
-        if show_keypoint_confidence:
-            center_of_score = keypoint + direction * 16
-            text = f"{score:.2f}"
-            (w, h), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-
-            cx, cy = center_of_score
-            if direction[0] < -0.5:
-                x = int(cx - w)
-            elif direction[0] > 0.5:
-                x = int(cx)
-            else:
-                x = int(cx - w // 2)
-
-            y = int(cy + h // 2)
-            cv2.putText(overlay, text, org=(x, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, color=(250, 250, 250), thickness=1, lineType=cv2.LINE_AA)
-
-    if edge_links is not None:
-        for (kp1, kp2), color in zip(edge_links, edge_colors):
-            show = keypoints_to_show_mask[kp1] and keypoints_to_show_mask[kp2]
+        for keypoint, score, direction, show, color in zip(keypoints, keypoint_scores, direction_from_center, keypoints_to_show_mask, keypoint_colors):
             if not show:
                 continue
-            p1 = tuple(map(int, keypoints[kp1]))
-            p2 = tuple(map(int, keypoints[kp2]))
+            x, y = keypoint
+            x = int(x)
+            y = int(y)
             color = tuple(map(int, color))
-            cv2.line(overlay, p1, p2, color=color, thickness=joint_thickness, lineType=cv2.LINE_AA)
+            cv2.circle(overlay, center=(x, y), radius=max(1, int(keypoint_radius)), color=color, thickness=-1, lineType=cv2.LINE_AA)
 
-    confident_keypoints = keypoints[keypoints_to_show_mask]
+            # Draw confidence score for each keypoint individually
+            if show_keypoint_confidence:
+                center_of_score = keypoint + direction * 16
+                text = f"{score:.2f}"
+                (w, h), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
 
-    if show_confidence and len(confident_keypoints):
-        x, y, w, h = cv2.boundingRect(confident_keypoints)
-        overlay = draw_bbox(overlay, title=f"{score:.2f}", box_thickness=box_thickness, color=(255, 0, 255), x1=x, y1=y, x2=x + w, y2=y + h)
+                cx, cy = center_of_score
+                if direction[0] < -0.5:
+                    x = int(cx - w)
+                elif direction[0] > 0.5:
+                    x = int(cx)
+                else:
+                    x = int(cx - w // 2)
 
-    return cv2.addWeighted(overlay, 0.75, image, 0.25, 0)
+                y = int(cy + h // 2)
+                cv2.putText(
+                    overlay, text, org=(x, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, color=(250, 250, 250), thickness=1, lineType=cv2.LINE_AA
+                )
+
+        if edge_links is not None:
+            for (kp1, kp2), color in zip(edge_links, edge_colors):
+                show = keypoints_to_show_mask[kp1] and keypoints_to_show_mask[kp2]
+                if not show:
+                    continue
+                p1 = tuple(map(int, keypoints[kp1]))
+                p2 = tuple(map(int, keypoints[kp2]))
+                color = tuple(map(int, color))
+                cv2.line(overlay, p1, p2, color=color, thickness=max(1, int(joint_thickness)), lineType=cv2.LINE_AA)
+
+        confident_keypoints = keypoints[keypoints_to_show_mask]
+
+        if show_confidence and len(confident_keypoints):
+            x, y, w, h = cv2.boundingRect(confident_keypoints)
+            overlay = draw_bbox(overlay, title=f"{score:.2f}", box_thickness=max(1, int(box_thickness)), color=(255, 0, 255), x1=x, y1=y, x2=x + w, y2=y + h)
+
+        image = cv2.addWeighted(overlay, 0.75, image, 0.25, 0)
+    return image
 
 
 class PoseVisualization:
@@ -128,12 +132,13 @@ class PoseVisualization:
         edge_links: Union[np.ndarray, List[Tuple[int, int]]],
         edge_colors: Union[None, np.ndarray, List[Tuple[int, int, int]]],
         keypoint_colors: Union[None, np.ndarray, List[Tuple[int, int, int]]],
+        show_boxes: bool = True,
         show_keypoint_confidence: bool = False,
-        joint_thickness: int = 2,
-        box_thickness: int = 2,
-        keypoint_radius: int = 3,
+        joint_thickness: Union[float, List[float], np.ndarray] = 2,
+        box_thickness: Union[float, List[float], np.ndarray] = 2,
+        keypoint_radius: Union[float, List[float], np.ndarray] = 3,
         keypoint_confidence_threshold: float = 0.5,
-        font_size: Union[float, str] = "auto",
+        font_size: Union[float, str, List[float], np.ndarray] = "auto",
     ):
         """
         Draw multiple poses on an image.
@@ -157,6 +162,28 @@ class PoseVisualization:
         if is_crowd is not None and len(is_crowd) != len(poses):
             raise ValueError("is_crowd and poses must have the same length")
 
+        num_poses = len(poses)
+
+        if isinstance(joint_thickness, numbers.Number):
+            joint_thickness = [joint_thickness] * num_poses
+        elif len(joint_thickness) != num_poses:
+            raise ValueError("joint_thickness must be a number or a list of the same length as poses")
+
+        if isinstance(box_thickness, numbers.Number):
+            box_thickness = [box_thickness] * num_poses
+        elif len(box_thickness) != num_poses:
+            raise ValueError("box_thickness must be a number or a list of the same length as poses")
+
+        if isinstance(keypoint_radius, numbers.Number):
+            keypoint_radius = [keypoint_radius] * num_poses
+        elif len(keypoint_radius) != num_poses:
+            raise ValueError("keypoint_radius must be a number or a list of the same length as poses")
+
+        if font_size == "auto" or isinstance(font_size, numbers.Number):
+            font_size = [font_size] * num_poses
+        elif len(font_size) != num_poses:
+            raise ValueError("font_size must be a number or a list of the same length as poses")
+
         # For visualization purposes, sort poses by confidence starting from the least confident
         if scores is not None:
             order = np.argsort(scores)
@@ -168,7 +195,6 @@ class PoseVisualization:
                 is_crowd = is_crowd[order]
 
         res_image = image.copy()
-        num_poses = len(poses)
 
         for pose_index in range(num_poses):
             res_image = draw_skeleton(
@@ -177,16 +203,16 @@ class PoseVisualization:
                 score=scores[pose_index] if scores is not None else None,
                 edge_links=edge_links,
                 edge_colors=edge_colors,
-                joint_thickness=joint_thickness,
+                joint_thickness=joint_thickness[pose_index],
                 keypoint_colors=keypoint_colors,
-                keypoint_radius=keypoint_radius,
+                keypoint_radius=keypoint_radius[pose_index],
                 show_confidence=scores is not None and boxes is None,
                 show_keypoint_confidence=show_keypoint_confidence,
-                box_thickness=box_thickness,
+                box_thickness=box_thickness[pose_index],
                 keypoint_confidence_threshold=keypoint_confidence_threshold,
             )
 
-            if boxes is not None:
+            if show_boxes and boxes is not None:
                 title = ""
                 if scores is not None:
                     title += f"Score {scores[pose_index]:.2f}"
@@ -201,8 +227,8 @@ class PoseVisualization:
                     y2=int(boxes[pose_index][3]),
                     color=(255, 255, 255),
                     title=title,
-                    box_thickness=box_thickness,
-                    font_size=font_size,
+                    box_thickness=box_thickness[pose_index],
+                    font_size=font_size[pose_index],
                 )
 
         return res_image
