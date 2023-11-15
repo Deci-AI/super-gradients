@@ -1,4 +1,3 @@
-import requests
 import torch
 from super_gradients.training import models
 

@@ -1,4 +1,4 @@
-# Using Pretrained Models for Predictions 
+# Using Pretrained Models for Predictions
 
 In this tutorial, we will demonstrate how to use the `model.predict()` method for object detection tasks.
 
@@ -10,7 +10,7 @@ The model used in this tutorial is [YOLO-NAS](YoloNASQuickstart.md), pre-trained
 
 ## Supported Media Formats
 
-A `mode.predict()` method is built to handle multiple data formats and types. 
+A `mode.predict()` method is built to handle multiple data formats and types.
 Here is the full list of what `predict()` method can handle:
 
 | Argument Semantics                 | Argument Type      | Supported layout                  | Example                                                                                        | Notes                                                                                            |
@@ -25,13 +25,13 @@ Here is the full list of what `predict()` method can handle:
 | 3-dimensional Torch Tensor         | `torch.Tensor`     | `[H, W, C]` or `[C, H, W]`        | `predict(torch.zeros((480, 640, 3), dtype=torch.uint8))`                                       | Tensor layout (HWC or CHW) is inferred w.r.t to number of input channels of underlying model     |
 | 4-dimensional Torch Tensor         | `torch.Tensor`     | `[N, H, W, C]` or `[N, C, H, W]`  | `predict(torch.zeros((4, 480, 640, 3), dtype=torch.uint8))`                                    | Tensor layout (NHWC or NCHW) is inferred w.r.t to number of input channels of underlying model   |
 
-**Important note** - When using batched input (4-dimensional `np.ndarray` or `torch.Tensor`) formats, **normalization and size preprocessing will be applied to these inputs**. 
+**Important note** - When using batched input (4-dimensional `np.ndarray` or `torch.Tensor`) formats, **normalization and size preprocessing will be applied to these inputs**.
 This means that the input tensors **should not** be normalized beforehand.
 Here is the example of **incorrect** code of using `model.predict()`:
 
 ```python
 # Incorrect code example. Do not use it.
-from super_gradients.training import dataloaders 
+from super_gradients.training import dataloaders
 from super_gradients.common.object_names import Models
 from super_gradients.training import models
 
@@ -139,6 +139,10 @@ You can also directly access a specific image prediction by referencing its inde
 ## Detect Objects in Animated GIFs and Videos
 The processing for both gif and videos is similar, as they are treated as videos internally. You can use the same `model.predict()` method as before, but pass the path to a GIF or video file instead. The results can be saved as either a `.gif` or `.mp4`.
 
+To mitigate Out-of-Memory (OOM) errors, the `model.predict()` method for video returns a generator object. This allows the video frames to be processed sequentially, minimizing memory usage. It's important to be aware that model inference in this mode will be slower since batching is not supported.
+
+Consequently, you need to invoke `model.predict()` before each `show()` and `save()` call.
+
 ### Load an Animated GIF or Video File
 Let's load an animated GIF or a video file and pass it to the `model.predict()` method:
 
@@ -237,13 +241,13 @@ predictions = model.predict(image, skip_image_resizing=True)
 The following images illustrate the difference in detection results with and without resizing.
 
 #### Original Image
-![Original Image](images/detection_example_beach_raw_image.jpeg)  
+![Original Image](images/detection_example_beach_raw_image.jpeg)
 *This is the raw image before any processing.*
 
 #### Image Processed with Standard Resizing (640x640)
-![Resized Image](images/detection_example_beach_resized_predictions.jpg)  
+![Resized Image](images/detection_example_beach_resized_predictions.jpg)
 *This image shows the detection results after resizing the image to the model's trained size of 640x640.*
 
 #### Image Processed in Original Size
-![Original Size Image](images/detection_example_beach_raw_image_prediction.jpg)  
+![Original Size Image](images/detection_example_beach_raw_image_prediction.jpg)
 *Here, the image is processed in its original size, demonstrating how the model performs without resizing. Notice the differences in object detection and details compared to the resized version.*
