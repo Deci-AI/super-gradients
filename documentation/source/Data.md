@@ -305,3 +305,89 @@ Last, in your ``my_train_from_recipe_script.py`` file, import the newly register
   if __name__ == "__main__":
       run()
 ```
+
+### Adding test datasets
+
+In addition to the train and validation datasets, you can also add a test dataset or multiple test datasets to your configuration file.
+At the end of training, metrics from each test dataset will be computed and returned in final results.
+
+#### Single test dataset
+
+To add a single test dataset to recipe, add following properties to your configuration file:
+
+```yaml
+test_dataloaders: <dataloader_name>
+
+dataset_params:
+  test_dataset_params:
+    ...
+
+  test_dataloader_params:
+    ...
+```
+
+
+#### Multiple test datasets
+
+In addition to the train and validation datasets, you can also add a test dataset or multiple test datasets to your configuration file.
+This is how you can achieve this using YAML file:
+
+#### Explicitly specifying all parameters
+
+```yaml
+test_dataloaders:
+  test_dataset_name_1: <dataloader_name>
+  test_dataset_name_2: <dataloader_name>
+
+dataset_params:
+  test_dataset_params:
+   test_dataset_name_1:
+    ...
+   test_dataset_name_2:
+    ...
+
+  test_dataloader_params:
+   test_dataset_name_1:
+    ...
+   test_dataset_name_2:
+    ...
+```
+
+#### Without dataloader names
+
+A `test_dataloaders` property of the configuration file is optional and can be skipped. 
+You may want to use this option when you don't have a dataloader factory method registered. 
+In this case you have to specify a dataset class in corresponding dataloaders params.
+
+```yaml
+dataset_params:
+  test_dataset_params:
+   test_dataset_name_1:
+    ...
+   test_dataset_name_2:
+    ...
+
+  test_dataloader_params:
+   test_dataset_name_1:
+     dataset: <dataset_class_name>
+     ...
+   test_dataset_name_2:
+     dataset: <dataset_class_name>
+     ...
+```
+
+#### Without dataloader params
+
+A `dataset_params.test_dataloader_params` property is optional and can be skipped.
+In this case `dataset_params.val_dataloader_params` will be used for instantiating test dataloaders. 
+Please note that if you don't use `test_dataloaders` and `test_dataloader_params` properties, a `dataset_params.val_dataloader_params` 
+must contain a `dataset` property specifying class name of the dataset to use.
+
+```yaml
+dataset_params:
+  test_dataset_params:
+   test_dataset_name_1:
+    ...
+   test_dataset_name_2:
+    ...
+```

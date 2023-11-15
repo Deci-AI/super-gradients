@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict, Any, Mapping
 
 import hydra
 import pkg_resources
@@ -8,6 +8,7 @@ import pkg_resources
 from hydra import initialize_config_dir, compose
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import OmegaConf, open_dict, DictConfig
+from torch.utils.data import DataLoader
 
 from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 from super_gradients.common.environment.path_utils import normalize_path
@@ -195,3 +196,37 @@ def export_recipe(config_name: str, save_path: str, config_dir: str = pkg_resour
         cfg = compose(config_name=config_name)
         OmegaConf.save(config=cfg, f=save_path)
         logger.info(f"Successfully saved recipe at {save_path}. \n" f"Recipe content:\n {cfg}")
+
+
+def maybe_instantiate_test_loaders(cfg) -> Optional[Mapping[str, DataLoader]]:
+    """
+    Instantiate test loaders if they are defined in the config.
+
+    :param cfg: Recipe config
+    :return:    A mapping from dataset name to test loader or None if no test loaders are defined.
+    """
+    from super_gradients.training.utils.utils import get_param
+    from super_gradients.training import dataloaders
+
+    test_loaders = None
+    if "test_dataset_params" in cfg.dataset_params:
+        test_dataloaders = get_param(cfg, "test_dataloaders")
+        test_dataset_params = cfg.dataset_params.test_dataset_params
+        test_dataloader_params = get_param(cfg.dataset_params, "test_dataloader_params")
+
+        if test_dataloaders is not None:
+            if not isinstance(test_dataloaders, Mapping):
+                raise ValueError("`test_dataloaders` should be a mapping from test_loader_name to test_loader_params.")
+
+            if test_dataloader_params is not None and test_dataloader_params.keys() != test_dataset_params.keys():
+                raise ValueError("test_dataloader_params and test_dataset_params should have the same keys.")
+
+        test_loaders = {}
+        for dataset_name, dataset_params in test_dataset_params.items():
+            loader_name = test_dataloaders[dataset_name] if test_dataloaders is not None else None
+            dataset_params = test_dataset_params[dataset_name]
+            dataloader_params = test_dataloader_params[dataset_name] if test_dataloader_params is not None else cfg.dataset_params.val_dataloader_params
+            loader = dataloaders.get(loader_name, dataset_params=dataset_params, dataloader_params=dataloader_params)
+            test_loaders[dataset_name] = loader
+
+    return test_loaders
