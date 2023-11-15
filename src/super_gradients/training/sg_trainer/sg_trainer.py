@@ -310,7 +310,7 @@ class Trainer:
             model=model,
             train_loader=train_dataloader,
             valid_loader=val_dataloader,
-            test_loaders=None,  # TODO: Add option to set test_loaders in recipe
+            test_loaders=test_loaders,
             training_params=cfg.training_hyperparams,
             additional_configs_to_log=recipe_logged_cfg,
         )
