@@ -174,7 +174,7 @@ media_predictions.save("output_video.mp4") # Save as .mp4
 The number of Frames Per Second (FPS) at which the model processes the gif/video can be seen directly next to the loading bar when running `model.predict('my_video.mp4')`.
 
 In the following example, the FPS is 39.49it/s (i.e. fps)
-`Predicting Video: 100%|███████████████████████| 306/306 [00:07<00:00, 39.49it/s]`
+`Processing Video: 100%|███████████████████████| 306/306 [00:07<00:00, 39.49it/s]`
 
 Note that the video/gif will be saved with original FPS (i.e. `media_predictions.fps`).
 
