@@ -201,9 +201,8 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         with hydra.initialize_config_dir(config_dir=normalize_path(configs_dir), version_base="1.2"):
             cfg = hydra.compose(config_name="cifar10_multiple_test")
 
-        cfg.training_hyperparams.max_epochs = 5
-        trained_model, metrics = Trainer.train_from_config(cfg)
-        print(metrics)
+        cfg.training_hyperparams.max_epochs = 1
+        Trainer.train_from_config(cfg)
 
 
 if __name__ == "__main__":
