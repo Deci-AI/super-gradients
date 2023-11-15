@@ -43,6 +43,7 @@ from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.environment.package_utils import get_installed_packages
+from super_gradients.common.environment.cfg_utils import maybe_instantiate_test_loaders
 
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.samplers import RepeatAugSampler
@@ -284,25 +285,7 @@ class Trainer:
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
-        test_loaders = {}
-        if "test_dataset_params" in cfg.dataset_params:
-            test_dataloaders = get_param(cfg, "test_dataloaders")
-            test_dataset_params = cfg.dataset_params.test_dataset_params
-            test_dataloader_params = get_param(cfg.dataset_params, "test_dataloader_params")
-
-            if test_dataloaders is not None:
-                if not isinstance(test_dataloaders, Mapping):
-                    raise ValueError("`test_dataloaders` should be a mapping from test_loader_name to test_loader_params.")
-
-                if test_dataloader_params is not None and test_dataloader_params.keys() != test_dataset_params.keys():
-                    raise ValueError("test_dataloader_params and test_dataset_params should have the same keys.")
-
-            for dataset_name, dataset_params in test_dataset_params.items():
-                loader_name = test_dataloaders[dataset_name] if test_dataloaders is not None else None
-                dataset_params = test_dataset_params[dataset_name]
-                dataloader_params = test_dataloader_params[dataset_name] if test_dataloader_params is not None else cfg.dataset_params.val_dataloader_params
-                loader = dataloaders.get(loader_name, dataset_params=dataset_params, dataloader_params=dataloader_params)
-                test_loaders[dataset_name] = loader
+        test_loaders = maybe_instantiate_test_loaders(cfg)
 
         recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
