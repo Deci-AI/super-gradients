@@ -463,6 +463,8 @@ def get_lr_info(model: nn.Module, param_groups: List[Dict[str, Union[str, float,
 
     lr_wd_groups = {}
     max_group_name_len = max(len(group["name"]) for group in param_groups)
+    max_lr_len = 0
+    max_wd_len = 0
 
     for group in param_groups:
         group_name = group["name"]
@@ -478,22 +480,27 @@ def get_lr_info(model: nn.Module, param_groups: List[Dict[str, Union[str, float,
             lr_wd_groups[group_name]["lr_params"][group_lr] = group_params
         else:
             lr_wd_groups[group_name]["lr_params"][group_lr] += group_params
+        max_lr_len = max(max_lr_len, len(f"LR: {group_lr} ({_format_value(group_params)} parameters)"))
 
         if group_wd not in lr_wd_groups[group_name]["wd_params"].keys():
             lr_wd_groups[group_name]["wd_params"][group_wd] = group_params
         else:
             lr_wd_groups[group_name]["wd_params"][group_wd] += group_params
+        max_wd_len = max(max_wd_len, len(f"WD: {group_wd}, ({_format_value(group_params)} parameters)"))
 
     for group_name, info in lr_wd_groups.items():
         all_group_params = info["params"]
-        lr_str = ", ".join([f"LR: {lr_val} ({_format_value(lr_params)} parameters)" for lr_val, lr_params in info["lr_params"].items()]) + ". "
-        wd_str = ", ".join([f"WD: {wd_val}, ({_format_value(wd_params)} parameters)" for wd_val, wd_params in info["wd_params"].items()]) + ". "
+        lr_str = ", ".join([f"LR: {lr_val} ({_format_value(lr_params)} parameters)" for lr_val, lr_params in info["lr_params"].items()])
+        wd_str = ", ".join([f"WD: {wd_val}, ({_format_value(wd_params)} parameters)" for wd_val, wd_params in info["wd_params"].items()])
 
-        # Add padding to align group names
+        # Calculate padding for alignment
         padding_len = max_group_name_len - len(group_name)
         padded_group_name = f"{group_name}:{' ' * padding_len}"
 
-        info_str += f"      - {padded_group_name} ({_format_value(all_group_params)} parameters). {lr_str} {wd_str}\n"
+        lr_padding = " " * (max_lr_len - len(lr_str))
+        wd_padding = " " * (max_wd_len - len(wd_str))
+
+        info_str += f"      - {padded_group_name} ({_format_value(all_group_params)} parameters). {lr_str}{lr_padding} {wd_str}{wd_padding}\n"
 
     return info_str
 
