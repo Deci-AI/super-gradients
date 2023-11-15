@@ -450,20 +450,10 @@ def _format_value(value: float) -> str:
     elif value >= 1e3:
         return f"{value / 1e3:.2f}K"
     else:
-        return f"{value:.2f}"
+        return f"{int(value)}"
 
 
 def get_lr_info(model: nn.Module, param_groups: List[Dict[str, Union[str, float, List[tuple]]]]) -> str:
-    """
-    Generate a string with information about the model and learning rates for each parameter group.
-
-    :param model: (nn.Module): The PyTorch model.
-    :param param_groups: (List[Dict[str, Union[str, float, List[tuple]]]]): List of dictionaries containing information about
-            each parameter group, including the group name, learning rate, and named parameters.
-
-    Returns:
-        str: A formatted string with information about the model and learning rates.
-    """
     total_params = sum(p.numel() for p in model.parameters())
     optimized_params = sum(p.numel() for group in param_groups for p in group["params"])
 
@@ -472,6 +462,7 @@ def get_lr_info(model: nn.Module, param_groups: List[Dict[str, Union[str, float,
     info_str += "    - Learning Rates and Weight Decays:\n"
 
     lr_wd_groups = {}
+    max_group_name_len = max(len(group["name"]) for group in param_groups)
 
     for group in param_groups:
         group_name = group["name"]
@@ -497,7 +488,12 @@ def get_lr_info(model: nn.Module, param_groups: List[Dict[str, Union[str, float,
         all_group_params = info["params"]
         lr_str = ", ".join([f"LR: {lr_val} ({_format_value(lr_params)} parameters)" for lr_val, lr_params in info["lr_params"].items()]) + ". "
         wd_str = ", ".join([f"WD: {wd_val}, ({_format_value(wd_params)} parameters)" for wd_val, wd_params in info["wd_params"].items()]) + ". "
-        info_str += f"      - {group_name}: ({_format_value(all_group_params)} parameters). {lr_str} {wd_str}\n"
+
+        # Add padding to align group names
+        padding_len = max_group_name_len - len(group_name)
+        padded_group_name = f"{group_name}:{' ' * padding_len}"
+
+        info_str += f"      - {padded_group_name} ({_format_value(all_group_params)} parameters). {lr_str} {wd_str}\n"
 
     return info_str
 
