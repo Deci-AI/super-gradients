@@ -2,24 +2,25 @@ import requests
 import torch
 from super_gradients.training import models
 
-# Note that currently only YoloX, PPYoloE and YOLO-NAS are supported.
-model = models.get("yolo_nas_pose_l", pretrained_weights="coco_pose")
+import argparse
 
-# We want to use cuda if available to speed up inference.
-model = model.to("cuda" if torch.cuda.is_available() else "cpu")
+parser = argparse.ArgumentParser()
+parser.add_argument("-p", "--path_to_video", type=str)
 
-video_path = "slickback.mp4"
+if __name__ == "__main__":
+    args = parser.parse_args()
 
-# Download the video to the local file system.
-with open(video_path, mode="wb") as f:
-    response = requests.get("https://deci-pretrained-models.s3.amazonaws.com/sample_images/slickback.mp4")
-    f.write(response.content)
+    # Note that currently only YoloX, PPYoloE and YOLO-NAS are supported.
+    model = models.get("yolo_nas_pose_l", pretrained_weights="coco_pose")
 
-predictions = model.predict(video_path)
-predictions.save("slickback_prediction.mp4")
+    # We want to use cuda if available to speed up inference.
+    model = model.to("cuda" if torch.cuda.is_available() else "cpu")
 
-predictions = model.predict(video_path)
-predictions.save("slickback_prediction.gif")  # Can also be saved as a gif.
+    predictions = model.predict(args.path_to_video)
+    predictions.save(f"{args.path_to_video.split('/')[-1]}_prediction.mp4")
 
-predictions = model.predict(video_path)
-predictions.show()
+    predictions = model.predict(args.path_to_video)
+    predictions.save(f"{args.path_to_video.split('/')[-1]}_prediction.gif")  # Can also be saved as a gif.
+
+    predictions = model.predict(args.path_to_video)
+    predictions.show()
