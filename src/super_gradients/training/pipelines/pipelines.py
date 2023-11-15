@@ -406,11 +406,12 @@ class PoseEstimationPipeline(Pipeline):
         return ImagePoseEstimationPrediction(image=image, prediction=prediction, class_names=self.class_names)
 
     def _combine_image_prediction_to_images(
-        self, images_predictions: Iterable[PoseEstimationPrediction], n_images: Optional[int] = None
-    ) -> ImagesPoseEstimationPrediction:
+        self, images_predictions: Iterable[ImagePoseEstimationPrediction], n_images: Optional[int] = None
+    ) -> Union[ImagesPoseEstimationPrediction, ImagePoseEstimationPrediction]:
         if n_images is not None and n_images == 1:
             # Do not show tqdm progress bar if there is only one image
-            images_predictions = [next(iter(images_predictions))]
+            images_predictions = next(iter(images_predictions))
+            return images_predictions
         else:
             images_predictions = [image_predictions for image_predictions in tqdm(images_predictions, total=n_images, desc="Predicting Images")]
 

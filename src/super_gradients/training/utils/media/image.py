@@ -1,17 +1,16 @@
-import warnings
-from typing import Union, List, Iterable, Iterator
-from typing_extensions import get_args
-import PIL
 import io
 import os
-from PIL import Image
-import matplotlib.pyplot as plt
-
-import numpy as np
-import torch
-import requests
+import warnings
+from typing import Union, List, Iterable, Iterator
 from urllib.parse import urlparse
 
+import PIL
+import matplotlib.pyplot as plt
+import numpy as np
+import requests
+import torch
+from PIL import Image
+from typing_extensions import get_args
 
 IMG_EXTENSIONS = ("bmp", "dng", "jpeg", "jpg", "mpo", "pfm", "pgm", "png", "ppm", "tif", "tiff", "webp")
 SingleImageSource = Union[str, np.ndarray, torch.Tensor, PIL.Image.Image]

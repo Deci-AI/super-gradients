@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
 
 import numpy as np
 
@@ -25,11 +25,12 @@ class ImagePoseEstimationPrediction(ImagePrediction):
     def draw(
         self,
         edge_colors=None,
-        joint_thickness: int = 2,
+        joint_thickness: Union[int, str] = "auto",
         keypoint_colors=None,
-        keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        keypoint_radius: Union[int, str] = "auto",
+        box_thickness: Union[int, str] = "auto",
         show_confidence: bool = False,
+        font_size="auto",
     ) -> np.ndarray:
         """Draw the predicted bboxes on the image.
 
@@ -45,6 +46,24 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         :param box_thickness:   Thickness of bounding boxes.
         :return:                Image with predicted bboxes. Note that this does not modify the original image.
         """
+        min_size = max(self.image.shape[:2])
+
+        if box_thickness == "auto":
+            box_thickness = min(10, max(1, int(min_size / 300)))
+        else:
+            box_thickness = int(box_thickness)
+
+        if joint_thickness == "auto":
+            joint_thickness = min(10, max(1, int(min_size / 300)))
+        else:
+            joint_thickness = int(joint_thickness)
+
+        if keypoint_radius == "auto":
+            keypoint_radius = 2 * joint_thickness
+
+        if font_size == "auto":
+            font_size = min_size / 800
+
         image = PoseVisualization.draw_poses(
             image=self.image,
             poses=self.prediction.poses,
@@ -57,6 +76,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
             keypoint_colors=keypoint_colors or self.prediction.keypoint_colors,
             keypoint_radius=keypoint_radius,
             box_thickness=box_thickness,
+            font_size=font_size,
         )
 
         return image
@@ -64,12 +84,12 @@ class ImagePoseEstimationPrediction(ImagePrediction):
     def show(
         self,
         edge_colors=None,
-        joint_thickness: int = 2,
+        joint_thickness: Union[int, str] = "auto",
         keypoint_colors=None,
-        keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        keypoint_radius: Union[int, str] = "auto",
+        box_thickness: Union[int, str] = "auto",
         show_confidence: bool = False,
-    ) -> None:
+    ) -> "ImagePoseEstimationPrediction":
         """Display the image with predicted bboxes.
 
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
@@ -92,17 +112,18 @@ class ImagePoseEstimationPrediction(ImagePrediction):
             show_confidence=show_confidence,
         )
         show_image(image)
+        return self
 
     def save(
         self,
         output_path: str,
         edge_colors=None,
-        joint_thickness: int = 2,
+        joint_thickness: Union[int, str] = "auto",
         keypoint_colors=None,
-        keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        keypoint_radius: Union[int, str] = "auto",
+        box_thickness: Union[int, str] = "auto",
         show_confidence: bool = False,
-    ) -> None:
+    ) -> "ImagePoseEstimationPrediction":
         """Save the predicted bboxes on the images.
 
         :param output_path:     Path to the output video file.
@@ -119,6 +140,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         """
         image = self.draw(box_thickness=box_thickness, show_confidence=show_confidence)
         save_image(image=image, path=output_path)
+        return self
 
 
 @dataclass
@@ -133,12 +155,12 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
     def show(
         self,
         edge_colors=None,
-        joint_thickness: int = 2,
+        joint_thickness: Union[int, str] = "auto",
         keypoint_colors=None,
-        keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        keypoint_radius: Union[int, str] = "auto",
+        box_thickness: Union[int, str] = "auto",
         show_confidence: bool = False,
-    ) -> None:
+    ) -> "ImagesPoseEstimationPrediction":
         """Display the predicted bboxes on the images.
 
         :param edge_colors:    Optional list of tuples representing the colors for each joint.
@@ -161,15 +183,16 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
                 box_thickness=box_thickness,
                 show_confidence=show_confidence,
             )
+        return self
 
     def save(
         self,
         output_folder: str,
         edge_colors=None,
-        joint_thickness: int = 2,
+        joint_thickness: Union[int, str] = "auto",
         keypoint_colors=None,
-        keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        keypoint_radius: Union[int, str] = "auto",
+        box_thickness: Union[int, str] = "auto",
         show_confidence: bool = False,
     ) -> None:
         """Save the predicted bboxes on the images.
@@ -200,6 +223,7 @@ class ImagesPoseEstimationPrediction(ImagesPredictions):
                 box_thickness=box_thickness,
                 show_confidence=show_confidence,
             )
+        return self
 
 
 @dataclass
@@ -216,10 +240,10 @@ class VideoPoseEstimationPrediction(VideoPredictions):
     def draw(
         self,
         edge_colors=None,
-        joint_thickness: int = 2,
+        joint_thickness: Union[int, str] = "auto",
         keypoint_colors=None,
-        keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        keypoint_radius: Union[int, str] = "auto",
+        box_thickness: Union[int, str] = "auto",
         show_confidence: bool = False,
     ) -> List[np.ndarray]:
         """Draw the predicted bboxes on the images.
@@ -254,10 +278,10 @@ class VideoPoseEstimationPrediction(VideoPredictions):
     def show(
         self,
         edge_colors=None,
-        joint_thickness: int = 2,
+        joint_thickness: Union[int, str] = "auto",
         keypoint_colors=None,
-        keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        keypoint_radius: Union[int, str] = "auto",
+        box_thickness: Union[int, str] = "auto",
         show_confidence: bool = False,
     ) -> None:
         """Display the predicted bboxes on the images.
@@ -287,10 +311,10 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         self,
         output_path: str,
         edge_colors=None,
-        joint_thickness: int = 2,
+        joint_thickness: Union[int, str] = "auto",
         keypoint_colors=None,
-        keypoint_radius: int = 5,
-        box_thickness: int = 2,
+        keypoint_radius: Union[int, str] = "auto",
+        box_thickness: Union[int, str] = "auto",
         show_confidence: bool = False,
     ) -> None:
         """Save the predicted bboxes on the images.

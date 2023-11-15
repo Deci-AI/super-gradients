@@ -133,6 +133,7 @@ class PoseVisualization:
         box_thickness: int = 2,
         keypoint_radius: int = 3,
         keypoint_confidence_threshold: float = 0.5,
+        font_size: Union[float, str] = "auto",
     ):
         """
         Draw multiple poses on an image.
@@ -201,6 +202,7 @@ class PoseVisualization:
                     color=(255, 255, 255),
                     title=title,
                     box_thickness=box_thickness,
+                    font_size=font_size,
                 )
 
         return res_image

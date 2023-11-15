@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
 import cv2
 import numpy as np
 
@@ -14,6 +14,7 @@ def draw_bbox(
     y1: int,
     x2: int,
     y2: int,
+    font_size: Union[float, str] = "auto",
 ) -> np.ndarray:
     """Draw a bounding box on an image.
 
@@ -31,12 +32,15 @@ def draw_bbox(
     overlay = cv2.rectangle(overlay, (x1, y1), (x2, y2), color, box_thickness)
 
     if title is not None or title != "":
-        # Adapt font size to image shape.
-        # This is required because small images require small font size, but this makes the title look bad,
-        # so when possible we increase the font size to a more appropriate value.
-        font_size = 0.25 + 0.07 * min(overlay.shape[:2]) / 100
-        font_size = max(font_size, 0.5)  # Set min font_size to 0.5
-        font_size = min(font_size, 0.8)  # Set max font_size to 0.8
+        if font_size == "auto":
+            # Adapt font size to image shape.
+            # This is required because small images require small font size, but this makes the title look bad,
+            # so when possible we increase the font size to a more appropriate value.
+            font_size = 0.25 + 0.07 * min(overlay.shape[:2]) / 100
+            font_size = max(font_size, 0.5)  # Set min font_size to 0.5
+            font_size = min(font_size, 0.8)  # Set max font_size to 0.8
+        else:
+            font_size = float(font_size)
 
         overlay = draw_text_box(image=overlay, text=title, x=x1, y=y1, font=2, font_size=font_size, background_color=color, thickness=1)
 
