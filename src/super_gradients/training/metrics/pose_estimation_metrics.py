@@ -262,7 +262,7 @@ class PoseEstimationMetrics(Metric):
         predicted_scores = convert_to_tensor(predicted_scores, dtype=torch.float32, device="cpu")
 
         if gt_bboxes is None:
-            gt_bboxes = compute_visible_bbox_xywh(torch.tensor(gt_joints[:, :, 0:2]), torch.tensor(gt_joints[:, :, 2]))
+            gt_bboxes = compute_visible_bbox_xywh(gt_joints[:, :, 0:2], gt_joints[:, :, 2])
 
         if gt_areas is None:
             gt_areas = gt_bboxes[:, 2] * gt_bboxes[:, 3]

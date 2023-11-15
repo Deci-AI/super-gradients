@@ -4,6 +4,8 @@ from typing import List, Union
 
 import numpy as np
 
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyxy_to_xywh
+from super_gradients.training.metrics.pose_estimation_utils import compute_visible_bbox_xywh
 from super_gradients.training.utils.predict import ImagePrediction, ImagesPredictions, VideoPredictions, PoseEstimationPrediction
 from super_gradients.training.utils.media.image import show_image, save_image
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
@@ -29,6 +31,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         keypoint_colors=None,
         keypoint_radius: Union[int, str] = "auto",
         box_thickness: Union[int, str] = "auto",
+        show_boxes: bool = True,
         show_confidence: bool = False,
         font_size="auto",
     ) -> np.ndarray:
@@ -54,7 +57,18 @@ class ImagePoseEstimationPrediction(ImagePrediction):
             box_thickness = int(box_thickness)
 
         if joint_thickness == "auto":
-            joint_thickness = min(10, max(1, int(min_size / 300)))
+            joint_thickness = min(10, max(1, min_size / 300.0))
+            joint_thickness = np.array([joint_thickness] * len(self.prediction))
+
+            if self.prediction.bboxes_xyxy is not None:
+                bbox_xywh = xyxy_to_xywh(self.prediction.bboxes_xyxy, image_shape=None)
+            else:
+                bbox_xywh = compute_visible_bbox_xywh(joints=self.prediction.poses, visibility_mask=self.prediction.poses[:, :, 2] > 0.5)
+            pose_sizes = np.maximum(bbox_xywh[:, 2], bbox_xywh[:, 3])
+            scale = 0.1 * min_size / pose_sizes
+
+            joint_thickness = joint_thickness * scale
+
         else:
             joint_thickness = int(joint_thickness)
 
@@ -76,6 +90,8 @@ class ImagePoseEstimationPrediction(ImagePrediction):
             keypoint_colors=keypoint_colors or self.prediction.keypoint_colors,
             keypoint_radius=keypoint_radius,
             box_thickness=box_thickness,
+            show_boxes=show_boxes,
+            show_keypoint_confidence=show_confidence,
             font_size=font_size,
         )
 
@@ -88,6 +104,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
         keypoint_colors=None,
         keypoint_radius: Union[int, str] = "auto",
         box_thickness: Union[int, str] = "auto",
+        show_boxes: bool = True,
         show_confidence: bool = False,
     ) -> "ImagePoseEstimationPrediction":
         """Display the image with predicted bboxes.
@@ -109,6 +126,7 @@ class ImagePoseEstimationPrediction(ImagePrediction):
             keypoint_colors=keypoint_colors,
             keypoint_radius=keypoint_radius,
             box_thickness=box_thickness,
+            show_boxes=show_boxes,
             show_confidence=show_confidence,
         )
         show_image(image)

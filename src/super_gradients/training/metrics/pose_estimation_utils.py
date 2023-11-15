@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 
 
-def compute_visible_bbox_xywh(joints: Tensor, visibility_mask: Tensor) -> np.ndarray:
+def compute_visible_bbox_xywh(joints: np.ndarray, visibility_mask: np.ndarray) -> np.ndarray:
     """
     Compute the bounding box (X,Y,W,H) of the visible joints for each instance.
 
@@ -14,22 +14,15 @@ def compute_visible_bbox_xywh(joints: Tensor, visibility_mask: Tensor) -> np.nda
     :param visibility_mask: [Num Instances, Num Joints]
     :return: A numpy array [Num Instances, 4] where last dimension contains bbox in format XYWH
     """
-    visibility_mask = visibility_mask > 0
-    initial_value = 1_000_000
+    xmax = np.max(joints[:, :, 0], axis=-1, where=visibility_mask, initial=joints[:, :, 0].min())
+    xmin = np.min(joints[:, :, 0], axis=-1, where=visibility_mask, initial=joints[:, :, 0].max())
+    ymax = np.max(joints[:, :, 1], axis=-1, where=visibility_mask, initial=joints[:, :, 1].min())
+    ymin = np.min(joints[:, :, 1], axis=-1, where=visibility_mask, initial=joints[:, :, 1].max())
 
-    x1 = torch.min(joints[:, :, 0], where=visibility_mask, initial=initial_value, dim=-1)
-    y1 = torch.min(joints[:, :, 1], where=visibility_mask, initial=initial_value, dim=-1)
+    w = xmax - xmin
+    h = ymax - ymin
 
-    x1[x1 == initial_value] = 0
-    y1[y1 == initial_value] = 0
-
-    x2 = torch.max(joints[:, :, 0], where=visibility_mask, initial=0, dim=-1)
-    y2 = torch.max(joints[:, :, 1], where=visibility_mask, initial=0, dim=-1)
-
-    w = x2 - x1
-    h = y2 - y1
-
-    return torch.stack([x1, y1, w, h], dim=-1)
+    return np.stack([xmin, xmax, w, h], axis=-1)
 
 
 def compute_oks(

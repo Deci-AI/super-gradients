@@ -46,16 +46,13 @@ class PoseEstimationSample:
         :return:       np.ndarray of [Num Instances] shape with box area of the visible joints
                        (zero if all joints are not visible or only one joint is visible)
         """
-        visible_joints = joints[:, :, 2] > 0
-        xmax = np.max(joints[:, :, 0], axis=-1, where=visible_joints, initial=joints[:, :, 0].min())
-        xmin = np.min(joints[:, :, 0], axis=-1, where=visible_joints, initial=joints[:, :, 0].max())
-        ymax = np.max(joints[:, :, 1], axis=-1, where=visible_joints, initial=joints[:, :, 1].min())
-        ymin = np.min(joints[:, :, 1], axis=-1, where=visible_joints, initial=joints[:, :, 1].max())
+        from super_gradients.training.metrics.pose_estimation_utils import compute_visible_bbox_xywh
 
-        w = xmax - xmin
-        h = ymax - ymin
-        raw_area = w * h
-        area = np.clip(raw_area, a_min=0, a_max=None) * (visible_joints.sum(axis=-1, keepdims=False) > 1)
+        visible_joints_mask = joints[:, :, 2] > 0
+        boxes_xywh = compute_visible_bbox_xywh(joints[:, :, 0:2], visible_joints_mask)
+
+        raw_area = boxes_xywh[..., 2:4].prod(axis=-1, keepdims=False)
+        area = np.clip(raw_area, a_min=0, a_max=None) * (visible_joints_mask.sum(axis=-1, keepdims=False) > 1)
         return area
 
     def sanitize_sample(self) -> "PoseEstimationSample":
