@@ -325,6 +325,29 @@ class TestDetectionModelExport(unittest.TestCase):
             assert pred_classes.shape == (1, max_predictions_per_image)
             assert pred_classes.dtype == np.int64
 
+    def test_export_with_fp16_quantization_tensort_from_cpu(self):
+        """
+        This test checks that we can export model with FP16 quantization.
+        It requires CUDA and moves model to CUDA device under the hood.
+        """
+        if not torch.cuda.is_available():
+            self.skipTest("CUDA device is required for this test")
+
+        max_predictions_per_image = 300
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            out_path = os.path.join(tmpdirname, "ppyoloe_s_with_fp16_quantization.onnx")
+
+            ppyolo_e: ExportableObjectDetectionModel = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
+            export_result = ppyolo_e.export(
+                out_path,
+                engine=ExportTargetBackend.TENSORRT,
+                max_predictions_per_image=max_predictions_per_image,
+                input_image_shape=(640, 640),
+                output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
+                quantization_mode=ExportQuantizationMode.FP16,
+            )
+            assert export_result is not None
+
     def test_export_with_fp16_quantization_tensort(self):
         if torch.cuda.is_available():
             device = "cuda"
@@ -576,7 +599,6 @@ class TestDetectionModelExport(unittest.TestCase):
                         onnx_filename = f"{model_name}_{engine.value}_{output_predictions_format.value}{quantization_suffix}.onnx"
 
                         with self.subTest(msg=onnx_filename):
-
                             model.export(
                                 os.path.join(export_dir, onnx_filename),
                                 device=device,
@@ -611,7 +633,6 @@ class TestDetectionModelExport(unittest.TestCase):
         for num_predictions_max in [0, max_predictions_per_image // 2, max_predictions_per_image]:
             for device in available_devices:
                 for dtype in available_dtypes:
-
                     num_detections = torch.randint(0, num_predictions_max + 1, (batch_size, 1), dtype=torch.int32)
                     detection_boxes = torch.randn((batch_size, max_predictions_per_image, 4), dtype=dtype)
                     detection_scores = torch.randn((batch_size, max_predictions_per_image)).sigmoid().to(dtype)
@@ -662,7 +683,6 @@ class TestDetectionModelExport(unittest.TestCase):
         for max_detections in [0, num_pre_nms_predictions // 2, num_pre_nms_predictions, num_pre_nms_predictions * 2]:
             for device in available_devices:
                 for dtype in available_dtypes:
-
                     # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
                     # And also can handle dynamic shapes input
                     pred_boxes = torch.randn((batch_size, num_pre_nms_predictions, 4), dtype=dtype)
@@ -721,7 +741,6 @@ class TestDetectionModelExport(unittest.TestCase):
         for max_detections in [0, num_pre_nms_predictions // 2, num_pre_nms_predictions, num_pre_nms_predictions * 2]:
             for device in available_devices:
                 for dtype in available_dtypes:
-
                     # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
                     # And also can handle dynamic shapes input
                     pred_boxes = torch.randn((batch_size, num_pre_nms_predictions, 4), dtype=dtype)
