@@ -1215,6 +1215,9 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         # they are not guaranteed to have same size
         logger.debug(f"images_to_save before gather {len(images_to_save)}")
         images_to_save = maybe_all_gather_as_list(images_to_save)
+        logger.debug(f"gather returned {len(images_to_save)} containers")
+        for idx, image in enumerate(images_to_save):
+            logger.debug(f"images_to_save[{idx}] {image.shape}")
         images_to_save: List[np.ndarray] = list(itertools.chain(*images_to_save))
         logger.debug(f"images_to_save after gather {len(images_to_save)}")
 
