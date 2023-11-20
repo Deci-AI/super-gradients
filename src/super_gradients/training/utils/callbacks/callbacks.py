@@ -14,6 +14,7 @@ import numpy as np
 import onnx
 import onnxruntime
 import torch
+from torch.distributed import get_rank
 from torch.utils.data import DataLoader
 from torchmetrics import MetricCollection, Metric
 from torchvision.utils import draw_segmentation_masks
@@ -22,7 +23,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.deprecate import deprecated
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
-from super_gradients.common.environment.ddp_utils import multi_process_safe
+from super_gradients.common.environment.ddp_utils import multi_process_safe, get_world_size, is_distributed
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
@@ -1213,9 +1214,10 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
 
         # If we are using multiscale training, we need to gather the images from all processes as list since
         # they are not guaranteed to have same size
-        logger.info(f"images_to_save before gather {len(images_to_save)}")
+        logger.info(f"images_to_save before gather {len(images_to_save)} {images_to_save.shape}")
+        print("DDP INFO", is_distributed(), get_world_size(), get_rank())
         images_to_save = maybe_all_gather_as_list(images_to_save)
-        logger.info(f"gather returned {len(images_to_save)} containers")
+        logger.info(f"gather returned {len(images_to_save)} containers. world size: {get_world_size()}")
         for idx, image in enumerate(images_to_save):
             logger.info(f"images_to_save[{idx}] {image.shape}")
         images_to_save: List[np.ndarray] = list(itertools.chain(*images_to_save))
