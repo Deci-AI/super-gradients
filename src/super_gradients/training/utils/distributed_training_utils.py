@@ -472,5 +472,5 @@ def maybe_all_gather_as_list(inputs) -> List:
     if is_distributed():
         output_container = [None for _ in range(_get_world_size())]
         all_gather_object(output_container, inputs)
-        return [output_container]
+        return output_container
     return [inputs]
