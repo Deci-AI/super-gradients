@@ -470,9 +470,7 @@ def maybe_all_gather_as_list(inputs) -> List:
     :return: np.ndarray, the output image as described above
     """
     if is_distributed():
-        rank = get_rank()
         output_container = [None for _ in range(_get_world_size())]
         all_gather_object(output_container, inputs)
-        if rank == 0:
-            return [inputs]
+        return [output_container]
     return [inputs]
