@@ -458,3 +458,21 @@ def maybe_all_gather_np_images(image: np.ndarray) -> np.ndarray:
         if rank == 0:
             image = np.concatenate(output_container, 0)
     return image
+
+
+def maybe_all_gather_as_list(inputs) -> List:
+    """
+    When in DDP- gathers inputs from all processes.
+    When not in DDP - returns the single-element list of [input].
+
+    :param image: np.ndarray, the local rank's tensor to gather
+
+    :return: np.ndarray, the output image as described above
+    """
+    if is_distributed():
+        rank = get_rank()
+        output_container = [None for _ in range(get_world_size())]
+        all_gather_object(output_container, inputs)
+        if rank == 0:
+            return [inputs]
+    return [inputs]

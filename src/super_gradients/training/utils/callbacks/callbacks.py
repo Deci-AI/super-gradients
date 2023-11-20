@@ -1,5 +1,6 @@
 import copy
 import csv
+import itertools
 import math
 import numbers
 import os
@@ -31,7 +32,7 @@ from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, 
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback, cxcywh2xyxy, xyxy2cxcywh
-from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
+from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_as_list
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.training.utils.utils import unwrap_model, infer_model_device, tensor_container_to_device
 
@@ -1209,9 +1210,22 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
 
     def _gather_extreme_batch_images_and_log(self, context, loader_name: str):
         images_to_save = self.process_extreme_batch()
-        images_to_save = maybe_all_gather_np_images(images_to_save)
+
+        # If we are using multiscale training, we need to gather the images from all processes as list since
+        # they are not guaranteed to have same size
+        images_to_save = maybe_all_gather_as_list(images_to_save)
+        images_to_save: List[np.ndarray] = list(itertools.chain(*images_to_save))
+
         if self.max_images > 0:
             images_to_save = images_to_save[: self.max_images]
+
+        # Before saving images to logger we need to pad them to the same size
+        max_height = max([image.shape[0] for image in images_to_save])
+        max_width = max([image.shape[1] for image in images_to_save])
+        images_to_save = [
+            cv2.copyMakeBorder(image, 0, max_height - image.shape[0], 0, max_width - image.shape[1], cv2.BORDER_CONSTANT, value=0) for image in images_to_save
+        ]
+
         if not context.ddp_silent_mode:
             context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=context.epoch, data_format="NHWC")
 
