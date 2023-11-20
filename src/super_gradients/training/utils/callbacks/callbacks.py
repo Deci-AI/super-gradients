@@ -1225,6 +1225,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         images_to_save = [
             cv2.copyMakeBorder(image, 0, max_height - image.shape[0], 0, max_width - image.shape[1], cv2.BORDER_CONSTANT, value=0) for image in images_to_save
         ]
+        images_to_save = np.stack(images_to_save, axis=0)
 
         if not context.ddp_silent_mode:
             context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=context.epoch, data_format="NHWC")
