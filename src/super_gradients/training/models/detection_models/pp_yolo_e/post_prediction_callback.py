@@ -27,6 +27,7 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         self.max_predictions = max_predictions
         self.multi_label_per_box = multi_label_per_box
 
+    @torch.no_grad()
     def forward(self, outputs, device: str):
         """
 
@@ -41,6 +42,8 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         for pred_bboxes, pred_scores in zip(*predictions):
             # pred_bboxes [Anchors, 4],
             # pred_scores [Anchors, C]
+            pred_bboxes = pred_bboxes.float()
+            pred_scores = pred_scores.float()
 
             # Filter all predictions by self.score_threshold
             if self.multi_label_per_box:
