@@ -1213,27 +1213,28 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
 
         # If we are using multiscale training, we need to gather the images from all processes as list since
         # they are not guaranteed to have same size
-        logger.debug(f"images_to_save before gather {len(images_to_save)}")
+        logger.info(f"images_to_save before gather {len(images_to_save)}")
         images_to_save = maybe_all_gather_as_list(images_to_save)
-        logger.debug(f"gather returned {len(images_to_save)} containers")
+        logger.info(f"gather returned {len(images_to_save)} containers")
         for idx, image in enumerate(images_to_save):
-            logger.debug(f"images_to_save[{idx}] {image.shape}")
+            logger.info(f"images_to_save[{idx}] {image.shape}")
         images_to_save: List[np.ndarray] = list(itertools.chain(*images_to_save))
-        logger.debug(f"images_to_save after gather {len(images_to_save)}")
-
-        if self.max_images > 0:
-            images_to_save = images_to_save[: self.max_images]
-
-        # Before saving images to logger we need to pad them to the same size
-        max_height = max([image.shape[0] for image in images_to_save])
-        max_width = max([image.shape[1] for image in images_to_save])
-        images_to_save = [
-            cv2.copyMakeBorder(image, 0, max_height - image.shape[0], 0, max_width - image.shape[1], cv2.BORDER_CONSTANT, value=0) for image in images_to_save
-        ]
-        images_to_save = np.stack(images_to_save, axis=0)
-        logger.debug(f"images_to_save after pad {images_to_save.shape}")
+        logger.info(f"images_to_save after gather {len(images_to_save)}")
 
         if not context.ddp_silent_mode:
+            if self.max_images > 0:
+                images_to_save = images_to_save[: self.max_images]
+
+            # Before saving images to logger we need to pad them to the same size
+            max_height = max([image.shape[0] for image in images_to_save])
+            max_width = max([image.shape[1] for image in images_to_save])
+            images_to_save = [
+                cv2.copyMakeBorder(image, 0, max_height - image.shape[0], 0, max_width - image.shape[1], cv2.BORDER_CONSTANT, value=0)
+                for image in images_to_save
+            ]
+            images_to_save = np.stack(images_to_save, axis=0)
+            logger.info(f"images_to_save after pad {images_to_save.shape}")
+
             context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=context.epoch, data_format="NHWC")
 
     def _on_batch_end(self, context: PhaseContext) -> None:
