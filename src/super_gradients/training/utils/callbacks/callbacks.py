@@ -1217,6 +1217,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         logger.info(f"images_to_save before gather {len(images_to_save)} {images_to_save.shape}")
         print("DDP INFO", is_distributed(), get_world_size(), get_rank())
         images_to_save = maybe_all_gather_as_list(images_to_save)
+        torch.distributed.barrier()
         logger.info(f"gather returned {len(images_to_save)} containers. world size: {get_world_size()}")
         for idx, image in enumerate(images_to_save):
             logger.info(f"images_to_save[{idx}] {image.shape}")
