@@ -1210,15 +1210,21 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             self._reset()
 
     def _gather_extreme_batch_images_and_log(self, context, loader_name: str):
-        images_to_save = self.process_extreme_batch()
+        from pytorch_toolbelt.utils.distributed import all_gather
+
+        input_images_to_save = self.process_extreme_batch()
 
         # If we are using multiscale training, we need to gather the images from all processes as list since
         # they are not guaranteed to have same size
-        logger.info(f"images_to_save before gather {len(images_to_save)} {images_to_save.shape}")
+        logger.info(f"images_to_save before gather {len(input_images_to_save)} {input_images_to_save.shape}")
         print("DDP INFO", is_distributed(), get_world_size(), get_rank())
-        images_to_save = maybe_all_gather_as_list(images_to_save)
+        images_to_save = maybe_all_gather_as_list(input_images_to_save)
         torch.distributed.barrier()
         logger.info(f"gather returned {len(images_to_save)} containers. world size: {get_world_size()}")
+
+        toolbelt_images_to_save = all_gather(input_images_to_save)
+        logger.info(f"pytorch_toolbelt.all_gather returned {len(toolbelt_images_to_save)} containers. world size: {get_world_size()}")
+
         for idx, image in enumerate(images_to_save):
             logger.info(f"images_to_save[{idx}] {image.shape}")
         images_to_save: List[np.ndarray] = list(itertools.chain(*images_to_save))
