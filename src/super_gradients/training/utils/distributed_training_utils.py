@@ -453,7 +453,7 @@ def maybe_all_gather_np_images(image: np.ndarray) -> np.ndarray:
     """
     if is_distributed():
         rank = get_rank()
-        output_container = [None for _ in range(get_world_size())]
+        output_container = [None for _ in range(_get_world_size())]
         all_gather_object(output_container, image)
         if rank == 0:
             image = np.concatenate(output_container, 0)
@@ -471,7 +471,7 @@ def maybe_all_gather_as_list(inputs) -> List:
     """
     if is_distributed():
         rank = get_rank()
-        output_container = [None for _ in range(get_world_size())]
+        output_container = [None for _ in range(_get_world_size())]
         all_gather_object(output_container, inputs)
         if rank == 0:
             return [inputs]
