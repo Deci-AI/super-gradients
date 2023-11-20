@@ -1,4 +1,4 @@
-__version__ = "3.2.0"
+__version__ = "3.4.1"
 
 from super_gradients.common import init_trainer, is_distributed, object_names
 from super_gradients.training import losses, utils, datasets_utils, DataAugmentation, Trainer, KDTrainer, QATTrainer

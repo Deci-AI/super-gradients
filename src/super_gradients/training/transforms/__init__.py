@@ -1,5 +1,6 @@
 # PACKAGE IMPORTS FOR EXTERNAL USAGE
 import cv2
+
 from super_gradients.training.transforms.transforms import (
     DetectionTransform,
     DetectionStandardize,
@@ -10,6 +11,27 @@ from super_gradients.training.transforms.transforms import (
     DetectionPaddedRescale,
     DetectionTargetsFormatTransform,
     Standardize,
+)
+from super_gradients.training.transforms.keypoints import (
+    AbstractKeypointTransform,
+    KeypointTransform,
+    KeypointsHSV,
+    KeypointsRescale,
+    KeypointsCompose,
+    KeypointsMosaic,
+    KeypointsMixup,
+    KeypointsRandomAffineTransform,
+    KeypointsRandomRotate90,
+    KeypointsRandomVerticalFlip,
+    KeypointsRandomHorizontalFlip,
+    KeypointsImageToTensor,
+    KeypointsImageNormalize,
+    KeypointsImageStandardize,
+    KeypointsPadIfNeeded,
+    KeypointsBrightnessContrast,
+    KeypointsLongestMaxSize,
+    KeypointsReverseImageChannels,
+    KeypointsRemoveSmallObjects,
 )
 from super_gradients.common.object_names import Transforms
 from super_gradients.common.registry.registry import TRANSFORMS
@@ -30,6 +52,25 @@ __all__ = [
     "DetectionPaddedRescale",
     "DetectionTargetsFormatTransform",
     "Standardize",
+    "AbstractKeypointTransform",
+    "KeypointTransform",
+    "KeypointsBrightnessContrast",
+    "KeypointsCompose",
+    "KeypointsHSV",
+    "KeypointsImageNormalize",
+    "KeypointsImageStandardize",
+    "KeypointsLongestMaxSize",
+    "KeypointsMixup",
+    "KeypointsMosaic",
+    "KeypointsPadIfNeeded",
+    "KeypointsRandomAffineTransform",
+    "KeypointsRandomHorizontalFlip",
+    "KeypointsRandomVerticalFlip",
+    "KeypointsRescale",
+    "KeypointsRandomRotate90",
+    "KeypointsImageToTensor",
+    "KeypointsRemoveSmallObjects",
+    "KeypointsReverseImageChannels",
 ]
 
 cv2.setNumThreads(0)

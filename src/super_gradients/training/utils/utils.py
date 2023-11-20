@@ -38,9 +38,12 @@ def convert_to_tensor(array, dtype=None, device=None):
     :param array: torch.tensor / Numpy array / List
     """
     if not torch.is_tensor(array):
-        array = torch.tensor(array)
-
-    return array.to(device=device, dtype=dtype)
+        if isinstance(array, np.ndarray):
+            return torch.from_numpy(array).to(device=device, dtype=dtype)
+        else:
+            return torch.tensor(array, device=device, dtype=dtype)
+    else:
+        return array.to(device=device, dtype=dtype)
 
 
 class HpmStruct:
@@ -216,23 +219,26 @@ class AverageMeter:
         #     else tuple((self._sum / self._count).cpu().numpy())
 
 
-def tensor_container_to_device(obj: Union[torch.Tensor, tuple, list, dict], device: str, non_blocking=True):
+def tensor_container_to_device(obj: Union[torch.Tensor, tuple, list, dict], device: str, non_blocking=True, detach: bool = False):
     """
-    recursively send compounded objects to device (sending all tensors to device and maintaining structure)
-        :param obj           the object to send to device (list / tuple / tensor / dict)
-        :param device:       device to send the tensors to
-        :param non_blocking: used for DistributedDataParallel
-        :returns        an object with the same structure (tensors, lists, tuples) with the device pointers (like
-                        the return value of Tensor.to(device)
+    Recursively send compounded objects to device (sending all tensors to device and maintaining structure)
+    :param obj           the object to send to device (list / tuple / tensor / dict)
+    :param device:       device to send the tensors to
+    :param non_blocking: used for DistributedDataParallel
+    :param detach:       detach the tensors from the graph
+    :returns             an object with the same structure (tensors, lists, tuples) with the device pointers (like
+                         the return value of Tensor.to(device)
     """
     if isinstance(obj, torch.Tensor):
+        if detach:
+            obj = obj.detach()
         return obj.to(device, non_blocking=non_blocking)
     elif isinstance(obj, tuple):
-        return tuple(tensor_container_to_device(x, device, non_blocking=non_blocking) for x in obj)
+        return tuple(tensor_container_to_device(x, device, non_blocking=non_blocking, detach=detach) for x in obj)
     elif isinstance(obj, list):
-        return [tensor_container_to_device(x, device, non_blocking=non_blocking) for x in obj]
-    elif isinstance(obj, dict):
-        return {k: tensor_container_to_device(v, device, non_blocking=non_blocking) for k, v in obj.items()}
+        return [tensor_container_to_device(x, device, non_blocking=non_blocking, detach=detach) for x in obj]
+    elif isinstance(obj, (dict, typing.Mapping)):
+        return {k: tensor_container_to_device(v, device, non_blocking=non_blocking, detach=detach) for k, v in obj.items()}
     else:
         return obj
 

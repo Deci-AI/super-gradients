@@ -91,8 +91,8 @@ class MyCustomPPYoloELoss(nn.Module):
 
 ```yaml
 training_hyperparams:
-    loss:
-      MyCustomPPYoloELoss:
+    loss: MyCustomPPYoloELoss 
+    criterion_params:
         num_classes: ${arch_params.num_classes}
         classification_loss_weight: 10
         iou_loss_weight: 1.0
@@ -500,8 +500,7 @@ train_dataloader_params:
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
-  collate_fn:
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  collate_fn: DetectionCollateFN
 
 val_dataset_params:
   data_dir: ${dataset_params.root_dir}
@@ -521,8 +520,7 @@ val_dataloader_params:
   num_workers: 8
   drop_last: True
   pin_memory: True
-  collate_fn:
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  collate_fn: DetectionCollateFN
 ```
 
 In your training recipe add/change the following lines to:

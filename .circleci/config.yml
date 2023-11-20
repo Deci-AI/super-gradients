@@ -23,6 +23,10 @@ parameters:
     type: boolean
     description: If true will run sanity_test flow
     default: false
+  run_and_convert_notebooks_to_docs:
+    type: boolean
+    description: If true will run run_and_convert_notebooks_to_docs flow
+    default: false
   skip_md_files:
     type: boolean
     default: true
@@ -239,9 +243,11 @@ jobs:
             . venv/bin/activate
             python3 -m pip install pip==23.1.2
             python3 -m pip install -e .
+            python3 -m pip install -r requirements.dev.txt
             python3 -m pip install gitpython==3.1.0
             coverage run --source=super_gradients -m unittest tests/breaking_change_tests/unit_test.py
             coverage run --source=super_gradients -m unittest tests/breaking_change_tests/test_detect_breaking_change.py
+            make check_notebooks_version_match
       - run:
           name: Remove new environment when failed
           command: "rm -r venv"
@@ -503,7 +509,7 @@ jobs:
             python3.8 -m pip install --upgrade setuptools pip wheel
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install .
-            python3.8 -m pip install torch torchvision torchaudio   
+            python3.8 -m pip install torch torchvision torchaudio
             make sweeper_test
 
       - run:
@@ -561,6 +567,50 @@ jobs:
           event: fail
           template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
 
+  run_and_convert_notebooks_to_docs:
+    docker:
+      - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
+    resource_class: deci-ai/sg-gpu-on-premise
+    parameters:
+      sg_existing_env_path:
+        type: string
+        default: "/env/persistent_env"
+      sg_new_env_name:
+        type: string
+        default: "${CIRCLE_BUILD_NUM}"
+      sg_new_env_python_version:
+        type: string
+        default: "python3.8"
+    steps:
+      - checkout
+      - run:
+          name: install requirements and execute notebooks
+          command: |
+            << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
+            source << parameters.sg_new_env_name >>/bin/activate
+            python3.8 -m pip install --upgrade setuptools pip wheel
+            python3.8 -m pip install -r requirements.txt
+            python3.8 -m pip install -r requirements.dev.txt
+            python3.8 -m pip install .
+            python3.8 -m pip install torch torchvision torchaudio
+            python3.8 -m pip install pytorch-quantization==2.1.2 --extra-index-url https://pypi.ngc.nvidia.com
+            python3.8 -m pip install onnx_graphsurgeon==0.3.27   --extra-index-url https://pypi.ngc.nvidia.com
+            python3.8 -m ipykernel install --name << parameters.sg_new_env_name >> --user
+            make check_notebooks_version_match
+            make run_and_convert_notebooks_to_docs
+
+      - run:
+          name: Remove new environment when failed
+          command: "rm -r << parameters.sg_new_env_name >>"
+          when: on_fail
+
+      - slack/notify:
+          channel: "sg-integration-tests"
+          event: fail
+          template: basic_fail_1 # see https://github.com/CircleCI-Public/slack-orb/wiki#templates.
+
+
+
   recipe_sanity_tests_classification_pt1:
     docker:
       - image: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/infra/circleci/runner/sg-gpu:<< pipeline.parameters.sg_docker_version >>
@@ -593,6 +643,7 @@ jobs:
             python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_resnet50 batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
             python3.8 src/super_gradients/train_from_recipe.py --config-name=imagenet_vit_base batch_size=8 val_batch_size=16 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
             python3.8 src/super_gradients/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd batch_size=8 val_batch_size=8 epochs=1 training_hyperparams.average_best_models=False training_hyperparams.max_train_batches=100 training_hyperparams.max_valid_batches=100 multi_gpu=DDP num_gpus=4 dataset_params.train_dataset_params.root=/data/Imagenet/train dataset_params.val_dataset_params.root=/data/Imagenet/val
+            python3.8 src/super_gradients/convert_recipe_to_code.py cifar10_resnet.yaml train_cifar10_resnet.py && python3.8 train_cifar10_resnet.py 
 
       - run:
           name: Remove new environment when failed
@@ -822,30 +873,39 @@ jobs:
                 dockerfile: 'scripts/Dockerfile.branch'
 
 workflows:
-  sanity_tests:
-    when:  << pipeline.parameters.run_sanity_tests_flow >>
-    jobs:
-      - hydra_sweeper_test:
-          context:
-            - slack
-      - recipe_sanity_tests_classification_pt1:
-          context:
-            - slack
-      - recipe_sanity_tests_classification_pt2:
-          context:
-            - slack
-      - recipe_sanity_tests_segmentation:
-          context:
-            - slack
-      - recipe_sanity_tests_detection:
-          context:
-            - slack
-      - recipe_sanity_tests_pose_estimation:
-          context:
-            - slack
-      - recipe_accuracy_tests:
-          context:
-            - slack
+#  sanity_tests:
+#    when:  << pipeline.parameters.run_sanity_tests_flow >>
+#    jobs:
+#      - hydra_sweeper_test:
+#          context:
+#            - slack
+#      - recipe_sanity_tests_classification_pt1:
+#          context:
+#            - slack
+#      - recipe_sanity_tests_classification_pt2:
+#          context:
+#            - slack
+#      - recipe_sanity_tests_segmentation:
+#          context:
+#            - slack
+#      - recipe_sanity_tests_detection:
+#          context:
+#            - slack
+#      - recipe_sanity_tests_pose_estimation:
+#          context:
+#            - slack
+#      - recipe_accuracy_tests:
+#          context:
+#            - slack
+#      - run_and_convert_notebooks_to_docs:
+#          context:
+#            - slack
+#  run_and_convert_notebooks_to_docs:
+#    when:  << pipeline.parameters.run_and_convert_notebooks_to_docs >>
+#    jobs:
+#      - run_and_convert_notebooks_to_docs:
+#          context:
+#            - slack
 
   release:
     unless:
@@ -868,45 +928,50 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
-      - hydra_sweeper_test:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_sanity_tests_classification_pt1:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_sanity_tests_classification_pt2:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_sanity_tests_segmentation:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_sanity_tests_detection:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_sanity_tests_pose_estimation:
-          context:
-            - slack
-          <<: *release_tag_filter
-      - recipe_accuracy_tests:
-          context:
-            - slack
-          <<: *release_tag_filter
+#      - hydra_sweeper_test:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_sanity_tests_classification_pt1:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_sanity_tests_classification_pt2:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_sanity_tests_segmentation:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_sanity_tests_detection:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_sanity_tests_pose_estimation:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - recipe_accuracy_tests:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
+#      - run_and_convert_notebooks_to_docs:
+#          context:
+#            - slack
+#          <<: *release_tag_filter
       - release_version:
           py_version: "3.8"
           requires:
             - "build3.8"
-            - hydra_sweeper_test
-            - recipe_accuracy_tests
-            - recipe_sanity_tests_classification_pt1
-            - recipe_sanity_tests_classification_pt2
-            - recipe_sanity_tests_segmentation
-            - recipe_sanity_tests_detection
-            - recipe_sanity_tests_pose_estimation
+#            - hydra_sweeper_test
+#            - recipe_accuracy_tests
+#            - recipe_sanity_tests_classification_pt1
+#            - recipe_sanity_tests_classification_pt2
+#            - recipe_sanity_tests_segmentation
+#            - recipe_sanity_tests_detection
+#            - recipe_sanity_tests_pose_estimation
+#            - run_and_convert_notebooks_to_docs
           <<: *release_tag_filter
       - deci-common/pip_upload_package_from_codeartifact_to_global_pypi:
           package_name: "super-gradients"

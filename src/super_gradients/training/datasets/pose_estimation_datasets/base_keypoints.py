@@ -3,6 +3,7 @@ from typing import Tuple, List, Mapping, Any, Dict, Union
 
 import numpy as np
 import torch
+from omegaconf import ListConfig
 from torch.utils.data.dataloader import default_collate, Dataset
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -28,9 +29,9 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         transforms: List[KeypointTransform],
         min_instance_area: float,
         num_joints: int,
-        edge_links: Union[List[Tuple[int, int]], np.ndarray],
-        edge_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
-        keypoint_colors: Union[List[Tuple[int, int, int]], np.ndarray, None],
+        edge_links: Union[ListConfig, List[Tuple[int, int]], np.ndarray],
+        edge_colors: Union[ListConfig, List[Tuple[int, int, int]], np.ndarray, None],
+        keypoint_colors: Union[ListConfig, List[Tuple[int, int, int]], np.ndarray, None],
     ):
         """
 
@@ -48,6 +49,18 @@ class BaseKeypointsDataset(Dataset, HasPreprocessingParams):
         self.transforms = KeypointsCompose(transforms)
         self.min_instance_area = min_instance_area
         self.num_joints = num_joints
+
+        # Explicitly convert edge_links, keypoint_colors and edge_colors to lists of tuples
+        # This is necessary to ensure ListConfig objects do not leak to these properties
+        # and from there - to checkpoint's state_dict.
+        # Otherwise, through ListConfig instances a whole configuration file will leak to state_dict
+        # and torch.load will attempt to unpickle lot of unnecessary classes.
+        edge_links = [(int(from_idx), int(to_idx)) for from_idx, to_idx in edge_links]
+        if edge_colors is not None:
+            edge_colors = [(int(r), int(g), int(b)) for r, g, b in edge_colors]
+        if keypoint_colors is not None:
+            keypoint_colors = [(int(r), int(g), int(b)) for r, g, b in keypoint_colors]
+
         self.edge_links = edge_links
         self.edge_colors = edge_colors or generate_color_mapping(len(edge_links))
         self.keypoint_colors = keypoint_colors or generate_color_mapping(num_joints)

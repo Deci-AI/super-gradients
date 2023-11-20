@@ -1,12 +1,13 @@
 import copy
+import csv
 import math
+import numbers
 import os
 import signal
 import time
 from abc import ABC, abstractmethod
-from typing import List, Union, Optional, Sequence, Mapping, Tuple
+from typing import List, Union, Optional, Sequence, Mapping
 
-import csv
 import cv2
 import numpy as np
 import onnx
@@ -18,22 +19,21 @@ from torchvision.utils import draw_segmentation_masks
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.deprecate import deprecated
+from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.factories.metrics_factory import MetricsFactory
+from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
 from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.common.registry.registry import register_lr_scheduler, register_lr_warmup, register_callback, LR_SCHEDULERS_CLS_DICT, TORCH_LR_SCHEDULERS
-from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
 from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, EpochNumber
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback, cxcywh2xyxy, xyxy2cxcywh
 from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
-from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
-from super_gradients.training.utils.utils import unwrap_model
-from super_gradients.common.deprecate import deprecated
-
+from super_gradients.training.utils.utils import unwrap_model, infer_model_device, tensor_container_to_device
 
 logger = get_logger(__name__)
 
@@ -237,8 +237,10 @@ class LRCallbackBase(PhaseCallback):
 
     def __init__(self, phase, initial_lr, update_param_groups, train_loader_len, net, training_params, **kwargs):
         super(LRCallbackBase, self).__init__(phase)
+        if not isinstance(initial_lr, dict):
+            initial_lr = {"default": float(initial_lr)}
         self.initial_lr = initial_lr
-        self.lr = initial_lr
+        self.lr = initial_lr.copy()
         self.update_param_groups = update_param_groups
         self.train_loader_len = train_loader_len
         self.net = net
@@ -266,15 +268,8 @@ class LRCallbackBase(PhaseCallback):
         raise NotImplementedError
 
     def update_lr(self, optimizer, epoch, batch_idx=None):
-        if self.update_param_groups:
-            param_groups = unwrap_model(self.net).update_param_groups(
-                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
-            )
-            optimizer.param_groups = param_groups
-        else:
-            # UPDATE THE OPTIMIZERS PARAMETER
-            for param_group in optimizer.param_groups:
-                param_group["lr"] = self.lr
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = self.lr[param_group["name"]]
 
 
 @register_lr_warmup(LRWarmups.LINEAR_EPOCH_STEP, deprecated_name="linear_epoch_step")
@@ -288,13 +283,32 @@ class LinearEpochLRWarmup(LRCallbackBase):
 
     def __init__(self, **kwargs):
         super().__init__(Phase.TRAIN_EPOCH_START, **kwargs)
-        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
-        self.warmup_step_size = (
-            (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs if self.training_params.lr_warmup_epochs > 0 else 0
-        )
+        warmup_initial_lr = {}
+        if self.training_params.warmup_initial_lr is not None:
+            if isinstance(self.training_params.warmup_initial_lr, float):
+                for group_name in self.initial_lr.keys():
+                    warmup_initial_lr[group_name] = self.training_params.warmup_initial_lr
+            elif isinstance(self.training_params.warmup_initial_lr, Mapping):
+                warmup_initial_lr = self.training_params.warmup_initial_lr
+            else:
+                raise TypeError("Warmup initial lr expected to be of type float or Mapping.")
+        else:
+            for group_name in self.initial_lr.keys():
+                warmup_initial_lr[group_name] = self.initial_lr[group_name] / (self.training_params.lr_warmup_epochs + 1)
+        self.warmup_initial_lr = warmup_initial_lr
+
+        warmup_step_size = {}
+        for group_name in self.initial_lr.keys():
+            warmup_step_size[group_name] = (
+                (self.initial_lr[group_name] - self.warmup_initial_lr[group_name]) / self.training_params.lr_warmup_epochs
+                if self.training_params.lr_warmup_epochs > 0
+                else 0
+            )
+        self.warmup_step_size = warmup_step_size
 
     def perform_scheduling(self, context):
-        self.lr = self.warmup_initial_lr + context.epoch * self.warmup_step_size
+        for group_name in self.initial_lr.keys():
+            self.lr[group_name] = self.warmup_initial_lr[group_name] + context.epoch * self.warmup_step_size[group_name]
         self.update_lr(context.optimizer, context.epoch, None)
 
     def is_lr_scheduling_enabled(self, context):
@@ -328,7 +342,6 @@ class LinearBatchLRWarmup(Callback):
         warmup_initial_lr: float,
         initial_lr: float,
         train_loader_len: int,
-        update_param_groups: bool,
         lr_warmup_steps: int,
         training_params,
         net,
@@ -351,12 +364,23 @@ class LinearBatchLRWarmup(Callback):
                 f"Warmup steps will be capped to number of steps in epoch to avoid interfering with any pre-epoch LR schedulers."
             )
 
-        lr_warmup_steps = min(lr_warmup_steps, train_loader_len)
-        learning_rates = np.linspace(start=warmup_initial_lr, stop=initial_lr, num=lr_warmup_steps, endpoint=True)
-
-        self.lr = initial_lr
+        if isinstance(initial_lr, numbers.Number):
+            initial_lr = {"default": initial_lr}
         self.initial_lr = initial_lr
-        self.update_param_groups = update_param_groups
+        self.lr = initial_lr.copy()
+
+        if isinstance(warmup_initial_lr, numbers.Number):
+            warmup_initial_lr = {group_name: warmup_initial_lr for group_name in self.lr.keys()}
+        elif isinstance(warmup_initial_lr, Mapping):
+            warmup_initial_lr = warmup_initial_lr
+        else:
+            raise TypeError("Warmup initial lr expected to be of type float or Mapping.")
+
+        lr_warmup_steps = min(lr_warmup_steps, train_loader_len)
+        learning_rates = {
+            group_name: np.linspace(start=warmup_initial_lr[group_name], stop=initial_lr[group_name], num=lr_warmup_steps, endpoint=True)
+            for group_name in self.initial_lr.keys()
+        }
         self.training_params = training_params
         self.net = net
         self.learning_rates = learning_rates
@@ -366,7 +390,8 @@ class LinearBatchLRWarmup(Callback):
     def on_train_batch_start(self, context: PhaseContext) -> None:
         global_training_step = context.batch_idx + context.epoch * self.train_loader_len
         if global_training_step < self.lr_warmup_steps:
-            self.lr = float(self.learning_rates[global_training_step])
+            for group_name in self.initial_lr.keys():
+                self.lr[group_name] = float(self.learning_rates[group_name][global_training_step])
             self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def update_lr(self, optimizer, epoch, batch_idx=None):
@@ -377,15 +402,9 @@ class LinearBatchLRWarmup(Callback):
         :param batch_idx:
         :return:
         """
-        if self.update_param_groups:
-            param_groups = unwrap_model(self.net).update_param_groups(
-                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
-            )
-            optimizer.param_groups = param_groups
-        else:
-            # UPDATE THE OPTIMIZERS PARAMETER
-            for param_group in optimizer.param_groups:
-                param_group["lr"] = self.lr
+        # UPDATE THE OPTIMIZERS PARAMETER
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = self.lr[param_group["name"]]
 
 
 @deprecated(deprecated_since="3.2.1", removed_from="3.5.0", target=LinearBatchLRWarmup)
@@ -417,7 +436,8 @@ class StepLRScheduler(LRCallbackBase):
 
     def perform_scheduling(self, context):
         num_updates_passed = [x for x in self.lr_updates if x <= context.epoch]
-        self.lr = self.initial_lr * self.lr_decay_factor ** len(num_updates_passed)
+        for group_name in self.lr.keys():
+            self.lr[group_name] = self.initial_lr[group_name] * self.lr_decay_factor ** len(num_updates_passed)
         self.update_lr(context.optimizer, context.epoch, None)
 
     def is_lr_scheduling_enabled(self, context):
@@ -442,7 +462,8 @@ class ExponentialLRScheduler(LRCallbackBase):
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
         current_iter = self.train_loader_len * effective_epoch + context.batch_idx
-        self.lr = self.initial_lr * self.lr_decay_factor ** (current_iter / self.train_loader_len)
+        for group_name in self.lr.keys():
+            self.lr[group_name] = self.initial_lr[group_name] * self.lr_decay_factor ** (current_iter / self.train_loader_len)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
@@ -470,7 +491,8 @@ class PolyLRScheduler(LRCallbackBase):
         effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
         current_iter = (self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
         max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
-        self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
+        for group_name in self.lr.keys():
+            self.lr[group_name] = self.initial_lr[group_name] * pow((1.0 - (current_iter / max_iter)), 0.9)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
@@ -499,9 +521,9 @@ class CosineLRScheduler(LRCallbackBase):
         effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
         current_iter = max(0, self.train_loader_len * effective_epoch + context.batch_idx - self.training_params.lr_warmup_steps)
         max_iter = self.train_loader_len * effective_max_epochs - self.training_params.lr_warmup_steps
+        for group_name in self.lr.keys():
+            self.lr[group_name] = float(self.compute_learning_rate(current_iter, max_iter, self.initial_lr[group_name], self.cosine_final_lr_ratio))
 
-        lr = self.compute_learning_rate(current_iter, max_iter, self.initial_lr, self.cosine_final_lr_ratio)
-        self.lr = float(lr)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
@@ -546,13 +568,14 @@ class FunctionLRScheduler(LRCallbackBase):
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
         effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        self.lr = self.lr_schedule_function(
-            initial_lr=self.initial_lr,
-            epoch=effective_epoch,
-            iter=context.batch_idx,
-            max_epoch=effective_max_epochs,
-            iters_per_epoch=self.train_loader_len,
-        )
+        for group_name in self.lr.keys():
+            self.lr[group_name] = self.lr_schedule_function(
+                initial_lr=self.initial_lr[group_name],
+                epoch=effective_epoch,
+                iter=context.batch_idx,
+                max_epoch=effective_max_epochs,
+                iters_per_epoch=self.train_loader_len,
+            )
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
 
@@ -1070,7 +1093,7 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
 
     :param freq: int, epoch frequency to perform all of the above (default=1).
 
-     Inheritors should implement process_extreme_batch which returns an image, as an np.array (uint8) with shape BCHW.
+     Inheritors should implement process_extreme_batch which returns an image, as np.ndarray (uint8) with shape BHWC.
     """
 
     @resolve_param("metric", MetricsFactory())
@@ -1081,7 +1104,36 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         loss_to_monitor: Optional[str] = None,
         max: bool = False,
         freq: int = 1,
+        enable_on_train_loader: bool = False,
+        enable_on_valid_loader: bool = True,
+        max_images: int = -1,
     ):
+        """
+        :param metric: Metric, will be the metric which is monitored.
+
+        :param metric_component_name: In case metric returns multiple values (as Mapping),
+         the value at metric.compute()[metric_component_name] will be the one monitored.
+
+        :param loss_to_monitor: str, loss_to_monitor corresponding to the 'criterion' passed through training_params in Trainer.train(...).
+         Monitoring loss follows the same logic as metric_to_watch in Trainer.train(..), when watching the loss and should be:
+
+        if hasattr(criterion, "component_names") and criterion.forward(..) returns a tuple:
+            <LOSS_CLASS.__name__>"/"<COMPONENT_NAME>.
+
+        If a single item is returned rather then a tuple:
+            <LOSS_CLASS.__name__>.
+
+        When there is no such attributes and criterion.forward(..) returns a tuple:
+            <LOSS_CLASS.__name__>"/"Loss_"<IDX>
+
+        :param max:                    bool, Whether to take the batch corresponding to the max value of the metric/loss or
+        the minimum (default=False).
+
+        :param freq:                   int, epoch frequency to perform all of the above (default=1).
+        :param enable_on_train_loader: Controls whether to enable this callback on the train loader. Default is False.
+        :param enable_on_valid_loader: Controls whether to enable this callback on the valid loader. Default is True.
+        :param max_images:             Maximum images to save. If -1, save all images.
+        """
         super(ExtremeBatchCaseVisualizationCallback, self).__init__()
 
         if (metric and loss_to_monitor) or (metric is None and loss_to_monitor is None):
@@ -1098,14 +1150,19 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self.loss_to_monitor = loss_to_monitor
         self.max = max
         self.freq = freq
-        self.extreme_score = -1 * np.inf if max else np.inf
 
+        self.extreme_score = None
         self.extreme_batch = None
         self.extreme_preds = None
         self.extreme_targets = None
+        self.extreme_additional_batch_items = None
 
         self._first_call = True
         self._idx_loss_tuple = None
+
+        self.enable_on_train_loader = enable_on_train_loader
+        self.enable_on_valid_loader = enable_on_valid_loader
+        self.max_images = max_images
 
     def _set_tag_attr(self, loss_to_monitor, max, metric, metric_component_name):
         if metric_component_name:
@@ -1121,48 +1178,78 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         """
         This method is called right before adding the images to the in  SGLoggger (inside the on_validation_loader_end call).
          It should process self.extreme_batch, self.extreme_preds and self.extreme_targets and output the images, as np.ndarrray.
-         Output should be of shape N,3,H,W and uint8.
+         Output should be of shape N,H,W,3 and uint8.
         :return: images to save, np.ndarray
         """
         raise NotImplementedError
 
+    def on_train_loader_start(self, context: PhaseContext) -> None:
+        self._reset()
+
+    def on_train_batch_end(self, context: PhaseContext) -> None:
+        if self.enable_on_train_loader and context.epoch % self.freq == 0:
+            self._on_batch_end(context)
+
+    def on_train_loader_end(self, context: PhaseContext) -> None:
+        if self.enable_on_train_loader and context.epoch % self.freq == 0:
+            self._gather_extreme_batch_images_and_log(context, "train")
+            self._reset()
+
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
+        self._reset()
+
     def on_validation_batch_end(self, context: PhaseContext) -> None:
-        if context.epoch % self.freq == 0:
-            # FOR METRIC OBJECTS, RESET THEM AND COMPUTE SCORE ONLY ON BATCH.
-            if self.metric is not None:
-                self.metric.update(**context.__dict__)
-                score = self.metric.compute()
-                if self.metric_component_name is not None:
-                    if not isinstance(score, Mapping) or (isinstance(score, Mapping) and self.metric_component_name not in score.keys()):
-                        raise RuntimeError(
-                            f"metric_component_name: {self.metric_component_name} is not a component "
-                            f"of the monitored metric: {self.metric.__class__.__name__}"
-                        )
-                    score = score[self.metric_component_name]
-                elif len(score) > 1:
-                    raise RuntimeError(f"returned multiple values from {self.metric} but no metric_component_name has been passed to __init__.")
-                else:
-                    score = score.pop(list(score.keys())[0])
-                self.metric.reset()
+        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+            self._on_batch_end(context)
 
+    def on_validation_loader_end(self, context: PhaseContext) -> None:
+        if self.enable_on_valid_loader and context.epoch % self.freq == 0:
+            self._gather_extreme_batch_images_and_log(context, "valid")
+            self._reset()
+
+    def _gather_extreme_batch_images_and_log(self, context, loader_name: str):
+        images_to_save = self.process_extreme_batch()
+        images_to_save = maybe_all_gather_np_images(images_to_save)
+        if self.max_images > 0:
+            images_to_save = images_to_save[: self.max_images]
+        if not context.ddp_silent_mode:
+            context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=context.epoch, data_format="NHWC")
+
+    def _on_batch_end(self, context: PhaseContext) -> None:
+        if self.metric is not None:
+            self.metric.update(**context.__dict__)
+            score = self.metric.compute()
+            if self.metric_component_name is not None:
+                if not isinstance(score, Mapping) or (isinstance(score, Mapping) and self.metric_component_name not in score.keys()):
+                    raise RuntimeError(
+                        f"metric_component_name: {self.metric_component_name} is not a component of the monitored metric: {self.metric.__class__.__name__}"
+                    )
+                score = score[self.metric_component_name]
+            elif len(score) > 1:
+                raise RuntimeError(f"returned multiple values from {self.metric} but no metric_component_name has been passed to __init__.")
             else:
+                score = score.pop(list(score.keys())[0])
+            self.metric.reset()
 
-                # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
-                loss_tuple = context.loss_log_items
-                if self._first_call:
-                    self._init_loss_attributes(context)
-                score = loss_tuple[self._idx_loss_tuple]
+        else:
 
-                # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
-                device = next(context.net.parameters()).device
-                score.to(device)
-                score = maybe_all_reduce_tensor_average(score)
+            # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
+            loss_tuple = context.loss_log_items
+            if self._first_call:
+                self._init_loss_attributes(context)
+            score = loss_tuple[self._idx_loss_tuple].detach().cpu().item()
 
-            if self._is_more_extreme(score):
-                self.extreme_score = score
-                self.extreme_batch = context.inputs
-                self.extreme_preds = context.preds
-                self.extreme_targets = context.target
+            # IN CONTRARY TO METRICS - LOSS VALUES NEED TO BE REDUCES IN DDP
+            device = infer_model_device(context.net)
+            score = torch.tensor(score, device=device)
+            score = maybe_all_reduce_tensor_average(score)
+
+        if self._is_more_extreme(score):
+            self.extreme_score = tensor_container_to_device(score, device="cpu", detach=True, non_blocking=False)
+            self.extreme_batch = tensor_container_to_device(context.inputs, device="cpu", detach=True, non_blocking=False)
+            self.extreme_preds = tensor_container_to_device(context.preds, device="cpu", detach=True, non_blocking=False)
+            self.extreme_targets = tensor_container_to_device(context.target, device="cpu", detach=True, non_blocking=False)
+            self.extreme_additional_batch_items = tensor_container_to_device(context.additional_batch_items, device="cpu", detach=True, non_blocking=False)
 
     def _init_loss_attributes(self, context: PhaseContext):
         if self.loss_to_monitor not in context.loss_logging_items_names:
@@ -1170,24 +1257,29 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
         self._idx_loss_tuple = context.loss_logging_items_names.index(self.loss_to_monitor)
         self._first_call = False
 
-    def on_validation_loader_end(self, context: PhaseContext) -> None:
-        if context.epoch % self.freq == 0:
-            images_to_save = self.process_extreme_batch()
-            images_to_save = maybe_all_gather_np_images(images_to_save)
-            if not context.ddp_silent_mode:
-                context.sg_logger.add_images(tag=self._tag, images=images_to_save, global_step=context.epoch)
-
-            self._reset()
-
     def _reset(self):
-        self.extreme_score = -1 * np.inf if self.max else np.inf
+        self.extreme_score = None
         self.extreme_batch = None
         self.extreme_preds = None
         self.extreme_targets = None
+        self.extreme_additional_batch_items = None
         if self.metric is not None:
             self.metric.reset()
 
-    def _is_more_extreme(self, score: float) -> bool:
+    def _is_more_extreme(self, score: Union[float, torch.Tensor]) -> bool:
+        """
+        Checks whether computed score is the more extreme than the current extreme score.
+        If the current score is None (first call), returns True.
+        :param score: A newly computed score.
+        :return:      True if score is more extreme than the current extreme score, False otherwise.
+        """
+        # A score can be Nan/Inf (rare but possible event when training diverges).
+        # In such case the both < and > operators would return False according to IEEE 754.
+        # As a consequence, self.extreme_inputs / self.extreme_outputs would not be updated
+        # and that would crash at the attempt to visualize batch.
+        if self.extreme_score is None:
+            return True
+
         if self.max:
             return self.extreme_score < score
         else:
@@ -1254,18 +1346,21 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
         When there is no such attributes and criterion.forward(..) returns a tuple:
             <LOSS_CLASS.__name__>"/"Loss_"<IDX>
 
-    :param max: bool, Whether to take the batch corresponding to the max value of the metric/loss or
-     the minimum (default=False).
+    :param max:                    bool, Whether to take the batch corresponding to the max value of the metric/loss or
+    the minimum (default=False).
 
-    :param freq: int, epoch frequency to perform all of the above (default=1).
+    :param freq:                   int, epoch frequency to perform all of the above (default=1).
 
-    :param classes: List[str], a list of class names corresponding to the class indices for display.
-     When None, will try to fetch this through a "classes" attribute of the valdiation dataset. If such attribute does
-      not exist an error will be raised (default=None).
+    :param classes:                List[str], a list of class names corresponding to the class indices for display.
+    When None, will try to fetch this through a "classes" attribute of the valdiation dataset. If such attribute does
+    not exist an error will be raised (default=None).
 
-    :param normalize_targets: bool, whether to scale the target bboxes. If the bboxes returned by the validation data loader
+    :param normalize_targets:      bool, whether to scale the target bboxes. If the bboxes returned by the validation data loader
      are in pixel values range, this needs to be set to True (default=False)
 
+    :param enable_on_train_loader: Controls whether to enable this callback on the train loader. Default is False.
+    :param enable_on_valid_loader: Controls whether to enable this callback on the valid loader. Default is True.
+    :param max_images:             Maximum images to save. If -1, save all images.
     """
 
     def __init__(
@@ -1278,9 +1373,19 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
         freq: int = 1,
         classes: Optional[List[str]] = None,
         normalize_targets: bool = False,
+        enable_on_train_loader: bool = False,
+        enable_on_valid_loader: bool = True,
+        max_images: int = -1,
     ):
         super(ExtremeBatchDetectionVisualizationCallback, self).__init__(
-            metric=metric, metric_component_name=metric_component_name, loss_to_monitor=loss_to_monitor, max=max, freq=freq
+            metric=metric,
+            metric_component_name=metric_component_name,
+            loss_to_monitor=loss_to_monitor,
+            max=max,
+            freq=freq,
+            enable_on_valid_loader=enable_on_valid_loader,
+            enable_on_train_loader=enable_on_train_loader,
+            max_images=max_images,
         )
         self.post_prediction_callback = post_prediction_callback
         if classes is None:
@@ -1295,11 +1400,13 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
     def universal_undo_preprocessing_fn(inputs: torch.Tensor) -> np.ndarray:
         """
         A universal reversing of preprocessing to be passed to DetectionVisualization.visualize_batch's undo_preprocessing_func kwarg.
-        :param inputs:
-        :return:
+        This function scales input tensor to 0..255 range, and cast it to uint8 dtype.
+
+        :param inputs: Input 4D tensor of images in BCHW format with unknown normalization.
+        :return:       Numpy 4D tensor of images in BHWC format, normalized to 0..255 range (uint8).
         """
         inputs -= inputs.min()
-        inputs /= inputs.max()
+        inputs /= inputs.max() + 1e-8
         inputs *= 255
         inputs = inputs.to(torch.uint8)
         inputs = inputs.cpu().numpy()
@@ -1307,10 +1414,12 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
         inputs = np.ascontiguousarray(inputs, dtype=np.uint8)
         return inputs
 
-    def process_extreme_batch(self) -> Tuple[np.ndarray, np.ndarray]:
+    def process_extreme_batch(self) -> np.ndarray:
         """
-        Processes the extreme batch, and returns 2 image batches for visualization - one with predictions and one with GT boxes.
-        :return:Tuple[np.ndarray, np.ndarray], the predictions batch, the GT batch
+        Processes the extreme batch, and returns list of images for visualization.
+        Default implementations stacks GT and prediction overlays horisontally.
+
+        :return: np.ndarray A 4D tensor of BHWC shape with visualizations of the extreme batch.
         """
         inputs = self.extreme_batch
         preds = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
@@ -1334,25 +1443,16 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
         )
         images_to_save_gt = np.stack(images_to_save_gt)
 
-        return images_to_save_preds, images_to_save_gt
+        # Stack the predictions and GT images together
+        return np.concatenate([images_to_save_gt, images_to_save_preds], axis=2)
 
-    def on_validation_loader_end(self, context: PhaseContext) -> None:
+    def on_validation_loader_start(self, context: PhaseContext) -> None:
         if self.classes is None:
             if hasattr(context.valid_loader.dataset, "classes"):
                 self.classes = context.valid_loader.dataset.classes
-
             else:
                 raise RuntimeError("Couldn't fetch classes from valid_loader, please pass classes explicitly")
-        if context.epoch % self.freq == 0:
-            images_to_save_preds, images_to_save_gt = self.process_extreme_batch()
-            images_to_save_preds = maybe_all_gather_np_images(images_to_save_preds)
-            images_to_save_gt = maybe_all_gather_np_images(images_to_save_gt)
-
-            if not context.ddp_silent_mode:
-                context.sg_logger.add_images(tag=f"{self._tag}_preds", images=images_to_save_preds, global_step=context.epoch, data_format="NHWC")
-                context.sg_logger.add_images(tag=f"{self._tag}_GT", images=images_to_save_gt, global_step=context.epoch, data_format="NHWC")
-
-            self._reset()
+        super().on_validation_loader_start(context)
 
 
 @register_callback("ExtremeBatchSegVisualizationCallback")
@@ -1393,7 +1493,7 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
     :param metric_component_name: In case metric returns multiple values (as Mapping),
      the value at metric.compute()[metric_component_name] will be the one monitored.
 
-    :param loss_to_monitor: str, loss_to_monitor corresponfing to the 'criterion' passed through training_params in Trainer.train(...).
+    :param loss_to_monitor: str, loss_to_monitor corresponding to the 'criterion' passed through training_params in Trainer.train(...).
      Monitoring loss follows the same logic as metric_to_watch in Trainer.train(..), when watching the loss and should be:
 
         if hasattr(criterion, "component_names") and criterion.forward(..) returns a tuple:
@@ -1402,15 +1502,17 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
         If a single item is returned rather then a tuple:
             <LOSS_CLASS.__name__>.
 
-        When there is no such attributesand criterion.forward(..) returns a tuple:
+        When there is no such attributes and criterion.forward(..) returns a tuple:
             <LOSS_CLASS.__name__>"/"Loss_"<IDX>
 
-    :param max: bool, Whether to take the batch corresponding to the max value of the metric/loss or
-     the minimum (default=False).
+    :param max:                    bool, Whether to take the batch corresponding to the max value of the metric/loss or
+    the minimum (default=False).
 
-    :param freq: int, epoch frequency to perform all of the above (default=1).
+    :param freq:                   int, epoch frequency to perform all of the above (default=1).
 
-
+    :param enable_on_train_loader: Controls whether to enable this callback on the train loader. Default is False.
+    :param enable_on_valid_loader: Controls whether to enable this callback on the valid loader. Default is True.
+    :param max_images:             Maximum images to save. If -1, save all images.
     """
 
     def __init__(
@@ -1421,13 +1523,24 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
         max: bool = False,
         freq: int = 1,
         ignore_idx: int = -1,
+        enable_on_train_loader: bool = False,
+        enable_on_valid_loader: bool = True,
+        max_images: int = -1,
     ):
         super(ExtremeBatchSegVisualizationCallback, self).__init__(
-            metric=metric, metric_component_name=metric_component_name, loss_to_monitor=loss_to_monitor, max=max, freq=freq
+            metric=metric,
+            metric_component_name=metric_component_name,
+            loss_to_monitor=loss_to_monitor,
+            max=max,
+            freq=freq,
+            enable_on_valid_loader=enable_on_valid_loader,
+            enable_on_train_loader=enable_on_train_loader,
+            max_images=max_images,
         )
         self.ignore_idx = ignore_idx
 
-    def process_extreme_batch(self) -> np.array:
+    @torch.no_grad()
+    def process_extreme_batch(self) -> np.ndarray:
         inputs = self.extreme_batch
         inputs -= inputs.min()
         inputs /= inputs.max()
@@ -1445,6 +1558,8 @@ class ExtremeBatchSegVisualizationCallback(ExtremeBatchCaseVisualizationCallback
         colors = ["green", "red"]
         images_to_save = []
         for i in range(len(inputs)):
-            images_to_save.append(draw_segmentation_masks(inputs[i].cpu(), overlay[i], colors=colors, alpha=0.4).detach().numpy())
-        images_to_save = np.array(images_to_save)
+            image = draw_segmentation_masks(inputs[i].cpu(), overlay[i].cpu(), colors=colors, alpha=0.4).numpy()
+            image = np.transpose(image, (1, 2, 0))
+            images_to_save.append(image)
+        images_to_save = np.stack(images_to_save)
         return images_to_save

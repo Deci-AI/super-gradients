@@ -35,6 +35,8 @@ val_dataset_params:
   root: ./data/cifar10
   train: False
   transforms:
+    - Resize:
+        size: 32
     - ToTensor
     - Normalize:
         mean:

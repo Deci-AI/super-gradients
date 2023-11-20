@@ -1,20 +1,22 @@
 import unittest
+from unittest.mock import patch, mock_open
 from pathlib import Path
 from typing import Dict
+import numpy as np
 
 from torch.utils.data import DataLoader
 
 from super_gradients import Trainer
 from super_gradients.training import models, dataloaders
 from super_gradients.training.dataloaders import coco2017_train_yolo_nas, get_data_loader
-from super_gradients.training.datasets import COCODetectionDataset
+from super_gradients.training.datasets import COCODetectionDataset, YoloDarknetFormatDetectionDataset
 from super_gradients.training.datasets.data_formats.default_formats import LABEL_CXCYWH
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.common.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.models import YoloXPostPredictionCallback
 from super_gradients.training.transforms import DetectionMosaic, DetectionTargetsFormatTransform, DetectionPaddedRescale
-from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
+from super_gradients.training.utils.collate_fn import DetectionCollateFN, CrowdDetectionCollateFN
 
 
 class DummyCOCODetectionDatasetInheritor(COCODetectionDataset):
@@ -193,6 +195,32 @@ class DetectionDatasetTest(unittest.TestCase):
         }
 
         trainer.train(model=model, training_params=detection_train_params_yolox, train_loader=train_loader, valid_loader=valid_loader)
+
+
+class TestParseYoloLabelFile(unittest.TestCase):
+    def setUp(self):
+        self.num_classes = 3
+        self.sample_data_valid = "0 0.5 0.5 0.1 0.1\n1 0.6 0.6 0.2 0.2"
+        self.sample_data_invalid_format = "0 0.5\n1 0.6 0.6 0.2 0.2"
+        self.sample_data_invalid_class = "-1 0.5 0.5 0.1 0.1\n3 0.6 0.6 0.2 0.2"
+
+    def test_valid_label(self):
+        with patch("builtins.open", mock_open(read_data=self.sample_data_valid)):
+            labels, invalid_labels = YoloDarknetFormatDetectionDataset._parse_yolo_label_file("mock_path", num_classes=3)
+            np.testing.assert_array_equal(labels, np.array([[0, 0.5, 0.5, 0.1, 0.1], [1, 0.6, 0.6, 0.2, 0.2]]))
+            self.assertEqual(invalid_labels, [])
+
+    def test_invalid_format(self):
+        with patch("builtins.open", mock_open(read_data=self.sample_data_invalid_format)):
+            labels, invalid_labels = YoloDarknetFormatDetectionDataset._parse_yolo_label_file("mock_path", num_classes=3)
+            np.testing.assert_array_equal(labels, np.array([[1, 0.6, 0.6, 0.2, 0.2]]))
+            self.assertEqual(invalid_labels, ["0 0.5\n"])
+
+    def test_invalid_class(self):
+        with patch("builtins.open", mock_open(read_data=self.sample_data_invalid_class)):
+            labels, invalid_labels = YoloDarknetFormatDetectionDataset._parse_yolo_label_file("mock_path", num_classes=3)
+            self.assertEqual(len(labels), 0)
+            self.assertEqual(invalid_labels, ["-1 0.5 0.5 0.1 0.1\n", "3 0.6 0.6 0.2 0.2"])
 
 
 if __name__ == "__main__":

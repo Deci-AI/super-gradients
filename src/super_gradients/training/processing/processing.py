@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Tuple, List, Union, Optional
 
 import numpy as np
-from PIL import Image
 from torch import nn
 
 from super_gradients.common.object_names import Processings
@@ -19,8 +18,12 @@ from super_gradients.training.transforms.utils import (
     PaddingCoordinates,
     _rescale_keypoints,
     _shift_keypoints,
+    _rescale_image_with_pil,
 )
 from super_gradients.training.utils.predict import Prediction, DetectionPrediction, PoseEstimationPrediction
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -84,12 +87,40 @@ class Processing(ABC):
         """
         return None
 
+    @property
+    @abstractmethod
+    def resizes_image(self) -> bool:
+        """Return True if the processing resizes the image, False otherwise."""
+        pass
+
+
+class AutoPadding(Processing, ABC):
+    def __init__(self, shape_multiple: Tuple[int, int], pad_value: int):
+        """
+        :param shape_multiple:  Tuple of (H, W) indicating the height and width multiples to which the input image dimensions will be padded.
+                                For instance, with a value of (32, 40), an input image of size (45, 67) will be padded to (64, 80).
+        :param pad_value:       Value to pad the image with.
+        """
+        self.shape_multiple = shape_multiple
+        self.pad_value = pad_value
+
+    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return None
+
+    @property
+    def resizes_image(self) -> bool:
+        # This implementation only pads the image, doesn't resize it.
+        return False
+
 
 @register_processing(Processings.ComposeProcessing)
 class ComposeProcessing(Processing):
     """Compose a list of Processing objects into a single Processing object."""
 
     def __init__(self, processings: List[Processing]):
+        """
+        :param processings:     List of Processing objects to compose.
+        """
         self.processings = processings
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, ComposeProcessingMetadata]:
@@ -130,6 +161,28 @@ class ComposeProcessing(Processing):
 
         return output_shape
 
+    @property
+    def resizes_image(self) -> bool:
+        return any(processing.resizes_image for processing in self.processings)
+
+    def get_equivalent_compose_without_resizing(self, auto_padding: AutoPadding) -> "ComposeProcessing":
+        """Get a composed processing equivalent to this one, but without resizing the image.
+        :param auto_padding:    AutoPadding object to use for padding the image.
+                                This is required since models often expect input image to be a multiple of a specific shape (usually 32x32).
+                                This padding operation will be applied on the input image before any other processing.
+        :return:                A composed processing equivalent to this one, but without resizing the image.
+        """
+        processings = [auto_padding]
+
+        for processing in self.processings:
+            if isinstance(processing, ComposeProcessing):
+                processings.append(processing.get_equivalent_compose_without_resizing(auto_padding=auto_padding))
+            elif not processing.resizes_image:
+                processings.append(processing)
+            else:
+                logger.info(f"Skipping processing `{processing.__class__.__name__}` because it resizes the image.")
+        return ComposeProcessing(processings)
+
 
 @register_processing(Processings.ImagePermute)
 class ImagePermute(Processing):
@@ -139,7 +192,7 @@ class ImagePermute(Processing):
     """
 
     def __init__(self, permutation: Tuple[int, int, int] = (2, 0, 1)):
-        self.permutation = permutation
+        self.permutation = tuple(permutation)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         processed_image = np.ascontiguousarray(image.transpose(*self.permutation))
@@ -150,6 +203,10 @@ class ImagePermute(Processing):
 
     def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
         return None
+
+    @property
+    def resizes_image(self) -> bool:
+        return False
 
 
 @register_processing(Processings.ReverseImageChannels)
@@ -177,6 +234,10 @@ class ReverseImageChannels(Processing):
 
         return ChannelSelect(channels=np.array([2, 1, 0], dtype=int))
 
+    @property
+    def resizes_image(self) -> bool:
+        return False
+
 
 @register_processing(Processings.StandardizeImage)
 class StandardizeImage(Processing):
@@ -187,7 +248,7 @@ class StandardizeImage(Processing):
 
     def __init__(self, max_value: float = 255.0):
         super().__init__()
-        self.max_value = max_value
+        self.max_value = float(max_value)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         """Reverse the channel order of an image.
@@ -210,6 +271,10 @@ class StandardizeImage(Processing):
         from super_gradients.conversion.preprocessing_modules import ApplyMeanStd
 
         return ApplyMeanStd(mean=np.array([0], dtype=np.float32), std=np.array([self.max_value], dtype=np.float32))
+
+    @property
+    def resizes_image(self) -> bool:
+        return False
 
 
 @register_processing(Processings.NormalizeImage)
@@ -235,6 +300,10 @@ class NormalizeImage(Processing):
 
         return ApplyMeanStd(mean=self.mean, std=self.std)
 
+    @property
+    def resizes_image(self) -> bool:
+        return False
+
 
 class _DetectionPadding(Processing, ABC):
     """Base class for detection padding methods. One should implement the `_get_padding_params` method to work with a custom padding method.
@@ -246,7 +315,7 @@ class _DetectionPadding(Processing, ABC):
     """
 
     def __init__(self, output_shape: Tuple[int, int], pad_value: int):
-        self.output_shape = output_shape
+        self.output_shape = tuple(output_shape)
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
@@ -277,6 +346,10 @@ class _DetectionPadding(Processing, ABC):
         """
         return self.output_shape
 
+    @property
+    def resizes_image(self) -> bool:
+        return True
+
 
 class _KeypointsPadding(Processing, ABC):
     """Base class for keypoints padding methods. One should implement the `_get_padding_params` method to work with a custom padding method.
@@ -288,7 +361,7 @@ class _KeypointsPadding(Processing, ABC):
     """
 
     def __init__(self, output_shape: Tuple[int, int], pad_value: int):
-        self.output_shape = output_shape
+        self.output_shape = tuple(output_shape)
         self.pad_value = pad_value
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
@@ -302,6 +375,12 @@ class _KeypointsPadding(Processing, ABC):
             shift_h=-metadata.padding_coordinates.top,
             shift_w=-metadata.padding_coordinates.left,
         )
+        if predictions.bboxes_xyxy is not None:
+            predictions.bboxes_xyxy = _shift_bboxes(
+                targets=predictions.bboxes_xyxy,
+                shift_h=-metadata.padding_coordinates.top,
+                shift_w=-metadata.padding_coordinates.left,
+            )
         return predictions
 
     @abstractmethod
@@ -318,6 +397,10 @@ class _KeypointsPadding(Processing, ABC):
         :return: (rows, cols) Returns the last known output shape for all the processings.
         """
         return self.output_shape
+
+    @property
+    def resizes_image(self) -> bool:
+        return True
 
 
 @register_processing(Processings.DetectionCenterPadding)
@@ -338,6 +421,74 @@ class KeypointsBottomRightPadding(_KeypointsPadding):
         return _get_bottom_right_padding_coordinates(input_shape=input_shape, output_shape=self.output_shape)
 
 
+@register_processing()
+class DetectionAutoPadding(AutoPadding):
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
+        padding_coordinates = self._get_padding_params(input_shape=image.shape[:2])  # HWC -> (H, W)
+        processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
+        return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
+
+    def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
+        input_height, input_width = input_shape
+        height_modulo, width_modulo = self.shape_multiple
+
+        # Calculate necessary padding to reach the modulo
+        padded_height = ((input_height + height_modulo - 1) // height_modulo) * height_modulo
+        padded_width = ((input_width + width_modulo - 1) // width_modulo) * width_modulo
+
+        padding_top = 0  # No padding at the top
+        padding_left = 0  # No padding on the left
+        padding_bottom = padded_height - input_height
+        padding_right = padded_width - input_width
+
+        return PaddingCoordinates(top=padding_top, left=padding_left, bottom=padding_bottom, right=padding_right)
+
+    def postprocess_predictions(self, predictions: DetectionPrediction, metadata: DetectionPadToSizeMetadata) -> DetectionPrediction:
+        predictions.bboxes_xyxy = _shift_bboxes(
+            targets=predictions.bboxes_xyxy,
+            shift_h=-metadata.padding_coordinates.top,
+            shift_w=-metadata.padding_coordinates.left,
+        )
+        return predictions
+
+
+@register_processing()
+class KeypointsAutoPadding(AutoPadding):
+    def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
+        padding_coordinates = self._get_padding_params(input_shape=image.shape[:2])  # HWC -> (H, W)
+        processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
+        return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
+
+    def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
+        input_height, input_width = input_shape
+        height_modulo, width_modulo = self.shape_multiple
+
+        # Calculate necessary padding to reach the modulo
+        padded_height = ((input_height + height_modulo - 1) // height_modulo) * height_modulo
+        padded_width = ((input_width + width_modulo - 1) // width_modulo) * width_modulo
+
+        padding_top = 0  # No padding at the top
+        padding_left = 0  # No padding on the left
+        padding_bottom = padded_height - input_height
+        padding_right = padded_width - input_width
+
+        return PaddingCoordinates(top=padding_top, left=padding_left, bottom=padding_bottom, right=padding_right)
+
+    def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: DetectionPadToSizeMetadata) -> PoseEstimationPrediction:
+        predictions.poses = _shift_keypoints(
+            targets=predictions.poses,
+            shift_h=-metadata.padding_coordinates.top,
+            shift_w=-metadata.padding_coordinates.left,
+        )
+        if predictions.bboxes_xyxy is not None:
+            predictions.bboxes_xyxy = _shift_bboxes(
+                targets=predictions.bboxes_xyxy,
+                shift_h=-metadata.padding_coordinates.top,
+                shift_w=-metadata.padding_coordinates.left,
+            )
+        return predictions
+
+
 class _Rescale(Processing, ABC):
     """Resize image to given image dimensions WITHOUT preserving aspect ratio.
 
@@ -345,7 +496,7 @@ class _Rescale(Processing, ABC):
     """
 
     def __init__(self, output_shape: Tuple[int, int]):
-        self.output_shape = output_shape
+        self.output_shape = tuple(output_shape)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
         scale_factor_h, scale_factor_w = self.output_shape[0] / image.shape[0], self.output_shape[1] / image.shape[1]
@@ -364,6 +515,10 @@ class _Rescale(Processing, ABC):
         """
         return self.output_shape
 
+    @property
+    def resizes_image(self) -> bool:
+        return True
+
 
 class _LongestMaxSizeRescale(Processing, ABC):
     """Resize image to given image dimensions WITH preserving aspect ratio.
@@ -372,7 +527,7 @@ class _LongestMaxSizeRescale(Processing, ABC):
     """
 
     def __init__(self, output_shape: Tuple[int, int]):
-        self.output_shape = output_shape
+        self.output_shape = tuple(output_shape)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, RescaleMetadata]:
         height, width = image.shape[:2]
@@ -395,6 +550,10 @@ class _LongestMaxSizeRescale(Processing, ABC):
         """
         return None
 
+    @property
+    def resizes_image(self) -> bool:
+        return True
+
 
 @register_processing(Processings.DetectionRescale)
 class DetectionRescale(_Rescale):
@@ -414,6 +573,17 @@ class DetectionLongestMaxSizeRescale(_LongestMaxSizeRescale):
 class KeypointsLongestMaxSizeRescale(_LongestMaxSizeRescale):
     def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: RescaleMetadata) -> PoseEstimationPrediction:
         predictions.poses = _rescale_keypoints(targets=predictions.poses, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+        if predictions.bboxes_xyxy is not None:
+            predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+        return predictions
+
+
+@register_processing(Processings.KeypointsRescale)
+class KeypointsRescale(_Rescale):
+    def postprocess_predictions(self, predictions: PoseEstimationPrediction, metadata: RescaleMetadata) -> PoseEstimationPrediction:
+        predictions.poses = _rescale_keypoints(targets=predictions.poses, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
+        if predictions.bboxes_xyxy is not None:
+            predictions.bboxes_xyxy = _rescale_bboxes(targets=predictions.bboxes_xyxy, scale_factors=(1 / metadata.scale_factor_h, 1 / metadata.scale_factor_w))
         return predictions
 
 
@@ -426,7 +596,7 @@ class ClassificationProcess(Processing, ABC):
 class Resize(ClassificationProcess):
     def __init__(self, size: int = 224):
         super().__init__()
-        self.size = size
+        self.size = int(size)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         """Resize an image.
@@ -434,22 +604,25 @@ class Resize(ClassificationProcess):
         :param image: Image, in (H, W, C) format.
         :return:      The resized image.
         """
-        image = Image.fromarray(image)
-        resized_image = image.resize((self.size, self.size))
-        resized_image = np.array(resized_image)
+        height, width = image.shape[:2]
+        output_shape = self.size, self.size
+        scale_factor = max(output_shape[0] / height, output_shape[1] / width)
 
-        return resized_image, None
+        if scale_factor != 1.0:
+            new_height, new_width = int(height * scale_factor), int(width * scale_factor)
+            image = _rescale_image_with_pil(image, target_shape=(new_height, new_width))
 
-    def get_equivalent_photometric_module(self) -> Optional[nn.Module]:
+        return image, RescaleMetadata(original_shape=(height, width), scale_factor_h=scale_factor, scale_factor_w=scale_factor)
+
+    def get_equivalent_photometric_module(self) -> None:
         return None
 
-    def infer_image_input_shape(self) -> Optional[Tuple[int, int]]:
-        """
-        Infer the output image shape from the processing.
+    def infer_image_input_shape(self) -> None:
+        return None
 
-        :return: (rows, cols) Returns the last known output shape for all the processings.
-        """
-        return (self.size, self.size)
+    @property
+    def resizes_image(self) -> bool:
+        return True
 
 
 @register_processing(Processings.CenterCrop)
@@ -460,7 +633,7 @@ class CenterCrop(ClassificationProcess):
 
     def __init__(self, size: int = 224):
         super().__init__()
-        self.size = size
+        self.size = int(size)
 
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, None]:
         """Crops the given image at the center.
@@ -489,6 +662,10 @@ class CenterCrop(ClassificationProcess):
         :return: (rows, cols) Returns the last known output shape for all the processings.
         """
         return (self.size, self.size)
+
+    @property
+    def resizes_image(self) -> bool:
+        return True
 
 
 def default_yolox_coco_processing_params() -> dict:
@@ -641,6 +818,84 @@ def default_dekr_coco_processing_params() -> dict:
     return params
 
 
+def default_yolo_nas_pose_coco_processing_params():
+    image_processor = ComposeProcessing(
+        [
+            ReverseImageChannels(),
+            KeypointsLongestMaxSizeRescale(output_shape=(640, 640)),
+            KeypointsBottomRightPadding(output_shape=(640, 640), pad_value=127),
+            StandardizeImage(max_value=255.0),
+            ImagePermute(permutation=(2, 0, 1)),
+        ]
+    )
+
+    edge_links = [
+        [0, 1],
+        [0, 2],
+        [1, 2],
+        [1, 3],
+        [2, 4],
+        [3, 5],
+        [4, 6],
+        [5, 6],
+        [5, 7],
+        [5, 11],
+        [6, 8],
+        [6, 12],
+        [7, 9],
+        [8, 10],
+        [11, 12],
+        [11, 13],
+        [12, 14],
+        [13, 15],
+        [14, 16],
+    ]
+
+    edge_colors = [
+        (214, 39, 40),  # Nose -> LeftEye
+        (148, 103, 189),  # Nose -> RightEye
+        (44, 160, 44),  # LeftEye -> RightEye
+        (140, 86, 75),  # LeftEye -> LeftEar
+        (227, 119, 194),  # RightEye -> RightEar
+        (127, 127, 127),  # LeftEar -> LeftShoulder
+        (188, 189, 34),  # RightEar -> RightShoulder
+        (127, 127, 127),  # Shoulders
+        (188, 189, 34),  # LeftShoulder -> LeftElbow
+        (140, 86, 75),  # LeftTorso
+        (23, 190, 207),  # RightShoulder -> RightElbow
+        (227, 119, 194),  # RightTorso
+        (31, 119, 180),  # LeftElbow -> LeftArm
+        (255, 127, 14),  # RightElbow -> RightArm
+        (148, 103, 189),  # Waist
+        (255, 127, 14),  # Left Hip -> Left Knee
+        (214, 39, 40),  # Right Hip -> Right Knee
+        (31, 119, 180),  # Left Knee -> Left Ankle
+        (44, 160, 44),  # Right Knee -> Right Ankle
+    ]
+
+    keypoint_colors = [
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+        (31, 119, 180),
+        (148, 103, 189),
+    ]
+    params = dict(image_processor=image_processor, conf=0.5, edge_links=edge_links, edge_colors=edge_colors, keypoint_colors=keypoint_colors)
+    return params
+
+
 def default_imagenet_processing_params() -> dict:
     """Processing parameters commonly used for training resnet on Imagenet dataset."""
     image_processor = ComposeProcessing(
@@ -679,6 +934,9 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
 
     if pretrained_weights == "coco_pose" and model_name in ("dekr_w32_no_dc", "dekr_custom"):
         return default_dekr_coco_processing_params()
+
+    if pretrained_weights == "coco_pose" and model_name.startswith("yolo_nas_pose"):
+        return default_yolo_nas_pose_coco_processing_params()
 
     if pretrained_weights == "imagenet" and model_name in {"vit_base", "vit_large", "vit_huge"}:
         return default_vit_imagenet_processing_params()

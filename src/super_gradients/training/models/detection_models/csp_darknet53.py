@@ -2,7 +2,7 @@
 CSP Darknet
 
 """
-from typing import Tuple, Type
+from typing import Tuple, Type, Callable, Optional
 
 import torch
 import torch.nn as nn
@@ -15,6 +15,7 @@ from super_gradients.modules import Residual, Conv, BaseDetectionModule
 from super_gradients.modules.utils import width_multiplier
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.utils import get_param, HpmStruct
+from super_gradients.common.deprecate import deprecate_param
 
 
 def get_yolo_type_params(yolo_type: str, width_mult_factor: float, depth_mult_factor: float):
@@ -51,6 +52,8 @@ class GroupedConvBlock(nn.Module):
 
     def forward(self, x):
         return self.conv(self.dconv(x))
+
+    # TODO: add replace_input_channels()
 
 
 class Bottleneck(nn.Module):
@@ -175,7 +178,22 @@ class CSPDarknet53(SgModule):
         self.backbone_mode = get_param(arch_params, "backbone_mode", False)
         depth_mult_factor = get_param(arch_params, "depth_mult_factor", 1.0)
         width_mult_factor = get_param(arch_params, "width_mult_factor", 1.0)
-        channels_in = get_param(arch_params, "channels_in", 3)
+
+        if get_param(arch_params, "channels_in") and get_param(arch_params, "in_channels"):
+            raise ValueError(
+                "`arch_params` was initialized with both `channels_in` and `in_channels`. Please only specify `in_channels` and remove `channels_in`."
+            )
+        elif get_param(arch_params, "channels_in"):
+            deprecate_param(
+                deprecated_param_name="arch_params.channels_in",
+                new_param_name="arch_params.in_channels",
+                deprecated_since="3.3.0",
+                removed_from="4.0.0",
+            )
+            in_channels = get_param(arch_params, "channels_in")
+        else:
+            in_channels = get_param(arch_params, "in_channels", 3)
+
         yolo_type = get_param(arch_params, "yolo_type", "yoloX")
         depthwise = get_param(arch_params, "depthwise", False)
 
@@ -186,7 +204,7 @@ class CSPDarknet53(SgModule):
         self._modules_list = nn.ModuleList()
 
         if get_param(arch_params, "stem_type") == "6x6" or yolo_type == "yoloX":
-            self._modules_list.append(Conv(channels_in, width_mult(64), 6, 2, activation_type, padding=2))  # 0
+            self._modules_list.append(Conv(in_channels, width_mult(64), 6, 2, activation_type, padding=2))  # 0
         else:
             raise NotImplementedError(f"Yolo type: {yolo_type} is not supported")
 
@@ -210,4 +228,14 @@ class CSPDarknet53(SgModule):
             self._modules_list.append(nn.Linear(1024, self.num_classes))
 
     def forward(self, x):
-        return self._modules_list(x)
+        for module in self._modules_list:
+            x = module(x)
+        return x
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        first_block: Conv = self._modules_list[0]  # noqa
+        first_block.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        first_block: Conv = self._modules_list[0]  # noqa
+        return first_block.get_input_channels()

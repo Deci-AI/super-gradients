@@ -1,7 +1,11 @@
+import copy
 import unittest
-
+import cv2
+import matplotlib.pyplot as plt
 import numpy as np
+from omegaconf import ListConfig
 
+from super_gradients.training.transforms import KeypointsMixup, KeypointsCompose
 from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsRandomHorizontalFlip,
     KeypointsRandomVerticalFlip,
@@ -9,6 +13,9 @@ from super_gradients.training.transforms.keypoint_transforms import (
     KeypointsPadIfNeeded,
     KeypointsLongestMaxSize,
 )
+from super_gradients.training.samples import PoseEstimationSample
+
+from super_gradients.training.transforms.keypoints import KeypointsBrightnessContrast, KeypointsMosaic
 from super_gradients.training.transforms.transforms import (
     DetectionImagePermute,
     DetectionPadToSize,
@@ -238,7 +245,7 @@ class TestTransforms(unittest.TestCase):
         rescaled_bboxes = _rescale_bboxes(targets=bboxes, scale_factors=(sy, sx))
         np.testing.assert_array_equal(rescaled_bboxes, expected_bboxes)
 
-    def test_pad_image(self):
+    def test_pad_image_with_constant(self):
         image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
         padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
         pad_value = 0
@@ -251,6 +258,48 @@ class TestTransforms(unittest.TestCase):
         self.assertTrue((shifted_image[-padding_coordinates.bottom :, :, :] == pad_value).all())
         self.assertTrue((shifted_image[:, : padding_coordinates.left, :] == pad_value).all())
         self.assertTrue((shifted_image[:, -padding_coordinates.right :, :] == pad_value).all())
+
+    def test_pad_image_with_tuple(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
+        pad_value = (1, 2, 3)
+        shifted_image = _pad_image(image, padding_coordinates, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600, 3))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: padding_coordinates.top, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[-padding_coordinates.bottom :, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : padding_coordinates.left, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, -padding_coordinates.right :, :] == pad_value).all())
+
+    def test_pad_image_with_listconfig(self):
+        image = np.random.randint(0, 256, size=(640, 480, 3), dtype=np.uint8)
+        padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
+        pad_value = ListConfig([1, 2, 3])
+        shifted_image = _pad_image(image, padding_coordinates, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600, 3))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: padding_coordinates.top, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[-padding_coordinates.bottom :, :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : padding_coordinates.left, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, -padding_coordinates.right :, :] == pad_value).all())
+
+    def test_pad_grayscale_image(self):
+        image = np.random.randint(0, 256, size=(640, 480), dtype=np.uint8)
+        padding_coordinates = PaddingCoordinates(top=80, bottom=80, left=60, right=60)
+        pad_value = 1
+        shifted_image = _pad_image(image, padding_coordinates, pad_value)
+
+        # Check if the shifted image has the correct shape
+        self.assertEqual(shifted_image.shape, (800, 600))
+        # Check if the padding values are correct
+        self.assertTrue((shifted_image[: padding_coordinates.top, :] == pad_value).all())
+        self.assertTrue((shifted_image[-padding_coordinates.bottom :, :] == pad_value).all())
+        self.assertTrue((shifted_image[:, : padding_coordinates.left] == pad_value).all())
+        self.assertTrue((shifted_image[:, -padding_coordinates.right :] == pad_value).all())
 
     def test_shift_bboxes(self):
         bboxes = np.array([[10, 20, 50, 60, 1], [30, 40, 80, 90, 2]], dtype=np.float32)
@@ -374,6 +423,121 @@ class TestTransforms(unittest.TestCase):
         self.assertTrue((padded_area == pad_val).all())
         padded_area = rescaled_padded_image[:, :, resized_image_shape[1] :]  # Bottom padding area
         self.assertTrue((padded_area == pad_val).all())
+
+    def test_keypoints_brightness_contrast(self):
+        image = np.random.randint(0, 255, (640, 480, 3), dtype=np.uint8)
+        image = cv2.boxFilter(image, -1, (13, 13))
+
+        plt.figure()
+        plt.imshow(image)
+        plt.title("Original image")
+        plt.show()
+
+        aug = KeypointsBrightnessContrast(brightness_range=(1.1, 1.5), contrast_range=(1, 1), prob=1)
+        sample = aug.apply_to_sample(
+            PoseEstimationSample(image=image, joints=None, bboxes_xywh=None, areas=None, mask=None, is_crowd=None, additional_samples=None)
+        )
+        plt.figure()
+        plt.imshow(sample.image)
+        plt.title("Augmented image")
+        plt.show()
+
+    def test_keypoints_mixup(self):
+        sample1 = PoseEstimationSample(
+            image=np.zeros((256, 256, 3), dtype=np.uint8) + np.array([55, 0, 0], dtype=np.uint8),
+            mask=np.zeros((256, 256), dtype=np.uint8),
+            joints=np.random.randint(0, 256, size=(2, 17, 3)),
+            is_crowd=np.zeros((2,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(32, 64, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        sample2 = PoseEstimationSample(
+            image=np.zeros((256, 256, 3), dtype=np.uint8) + np.array([55, 0, 0], dtype=np.uint8),
+            mask=np.zeros((256, 256), dtype=np.uint8),
+            joints=np.random.randint(0, 256, size=(3, 17, 3)),
+            is_crowd=np.zeros((3,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(32, 64, size=(3, 4)),
+            additional_samples=None,
+        )
+
+        compose = KeypointsCompose([KeypointsMixup(prob=1)], load_sample_fn=lambda: sample2)
+        sample = compose.apply_to_sample(sample1)
+        self.assertEqual(sample.image.shape, (256, 256, 3))
+        self.assertEqual(len(sample.joints), len(sample1.joints) + len(sample2.joints))
+
+    def test_keypoints_mosaic(self):
+        sample1 = PoseEstimationSample(
+            image=np.zeros((128, 128, 3), dtype=np.uint8) + 255,
+            mask=np.zeros((128, 128), dtype=np.uint8),
+            joints=np.random.randint(0, 128, size=(1, 17, 3)),
+            is_crowd=np.zeros((1,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(0, 64, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        sample2 = PoseEstimationSample(
+            image=np.zeros((256, 256, 3), dtype=np.uint8) + np.array([55, 0, 0], dtype=np.uint8),
+            mask=np.zeros((256, 256), dtype=np.uint8),
+            joints=np.random.randint(0, 256, size=(1, 17, 3)),
+            is_crowd=np.zeros((1,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(32, 64, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        sample3 = PoseEstimationSample(
+            image=np.zeros((512, 512, 3), dtype=np.uint8) + np.array([0, 55, 0], dtype=np.uint8),
+            mask=np.zeros((512, 512), dtype=np.uint8),
+            joints=np.random.randint(0, 512, size=(1, 17, 3)),
+            is_crowd=np.zeros((1,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(128, 256, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        sample4 = PoseEstimationSample(
+            image=np.zeros((64, 64, 3), dtype=np.uint8) + np.array([0, 0, 55], dtype=np.uint8),
+            mask=np.zeros((64, 64), dtype=np.uint8),
+            joints=np.random.randint(0, 64, size=(1, 17, 3)),
+            is_crowd=np.zeros((1,), dtype=bool),
+            areas=None,
+            bboxes_xywh=np.random.randint(0, 32, size=(2, 4)),
+            additional_samples=None,
+        )
+
+        input_mixup = copy.deepcopy(sample4)
+        input_mixup.additional_samples = [sample1, sample2, sample3]
+
+        self.show_sample(sample1)
+        self.show_sample(sample2)
+        self.show_sample(sample3)
+        self.show_sample(sample4)
+
+        aug = KeypointsMosaic(prob=1)
+        sample = aug.apply_to_sample(input_mixup)
+
+        self.show_sample(sample)
+
+    def show_sample(self, sample: PoseEstimationSample):
+        image = sample.image.copy()
+        poses = sample.joints
+        for joints in poses:
+            for joint in joints:
+                cv2.circle(image, (int(joint[0]), int(joint[1])), 3, (0, 0, 255), -1)
+        for (x, y, w, h) in sample.bboxes_xywh:
+            x = int(x)
+            y = int(y)
+            w = int(w)
+            h = int(h)
+            cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+        plt.figure()
+        plt.imshow(image)
+        plt.show()
 
 
 if __name__ == "__main__":

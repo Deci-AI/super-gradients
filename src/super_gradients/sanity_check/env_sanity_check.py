@@ -8,6 +8,7 @@ from pathlib import Path
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.ddp_utils import is_main_process
+from super_gradients.common.environment.package_utils import get_installed_packages
 
 logger = get_logger(__name__, "DEBUG")
 
@@ -79,7 +80,7 @@ def check_packages():
     """
     test_name = "installed packages"
 
-    installed_packages = {package.key.lower(): package.version for package in pkg_resources.working_set}
+    installed_packages = get_installed_packages()
     requirements = get_requirements(use_pro_requirements="deci-platform-client" in installed_packages)
 
     if requirements is None:

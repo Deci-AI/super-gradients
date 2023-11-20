@@ -1352,7 +1352,7 @@ def _flip_vertical_boxes(boxes: np.ndarray, img_height: int) -> np.ndarray:
     return boxes
 
 
-def augment_hsv(img: np.array, hgain: float, sgain: float, vgain: float, bgr_channels=(0, 1, 2)):
+def augment_hsv(img: np.ndarray, hgain: float, sgain: float, vgain: float, bgr_channels=(0, 1, 2)):
     hsv_augs = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain]  # random gains
     hsv_augs *= np.random.randint(0, 2, 3)  # random selection of h, s, v
     hsv_augs = hsv_augs.astype(np.int16)

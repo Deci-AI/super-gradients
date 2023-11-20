@@ -30,15 +30,20 @@ class ExponentialWarmupLRCallback(LRCallbackBase):
 
     def __init__(self, **kwargs):
         super().__init__(Phase.TRAIN_EPOCH_START, **kwargs)
-        self.warmup_initial_lr = self.training_params.warmup_initial_lr or 0.001
+        warmup_initial_lr = self.training_params.warmup_initial_lr or 0.001
+        if isinstance(warmup_initial_lr, float):
+            warmup_initial_lr = {"default": warmup_initial_lr}
+        self.warmup_initial_lr = warmup_initial_lr
         warmup_epochs = self.training_params.lr_warmup_epochs
         lr_start = self.warmup_initial_lr
         lr_end = self.initial_lr
-        self.c1 = (lr_end - lr_start) / (np.exp(warmup_epochs) - 1.0)
-        self.c2 = (lr_start * np.exp(warmup_epochs) - lr_end) / (np.exp(warmup_epochs) - 1.0)
+        self.c1 = {group_name: (lr_end[group_name] - lr_start[group_name]) / (np.exp(warmup_epochs) - 1.0) for group_name in self.lr.keys()}
+        self.c2 = {
+            group_name: (lr_start[group_name] * np.exp(warmup_epochs) - lr_end[group_name]) / (np.exp(warmup_epochs) - 1.0) for group_name in self.lr.keys()
+        }
 
     def perform_scheduling(self, context):
-        self.lr = self.c1 * np.exp(context.epoch) + self.c2
+        self.lr = {group_name: self.c1[group_name] * np.exp(context.epoch) + self.c2[group_name] for group_name in self.lr.keys()}
         self.update_lr(context.optimizer, context.epoch, None)
 
     def is_lr_scheduling_enabled(self, context):

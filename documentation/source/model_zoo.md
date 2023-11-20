@@ -92,9 +92,13 @@ All the available models are listed in the column `Model name`.
 
 ### Pretrained Pose Estimation PyTorch Checkpoints
 
-| Model           | Model Name      | Dataset     | Resolution | AP (No TTA / H-Flip TTA / H-Flip TTA+Rescoring) | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO | Latency (Production)**<sub>Jetson Xavier NX</sub> | 
-|-----------------|-----------------|-------------|------------|-------------------------------------------------|-------------------------|--------------------------------------|:-------------------------------------------------:|
-| DEKR_W32_NO_DC  | dekr_w32_no_dc  | COCO2017 PE | 640x640    | 63.08 / 64.96 / 67.32                           | 13.29 ms                | 15.31 ms                             | 75.99 ms                                          |
+| Model          | Model Name      | Dataset     | Resolution | AP (No TTA / H-Flip TTA / H-Flip TTA+Rescoring) | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO | Latency (Production)**<sub>Jetson Xavier NX</sub> | 
+|----------------|-----------------|-------------|------------|-------------------------------------------------|-------------------------|--------------------------------------|:-------------------------------------------------:|
+| DEKR_W32_NO_DC | dekr_w32_no_dc  | COCO2017 PE | 640x640    | 63.08 / 64.96 / 67.32                           | 13.29 ms                | 15.31 ms                             |                     75.99 ms                      |
+| YoloNAS POSE N | yolo_nas_pose_n | COCO2017 PE | 640x640    | 59.68 / N/A / N/A                               | N/A                     | 2.35 ms                              |                     15.99 ms                      |
+| YoloNAS POSE S | yolo_nas_pose_s | COCO2017 PE | 640x640    | 64.15 / N/A / N/A                               | N/A                     | 3.29 ms                              |                     21.01 ms                      |
+| YoloNAS POSE M | yolo_nas_pose_m | COCO2017 PE | 640x640    | 67.87 / N/A / N/A                               | N/A                     | 6.87 ms                              |                     38.40 ms                      |
+| YoloNAS POSE L | yolo_nas_pose_l | COCO2017 PE | 640x640    | 68.24 / N/A / N/A                               | N/A                     | 8.86 ms                              |                     49.34 ms                      |
 
 
 ## Implemented Model Architectures 
@@ -141,4 +145,6 @@ Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
   
 
 ### Pose Estimation
+
 - [HRNet DEKR](https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation) - Bottom-Up Human Pose Estimation Via Disentangled Keypoint Regression [https://arxiv.org/pdf/2104.02300.pdf](https://arxiv.org/pdf/2104.02300.pdf)
+- YoloNAS Pose

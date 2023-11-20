@@ -35,4 +35,5 @@ stringcase>=1.2.0
 numpy<=1.23
 rapidfuzz
 json-tricks==3.16.1
-onnx-simplifier>=0.3.6,<1.0
+onnx-simplifier>=0.4.3,<1.0
+data-gradients>=0.3.0
