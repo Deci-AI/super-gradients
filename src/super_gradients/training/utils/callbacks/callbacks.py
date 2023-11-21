@@ -1,5 +1,6 @@
 import copy
 import csv
+import itertools
 import math
 import numbers
 import os
@@ -13,6 +14,7 @@ import numpy as np
 import onnx
 import onnxruntime
 import torch
+from torch.distributed import get_rank
 from torch.utils.data import DataLoader
 from torchmetrics import MetricCollection, Metric
 from torchvision.utils import draw_segmentation_masks
@@ -21,7 +23,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.deprecate import deprecated
 from super_gradients.common.environment.checkpoints_dir_utils import get_project_checkpoints_dir_path
-from super_gradients.common.environment.ddp_utils import multi_process_safe
+from super_gradients.common.environment.ddp_utils import multi_process_safe, get_world_size, is_distributed
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.object_names import LRSchedulers, LRWarmups, Callbacks
@@ -31,7 +33,7 @@ from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, 
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback, cxcywh2xyxy, xyxy2cxcywh
-from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
+from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_as_list
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.training.utils.utils import unwrap_model, infer_model_device, tensor_container_to_device
 
@@ -1208,11 +1210,40 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             self._reset()
 
     def _gather_extreme_batch_images_and_log(self, context, loader_name: str):
-        images_to_save = self.process_extreme_batch()
-        images_to_save = maybe_all_gather_np_images(images_to_save)
-        if self.max_images > 0:
-            images_to_save = images_to_save[: self.max_images]
+        from pytorch_toolbelt.utils.distributed import all_gather
+
+        input_images_to_save = self.process_extreme_batch()
+
+        # If we are using multiscale training, we need to gather the images from all processes as list since
+        # they are not guaranteed to have same size
+        logger.info(f"images_to_save before gather {len(input_images_to_save)} {input_images_to_save.shape}")
+        print("DDP INFO", is_distributed(), get_world_size(), get_rank())
+        images_to_save = maybe_all_gather_as_list(input_images_to_save)
+        torch.distributed.barrier()
+        logger.info(f"gather returned {len(images_to_save)} containers. world size: {get_world_size()}")
+
+        toolbelt_images_to_save = all_gather(input_images_to_save)
+        logger.info(f"pytorch_toolbelt.all_gather returned {len(toolbelt_images_to_save)} containers. world size: {get_world_size()}")
+
+        for idx, image in enumerate(images_to_save):
+            logger.info(f"images_to_save[{idx}] {image.shape}")
+        images_to_save: List[np.ndarray] = list(itertools.chain(*images_to_save))
+        logger.info(f"images_to_save after gather {len(images_to_save)}")
+
         if not context.ddp_silent_mode:
+            if self.max_images > 0:
+                images_to_save = images_to_save[: self.max_images]
+
+            # Before saving images to logger we need to pad them to the same size
+            max_height = max([image.shape[0] for image in images_to_save])
+            max_width = max([image.shape[1] for image in images_to_save])
+            images_to_save = [
+                cv2.copyMakeBorder(image, 0, max_height - image.shape[0], 0, max_width - image.shape[1], cv2.BORDER_CONSTANT, value=0)
+                for image in images_to_save
+            ]
+            images_to_save = np.stack(images_to_save, axis=0)
+            logger.info(f"images_to_save after pad {images_to_save.shape}")
+
             context.sg_logger.add_images(tag=f"{loader_name}/{self._tag}", images=images_to_save, global_step=context.epoch, data_format="NHWC")
 
     def _on_batch_end(self, context: PhaseContext) -> None:
@@ -1232,7 +1263,6 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             self.metric.reset()
 
         else:
-
             # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
             loss_tuple = context.loss_log_items
             if self._first_call:
@@ -1393,6 +1423,8 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
                 "No classes have been passed to ExtremeBatchDetectionVisualizationCallback. "
                 "Will try to fetch them through context.valid_loader.dataset classes attribute if it exists."
             )
+        else:
+            classes = list(classes)
         self.classes = classes
         self.normalize_targets = normalize_targets
 
@@ -1434,12 +1466,12 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
             targets[:, 2:] = target_bboxes
 
         images_to_save_preds = DetectionVisualization.visualize_batch(
-            inputs, preds, targets, "extreme_batch_preds", self.classes, gt_alpha=0.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
+            inputs, preds, targets.clone(), "extreme_batch_preds", self.classes, gt_alpha=0.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
         )
         images_to_save_preds = np.stack(images_to_save_preds)
 
         images_to_save_gt = DetectionVisualization.visualize_batch(
-            inputs, None, targets, "extreme_batch_gt", self.classes, gt_alpha=1.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
+            inputs, None, targets.clone(), "extreme_batch_gt", self.classes, gt_alpha=1.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
         )
         images_to_save_gt = np.stack(images_to_save_gt)
 

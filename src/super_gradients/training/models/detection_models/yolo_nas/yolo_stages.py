@@ -153,7 +153,7 @@ class YoloNASStem(BaseDetectionModule, SupportsReplaceInputChannels):
     Stem module for YoloNAS. Consists of a single QARepVGGBlock with stride of two.
     """
 
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(self, in_channels: int, out_channels: int, stride: int = 2):
         """
         Initialize the YoloNASStem module
         :param in_channels: Number of input channels
@@ -161,7 +161,7 @@ class YoloNASStem(BaseDetectionModule, SupportsReplaceInputChannels):
         """
         super().__init__(in_channels)
         self._out_channels = out_channels
-        self.conv = QARepVGGBlock(in_channels, out_channels, stride=2, use_residual_connection=False)
+        self.conv = QARepVGGBlock(in_channels, out_channels, stride=stride, use_residual_connection=False)
 
     @property
     def out_channels(self):

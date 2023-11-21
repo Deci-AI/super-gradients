@@ -471,7 +471,9 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         for transform in self.transforms:
             sample["additional_samples"] = self._get_additional_inputs_for_transform(transform=transform)
             sample = transform(sample=sample)
-            sample.pop("additional_samples")  # additional_samples is not useful after the transform
+            # additional_samples is not useful after the transform
+            if "additional_samples" in sample.keys():
+                sample.pop("additional_samples")
         return sample
 
     def _get_additional_inputs_for_transform(self, transform: DetectionTransform) -> List[Dict[str, Union[np.ndarray, Any]]]:
