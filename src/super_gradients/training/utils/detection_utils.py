@@ -538,7 +538,7 @@ class DetectionVisualization:
                                         0 for invisible, 1 for fully opaque
         """
         image_np = undo_preprocessing_func(image_tensor.detach())
-        targets = DetectionVisualization._scaled_ccwh_to_xyxy(target_boxes.detach().cpu().numpy(), *image_np.shape[1:3], image_scale)
+        targets = DetectionVisualization._scaled_ccwh_to_xyxy(target_boxes.detach().cpu().numpy().copy(), *image_np.shape[1:3], image_scale)
         if pred_boxes is None:
             pred_boxes = [None for _ in range(image_np.shape[0])]
 
