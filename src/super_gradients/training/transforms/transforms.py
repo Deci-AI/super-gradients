@@ -731,7 +731,7 @@ class DetectionMixup(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionImagePermute)
-class DetectionImagePermute(AbstractDetectionTransform, LegacyDetectionTransformMixin):
+class DetectionImagePermute(DetectionTransform):
     """
     Permute image dims. Useful for converting image from HWC to CHW format.
     """
@@ -744,9 +744,8 @@ class DetectionImagePermute(AbstractDetectionTransform, LegacyDetectionTransform
         super().__init__()
         self.dims = tuple(dims)
 
-    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        sample.image = np.ascontiguousarray(sample.image.transpose(*self.dims))
-        return sample
+    def __call__(self, sample: Dict[str, np.array]) -> dict:
+        sample["image"] = np.ascontiguousarray(sample["image"].transpose(*self.dims))
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
         return [{Processings.ImagePermute: {"permutation": self.dims}}]
