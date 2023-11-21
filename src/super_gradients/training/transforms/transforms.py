@@ -844,7 +844,7 @@ class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransfo
         """
         if random.random() < self.prob:
             sample.image = _flip_vertical_image(sample.image)
-            sample.bboxes_xywh = _flip_horizontal_boxes_xyxy(sample.bboxes_xywh, sample.image.shape[0])
+            sample.bboxes_xywh = _flip_horizontal_boxes_xywh(sample.bboxes_xywh, sample.image.shape[0])
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -863,19 +863,10 @@ class DetectionVerticalFlip(AbstractDetectionTransform, LegacyDetectionTransform
         super(DetectionVerticalFlip, self).__init__()
         self.prob = float(prob)
 
-    @classmethod
-    def apply_to_image(self, image: np.ndarray) -> np.ndarray:
-        return _flip_vertical_image(image)
-
-    @classmethod
-    def apply_to_bboxes(self, bboxes: np.ndarray, image_height: int) -> np.ndarray:
-
-        return _flip_vertical_boxes(bboxes, image_height)
-
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if random.random() < self.prob:
-            sample.image = self.apply_to_image(sample.image)
-            sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, sample.image.shape[0])
+            sample.image = _flip_vertical_image(sample.image)
+            sample.bboxes_xywh = _flip_vertical_boxes_xywh(sample.bboxes_xywh, sample.image.shape[0])
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -1371,7 +1362,7 @@ def _flip_horizontal_boxes_xywh(boxes: np.ndarray, img_width: int) -> np.ndarray
     :param img_width: Image width
     :return:          Output bboxes in XYWH format of [..., 4] shape.
     """
-    boxes[..., 0] = img_width - boxes[..., 0]
+    boxes[..., 0] = img_width - (boxes[..., 0] + boxes[..., 2])
     return boxes
 
 
@@ -1397,13 +1388,25 @@ def _flip_vertical_image(image: np.ndarray) -> np.ndarray:
     return image[::-1, :]
 
 
-def _flip_vertical_boxes(boxes: np.ndarray, img_height: int) -> np.ndarray:
+def _flip_vertical_boxes_xyxy(boxes: np.ndarray, img_height: int) -> np.ndarray:
     """
-    Vertically flips bboxes
-    :param boxes: bboxes to be flipped. (xyxy format)
-    :return: flipped_boxes
+    Vertically flips bboxes. The function modifies the input array in place, and returns it.
+
+    :param boxes: Input bboxes to be flipped in XYXY format of [..., 4] shape
+    :return:      Vertically flipped boxes in XYXY format of [..., 4] shape
     """
-    boxes[:, [1, 3]] = img_height - boxes[:, [3, 1]]
+    boxes[..., [1, 3]] = img_height - boxes[..., [3, 1]]
+    return boxes
+
+
+def _flip_vertical_boxes_xywh(boxes: np.ndarray, img_height: int) -> np.ndarray:
+    """
+    Vertically flips bboxes. The function modifies the input array in place, and returns it.
+
+    :param boxes: Input bboxes to be flipped in XYWH format of [..., 4] shape
+    :return:      Vertically flipped boxes in XYWH format of [..., 4] shape
+    """
+    boxes[..., 1] = img_height - (boxes[..., 1] + boxes[..., 3])
     return boxes
 
 
