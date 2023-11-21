@@ -50,7 +50,7 @@ class DetectionSample:
 
     def filter_by_mask(self, mask: np.ndarray) -> "DetectionSample":
         """
-        Remove pose instances with respect to given mask.
+        Remove boxes & labels with respect to a given mask.
 
         :remark: This is main method to modify instances of the sample.
         If you are implementing a subclass of DetectionSample and adding extra field associated with each bbox
