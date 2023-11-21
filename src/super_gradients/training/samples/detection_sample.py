@@ -32,10 +32,10 @@ class DetectionSample:
 
     def sanitize_sample(self) -> "DetectionSample":
         """
-        Apply sanity checks on the detection sample, which includes:
-        - Clamp bbox coordinates to ensure they are within image boundaries
-        This function does not remove instances, but may make them subject for removal instead.
-        :return: self
+        Apply sanity checks on the detection sample, which includes clamping of bounding boxes to image boundaries.
+        This function does not remove instances, but may make them subject for removal later on.
+        This method operates in-place and modifies the caller.
+        :return: A DetectionSample after filtering (caller instance).
         """
         image_height, image_width, _ = self.image.shape
 
@@ -51,14 +51,13 @@ class DetectionSample:
     def filter_by_mask(self, mask: np.ndarray) -> "DetectionSample":
         """
         Remove boxes & labels with respect to a given mask.
-
-        :remark: This is main method to modify instances of the sample.
+        This method operates in-place and modifies the caller.
         If you are implementing a subclass of DetectionSample and adding extra field associated with each bbox
         instance (Let's say you add a distance property for each bbox from the camera), then you should override
         this method to do filtering on extra attribute as well.
 
         :param mask:   A boolean or integer mask of samples to keep for given sample.
-        :return:       A pose sample after filtering.
+        :return:       A DetectionSample after filtering (caller instance).
         """
         self.bboxes_xywh = self.bboxes_xywh[mask]
         self.labels = self.labels[mask]
@@ -69,9 +68,10 @@ class DetectionSample:
     def filter_by_bbox_area(self, min_bbox_area: Union[int, float]) -> "DetectionSample":
         """
         Remove pose instances that has area of the corresponding bounding box less than a certain threshold.
+        This method operates in-place and modifies the caller.
 
         :param min_bbox_area: Minimal bounding box area of the pose to keep.
-        :return:              A pose sample after filtering.
+        :return:              A DetectionSample after filtering (caller instance).
         """
         area = self.bboxes_xywh[..., 2:4].prod(axis=-1)
         keep_mask = area >= min_bbox_area
