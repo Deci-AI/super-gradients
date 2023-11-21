@@ -55,7 +55,17 @@ architecture: ddrnet_23
 
 training_hyperparams:
   max_epochs: 500
-  initial_lr: 0.0075   # batch size 24
+  initial_lr: # batch size 24
+    default: 0.075
+    # backbone layers
+    _backbone: 0.0075
+    compression3: 0.0075
+    compression4: 0.0075
+    down3: 0.0075
+    down4: 0.0075
+    layer3_skip: 0.0075
+    layer4_skip: 0.0075
+    layer5_skip: 0.0075
   loss:
     DiceCEEdgeLoss:
       num_classes: 19

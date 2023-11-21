@@ -31,8 +31,8 @@ from super_gradients.training.datasets.segmentation_datasets import (
     CoCoSegmentationDataSet,
     PascalVOC2012SegmentationDataSet,
     PascalVOCAndAUGUnifiedDataset,
-    SuperviselyPersonsDataset,
     MapillaryDataset,
+    SuperviselyPersonsDataset,
 )
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import (
@@ -79,6 +79,10 @@ def get_data_loader(config_name: str, dataset_cls: object, train: bool, dataset_
             dataset.dataset_params = dataset_params
 
     dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
+
+    # Ensure there is no dataset in dataloader_params (Could be there if the user provided dataset class name)
+    if "dataset" in dataloader_params:
+        _ = dataloader_params.pop("dataset")
 
     dataloader = DataLoader(dataset=dataset, **dataloader_params)
     dataloader.dataloader_params = dataloader_params

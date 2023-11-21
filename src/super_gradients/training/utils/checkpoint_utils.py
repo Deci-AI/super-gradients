@@ -38,11 +38,21 @@ def transfer_weights(model: nn.Module, model_state_dict: Mapping[str, Tensor]) -
     :param model_state_dict: Model state dict to load weights from
     :return: None
     """
+
+    transfered_weights = 0
     for name, value in model_state_dict.items():
         try:
             model.load_state_dict(collections.OrderedDict([(name, value)]), strict=False)
+            transfered_weights += 1
         except RuntimeError:
             pass
+
+    percentage_of_checkpoint = transfered_weights / len(model_state_dict)
+    percentage_of_model = transfered_weights / len(model.state_dict())
+    logger.debug(
+        f"Transfered {transfered_weights} ({(100*percentage_of_checkpoint):.2f}%) weights from the checkpoint. "
+        f"{(100*percentage_of_model):.2f}% of the model layers were initialized using checkpoint."
+    )
 
 
 def maybe_remove_module_prefix(state_dict: Mapping[str, Tensor], prefix: str = "module.") -> Mapping[str, Tensor]:
@@ -1561,6 +1571,12 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
             "https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.YOLONAS.md\n"
             "By downloading the pre-trained weight files you agree to comply with these terms."
         )
+    elif architecture in {Models.YOLO_NAS_POSE_N, Models.YOLO_NAS_POSE_S, Models.YOLO_NAS_POSE_M, Models.YOLO_NAS_POSE_L}:
+        logger.info(
+            "License Notification: YOLO-NAS-POSE pre-trained weights are subjected to the specific license terms and conditions detailed in \n"
+            "https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.YOLONAS-POSE.md\n"
+            "By downloading the pre-trained weight files you agree to comply with these terms."
+        )
 
     # Basically this check allows settings pretrained weights from local path using file:///path/to/weights scheme
     # which is a valid URI scheme for local files
@@ -1643,5 +1659,7 @@ def get_scheduler_state(scheduler) -> Dict[str, Tensor]:
 
     state = scheduler.state_dict()
     if isinstance(scheduler, CyclicLR) and not torch_version_is_greater_or_equal(2, 0):
-        del state["_scale_fn_ref"]
+        # A check is needed since torch 1.12 does not have the _scale_fn_ref attribute, while other versions do
+        if "_scale_fn_ref" in state:
+            del state["_scale_fn_ref"]
     return state

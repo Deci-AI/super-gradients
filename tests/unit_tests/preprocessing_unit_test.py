@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torchvision as tv
 
 from super_gradients import Trainer
 from super_gradients.common.factories.list_factory import ListFactory
@@ -12,6 +13,7 @@ from super_gradients.module_interfaces import HasPreprocessingParams
 from super_gradients.training import dataloaders
 from super_gradients.training import models
 from super_gradients.training.datasets import COCODetectionDataset
+from super_gradients.training.datasets.classification_datasets.torchvision_utils import get_torchvision_transforms_equivalent_processing
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.models import YoloXPostPredictionCallback
 from super_gradients.training.processing import (
@@ -102,7 +104,8 @@ class PreprocessingUnitTest(unittest.TestCase):
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": {"YoloXDetectionLoss": {"strides": [8, 16, 32], "num_classes": 80}},
+            "loss": "YoloXDetectionLoss",
+            "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
             "train_metrics_list": [],
             "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80)],
             "metric_to_watch": "mAP@0.50:0.95",
@@ -172,7 +175,8 @@ class PreprocessingUnitTest(unittest.TestCase):
             "warmup_bias_lr": 0.0,
             "warmup_momentum": 0.9,
             "initial_lr": 0.02,
-            "loss": {"YoloXDetectionLoss": {"strides": [8, 16, 32], "num_classes": 80}},
+            "loss": "YoloXDetectionLoss",
+            "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},  # output strides of all yolo outputs
             "train_metrics_list": [],
             "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloXPostPredictionCallback(), normalize_targets=True, num_cls=80)],
             "metric_to_watch": "mAP@0.50:0.95",
@@ -208,6 +212,30 @@ class PreprocessingUnitTest(unittest.TestCase):
         processing_pipeline = ComposeProcessing(instantiated_processing)
         result = processing_pipeline.preprocess_image(np.zeros((480, 640, 3)))
         print(result)
+
+    def test_get_torchvision_transforms_equivalent_processing(self):
+        from PIL import Image
+
+        tv_transforms = tv.transforms.Compose(
+            [
+                tv.transforms.Resize(512),
+                tv.transforms.ToTensor(),
+                tv.transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            ]
+        )
+
+        input = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+
+        expected_output = tv_transforms(Image.fromarray(input)).numpy()
+
+        processing = get_torchvision_transforms_equivalent_processing(tv_transforms)
+
+        instantiated_processing = ListFactory(ProcessingFactory()).get(processing)
+        processing_pipeline = ComposeProcessing(instantiated_processing)
+        actual_output = processing_pipeline.preprocess_image(input)[0]
+
+        self.assertEqual(actual_output.shape, expected_output.shape)
+        np.testing.assert_allclose(actual_output, expected_output, atol=1e-5)
 
 
 if __name__ == "__main__":

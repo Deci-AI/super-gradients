@@ -46,11 +46,15 @@ ________________________________________________________________________________
 
 ### Ready to deploy pre-trained SOTA models
 
-YOLO-NAS architecture is out! The new YOLO-NAS delivers state-of-the-art performance with the unparalleled accuracy-speed performance, outperforming other models such as YOLOv5, YOLOv6, YOLOv7 and YOLOv8.
-Check it out here: [YOLO-NAS](YOLONAS.md).
+YOLO-NAS and YOLO-NAS-POSE architectures are out! 
+The new YOLO-NAS delivers state-of-the-art performance with the unparalleled accuracy-speed performance, outperforming other models such as YOLOv5, YOLOv6, YOLOv7 and YOLOv8.
+A YOLO-NAS-POSE model for pose estimation is also available, delivering state-of-the-art accuracy/performance tradeoff.
+
+Check these out here: [YOLO-NAS](YOLONAS.md) & [YOLO-NAS-POSE](YOLONAS-POSE.md).
 
 <div align="center">
-<img src="./documentation/source/images/yolo_nas_frontier.png" width="800px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_frontier.png" height="600px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_pose_frontier_t4.png" height="600px">
 </div>
 
 ```python
@@ -64,19 +68,24 @@ model = models.get(Models.YOLO_NAS_M, pretrained_weights="coco")
 
 #### Classification
 <div align="center">
-<img src="./documentation/assets/SG_img/Classification@2xDark.png" width="800px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Classification@2xDark.png" width="800px">
 </div>
 
 #### Semantic Segmentation
 <div align="center">
-<img src="./documentation/assets/SG_img/Semantic Segmentation@2xDark.png" width="800px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Semantic Segmentation@2xDark.png" width="800px">
 </div>
 
 #### Object Detection 
 <div align="center">
-<img src="./documentation/assets/SG_img/Object Detection@2xDark.png" width="800px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/assets/SG_img/Object Detection@2xDark.png" width="800px">
 </div>
 
+#### Pose Estimation
+<div align="center">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_pose_frontier_t4.png" width="400px">
+<img src="https://github.com/Deci-AI/super-gradients/raw/master/documentation/source/images/yolo_nas_pose_frontier_xavier_nx.png" width="400px">
+</div>
 
 ### Easy to train SOTA Models
 
@@ -124,6 +133,13 @@ pip install super-gradients
 ## What's New
 
 __________________________________________________________________________________________________________
+Version 3.4.0 (November 6, 2023)
+
+* [YoloNAS-Pose](YOLONAS-POSE.md) model released - a new frontier in pose estimation
+* Added option to export a recipe to a single YAML file or to a standalone train.py file 
+* Other bugfixes & minor improvements. Full release notes available [here](https://github.com/Deci-AI/super-gradients/releases/tag/3.4.0)
+
+__________________________________________________________________________________________________________
 Version 3.1.3 (July 19, 2023)
 
 * [Pose Estimation Task Support](https://docs.deci.ai/super-gradients/documentation/source/PoseEstimation.html) - Check out fine-tuning [notebook example](https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On) 
@@ -147,16 +163,6 @@ Version 3.1.1 (May 3rd)
 * Post Training Quantization and Quantization Aware Training - [notebooks](http://bit.ly/3KrN6an)
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
-
-## Coming soon
-__________________________________________________________________________________________________________
-- [ ] Pre-trained pose estimation model
-- [ ] Test Time Augmentations (TTA)
-- [ ] Recipe to train DEKR model(convertable to TRT) 
-- [ ] Key-points Rescoring for Pose estimation 
-- [ ] LR finder
-- [ ] Data analysis tools
-
 
 ## Table of Content
 __________________________________________________________________________________________________________
@@ -200,137 +206,68 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 ```   
 ###  Classification
 
-#### Transfer Learning 
-  <table class="tfo-notebook-buttons" align="left">
- <td width="500">  
-  <a target="_blank" href="https://bit.ly/3xzIutb"><img src="./documentation/assets/SG_img/colab_logo.png" /> Classification Transfer Learning</a>
-  </td>
- <td width="200">    
- <a target="_blank" href="https://bit.ly/3xwYEn1"><img src="./documentation/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
- </td>
-</table>
- </br></br>
-
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_classification.ipynb) [Transfer Learning for classification](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_classification.ipynb) 
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/PTQ_and_QAT_for_classification.ipynb)   [PTQ and QAT for classification](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/PTQ_and_QAT_for_classification.ipynb)
 
 ###  Semantic Segmentation
 
-####  Quick Start 
-<table class="tfo-notebook-buttons" align="left">
- <td width="500">
-<a target="_blank" href="https://bit.ly/3qKx9m8"><img src="./documentation/assets/SG_img/colab_logo.png" /> Segmentation Quick Start</a>
- </td>
-</table>
- </br></br>
-
-
- 
- ####  Transfer Learning 
-<table class="tfo-notebook-buttons" align="left">
- <td width="500">
-<a target="_blank" href="https://bit.ly/3qKwMbe"><img src="./documentation/assets/SG_img/colab_logo.png" /> Segmentation Transfer Learning</a>
- </td>
-</table>
- </br></br>
-
-
-
-####  How to Connect Custom Dataset 
-  <table class="tfo-notebook-buttons" align="left">
- <td width="500"> 
-<a target="_blank" href="https://bit.ly/3QQBVJp"><img src="./documentation/assets/SG_img/colab_logo.png" /> Segmentation How to Connect Custom Dataset</a>
-   </td>
-</table>
- </br></br>
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb) [Segmentation Quick Start](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/quickstart_segmentation.ipynb))
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_semantic_segmentation.ipynb) [Segmentation Transfer Learning](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/transfer_learning_semantic_segmentation.ipynb)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/segmentation_connect_custom_dataset.ipynb) [How to Connect Custom Dataset](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/segmentation_connect_custom_dataset.ipynb)
 
 
 ### Pose Estimation
 
-#### Transfer Learning
-
-<table class="tfo-notebook-buttons" align="left">
-    <td width="500">   
-        <a target="_blank" href="https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On">
-            <img src="./documentation/assets/SG_img/colab_logo.png" /> Pose Estimation Transfer Learning
-        </a>
-    </td>
-</table>
-</br></br>
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On) [Pose Estimation Transfer Learning](https://colab.research.google.com/drive/1NMGzx8NdycIZqnRlZKJZrIOqyj0MFzJE#scrollTo=3UZJqTehg0On)
 
 
 ###  Object Detection
 
-
-#### Transfer Learning
-  <table class="tfo-notebook-buttons" align="left">
- <td width="500">   
-<a target="_blank" href="https://bit.ly/3SkMohx"><img src="./documentation/assets/SG_img/colab_logo.png" /> Detection Transfer Learning</a>
-   </td>
-</table>
- </br></br>
-
-#### How to Connect Custom Dataset 
-  <table class="tfo-notebook-buttons" align="left">
- <td width="500">  
-  <a target="_blank" href="https://bit.ly/3dqDlg3"><img src="./documentation/assets/SG_img/colab_logo.png" /> Detection How to Connect Custom Dataset</a>
-  </td>
-</table>
- </br></br>
-
-
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3SkMohx) [Object Detection Transfer Learning](https://bit.ly/3SkMohx)
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/detection_how_to_connect_custom_dataset.ipynb) [How to Connect Custom Dataset](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/detection_how_to_connect_custom_dataset.ipynb)
 
 ### How to Predict Using Pre-trained Model
 
-#### Segmentation, Detection and Classification Prediction 
-  <table class="tfo-notebook-buttons" align="left">
- <td width="500">    
-<a target="_blank" href="https://bit.ly/3f4mssd"><img src="./documentation/assets/SG_img/colab_logo.png" /> How to Predict Using Pre-trained Model</a>
-  </td>
-</table>
- </br></br>
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3f4mssd) [How to Predict Using Pre-trained Model](https://bit.ly/3f4mssd)
+
 
 
 ## Advanced Features
 __________________________________________________________________________________________________________
 ### Post Training Quantization and Quantization Aware Training
-Quantization involves representing weights and biases in lower precision, resulting in reduced memory and computational requirements, making it useful for deploying models on devices with limited resources. The process can be done during training, called Quantization aware training, or after training, called post-training quantization. A full tutorial can be found [here](http://bit.ly/41hC8uI).
-  <table class=“tfo-notebook-buttons” align=“left”>
- <td width=“500”>
-   <a target="_blank" href="http://bit.ly/3KrN6an"><img src="./documentation/assets/SG_img/colab_logo.png" /> Post Training Quantization and Quantization Aware Training</a>
-  </td>
-</table>
+Quantization involves representing weights and biases in lower precision, resulting in reduced memory and computational requirements, making it useful for deploying models on devices with limited resources. 
+The process can be done during training, called Quantization aware training, or after training, called post-training quantization. 
+A full tutorial can be found [here](http://bit.ly/41hC8uI).
+
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3KrN6an) [Post Training Quantization and Quantization Aware Training](https://bit.ly/3KrN6an)
+
 
 ### Quantization Aware Training YoloNAS on Custom Dataset
-This tutorial provides a comprehensive guide on how to fine-tune a YoloNAS model using a custom dataset. It also demonstrates how to utilize SG's QAT (Quantization-Aware Training) support. Additionally, it offers step-by-step instructions on deploying the model and performing benchmarking.
-  <table class=“tfo-notebook-buttons” align=“left”>
- <td width=“500”>
-   <a target="_blank" href="https://bit.ly/3MIKdTy"><img src="./documentation/assets/SG_img/colab_logo.png" /> Quantization Aware Training YoloNAS on Custom Dataset</a>
-  </td>
-</table>
+This tutorial provides a comprehensive guide on how to fine-tune a YoloNAS model using a custom dataset. 
+It also demonstrates how to utilize SG's QAT (Quantization-Aware Training) support. Additionally, it offers step-by-step instructions on deploying the model and performing benchmarking.
+
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3MIKdTy) [Quantization Aware Training YoloNAS on Custom Dataset](https://bit.ly/3MIKdTy)
+
 
 ### Knowledge Distillation Training
+
 Knowledge Distillation is a training technique that uses a large model, teacher model, to improve the performance of a smaller model, the student model.
 Learn more about SuperGradients knowledge distillation training with our pre-trained BEiT base teacher model and Resnet18 student model on CIFAR10 example notebook on Google Colab for an easy to use tutorial using free GPU hardware
-  <table class="tfo-notebook-buttons" align="left">
- <td width="500">   
-   <a target="_blank" href="https://bit.ly/3BLA5oR"><img src="./documentation/assets/SG_img/colab_logo.png" /> Knowledge Distillation Training</a>
-  </td>
-</table>
- </br></br>
+
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/how_to_use_knowledge_distillation_for_classification.ipynb) [Knowledge Distillation Training](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/how_to_use_knowledge_distillation_for_classification.ipynb)
+
 
 ### Recipes
-To train a model, it is necessary to configure 4 main components. These components are aggregated into a single "main" recipe `.yaml` file that inherits the aforementioned dataset, architecture, raining and checkpoint params. It is also possible (and recomended for flexibility) to override default settings with custom ones.
+
+To train a model, it is necessary to configure 4 main components. 
+These components are aggregated into a single "main" recipe `.yaml` file that inherits the aforementioned dataset, architecture, raining and checkpoint params.
+It is also possible (and recomended for flexibility) to override default settings with custom ones.
 All recipes can be found [here](http://bit.ly/3gfLw07)
 </br>
 Recipes support out of the box every model, metric or loss that is implemented in SuperGradients, but you can easily extend this to any custom object that you need by "registering it". Check out [this](http://bit.ly/3TQ4iZB) tutorial for more information.
 
-  <table class="tfo-notebook-buttons" align="left">
- <td width="500">   
-   <a target="_blank" href="https://bit.ly/3UiY5ab"><img src="./documentation/assets/SG_img/colab_logo.png" /> How to Use Recipes</a>
-  </td>
-</table>
- </br></br>
-
- </br>
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/what_are_recipes_and_how_to_use.ipynb) [How to Use Recipes](https://github.com/Deci-AI/super-gradients/blob/master/notebooks/what_are_recipes_and_how_to_use.ipynb)
+ 
 <details markdown="1">
   <summary><h3>Using Distributed Data Parallel (DDP) </h3></summary>
 

@@ -255,6 +255,7 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         # Filter out classes that are not in self.class_inclusion_list
         if self.class_inclusion_list is not None:
             sample_annotations = self._sub_class_annotation(annotation=sample_annotations)
+
         return sample_annotations
 
     def _load_all_annotations(self, n_samples: int) -> Tuple[Dict[int, Dict[str, Any]], Dict[int, Dict[str, Any]]]:

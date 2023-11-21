@@ -50,11 +50,9 @@ arch_params:
 resume: False
 training_hyperparams:
   resume: ${resume}
-  loss:
-    SSDLoss:
-      alpha: 1.0
-      dboxes: ${dboxes} # OVERRIDEN IN MAIN RECIPE YAML FILE ONCE DBOXES ARE CHOSEN.
-
+  criterion_params:
+    alpha: 1.0
+    dboxes: ${dboxes}
 
 multi_gpu: DDP
 num_gpus: 4

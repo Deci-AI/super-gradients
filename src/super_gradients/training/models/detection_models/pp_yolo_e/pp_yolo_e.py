@@ -1,8 +1,9 @@
 from functools import lru_cache
-from typing import Union, Optional, List, Tuple, Any
+from typing import Union, Optional, List, Tuple, Any, Callable
 
 import torch
 from torch import Tensor
+from torch import nn
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -19,7 +20,7 @@ from super_gradients.training.models.detection_models.pp_yolo_e.post_prediction_
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
-from super_gradients.training.processing.processing import Processing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
@@ -69,13 +70,14 @@ class PPYoloEDecodingModule(AbstractObjectDetectionDecodingModule):
             pred_bboxes, pred_scores = inputs[0]
 
         nms_top_k = self.num_pre_nms_predictions
+        batch_size, num_anchors, _ = pred_scores.size()
 
         pred_cls_conf, _ = torch.max(pred_scores, dim=2)
         topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
 
-        offsets = nms_top_k * torch.arange(pred_cls_conf.size(0), device=pred_cls_conf.device)
-        flat_indices = topk_candidates.indices + offsets.reshape(pred_cls_conf.size(0), 1)
-        flat_indices = torch.flatten(flat_indices)
+        offsets = num_anchors * torch.arange(batch_size, device=pred_cls_conf.device)
+        indices_with_offset = topk_candidates.indices + offsets.reshape(batch_size, 1)
+        flat_indices = torch.flatten(indices_with_offset)
 
         output_pred_bboxes = pred_bboxes.reshape(-1, pred_bboxes.size(2))[flat_indices, :].reshape(pred_bboxes.size(0), nms_top_k, pred_bboxes.size(2))
         output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
@@ -124,9 +126,6 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         preprocessing_module = processing.get_equivalent_photometric_module()
         return preprocessing_module
 
-    def get_input_channels(self) -> int:
-        return self.in_channels
-
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
 
@@ -151,13 +150,16 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         self._default_nms_conf = conf or self._default_nms_conf
 
     @lru_cache(maxsize=1)
-    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> DetectionPipeline:
+    def _get_pipeline(
+        self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False
+    ) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
@@ -167,11 +169,20 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
 
+        # Ensure that the image size is divisible by 32.
+        if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = self._image_processor.get_equivalent_compose_without_resizing(
+                auto_padding=DetectionAutoPadding(shape_multiple=(32, 32), pad_value=0)
+            )
+        else:
+            image_processor = self._image_processor
+
         pipeline = DetectionPipeline(
             model=self,
-            image_processor=self._image_processor,
+            image_processor=image_processor,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
+            fuse_model=fuse_model,
         )
         return pipeline
 
@@ -182,6 +193,7 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
         conf: Optional[float] = None,
         batch_size: int = 32,
         fuse_model: bool = True,
+        skip_image_resizing: bool = False,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
@@ -191,19 +203,21 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
                             If None, the default value associated to the training is used.
         :param batch_size:  Maximum number of images to process at the same time.
         :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
-    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
+    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False):
         """Predict using webcam.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
         pipeline.predict_webcam()
 
     def train(self, mode: bool = True):
@@ -246,6 +260,13 @@ class PPYoloE(SgModule, ExportableObjectDetectionModel, HasPredict):
 
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return PPYoloEDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        self.backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+        self.in_channels = self.get_input_channels()
+
+    def get_input_channels(self) -> int:
+        return self.backbone.get_input_channels()
 
 
 @register_model(Models.PP_YOLOE_S)

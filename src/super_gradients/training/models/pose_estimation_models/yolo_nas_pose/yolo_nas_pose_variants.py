@@ -13,7 +13,7 @@ from super_gradients.common.registry import register_model
 from super_gradients.training.models.arch_params_factory import get_arch_params
 from super_gradients.training.models.detection_models.customizable_detector import CustomizableDetector
 from super_gradients.training.pipelines.pipelines import PoseEstimationPipeline
-from super_gradients.training.processing.processing import Processing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, KeypointsAutoPadding
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.media.image import ImageSource
 from super_gradients.training.utils.predict import PoseEstimationPrediction
@@ -67,12 +67,13 @@ class YoloNASPoseDecodingModule(AbstractPoseEstimationDecodingModule):
             pred_bboxes_xyxy, pred_bboxes_conf, pred_pose_coords, pred_pose_scores = inputs[0]
 
         nms_top_k = self.num_pre_nms_predictions
+        batch_size, num_anchors, _ = pred_bboxes_conf.size()
 
         topk_candidates = torch.topk(pred_bboxes_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
 
-        offsets = nms_top_k * torch.arange(pred_bboxes_conf.size(0), device=pred_bboxes_conf.device)
-        flat_indices = topk_candidates.indices + offsets.reshape(pred_bboxes_conf.size(0), 1)
-        flat_indices = torch.flatten(flat_indices)
+        offsets = num_anchors * torch.arange(batch_size, device=pred_bboxes_conf.device)
+        indices_with_offset = topk_candidates.indices + offsets.reshape(batch_size, 1, 1)
+        flat_indices = torch.flatten(indices_with_offset)
 
         pred_poses_and_scores = torch.cat([pred_pose_coords, pred_pose_scores.unsqueeze(3)], dim=3)
 
@@ -90,6 +91,21 @@ class YoloNASPoseDecodingModule(AbstractPoseEstimationDecodingModule):
 
 
 class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
+    """
+    YoloNASPose model
+
+    Exported model support matrix
+
+    | Batch Size | Format | OnnxRuntime 1.13.1 | TensorRT 8.4.2 | TensorRT 8.5.3 | TensorRT 8.6.1 |
+    |------------|--------|--------------------|----------------|----------------|----------------|
+    | 1          | Flat   | Yes                | Yes            | Yes            | Yes            |
+    | >1         | Flat   | Yes                | Yes            | Yes            | Yes            |
+    | 1          | Batch  | Yes                | No             | No             | Yes            |
+    | >1         | Batch  | Yes                | No             | No             | Yes            |
+
+    ONNX files generated with PyTorch 2.0.1 for ONNX opset_version=14
+    """
+
     def __init__(
         self,
         backbone: Union[str, dict, HpmStruct, DictConfig],
@@ -132,15 +148,17 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
         post_nms_max_predictions: Optional[int] = None,
         batch_size: int = 32,
         fuse_model: bool = True,
+        skip_image_resizing: bool = False,
     ) -> PoseEstimationPrediction:
         """Predict an image or a list of images.
 
-        :param images:      Images to predict.
-        :param iou:         (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:        (Optional) Below the confidence threshold, prediction are discarded.
-                            If None, the default value associated to the training is used.
-        :param batch_size:  Maximum number of images to process at the same time.
-        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param images:              Images to predict.
+        :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
+                                    If None, the default value associated to the training is used.
+        :param batch_size:          Maximum number of images to process at the same time.
+        :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
         pipeline = self._get_pipeline(
             iou=iou,
@@ -148,6 +166,7 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
             pre_nms_max_predictions=pre_nms_max_predictions,
             post_nms_max_predictions=post_nms_max_predictions,
             fuse_model=fuse_model,
+            skip_image_resizing=skip_image_resizing,
         )
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
@@ -159,13 +178,15 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
         pre_nms_max_predictions: Optional[int] = None,
         post_nms_max_predictions: Optional[int] = None,
         fuse_model: bool = True,
+        skip_image_resizing: bool = False,
     ) -> PoseEstimationPipeline:
         """Instantiate the prediction pipeline of this model.
 
-        :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
-        :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
-                        If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param iou:                 (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
+        :param conf:                (Optional) Below the confidence threshold, prediction are discarded.
+                                    If None, the default value associated to the training is used.
+        :param fuse_model:          If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
         if None in (self._image_processor, self._default_nms_iou, self._default_nms_conf, self._edge_links):
             raise RuntimeError(
@@ -177,9 +198,17 @@ class YoloNASPose(CustomizableDetector, ExportablePoseEstimationModel):
         pre_nms_max_predictions = pre_nms_max_predictions or self._default_pre_nms_max_predictions
         post_nms_max_predictions = post_nms_max_predictions or self._default_post_nms_max_predictions
 
+        # Ensure that the image size is divisible by 32.
+        if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = self._image_processor.get_equivalent_compose_without_resizing(
+                auto_padding=KeypointsAutoPadding(shape_multiple=(32, 32), pad_value=0)
+            )
+        else:
+            image_processor = self._image_processor
+
         pipeline = PoseEstimationPipeline(
             model=self,
-            image_processor=self._image_processor,
+            image_processor=image_processor,
             post_prediction_callback=self.get_post_prediction_callback(
                 iou=iou,
                 conf=conf,

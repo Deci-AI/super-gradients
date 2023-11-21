@@ -9,11 +9,9 @@ model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
 model = model.to("cuda" if torch.cuda.is_available() else "cpu")
 
 IMAGES = [
-    "../../../../documentation/source/images/examples/countryside.jpg",
-    "../../../../documentation/source/images/examples/street_busy.jpg",
-    "https://cdn-attachments.timesofmalta.com/cc1eceadde40d2940bc5dd20692901371622153217-1301777007-4d978a6f-620x348.jpg",
+    "https://images.pexels.com/photos/7968254/pexels-photo-7968254.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
 ]
 
-predictions = model.predict(IMAGES)
+predictions = model.predict(IMAGES, skip_image_resizing=True)
 predictions.show()
-predictions.save(output_folder="")  # Save in working directory
+predictions.save(output_folder="2")  # Save in working directory

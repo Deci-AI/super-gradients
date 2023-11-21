@@ -9,6 +9,7 @@ Pre-trained CIFAR10 models: 'deci-model-repository/CIFAR_NAS_#?_????_?/ckpt_best
 
 Code adapted from https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 """
+from typing import Optional, Callable
 from collections import OrderedDict
 
 import torch.nn as nn
@@ -84,12 +85,13 @@ class Bottleneck(nn.Module):
 
 
 class CifarResNet(BaseClassifier):
-    def __init__(self, block, num_blocks, num_classes=10, width_mult=1, expansion=1):
+    def __init__(self, block, num_blocks, num_classes=10, width_mult=1, expansion=1, in_channels: int = 3):
         super(CifarResNet, self).__init__()
         self.expansion = expansion
         self.structure = [num_blocks, width_mult]
         self.in_planes = width_multiplier(64, width_mult)
-        self.conv1 = nn.Conv2d(3, width_multiplier(64, width_mult), kernel_size=3, stride=1, padding=1, bias=False)
+
+        self.conv1 = nn.Conv2d(in_channels, width_multiplier(64, width_mult), kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(width_multiplier(64, width_mult))
         self.layer1 = self._make_layer(block, width_multiplier(64, width_mult), num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, width_multiplier(128, width_mult), num_blocks[1], stride=2)
@@ -125,6 +127,14 @@ class CifarResNet(BaseClassifier):
         out = self.linear(out)
         return out
 
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        self.conv1 = replace_conv2d_input_channels(conv=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.conv1.in_channels
+
 
 class ResNet(BaseClassifier):
     def __init__(
@@ -137,6 +147,7 @@ class ResNet(BaseClassifier):
         droppath_prob=0.0,
         input_batchnorm: bool = False,
         backbone_mode: bool = False,
+        in_channels: int = 3,
     ):
         super(ResNet, self).__init__()
         self.expansion = expansion
@@ -144,10 +155,11 @@ class ResNet(BaseClassifier):
         self.structure = [num_blocks, width_mult]
         self.in_planes = width_multiplier(64, width_mult)
         self.input_batchnorm = input_batchnorm
-        if self.input_batchnorm:
-            self.bn0 = nn.BatchNorm2d(3)
 
-        self.conv1 = nn.Conv2d(3, width_multiplier(64, width_mult), kernel_size=7, stride=2, padding=3, bias=False)
+        if self.input_batchnorm:
+            self.bn0 = nn.BatchNorm2d(num_features=in_channels)
+
+        self.conv1 = nn.Conv2d(in_channels, width_multiplier(64, width_mult), kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(width_multiplier(64, width_mult))
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
@@ -230,6 +242,17 @@ class ResNet(BaseClassifier):
             self.linear = new_head
         else:
             self.linear = nn.Linear(width_multiplier(512, self.width_mult) * self.expansion, new_num_classes)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        from super_gradients.modules.weight_replacement_utils import replace_conv2d_input_channels
+
+        if self.input_batchnorm:
+            self.bn0 = nn.BatchNorm2d(num_features=self.in_channels)
+
+        self.conv1 = replace_conv2d_input_channels(conv=self.conv1, in_channels=in_channels, fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return self.conv1.in_channels
 
 
 @register_model(Models.RESNET18)

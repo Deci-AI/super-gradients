@@ -20,9 +20,9 @@ ema_params:
   decay_type: constant
   decay: 0.9999
 
-loss:
-  LabelSmoothingCrossEntropyLoss:
-    smooth_eps: 0.1
+loss: LabelSmoothingCrossEntropyLoss
+criterion_params:
+  smooth_eps: 0.1
 
 
 metric_to_watch: Accuracy

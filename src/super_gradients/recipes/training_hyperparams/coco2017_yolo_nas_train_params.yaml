@@ -8,7 +8,9 @@ warmup_initial_lr:  1e-6
 lr_warmup_steps: 1000
 lr_warmup_epochs: 0
 
-initial_lr:  2e-4
+initial_lr: 2e-4
+
+
 lr_mode: CosineLRScheduler
 cosine_final_lr_ratio: 0.1
 
@@ -17,11 +19,11 @@ batch_accumulate: 1
 
 save_ckpt_epoch_list: [100, 200, 250]
 
-loss:
-  PPYoloELoss:
-    use_static_assigner: False
-    num_classes: ${arch_params.num_classes}
-    reg_max: 16
+loss: PPYoloELoss
+criterion_params:
+  use_static_assigner: False
+  num_classes: ${arch_params.num_classes}
+  reg_max: 16
 
 optimizer: AdamW
 optimizer_params:

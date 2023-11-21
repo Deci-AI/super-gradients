@@ -1,4 +1,3 @@
-from super_gradients.common.deprecate import deprecated_training_param, get_deprecated_nested_params_to_factory_format_assigner
 from super_gradients.training.utils import HpmStruct
 from copy import deepcopy
 
@@ -10,6 +9,7 @@ DEFAULT_TRAINING_PARAMS = {
     "cosine_final_lr_ratio": 0.01,
     "optimizer": "SGD",
     "optimizer_params": {},
+    "criterion_params": {},
     "ema": False,
     "batch_accumulate": 1,  # number of batches to accumulate before every backward pass
     "ema_params": {},
@@ -51,6 +51,7 @@ DEFAULT_TRAINING_PARAMS = {
     "warmup_mode": "LinearEpochLRWarmup",
     "step_lr_update_freq": None,
     "lr_updates": [],
+    "initial_lr": None,
     "clip_grad_norm": None,
     "pre_prediction_callback": None,
     "ckpt_best_name": "ckpt_best.pth",
@@ -98,7 +99,12 @@ TRAINING_PARAM_SCHEMA = {
         # "lr_updates": {"type": "array", "minItems": 1},
         "lr_decay_factor": {"type": "number", "minimum": 0, "maximum": 1},
         "lr_warmup_epochs": {"type": "number", "minimum": 0, "maximum": 10},
-        "initial_lr": {"type": "number", "exclusiveMinimum": 0, "maximum": 10},
+        "initial_lr": {
+            "anyOf": [
+                {"type": ["number", "string", "boolean", "null"]},
+                {"type": "object", "patternProperties": {"^[a-zA-Z0-9_.]+$": {"type": "number"}}, "additionalProperties": False},
+            ]
+        },
     },
     "if": {"properties": {"lr_mode": {"const": "StepLRScheduler"}}},
     "then": {"required": ["lr_updates", "lr_decay_factor"]},
@@ -115,9 +121,6 @@ class TrainingParams(HpmStruct):
         if len(entries) > 0:
             self.override(**entries)
 
-    @deprecated_training_param(
-        "criterion_params", "3.2.1", "3.3.0", new_arg_assigner=get_deprecated_nested_params_to_factory_format_assigner("loss", "criterion_params")
-    )
     def override(self, **entries):
         super().override(**entries)
         self.validate()

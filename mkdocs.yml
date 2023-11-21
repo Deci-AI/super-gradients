@@ -20,6 +20,7 @@ nav:
   - Dataset:
     - Data: ./documentation/source/Data.md
     - Computer Vision Datasets: ./src/super_gradients/training/datasets/Dataset_Setup_Instructions.md
+    - Dataset Adapter: ./documentation/source/dataloader_adapter.md
   - Loss functions: ./documentation/source/Losses.md
   - LR schedulers: ./documentation/source/LRScheduling.md
   - Metrics: ./documentation/source/Metrics.md
@@ -30,6 +31,7 @@ nav:
     - Training: ./documentation/source/Recipes_Training.md
     - Factories: ./documentation/source/Recipes_Factories.md
     - Custom Recipes: ./documentation/source/Recipes_Custom.md
+  - Experiment Management: ./documentation/source/experiment_management.md
   - Checkpoints: ./documentation/source/Checkpoints.md
   - Docker: ./documentation/source/SGDocker.md
   - Output Adapter: ./documentation/source/DetectionOutputAdapter.md
@@ -41,7 +43,9 @@ nav:
   - Automatic Mixed Precision (AMP): ./documentation/source/average_mixed_precision.md
   - Knowledge Distillation (KD): ./documentation/source/KD.md
   - Quantization (PTQ & QAT): ./documentation/source/ptq_qat.md
-  - Model Export (ONNX & TensorRT): ./documentation/source/models_export.md
+  - Model Export (ONNX & TensorRT):
+    - Object Detection: ./documentation/source/models_export.md
+    - Pose Estimation: ./documentation/source/models_export_pose.md
 - Troubleshooting: ./documentation/source/troubleshooting.md
 - Contribution: ./documentation/source/CONTRIBUTING.md
 - Code: this_is_automatically_generated.md

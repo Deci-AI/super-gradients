@@ -1,5 +1,6 @@
 import logging
 import os
+import random
 import tempfile
 import unittest
 
@@ -324,6 +325,29 @@ class TestDetectionModelExport(unittest.TestCase):
             assert pred_classes.shape == (1, max_predictions_per_image)
             assert pred_classes.dtype == np.int64
 
+    def test_export_with_fp16_quantization_tensort_from_cpu(self):
+        """
+        This test checks that we can export model with FP16 quantization.
+        It requires CUDA and moves model to CUDA device under the hood.
+        """
+        if not torch.cuda.is_available():
+            self.skipTest("CUDA device is required for this test")
+
+        max_predictions_per_image = 300
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            out_path = os.path.join(tmpdirname, "ppyoloe_s_with_fp16_quantization.onnx")
+
+            ppyolo_e: ExportableObjectDetectionModel = models.get(Models.PP_YOLOE_S, pretrained_weights="coco")
+            export_result = ppyolo_e.export(
+                out_path,
+                engine=ExportTargetBackend.TENSORRT,
+                max_predictions_per_image=max_predictions_per_image,
+                input_image_shape=(640, 640),
+                output_predictions_format=DetectionOutputFormatMode.BATCH_FORMAT,
+                quantization_mode=ExportQuantizationMode.FP16,
+            )
+            assert export_result is not None
+
     def test_export_with_fp16_quantization_tensort(self):
         if torch.cuda.is_available():
             device = "cuda"
@@ -575,7 +599,6 @@ class TestDetectionModelExport(unittest.TestCase):
                         onnx_filename = f"{model_name}_{engine.value}_{output_predictions_format.value}{quantization_suffix}.onnx"
 
                         with self.subTest(msg=onnx_filename):
-
                             model.export(
                                 os.path.join(export_dir, onnx_filename),
                                 device=device,
@@ -607,46 +630,47 @@ class TestDetectionModelExport(unittest.TestCase):
             available_devices = ["cpu"]
             available_dtypes = [torch.float32]
 
-        for device in available_devices:
-            for dtype in available_dtypes:
+        for num_predictions_max in [0, max_predictions_per_image // 2, max_predictions_per_image]:
+            for device in available_devices:
+                for dtype in available_dtypes:
+                    num_detections = torch.randint(0, num_predictions_max + 1, (batch_size, 1), dtype=torch.int32)
+                    detection_boxes = torch.randn((batch_size, max_predictions_per_image, 4), dtype=dtype)
+                    detection_scores = torch.randn((batch_size, max_predictions_per_image)).sigmoid().to(dtype)
+                    detection_classes = torch.randint(0, 80, (batch_size, max_predictions_per_image), dtype=torch.int32)
 
-                num_detections = torch.randint(1, max_predictions_per_image, (batch_size, 1), dtype=torch.int32)
-                detection_boxes = torch.randn((batch_size, max_predictions_per_image, 4), dtype=dtype)
-                detection_scores = torch.randn((batch_size, max_predictions_per_image), dtype=dtype)
-                detection_classes = torch.randint(0, 80, (batch_size, max_predictions_per_image), dtype=torch.int32)
+                    torch_module = ConvertTRTFormatToFlatTensor(batch_size, max_predictions_per_image)
+                    flat_predictions_torch = torch_module(num_detections, detection_boxes, detection_scores, detection_classes)
+                    print(flat_predictions_torch.shape, flat_predictions_torch.dtype, flat_predictions_torch)
 
-                torch_module = ConvertTRTFormatToFlatTensor(batch_size, max_predictions_per_image)
-                flat_predictions_torch = torch_module(num_detections, detection_boxes, detection_scores, detection_classes)
-                print(flat_predictions_torch.shape, flat_predictions_torch.dtype, flat_predictions_torch)
+                    onnx_file = "ConvertTRTFormatToFlatTensor.onnx"
 
-                onnx_file = "ConvertTRTFormatToFlatTensor.onnx"
+                    graph = ConvertTRTFormatToFlatTensor.as_graph(
+                        batch_size=batch_size, max_predictions_per_image=max_predictions_per_image, dtype=dtype, device=device
+                    )
+                    model = gs.export_onnx(graph)
+                    onnx.checker.check_model(model)
+                    onnx.save(model, onnx_file)
 
-                graph = ConvertTRTFormatToFlatTensor.as_graph(
-                    batch_size=batch_size, max_predictions_per_image=max_predictions_per_image, dtype=dtype, device=device
-                )
-                model = gs.export_onnx(graph)
-                onnx.checker.check_model(model)
-                onnx.save(model, onnx_file)
+                    session = onnxruntime.InferenceSession(onnx_file)
 
-                session = onnxruntime.InferenceSession(onnx_file)
+                    inputs = [o.name for o in session.get_inputs()]
+                    outputs = [o.name for o in session.get_outputs()]
 
-                inputs = [o.name for o in session.get_inputs()]
-                outputs = [o.name for o in session.get_outputs()]
+                    [flat_predictions_onnx] = session.run(
+                        output_names=outputs,
+                        input_feed={
+                            inputs[0]: num_detections.numpy(),
+                            inputs[1]: detection_boxes.numpy(),
+                            inputs[2]: detection_scores.numpy(),
+                            inputs[3]: detection_classes.numpy(),
+                        },
+                    )
 
-                [flat_predictions_onnx] = session.run(
-                    output_names=outputs,
-                    input_feed={
-                        inputs[0]: num_detections.numpy(),
-                        inputs[1]: detection_boxes.numpy(),
-                        inputs[2]: detection_scores.numpy(),
-                        inputs[3]: detection_classes.numpy(),
-                    },
-                )
-
-                np.testing.assert_allclose(flat_predictions_torch.numpy(), flat_predictions_onnx, rtol=1e-3, atol=1e-3)
+                    np.testing.assert_allclose(flat_predictions_torch.numpy(), flat_predictions_onnx, rtol=1e-3, atol=1e-3)
 
     def test_onnx_nms_flat_result(self):
-        max_predictions = 100
+        num_pre_nms_predictions = 1024
+        max_predictions_per_image = 128
         batch_size = 7
 
         if torch.cuda.is_available():
@@ -656,41 +680,55 @@ class TestDetectionModelExport(unittest.TestCase):
             available_devices = ["cpu"]
             available_dtypes = [torch.float32]
 
-        for device in available_devices:
-            for dtype in available_dtypes:
+        for max_detections in [0, num_pre_nms_predictions // 2, num_pre_nms_predictions, num_pre_nms_predictions * 2]:
+            for device in available_devices:
+                for dtype in available_dtypes:
+                    # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
+                    # And also can handle dynamic shapes input
+                    pred_boxes = torch.randn((batch_size, num_pre_nms_predictions, 4), dtype=dtype)
+                    pred_scores = torch.randn((batch_size, num_pre_nms_predictions, 40), dtype=dtype)
 
-                # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
-                # And also can handle dynamic shapes input
-                pred_boxes = torch.randn((batch_size, max_predictions, 4), dtype=dtype)
-                pred_scores = torch.randn((batch_size, max_predictions, 40), dtype=dtype)
-                selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
+                    selected_indexes = []
+                    for batch_index in range(batch_size):
+                        # num_detections = random.randrange(0, max_detections) if max_detections > 0 else 0
+                        num_detections = max_detections
+                        for _ in range(num_detections):
+                            selected_indexes.append([batch_index, random.randrange(0, 40), random.randrange(0, num_pre_nms_predictions)])
+                    selected_indexes = torch.tensor(selected_indexes, dtype=torch.int64).view(-1, 3)
 
-                torch_module = PickNMSPredictionsAndReturnAsFlatResult(
-                    batch_size=batch_size, num_pre_nms_predictions=max_predictions, max_predictions_per_image=max_predictions
-                )
-                torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
-
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    onnx_file = os.path.join(temp_dir, "PickNMSPredictionsAndReturnAsFlatResult.onnx")
-                    graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph(
-                        batch_size=batch_size, num_pre_nms_predictions=max_predictions, max_predictions_per_image=max_predictions, device=device, dtype=dtype
+                    torch_module = PickNMSPredictionsAndReturnAsFlatResult(
+                        batch_size=batch_size, num_pre_nms_predictions=num_pre_nms_predictions, max_predictions_per_image=max_predictions_per_image
                     )
+                    torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
 
-                    model = gs.export_onnx(graph)
-                    onnx.checker.check_model(model)
-                    onnx.save(model, onnx_file)
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        onnx_file = os.path.join(temp_dir, "PickNMSPredictionsAndReturnAsFlatResult.onnx")
+                        graph = PickNMSPredictionsAndReturnAsFlatResult.as_graph(
+                            batch_size=batch_size,
+                            num_pre_nms_predictions=num_pre_nms_predictions,
+                            max_predictions_per_image=max_predictions_per_image,
+                            device=device,
+                            dtype=dtype,
+                        )
 
-                    session = onnxruntime.InferenceSession(onnx_file)
+                        model = gs.export_onnx(graph)
+                        onnx.checker.check_model(model)
+                        onnx.save(model, onnx_file)
 
-                    inputs = [o.name for o in session.get_inputs()]
-                    outputs = [o.name for o in session.get_outputs()]
+                        session = onnxruntime.InferenceSession(onnx_file)
 
-                    [onnx_result] = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+                        inputs = [o.name for o in session.get_inputs()]
+                        outputs = [o.name for o in session.get_outputs()]
 
-                    np.testing.assert_allclose(torch_result.numpy(), onnx_result, rtol=1e-3, atol=1e-3)
+                        [onnx_result] = session.run(
+                            outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()}
+                        )
+
+                        np.testing.assert_allclose(torch_result.numpy(), onnx_result, rtol=1e-3, atol=1e-3)
 
     def test_onnx_nms_batch_result(self):
-        max_predictions = 100
+        num_pre_nms_predictions = 1024
+        max_predictions_per_image = 128
         batch_size = 7
 
         if torch.cuda.is_available():
@@ -700,41 +738,52 @@ class TestDetectionModelExport(unittest.TestCase):
             available_devices = ["cpu"]
             available_dtypes = [torch.float32]
 
-        for device in available_devices:
-            for dtype in available_dtypes:
+        for max_detections in [0, num_pre_nms_predictions // 2, num_pre_nms_predictions, num_pre_nms_predictions * 2]:
+            for device in available_devices:
+                for dtype in available_dtypes:
+                    # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
+                    # And also can handle dynamic shapes input
+                    pred_boxes = torch.randn((batch_size, num_pre_nms_predictions, 4), dtype=dtype)
+                    pred_scores = torch.randn((batch_size, num_pre_nms_predictions, 40), dtype=dtype)
 
-                # Run a few tests to ensure ONNX model produces the same results as the PyTorch model
-                # And also can handle dynamic shapes input
-                pred_boxes = torch.randn((batch_size, max_predictions, 4), dtype=dtype)
-                pred_scores = torch.randn((batch_size, max_predictions, 40), dtype=dtype)
-                selected_indexes = torch.tensor([[6, 10, 4], [1, 13, 4], [2, 17, 2], [2, 18, 2]], dtype=torch.int64)
+                    selected_indexes = []
+                    for batch_index in range(batch_size):
+                        # num_detections = random.randrange(0, max_detections) if max_detections > 0 else 0
+                        num_detections = max_detections
+                        for _ in range(num_detections):
+                            selected_indexes.append([batch_index, random.randrange(0, 40), random.randrange(0, num_pre_nms_predictions)])
+                    selected_indexes = torch.tensor(selected_indexes, dtype=torch.int64).view(-1, 3)
 
-                torch_module = PickNMSPredictionsAndReturnAsBatchedResult(
-                    batch_size=batch_size, num_pre_nms_predictions=max_predictions, max_predictions_per_image=max_predictions
-                )
-                torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
-
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    onnx_file = os.path.join(temp_dir, "PickNMSPredictionsAndReturnAsBatchedResult.onnx")
-                    graph = PickNMSPredictionsAndReturnAsBatchedResult.as_graph(
-                        batch_size=batch_size, num_pre_nms_predictions=max_predictions, max_predictions_per_image=max_predictions, device=device, dtype=dtype
+                    torch_module = PickNMSPredictionsAndReturnAsBatchedResult(
+                        batch_size=batch_size, num_pre_nms_predictions=num_pre_nms_predictions, max_predictions_per_image=max_predictions_per_image
                     )
+                    torch_result = torch_module(pred_boxes, pred_scores, selected_indexes)
 
-                    model = gs.export_onnx(graph)
-                    onnx.checker.check_model(model)
-                    onnx.save(model, onnx_file)
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        onnx_file = os.path.join(temp_dir, "PickNMSPredictionsAndReturnAsBatchedResult.onnx")
+                        graph = PickNMSPredictionsAndReturnAsBatchedResult.as_graph(
+                            batch_size=batch_size,
+                            num_pre_nms_predictions=num_pre_nms_predictions,
+                            max_predictions_per_image=max_predictions_per_image,
+                            device=device,
+                            dtype=dtype,
+                        )
 
-                    session = onnxruntime.InferenceSession(onnx_file)
+                        model = gs.export_onnx(graph)
+                        onnx.checker.check_model(model)
+                        onnx.save(model, onnx_file)
 
-                    inputs = [o.name for o in session.get_inputs()]
-                    outputs = [o.name for o in session.get_outputs()]
+                        session = onnxruntime.InferenceSession(onnx_file)
 
-                    onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+                        inputs = [o.name for o in session.get_inputs()]
+                        outputs = [o.name for o in session.get_outputs()]
 
-                    np.testing.assert_allclose(torch_result[0].numpy(), onnx_result[0], rtol=1e-3, atol=1e-3)
-                    np.testing.assert_allclose(torch_result[1].numpy(), onnx_result[1], rtol=1e-3, atol=1e-3)
-                    np.testing.assert_allclose(torch_result[2].numpy(), onnx_result[2], rtol=1e-3, atol=1e-3)
-                    np.testing.assert_allclose(torch_result[3].numpy(), onnx_result[3], rtol=1e-3, atol=1e-3)
+                        onnx_result = session.run(outputs, {inputs[0]: pred_boxes.numpy(), inputs[1]: pred_scores.numpy(), inputs[2]: selected_indexes.numpy()})
+
+                        np.testing.assert_allclose(torch_result[0].numpy(), onnx_result[0], rtol=1e-3, atol=1e-3)
+                        np.testing.assert_allclose(torch_result[1].numpy(), onnx_result[1], rtol=1e-3, atol=1e-3)
+                        np.testing.assert_allclose(torch_result[2].numpy(), onnx_result[2], rtol=1e-3, atol=1e-3)
+                        np.testing.assert_allclose(torch_result[3].numpy(), onnx_result[3], rtol=1e-3, atol=1e-3)
 
     def _get_image_as_bchw(self, image_shape=(640, 640)):
         """

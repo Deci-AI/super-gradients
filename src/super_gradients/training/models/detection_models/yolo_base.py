@@ -1,7 +1,7 @@
 import collections
 import math
 import warnings
-from typing import Union, Type, List, Tuple, Optional, Any
+from typing import Union, Type, List, Tuple, Optional, Any, Callable
 from functools import lru_cache
 
 import numpy as np
@@ -28,8 +28,9 @@ from super_gradients.training.utils.detection_utils import (
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param, infer_model_dtype, infer_model_device
 from super_gradients.training.utils.predict import ImagesDetectionPrediction
 from super_gradients.training.pipelines.pipelines import DetectionPipeline
-from super_gradients.training.processing.processing import Processing
+from super_gradients.training.processing.processing import Processing, ComposeProcessing, DetectionAutoPadding
 from super_gradients.training.utils.media.image import ImageSource
+from super_gradients.module_interfaces import SupportsReplaceInputChannels
 
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
@@ -267,7 +268,7 @@ class DetectX(nn.Module):
             if not self.training:
                 outputs_logits.append(output.clone())
                 if self.grid[i].shape[2:4] != output.shape[2:4]:
-                    self.grid[i] = self._make_grid(nx, ny, dtype=reg_output.dtype).to(output.device)
+                    self.grid[i] = self._make_grid(nx, ny, dtype=reg_output.dtype, device=output.device)
 
                 xy = (output[..., :2] + self.grid[i].to(output.device)) * self.stride[i]
                 wh = torch.exp(output[..., 2:4]) * self.stride[i]
@@ -279,16 +280,18 @@ class DetectX(nn.Module):
         return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
 
     @staticmethod
-    def _make_grid(nx: int, ny: int, dtype: torch.dtype):
+    def _make_grid(nx: int, ny: int, dtype: torch.dtype, device: torch.device):
+        y, x = torch.arange(ny, dtype=torch.float32, device=device), torch.arange(nx, dtype=torch.float32, device=device)
+
         if torch_version_is_greater_or_equal(1, 10):
             # https://github.com/pytorch/pytorch/issues/50276
-            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)], indexing="ij")
+            yv, xv = torch.meshgrid([y, x], indexing="ij")
         else:
-            yv, xv = torch.meshgrid([torch.arange(ny, dtype=dtype), torch.arange(nx, dtype=dtype)])
+            yv, xv = torch.meshgrid([y, x])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).to(dtype)
 
 
-class AbstractYoloBackbone:
+class AbstractYoloBackbone(SupportsReplaceInputChannels):
     def __init__(self, arch_params):
         # CREATE A LIST CONTAINING THE LAYERS TO EXTRACT FROM THE BACKBONE AND ADD THE FINAL LAYER
         self._layer_idx_to_extract = [idx for sub_l in arch_params.skip_connections_dict.values() for idx in sub_l]
@@ -320,6 +323,12 @@ class YoloDarknetBackbone(AbstractYoloBackbone, CSPDarknet53):
 
     def forward(self, x):
         return AbstractYoloBackbone.forward(self, x)
+
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        CSPDarknet53.replace_input_channels(self, in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+
+    def get_input_channels(self) -> int:
+        return CSPDarknet53.get_input_channels(self)
 
 
 class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
@@ -470,6 +479,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         self.in_channels = 3
 
         self.num_classes = self.arch_params.num_classes
+
         # THE MODEL'S MODULES
         self._backbone = backbone(arch_params=self.arch_params)
         if hasattr(self._backbone, "backbone_connection_channels"):
@@ -494,9 +504,6 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
     @staticmethod
     def get_post_prediction_callback(conf: float, iou: float) -> DetectionPostPredictionCallback:
         return YoloXPostPredictionCallback(conf=conf, iou=iou)
-
-    def get_input_channels(self) -> int:
-        return self.in_channels
 
     def get_processing_params(self) -> Optional[Processing]:
         return self._image_processor
@@ -529,13 +536,16 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         self._default_nms_conf = conf or self._default_nms_conf
 
     @lru_cache(maxsize=1)
-    def _get_pipeline(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True) -> DetectionPipeline:
+    def _get_pipeline(
+        self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False
+    ) -> DetectionPipeline:
         """Instantiate the prediction pipeline of this model.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
         if None in (self._class_names, self._image_processor, self._default_nms_iou, self._default_nms_conf):
             raise RuntimeError(
@@ -545,9 +555,17 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
 
+        # Ensure that the image size is divisible by 32.
+        if isinstance(self._image_processor, ComposeProcessing) and skip_image_resizing:
+            image_processor = self._image_processor.get_equivalent_compose_without_resizing(
+                auto_padding=DetectionAutoPadding(shape_multiple=(32, 32), pad_value=0)
+            )
+        else:
+            image_processor = self._image_processor
+
         pipeline = DetectionPipeline(
             model=self,
-            image_processor=self._image_processor,
+            image_processor=image_processor,
             post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
             class_names=self._class_names,
             fuse_model=fuse_model,
@@ -561,6 +579,7 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
         conf: Optional[float] = None,
         batch_size: int = 32,
         fuse_model: bool = True,
+        skip_image_resizing: bool = False,
     ) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.
 
@@ -570,19 +589,21 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
                             If None, the default value associated to the training is used.
         :param batch_size:  Maximum number of images to process at the same time.
         :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
         return pipeline(images, batch_size=batch_size)  # type: ignore
 
-    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True):
+    def predict_webcam(self, iou: Optional[float] = None, conf: Optional[float] = None, fuse_model: bool = True, skip_image_resizing: bool = False):
         """Predict using webcam.
 
         :param iou:     (Optional) IoU threshold for the nms algorithm. If None, the default value associated to the training is used.
         :param conf:    (Optional) Below the confidence threshold, prediction are discarded.
                         If None, the default value associated to the training is used.
-        :param fuse_model: If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param fuse_model:  If True, create a copy of the model, and fuse some of its layers to increase performance. This increases memory usage.
+        :param skip_image_resizing: If True, the image processor will not resize the images.
         """
-        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model)
+        pipeline = self._get_pipeline(iou=iou, conf=conf, fuse_model=fuse_model, skip_image_resizing=skip_image_resizing)
         pipeline.predict_webcam()
 
     def train(self, mode: bool = True):
@@ -715,6 +736,19 @@ class YoloBase(SgModule, ExportableObjectDetectionModel, HasPredict):
     def get_decoding_module(self, num_pre_nms_predictions: int, **kwargs) -> AbstractObjectDetectionDecodingModule:
         return YoloXDecodingModule(num_pre_nms_predictions=num_pre_nms_predictions, **kwargs)
 
+    def replace_input_channels(self, in_channels: int, compute_new_weights_fn: Optional[Callable[[nn.Module, int], nn.Module]] = None):
+        if isinstance(self._backbone, SupportsReplaceInputChannels):
+            self._backbone.replace_input_channels(in_channels=in_channels, compute_new_weights_fn=compute_new_weights_fn)
+            self.in_channels = self.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `replace_input_channels`")
+
+    def get_input_channels(self) -> int:
+        if isinstance(self._backbone, SupportsReplaceInputChannels):
+            return self._backbone.get_input_channels()
+        else:
+            raise NotImplementedError(f"`{self._backbone.__class__.__name__}` does not support `get_input_channels`")
+
 
 class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):
     __constants__ = ["num_pre_nms_predictions", "with_confidence"]
@@ -736,13 +770,15 @@ class YoloXDecodingModule(AbstractObjectDetectionDecodingModule):
         if self.with_confidence:
             pred_scores = pred_scores * conf
 
-        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
         nms_top_k = self.num_pre_nms_predictions
+        batch_size, num_anchors, _ = pred_scores.size()
+
+        pred_cls_conf, _ = torch.max(pred_scores, dim=2)
         topk_candidates = torch.topk(pred_cls_conf, dim=1, k=nms_top_k, largest=True, sorted=True)
 
-        offsets = nms_top_k * torch.arange(pred_cls_conf.size(0), device=pred_cls_conf.device)
-        flat_indices = topk_candidates.indices + offsets.reshape(pred_cls_conf.size(0), 1)
-        flat_indices = torch.flatten(flat_indices)
+        offsets = num_anchors * torch.arange(batch_size, device=pred_cls_conf.device)
+        indices_with_offset = topk_candidates.indices + offsets.reshape(batch_size, 1)
+        flat_indices = torch.flatten(indices_with_offset)
 
         output_pred_bboxes = pred_bboxes.reshape(-1, pred_bboxes.size(2))[flat_indices, :].reshape(pred_bboxes.size(0), nms_top_k, pred_bboxes.size(2))
         output_pred_scores = pred_scores.reshape(-1, pred_scores.size(2))[flat_indices, :].reshape(pred_scores.size(0), nms_top_k, pred_scores.size(2))
