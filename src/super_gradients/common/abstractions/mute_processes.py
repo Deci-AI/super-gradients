@@ -11,7 +11,6 @@ def mute_subprocesses():
     """Mute (prints, warnings and all logs except ERRORS) of some subprocesses to avoid having duplicates in the logs."""
 
     # When running DDP, mute all nodes except for the master node
-    return
     if int(env_variables.LOCAL_RANK) > 0:
         mute_current_process()
 
@@ -21,7 +20,6 @@ def mute_subprocesses():
 def mute_current_process():
     """Mute prints, warnings and all logs except ERRORS. This is meant when running multiple processes."""
     # Ignore warnings
-    return
     import warnings
 
     warnings.filterwarnings("ignore")
@@ -64,6 +62,7 @@ def mute_non_linux_dataloader_worker_process() -> None:
 def is_non_linux_dataloader_worker_process() -> bool:
     """Check if current process is a dataloader worker process on a non linux device."""
     if any(os_name in platform.platform() for os_name in ["macOS", "Windows"]):
+
         # When using DDP with SG launcher, we expect the worker process to have 2 parents processes using python, and only 1 otherwise.
         # Note that this is a "root_process" is the root process only if current process is a worker process
         if int(env_variables.LOCAL_RANK) == -1:
