@@ -16,19 +16,13 @@ class PPYoloECollateFN(DetectionCollateFN):
     Collate function for PPYoloE training
     """
 
-    def __init__(
-        self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None, random_aspect_ratio: bool = False
-    ):
+    def __init__(self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None):
         """
-        :param random_resize_sizes: List of sizes to randomly resize the image to (327. If None, will not resize.
-        :param random_resize_modes: List of interpolation modes to randomly resize the image to. If None, will not resize.
-        :param random_aspect_ratio: If True, will randomly choose both width and height from random_resize_sizes.
-                                    If False, will randomly choose only value wich will be the width and height of the images.
+        :param random_resize_sizes: (rows, cols)
         """
         super().__init__()
         self.random_resize_sizes = random_resize_sizes
         self.random_resize_modes = random_resize_modes
-        self.random_aspect_ratio = random_aspect_ratio
 
     def __repr__(self):
         return f"PPYoloECollateFN(random_resize_sizes={self.random_resize_sizes}, random_resize_modes={self.random_resize_modes})"
@@ -42,12 +36,7 @@ class PPYoloECollateFN(DetectionCollateFN):
         return super().__call__(data)
 
     def random_resize(self, batch):
-        if self.random_aspect_ratio:
-            target_size = random.choices(self.random_resize_sizes, k=2)
-        else:
-            target_size = random.choice(self.random_resize_sizes)
-            target_size = target_size, target_size
-
+        target_size = random.choice(self.random_resize_sizes)
         interpolation = random.choice(self.random_resize_modes)
         batch = [self.random_resize_sample(sample, target_size, interpolation) for sample in batch]
         return batch
@@ -62,9 +51,8 @@ class PPYoloECollateFN(DetectionCollateFN):
         else:
             raise DatasetItemsException(data_sample=sample, collate_type=type(self), expected_item_names=self.expected_item_names)
 
-        target_width, target_height = target_size
-        dsize = int(target_width), int(target_height)
-        scale_factors = target_height / image.shape[0], target_width / image.shape[1]
+        dsize = int(target_size), int(target_size)
+        scale_factors = target_size / image.shape[0], target_size / image.shape[1]
 
         image = cv2.resize(
             image,
