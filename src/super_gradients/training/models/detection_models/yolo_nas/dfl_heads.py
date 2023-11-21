@@ -263,10 +263,10 @@ class NDFLHeads(BaseDetectionModule, SupportsReplaceNumClasses):
         return None
 
     def forward(self, feats: Tuple[Tensor]):
-        # if self.training:
-        #     return self.forward_train(feats)
-        # else:
-        return self.forward_eval(feats)
+        if self.training:
+            return self.forward_train(feats)
+        else:
+            return self.forward_eval(feats)
 
     def _generate_anchors(self, feats=None, dtype=None, device=None):
         # just use in eval time

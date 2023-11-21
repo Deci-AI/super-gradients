@@ -424,14 +424,13 @@ class KeypointsBottomRightPadding(_KeypointsPadding):
 @register_processing()
 class DetectionAutoPadding(AutoPadding):
     def preprocess_image(self, image: np.ndarray) -> Tuple[np.ndarray, DetectionPadToSizeMetadata]:
-        padding_coordinates = self._get_padding_params(input_shape=image.shape[:2], shape_multiple=self.shape_multiple)  # HWC -> (H, W)
+        padding_coordinates = self._get_padding_params(input_shape=image.shape[:2])  # HWC -> (H, W)
         processed_image = _pad_image(image=image, padding_coordinates=padding_coordinates, pad_value=self.pad_value)
         return processed_image, DetectionPadToSizeMetadata(padding_coordinates=padding_coordinates)
 
-    @classmethod
-    def _get_padding_params(cls, input_shape: Tuple[int, int], shape_multiple: Tuple[int, int]) -> PaddingCoordinates:
+    def _get_padding_params(self, input_shape: Tuple[int, int]) -> PaddingCoordinates:
         input_height, input_width = input_shape
-        height_modulo, width_modulo = shape_multiple
+        height_modulo, width_modulo = self.shape_multiple
 
         # Calculate necessary padding to reach the modulo
         padded_height = ((input_height + height_modulo - 1) // height_modulo) * height_modulo
