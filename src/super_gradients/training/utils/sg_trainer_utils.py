@@ -444,13 +444,21 @@ def get_callable_param_names(obj: callable) -> Tuple[str]:
     return tuple(inspect.signature(obj).parameters)
 
 
+def _format_value(value: float) -> str:
+    if value >= 1e6:
+        return f"{value / 1e6:.2f}M"
+    elif value >= 1e3:
+        return f"{value / 1e3:.2f}K"
+    else:
+        return f"{int(value)}"
+
+
 def get_lr_info(model: nn.Module, param_groups: List[Dict[str, Union[str, float, List[tuple]]]]) -> str:
     """
     Generate a string with information about the model and learning rates for each parameter group.
 
-    Parameters:
-        model (nn.Module): The PyTorch model.
-        param_groups (List[Dict[str, Union[str, float, List[tuple]]]]): List of dictionaries containing information about
+    :param model: (nn.Module): The PyTorch model.
+    :param param_groups: (List[Dict[str, Union[str, float, List[tuple]]]]): List of dictionaries containing information about
             each parameter group, including the group name, learning rate, and named parameters.
 
     Returns:
@@ -459,27 +467,50 @@ def get_lr_info(model: nn.Module, param_groups: List[Dict[str, Union[str, float,
     total_params = sum(p.numel() for p in model.parameters())
     optimized_params = sum(p.numel() for group in param_groups for p in group["params"])
 
-    info_str = f"    - Model: {type(model).__name__}  ({total_params / 1e6:.1f}M parameters"
+    info_str = f"    - Model: {type(model).__name__}  ({_format_value(total_params)} parameters"
+    info_str += f", {_format_value(optimized_params)} optimized)\n"
+    info_str += "    - Learning Rates and Weight Decays:\n"
 
-    if optimized_params >= 1e6:
-        precision_optimized = max(0, 4 - int(optimized_params / 1e6).bit_length())
-        info_str += f", {optimized_params / 1e6:.{precision_optimized}f}M optimized)\n"
-    else:
-        precision_optimized = max(0, 4 - int(optimized_params).bit_length())
-        info_str += f", {optimized_params:.{precision_optimized}f}M optimized)\n"
+    lr_wd_groups = {}
+    max_group_name_len = max(len(group["name"]) for group in param_groups)
+    max_lr_len = 0
+    max_wd_len = 0
 
-    info_str += "    - Learning rates:\n"
     for group in param_groups:
         group_name = group["name"]
         group_lr = group["lr"]
+        group_wd = group["weight_decay"]
         group_params = sum(p.numel() for p in group["params"])
 
-        if group_params >= 1e6:
-            precision_group = max(0, 4 - int(group_params / 1e6).bit_length())
-            info_str += f"      - {group_name}: {group_lr} ({group_params / 1e6:.{precision_group}f}M parameters)\n"
+        if group_name not in lr_wd_groups:
+            lr_wd_groups[group_name] = {"params": 0, "lr_params": {}, "wd_params": {}}
+        lr_wd_groups[group_name]["params"] += group_params
+
+        if group_lr not in lr_wd_groups[group_name]["lr_params"].keys():
+            lr_wd_groups[group_name]["lr_params"][group_lr] = group_params
         else:
-            precision_group = max(0, 4 - int(group_params).bit_length())
-            info_str += f"      - {group_name}: {group_lr} ({group_params:.{precision_group}f}M parameters)\n"
+            lr_wd_groups[group_name]["lr_params"][group_lr] += group_params
+        max_lr_len = max(max_lr_len, len(f"LR: {group_lr} ({_format_value(group_params)} parameters)"))
+
+        if group_wd not in lr_wd_groups[group_name]["wd_params"].keys():
+            lr_wd_groups[group_name]["wd_params"][group_wd] = group_params
+        else:
+            lr_wd_groups[group_name]["wd_params"][group_wd] += group_params
+        max_wd_len = max(max_wd_len, len(f"WD: {group_wd}, ({_format_value(group_params)} parameters)"))
+
+    for group_name, info in lr_wd_groups.items():
+        all_group_params = info["params"]
+        lr_str = ", ".join([f"LR: {lr_val} ({_format_value(lr_params)} parameters)" for lr_val, lr_params in info["lr_params"].items()])
+        wd_str = ", ".join([f"WD: {wd_val}, ({_format_value(wd_params)} parameters)" for wd_val, wd_params in info["wd_params"].items()])
+
+        # Calculate padding for alignment
+        padding_len = max_group_name_len - len(group_name)
+        padded_group_name = f"{group_name}:{' ' * padding_len}"
+
+        lr_padding = " " * (max_lr_len - len(lr_str))
+        wd_padding = " " * (max_wd_len - len(wd_str))
+
+        info_str += f"      - {padded_group_name} ({_format_value(all_group_params)} parameters). {lr_str}{lr_padding} {wd_str}{wd_padding}\n"
 
     return info_str
 

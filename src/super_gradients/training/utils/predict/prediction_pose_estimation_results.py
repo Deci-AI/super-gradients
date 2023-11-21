@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import List
+from typing import List, Iterator
 
 import numpy as np
 
@@ -8,6 +8,8 @@ from super_gradients.training.utils.predict import ImagePrediction, ImagesPredic
 from super_gradients.training.utils.media.image import show_image, save_image
 from super_gradients.training.utils.media.video import show_video_from_frames, save_video
 from super_gradients.training.utils.visualization.pose_estimation import PoseVisualization
+
+from tqdm import tqdm
 
 
 @dataclass
@@ -210,8 +212,9 @@ class VideoPoseEstimationPrediction(VideoPredictions):
     :att fps:                       Frames per second of the video
     """
 
-    _images_prediction_lst: List[ImagePoseEstimationPrediction]
+    _images_prediction_gen: Iterator[ImagePoseEstimationPrediction]
     fps: int
+    n_frames: int
 
     def draw(
         self,
@@ -221,7 +224,7 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         keypoint_radius: int = 5,
         box_thickness: int = 2,
         show_confidence: bool = False,
-    ) -> List[np.ndarray]:
+    ) -> Iterator[np.ndarray]:
         """Draw the predicted bboxes on the images.
 
         :param output_folder:   Folder path, where the images will be saved.
@@ -236,10 +239,11 @@ class VideoPoseEstimationPrediction(VideoPredictions):
         :param show_confidence: Whether to show confidence scores on the image.
         :param box_thickness:   Thickness of bounding boxes.
 
-        :return:                List of images with predicted bboxes. Note that this does not modify the original image.
+        :return:                Iterator of images with predicted bboxes. Note that this does not modify the original image.
         """
-        frames_with_bbox = [
-            result.draw(
+
+        for result in tqdm(self._images_prediction_gen, total=self.n_frames, desc="Processing Video"):
+            yield result.draw(
                 edge_colors=edge_colors,
                 joint_thickness=joint_thickness,
                 keypoint_colors=keypoint_colors,
@@ -247,9 +251,6 @@ class VideoPoseEstimationPrediction(VideoPredictions):
                 box_thickness=box_thickness,
                 show_confidence=show_confidence,
             )
-            for result in self._images_prediction_lst
-        ]
-        return frames_with_bbox
 
     def show(
         self,

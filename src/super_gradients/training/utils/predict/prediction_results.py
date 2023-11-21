@@ -16,6 +16,8 @@ from super_gradients.training.utils.visualization.utils import generate_color_ma
 from .predictions import Prediction, DetectionPrediction, ClassificationPrediction
 from ...datasets.data_formats.bbox_formats import convert_bboxes
 
+from tqdm import tqdm
+
 
 @dataclass
 class ImagePrediction(ABC):
@@ -325,15 +327,16 @@ class ImagesPredictions(ABC):
 
 
 @dataclass
-class VideoPredictions(ImagesPredictions, ABC):
+class VideoPredictions(ABC):
     """Object wrapping the list of image predictions as a Video.
 
-    :attr _images_prediction_lst:   List of results of the run
+    :attr _images_prediction_gen:   List of results of the run
     :att fps:                       Frames per second of the video
     """
 
-    _images_prediction_lst: List[ImagePrediction]
+    _images_prediction_gen: Iterator[ImagePrediction]
     fps: float
+    n_frames: int
 
     @abstractmethod
     def show(self, *args, **kwargs) -> None:
@@ -504,12 +507,13 @@ class ImagesDetectionPrediction(ImagesPredictions):
 class VideoDetectionPrediction(VideoPredictions):
     """Object wrapping the list of image detection predictions as a Video.
 
-    :attr _images_prediction_lst:   List of the predictions results
+    :attr _images_prediction_gen:   Iterable object of the predictions results
     :att fps:                       Frames per second of the video
     """
 
-    _images_prediction_lst: List[ImageDetectionPrediction]
+    _images_prediction_gen: Iterator[ImagePrediction]
     fps: int
+    n_frames: int
 
     def draw(
         self,
@@ -517,7 +521,7 @@ class VideoDetectionPrediction(VideoPredictions):
         show_confidence: bool = True,
         color_mapping: Optional[List[Tuple[int, int, int]]] = None,
         class_names: Optional[List[str]] = None,
-    ) -> List[np.ndarray]:
+    ) -> Iterator[np.ndarray]:
         """Draw the predicted bboxes on the images.
 
         :param box_thickness:   Thickness of bounding boxes.
@@ -525,18 +529,16 @@ class VideoDetectionPrediction(VideoPredictions):
         :param color_mapping:   List of tuples representing the colors for each class.
                                 Default is None, which generates a default color mapping based on the number of class names.
         :param class_names:     List of class names to show. By default, is None which shows all classes using during training.
-        :return:                List of images with predicted bboxes. Note that this does not modify the original image.
+        :return:                Iterable object of images with predicted bboxes. Note that this does not modify the original image.
         """
-        frames_with_bbox = [
-            result.draw(
+
+        for result in tqdm(self._images_prediction_gen, total=self.n_frames, desc="Processing Video"):
+            yield result.draw(
                 box_thickness=box_thickness,
                 show_confidence=show_confidence,
                 color_mapping=color_mapping,
                 class_names=class_names,
             )
-            for result in self._images_prediction_lst
-        ]
-        return frames_with_bbox
 
     def show(
         self,
