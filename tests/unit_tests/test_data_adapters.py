@@ -7,10 +7,12 @@ from torch.utils.data import DataLoader
 from data_gradients.managers.detection_manager import DetectionAnalysisManager
 from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 from data_gradients.managers.classification_manager import ClassificationAnalysisManager
-from super_gradients.training.utils.collate_fn import (
-    DetectionDatasetAdapterCollateFN,
-    SegmentationDatasetAdapterCollateFN,
-    ClassificationDatasetAdapterCollateFN,
+from data_gradients.utils.data_classes.image_channels import ImageChannels
+
+from super_gradients.training.dataloaders.adapters import (
+    ClassificationDataloaderAdapterFactory,
+    DetectionDataloaderAdapterFactory,
+    SegmentationDataloaderAdapterFactory,
 )
 
 
@@ -74,33 +76,14 @@ class TestDetectionAdapter(unittest.TestCase):
             train_data=self.dataset,
             val_data=self.dataset,
             class_names=list(map(str, range(6))),
+            image_channels=ImageChannels.from_str("RGB"),
             use_cache=True,
             is_label_first=False,
             bbox_format="xywh",
         )
         analyzer_ds.run()  # Run the analysis. This will create the cache.
 
-        loader = DataLoader(self.dataset, batch_size=2, collate_fn=DetectionDatasetAdapterCollateFN(config_path=analyzer_ds.config.cache_path, n_classes=6))
-
-        for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
-            self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue(((0 <= images) & (images <= 255)).all())  # Should be 0-255
-            self.assertTrue(torch.equal(targets, expected_targets))
-
-    def test_overriding_collate_detection(self):
-        loader = DataLoader(self.dataset, batch_size=2)
-        analyzer_ds = DetectionAnalysisManager(
-            report_title="test_overriding_collate_detection",
-            train_data=loader,
-            val_data=loader,
-            class_names=list(map(str, range(6))),
-            use_cache=True,
-            is_label_first=False,
-            bbox_format="xywh",
-        )
-        analyzer_ds.run()  # Run the analysis. This will create the cache.
-
-        loader.collate_fn = DetectionDatasetAdapterCollateFN(collate_fn=loader.collate_fn, config_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader = DetectionDataloaderAdapterFactory.from_dataset(dataset=self.dataset, config_path=analyzer_ds.data_config.cache_path, batch_size=2)
 
         for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -116,13 +99,14 @@ class TestDetectionAdapter(unittest.TestCase):
             train_data=loader,
             val_data=loader,
             class_names=list(map(str, range(6))),
+            image_channels=ImageChannels.from_str("RGB"),
             use_cache=True,
             is_label_first=False,
             bbox_format="xywh",
         )
         analyzer_ds.run()
 
-        loader = DetectionDatasetAdapterCollateFN.adapt_dataloader(dataloader=loader, config_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader = DetectionDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path=analyzer_ds.data_config.cache_path)
 
         for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -153,32 +137,13 @@ class TestSegmentationAdapter(unittest.TestCase):
             train_data=self.dataset,
             val_data=self.dataset,
             class_names=list(map(str, range(6))),
+            image_channels=ImageChannels.from_str("RGB"),
             use_cache=True,
             is_batch=False,
         )
         analyzer_ds.run()
 
-        loader = DataLoader(self.dataset, batch_size=2, collate_fn=SegmentationDatasetAdapterCollateFN(config_path=analyzer_ds.config.cache_path, n_classes=6))
-
-        for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
-            self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue((masks == expected_masks).all())  # Checking that the masks are as expected
-
-    def test_overriding_collate_segmentation(self):
-        loader = DataLoader(self.dataset, batch_size=2)
-
-        # Run the analysis on DATALOADER
-        analyzer_ds = SegmentationAnalysisManager(
-            report_title="test_overriding_collate_segmentation",
-            train_data=loader,
-            val_data=loader,
-            class_names=list(map(str, range(6))),
-            use_cache=True,
-            is_batch=True,
-        )
-        analyzer_ds.run()
-
-        loader.collate_fn = SegmentationDatasetAdapterCollateFN(base_collate_fn=loader.collate_fn, config_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader = SegmentationDataloaderAdapterFactory.from_dataset(dataset=self.dataset, config_path=analyzer_ds.data_config.cache_path, batch_size=2)
 
         for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -193,13 +158,13 @@ class TestSegmentationAdapter(unittest.TestCase):
             train_data=loader,
             val_data=loader,
             class_names=list(map(str, range(6))),
+            image_channels=ImageChannels.from_str("RGB"),
             use_cache=True,
             is_batch=True,
         )
         analyzer_ds.run()
 
-        # This is required to use the adapter inside the existing Dataloader.
-        loader = SegmentationDatasetAdapterCollateFN.adapt_dataloader(dataloader=loader, config_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader = DetectionDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path=analyzer_ds.data_config.cache_path)
 
         for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -227,6 +192,7 @@ class TestClassificationAdapter(unittest.TestCase):
             train_data=self.dataset,
             val_data=self.dataset,
             class_names=list(map(str, range(6))),
+            image_channels=ImageChannels.from_str("RGB"),
             images_extractor="[0]",
             labels_extractor="[1]",
             use_cache=True,
@@ -234,33 +200,7 @@ class TestClassificationAdapter(unittest.TestCase):
         )
         analyzer_ds.run()
 
-        loader = DataLoader(
-            self.dataset, batch_size=2, collate_fn=ClassificationDatasetAdapterCollateFN(config_path=analyzer_ds.config.cache_path, n_classes=6)
-        )
-
-        for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
-            self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue(torch.equal(labels, expected_labels))
-
-    def test_adapt_dataloader_override_collate_classification(self):
-
-        loader = DataLoader(self.dataset, batch_size=2)
-
-        analyzer_ds = ClassificationAnalysisManager(
-            report_title="test_adapt_dataloader_override_collate_classification",
-            train_data=loader,
-            val_data=loader,
-            class_names=list(map(str, range(6))),
-            images_extractor="[0]",
-            labels_extractor="[1]",
-            use_cache=True,
-            is_batch=True,
-        )
-        analyzer_ds.run()
-
-        # This is required to use the adapter inside the existing Dataloader.
-        # `base_collate_fn=loader.base_collate_fn` ensure to still take into account any collate_fn that was passed to the Dataloader
-        loader.collate_fn = ClassificationDatasetAdapterCollateFN(base_collate_fn=loader.collate_fn, config_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader = ClassificationDataloaderAdapterFactory.from_dataset(dataset=self.dataset, config_path=analyzer_ds.data_config.cache_path, batch_size=2)
 
         for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
@@ -275,6 +215,7 @@ class TestClassificationAdapter(unittest.TestCase):
             train_data=loader,
             val_data=loader,
             class_names=list(map(str, range(6))),
+            image_channels=ImageChannels.from_str("RGB"),
             images_extractor="[0]",
             labels_extractor="[1]",
             use_cache=True,
@@ -282,8 +223,7 @@ class TestClassificationAdapter(unittest.TestCase):
         )
         analyzer_ds.run()
 
-        # This is required to use the adapter inside the existing Dataloader.
-        loader = ClassificationDatasetAdapterCollateFN.adapt_dataloader(dataloader=loader, config_path=analyzer_ds.config.cache_path, n_classes=6)
+        loader = ClassificationDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path=analyzer_ds.data_config.cache_path)
 
         for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
             self.assertEqual(images.shape, expected_images_shape)
