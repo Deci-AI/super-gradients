@@ -843,7 +843,7 @@ class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransfo
         :return:       Transformed detection sample
         """
         if random.random() < self.prob:
-            sample.image = _flip_vertical_image(sample.image)
+            sample.image = _flip_horizontal_image(sample.image)
             sample.bboxes_xywh = _flip_horizontal_boxes_xywh(sample.bboxes_xywh, sample.image.shape[0])
         return sample
 
