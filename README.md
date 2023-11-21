@@ -230,6 +230,11 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://bit.ly/3f4mssd) [How to Predict Using Pre-trained Model](https://bit.ly/3f4mssd)
 
+### Connecting your dataset using the Data Gradients
+
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/dataloader_adapter.ipynb) [Connecting dataset using Data Gradients](https://colab.research.google.com/github/Deci-AI/super-gradients/blob/master/notebooks/dataloader_adapter.ipynb)
+
+
 
 
 ## Advanced Features
