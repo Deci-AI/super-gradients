@@ -73,16 +73,13 @@ class DetectionMetrics(Metric):
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
-        if class_names is None:
-            if include_classwise_ap:
-                logger.warning(
-                    "Parameter 'include_classwise_ap' is set to True, but no class names are provided. "
-                    "We will generate dummy class names, but we recommend to provide class names explicitly to"
-                    "have meaningful names in reported metrics."
-                )
+        if class_names is None and include_classwise_ap:
+            logger.warning(
+                "Parameter 'include_classwise_ap' is set to True, but no class names are provided. "
+                "We will generate dummy class names, but we recommend to provide class names explicitly to"
+                "have meaningful names in reported metrics."
+            )
             class_names = ["class_" + str(i) for i in range(num_cls)]
-        else:
-            class_names = list(class_names)
 
         if class_names is not None and len(class_names) != num_cls:
             raise ValueError(f"Number of class names ({len(class_names)}) does not match number of classes ({num_cls})")
@@ -90,7 +87,6 @@ class DetectionMetrics(Metric):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.num_cls = num_cls
         self.iou_thres = iou_thres
-        self.class_names = class_names
 
         if isinstance(iou_thres, IouThreshold):
             self.iou_thresholds = iou_thres.to_tensor()
