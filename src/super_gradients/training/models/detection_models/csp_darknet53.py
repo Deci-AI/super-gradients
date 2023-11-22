@@ -188,7 +188,7 @@ class CSPDarknet53(SgModule):
                 deprecated_param_name="arch_params.channels_in",
                 new_param_name="arch_params.in_channels",
                 deprecated_since="3.3.0",
-                removed_from="4.0.0",
+                removed_from="3.6.0",
             )
             in_channels = get_param(arch_params, "channels_in")
         else:
