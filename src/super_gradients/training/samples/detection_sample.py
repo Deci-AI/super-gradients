@@ -4,7 +4,6 @@ import torch
 
 from typing import Optional, List, Union
 
-from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
 
 __all__ = ["DetectionSample"]
 
@@ -37,6 +36,8 @@ class DetectionSample:
         This method operates in-place and modifies the caller.
         :return: A DetectionSample after filtering (caller instance).
         """
+        from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
+
         image_height, image_width, _ = self.image.shape
 
         # Clamp bboxes to image boundaries

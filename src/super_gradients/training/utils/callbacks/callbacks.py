@@ -5,6 +5,7 @@ import numbers
 import os
 import signal
 import time
+import typing
 from abc import ABC, abstractmethod
 from typing import List, Union, Optional, Sequence, Mapping
 
@@ -30,12 +31,14 @@ from super_gradients.common.registry.registry import register_lr_scheduler, regi
 from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, EpochNumber
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
-from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.training.utils.utils import unwrap_model, infer_model_device, tensor_container_to_device
 
 logger = get_logger(__name__)
+
+if typing.TYPE_CHECKING:
+    from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 
 
 @register_callback(Callbacks.MODEL_CONVERSION_CHECK)
@@ -678,7 +681,7 @@ class DetectionVisualizationCallback(PhaseCallback):
         self,
         phase: Phase,
         freq: int,
-        post_prediction_callback: DetectionPostPredictionCallback,
+        post_prediction_callback: "DetectionPostPredictionCallback",
         classes: list,
         batch_idx: int = 0,
         last_img_idx_in_batch: int = -1,
@@ -691,11 +694,15 @@ class DetectionVisualizationCallback(PhaseCallback):
         self.last_img_idx_in_batch = last_img_idx_in_batch
 
     def __call__(self, context: PhaseContext):
+        from super_gradients.training.utils.detection_utils import DetectionVisualization
+
         if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx:
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
             preds = (context.preds[0].clone(), None)
             preds = self.post_prediction_callback(preds)
-            batch_imgs = DetectionVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx, self.classes)
+            batch_imgs = DetectionVisualization.visualize_batch(
+                context.inputs, preds, context.additional_batch_items["gt_samples"], self.batch_idx, self.classes
+            )
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
@@ -1232,7 +1239,6 @@ class ExtremeBatchCaseVisualizationCallback(Callback, ABC):
             self.metric.reset()
 
         else:
-
             # FOR LOSS VALUES, GET THE RIGHT COMPONENT, DERIVE IT ON THE FIRST PASS
             loss_tuple = context.loss_log_items
             if self._first_call:
@@ -1365,7 +1371,7 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
 
     def __init__(
         self,
-        post_prediction_callback: DetectionPostPredictionCallback,
+        post_prediction_callback: "DetectionPostPredictionCallback",
         metric: Optional[Metric] = None,
         metric_component_name: Optional[str] = None,
         loss_to_monitor: Optional[str] = None,
@@ -1421,6 +1427,8 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
 
         :return: np.ndarray A 4D tensor of BHWC shape with visualizations of the extreme batch.
         """
+        from super_gradients.training.utils.detection_utils import DetectionVisualization
+
         inputs = self.extreme_batch
         preds = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
         gt_samples = self.extreme_additional_batch_items["gt_samples"]
