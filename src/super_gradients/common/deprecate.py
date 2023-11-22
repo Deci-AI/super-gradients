@@ -20,12 +20,12 @@ def deprecated(deprecated_since: str, removed_from: str, target: Optional[callab
         If a direct replacement function exists:
         >> from new.module.path import new_get_local_rank
 
-        >> @deprecated(deprecated_since='3.2.0', removed_from='3.6.0', target=new_get_local_rank, reason="Replaced for optimization")
+        >> @deprecated(deprecated_since='3.2.0', removed_from='4.0.0', target=new_get_local_rank, reason="Replaced for optimization")
         >> def get_local_rank():
         >>     return new_get_local_rank()
 
         If there's no direct replacement:
-        >> @deprecated(deprecated_since='3.2.0', removed_from='3.6.0', reason="Function is no longer needed due to XYZ reason")
+        >> @deprecated(deprecated_since='3.2.0', removed_from='4.0.0', reason="Function is no longer needed due to XYZ reason")
         >> def some_old_function():
         >>     # ... function logic ...
 
@@ -33,7 +33,7 @@ def deprecated(deprecated_since: str, removed_from: str, target: Optional[callab
         >> from some_module import get_local_rank
         >> get_local_rank()
         DeprecationWarning: Function `some_module.get_local_rank` is deprecated. Deprecated since version `3.2.0`
-        and will be removed in version `3.6.0`. Reason: `Replaced for optimization`.
+        and will be removed in version `4.0.0`. Reason: `Replaced for optimization`.
         Please update your code:
           [-] from `some_module` import `get_local_rank`
           [+] from `new.module.path` import `new_get_local_rank`.
