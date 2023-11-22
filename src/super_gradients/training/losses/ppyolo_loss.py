@@ -1,16 +1,15 @@
 from typing import Mapping, Tuple, Union, Optional, List
 
 import numpy as np
+import super_gradients
 import torch
 import torch.nn.functional as F
-from torch import nn, Tensor
-
-import super_gradients
 from super_gradients.common.environment.ddp_utils import get_world_size
 from super_gradients.common.object_names import Losses
 from super_gradients.common.registry.registry import register_loss
-from super_gradients.training.datasets.data_formats.bbox_formats.cxcywh import cxcywh_to_xyxy
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
+from torch import nn, Tensor
 
 
 def batch_iou_similarity(box1: torch.Tensor, box2: torch.Tensor, eps: float = 1e-9) -> float:
@@ -694,7 +693,7 @@ class PPYoloELoss(nn.Module):
 
         image_index = flat_targets[:, 0]
         gt_class = flat_targets[:, 1:2].long()
-        gt_bbox = cxcywh_to_xyxy(flat_targets[:, 2:6], image_shape=None)
+        gt_bbox = xywh_to_xyxy(flat_targets[:, 2:6], image_shape=None)
 
         gt_class_list = []
         gt_bbox_list = []
@@ -716,7 +715,7 @@ class PPYoloELoss(nn.Module):
         Convert targets from YoloX format to PPYolo since it's the easiest (not the cleanest) way to
         have PP Yolo training & metrics computed
 
-        :param targets: (N, 6) format of bboxes is meant to be LABEL_CXCYWH (index, c, cx, cy, w, h)
+        :param targets: (N, 6) format of bboxes is meant to be LABEL_XYWH (index, class, x, y, w, h)
         :return: (Dictionary [str,Tensor]) with keys:
          - gt_class: (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
          - gt_bbox: (Tensor, float32): Ground truth bboxes, shape(B, n, 4) in x1y1x2y2 format
@@ -724,7 +723,7 @@ class PPYoloELoss(nn.Module):
         """
         image_index = targets[:, 0]
         gt_class = targets[:, 1:2].long()
-        gt_bbox = cxcywh_to_xyxy(targets[:, 2:6], image_shape=None)
+        gt_bbox = xywh_to_xyxy(targets[:, 2:6], image_shape=None)
 
         per_image_class = []
         per_image_bbox = []
@@ -784,7 +783,7 @@ class PPYoloELoss(nn.Module):
             stride_tensor,
         ) = predictions
 
-        targets = self._get_targets_for_batched_assigner(targets, batch_size=pred_scores.size(0))  # yolox -> ppyolo
+        targets = self._get_targets_for_batched_assigner(targets, batch_size=pred_scores.size(0))
 
         anchor_points_s = anchor_points / stride_tensor
         pred_bboxes = self._bbox_decode(anchor_points_s, pred_distri)
