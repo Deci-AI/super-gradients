@@ -1,4 +1,5 @@
 import unittest
+import tempfile
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -70,48 +71,51 @@ class TestDetectionAdapter(unittest.TestCase):
         ]
 
     def test_adapt_dataset_detection(self):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            analyzer_ds = DetectionAnalysisManager(
+                log_dir=tmpdirname,
+                report_title="test_adapt_dataset_detection",
+                train_data=self.dataset,
+                val_data=self.dataset,
+                class_names=list(map(str, range(6))),
+                image_channels=ImageChannels.from_str("RGB"),
+                use_cache=True,
+                is_label_first=False,
+                bbox_format="xywh",
+            )
+            analyzer_ds.run()  # Run the analysis. This will create the cache.
 
-        analyzer_ds = DetectionAnalysisManager(
-            report_title="test_adapt_dataset_detection",
-            train_data=self.dataset,
-            val_data=self.dataset,
-            class_names=list(map(str, range(6))),
-            image_channels=ImageChannels.from_str("RGB"),
-            use_cache=True,
-            is_label_first=False,
-            bbox_format="xywh",
-        )
-        analyzer_ds.run()  # Run the analysis. This will create the cache.
+            loader = DetectionDataloaderAdapterFactory.from_dataset(dataset=self.dataset, config_path=analyzer_ds.data_config.cache_path, batch_size=2)
 
-        loader = DetectionDataloaderAdapterFactory.from_dataset(dataset=self.dataset, config_path=analyzer_ds.data_config.cache_path, batch_size=2)
-
-        for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
-            self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue(((0 <= images) & (images <= 255)).all())  # Should be 0-255
-            self.assertTrue(torch.equal(targets, expected_targets))
+            for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
+                self.assertEqual(images.shape, expected_images_shape)
+                self.assertTrue(((0 <= images) & (images <= 255)).all())  # Should be 0-255
+                self.assertTrue(torch.equal(targets, expected_targets))
 
     def test_adapt_dataloader_detection(self):
 
         loader = DataLoader(self.dataset, batch_size=2)
 
-        analyzer_ds = DetectionAnalysisManager(
-            report_title="test_adapt_dataloader_detection",
-            train_data=loader,
-            val_data=loader,
-            class_names=list(map(str, range(6))),
-            image_channels=ImageChannels.from_str("RGB"),
-            use_cache=True,
-            is_label_first=False,
-            bbox_format="xywh",
-        )
-        analyzer_ds.run()
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            analyzer_ds = DetectionAnalysisManager(
+                log_dir=tmpdirname,
+                report_title="test_adapt_dataloader_detection",
+                train_data=loader,
+                val_data=loader,
+                class_names=list(map(str, range(6))),
+                image_channels=ImageChannels.from_str("RGB"),
+                use_cache=True,
+                is_label_first=False,
+                bbox_format="xywh",
+            )
+            analyzer_ds.run()
 
-        loader = DetectionDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path=analyzer_ds.data_config.cache_path)
+            loader = DetectionDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path=analyzer_ds.data_config.cache_path)
 
-        for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
-            self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue(((0 <= images) & (images <= 255)).all())  # Should be 0-255
-            self.assertTrue(torch.equal(targets, expected_targets))
+            for expected_images_shape, expected_targets, (images, targets) in zip(self.expected_image_shapes_batches, self.expected_targets_batches, loader):
+                self.assertEqual(images.shape, expected_images_shape)
+                self.assertTrue(((0 <= images) & (images <= 255)).all())  # Should be 0-255
+                self.assertTrue(torch.equal(targets, expected_targets))
 
 
 class TestSegmentationAdapter(unittest.TestCase):
@@ -132,43 +136,47 @@ class TestSegmentationAdapter(unittest.TestCase):
 
     def test_adapt_dataset_segmentation(self):
 
-        analyzer_ds = SegmentationAnalysisManager(
-            report_title="test_adapt_dataset_segmentation",
-            train_data=self.dataset,
-            val_data=self.dataset,
-            class_names=list(map(str, range(6))),
-            image_channels=ImageChannels.from_str("RGB"),
-            use_cache=True,
-            is_batch=False,
-        )
-        analyzer_ds.run()
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            analyzer_ds = SegmentationAnalysisManager(
+                log_dir=tmpdirname,
+                report_title="test_adapt_dataset_segmentation",
+                train_data=self.dataset,
+                val_data=self.dataset,
+                class_names=list(map(str, range(6))),
+                image_channels=ImageChannels.from_str("RGB"),
+                use_cache=True,
+                is_batch=False,
+            )
+            analyzer_ds.run()
 
-        loader = SegmentationDataloaderAdapterFactory.from_dataset(dataset=self.dataset, config_path=analyzer_ds.data_config.cache_path, batch_size=2)
+            loader = SegmentationDataloaderAdapterFactory.from_dataset(dataset=self.dataset, config_path=analyzer_ds.data_config.cache_path, batch_size=2)
 
-        for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
-            self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue((masks == expected_masks).all())  # Checking that the masks are as expected
+            for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
+                self.assertEqual(images.shape, expected_images_shape)
+                self.assertTrue((masks == expected_masks).all())  # Checking that the masks are as expected
 
     def test_adapt_dataloader_segmentation(self):
 
         loader = DataLoader(self.dataset, batch_size=2)
 
-        analyzer_ds = SegmentationAnalysisManager(
-            report_title="test_adapt_dataloader_segmentation",
-            train_data=loader,
-            val_data=loader,
-            class_names=list(map(str, range(6))),
-            image_channels=ImageChannels.from_str("RGB"),
-            use_cache=True,
-            is_batch=True,
-        )
-        analyzer_ds.run()
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            analyzer_ds = SegmentationAnalysisManager(
+                log_dir=tmpdirname,
+                report_title="test_adapt_dataloader_segmentation",
+                train_data=loader,
+                val_data=loader,
+                class_names=list(map(str, range(6))),
+                image_channels=ImageChannels.from_str("RGB"),
+                use_cache=True,
+                is_batch=True,
+            )
+            analyzer_ds.run()
 
-        loader = DetectionDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path=analyzer_ds.data_config.cache_path)
+            loader = SegmentationDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path=analyzer_ds.data_config.cache_path)
 
-        for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
-            self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue((masks == expected_masks).all())  # Checking that the masks are as expected
+            for expected_images_shape, expected_masks, (images, masks) in zip(self.expected_image_shapes_batches, self.expected_masks_batches, loader):
+                self.assertEqual(images.shape, expected_images_shape)
+                self.assertTrue((masks == expected_masks).all())  # Checking that the masks are as expected
 
 
 class TestClassificationAdapter(unittest.TestCase):
@@ -187,47 +195,51 @@ class TestClassificationAdapter(unittest.TestCase):
 
     def test_adapt_dataset_classification(self):
 
-        analyzer_ds = ClassificationAnalysisManager(
-            report_title="test_adapt_dataset_classification",
-            train_data=self.dataset,
-            val_data=self.dataset,
-            class_names=list(map(str, range(6))),
-            image_channels=ImageChannels.from_str("RGB"),
-            images_extractor="[0]",
-            labels_extractor="[1]",
-            use_cache=True,
-            is_batch=False,
-        )
-        analyzer_ds.run()
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            analyzer_ds = ClassificationAnalysisManager(
+                log_dir=tmpdirname,
+                report_title="test_adapt_dataset_classification",
+                train_data=self.dataset,
+                val_data=self.dataset,
+                class_names=list(map(str, range(6))),
+                image_channels=ImageChannels.from_str("RGB"),
+                images_extractor="[0]",
+                labels_extractor="[1]",
+                use_cache=True,
+                is_batch=False,
+            )
+            analyzer_ds.run()
 
-        loader = ClassificationDataloaderAdapterFactory.from_dataset(dataset=self.dataset, config_path=analyzer_ds.data_config.cache_path, batch_size=2)
+            loader = ClassificationDataloaderAdapterFactory.from_dataset(dataset=self.dataset, config_path=analyzer_ds.data_config.cache_path, batch_size=2)
 
-        for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
-            self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue(torch.equal(labels, expected_labels))
+            for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
+                self.assertEqual(images.shape, expected_images_shape)
+                self.assertTrue(torch.equal(labels, expected_labels))
 
     def test_adapt_dataloader_classification(self):
 
         loader = DataLoader(self.dataset, batch_size=2)
 
-        analyzer_ds = ClassificationAnalysisManager(
-            report_title="test_adapt_dataloader_classification",
-            train_data=loader,
-            val_data=loader,
-            class_names=list(map(str, range(6))),
-            image_channels=ImageChannels.from_str("RGB"),
-            images_extractor="[0]",
-            labels_extractor="[1]",
-            use_cache=True,
-            is_batch=True,
-        )
-        analyzer_ds.run()
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            analyzer_ds = ClassificationAnalysisManager(
+                log_dir=tmpdirname,
+                report_title="test_adapt_dataloader_classification",
+                train_data=loader,
+                val_data=loader,
+                class_names=list(map(str, range(6))),
+                image_channels=ImageChannels.from_str("RGB"),
+                images_extractor="[0]",
+                labels_extractor="[1]",
+                use_cache=True,
+                is_batch=True,
+            )
+            analyzer_ds.run()
 
-        loader = ClassificationDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path=analyzer_ds.data_config.cache_path)
+            loader = ClassificationDataloaderAdapterFactory.from_dataloader(dataloader=loader, config_path=analyzer_ds.data_config.cache_path)
 
-        for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
-            self.assertEqual(images.shape, expected_images_shape)
-            self.assertTrue(torch.equal(labels, expected_labels))
+            for expected_images_shape, expected_labels, (images, labels) in zip(self.expected_image_shapes_batches, self.expected_labels_batches, loader):
+                self.assertEqual(images.shape, expected_images_shape)
+                self.assertTrue(torch.equal(labels, expected_labels))
 
 
 if __name__ == "__main__":
