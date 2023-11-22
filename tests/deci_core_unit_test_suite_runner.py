@@ -27,6 +27,9 @@ from tests.unit_tests import (
     DynamicModelTests,
     TestExportRecipe,
     TestMixedPrecisionDisabled,
+    TestClassificationAdapter,
+    TestDetectionAdapter,
+    TestSegmentationAdapter,
 )
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.test_convert_recipe_to_code import TestConvertRecipeToCode
@@ -172,6 +175,9 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestConvertRecipeToCode))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestVersionCheck))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestModelWeightAveraging))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestClassificationAdapter))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionAdapter))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestSegmentationAdapter))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
