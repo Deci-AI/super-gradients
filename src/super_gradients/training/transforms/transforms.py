@@ -12,14 +12,9 @@ from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
 from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
-from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
 from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
-from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
-from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.samples import DetectionSample
 from super_gradients.training.transforms.detection import DetectionPadIfNeeded, AbstractDetectionTransform, LegacyDetectionTransformMixin
 from super_gradients.training.transforms.utils import (
@@ -28,7 +23,7 @@ from super_gradients.training.transforms.utils import (
     _rescale_bboxes,
     _rescale_xyxy_bboxes,
 )
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 IMAGE_RESAMPLE_MODE = Image.BILINEAR
@@ -554,7 +549,7 @@ class DetectionMosaic(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionRandomAffine)
-class DetectionRandomAffine(DetectionTransform):
+class DetectionRandomAffine(DetectionTransform, LegacyDetectionTransformMixin):
     """
     DetectionRandomAffine detection transform
 
@@ -603,7 +598,7 @@ class DetectionRandomAffine(DetectionTransform):
     def close(self):
         self.enable = False
 
-    def __call__(self, sample: dict) -> dict:
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if self.enable:
             img, target = random_affine(
                 sample["image"],
@@ -1066,84 +1061,6 @@ class DetectionNormalize(AbstractDetectionTransform, LegacyDetectionTransformMix
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
         return [{Processings.NormalizeImage: {"mean": self.mean, "std": self.std}}]
-
-
-@register_transform(Transforms.DetectionTargetsFormatTransform)
-class DetectionTargetsFormatTransform(DetectionTransform):
-    """
-    Detection targets format transform
-
-    Convert targets in input_format to output_format, filter small bboxes and pad targets.
-
-    :param input_dim:          Shape of the images to transform.
-    :param input_format:       Format of the input targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL.
-    :param output_format:      Format of the output targets. For instance [xmin, ymin, xmax, ymax, cls_id] refers to XYXY_LABEL
-    :param min_bbox_edge_size: bboxes with edge size lower than this values will be removed.
-    """
-
-    @resolve_param("input_format", ConcatenatedTensorFormatFactory())
-    @resolve_param("output_format", ConcatenatedTensorFormatFactory())
-    def __init__(
-        self,
-        input_dim: Union[int, Tuple[int, int], None] = None,
-        input_format: ConcatenatedTensorFormat = XYXY_LABEL,
-        output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
-        min_bbox_edge_size: float = 1,
-        max_targets: Optional[int] = None,
-    ):
-        super(DetectionTargetsFormatTransform, self).__init__()
-        _max_targets_deprication(max_targets)
-        if isinstance(input_format, DetectionTargetsFormat) or isinstance(output_format, DetectionTargetsFormat):
-            raise TypeError(
-                "DetectionTargetsFormat is not supported for input_format and output_format starting from super_gradients==3.0.7.\n"
-                "You can either:\n"
-                "\t - use builtin format among super_gradients.training.datasets.data_formats.default_formats.<FORMAT_NAME> (e.g. XYXY_LABEL, CXCY_LABEL, ..)\n"
-                "\t - define your custom format using super_gradients.training.datasets.data_formats.formats.ConcatenatedTensorFormat\n"
-            )
-        self.input_format = input_format
-        self.output_format = output_format
-        self.min_bbox_edge_size = min_bbox_edge_size
-        self.input_dim = None
-
-        if input_dim is not None:
-            input_dim = ensure_is_tuple_of_two(input_dim)
-            self._setup_input_dim_related_params(input_dim)
-
-    def _setup_input_dim_related_params(self, input_dim: tuple):
-        """Setup all the parameters that are related to input_dim."""
-        self.input_dim = input_dim
-        self.min_bbox_edge_size = self.min_bbox_edge_size / max(input_dim) if self.output_format.bboxes_format.format.normalized else self.min_bbox_edge_size
-        self.targets_format_converter = ConcatenatedTensorFormatConverter(
-            input_format=self.input_format, output_format=self.output_format, image_shape=input_dim
-        )
-
-    def __call__(self, sample: dict) -> dict:
-        # if self.input_dim not set yet, it will be set with first batch
-        if self.input_dim is None:
-            self._setup_input_dim_related_params(input_dim=sample["image"].shape[1:])
-
-        sample["target"] = self.apply_on_targets(sample["target"])
-        if "crowd_target" in sample.keys():
-            sample["crowd_target"] = self.apply_on_targets(sample["crowd_target"])
-        return sample
-
-    def apply_on_targets(self, targets: np.ndarray) -> np.ndarray:
-        """Convert targets in input_format to output_format, filter small bboxes and pad targets"""
-        targets = self.targets_format_converter(targets)
-        targets = self.filter_small_bboxes(targets)
-        return np.ascontiguousarray(targets, dtype=np.float32)
-
-    def filter_small_bboxes(self, targets: np.ndarray) -> np.ndarray:
-        """Filter bboxes smaller than specified threshold."""
-
-        def _is_big_enough(bboxes: np.ndarray) -> np.ndarray:
-            return np.minimum(bboxes[:, 2], bboxes[:, 3]) > self.min_bbox_edge_size
-
-        targets = filter_on_bboxes(fn=_is_big_enough, tensor=targets, tensor_format=self.output_format)
-        return targets
-
-    def get_equivalent_preprocessing(self) -> List:
-        return []
 
 
 def get_aug_params(value: Union[tuple, float], center: float = 0) -> float:

@@ -1,5 +1,5 @@
 import collections
-from typing import Dict, Optional, Union, Tuple, List
+from typing import Dict, Union, Tuple, List
 
 import numpy as np
 import torch
@@ -7,12 +7,17 @@ from torchmetrics import Metric
 
 import super_gradients
 import super_gradients.common.environment.ddp_utils
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.object_names import Metrics
 from super_gradients.common.registry.registry import register_metric
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy
+from super_gradients.training.samples import DetectionSample
 from super_gradients.training.utils import tensor_container_to_device
-from super_gradients.training.utils.detection_utils import compute_detection_matching, compute_detection_metrics
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
-from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.detection_utils import (
+    compute_detection_metrics,
+    compute_img_detection_matching_xyxy,
+)
 
 logger = get_logger(__name__)
 
@@ -131,7 +136,12 @@ class DetectionMetrics(Metric):
 
         self.accumulate_on_cpu = accumulate_on_cpu
 
-    def update(self, preds, target: torch.Tensor, device: str, inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None) -> None:
+    def update(
+        self,
+        preds,
+        target: torch.Tensor,
+        gt_samples: List[DetectionSample],
+    ) -> None:
         """
         Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
 
@@ -142,26 +152,27 @@ class DetectionMetrics(Metric):
         :param inputs:          Input image tensor of shape (batch_size, n_img, height, width)
         :param crowd_targets:   Crowd targets for all images of shape (total_num_targets, 6), LABEL_CXCYWH
         """
-        self.iou_thresholds = self.iou_thresholds.to(device)
-        _, _, height, width = inputs.shape
-
-        targets = target.clone()
-        crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.clone()
+        device = self.device
 
         preds = self.post_prediction_callback(preds, device=device)
 
-        new_matching_info = compute_detection_matching(
-            preds,
-            targets,
-            height,
-            width,
-            self.iou_thresholds,
-            crowd_targets=crowd_targets,
-            top_k=self.top_k_predictions,
-            denormalize_targets=self.denormalize_targets,
-            device=self.device,
-            return_on_cpu=self.accumulate_on_cpu,
-        )
+        new_matching_info = []
+        for predictions, sample in zip(preds, gt_samples):
+            img_targets = np.concatenate([xywh_to_xyxy(sample.bboxes_xywh, image_shape=None), sample.labels[:, None]], axis=1)
+
+            non_crowd_mask = sample.is_crowd == 0
+            crowd_mask = ~non_crowd_mask
+
+            img_matching_tensors = compute_img_detection_matching_xyxy(
+                preds=predictions,
+                targets=torch.from_numpy(img_targets[non_crowd_mask]).to(device),
+                crowd_targets=torch.from_numpy(img_targets[crowd_mask]).to(device),
+                device=device,
+                iou_thresholds=self.iou_thresholds.to(device),
+                top_k=self.top_k_predictions,
+                return_on_cpu=self.accumulate_on_cpu,
+            )
+            new_matching_info.append(img_matching_tensors)
 
         accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
         setattr(self, f"matching_info{self._get_range_str()}", accumulated_matching_info + new_matching_info)
@@ -259,7 +270,6 @@ class DetectionMetrics_050(DetectionMetrics):
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
-
         super().__init__(
             num_cls=num_cls,
             post_prediction_callback=post_prediction_callback,
@@ -292,7 +302,6 @@ class DetectionMetrics_075(DetectionMetrics):
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
-
         super().__init__(
             num_cls=num_cls,
             post_prediction_callback=post_prediction_callback,
@@ -325,7 +334,6 @@ class DetectionMetrics_050_095(DetectionMetrics):
         include_classwise_ap: bool = False,
         class_names: List[str] = None,
     ):
-
         super().__init__(
             num_cls=num_cls,
             post_prediction_callback=post_prediction_callback,

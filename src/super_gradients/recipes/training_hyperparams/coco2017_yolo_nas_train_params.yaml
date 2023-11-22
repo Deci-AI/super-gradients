@@ -50,6 +50,21 @@ valid_metrics_list:
         max_predictions: 300
         nms_threshold: 0.7
 
+phase_callbacks:
+  - ExtremeBatchDetectionVisualizationCallback:
+      loss_to_monitor: "PPYoloELoss/loss"
+      max: True
+      enable_on_train_loader: True
+      enable_on_valid_loader: True
+      classes: ${dataset_params.classes}
+      post_prediction_callback:
+        _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
+        score_threshold: 0.25
+        nms_top_k: 4096
+        max_predictions: 512
+        nms_threshold: 0.7
+      normalize_targets: True
+
 pre_prediction_callback:
 
 metric_to_watch: 'mAP@0.50:0.95'

@@ -1,49 +1,52 @@
-from typing import Tuple, List, Union
+import typing
+from typing import Tuple, List
 
 import numpy as np
 import torch
+from torch.utils.data import default_collate
 
 from super_gradients.common.registry import register_collate_function
-from super_gradients.common.exceptions.dataset_exceptions import DatasetItemsException
+
+if typing.TYPE_CHECKING:
+    from super_gradients.training.samples import DetectionSample
 
 
 @register_collate_function()
 class DetectionCollateFN:
     """
-    Collate function for Yolox training
+    A single collate function for training all detection models.
+    The output targets format is [Batch, 6], where 6 is (batch_index, class_id, x, y, w, h)
     """
 
     def __init__(self):
-        self.expected_item_names = ("image", "targets")
+        pass
 
-    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
-        try:
-            images_batch, labels_batch = list(zip(*data))
-        except (ValueError, TypeError):
-            raise DatasetItemsException(data_sample=data[0], collate_type=type(self), expected_item_names=self.expected_item_names)
+    def __call__(self, batch: List["DetectionSample"]) -> Tuple[torch.Tensor, torch.Tensor, typing.Mapping]:
+        from super_gradients.training.datasets.pose_estimation_datasets.yolo_nas_pose_collate_fn import flat_collate_tensors_with_batch_index
 
-        return self._format_images(images_batch), self._format_targets(labels_batch)
+        images = []
+        targets = []
 
-    @staticmethod
-    def _format_images(images_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
-        images_batch = [torch.tensor(img) for img in images_batch]
-        images_batch_stack = torch.stack(images_batch, 0)
-        if images_batch_stack.shape[3] == 3:
-            images_batch_stack = torch.moveaxis(images_batch_stack, -1, 1).float()
-        return images_batch_stack
+        for sample in batch:
+            # Generate targets.
+            # Here we use only non-crowd targets for training
+            non_crowd_mask = sample.is_crowd == 0
+            image_targets = np.concatenate((sample.labels[non_crowd_mask, None], sample.bboxes_xywh[non_crowd_mask]), axis=1)
+            targets.append(torch.from_numpy(image_targets))
 
-    @staticmethod
-    def _format_targets(labels_batch: List[Union[torch.Tensor, np.array]]) -> torch.Tensor:
-        """
-        Stack a batch id column to targets and concatenate
-        :param labels_batch: a list of targets per image (each of arbitrary length)
-        :return: one tensor of targets of all imahes of shape [N, 6], where N is the total number of targets in a batch
-                 and the 1st column is batch item index
-        """
-        labels_batch = [torch.tensor(labels) for labels in labels_batch]
-        labels_batch_indexed = []
-        for i, labels in enumerate(labels_batch):
-            batch_column = labels.new_ones((labels.shape[0], 1)) * i
-            labels = torch.cat((batch_column, labels), dim=-1)
-            labels_batch_indexed.append(labels)
-        return torch.cat(labels_batch_indexed, 0)
+            # Convert image & mask to tensors
+            # Change image layout from HWC to CHW
+            sample.image = torch.from_numpy(np.transpose(sample.image, [2, 0, 1]))
+            images.append(sample.image)
+
+            # Remove image and mask from sample because at this point we don't need them anymore
+            sample.image = None
+
+            # Make sure additional samples are None, so they don't get collated as it causes collate to slow down
+            sample.additional_samples = None
+
+        images = default_collate(images)
+        targets = flat_collate_tensors_with_batch_index(targets)
+
+        extras = {"gt_samples": batch}
+        return images, targets, extras

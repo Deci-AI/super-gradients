@@ -30,7 +30,7 @@ from super_gradients.common.registry.registry import register_lr_scheduler, regi
 from super_gradients.common.sg_loggers.time_units import GlobalBatchStepNumber, EpochNumber
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.callbacks.base_callbacks import PhaseCallback, PhaseContext, Phase, Callback
-from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback, cxcywh2xyxy, xyxy2cxcywh
+from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.distributed_training_utils import maybe_all_reduce_tensor_average, maybe_all_gather_np_images
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 from super_gradients.training.utils.utils import unwrap_model, infer_model_device, tensor_container_to_device
@@ -1423,23 +1423,15 @@ class ExtremeBatchDetectionVisualizationCallback(ExtremeBatchCaseVisualizationCa
         """
         inputs = self.extreme_batch
         preds = self.post_prediction_callback(self.extreme_preds, self.extreme_batch.device)
-        targets = self.extreme_targets.clone()
-        if self.normalize_targets:
-            target_bboxes = targets[:, 2:]
-            target_bboxes = cxcywh2xyxy(target_bboxes)
-            _, _, height, width = inputs.shape
-            target_bboxes[:, [0, 2]] /= width
-            target_bboxes[:, [1, 3]] /= height
-            target_bboxes = xyxy2cxcywh(target_bboxes)
-            targets[:, 2:] = target_bboxes
+        gt_samples = self.extreme_additional_batch_items["gt_samples"]
 
         images_to_save_preds = DetectionVisualization.visualize_batch(
-            inputs, preds, targets, "extreme_batch_preds", self.classes, gt_alpha=0.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
+            inputs, preds, None, "extreme_batch_preds", self.classes, gt_alpha=0.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
         )
         images_to_save_preds = np.stack(images_to_save_preds)
 
         images_to_save_gt = DetectionVisualization.visualize_batch(
-            inputs, None, targets, "extreme_batch_gt", self.classes, gt_alpha=1.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
+            inputs, None, gt_samples, "extreme_batch_gt", self.classes, gt_alpha=1.0, undo_preprocessing_func=self.universal_undo_preprocessing_fn
         )
         images_to_save_gt = np.stack(images_to_save_gt)
 
