@@ -48,5 +48,4 @@ class SegmentationDatasetAdapterCollateFN(BaseDatasetAdapterCollateFN):
         images, targets = super().__call__(samples=samples)  # This already returns a batch of (images, targets)
         transform = SegmentationDataSet.get_normalize_transform()
         images = transform(images / 255)  # images are [0-255] after the data adapter
-        targets = targets.argmax(1)
         return images, targets
