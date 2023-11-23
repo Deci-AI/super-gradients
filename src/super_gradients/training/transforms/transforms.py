@@ -631,33 +631,12 @@ class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransform
 
             sample.image = img
             sample.is_crowd = np.array([0] * len(targets) + [1] * len(crowd_targets), dtype=bool)
-            sample.bboxes_xywh = np.concatenate([targets[:, 0:4], crowd_targets[:, 0:4]], axis=0, dtype=sample.bboxes_xywh.dtype)
+            sample.bboxes_xyxy = np.concatenate([targets[:, 0:4], crowd_targets[:, 0:4]], axis=0, dtype=sample.bboxes_xyxy.dtype)
             sample.labels = np.concatenate([targets[:, 4], crowd_targets[:, 4]], axis=0, dtype=sample.labels.dtype)
         return sample
 
     def get_equivalent_preprocessing(self):
         raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
-
-    # def __call__(self, sample: dict) -> dict:
-    #     if self.enable:
-    #         img, target = random_affine(
-    #             sample["image"],
-    #             sample["target"],
-    #             sample.get("target_seg"),
-    #             target_size=self.target_size or tuple(reversed(sample["image"].shape[:2])),
-    #             degrees=self.degrees,
-    #             translate=self.translate,
-    #             scales=self.scale,
-    #             shear=self.shear,
-    #             filter_box_candidates=self.filter_box_candidates,
-    #             wh_thr=self.wh_thr,
-    #             area_thr=self.area_thr,
-    #             ar_thr=self.ar_thr,
-    #             border_value=self.border_value,
-    #         )
-    #         sample["image"] = img
-    #         sample["target"] = target
-    #     return sample
 
 
 @register_transform(Transforms.DetectionMixup)
