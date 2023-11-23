@@ -8,6 +8,7 @@ from typing import Union, Optional, List, Tuple
 import onnx
 import onnxsim
 import torch
+from super_gradients.conversion.conversion_utils import find_compatible_model_device_for_dtype
 from torch import nn, Tensor
 from torch.utils.data import DataLoader
 
@@ -303,6 +304,7 @@ class ExportablePoseEstimationModel:
         }
 
         model_type = torch.half if quantization_mode == ExportQuantizationMode.FP16 else torch.float32
+        device = find_compatible_model_device_for_dtype(device, model_type)
 
         if isinstance(preprocessing, nn.Module):
             preprocessing_module = preprocessing
