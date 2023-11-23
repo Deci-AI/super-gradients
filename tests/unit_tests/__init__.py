@@ -29,6 +29,7 @@ from tests.unit_tests.test_predict import TestModelPredict
 from tests.unit_tests.test_deprecate import TestDeprecationDecorator
 from tests.unit_tests.test_models_factory import DynamicModelTests
 from tests.unit_tests.test_mixed_precision_cpu import TestMixedPrecisionDisabled
+from tests.unit_tests.test_data_adapters import TestClassificationAdapter, TestDetectionAdapter, TestSegmentationAdapter
 
 __all__ = [
     "CrashTipTest",
@@ -61,4 +62,7 @@ __all__ = [
     "TestMixedPrecisionDisabled",
     "DynamicModelTests",
     "TestExportRecipe",
+    "TestClassificationAdapter",
+    "TestDetectionAdapter",
+    "TestSegmentationAdapter",
 ]
