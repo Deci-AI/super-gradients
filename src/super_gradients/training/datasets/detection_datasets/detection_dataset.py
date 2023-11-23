@@ -482,12 +482,12 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         image = detection_sample.image
         crowd_mask = detection_sample.is_crowd > 0
         crowd_labels = detection_sample.labels[crowd_mask]
-        crowd_bboxes_xywh = detection_sample.bboxes_xywh[crowd_mask]
-        crowd_target = np.concatenate([crowd_bboxes_xywh, crowd_labels[..., None]], axis=-1)
+        crowd_bboxes_xyxy = detection_sample.bboxes_xyxy[crowd_mask]
+        crowd_target = np.concatenate([crowd_bboxes_xyxy, crowd_labels[..., None]], axis=-1)
 
         labels = detection_sample.labels[~crowd_mask]
-        bboxes_xywh = detection_sample.bboxes_xywh[~crowd_mask]
-        target = np.concatenate([bboxes_xywh, labels[..., None]], axis=-1)
+        bboxes_xyxy = detection_sample.bboxes_xyxy[~crowd_mask]
+        target = np.concatenate([bboxes_xyxy, labels[..., None]], axis=-1)
 
         sample = {
             "image": image,

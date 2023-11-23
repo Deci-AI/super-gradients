@@ -17,7 +17,6 @@ from super_gradients.common.factories.data_formats_factory import ConcatenatedTe
 from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
-from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xywh_to_xyxy, xyxy_to_xywh
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.samples import DetectionSample
@@ -26,7 +25,7 @@ from super_gradients.training.transforms.utils import (
     _rescale_and_pad_to_size,
     _rescale_image,
     _rescale_bboxes,
-    _rescale_xywh_bboxes,
+    _rescale_xyxy_bboxes,
 )
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
@@ -843,7 +842,7 @@ class DetectionPaddedRescale(AbstractDetectionTransform, LegacyDetectionTransfor
 
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         sample.image, r = _rescale_and_pad_to_size(sample.image, self.input_dim, self.swap, self.pad_value)
-        sample.bboxes_xywh = _rescale_xywh_bboxes(sample.bboxes_xywh, r)
+        sample.bboxes_xyxy = _rescale_xyxy_bboxes(sample.bboxes_xyxy, r)
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -874,7 +873,7 @@ class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransfo
         """
         if random.random() < self.prob:
             sample.image = _flip_horizontal_image(sample.image)
-            sample.bboxes_xywh = _flip_horizontal_boxes_xywh(sample.bboxes_xywh, sample.image.shape[0])
+            sample.bboxes_xyxy = _flip_horizontal_boxes_xyxy(sample.bboxes_xyxy, sample.image.shape[0])
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -896,7 +895,7 @@ class DetectionVerticalFlip(AbstractDetectionTransform, LegacyDetectionTransform
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if random.random() < self.prob:
             sample.image = _flip_vertical_image(sample.image)
-            sample.bboxes_xywh = _flip_vertical_boxes_xywh(sample.bboxes_xywh, sample.image.shape[0])
+            sample.bboxes_xyxy = _flip_vertical_boxes_xyxy(sample.bboxes_xyxy, sample.image.shape[0])
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -930,7 +929,7 @@ class DetectionRescale(AbstractDetectionTransform, LegacyDetectionTransformMixin
         sy = output_height / image_height
 
         sample.image = self.apply_to_image(sample.image, output_width=output_width, output_height=output_height)
-        sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, sx=sx, sy=sy)
+        sample.bboxes_xyxy = self.apply_to_bboxes(sample.bboxes_xyxy, sx=sx, sy=sy)
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
@@ -948,7 +947,7 @@ class DetectionRandomRotate90(AbstractDetectionTransform, LegacyDetectionTransfo
             k = random.randrange(0, 4)
             image_shape = sample.image.shape[:2]
             sample.image = self.apply_to_image(sample.image, k)
-            sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, k, image_shape)
+            sample.bboxes_xyxy = self.apply_to_bboxes(sample.bboxes_xyxy, k, image_shape)
         return sample
 
     def apply_to_image(self, image: np.ndarray, factor: int) -> np.ndarray:
@@ -965,16 +964,14 @@ class DetectionRandomRotate90(AbstractDetectionTransform, LegacyDetectionTransfo
         """
         Apply a `factor` number of 90-degree rotation to bounding boxes.
 
-        :param bboxes:       Input bounding boxes in XYWH format.
+        :param bboxes:       Input bounding boxes in XYXY format.
         :param factor:       Number of CCW rotations. Must be in set {0, 1, 2, 3} See np.rot90.
         :param image_shape:  Original image shape
-        :return:             Rotated bounding boxes in XYWH format.
+        :return:             Rotated bounding boxes in XYXY format.
         """
         rows, cols = image_shape
-        bboxes_xyxy = xywh_to_xyxy(bboxes, image_shape=None)
-        bboxes_xyxy = self.xyxy_bbox_rot90(bboxes_xyxy, factor, rows, cols)
-        bboxes_xywh = xyxy_to_xywh(bboxes_xyxy, image_shape=image_shape)
-        return bboxes_xywh
+        bboxes_rotated = self.xyxy_bbox_rot90(bboxes, factor, rows, cols)
+        return bboxes_rotated
 
     @classmethod
     def xyxy_bbox_rot90(cls, bboxes: np.ndarray, factor: int, rows: int, cols: int):
