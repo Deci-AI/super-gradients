@@ -68,7 +68,7 @@ class DeprecationsUnitTest(unittest.TestCase):
     def test_deprecated_max_targets(self):
         with self.assertWarns(DeprecationWarning):
             DetectionTargetsFormatTransform(max_targets=1)
-            DetectionHorizontalFlip(prob=1.0, max_targets=1)
+            DetectionHorizontalFlip(prob=1.0)
             DetectionPaddedRescale(input_dim=(2, 2), max_targets=1)
 
     def test_moved_Bottleneck_import(self):
