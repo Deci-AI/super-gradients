@@ -30,6 +30,14 @@ class DetectionSample:
     is_crowd: Optional[np.ndarray]
     additional_samples: Optional[List["DetectionSample"]]
 
+    @property
+    def bboxes_xyxy(self) -> np.ndarray:
+        return xywh_to_xyxy(self.bboxes_xywh, image_shape=None)
+
+    @bboxes_xyxy.setter
+    def bboxes_xyxy(self, value):
+        self.bboxes_xywh = xyxy_to_xywh(value, image_shape=None)
+
     def sanitize_sample(self) -> "DetectionSample":
         """
         Apply sanity checks on the detection sample, which includes clamping of bounding boxes to image boundaries.

@@ -194,7 +194,17 @@ def _shift_keypoints(targets: np.array, shift_w: float, shift_h: float) -> np.nd
     return targets
 
 
-def _rescale_xyxy_bboxes(targets: np.array, r: float) -> np.ndarray:
+def _rescale_xyxy_bboxes(targets: np.ndarray, r: float) -> np.ndarray:
+    """Scale targets to given scale factors.
+
+    :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
+    :param r:        DetectionRescale coefficient that was applied to the image
+    :return:         Rescaled Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]
+    """
+    return _rescale_bboxes(targets, (r, r))
+
+
+def _rescale_xywh_bboxes(targets: np.ndarray, r: float) -> np.ndarray:
     """Scale targets to given scale factors.
 
     :param targets:  Bboxes to transform of shape (N, 4+), in format [x1, y1, x2, y2, ...]

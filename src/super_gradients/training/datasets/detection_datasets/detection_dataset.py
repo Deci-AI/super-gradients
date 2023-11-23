@@ -1,30 +1,32 @@
 import collections
+import hashlib
 import os
-from typing import List, Dict, Union, Any, Optional, Tuple
-from multiprocessing.pool import ThreadPool
 import random
+from copy import deepcopy
+from multiprocessing.pool import ThreadPool
+from pathlib import Path
+from typing import List, Dict, Union, Any, Optional, Tuple
+
 import cv2
 import matplotlib.pyplot as plt
-from pathlib import Path
-from copy import deepcopy
-import hashlib
-
 import numpy as np
-from tqdm import tqdm
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
-from super_gradients.common.object_names import Datasets, Processings
-from super_gradients.common.registry.registry import register_dataset
-from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.module_interfaces import HasPreprocessingParams
-from super_gradients.training.utils.detection_utils import get_class_index_in_target
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
+from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.common.object_names import Datasets, Processings
+from super_gradients.common.registry.registry import register_dataset
+from super_gradients.module_interfaces import HasPreprocessingParams
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyxy_to_xywh
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, LabelTensorSliceItem
+from super_gradients.training.samples import DetectionSample
+from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_class_index_in_target
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
 
 logger = get_logger(__name__)
@@ -175,7 +177,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
 
         # Iterate over the whole dataset to index the images with/without annotations.
         if self._cache_annotations or self.ignore_empty_annotations or transform_require_non_empty_annotations:
-
             if self._cache_annotations:
                 logger.info("Dataset Initialization in progress. `cache_annotations=True` causes the process to take longer due to full dataset indexing.")
             elif self.ignore_empty_annotations:
@@ -276,7 +277,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         non_empty_annotations, empty_annotations = {}, {}
 
         for index in tqdm(range(n_samples), desc="Indexing dataset annotations", disable=not self.verbose):
-
             sample_annotations = self._load_sample_annotation(sample_id=index)
             n_invalid_bbox += sample_annotations.get("n_invalid_labels", 0)
 
@@ -424,7 +424,8 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         :param index:   Index refers to the index of the sample in the dataset, AFTER filtering (if relevant). 0<=index<=len(dataset)-1
         :return:        Sample, i.e. a dictionary including at least "image" and "target"
         """
-        sample = self.apply_transforms(self.get_sample(index=index, ignore_empty_annotations=self.ignore_empty_annotations))
+        sample = self.get_sample(index=index, ignore_empty_annotations=self.ignore_empty_annotations)
+        sample = self.apply_transforms(sample)
         for field in self.output_fields:
             if field not in sample.keys():
                 raise KeyError(f"The field {field} must be present in the sample but was not found." "Please check the output fields of your transforms.")
@@ -457,6 +458,45 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         resized_image = padded_image[:cached_height, :cached_width, :]
         return resized_image.copy()
 
+    def __convert_input_dict_to_detection_sample(self, sample_annotations: Dict[str, Union[np.ndarray, Any]]) -> DetectionSample:
+        bboxes_xyxy = sample_annotations["target"][..., :4]
+        labels = sample_annotations["target"][..., 4]
+        is_crowd = np.zeros_like(labels, dtype=bool)
+        if "crowd_target" in sample_annotations:
+            crowd_bboxes_xyxy = sample_annotations["crowd_target"][..., :4]
+            crowd_labels = sample_annotations["crowd_target"][..., 4]
+            bboxes_xyxy = np.concatenate([bboxes_xyxy, crowd_bboxes_xyxy], axis=0)
+            labels = np.concatenate([labels, crowd_labels], axis=0)
+            is_crowd = np.concatenate([is_crowd, np.ones_like(crowd_labels, dtype=bool)], axis=0)
+
+        bboxes_xywh = xyxy_to_xywh(bboxes_xyxy, image_shape=None)
+        return DetectionSample(
+            image=sample_annotations["image"],
+            bboxes_xywh=bboxes_xywh,
+            labels=labels,
+            is_crowd=is_crowd,
+            additional_samples=None,
+        )
+
+    def __convert_detection_sample_to_dict(self, detection_sample: DetectionSample, include_crowd_target: bool) -> Dict[str, Union[np.ndarray, Any]]:
+        image = detection_sample.image
+        crowd_mask = detection_sample.is_crowd > 0
+        crowd_labels = detection_sample.labels[crowd_mask]
+        crowd_bboxes_xywh = detection_sample.bboxes_xywh[crowd_mask]
+        crowd_target = np.concatenate([crowd_bboxes_xywh, crowd_labels[..., None]], axis=-1)
+
+        labels = detection_sample.labels[~crowd_mask]
+        bboxes_xywh = detection_sample.bboxes_xywh[~crowd_mask]
+        target = np.concatenate([bboxes_xywh, labels[..., None]], axis=-1)
+
+        sample = {
+            "image": image,
+            "target": target,
+        }
+        if include_crowd_target:
+            sample["crowd_target"] = crowd_target
+        return sample
+
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
         Applies self.transforms sequentially to sample
@@ -468,11 +508,24 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         :param sample: Sample to apply the transforms on to (loaded with self.get_sample)
         :return: Transformed sample
         """
+
+        has_crowd_target = "crowd_target" in sample
+        detection_sample = self.__convert_input_dict_to_detection_sample(sample)
+        target_format_transform: Optional[DetectionTargetsFormatTransform] = None
+
         for transform in self.transforms:
-            sample["additional_samples"] = self._get_additional_inputs_for_transform(transform=transform)
-            sample = transform(sample=sample)
-            sample.pop("additional_samples")  # additional_samples is not useful after the transform
-        return sample
+            detection_sample.additional_samples = [
+                self.__convert_input_dict_to_detection_sample(s) for s in self._get_additional_inputs_for_transform(transform=transform)
+            ]
+            detection_sample = transform.apply_to_sample(sample=detection_sample)
+            detection_sample.additional_samples = None
+            if isinstance(transform, DetectionTargetsFormatTransform):
+                target_format_transform = transform
+
+        transformed_dict = self.__convert_detection_sample_to_dict(detection_sample, include_crowd_target=has_crowd_target)
+        if target_format_transform is not None:
+            transformed_dict = target_format_transform(sample=transformed_dict)
+        return transformed_dict
 
     def _get_additional_inputs_for_transform(self, transform: DetectionTransform) -> List[Dict[str, Union[np.ndarray, Any]]]:
         """Add additional inputs required by a transform to the sample"""

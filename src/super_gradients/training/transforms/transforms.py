@@ -26,7 +26,7 @@ from super_gradients.training.transforms.utils import (
     _rescale_and_pad_to_size,
     _rescale_image,
     _rescale_bboxes,
-    _rescale_xyxy_bboxes,
+    _rescale_xywh_bboxes,
 )
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, DetectionTargetsFormat
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
@@ -484,6 +484,10 @@ class DetectionMosaic(DetectionTransform):
         self.additional_samples_count = 0
         self.enable_mosaic = False
 
+    def apply_to_sample(self, sample):
+        # TODO: Implement this
+        return sample
+
     def __call__(self, sample: Union[dict, list]):
         if self.enable_mosaic and random.random() < self.prob:
             mosaic_labels = []
@@ -554,7 +558,7 @@ class DetectionMosaic(DetectionTransform):
 
 
 @register_transform(Transforms.DetectionRandomAffine)
-class DetectionRandomAffine(DetectionTransform):
+class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     DetectionRandomAffine detection transform
 
@@ -603,13 +607,18 @@ class DetectionRandomAffine(DetectionTransform):
     def close(self):
         self.enable = False
 
-    def __call__(self, sample: dict) -> dict:
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if self.enable:
-            img, target = random_affine(
-                sample["image"],
-                sample["target"],
-                sample.get("target_seg"),
-                target_size=self.target_size or tuple(reversed(sample["image"].shape[:2])),
+            crowd_mask = sample.is_crowd > 0
+            crowd_targets = np.concatenate([sample.bboxes_xyxy[crowd_mask], sample.labels[crowd_mask, None]], axis=1)
+            targets = np.concatenate([sample.bboxes_xyxy[~crowd_mask], sample.labels[~crowd_mask, None]], axis=1)
+
+            img, targets, crowd_targets = random_affine(
+                sample.image,
+                targets=targets,
+                targets_seg=None,
+                crowd_targets=crowd_targets,
+                target_size=self.target_size or tuple(reversed(sample.image.shape[:2])),
                 degrees=self.degrees,
                 translate=self.translate,
                 scales=self.scale,
@@ -620,9 +629,36 @@ class DetectionRandomAffine(DetectionTransform):
                 ar_thr=self.ar_thr,
                 border_value=self.border_value,
             )
-            sample["image"] = img
-            sample["target"] = target
+
+            sample.image = img
+            sample.is_crowd = np.array([0] * len(targets) + [1] * len(crowd_targets), dtype=bool)
+            sample.bboxes_xywh = np.concatenate([targets[:, 0:4], crowd_targets[:, 0:4]], axis=0, dtype=sample.bboxes_xywh.dtype)
+            sample.labels = np.concatenate([targets[:, 4], crowd_targets[:, 4]], axis=0, dtype=sample.labels.dtype)
         return sample
+
+    def get_equivalent_preprocessing(self):
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
+
+    # def __call__(self, sample: dict) -> dict:
+    #     if self.enable:
+    #         img, target = random_affine(
+    #             sample["image"],
+    #             sample["target"],
+    #             sample.get("target_seg"),
+    #             target_size=self.target_size or tuple(reversed(sample["image"].shape[:2])),
+    #             degrees=self.degrees,
+    #             translate=self.translate,
+    #             scales=self.scale,
+    #             shear=self.shear,
+    #             filter_box_candidates=self.filter_box_candidates,
+    #             wh_thr=self.wh_thr,
+    #             area_thr=self.area_thr,
+    #             ar_thr=self.ar_thr,
+    #             border_value=self.border_value,
+    #         )
+    #         sample["image"] = img
+    #         sample["target"] = target
+    #     return sample
 
 
 @register_transform(Transforms.DetectionMixup)
@@ -658,6 +694,10 @@ class DetectionMixup(DetectionTransform):
     def close(self):
         self.additional_samples_count = 0
         self.enable_mixup = False
+
+    def apply_to_sample(self, sample):
+        # TODO: Implement this
+        return sample
 
     def __call__(self, sample: dict) -> dict:
         if self.enable_mixup and random.random() < self.prob:
@@ -743,8 +783,12 @@ class DetectionImagePermute(DetectionTransform):
         super().__init__()
         self.dims = tuple(dims)
 
-    def __call__(self, sample: Dict[str, np.array]) -> dict:
+    def __call__(self, sample: Dict[str, np.ndarray]) -> dict:
         sample["image"] = np.ascontiguousarray(sample["image"].transpose(*self.dims))
+
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        sample.image = np.ascontiguousarray(sample.image.transpose(*self.dims))
+        return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
         return [{Processings.ImagePermute: {"permutation": self.dims}}]
@@ -797,22 +841,10 @@ class DetectionPaddedRescale(AbstractDetectionTransform, LegacyDetectionTransfor
         self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.pad_value = pad_value
 
-    def __call__(self, sample: dict) -> dict:
-        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        img, r = _rescale_and_pad_to_size(img, self.input_dim, self.swap, self.pad_value)
-
-        sample["image"] = img
-        sample["target"] = _rescale_xyxy_bboxes(targets, r)
-        if crowd_targets is not None:
-            sample["crowd_target"] = _rescale_xyxy_bboxes(crowd_targets, r)
-        return sample
-
     def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
-        raise RuntimeError(
-            "Apply to sample is not supported in DetectionPaddedRescale."
-            "This is done intentionally to discourage usage of the deprecated transform in new detection datasets."
-            "Please use DetectionLongestMaxSize + DetectionPadIfNeeded instead"
-        )
+        sample.image, r = _rescale_and_pad_to_size(sample.image, self.input_dim, self.swap, self.pad_value)
+        sample.bboxes_xywh = _rescale_xywh_bboxes(sample.bboxes_xywh, r)
+        return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
         return [
@@ -1127,6 +1159,11 @@ class DetectionTargetsFormatTransform(DetectionTransform):
             sample["crowd_target"] = self.apply_on_targets(sample["crowd_target"])
         return sample
 
+    def apply_to_sample(self, sample: DetectionSample):
+        # DIRTY HACK: No-op if a detection sample is passed
+        # DIRTY HACK: As a workaround we will do this transform in dataset class for now
+        return sample
+
     def apply_on_targets(self, targets: np.ndarray) -> np.ndarray:
         """Convert targets in input_format to output_format, filter small bboxes and pad targets"""
         targets = self.targets_format_converter(targets)
@@ -1213,6 +1250,8 @@ def get_affine_matrix(
 
 def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
     num_gts = len(targets)
+    if num_gts == 0:
+        return targets
     twidth, theight = target_size
     # targets_seg = [B x w x h]
     # if any is_not_nan in axis = 1
@@ -1278,6 +1317,7 @@ def random_affine(
     ar_thr=20,
     area_thr=0.1,
     border_value=114,
+    crowd_targets: np.ndarray = None,
 ):
     """
     Performs random affine transform to img, targets
@@ -1305,22 +1345,33 @@ def random_affine(
       Bounding boxes with such ratio smaller then this value will be filtered out. (default=0.1)
 
     :param border_value: value for filling borders after applying transforms (default=114).
-
+    :param crowd_targets: Optional array of crowd annotations. If provided, it will be transformed in the same way as targets.
     :return:            Image and Target with applied random affine
     """
 
-    targets_seg = np.zeros((targets.shape[0], 0)) if targets_seg is None else targets_seg
     M = get_affine_matrix(img.shape[:2], target_size, degrees, translate, scales, shear)
 
     img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(border_value, border_value, border_value))
 
     # Transform label coordinates
     if len(targets) > 0:
+        targets_seg = np.zeros((targets.shape[0], 0)) if targets_seg is None else targets_seg
         targets_orig = targets.copy()
         targets = apply_affine_to_bboxes(targets, targets_seg, target_size, M)
         if filter_box_candidates:
             box_candidates_ids = _filter_box_candidates(targets_orig[:, :4], targets[:, :4], wh_thr=wh_thr, ar_thr=ar_thr, area_thr=area_thr)
             targets = targets[box_candidates_ids]
+
+    if crowd_targets is not None:
+        if len(crowd_targets) > 0:
+            crowd_targets_seg = np.zeros((crowd_targets.shape[0], 0))
+            crowd_targets_orig = crowd_targets.copy()
+            crowd_targets = apply_affine_to_bboxes(crowd_targets, crowd_targets_seg, target_size, M)
+            if filter_box_candidates:
+                box_candidates_ids = _filter_box_candidates(crowd_targets_orig[:, :4], crowd_targets[:, :4], wh_thr=wh_thr, ar_thr=ar_thr, area_thr=area_thr)
+                crowd_targets = crowd_targets[box_candidates_ids]
+        return img, targets, crowd_targets
+
     return img, targets
 
 
