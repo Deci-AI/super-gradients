@@ -121,7 +121,7 @@ class TestTransforms(unittest.TestCase):
     def test_detection_image_permute(self):
         aug = DetectionImagePermute(dims=(2, 1, 0))
         image = np.random.rand(640, 480, 3)
-        sample = {"image": image}
+        sample = {"image": image, "target": np.ones((17, 4))}
 
         output = aug(sample)
         self.assertEqual(output["image"].shape, (3, 480, 640))
@@ -528,7 +528,7 @@ class TestTransforms(unittest.TestCase):
         for joints in poses:
             for joint in joints:
                 cv2.circle(image, (int(joint[0]), int(joint[1])), 3, (0, 0, 255), -1)
-        for (x, y, w, h) in sample.bboxes_xywh:
+        for x, y, w, h in sample.bboxes_xywh:
             x = int(x)
             y = int(y)
             w = int(w)
