@@ -668,13 +668,77 @@ class DetectionMixup(DetectionTransform):
         self.enable_mixup = enable_mixup
         self.flip_prob = flip_prob
         self.border_value = border_value
+        self.maybe_flip = DetectionHorizontalFlip(prob=flip_prob)
 
     def close(self):
         self.additional_samples_count = 0
         self.enable_mixup = False
 
-    def apply_to_sample(self, sample):
-        # TODO: Implement this
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
+        (cp_sample,) = sample.additional_samples
+        if self.enable_mixup and random.random() < self.prob:
+            target_dim = self.input_dim if self.input_dim is not None else sample.image.shape[:2]
+
+            cp_sample = self.maybe_flip.apply_to_sample(cp_sample)
+
+            jit_factor = random.uniform(*self.mixup_scale)
+
+            if len(sample.image) == 3:
+                cp_img = np.ones((target_dim[0], target_dim[1], 3), dtype=np.uint8) * self.border_value
+            else:
+                cp_img = np.ones(target_dim, dtype=np.uint8) * self.border_value
+
+            cp_scale_ratio = min(target_dim[0] / cp_sample.image.shape[0], target_dim[1] / cp_sample.image.shape[1])
+            resized_img = cv2.resize(
+                cp_sample.image,
+                (int(cp_sample.image.shape[1] * cp_scale_ratio), int(cp_sample.image.shape[0] * cp_scale_ratio)),
+                interpolation=cv2.INTER_LINEAR,
+            )
+
+            cp_img[: resized_img.shape[0], : resized_img.shape[1]] = resized_img
+
+            cp_img = cv2.resize(
+                cp_img,
+                (int(cp_img.shape[1] * jit_factor), int(cp_img.shape[0] * jit_factor)),
+                interpolation=cv2.INTER_LINEAR,
+            )
+            cp_scale_ratio *= jit_factor
+
+            origin_h, origin_w = cp_img.shape[:2]
+            target_h, target_w = sample.image.shape[:2]
+
+            if len(cp_img.shape) == 3:
+                padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w), cp_img.shape[2]), dtype=np.uint8)
+            else:
+                padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w)), dtype=np.uint8)
+
+            padded_img[:origin_h, :origin_w] = cp_img
+
+            x_offset, y_offset = 0, 0
+            if padded_img.shape[0] > target_h:
+                y_offset = random.randint(0, padded_img.shape[0] - target_h - 1)
+            if padded_img.shape[1] > target_w:
+                x_offset = random.randint(0, padded_img.shape[1] - target_w - 1)
+            padded_cropped_img = padded_img[y_offset : y_offset + target_h, x_offset : x_offset + target_w]
+
+            cp_bboxes_origin_np = adjust_box_anns(cp_sample.bboxes_xyxy[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h)
+            cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
+            cp_bboxes_transformed_np[:, 0::2] = np.clip(cp_bboxes_transformed_np[:, 0::2] - x_offset, 0, target_w)
+            cp_bboxes_transformed_np[:, 1::2] = np.clip(cp_bboxes_transformed_np[:, 1::2] - y_offset, 0, target_h)
+
+            mixup_boxes = np.concatenate([sample.bboxes_xyxy, cp_bboxes_transformed_np], axis=0)
+            mixup_labels = np.concatenate([sample.labels, cp_sample.labels], axis=0)
+            mixup_crowds = np.concatenate([sample.is_crowd, cp_sample.is_crowd], axis=0)
+
+            mixup_image = (0.5 * sample.image + 0.5 * padded_cropped_img).astype(np.float32)
+            sample = DetectionSample(
+                image=mixup_image,
+                bboxes_xyxy=mixup_boxes,
+                labels=mixup_labels,
+                is_crowd=mixup_crowds,
+                additional_samples=None,
+            )
+
         return sample
 
     def __call__(self, sample: dict) -> dict:
