@@ -640,7 +640,7 @@ class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransform
 
 
 @register_transform(Transforms.DetectionMixup)
-class DetectionMixup(DetectionTransform):
+class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Mixup detection transform
 
@@ -741,74 +741,8 @@ class DetectionMixup(DetectionTransform):
 
         return sample
 
-    def __call__(self, sample: dict) -> dict:
-        if self.enable_mixup and random.random() < self.prob:
-            origin_img, origin_labels = sample["image"], sample["target"]
-            target_dim = self.input_dim if self.input_dim is not None else sample["image"].shape[:2]
-
-            cp_sample = sample["additional_samples"][0]
-            img, cp_labels = cp_sample["image"], cp_sample["target"]
-            cp_boxes = cp_labels[:, :4]
-            if random.random() < self.prob:
-                _, width, _ = img.shape
-                img = _flip_horizontal_image(img)
-                cp_boxes = _flip_horizontal_boxes_xyxy(cp_boxes, width)
-            # PLUG IN TARGET THE FLIPPED BOXES
-            cp_labels[:, :4] = cp_boxes
-
-            jit_factor = random.uniform(*self.mixup_scale)
-
-            if len(img.shape) == 3:
-                cp_img = np.ones((target_dim[0], target_dim[1], 3), dtype=np.uint8) * self.border_value
-            else:
-                cp_img = np.ones(target_dim, dtype=np.uint8) * self.border_value
-
-            cp_scale_ratio = min(target_dim[0] / img.shape[0], target_dim[1] / img.shape[1])
-            resized_img = cv2.resize(
-                img,
-                (int(img.shape[1] * cp_scale_ratio), int(img.shape[0] * cp_scale_ratio)),
-                interpolation=cv2.INTER_LINEAR,
-            )
-
-            cp_img[: int(img.shape[0] * cp_scale_ratio), : int(img.shape[1] * cp_scale_ratio)] = resized_img
-
-            cp_img = cv2.resize(
-                cp_img,
-                (int(cp_img.shape[1] * jit_factor), int(cp_img.shape[0] * jit_factor)),
-            )
-            cp_scale_ratio *= jit_factor
-
-            origin_h, origin_w = cp_img.shape[:2]
-            target_h, target_w = origin_img.shape[:2]
-
-            if len(img.shape) == 3:
-                padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w), img.shape[2]), dtype=np.uint8)
-            else:
-                padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w)), dtype=np.uint8)
-
-            padded_img[:origin_h, :origin_w] = cp_img
-
-            x_offset, y_offset = 0, 0
-            if padded_img.shape[0] > target_h:
-                y_offset = random.randint(0, padded_img.shape[0] - target_h - 1)
-            if padded_img.shape[1] > target_w:
-                x_offset = random.randint(0, padded_img.shape[1] - target_w - 1)
-            padded_cropped_img = padded_img[y_offset : y_offset + target_h, x_offset : x_offset + target_w]
-
-            cp_bboxes_origin_np = adjust_box_anns(cp_labels[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h)
-            cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
-            cp_bboxes_transformed_np[:, 0::2] = np.clip(cp_bboxes_transformed_np[:, 0::2] - x_offset, 0, target_w)
-            cp_bboxes_transformed_np[:, 1::2] = np.clip(cp_bboxes_transformed_np[:, 1::2] - y_offset, 0, target_h)
-
-            cls_labels = cp_labels[:, 4:5].copy()
-            box_labels = cp_bboxes_transformed_np
-            labels = np.hstack((box_labels, cls_labels))
-            origin_labels = np.vstack((origin_labels, labels))
-            origin_img = origin_img.astype(np.float32)
-            origin_img = 0.5 * origin_img + 0.5 * padded_cropped_img.astype(np.float32)
-
-            sample["image"], sample["target"] = origin_img.astype(np.uint8), origin_labels
-        return sample
+    def get_equivalent_preprocessing(self):
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
 @register_transform(Transforms.DetectionImagePermute)
