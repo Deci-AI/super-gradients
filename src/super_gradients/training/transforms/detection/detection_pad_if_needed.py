@@ -4,11 +4,12 @@ from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.training.samples import DetectionSample
 from super_gradients.training.transforms.utils import _pad_image, PaddingCoordinates, _shift_bboxes_xyxy
-from . import AbstractDetectionTransform
+from .abstract_detection_transform import AbstractDetectionTransform
+from .legacy_detection_transform_mixin import LegacyDetectionTransformMixin
 
 
 @register_transform(Transforms.DetectionPadIfNeeded)
-class DetectionPadIfNeeded(AbstractDetectionTransform):
+class DetectionPadIfNeeded(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Pad image and targets to ensure that resulting image size is not less than (min_width, min_height).
     """

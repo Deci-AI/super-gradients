@@ -1,0 +1,70 @@
+from typing import Dict, Any, Union
+
+import numpy as np
+
+from super_gradients.training.samples import DetectionSample
+
+
+__all__ = ["LegacyDetectionTransformMixin"]
+
+
+class LegacyDetectionTransformMixin:
+    """
+    A mixin class to make legacy detection transforms compatible with new detection transforms that operate on DetectionSample.
+    """
+
+    def __call__(self, sample: Union["DetectionSample", Dict[str, Any]]) -> Union["DetectionSample", Dict[str, Any]]:
+        """
+        :param sample: Dict with following keys:
+                        - image: numpy array of [H,W,C] or [C,H,W] format
+                        - target: numpy array of [N,5] shape with bounding box of each instance (XYXY + LABEL)
+                        - crowd_targets: numpy array of [N,5] shape with bounding box of each instance (XYXY + LABEL)
+        """
+
+        if isinstance(sample, DetectionSample):
+            return self.apply_to_sample(sample)
+        else:
+            sample = self.convert_input_dict_to_detection_sample(sample)
+            sample = self.apply_to_sample(sample)
+            return self.convert_detection_sample_to_dict(sample, include_crowd_target="crowd_targets" in sample)
+
+    @classmethod
+    def convert_input_dict_to_detection_sample(cls, sample_annotations: Dict[str, Union[np.ndarray, Any]]) -> DetectionSample:
+        bboxes_xyxy = sample_annotations["target"][..., 0:4].reshape(-1, 4)
+        labels = sample_annotations["target"][..., 4]
+
+        is_crowd = np.zeros_like(labels, dtype=bool)
+        if "crowd_target" in sample_annotations:
+            crowd_bboxes_xyxy = sample_annotations["crowd_target"][..., 0:4].reshape(-1, 4)
+            crowd_labels = sample_annotations["crowd_target"][..., 4]
+            bboxes_xyxy = np.concatenate([bboxes_xyxy, crowd_bboxes_xyxy], axis=0)
+            labels = np.concatenate([labels, crowd_labels], axis=0)
+            is_crowd = np.concatenate([is_crowd, np.ones_like(crowd_labels, dtype=bool)], axis=0)
+
+        return DetectionSample(
+            image=sample_annotations["image"],
+            bboxes_xyxy=bboxes_xyxy,
+            labels=labels,
+            is_crowd=is_crowd,
+            additional_samples=None,
+        )
+
+    @classmethod
+    def convert_detection_sample_to_dict(cls, detection_sample: DetectionSample, include_crowd_target: bool) -> Dict[str, Union[np.ndarray, Any]]:
+        image = detection_sample.image
+        crowd_mask = detection_sample.is_crowd > 0
+        crowd_labels = detection_sample.labels[crowd_mask]
+        crowd_bboxes_xyxy = detection_sample.bboxes_xyxy[crowd_mask]
+        crowd_target = np.concatenate([crowd_bboxes_xyxy, crowd_labels[..., None]], axis=-1)
+
+        labels = detection_sample.labels[~crowd_mask]
+        bboxes_xyxy = detection_sample.bboxes_xyxy[~crowd_mask]
+        target = np.concatenate([bboxes_xyxy, labels[..., None]], axis=-1)
+
+        sample = {
+            "image": image,
+            "target": target,
+        }
+        if include_crowd_target:
+            sample["crowd_target"] = crowd_target
+        return sample

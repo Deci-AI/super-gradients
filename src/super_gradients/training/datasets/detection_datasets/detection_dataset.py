@@ -23,7 +23,7 @@ from super_gradients.common.registry.registry import register_dataset
 from super_gradients.module_interfaces import HasPreprocessingParams
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, LabelTensorSliceItem
-from super_gradients.training.samples import DetectionSample
+from super_gradients.training.transforms.detection.legacy_detection_transform_mixin import LegacyDetectionTransformMixin
 from super_gradients.training.transforms.transforms import AbstractDetectionTransform, DetectionTargetsFormatTransform, DetectionTargetsFormat
 from super_gradients.training.utils.detection_utils import get_class_index_in_target
 from super_gradients.training.utils.utils import ensure_is_tuple_of_two
@@ -457,44 +457,6 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         resized_image = padded_image[:cached_height, :cached_width, :]
         return resized_image.copy()
 
-    def __convert_input_dict_to_detection_sample(self, sample_annotations: Dict[str, Union[np.ndarray, Any]]) -> DetectionSample:
-        bboxes_xyxy = sample_annotations["target"][..., :4]
-        labels = sample_annotations["target"][..., 4]
-        is_crowd = np.zeros_like(labels, dtype=bool)
-        if "crowd_target" in sample_annotations:
-            crowd_bboxes_xyxy = sample_annotations["crowd_target"][..., :4]
-            crowd_labels = sample_annotations["crowd_target"][..., 4]
-            bboxes_xyxy = np.concatenate([bboxes_xyxy, crowd_bboxes_xyxy], axis=0)
-            labels = np.concatenate([labels, crowd_labels], axis=0)
-            is_crowd = np.concatenate([is_crowd, np.ones_like(crowd_labels, dtype=bool)], axis=0)
-
-        return DetectionSample(
-            image=sample_annotations["image"],
-            bboxes_xyxy=bboxes_xyxy,
-            labels=labels,
-            is_crowd=is_crowd,
-            additional_samples=None,
-        )
-
-    def __convert_detection_sample_to_dict(self, detection_sample: DetectionSample, include_crowd_target: bool) -> Dict[str, Union[np.ndarray, Any]]:
-        image = detection_sample.image
-        crowd_mask = detection_sample.is_crowd > 0
-        crowd_labels = detection_sample.labels[crowd_mask]
-        crowd_bboxes_xyxy = detection_sample.bboxes_xyxy[crowd_mask]
-        crowd_target = np.concatenate([crowd_bboxes_xyxy, crowd_labels[..., None]], axis=-1)
-
-        labels = detection_sample.labels[~crowd_mask]
-        bboxes_xyxy = detection_sample.bboxes_xyxy[~crowd_mask]
-        target = np.concatenate([bboxes_xyxy, labels[..., None]], axis=-1)
-
-        sample = {
-            "image": image,
-            "target": target,
-        }
-        if include_crowd_target:
-            sample["crowd_target"] = crowd_target
-        return sample
-
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
         Applies self.transforms sequentially to sample
@@ -508,19 +470,19 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
         """
 
         has_crowd_target = "crowd_target" in sample
-        detection_sample = self.__convert_input_dict_to_detection_sample(sample)
+        detection_sample = LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(sample)
         target_format_transform: Optional[DetectionTargetsFormatTransform] = None
 
         for transform in self.transforms:
             detection_sample.additional_samples = [
-                self.__convert_input_dict_to_detection_sample(s) for s in self._get_additional_inputs_for_transform(transform=transform)
+                LegacyDetectionTransformMixin.convert_input_dict_to_detection_sample(s) for s in self._get_additional_inputs_for_transform(transform=transform)
             ]
-            detection_sample = transform.apply_to_sample(sample=detection_sample)
+            detection_sample = transform(sample=detection_sample)
             detection_sample.additional_samples = None
             if isinstance(transform, DetectionTargetsFormatTransform):
                 target_format_transform = transform
 
-        transformed_dict = self.__convert_detection_sample_to_dict(detection_sample, include_crowd_target=has_crowd_target)
+        transformed_dict = LegacyDetectionTransformMixin.convert_detection_sample_to_dict(detection_sample, include_crowd_target=has_crowd_target)
         if target_format_transform is not None:
             transformed_dict = target_format_transform(sample=transformed_dict)
         return transformed_dict

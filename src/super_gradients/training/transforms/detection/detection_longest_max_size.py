@@ -8,10 +8,11 @@ from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry import register_transform
 from super_gradients.training.samples import DetectionSample
 from .abstract_detection_transform import AbstractDetectionTransform
+from .legacy_detection_transform_mixin import LegacyDetectionTransformMixin
 
 
 @register_transform(Transforms.DetectionLongestMaxSize)
-class DetectionLongestMaxSize(AbstractDetectionTransform):
+class DetectionLongestMaxSize(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Resize data sample to guarantee that input image dimensions is not exceeding maximum width & height
     """

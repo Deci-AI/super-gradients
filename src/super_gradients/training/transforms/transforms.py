@@ -20,7 +20,7 @@ from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyx
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.samples import DetectionSample
-from super_gradients.training.transforms.detection import DetectionPadIfNeeded, AbstractDetectionTransform
+from super_gradients.training.transforms.detection import DetectionPadIfNeeded, AbstractDetectionTransform, LegacyDetectionTransformMixin
 from super_gradients.training.transforms.utils import (
     _rescale_and_pad_to_size,
     _rescale_image,
@@ -398,7 +398,7 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
 
 
 @register_transform(Transforms.DetectionStandardize)
-class DetectionStandardize(AbstractDetectionTransform):
+class DetectionStandardize(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Standardize image pixel values with img/max_val
 
@@ -422,7 +422,7 @@ class DetectionStandardize(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionMosaic)
-class DetectionMosaic(AbstractDetectionTransform):
+class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     DetectionMosaic detection transform
 
@@ -502,7 +502,7 @@ class DetectionMosaic(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionRandomAffine)
-class DetectionRandomAffine(AbstractDetectionTransform):
+class DetectionRandomAffine(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     DetectionRandomAffine detection transform
 
@@ -585,7 +585,7 @@ class DetectionRandomAffine(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionMixup)
-class DetectionMixup(AbstractDetectionTransform):
+class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Mixup detection transform
 
@@ -692,7 +692,7 @@ class DetectionMixup(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionImagePermute)
-class DetectionImagePermute(AbstractDetectionTransform):
+class DetectionImagePermute(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Permute image dims. Useful for converting image from HWC to CHW format.
     """
@@ -739,7 +739,7 @@ class DetectionPadToSize(DetectionPadIfNeeded):
 
 
 @register_transform(Transforms.DetectionPaddedRescale)
-class DetectionPaddedRescale(AbstractDetectionTransform):
+class DetectionPaddedRescale(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Preprocessing transform to be applied last of all transforms for validation.
 
@@ -774,7 +774,7 @@ class DetectionPaddedRescale(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionHorizontalFlip)
-class DetectionHorizontalFlip(AbstractDetectionTransform):
+class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Horizontal Flip for Detection
 
@@ -806,7 +806,7 @@ class DetectionHorizontalFlip(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionVerticalFlip)
-class DetectionVerticalFlip(AbstractDetectionTransform):
+class DetectionVerticalFlip(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Vertical Flip for Detection
 
@@ -833,7 +833,7 @@ class DetectionVerticalFlip(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionRescale)
-class DetectionRescale(AbstractDetectionTransform):
+class DetectionRescale(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Resize image and bounding boxes to given image dimensions without preserving aspect ratio
 
@@ -871,7 +871,7 @@ class DetectionRescale(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionRandomRotate90)
-class DetectionRandomRotate90(AbstractDetectionTransform):
+class DetectionRandomRotate90(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     def __init__(self, prob: float = 0.5):
         super().__init__()
         self.prob = prob
@@ -944,7 +944,7 @@ class DetectionRandomRotate90(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionRGB2BGR)
-class DetectionRGB2BGR(AbstractDetectionTransform):
+class DetectionRGB2BGR(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Detection change Red & Blue channel of the image
 
@@ -975,7 +975,7 @@ class DetectionRGB2BGR(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionHSV)
-class DetectionHSV(AbstractDetectionTransform):
+class DetectionHSV(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Detection HSV transform.
 
@@ -1026,7 +1026,7 @@ class DetectionHSV(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionNormalize)
-class DetectionNormalize(AbstractDetectionTransform):
+class DetectionNormalize(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Normalize image by subtracting mean and dividing by std.
     """
@@ -1053,7 +1053,7 @@ class DetectionNormalize(AbstractDetectionTransform):
 
 
 @register_transform(Transforms.DetectionTargetsFormatTransform)
-class DetectionTargetsFormatTransform(AbstractDetectionTransform):
+class DetectionTargetsFormatTransform(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     Detection targets format transform
 
