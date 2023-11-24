@@ -27,8 +27,37 @@ class DetectionSample:
     image: Union[np.ndarray, torch.Tensor]
     bboxes_xyxy: np.ndarray
     labels: np.ndarray
-    is_crowd: Optional[np.ndarray]
+    is_crowd: np.ndarray
     additional_samples: Optional[List["DetectionSample"]]
+
+    def __init__(
+        self,
+        image: Union[np.ndarray, torch.Tensor],
+        bboxes_xyxy: np.ndarray,
+        labels: np.ndarray,
+        is_crowd: np.ndarray,
+        additional_samples: Optional[List["DetectionSample"]],
+    ):
+        if len(bboxes_xyxy) != len(labels):
+            raise ValueError("Number of bounding boxes and labels must be equal")
+
+        if len(bboxes_xyxy) != len(is_crowd):
+            raise ValueError("Number of bounding boxes and is_crowd flags must be equal")
+
+        if len(bboxes_xyxy.shape) != 2 or bboxes_xyxy.shape[1] != 4:
+            raise ValueError("Bounding boxes must be in [N,4] format")
+
+        if len(is_crowd.shape) != 1:
+            raise ValueError("Number of is_crowd flags must be in [N] format")
+
+        if len(labels.shape) != 1:
+            raise ValueError("Labels must be in [N] format")
+
+        self.image = image
+        self.bboxes_xyxy = bboxes_xyxy
+        self.labels = labels
+        self.is_crowd = is_crowd
+        self.additional_samples = additional_samples
 
     def sanitize_sample(self) -> "DetectionSample":
         """

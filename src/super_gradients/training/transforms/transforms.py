@@ -498,8 +498,8 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
             # 3 additional samples, total of 4
             all_samples: List[DetectionSample] = [sample] + sample.additional_samples
 
-            for i_mosaic, mosaic_sample in enumerate(all_samples):
-                img = mosaic_sample.image
+            for i_mosaic, sample in enumerate(all_samples):
+                img = sample.image
 
                 h0, w0 = img.shape[:2]  # orig hw
                 scale = min(1.0 * input_h / h0, 1.0 * input_w / w0)
@@ -515,7 +515,7 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
                 mosaic_img[l_y1:l_y2, l_x1:l_x2] = img[s_y1:s_y2, s_x1:s_x2]
                 padw, padh = l_x1 - s_x1, l_y1 - s_y1
 
-                bboxes = mosaic_sample.bboxes_xyxy * scale + np.array([[padw, padh, padw, padh]], dtype=np.float32)
+                bboxes = sample.bboxes_xyxy * scale + np.array([[padw, padh, padw, padh]], dtype=np.float32)
 
                 mosaic_labels.append(sample.labels)
                 mosaic_iscrowd.append(sample.is_crowd)
@@ -524,8 +524,8 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
             mosaic_iscrowd = np.concatenate(mosaic_iscrowd, 0)
             mosaic_labels = np.concatenate(mosaic_labels, 0)
             mosaic_bboxes = np.concatenate(mosaic_bboxes, 0)
-            mosaic_labels[:, [0, 2]] = np.clip(mosaic_labels[:, [0, 2]], 0, mosaic_img.shape[1])
-            mosaic_labels[:, [1, 3]] = np.clip(mosaic_labels[:, [1, 3]], 0, mosaic_img.shape[0])
+            mosaic_bboxes[:, [0, 2]] = np.clip(mosaic_bboxes[:, [0, 2]], 0, mosaic_img.shape[1])
+            mosaic_bboxes[:, [1, 3]] = np.clip(mosaic_bboxes[:, [1, 3]], 0, mosaic_img.shape[0])
 
             sample = DetectionSample(
                 image=mosaic_img,
@@ -536,6 +536,9 @@ class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin)
             )
 
         return sample
+
+    def get_equivalent_preprocessing(self):
+        raise NotImplementedError("get_equivalent_preprocessing is not implemented for non-deterministic transforms.")
 
 
 @register_transform(Transforms.DetectionRandomAffine)
@@ -643,13 +646,14 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
         flip_prob: float = 0.5,
         border_value: int = 114,
     ):
-        super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
+        super(DetectionMixup, self).__init__(additional_samples_count=1)
         self.input_dim = ensure_is_tuple_of_two(input_dim)
         self.mixup_scale = mixup_scale
         self.prob = prob
         self.enable_mixup = enable_mixup
         self.flip_prob = flip_prob
         self.border_value = border_value
+        self.non_empty_targets = True
         self.maybe_flip = DetectionHorizontalFlip(prob=flip_prob)
 
     def close(self):
