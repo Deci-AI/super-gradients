@@ -17,6 +17,7 @@ from super_gradients.common.factories.data_formats_factory import ConcatenatedTe
 from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.training.datasets.data_formats import ConcatenatedTensorFormatConverter
+from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyxy_to_xywh
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 from super_gradients.training.datasets.data_formats.formats import filter_on_bboxes, ConcatenatedTensorFormat
 from super_gradients.training.samples import DetectionSample
@@ -1123,17 +1124,18 @@ class DetectionTargetsFormatTransform(DetectionTransform):
 
     def apply_on_targets(self, targets: np.ndarray) -> np.ndarray:
         """Convert targets in input_format to output_format, filter small bboxes and pad targets"""
-        targets = self.targets_format_converter(targets)
         targets = self.filter_small_bboxes(targets)
+        targets = self.targets_format_converter(targets)
         return np.ascontiguousarray(targets, dtype=np.float32)
 
     def filter_small_bboxes(self, targets: np.ndarray) -> np.ndarray:
         """Filter bboxes smaller than specified threshold."""
 
         def _is_big_enough(bboxes: np.ndarray) -> np.ndarray:
-            return np.minimum(bboxes[:, 2], bboxes[:, 3]) > self.min_bbox_edge_size
+            bboxes_xywh = xyxy_to_xywh(bboxes, image_shape=None)
+            return np.minimum(bboxes_xywh[:, 2], bboxes_xywh[:, 3]) > self.min_bbox_edge_size
 
-        targets = filter_on_bboxes(fn=_is_big_enough, tensor=targets, tensor_format=self.output_format)
+        targets = filter_on_bboxes(fn=_is_big_enough, tensor=targets, tensor_format=self.input_format)
         return targets
 
     def get_equivalent_preprocessing(self) -> List:
@@ -1332,20 +1334,21 @@ def random_affine(
     return img, targets
 
 
-def _filter_box_candidates(box1, box2, wh_thr=2, ar_thr=20, area_thr=0.1):
+def _filter_box_candidates(original_bboxes: np.ndarray, transformed_bboxes: np.ndarray, wh_thr=2, ar_thr=20, area_thr=0.1) -> np.ndarray:
     """
-    compute candidate boxes
-        :param box1:        before augment
-        :param box2:        after augment
-        :param wh_thr:      wh_thr (pixels)
-        :param ar_thr:      aspect_ratio_thr
-        :param area_thr:    area_ratio
-    :return:
+    Filter out transformed bboxes by edge size, area ratio, and aspect ratio.
+
+    :param original_bboxes:    Input bboxes in XYXY format of [N,4] shape
+    :param transformed_bboxes: Transformed bboxes in XYXY format of [N,4] shape
+    :param wh_thr:             Size threshold (Boxes with width or height smaller than this values will be filtered out)
+    :param ar_thr:             Aspect ratio threshold (Boxes with aspect ratio larger than this values will be filtered out)
+    :param area_thr:           Area threshold (Boxes with area ratio smaller than this value will be filtered out)
+    :return:                   A boolean mask of [N] shape indicating which bboxes to keep.
     """
-    box1 = box1.T
-    box2 = box2.T
-    w1, h1 = box1[2] - box1[0], box1[3] - box1[1]
-    w2, h2 = box2[2] - box2[0], box2[3] - box2[1]
+    original_bboxes = original_bboxes.T
+    transformed_bboxes = transformed_bboxes.T
+    w1, h1 = original_bboxes[2] - original_bboxes[0], original_bboxes[3] - original_bboxes[1]
+    w2, h2 = transformed_bboxes[2] - transformed_bboxes[0], transformed_bboxes[3] - transformed_bboxes[1]
     ar = np.maximum(w2 / (h2 + 1e-16), h2 / (w2 + 1e-16))  # aspect ratio
     return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + 1e-16) > area_thr) & (ar < ar_thr)  # candidates
 
