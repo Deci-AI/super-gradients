@@ -669,8 +669,8 @@ class DetectionMixup(AbstractDetectionTransform, LegacyDetectionTransformMixin):
 
             jit_factor = random.uniform(*self.mixup_scale)
 
-            if len(sample.image) == 3:
-                cp_img = np.ones((target_dim[0], target_dim[1], 3), dtype=np.uint8) * self.border_value
+            if len(sample.image.shape) == 3:
+                cp_img = np.ones((target_dim[0], target_dim[1], sample.image.shape[2]), dtype=np.uint8) * self.border_value
             else:
                 cp_img = np.ones(target_dim, dtype=np.uint8) * self.border_value
 
@@ -833,7 +833,7 @@ class DetectionHorizontalFlip(AbstractDetectionTransform, LegacyDetectionTransfo
         """
         if random.random() < self.prob:
             sample.image = _flip_horizontal_image(sample.image)
-            sample.bboxes_xyxy = _flip_horizontal_boxes_xyxy(sample.bboxes_xyxy, sample.image.shape[0])
+            sample.bboxes_xyxy = _flip_horizontal_boxes_xyxy(sample.bboxes_xyxy, sample.image.shape[1])
         return sample
 
     def get_equivalent_preprocessing(self) -> List[Dict]:
