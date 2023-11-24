@@ -42,7 +42,7 @@ class DetectionLongestMaxSize(AbstractDetectionTransform):
             if sample.image.shape[0] > self.max_height or sample.image.shape[1] > self.max_width:
                 raise RuntimeError(f"Image shape is not as expected (scale={scale}, input_shape={height, width}, resized_shape={sample.image.shape[:2]}")
 
-            sample.bboxes_xywh = self.apply_to_bboxes(sample.bboxes_xywh, scale)
+            sample.bboxes_xyxy = self.apply_to_bboxes(sample.bboxes_xyxy, scale)
 
         return sample
 

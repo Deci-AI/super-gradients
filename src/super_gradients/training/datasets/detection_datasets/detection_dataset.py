@@ -21,7 +21,6 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 from super_gradients.common.object_names import Datasets, Processings
 from super_gradients.common.registry.registry import register_dataset
 from super_gradients.module_interfaces import HasPreprocessingParams
-from super_gradients.training.datasets.data_formats.bbox_formats.xywh import xyxy_to_xywh
 from super_gradients.training.datasets.data_formats.default_formats import XYXY_LABEL
 from super_gradients.training.datasets.data_formats.formats import ConcatenatedTensorFormat, LabelTensorSliceItem
 from super_gradients.training.samples import DetectionSample
@@ -469,10 +468,9 @@ class DetectionDataset(Dataset, HasPreprocessingParams):
             labels = np.concatenate([labels, crowd_labels], axis=0)
             is_crowd = np.concatenate([is_crowd, np.ones_like(crowd_labels, dtype=bool)], axis=0)
 
-        bboxes_xywh = xyxy_to_xywh(bboxes_xyxy, image_shape=None)
         return DetectionSample(
             image=sample_annotations["image"],
-            bboxes_xywh=bboxes_xywh,
+            bboxes_xyxy=bboxes_xyxy,
             labels=labels,
             is_crowd=is_crowd,
             additional_samples=None,

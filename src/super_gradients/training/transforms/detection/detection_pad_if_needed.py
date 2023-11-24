@@ -3,7 +3,7 @@ from typing import List
 from super_gradients.common.object_names import Transforms, Processings
 from super_gradients.common.registry.registry import register_transform
 from super_gradients.training.samples import DetectionSample
-from super_gradients.training.transforms.utils import _pad_image, PaddingCoordinates, _shift_bboxes_xywh
+from super_gradients.training.transforms.utils import _pad_image, PaddingCoordinates, _shift_bboxes_xyxy
 from . import AbstractDetectionTransform
 
 
@@ -52,7 +52,7 @@ class DetectionPadIfNeeded(AbstractDetectionTransform):
         padding_coordinates = PaddingCoordinates(top=pad_top, bottom=pad_bottom, left=pad_left, right=pad_right)
 
         sample.image = _pad_image(sample.image, padding_coordinates, self.image_pad_value)
-        sample.bboxes_xywh = _shift_bboxes_xywh(sample.bboxes_xywh, pad_left, pad_top)
+        sample.bboxes_xyxy = _shift_bboxes_xyxy(sample.bboxes_xyxy, pad_left, pad_top)
         return sample
 
     def get_equivalent_preprocessing(self) -> List:
