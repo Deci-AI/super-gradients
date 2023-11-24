@@ -462,7 +462,7 @@ class DetectionStandardize(AbstractDetectionTransform, LegacyDetectionTransformM
 
 
 @register_transform(Transforms.DetectionMosaic)
-class DetectionMosaic(DetectionTransform):
+class DetectionMosaic(AbstractDetectionTransform, LegacyDetectionTransformMixin):
     """
     DetectionMosaic detection transform
 
@@ -483,14 +483,12 @@ class DetectionMosaic(DetectionTransform):
         self.additional_samples_count = 0
         self.enable_mosaic = False
 
-    def apply_to_sample(self, sample):
-        # TODO: Implement this
-        return sample
-
-    def __call__(self, sample: Union[dict, list]):
+    def apply_to_sample(self, sample: DetectionSample) -> DetectionSample:
         if self.enable_mosaic and random.random() < self.prob:
             mosaic_labels = []
-            mosaic_labels_seg = []
+            mosaic_bboxes = []
+            mosaic_iscrowd = []
+
             input_h, input_w = self.input_dim[0], self.input_dim[1]
 
             # yc, xc = s, s  # mosaic center x, y
@@ -498,11 +496,10 @@ class DetectionMosaic(DetectionTransform):
             xc = int(random.uniform(0.5 * input_w, 1.5 * input_w))
 
             # 3 additional samples, total of 4
-            all_samples = [sample] + sample["additional_samples"]
+            all_samples: List[DetectionSample] = [sample] + sample.additional_samples
 
             for i_mosaic, mosaic_sample in enumerate(all_samples):
-                img, _labels = mosaic_sample["image"], mosaic_sample["target"]
-                _labels_seg = mosaic_sample.get("target_seg")
+                img = mosaic_sample.image
 
                 h0, w0 = img.shape[:2]  # orig hw
                 scale = min(1.0 * input_h / h0, 1.0 * input_w / w0)
@@ -518,40 +515,25 @@ class DetectionMosaic(DetectionTransform):
                 mosaic_img[l_y1:l_y2, l_x1:l_x2] = img[s_y1:s_y2, s_x1:s_x2]
                 padw, padh = l_x1 - s_x1, l_y1 - s_y1
 
-                labels = _labels.copy()
+                bboxes = mosaic_sample.bboxes_xyxy * scale + np.array([[padw, padh, padw, padh]], dtype=np.float32)
 
-                # Normalized xywh to pixel xyxy format
-                if _labels.size > 0:
-                    labels[:, 0] = scale * _labels[:, 0] + padw
-                    labels[:, 1] = scale * _labels[:, 1] + padh
-                    labels[:, 2] = scale * _labels[:, 2] + padw
-                    labels[:, 3] = scale * _labels[:, 3] + padh
-                mosaic_labels.append(labels)
+                mosaic_labels.append(sample.labels)
+                mosaic_iscrowd.append(sample.is_crowd)
+                mosaic_bboxes.append(bboxes)
 
-                if _labels_seg is not None:
-                    labels_seg = _labels_seg.copy()
-                    if _labels.size > 0:
-                        labels_seg[:, ::2] = scale * labels_seg[:, ::2] + padw
-                        labels_seg[:, 1::2] = scale * labels_seg[:, 1::2] + padh
-                    mosaic_labels_seg.append(labels_seg)
+            mosaic_iscrowd = np.concatenate(mosaic_iscrowd, 0)
+            mosaic_labels = np.concatenate(mosaic_labels, 0)
+            mosaic_bboxes = np.concatenate(mosaic_bboxes, 0)
+            mosaic_labels[:, [0, 2]] = np.clip(mosaic_labels[:, [0, 2]], 0, mosaic_img.shape[1])
+            mosaic_labels[:, [1, 3]] = np.clip(mosaic_labels[:, [1, 3]], 0, mosaic_img.shape[0])
 
-            if len(mosaic_labels):
-                mosaic_labels = np.concatenate(mosaic_labels, 0)
-                np.clip(mosaic_labels[:, 0], 0, 2 * input_w, out=mosaic_labels[:, 0])
-                np.clip(mosaic_labels[:, 1], 0, 2 * input_h, out=mosaic_labels[:, 1])
-                np.clip(mosaic_labels[:, 2], 0, 2 * input_w, out=mosaic_labels[:, 2])
-                np.clip(mosaic_labels[:, 3], 0, 2 * input_h, out=mosaic_labels[:, 3])
-
-            if len(mosaic_labels_seg):
-                mosaic_labels_seg = np.concatenate(mosaic_labels_seg, 0)
-                np.clip(mosaic_labels_seg[:, ::2], 0, 2 * input_w, out=mosaic_labels_seg[:, ::2])
-                np.clip(mosaic_labels_seg[:, 1::2], 0, 2 * input_h, out=mosaic_labels_seg[:, 1::2])
-
-            sample["image"] = mosaic_img
-            sample["target"] = mosaic_labels
-            sample["info"] = (mosaic_img.shape[1], mosaic_img.shape[0])
-            if len(mosaic_labels_seg):
-                sample["target_seg"] = mosaic_labels_seg
+            sample = DetectionSample(
+                image=mosaic_img,
+                bboxes_xyxy=mosaic_bboxes,
+                labels=mosaic_labels,
+                is_crowd=mosaic_iscrowd,
+                additional_samples=None,
+            )
 
         return sample
 
